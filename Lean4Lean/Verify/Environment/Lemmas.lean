@@ -296,4 +296,4 @@ theorem TrEnv'.of_value (H : TrEnv' safety C Q venv) (h : C.find? name = some ci
 nonrec theorem TrEnv.of_value (H : TrEnv safety env venv) (h : env.find? name = some ci)
     (hs : safety ≤ ci.safety) (hv : ci.deltaValue? = some v) :
     TrExpr venv ci.levelParams [] v (.const ci.name (VLevel.params ci.levelParams.length)) :=
-  H.of_value (by rwa [← H.map_wf.find?'_eq_find?]) hs hv
+  H.of_value (by rwa [← H.map_wf.find?'_eq_find?]) hs hci hv

@@ -17,23 +17,69 @@ def ExprBuildT.run [Monad m] (x : ExprBuildT m α) : m α := x {} {}
 instance : MonadLocalNameGenerator (ExprBuildT m) where
   withFreshId x c ngen := x ngen.curr c ngen.next
 
-def checkEqType (env : Environment) : Except Exception Unit := do
-  let fail {α} (s : String) : Except Exception α :=
-    throw <| .other s!"failed to initialize quot module, {s}"
-  let .inductInfo info ← env.get ``Eq | fail "environment does not have 'Eq' type"
-  let [u] := info.levelParams | fail "unexpected number of universe params at 'Eq' type"
-  let [eqRefl] := info.ctors | fail "unexpected number of constructors for 'Eq' type"
-  ExprBuildT.run do
-    withLocalDecl `α .implicit (.sort (.param u)) fun α => do
-      if info.type != ((← read).mkForall #[α] <| .arrow α <| .arrow α .prop) then
-        fail "'Eq' has an expected type"
-    let info ← env.get eqRefl
-    let [u] := info.levelParams
-      | fail "unexpected number of universe params at 'Eq' type constructor"
-    withLocalDecl `α .implicit (.sort (.param u)) fun α => do
-      withLocalDecl `a .default α fun a => do
-        if info.type != ((← read).mkForall #[α, a] <| mkApp3 (.const ``Eq [.param u]) α a a) then
-          fail "unexpected type for 'Eq' type constructor"
+private def eqTypeExpr (u : Name) : Expr :=
+  .forallE `α (.sort (.param u))
+    (.forallE `a (.bvar 0) (.forallE `b (.bvar 1) .prop .default) .default) .implicit
+
+private def eqReflTypeExpr (u : Name) : Expr :=
+  .forallE `α (.sort (.param u))
+    (.forallE `a (.bvar 0)
+      (mkApp3 (.const ``Eq [.param u]) (.bvar 1) (.bvar 0) (.bvar 0)) .default) .implicit
+
+private def quotTypeExpr : Expr :=
+  .forallE `α (.sort (.param `u))
+    (.forallE `r (.arrow (.bvar 0) <| .arrow (.bvar 1) .prop)
+      (.sort (.param `u)) .default) .implicit
+
+private def quotMkTypeExpr : Expr :=
+  .forallE `α (.sort (.param `u))
+    (.forallE `r (.arrow (.bvar 0) <| .arrow (.bvar 1) .prop)
+      (.forallE `a (.bvar 1)
+        (mkApp2 (.const ``Quot [.param `u]) (.bvar 2) (.bvar 1)) .default) .default) .implicit
+
+private def quotLiftTypeExpr : Expr :=
+  .forallE `α (.sort (.param `u))
+    (.forallE `r (.arrow (.bvar 0) <| .arrow (.bvar 1) .prop)
+      (.forallE `β (.sort (.param `v))
+        (.forallE `f (.arrow (.bvar 2) <| .bvar 1)
+          (.forallE `c
+            (.forallE `a (.bvar 3)
+              (.forallE `b (.bvar 4)
+                (.arrow (mkApp2 (.bvar 4) (.bvar 1) (.bvar 0))
+                  (mkApp3 (.const ``Eq [.param `v]) (.bvar 4)
+                    (.app (.bvar 3) (.bvar 2)) (.app (.bvar 3) (.bvar 1)))) .default) .default)
+            (.arrow (mkApp2 (.const ``Quot [.param `u]) (.bvar 4) (.bvar 3)) (.bvar 3))
+            .default) .default) .implicit) .implicit) .implicit
+
+private def quotIndTypeExpr : Expr :=
+  .forallE `α (.sort (.param `u))
+    (.forallE `r (.arrow (.bvar 0) <| .arrow (.bvar 1) .prop)
+      (.forallE `β
+        (.forallE `q (mkApp2 (.const ``Quot [.param `u]) (.bvar 1) (.bvar 0)) .prop .default)
+        (.forallE `mk
+          (.forallE `a (.bvar 2)
+            (.app (.bvar 1) (mkApp3 (.const ``Quot.mk [.param `u])
+              (.bvar 3) (.bvar 2) (.bvar 0))) .default)
+          (.forallE `q (mkApp2 (.const ``Quot [.param `u]) (.bvar 3) (.bvar 2))
+            (.app (.bvar 2) (.bvar 0)) .default) .default) .implicit) .implicit) .implicit
+
+private def eqReady? (env : Environment) : Bool :=
+  match env.find? ``Eq with
+  | some (.inductInfo info) =>
+    match info.levelParams, info.ctors with
+    | [u], [eqRefl] => !info.isUnsafe && info.type == eqTypeExpr u &&
+      match env.find? eqRefl with
+      | some (.ctorInfo info) =>
+        match info.levelParams with
+        | [u] => !info.isUnsafe && info.type == eqReflTypeExpr u
+        | _ => false
+      | _ => false
+    | _, _ => false
+  | _ => false
+
+def checkEqType (env : Environment) : Except Exception Unit :=
+  if eqReady? env then pure () else
+    throw <| .other "failed to initialize quot module, unexpected declaration of 'Eq'"
 
 def Environment.addQuot (env : Environment) : Except Exception Environment := do
   if env.quotInit then return env
@@ -80,10 +126,13 @@ def Environment.addQuot (env : Environment) : Except Exception Environment := do
   -- constant Quot.ind.{u} {α : Sort u} {r : α → α → Prop} {β : @Quot.{u} α r → Prop} :
   --   (∀ a : α, β (@Quot.mk.{u} α r a)) → ∀ q : @Quot.{u} α r, β q
   let env := env.add <| .quotInfo {
-    name := ``Quot.ind, kind := .ind, levelParams := [`u]
-    type := (← read).mkForall #[α, r, β] <|
-      .forallE `mk all_quot ((← read).mkForall #[q] <| .app β q) .default
-  }
+    name := ``Quot, kind := .type, levelParams := [`u], type := quotTypeExpr }
+  let env := env.add <| .quotInfo {
+    name := ``Quot.mk, kind := .ctor, levelParams := [`u], type := quotMkTypeExpr }
+  let env := env.add <| .quotInfo {
+    name := ``Quot.lift, kind := .lift, levelParams := [`u, `v], type := quotLiftTypeExpr }
+  let env := env.add <| .quotInfo {
+    name := ``Quot.ind, kind := .ind, levelParams := [`u], type := quotIndTypeExpr }
   return markQuotInit env
 
 /-- Reduces the head application of a quotient eliminator as follows:

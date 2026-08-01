@@ -3,6 +3,26 @@ import Batteries.Tactic.OpenPrivate
 
 namespace Lean.Kernel.Environment
 
+open private Lean.Kernel.Environment.add markQuotInit from Lean.Environment
+
+def _root_.Lean.ConstantInfo.safety (ci : ConstantInfo) : DefinitionSafety :=
+  if ci.isUnsafe then .unsafe else if ci.isPartial then .partial else .safe
+
+@[simp] theorem add_constants (env : Environment) (ci : ConstantInfo) :
+    (env.add ci).constants = env.constants.insert ci.name ci := rfl
+
+@[simp] theorem add_quotInit (env : Environment) (ci : ConstantInfo) :
+    (env.add ci).quotInit = env.quotInit := rfl
+
+@[simp] theorem markQuotInit_constants (env : Environment) :
+    (markQuotInit env).constants = env.constants := rfl
+
+@[simp] theorem markQuotInit_quotInit (env : Environment) :
+    (markQuotInit env).quotInit = true := rfl
+
+@[simp] theorem markQuotInit_find? (env : Environment) (n : Name) :
+    (markQuotInit env).find? n = env.find? n := rfl
+
 def contains (env : Environment) (n : Name) : Bool :=
   env.constants.contains n
 

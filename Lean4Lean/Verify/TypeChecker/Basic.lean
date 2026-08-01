@@ -983,7 +983,7 @@ def UnfoldDefinition.WF (c : VContext) (e e₀ : Expr) (e' : VExpr) : Option Exp
 theorem unfoldDefinitionCore.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
     RecM.WF c s (unfoldDefinitionCore e) fun oe _ => UnfoldDefinition.WF c e e e' oe := by
   dsimp [unfoldDefinitionCore]
-  split <;> [refine .getEnv ?_; (rename_i H; exact .pure fun _ _ _ _ _ _ h => nomatch H _ _ h)]
+  split <;> [refine .getEnv ?_; (rename_i H; exact .pure fun _ _ _ _ _ _ _ h => nomatch H _ _ h)]
   split; rotate_left
   · rename_i H; refine .pure ?_; rintro _ _ _ _ h1 h2 ⟨⟩ hlen
     cases H _ (isDelta_is_some.2 ⟨_, h1, ⟨_, h2⟩, _, rfl, hlen⟩)
