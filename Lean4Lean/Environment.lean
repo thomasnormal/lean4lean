@@ -160,3 +160,21 @@ def addDecl (env : Environment) (decl : Declaration) (check := true) (fuel : Fue
   | .inductDecl lparams nparams types isUnsafe =>
     let allowPrimitive ← checkPrimitiveInductive env lparams nparams types isUnsafe
     addInductive env lparams nparams types isUnsafe allowPrimitive fuel
+
+/-- The declaration fragment covered by the current end-to-end verification proof. -/
+def addDeclVerified (env : Environment) (decl : Declaration)
+    (fuel : FuelConfig := {}) : Except Exception Environment := do
+  match decl with
+  | .axiomDecl v => addAxiom env v true fuel
+  | .defnDecl v =>
+    if v.safety == .unsafe then
+      throw <| .other "unsafe definitions are not supported by the verified checker"
+    addDefinition env v true fuel
+  | .thmDecl v => addTheorem env v true fuel
+  | .opaqueDecl v => addOpaque env v true fuel
+  | .mutualDefnDecl _ =>
+    throw <| .other "mutual definitions are not supported by the verified checker"
+  | .quotDecl =>
+    throw <| .other "quotient initialization is not supported by the verified checker"
+  | .inductDecl .. =>
+    throw <| .other "inductive declarations are not supported by the verified checker"
