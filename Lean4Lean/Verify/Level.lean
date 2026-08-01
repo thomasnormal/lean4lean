@@ -3825,7 +3825,7 @@ theorem normalize'_eval (hu : VLevel.ofLevel ls u = some u') :
   rw [normalize'_eq, Tree.reify_eval, NormLevel.toTree_eval normalize_sorted normalize_feas]
   exact normalize_eval hu
 
-theorem geq'_wf (hu : VLevel.ofLevel ls u = some u') (hv : VLevel.ofLevel ls v = some v')
+theorem geq'_wfCanonical (hu : VLevel.ofLevel ls u = some u') (hv : VLevel.ofLevel ls v = some v')
     (h : geq' u v) : v' ≤ u' := by
   simp only [geq', Bool.or_eq_true] at h
   obtain h | h := h
@@ -3870,7 +3870,7 @@ of its sublevels (`separation`), which is exactly what the discharging fold in
 theorem geq'_complete (hu : VLevel.ofLevel ls u = some u')
     (hv : VLevel.ofLevel ls v = some v') : geq' u v ↔ v' ≤ u' := by
   open Normalize in
-  refine ⟨geq'_wf hu hv, fun h => ?_⟩
+  refine ⟨geq'_wfCanonical hu hv, fun h => ?_⟩
   simp only [geq', Bool.or_eq_true]
   refine .inr ?_
   refine NormLevel.le_complete normalize_sortedVars normalize_sortedVars normalize_nonempty
@@ -3878,3 +3878,157 @@ theorem geq'_complete (hu : VLevel.ofLevel ls u = some u')
   refine NormLevel.separation (normalize_keys hv) normalize_vars fun ρ => ?_
   rw [normalize_eval hv, normalize_eval hu]
   exact h ρ
+
+def evalLevel (s : Name → Nat) : Level → Nat
+  | .zero => 0
+  | .succ u => evalLevel s u + 1
+  | .max u v => Nat.max (evalLevel s u) (evalLevel s v)
+  | .imax u v => Nat.imax (evalLevel s u) (evalLevel s v)
+  | .param n => s n
+  | .mvar n => s n.name
+
+theorem evalLevel_getLevelOffset_add (u : Level) :
+    evalLevel s u = evalLevel s u.getLevelOffset + u.getOffset := by
+  rw [getOffset_eq]
+  induction u <;> simp [evalLevel, getLevelOffset, getOffset', *] <;> omega
+
+theorem evalLevel_imax_ge_right (u v : Level) :
+    evalLevel s v ≤ evalLevel s (.imax u v) := by
+  by_cases h : evalLevel s v = 0
+  · simp [evalLevel, Nat.imax, h]
+  · simp [evalLevel, Nat.imax, h, Nat.le_max_right]
+
+theorem evalLevel_imax_le_max (u v : Level) :
+    evalLevel s (.imax u v) ≤ Nat.max (evalLevel s u) (evalLevel s v) := by
+  by_cases h : evalLevel s v = 0
+  · simp [evalLevel, Nat.imax, h]
+  · simp [evalLevel, Nat.imax, h]
+
+theorem evalLevel_isNeverZero (h : u.isNeverZero) : evalLevel s u ≠ 0 := by
+  induction u <;> simp [Level.isNeverZero, evalLevel] at h ⊢
+  case max ih₁ ih₂ =>
+    intro hz₁ hz₂
+    obtain h | h := h
+    · exact ih₁ h hz₁
+    · exact ih₂ h hz₂
+  case imax ih₁ ih₂ =>
+    simp [Nat.imax, ih₂ h]
+
+theorem normalizeIMax_eval (u v : Level) :
+    evalLevel s (normalizeIMax u v) = evalLevel s (.imax u v) := by
+  unfold normalizeIMax
+  split <;> rename_i h
+  · have := LawfulBEq.eq_of_beq h
+    subst u
+    simp [evalLevel, Nat.imax]
+  split <;> rename_i h
+  · have := LawfulBEq.eq_of_beq h
+    subst u
+    by_cases hz : evalLevel s v = 0
+    · simp [evalLevel, Nat.imax, hz]
+    · have hv : 1 ≤ evalLevel s v := Nat.one_le_iff_ne_zero.2 hz
+      simp [evalLevel, Nat.imax, hz, Nat.max_eq_right hv]
+  split <;> rename_i h
+  · have := LawfulBEq.eq_of_beq h
+    subst v
+    by_cases hz : evalLevel s u = 0 <;> simp [evalLevel, Nat.imax, hz]
+  split <;> rename_i h
+  · have hn := evalLevel_isNeverZero (s := s) h
+    simp [evalLevel, Nat.imax, hn]
+  · rfl
+
+theorem normalizeCore_eval (u : Level) :
+    evalLevel s (normalizeCore u) = evalLevel s u := by
+  induction u <;> simp [normalizeCore, evalLevel, normalizeIMax_eval, *]
+
+theorem geqCore_sound (u v : Level) (h : geqCore u v) :
+    evalLevel s v ≤ evalLevel s u := by
+  suffices ∀ n u v, sizeOf u + sizeOf v = n → geqCore u v →
+      evalLevel s v ≤ evalLevel s u from this _ u v rfl h
+  intro n
+  induction n using Nat.strongRecOn with
+  | ind n ih =>
+    intro u v hn h
+    subst n
+    have recurse (u' v' : Level) (hlt : sizeOf u' + sizeOf v' < sizeOf u + sizeOf v)
+        (h : geqCore u' v') : evalLevel s v' ≤ evalLevel s u' :=
+      ih _ hlt u' v' rfl h
+    rw [geqCore.eq_def] at h
+    simp only [Bool.or_eq_true] at h
+    obtain h | h := h
+    · have := LawfulBEq.eq_of_beq h
+      subst v
+      exact Nat.le_refl _
+    have offset_sound
+        (h : (u.getLevelOffset == v.getLevelOffset || v.getLevelOffset.isZero) &&
+          u.getOffset ≥ v.getOffset) :
+        evalLevel s v ≤ evalLevel s u := by
+      simp at h
+      have eu := evalLevel_getLevelOffset_add (s := s) u
+      have ev := evalLevel_getLevelOffset_add (s := s) v
+      have hoff : v.getOffset ≤ u.getOffset := by
+        simpa [getOffset_eq] using h.2
+      obtain hbase | hzero := h.1
+      · rw [ev, eu, hbase]
+        omega
+      · have hz : v.getLevelOffset = .zero := by
+          cases heq : v.getLevelOffset <;> simp [Level.isZero, heq] at hzero
+          rfl
+        rw [ev, eu, hz]
+        simp only [evalLevel, Nat.zero_add]
+        omega
+    cases u <;> cases v <;> simp only [evalLevel] at h ⊢
+    all_goals try exact Nat.zero_le _
+    all_goals try
+      simp only [Bool.and_eq_true] at h
+      exact Nat.max_le.2 ⟨recurse _ _ (by simp_wf <;> omega) h.1,
+        recurse _ _ (by simp_wf <;> omega) h.2⟩
+    all_goals try
+      exact Nat.le_trans (recurse _ _ (by simp_wf <;> omega) h)
+        (evalLevel_imax_ge_right ..)
+    all_goals try
+      exact Nat.succ_le_succ (recurse _ _ (by simp_wf <;> omega) h)
+    all_goals try exact offset_sound h
+    all_goals try
+      simp only [Bool.or_eq_true, Bool.and_eq_true] at h
+      rcases h with (h | h) | h
+      · exact Nat.le_trans (recurse _ _ (by simp_wf <;> omega) h) (Nat.le_max_left ..)
+      · exact Nat.le_trans (recurse _ _ (by simp_wf <;> omega) h) (Nat.le_max_right ..)
+      · exact Nat.le_trans (evalLevel_imax_le_max _ _)
+          (Nat.max_le.2 ⟨recurse _ _ (by simp_wf <;> omega) h.1,
+            recurse _ _ (by simp_wf <;> omega) h.2⟩)
+    all_goals try
+      simp only [Bool.or_eq_true] at h
+      rcases h with (h | h) | h
+      · exact Nat.le_trans (recurse _ _ (by simp_wf <;> omega) h) (Nat.le_max_left ..)
+      · exact Nat.le_trans (recurse _ _ (by simp_wf <;> omega) h) (Nat.le_max_right ..)
+      · exact offset_sound h
+    all_goals try
+      simp only [Bool.and_eq_true] at h
+      exact Nat.le_trans (evalLevel_imax_le_max _ _)
+        (Nat.max_le.2 ⟨recurse _ _ (by simp_wf <;> omega) h.1,
+          recurse _ _ (by simp_wf <;> omega) h.2⟩)
+
+theorem evalLevel_ofLevel (hu : VLevel.ofLevel ls u = some u') :
+    evalLevel (Normalize.evalParam ls ρ) u = u'.eval ρ := by
+  induction u generalizing u' with
+  | zero => cases hu; rfl
+  | succ u ih =>
+    simp [VLevel.ofLevel] at hu
+    obtain ⟨u', hu, rfl⟩ := hu
+    simp [evalLevel, VLevel.eval, ih hu]
+  | max u v ihu ihv | imax u v ihu ihv =>
+    simp [VLevel.ofLevel] at hu
+    obtain ⟨u', hu, v', hv, rfl⟩ := hu
+    simp [evalLevel, VLevel.eval, ihu hu, ihv hv]
+  | param n =>
+    simp [VLevel.ofLevel] at hu
+    obtain ⟨h, rfl⟩ := hu
+    simp [evalLevel, VLevel.eval, Normalize.evalParam_eq h,
+      List.getD_eq_getElem?_getD]
+  | mvar => simp [VLevel.ofLevel] at hu
+
+theorem geq'_wf (comparison : geq' left right)
+    (leftTranslated : VLevel.ofLevel levels left = some leftModel)
+    (rightTranslated : VLevel.ofLevel levels right = some rightModel) : rightModel ≤ leftModel :=
+  geq'_wfCanonical leftTranslated rightTranslated comparison
