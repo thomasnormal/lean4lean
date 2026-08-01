@@ -4,6 +4,61 @@ import Lean4Lean.Verify.TypeChecker
 namespace Lean4Lean
 open Lean hiding Environment Exception
 open Kernel TypeChecker
+open private eqReady? eqTypeExpr quotTypeExpr quotMkTypeExpr quotLiftTypeExpr
+  quotIndTypeExpr from Lean4Lean.Quot
+
+private def trExprResult (Us : List Name) (Δ : VLCtx) : Expr → Option VExpr
+  | .bvar i => (Δ.find? (.inl i)).map fun x => x.1
+  | .sort u => (VLevel.ofLevel Us u).map VExpr.sort
+  | .const c us => (us.mapM (VLevel.ofLevel Us)).map (VExpr.const c)
+  | .app f a => return .app (← trExprResult Us Δ f) (← trExprResult Us Δ a)
+  | .forallE _ ty body _ => do
+    let ty' ← trExprResult Us Δ ty
+    return .forallE ty' (← trExprResult Us ((none, .vlam ty') :: Δ) body)
+  | .mdata _ e => trExprResult Us Δ e
+  | _ => none
+
+private theorem TrExprS.eq_trExprResult (H : TrExprS env Us Δ e e')
+    (hr : trExprResult Us Δ e = some r) : e' = r := by
+  induction H generalizing r with
+  | bvar h => simp [trExprResult, h] at hr; exact hr
+  | fvar => simp [trExprResult] at hr
+  | sort h => simp [trExprResult, h] at hr; exact hr
+  | const _ hm _ => simp [trExprResult, hm] at hr; exact hr
+  | app _ _ _ _ ihf iha =>
+    simp [trExprResult] at hr
+    rcases hr with ⟨rf, hf, ra, ha, rfl⟩
+    rw [ihf hf, iha ha]
+  | forallE _ _ _ _ iht ihb =>
+    simp [trExprResult] at hr
+    rcases hr with ⟨rt, ht, rb, hb, rfl⟩
+    have := iht ht
+    subst rt
+    rw [ihb hb]
+  | mdata _ ih => exact ih hr
+  | lam | letE | lit | proj => simp [trExprResult] at hr
+
+private theorem trEqType_eq
+    (h : TrExprS env [u] [] (eqTypeExpr u) e) : e = eqConst.type :=
+  h.eq_trExprResult (by
+    simp [trExprResult, eqTypeExpr, eqConst, Lean.Expr.prop, VLevel.ofLevel, VLCtx.find?, VLCtx.next,
+      VLocalDecl.value, VLocalDecl.type, VLocalDecl.depth, VExpr.liftN, liftVar])
+
+private theorem trQuotType_eq
+    (h : TrExprS env [`u] [] quotTypeExpr e) : e = quotConst.type :=
+  h.eq_trExprResult rfl
+
+private theorem trQuotMkType_eq
+    (h : TrExprS env [`u] [] quotMkTypeExpr e) : e = quotMkConst.type :=
+  h.eq_trExprResult rfl
+
+private theorem trQuotLiftType_eq
+    (h : TrExprS env [`u, `v] [] quotLiftTypeExpr e) : e = quotLiftConst.type :=
+  h.eq_trExprResult rfl
+
+private theorem trQuotIndType_eq
+    (h : TrExprS env [`u] [] quotIndTypeExpr e) : e = quotIndConst.type :=
+  h.eq_trExprResult rfl
 
 private theorem primitive_contains (n : Name) (h : n ∈ [
     ``Bool, ``Bool.false, ``Bool.true, ``Nat, ``Nat.zero, ``Nat.succ,
@@ -60,6 +115,37 @@ theorem checkName.WF (env : Environment) (n : Name) (allowPrimitive : Bool) :
     cases hp : Environment.primitives.contains n
     · rfl
     · simp [hp] at h
+
+theorem checkEqType.WF {ves : VEnvs} (wf : ves.WF env) :
+    (checkEqType env).WF fun _ => ∀ safety, (ves.venv safety).QuotReady := by
+  intro _ h
+  have hready : eqReady? env := by
+    cases hr : eqReady? env
+    · simp [checkEqType, hr] at h
+    · rfl
+  have hex : ∃ u info,
+      env.find? ``Eq = some (.inductInfo info) ∧
+      info.levelParams = [u] ∧ info.isUnsafe = false ∧ info.type == eqTypeExpr u := by
+    unfold eqReady? at hready
+    repeat first | split at hready | simp_all
+  obtain ⟨u, info, hfind, hparams, hsafe, htype⟩ := hex
+  intro safety
+  have hcisafe : (ConstantInfo.inductInfo info).safety = .safe := by
+    simp [ConstantInfo.safety, ConstantInfo.isUnsafe, ConstantInfo.isPartial, hsafe]
+  obtain ⟨ci, hci, htr⟩ := (wf.tr (safety := safety)).find? hfind
+    (hcisafe ▸ DefinitionSafety.le_safe)
+  have htreq := htr.2.2.eqv htype
+  change TrExprS (ves.venv safety) info.levelParams [] (eqTypeExpr u) ci.type at htreq
+  rw [hparams] at htreq
+  have htype' : ci.type = eqConst.type := trEqType_eq htreq
+  have huvars : ci.uvars = 1 := by
+    have huv := htr.2.1
+    change info.levelParams.length = ci.uvars at huv
+    simpa [hparams] using huv.symm
+  show (ves.venv safety).constants ``Eq = some eqConst
+  rw [hci]
+  cases ci
+  simp_all [eqConst]
 
 theorem checkPrimitiveHeader.WF (v : DefinitionVal) :
     (checkPrimitiveHeader v).WF fun _ =>
@@ -715,6 +801,282 @@ theorem addAxiom.WF {ves : VEnvs} (wf : ves.WF env) (v : AxiomVal)
     · exact VEnv.addConst_le ((ves.venv safety).addConst_insert (hvnone safety))
     · exact .rfl
 
+private theorem addQuotInfo.WF {ves : VEnvs} (wf : ves.WF env)
+    (hq : env.quotInit = false) (v : QuotVal) (ci' : VConstant)
+    (htype : ∀ {type'}, TrExprS (ves.venv .safe) v.levelParams [] v.type type' →
+      type' = ci'.type)
+    (huvars : v.levelParams.length = ci'.uvars) (fuel : FuelConfig := {}) :
+    (addQuotInfo env v fuel).WF fun env' =>
+      ∃ ves' : VEnvs, env' = env.add (.quotInfo v) ∧ VEnvs.WF env' ves' ∧
+        (∀ safety, ves.venv safety ≤ ves'.venv safety) ∧
+        ∀ safety, TrConstant safety (ves.venv safety) (.quotInfo v) ci' ∧
+          (ves.venv safety).addConst v.name ci' = some (ves'.venv safety) ∧
+          env.constants.find? v.name = none := by
+  unfold addQuotInfo
+  refine (M.WF.run wf (checkConstantVal.WF (ves := ves) wf v.toConstantVal false
+    (safety := .safe) (fuel := fuel))).bind
+    fun _ ⟨vty, htr, hvwf, hfresh, hnprim⟩ => ?_
+  apply Except.WF.pure
+  have hvty : vty = ci'.type := htype htr
+  have hvwf' : ci'.WF (ves.venv .safe) := by
+    simpa [huvars, hvty] using hvwf
+  have htr' : TrConstant .safe (ves.venv .safe) (.quotInfo v) ci' := by
+    refine ⟨?_, huvars, hvty ▸ htr⟩
+    simp [ConstantInfo.safety, ConstantInfo.isUnsafe, ConstantInfo.isPartial]
+  have hvnone (safety) : (ves.venv safety).constants v.name = none :=
+    (wf.tr).constants_eq_none hfresh
+  let ves' : VEnvs := ⟨fun safety => (ves.venv safety).insertConst v.name ci'⟩
+  refine ⟨ves', rfl, ?_, ?_, ?_⟩
+  · refine {
+      tr := by
+        intro safety
+        simp only [ves']
+        have hbase := wf.tr (safety := safety)
+        change TrEnv' safety env.constants env.quotInit (ves.venv safety) at hbase
+        rw [hq] at hbase
+        simpa [TrEnv, hq] using TrEnv'.quotInfo
+          ((htr'.sf_mono DefinitionSafety.le_safe).mono
+            (wf.mono DefinitionSafety.le_safe))
+          hfresh (hvwf'.mono (wf.mono DefinitionSafety.le_safe))
+          ((ves.venv _).addConst_insert (hvnone _)) hbase
+      hasPrimitives := by
+        intro safety
+        exact wf.hasPrimitives.addConst
+          ((ves.venv safety).addConst_insert (hvnone safety))
+          (not_literal_primitive (hnprim rfl))
+      safePrimitives := by
+        intro n ci hfind hp
+        have hmap := (wf.tr (safety := .safe)).map_wf
+        change (env.constants.insert v.name (.quotInfo v)).find?' n = some ci at hfind
+        rw [(hmap.insert _ _ hfresh).find?'_eq_find?, hmap.find?_insert] at hfind
+        split at hfind
+        · rename_i hn
+          cases hfind
+          have : v.name = n := LawfulBEq.eq_of_beq hn
+          subst n
+          simp [hnprim rfl] at hp
+        · apply wf.safePrimitives _ hp
+          change env.constants.find?' n = some ci
+          rwa [hmap.find?'_eq_find?]
+      mono := by
+        intro safety safety' hle
+        exact VEnv.addConst_mono (wf.mono hle)
+          ((ves.venv safety').addConst_insert (hvnone safety'))
+          ((ves.venv safety).addConst_insert (hvnone safety)) }
+  · intro safety
+    exact VEnv.addConst_le ((ves.venv safety).addConst_insert (hvnone safety))
+  · intro safety
+    exact ⟨(htr'.sf_mono DefinitionSafety.le_safe).mono
+      (wf.mono DefinitionSafety.le_safe),
+      (ves.venv safety).addConst_insert (hvnone safety), hfresh⟩
+
+theorem addQuotVerified.WF {ves : VEnvs} (wf : ves.WF env)
+    (fuel : FuelConfig := {}) :
+    (addQuotVerified env fuel).WF fun env' =>
+      ∃ ves' : VEnvs, ves'.WF env' ∧
+        ∀ safety, ves.venv safety ≤ ves'.venv safety := by
+  unfold addQuotVerified
+  split
+  · exact .pure ⟨ves, wf, fun _ => .rfl⟩
+  · rename_i hq
+    have hq' : env.quotInit = false := by
+      cases he : env.quotInit
+      · rfl
+      · exact (hq he).elim
+    refine (checkEqType.WF wf).bind fun _ hready => ?_
+    extract_lets quot quotMk quotLift quotInd
+    refine (addQuotInfo.WF wf hq' quot quotConst trQuotType_eq rfl fuel).bind
+      fun env1 hres1 => ?_
+    obtain ⟨ves1, heq1, wf1, hmono1, hstep1⟩ := hres1
+    subst env1
+    refine (addQuotInfo.WF wf1 (by simpa using hq') quotMk quotMkConst
+      trQuotMkType_eq rfl fuel).bind
+      fun env2 hres2 => ?_
+    obtain ⟨ves2, heq2, wf2, hmono2, hstep2⟩ := hres2
+    subst env2
+    refine (addQuotInfo.WF wf2 (by simpa using hq') quotLift quotLiftConst
+      trQuotLiftType_eq rfl fuel).bind
+      fun env3 hres3 => ?_
+    obtain ⟨ves3, heq3, wf3, hmono3, hstep3⟩ := hres3
+    subst env3
+    refine (addQuotInfo.WF wf3 (by simpa using hq') quotInd quotIndConst
+      trQuotIndType_eq rfl fuel).bind
+      fun env4 hres4 => ?_
+    obtain ⟨ves4, heq4, wf4, hmono4, hstep4⟩ := hres4
+    subst env4
+    apply Except.WF.pure
+    let ves' : VEnvs := ⟨fun safety => (ves4.venv safety).addDefEq quotDefEq⟩
+    have hadd (safety) : AddQuot env.constants
+        ((((env.add (.quotInfo quot)).add (.quotInfo quotMk)).add
+          (.quotInfo quotLift)).add (.quotInfo quotInd)).constants
+        (ves.venv safety) (ves'.venv safety) := by
+      unfold AddQuot AddQuot1
+      refine ⟨quot.levelParams, quot.type, ves1.venv safety, ?_, ?_, ?_, ?_⟩
+      · simpa [quot] using
+          (hstep1 .safe).1.mono (wf.mono DefinitionSafety.le_safe)
+      · exact (hstep1 safety).2.2
+      · exact (hstep1 safety).2.1
+      refine ⟨quotMk.levelParams, quotMk.type, ves2.venv safety, ?_, ?_, ?_, ?_⟩
+      · simpa [quotMk] using
+          (hstep2 .safe).1.mono (wf1.mono DefinitionSafety.le_safe)
+      · exact (hstep2 safety).2.2
+      · exact (hstep2 safety).2.1
+      refine ⟨quotLift.levelParams, quotLift.type, ves3.venv safety, ?_, ?_, ?_, ?_⟩
+      · simpa [quotLift] using
+          (hstep3 .safe).1.mono (wf2.mono DefinitionSafety.le_safe)
+      · exact (hstep3 safety).2.2
+      · exact (hstep3 safety).2.1
+      refine ⟨quotInd.levelParams, quotInd.type, ves4.venv safety, ?_, ?_, ?_, ?_⟩
+      · simpa [quotInd] using
+          (hstep4 .safe).1.mono (wf3.mono DefinitionSafety.le_safe)
+      · exact (hstep4 safety).2.2
+      · exact (hstep4 safety).2.1
+      exact ⟨rfl, rfl⟩
+    refine ⟨ves', ?_, ?_⟩
+    · refine {
+        tr := by
+          intro safety
+          have hbase := wf.tr (safety := safety)
+          change TrEnv' safety env.constants env.quotInit (ves.venv safety) at hbase
+          rw [hq'] at hbase
+          simpa [TrEnv, ves'] using
+            TrEnv'.quot (hready safety) (hadd safety) hbase
+        hasPrimitives := by
+          intro safety
+          exact (wf4.hasPrimitives (safety := safety)).addDefEq
+        safePrimitives := by
+          intro n ci hfind hp
+          apply wf4.safePrimitives (n := n) (ci := ci) (by simpa using hfind) hp
+        mono := by
+          intro safety safety' hle
+          exact VEnv.addDefEq_mono (wf4.mono hle) }
+    · intro safety
+      exact (hmono1 safety).trans <| (hmono2 safety).trans <|
+        (hmono3 safety).trans <| (hmono4 safety).trans VEnv.addDefEq_le
+
+theorem addDefinitionHeader.WF {ves : VEnvs} (wf : ves.WF env)
+    (v : DefinitionVal) (hv : v.safety ≠ .safe) (fuel : FuelConfig := {}) :
+    (addDefinitionHeader env v fuel).WF fun env' =>
+      ∃ ves' : VEnvs, VEnvs.WF env' ves' ∧
+        ∀ safety, ves.venv safety ≤ ves'.venv safety := by
+  unfold addDefinitionHeader
+  refine (M.WF.run wf (checkConstantVal.WF (ves := ves) wf v.toConstantVal false
+    (safety := v.safety) (fuel := fuel))).bind
+    fun _ ⟨vty, htr, hvwf, hfresh, hnprim⟩ => ?_
+  apply Except.WF.pure
+  let vci : VConstant := ⟨v.levelParams.length, vty⟩
+  have hvwf' : vci.WF (ves.venv v.safety) := hvwf
+  have hcisafety : (ConstantInfo.defnInfo v).safety = v.safety := by
+    cases hs : v.safety <;>
+      simp [ConstantInfo.safety, ConstantInfo.isUnsafe, ConstantInfo.isPartial, hs]
+  have htr' : TrConstant v.safety (ves.venv v.safety) (.defnInfo v) vci := by
+    exact ⟨hcisafety ▸ DefinitionSafety.le_rfl, rfl, htr⟩
+  have hvnone (safety) : (ves.venv safety).constants v.name = none :=
+    (wf.tr).constants_eq_none hfresh
+  let ves' : VEnvs := ⟨fun safety =>
+    if safety ≤ v.safety then (ves.venv safety).insertConst v.name vci else ves.venv safety⟩
+  refine ⟨ves', ?_, ?_⟩
+  · refine {
+      tr := by
+        intro safety
+        simp only [ves']
+        split
+        · rename_i hs
+          apply TrEnv'.opaqueDefn
+          · exact (htr'.sf_mono hs).mono (wf.mono hs)
+          · exact hcisafety ▸ hv
+          · exact hfresh
+          · exact hvwf'.mono (wf.mono hs)
+          · exact (ves.venv _).addConst_insert (hvnone _)
+          · exact wf.tr
+        · rename_i hs
+          exact TrEnv'.ignoreConst hfresh (hcisafety ▸ hs) wf.tr
+      hasPrimitives := by
+        intro safety
+        simp only [ves']
+        split
+        · exact wf.hasPrimitives.addConst
+            ((ves.venv safety).addConst_insert (hvnone safety))
+            (not_literal_primitive (hnprim rfl))
+        · exact wf.hasPrimitives
+      safePrimitives := by
+        intro n ci hfind hp
+        have hmap := (wf.tr (safety := .safe)).map_wf
+        change (env.constants.insert v.name (.defnInfo v)).find?' n = some ci at hfind
+        rw [(hmap.insert _ _ hfresh).find?'_eq_find?, hmap.find?_insert] at hfind
+        split at hfind
+        · rename_i hn
+          cases hfind
+          have : v.name = n := LawfulBEq.eq_of_beq hn
+          subst n
+          simp [hnprim rfl] at hp
+        · apply wf.safePrimitives _ hp
+          change env.constants.find?' n = some ci
+          rwa [hmap.find?'_eq_find?]
+      mono := by
+        intro safety safety' hle
+        by_cases hs' : safety' ≤ v.safety
+        · have hs : safety ≤ v.safety := DefinitionSafety.le_trans hle hs'
+          simp only [ves', if_pos hs', if_pos hs]
+          exact VEnv.addConst_mono (wf.mono hle)
+            ((ves.venv safety').addConst_insert (hvnone safety'))
+            ((ves.venv safety).addConst_insert (hvnone safety))
+        · by_cases hs : safety ≤ v.safety
+          · simp only [ves', if_neg hs', if_pos hs]
+            exact (wf.mono hle).trans <|
+              VEnv.addConst_le ((ves.venv safety).addConst_insert (hvnone safety))
+          · simp only [ves', if_neg hs', if_neg hs]
+            exact wf.mono hle }
+  · intro safety
+    simp only [ves']
+    split
+    · exact VEnv.addConst_le ((ves.venv safety).addConst_insert (hvnone safety))
+    · exact .rfl
+
+theorem addDefinition.WF_unsafe {ves : VEnvs} (wf : ves.WF env)
+    (v : DefinitionVal) (hv : v.safety = .unsafe) (fuel : FuelConfig := {}) :
+    (addDefinition env v true fuel).WF fun env' =>
+      ∃ ves' : VEnvs, VEnvs.WF env' ves' ∧
+        ∀ safety, ves.venv safety ≤ ves'.venv safety := by
+  unfold addDefinition
+  simp only [hv, pure_bind, if_true]
+  refine (addDefinitionHeader.WF wf v (by simp [hv]) fuel).bind
+    fun env' ⟨ves', wf', hmono⟩ => ?_
+  refine (show (Kernel.Environment.checkNoMVarNoFVar env' v.name v.value).WF
+    (fun _ => True) from fun _ _ => trivial).bind fun _ _ => ?_
+  refine (show (M.run env' (safety := .unsafe) (lctx := {})
+    (lparams := v.levelParams) (fuel := fuel) do
+      let valType ← TypeChecker.checkType v.value
+      if !(← isDefEq valType v.type) then
+        throw <| .declTypeMismatch env' (.defnDecl v) valType).WF
+    (fun _ => True) from fun _ _ => trivial).bind fun _ _ => ?_
+  exact .pure ⟨ves', wf', hmono⟩
+
+theorem addMutualHeaders.WF {ves : VEnvs} (wf : ves.WF env)
+    (hs : safety ≠ .safe) (levelParams : List Name) (vs : List DefinitionVal)
+    (fuel : FuelConfig := {}) :
+    (addMutualHeaders env safety levelParams fuel vs).WF fun env' =>
+      ∃ ves' : VEnvs, VEnvs.WF env' ves' ∧
+        ∀ safety, ves.venv safety ≤ ves'.venv safety := by
+  induction vs generalizing env ves with
+  | nil => exact .pure ⟨ves, wf, fun _ => .rfl⟩
+  | cons v vs ih =>
+    simp only [addMutualHeaders]
+    cases hvs : v.safety != safety
+    · have hvs' : v.safety = safety := by simpa using hvs
+      cases hvp : v.levelParams != levelParams
+      · refine (addDefinitionHeader.WF wf v (hvs' ▸ hs) fuel).bind
+          fun env' ⟨ves', wf', hmono⟩ => ?_
+        refine (ih (ves := ves') wf').mono fun _ ⟨ves'', wf'', hmono'⟩ =>
+          ⟨ves'', wf'', fun safety => (hmono safety).trans (hmono' safety)⟩
+      · exact nofun
+    · exact nofun
+
+theorem checkMutualBodies.WF (env : Environment) (safety : DefinitionSafety)
+    (levelParams : List Name) (vs : List DefinitionVal) (fuel : FuelConfig := {}) :
+    (checkMutualBodies env safety levelParams vs fuel).WF fun _ => True :=
+  fun _ _ => trivial
+
 theorem addDefinition.WF_nonprimitive {ves : VEnvs} (wf : ves.WF env)
     (v : DefinitionVal) (hv : v.safety ≠ .unsafe)
     (hn : Environment.primitives.contains v.name = false) (fuel : FuelConfig := {}) :
@@ -894,13 +1256,17 @@ theorem addDefinition.WF_primitive {ves : VEnvs} (wf : ves.WF env)
     cases hs.symm.trans hsafe
 
 theorem addDefinition.WF {ves : VEnvs} (wf : ves.WF env)
-    (v : DefinitionVal) (hv : v.safety ≠ .unsafe) (fuel : FuelConfig := {}) :
+    (v : DefinitionVal) (fuel : FuelConfig := {}) :
     (addDefinition env v true fuel).WF fun env' =>
       ∃ ves' : VEnvs, VEnvs.WF env' ves' ∧
         ∀ safety, ves.venv safety ≤ ves'.venv safety := by
-  cases hp : Environment.primitives.contains v.name
-  · exact addDefinition.WF_nonprimitive wf v hv hp fuel
-  · exact addDefinition.WF_primitive wf v hv hp fuel
+  cases hs : v.safety
+  · exact addDefinition.WF_unsafe wf v hs fuel
+  all_goals
+    have hv : v.safety ≠ .unsafe := by simp [hs]
+    cases hp : Environment.primitives.contains v.name
+    · exact addDefinition.WF_nonprimitive wf v hv hp fuel
+    · exact addDefinition.WF_primitive wf v hv hp fuel
 
 theorem addOpaque.WF {ves : VEnvs} (wf : ves.WF env) (v : OpaqueVal)
     (fuel : FuelConfig := {}) :
@@ -1034,6 +1400,34 @@ theorem addTheorem.WF {ves : VEnvs} (wf : ves.WF env) (v : TheoremVal)
     exact (VEnv.addConst_le
       ((ves.venv safety).addConst_insertDef (hvnone' safety))).trans VEnv.addDefEq_le
 
+theorem addMutual.WF {ves : VEnvs} (wf : ves.WF env) (vs : List DefinitionVal)
+    (fuel : FuelConfig := {}) :
+    (addMutual env vs true fuel).WF fun env' =>
+      ∃ ves' : VEnvs, VEnvs.WF env' ves' ∧
+        ∀ safety, ves.venv safety ≤ ves'.venv safety := by
+  cases vs with
+  | nil => exact nofun
+  | cons v vs =>
+    cases hs : v.safety
+    ·
+      simp only [addMutual, hs, pure_bind, if_true]
+      refine (addMutualHeaders.WF wf (by decide) v.levelParams (v :: vs) fuel).bind
+        fun env' ⟨ves', wf', hmono⟩ => ?_
+      refine (checkMutualBodies.WF env' .unsafe v.levelParams (v :: vs) fuel).bind
+        fun _ _ => ?_
+      exact .pure ⟨ves', wf', hmono⟩
+    · intro _ h
+      simp only [addMutual, hs, pure_bind, if_true] at h
+      change (Except.error _ : Except Exception Environment) = .ok _ at h
+      cases h
+    ·
+      simp only [addMutual, hs, pure_bind, if_true]
+      refine (addMutualHeaders.WF wf (by decide) v.levelParams (v :: vs) fuel).bind
+        fun env' ⟨ves', wf', hmono⟩ => ?_
+      refine (checkMutualBodies.WF env' .partial v.levelParams (v :: vs) fuel).bind
+        fun _ _ => ?_
+      exact .pure ⟨ves', wf', hmono⟩
+
 /-- The intended main theorem of the `Verify` development, currently unproved:
 if `env` is well-formed and `addDecl env decl` (in checking mode) succeeds,
 then the resulting environment is also well-formed, and it extends `env`.
@@ -1054,19 +1448,11 @@ theorem addDeclVerified.WF {ves : VEnvs} (wf : ves.WF env) (decl : Declaration)
         ∀ safety, ves.venv safety ≤ ves'.venv safety := by
   cases decl with
   | axiomDecl v => simpa [addDeclVerified] using addAxiom.WF wf v fuel
-  | defnDecl v =>
-    simp only [addDeclVerified]
-    split
-    · exact nofun
-    · rename_i hsafe
-      simpa only [pure_bind] using addDefinition.WF wf v (fuel := fuel) (by
-        intro h
-        rw [h] at hsafe
-        simp at hsafe)
+  | defnDecl v => simpa [addDeclVerified] using addDefinition.WF wf v fuel
   | thmDecl v => simpa [addDeclVerified] using addTheorem.WF wf v fuel
   | opaqueDecl v => simpa [addDeclVerified] using addOpaque.WF wf v fuel
-  | mutualDefnDecl _ => simp [addDeclVerified, Except.WF]
-  | quotDecl => simp [addDeclVerified, Except.WF]
+  | mutualDefnDecl vs => simpa [addDeclVerified] using addMutual.WF wf vs fuel
+  | quotDecl => simpa [addDeclVerified] using addQuotVerified.WF wf fuel
   | inductDecl lparams nparams types isUnsafe => simp [addDeclVerified, Except.WF]
 
 end Lean4Lean

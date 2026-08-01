@@ -90,6 +90,8 @@ theorem TrEnv'.aligned (H : TrEnv' safety C Q venv) : Aligned safety C venv := b
   | thm h1 h2 _ h _ ih => exact (ih.const h2 h1.1.1 h rfl).defeq
   | «opaque» h1 h2 _ h _ ih => exact ih.const h2 h1.1.1 h rfl
   | defn h1 h2 _ h _ ih => exact (ih.const h2 h1.1.1 h rfl).defeq
+  | opaqueDefn h1 _ h2 _ h _ ih => exact ih.const h2 h1 h rfl
+  | quotInfo h1 h2 _ h _ ih => exact ih.const h2 h1 h rfl
   | quot _ h _ ih => exact ih.addQuot h
   | induct _ h _ ih => exact ih.addInduct h
 
@@ -156,7 +158,7 @@ theorem TrEnv.find?_uniq (H : TrEnv safety env venv)
   H.aligned.find?_uniq (H.map_wf.find?'_eq_find? _ ▸ h) hs
 
 theorem TrEnv'.of_value (H : TrEnv' safety C Q venv) (h : C.find? name = some ci)
-    (hs : safety ≤ ci.safety) (hv : ci.value? = some v) :
+    (hs : safety ≤ ci.safety) (hci : ci.safety = .safe) (hv : ci.value? = some v) :
     TrExpr venv ci.levelParams [] v (.const ci.name (VLevel.params ci.levelParams.length)) := by
   have {C n ci'} (hC : C.WF) :
       (SMap.insert C n ci').find? name = some ci →
@@ -181,6 +183,14 @@ theorem TrEnv'.of_value (H : TrEnv' safety C Q venv) (h : C.find? name = some ci
         (H.defn h2 h3 h4 h1).wf.ordered.defEqWF VEnv.addDefEq_self
       let ⟨⟨⟨b1, b2, b3⟩, b4⟩, b5⟩ := h2
       refine ⟨_, b5.mono le, b2.symm ▸ b4.symm ▸ ⟨_, this.symm⟩⟩
+  | opaqueDefn _ hsafe _ _ h1 H ih =>
+    obtain h | ⟨rfl, rfl⟩ := this H.map_wf h
+    · exact (ih h).mono (VEnv.addConst_le h1)
+    · exact (hsafe hci).elim
+  | quotInfo _ _ _ h1 H ih =>
+    obtain h | ⟨rfl, rfl⟩ := this H.map_wf h
+    · exact (ih h).mono (VEnv.addConst_le h1)
+    · contradiction
   | thm h2 h3 h4 h1 H ih =>
     have' le := (VEnv.addConst_le h1).trans VEnv.addDefEq_le
     obtain h | ⟨rfl, rfl⟩ := this H.map_wf h
@@ -203,6 +213,6 @@ theorem TrEnv'.of_value (H : TrEnv' safety C Q venv) (h : C.find? name = some ci
   | induct _ h1 H ih => cases h1
 
 nonrec theorem TrEnv.of_value (H : TrEnv safety env venv) (h : env.find? name = some ci)
-    (hs : safety ≤ ci.safety) (hv : ci.value? = some v) :
+    (hs : safety ≤ ci.safety) (hci : ci.safety = .safe) (hv : ci.value? = some v) :
     TrExpr venv ci.levelParams [] v (.const ci.name (VLevel.params ci.levelParams.length)) :=
-  H.of_value (by rwa [← H.map_wf.find?'_eq_find?]) hs hv
+  H.of_value (by rwa [← H.map_wf.find?'_eq_find?]) hs hci hv

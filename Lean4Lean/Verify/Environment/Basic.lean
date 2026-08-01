@@ -11,9 +11,6 @@ theorem ConstantInfo.hasValue_eq (ci : ConstantInfo) : ci.hasValue = ci.value?.i
 theorem ConstantInfo.value!_eq (ci : ConstantInfo) : ci.value! = ci.value?.get! := by
   cases ci <;> simp [ConstantInfo.value?, ConstantInfo.value!]
 
-def _root_.Lean.ConstantInfo.safety (ci : ConstantInfo) : DefinitionSafety :=
-  if ci.isUnsafe then .unsafe else if ci.isPartial then .partial else .safe
-
 variable (safety : DefinitionSafety) (env : VEnv) in
 def TrConstant (ci : ConstantInfo) (ci' : VConstant) : Prop :=
   safety ≤ ci.safety ∧ ci.levelParams.length = ci'.uvars ∧
@@ -99,6 +96,19 @@ inductive TrEnv' : ConstMap → Bool → VEnv → Prop where
     env.addConst ci.name ci'.toVConstant = some env' →
     TrEnv' C Q env →
     TrEnv' (C.insert ci.name (.defnInfo ci)) Q (env'.addDefEq ci'.toDefEq)
+  | opaqueDefn :
+    TrConstant safety env (.defnInfo ci) ci' →
+    (ConstantInfo.defnInfo ci).safety ≠ .safe →
+    C.find? ci.name = none → ci'.WF env →
+    env.addConst ci.name ci' = some env' →
+    TrEnv' C Q env →
+    TrEnv' (C.insert ci.name (.defnInfo ci)) Q env'
+  | quotInfo :
+    TrConstant safety env (.quotInfo ci) ci' →
+    C.find? ci.name = none → ci'.WF env →
+    env.addConst ci.name ci' = some env' →
+    TrEnv' C false env →
+    TrEnv' (C.insert ci.name (.quotInfo ci)) false env'
   | thm {ci' : VDefVal} :
     TrDefVal safety env (.thmInfo ci) ci' →
     C.find? ci.name = none → ci'.WF env →
@@ -136,6 +146,12 @@ theorem TrEnv'.wf (H : TrEnv' safety C Q venv) : venv.WF := by
     have ⟨_, H⟩ := ih
     have := h1.1.2; dsimp [ConstantInfo.name, ConstantInfo.toConstantVal] at this
     exact ⟨_, H.decl <| .def h2 (this ▸ h3)⟩
+  | opaqueDefn _ _ _ h1 h2 _ ih =>
+    have ⟨_, H⟩ := ih
+    exact ⟨_, H.decl <| .axiom (ci := ⟨_, _⟩) h1 h2⟩
+  | quotInfo _ _ h1 h2 _ ih =>
+    have ⟨_, H⟩ := ih
+    exact ⟨_, H.decl <| .axiom (ci := ⟨_, _⟩) h1 h2⟩
   | thm h1 _ h2 h3 _ ih =>
     have ⟨_, H⟩ := ih
     have := h1.1.2; dsimp [ConstantInfo.name, ConstantInfo.toConstantVal] at this

@@ -347,7 +347,7 @@ def whnfCore' (e : Expr) (cheapRec := false) (cheapProj := false) : RecM Expr :=
 def isDelta (env : Environment) (e : Expr) : Option ConstantInfo := do
   if let .const c _ := e.getAppFn then
     if let some ci := env.find? c then
-      if ci.hasValue then
+      if ci.safety == .safe && ci.hasValue then
         return ci
   none
 

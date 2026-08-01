@@ -8,6 +8,8 @@ open Lean hiding Environment Exception
 open TypeChecker Kernel Environment
 
 open private Lean.Kernel.Environment.add from Lean.Environment
+open private markQuotInit from Lean.Environment
+open private quotTypeExpr quotMkTypeExpr quotLiftTypeExpr quotIndTypeExpr from Lean4Lean.Quot
 
 def Environment.definitionPrimitives : NameSet := .ofList [
   ``Nat.add, ``Nat.pred, ``Nat.sub, ``Nat.mul, ``Nat.pow,
@@ -69,15 +71,18 @@ def addAxiom (env : Environment) (v : AxiomVal) (check := true) (fuel : FuelConf
       (safety := if v.isUnsafe then .unsafe else .safe) (lparams := v.levelParams) (fuel := fuel)
   return env.add (.axiomInfo v)
 
+def addDefinitionHeader (env : Environment) (v : DefinitionVal)
+    (fuel : FuelConfig := {}) : Except Exception Environment := do
+  _ ← (checkConstantVal env v.toConstantVal).run env
+    (safety := v.safety) (lparams := v.levelParams) (fuel := fuel)
+  return env.add (.defnInfo v)
+
 def addDefinition (env : Environment) (v : DefinitionVal)
     (check := true) (fuel : FuelConfig := {}) : Except Exception Environment := do
   if let .unsafe := v.safety then
     -- Meta definition can be recursive.
     -- So, we check the header, add, and then type check the body.
-    if check then
-      _ ← (checkConstantVal env v.toConstantVal).run env
-        (safety := .unsafe) (lparams := v.levelParams) (fuel := fuel)
-    let env' := env.add (.defnInfo v)
+    let env' ← if check then addDefinitionHeader env v fuel else pure <| env.add (.defnInfo v)
     if check then
       checkNoMVarNoFVar env' v.name v.value
       M.run env' (safety := .unsafe) (lctx := {}) (lparams := v.levelParams) (fuel := fuel) do
@@ -97,6 +102,30 @@ def addDefinition (env : Environment) (v : DefinitionVal)
           if !(← isDefEq valType v.type) then
             throw <| .declTypeMismatch env (.defnDecl v) valType
     return env.add (.defnInfo v)
+
+def addMutualHeaders (env : Environment) (safety : DefinitionSafety)
+    (levelParams : List Name) (fuel : FuelConfig := {}) :
+    List DefinitionVal → Except Exception Environment
+  | [] => pure env
+  | v :: vs => do
+    if v.safety != safety then
+      throw <| .other
+        "invalid mutual definition, declarations must have the same safety annotation"
+    if v.levelParams != levelParams then
+      throw <| .other
+        "invalid mutual definition, declarations must have the same universe parameters"
+    let env ← addDefinitionHeader env v fuel
+    addMutualHeaders env safety levelParams fuel vs
+
+def checkMutualBodies (env : Environment) (safety : DefinitionSafety)
+    (levelParams : List Name) (vs : List DefinitionVal)
+    (fuel : FuelConfig := {}) : Except Exception Unit :=
+  M.run env (safety := safety) (lctx := {}) (lparams := levelParams) (fuel := fuel) do
+    for v in vs do
+      checkNoMVarNoFVar env v.name v.value
+      let valType ← TypeChecker.checkType v.value
+      if !(← isDefEq valType v.type) then
+        throw <| .declTypeMismatch env (.mutualDefnDecl vs) valType
 
 def addTheorem (env : Environment) (v : TheoremVal) (check := true) (fuel : FuelConfig := {}) :
     Except Exception Environment := do
@@ -128,23 +157,10 @@ def addMutual (env : Environment) (vs : List DefinitionVal)
   let v₀ :: _ := vs | throw <| .other "invalid empty mutual definition"
   if let .safe := v₀.safety then
     throw <| .other "invalid mutual definition, declaration is not tagged as unsafe/partial"
+  let env' ← if check then addMutualHeaders env v₀.safety v₀.levelParams fuel vs else
+    pure <| vs.foldl (fun env v => env.add (.defnInfo v)) env
   if check then
-    M.run env (safety := v₀.safety) (lctx := {}) (lparams := v₀.levelParams) (fuel := fuel) do
-      for v in vs do
-        if v.safety != v₀.safety then
-          throw <| .other
-            "invalid mutual definition, declarations must have the same safety annotation"
-        checkConstantVal env v.toConstantVal
-  let mut env' := env
-  for v in vs do
-    env' := env'.add (.defnInfo v)
-  if check then
-    M.run env' (safety := v₀.safety) (lctx := {}) (lparams := v₀.levelParams) (fuel := fuel) do
-      for v in vs do
-        checkNoMVarNoFVar env' v.name v.value
-        let valType ← TypeChecker.checkType v.value
-        if !(← isDefEq valType v.type) then
-          throw <| .declTypeMismatch env' (.mutualDefnDecl vs) valType
+    checkMutualBodies env' v₀.safety v₀.levelParams vs fuel
   return env'
 
 /-- Type check given declaration and add it to the environment -/
@@ -161,20 +177,37 @@ def addDecl (env : Environment) (decl : Declaration) (check := true) (fuel : Fue
     let allowPrimitive ← checkPrimitiveInductive env lparams nparams types isUnsafe
     addInductive env lparams nparams types isUnsafe allowPrimitive fuel
 
+def addQuotInfo (env : Environment) (v : QuotVal)
+    (fuel : FuelConfig := {}) : Except Exception Environment := do
+  _ ← (checkConstantVal env v.toConstantVal).run env
+    (safety := .safe) (lparams := v.levelParams) (fuel := fuel)
+  return env.add (.quotInfo v)
+
+def addQuotVerified (env : Environment) (fuel : FuelConfig := {}) : Except Exception Environment := do
+  if env.quotInit then return env
+  checkEqType env
+  let quot : QuotVal := {
+    name := ``Quot, kind := .type, levelParams := [`u], type := quotTypeExpr }
+  let env ← addQuotInfo env quot fuel
+  let quotMk : QuotVal := {
+    name := ``Quot.mk, kind := .ctor, levelParams := [`u], type := quotMkTypeExpr }
+  let env ← addQuotInfo env quotMk fuel
+  let quotLift : QuotVal := {
+    name := ``Quot.lift, kind := .lift, levelParams := [`u, `v], type := quotLiftTypeExpr }
+  let env ← addQuotInfo env quotLift fuel
+  let quotInd : QuotVal := {
+    name := ``Quot.ind, kind := .ind, levelParams := [`u], type := quotIndTypeExpr }
+  return markQuotInit <| ← addQuotInfo env quotInd fuel
+
 /-- The declaration fragment covered by the current end-to-end verification proof. -/
 def addDeclVerified (env : Environment) (decl : Declaration)
     (fuel : FuelConfig := {}) : Except Exception Environment := do
   match decl with
   | .axiomDecl v => addAxiom env v true fuel
-  | .defnDecl v =>
-    if v.safety == .unsafe then
-      throw <| .other "unsafe definitions are not supported by the verified checker"
-    addDefinition env v true fuel
+  | .defnDecl v => addDefinition env v true fuel
   | .thmDecl v => addTheorem env v true fuel
   | .opaqueDecl v => addOpaque env v true fuel
-  | .mutualDefnDecl _ =>
-    throw <| .other "mutual definitions are not supported by the verified checker"
-  | .quotDecl =>
-    throw <| .other "quotient initialization is not supported by the verified checker"
+  | .mutualDefnDecl vs => addMutual env vs true fuel
+  | .quotDecl => addQuotVerified env fuel
   | .inductDecl .. =>
     throw <| .other "inductive declarations are not supported by the verified checker"
