@@ -241,13 +241,53 @@ where
 
 end Normalize
 
-def normalize' (l : Level) : Level := (Normalize.normalize l (paths := true)).toTree.reify
+/-- Sound local simplifications used before the level comparison procedure. -/
+def normalizeIMax (u v : Level) : Level :=
+  if u == .zero then v
+  else if u == .succ .zero then v
+  else if u == v then u
+  else if v.isNeverZero then .max u v
+  else .imax u v
 
-def isEquiv' (u v : Level) : Bool := u == v || Normalize.normalize u == Normalize.normalize v
+/-- A total preprocessing pass for level comparison.
+Unlike `Lean.Level.normalize`, this definition is transparent to the verifier. -/
+def normalizeCore : Level → Level
+  | .zero => .zero
+  | .succ u => .succ (normalizeCore u)
+  | .max u v => .max (normalizeCore u) (normalizeCore v)
+  | .imax u v => normalizeIMax (normalizeCore u) (normalizeCore v)
+  | .param n => .param n
+  | .mvar n => .mvar n
+
+def normalize' (l : Level) : Level := normalizeCore l
+
+/-- The recursive comparison core of `Lean.Level.geq`, exposed for verification. -/
+def geqCore (u v : Level) : Bool :=
+  u == v ||
+  match u, v with
+  | _, .zero => true
+  | u, .max v₁ v₂ => geqCore u v₁ && geqCore u v₂
+  | .max u₁ u₂, .imax v₁ v₂ =>
+    geqCore u₁ (.imax v₁ v₂) || geqCore u₂ (.imax v₁ v₂) ||
+      (geqCore (.max u₁ u₂) v₁ && geqCore (.max u₁ u₂) v₂)
+  | .max u₁ u₂, v =>
+    let v' := v.getLevelOffset
+    geqCore u₁ v || geqCore u₂ v ||
+      (((Level.max u₁ u₂).getLevelOffset == v' || v'.isZero) &&
+        (Level.max u₁ u₂).getOffset ≥ v.getOffset)
+  | .imax _ u₂, v => geqCore u₂ v
+  | .succ u, .succ v => geqCore u v
+  | u, .imax v₁ v₂ => geqCore u v₁ && geqCore u v₂
+  | u, v =>
+    let v' := v.getLevelOffset
+    (u.getLevelOffset == v' || v'.isZero) && u.getOffset ≥ v.getOffset
+termination_by (u, v)
+
+def geq' (u v : Level) : Bool := geqCore (normalizeCore u) (normalizeCore v)
+
+def isEquiv' (u v : Level) : Bool := geq' u v && geq' v u
 
 def isEquivList : List Level → List Level → Bool := List.all2 isEquiv'
-
-def geq' (u v : Level) : Bool := (Normalize.normalize v).le (Normalize.normalize u)
 
 -- local elab "normalize " l:level : command => do
 --   Elab.Command.runTermElabM fun _ => do
