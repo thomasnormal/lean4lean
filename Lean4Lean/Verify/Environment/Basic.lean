@@ -64,6 +64,11 @@ theorem VEnv.AddDef.le {venv venv' : VEnv} {ci ci'}
     exact (addConst_le hadd).trans (VEnv.addDefEq_le ..)
   · exact H ▸ VEnv.LE.rfl
 
+variable (safety : DefinitionSafety) (env : VEnv) in
+def TrOpaqueVal (ci : OpaqueVal) (ci' : VDefVal) : Prop :=
+  TrConstVal safety env (.opaqueInfo ci) ci'.toVConstVal ∧
+  TrExprS env ci.levelParams [] ci.value ci'.value
+
 def AddQuot1 (name : Name) (kind : QuotKind) (ci' : VConstant) (P : ConstMap → VEnv → Prop)
     (m : ConstMap) (env : VEnv) : Prop :=
   ∃ levelParams type env',
@@ -162,7 +167,7 @@ inductive TrEnv' : ConstMap → Bool → VEnv → Prop where
     TrEnv' C Q env →
     TrEnv' (C.insert ci.name (.thmInfo ci)) Q env'
   | opaque {ci' : VDefVal} :
-    TrDefVal safety env (.opaqueInfo ci) ci' →
+    TrOpaqueVal safety env ci ci' →
     C.find? ci.name = none → ci'.WF env →
     env.addConst ci.name ci'.toVConstant = some env' →
     TrEnv' C Q env →

@@ -10,6 +10,18 @@ theorem TrConstant.sf_mono (hsf : safety ≤ safety')
     (H : TrConstant safety' env ci ci') : TrConstant safety env ci ci' :=
   ⟨safety.le_trans hsf H.1, H.2⟩
 
+theorem TrConstVal.sf_mono (hsf : safety ≤ safety')
+    (H : TrConstVal safety' env ci ci') : TrConstVal safety env ci ci' :=
+  ⟨H.1.sf_mono hsf, H.2⟩
+
+theorem TrDefVal.sf_mono (hsf : safety ≤ safety')
+    (H : TrDefVal safety' env ci ci') : TrDefVal safety env ci ci' :=
+  ⟨H.1.sf_mono hsf, H.2⟩
+
+theorem TrOpaqueVal.sf_mono (hsf : safety ≤ safety')
+    (H : TrOpaqueVal safety' env ci ci') : TrOpaqueVal safety env ci ci' :=
+  ⟨H.1.sf_mono hsf, H.2⟩
+
 theorem TrConstant.mono {env env' : VEnv} (henv : env ≤ env')
     (H : TrConstant safety env ci ci') : TrConstant safety env' ci ci' :=
   ⟨H.1, H.2.1, H.2.2.mono henv⟩
@@ -20,6 +32,10 @@ theorem TrConstVal.mono {env env' : VEnv} (henv : env ≤ env')
 
 theorem TrDefVal.mono {env env' : VEnv} (henv : env ≤ env')
     (H : TrDefVal safety env ci ci') : TrDefVal safety env' ci ci' :=
+  ⟨H.1.mono henv, H.2.mono henv⟩
+
+theorem TrOpaqueVal.mono {env env' : VEnv} (henv : env ≤ env')
+    (H : TrOpaqueVal safety env ci ci') : TrOpaqueVal safety env' ci ci' :=
   ⟨H.1.mono henv, H.2.mono henv⟩
 
 variable (safety : DefinitionSafety) in
