@@ -445,7 +445,7 @@ def checkPrimitiveDef (v : DefinitionVal) : M Bool := do
     -- Char : Type
     _ ← ensureType q(Char)
     -- @Char.ofNat : Nat → Char
-    unless ← isDefEq v.type q(Nat → Char) do fail
+    unless v.type == q(Nat → Char) do fail
   | ``String.ofList =>
     unless v.levelParams.isEmpty do fail
     -- Char : Type
@@ -457,7 +457,7 @@ def checkPrimitiveDef (v : DefinitionVal) : M Bool := do
     -- @List.cons.{0} Char : Char → List Char → List Char
     unless ← isDefEq (← checkType q(List.cons (α := Char))) q(Char → List Char → List Char) do fail
     -- String.ofList : List Char → String
-    unless ← isDefEq v.type q(List Char → String) do fail
+    unless v.type == q(List Char → String) do fail
   | _ => return false
   return true
 

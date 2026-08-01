@@ -9,12 +9,58 @@ open TypeChecker Kernel Environment
 
 open private Lean.Kernel.Environment.add from Lean.Environment
 
+def Environment.definitionPrimitives : NameSet := .ofList [
+  ``Nat.add, ``Nat.pred, ``Nat.sub, ``Nat.mul, ``Nat.pow,
+  ``Nat.gcd, ``Nat.mod, ``Nat.div, ``Nat.beq, ``Nat.ble,
+  ``Nat.bitwise, ``Nat.land, ``Nat.lor, ``Nat.xor,
+  ``Nat.shiftLeft, ``Nat.shiftRight, ``String.ofList, ``Char.ofNat]
+
+def checkPrimitiveGuard (b : Bool) (e : Exception) : Except Exception Unit :=
+  if b then pure () else throw e
+
+def checkPrimitiveHeader (v : DefinitionVal) : Except Exception Unit := do
+  checkPrimitiveGuard (Environment.definitionPrimitives.contains v.name) <|
+    .other s!"invalid primitive definition {v.name}"
+  checkPrimitiveGuard (v.safety == .safe && v.levelParams.isEmpty) <|
+    .other s!"invalid safety or universe parameters for primitive {v.name}"
+  checkPrimitiveGuard (!(v.name == ``Char.ofNat) || v.type == q(Nat → Char)) <|
+    .other "invalid type for primitive Char.ofNat"
+  checkPrimitiveGuard (!(v.name == ``String.ofList) || v.type == q(List Char → String)) <|
+    .other "invalid type for primitive String.ofList"
+
+def checkStringPrimitiveDeps (v : DefinitionVal) : M Unit := do
+  if v.name == ``String.ofList then
+    _ ← checkType q(List Char)
+    let nilType ← checkType q(List.nil (α := Char))
+    unless ← isDefEq nilType q(List Char) do
+      throw <| .other "invalid type for List.nil"
+    _ ← checkType q(Char → List Char → List Char)
+    let consType ← checkType q(List.cons (α := Char))
+    unless ← isDefEq consType q(Char → List Char → List Char) do
+      throw <| .other "invalid type for List.cons"
+
 def checkConstantVal (env : Environment) (v : ConstantVal) (allowPrimitive := false) : M Unit := do
   checkName env v.name allowPrimitive
   checkDuplicatedUnivParams v.levelParams
   checkNoMVarNoFVar env v.name v.type
   let sort ← checkType v.type
   _ ← ensureSort sort v.type
+
+def checkPrimitiveDefinition (env : Environment) (v : DefinitionVal)
+    (fuel : FuelConfig) : Except Exception Unit := do
+  checkPrimitiveHeader v
+  let allowPrimitive ← M.run env (safety := .safe) (lctx := {})
+    (lparams := v.levelParams) (fuel := fuel) (Environment.checkPrimitiveDef v)
+  let _ ← if allowPrimitive then
+      M.run env (safety := .safe) (lctx := {}) (lparams := v.levelParams)
+        (fuel := fuel) (checkStringPrimitiveDeps v)
+    else pure ()
+  M.run env (safety := .safe) (lctx := {}) (lparams := v.levelParams) (fuel := fuel) do
+    checkConstantVal env v.toConstantVal allowPrimitive
+    Kernel.Environment.checkNoMVarNoFVar env v.name v.value
+    let valType ← TypeChecker.checkType v.value
+    if !(← isDefEq valType v.type) then
+      throw <| Exception.declTypeMismatch env (.defnDecl v) valType
 
 def addAxiom (env : Environment) (v : AxiomVal) (check := true) (fuel : FuelConfig := {}) :
     Except Exception Environment := do
@@ -41,14 +87,15 @@ def addDefinition (env : Environment) (v : DefinitionVal)
     return env'
   else
     if check then
-      M.run env (safety := .safe) (lctx := {}) (lparams := v.levelParams) (fuel := fuel) do
-        let allowPrimitive ←
-          if Environment.primitives.contains v.name then checkPrimitiveDef v else pure false
-        checkConstantVal env v.toConstantVal allowPrimitive
-        checkNoMVarNoFVar env v.name v.value
-        let valType ← TypeChecker.checkType v.value
-        if !(← isDefEq valType v.type) then
-          throw <| .declTypeMismatch env (.defnDecl v) valType
+      if Environment.primitives.contains v.name then
+        checkPrimitiveDefinition env v fuel
+      else
+        M.run env (safety := .safe) (lctx := {}) (lparams := v.levelParams) (fuel := fuel) do
+          checkConstantVal env v.toConstantVal false
+          checkNoMVarNoFVar env v.name v.value
+          let valType ← TypeChecker.checkType v.value
+          if !(← isDefEq valType v.type) then
+            throw <| .declTypeMismatch env (.defnDecl v) valType
     return env.add (.defnInfo v)
 
 def addTheorem (env : Environment) (v : TheoremVal) (check := true) (fuel : FuelConfig := {}) :

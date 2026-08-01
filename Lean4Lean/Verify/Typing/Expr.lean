@@ -150,20 +150,6 @@ structure VEnv.HasPrimitives (env : VEnv) : Prop where
   natZero : env.constants ``Nat.zero = some ci → ci = { uvars := 0, type := .nat }
   natSucc : env.constants ``Nat.succ = some ci →
     ci = { uvars := 0, type := .forallE .nat .nat }
-  natAdd : env.ReflectsNatNatNat ``Nat.add Nat.add
-  natSub : env.ReflectsNatNatNat ``Nat.sub Nat.sub
-  natMul : env.ReflectsNatNatNat ``Nat.mul Nat.mul
-  natPow : env.ReflectsNatNatNat ``Nat.pow Nat.pow
-  natGcd : env.ReflectsNatNatNat ``Nat.gcd Nat.gcd
-  natMod : env.ReflectsNatNatNat ``Nat.mod Nat.mod
-  natDiv : env.ReflectsNatNatNat ``Nat.div Nat.div
-  natBEq : env.ReflectsNatNatBool ``Nat.beq Nat.beq
-  natBLE : env.ReflectsNatNatBool ``Nat.ble Nat.ble
-  natLAnd : env.ReflectsNatNatNat ``Nat.land Nat.land
-  natLOr : env.ReflectsNatNatNat ``Nat.lor Nat.lor
-  natXor : env.ReflectsNatNatNat ``Nat.xor Nat.xor
-  natShiftLeft : env.ReflectsNatNatNat ``Nat.shiftLeft Nat.shiftLeft
-  natShiftRight : env.ReflectsNatNatNat ``Nat.shiftRight Nat.shiftRight
   charOfNat : env.constants ``Char.ofNat = some ci →
     ci = { uvars := 0, type := .forallE .nat .char }
   stringOfList : env.constants ``String.ofList = some ci →
