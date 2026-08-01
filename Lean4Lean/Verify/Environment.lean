@@ -329,3 +329,34 @@ theorem addDecl.fromEmpty_noninductive (mainModule : Name) (decls : List Declara
       (Environment.empty mainModule)).WF fun env => ∃ ves : VEnvs, ves.WF env :=
   (addDecl.foldlM_WF_noninductive (.empty mainModule) decls notInductive fuel).mono
     fun _ ⟨models, wellFormed, _⟩ => ⟨models, wellFormed⟩
+
+theorem addDeclVerified.WF {ves : VEnvs} (wf : ves.WF env) (decl : Declaration)
+    (fuel : FuelConfig := {}) :
+    (addDeclVerified env decl fuel).WF fun env' =>
+      ∃ ves' : VEnvs, VEnvs.WF env' ves' ∧
+        ∀ safety, ves.venv safety ≤ ves'.venv safety := by
+  cases decl with
+  | axiomDecl v =>
+    simpa [addDeclVerified] using
+      (addAxiom.WF wf v fuel).mono fun _ ⟨models, wellFormed, _, extension⟩ =>
+        ⟨models, wellFormed, (extension · |>.le)⟩
+  | defnDecl v =>
+    simp only [addDeclVerified]
+    split
+    · exact nofun
+    · simpa only [pure_bind] using
+        (addDefinition.WF wf v fuel).mono fun _ ⟨models, wellFormed, extension, _⟩ =>
+          ⟨models, wellFormed, extension⟩
+  | thmDecl v =>
+    simpa [addDeclVerified] using
+      (addTheorem.WF wf v fuel).mono fun _ ⟨models, wellFormed, _, extension⟩ =>
+        ⟨models, wellFormed, (extension · |>.le)⟩
+  | opaqueDecl v =>
+    simpa [addDeclVerified] using
+      (addOpaque.WF wf v fuel).mono fun _ ⟨models, wellFormed, _, extension⟩ =>
+        ⟨models, wellFormed, (extension · |>.le)⟩
+  | mutualDefnDecl _ => simp [addDeclVerified, Except.WF]
+  | quotDecl => simp [addDeclVerified, Except.WF]
+  | inductDecl lparams nparams types isUnsafe => simp [addDeclVerified, Except.WF]
+
+end Lean4Lean
