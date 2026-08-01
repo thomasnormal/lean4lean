@@ -6,8 +6,9 @@ import Lean4Lean.Primitive
 namespace Lean4Lean
 open Lean hiding Environment Exception
 open TypeChecker Kernel Environment
+open private quotTypeExpr quotMkTypeExpr quotLiftTypeExpr quotIndTypeExpr from Lean4Lean.Quot
 
-open private Lean.Kernel.Environment.add from Lean.Environment
+open private Lean.Kernel.Environment.add markQuotInit from Lean.Environment
 
 def checkConstantValBody (env : Environment) (v : ConstantVal) : M Unit := do
   checkDuplicatedUnivParams v.levelParams
@@ -128,20 +129,37 @@ def addDecl (env : Environment) (decl : Declaration) (check := true) (fuel : Fue
     let allowPrimitive ← Primitive.checkInductive env lparams nparams types isUnsafe
     addInductive env lparams nparams types isUnsafe allowPrimitive fuel
 
+def addQuotInfo (env : Environment) (v : QuotVal)
+    (fuel : FuelConfig := {}) : Except Exception Environment := do
+  _ ← (checkConstantVal env v.toConstantVal).run env
+    (safety := .safe) (lparams := v.levelParams) (fuel := fuel)
+  return env.add (.quotInfo v)
+
+def addQuotVerified (env : Environment) (fuel : FuelConfig := {}) : Except Exception Environment := do
+  if env.quotInit then return env
+  checkEqType env
+  let quot : QuotVal := {
+    name := ``Quot, kind := .type, levelParams := [`u], type := quotTypeExpr }
+  let env ← addQuotInfo env quot fuel
+  let quotMk : QuotVal := {
+    name := ``Quot.mk, kind := .ctor, levelParams := [`u], type := quotMkTypeExpr }
+  let env ← addQuotInfo env quotMk fuel
+  let quotLift : QuotVal := {
+    name := ``Quot.lift, kind := .lift, levelParams := [`u, `v], type := quotLiftTypeExpr }
+  let env ← addQuotInfo env quotLift fuel
+  let quotInd : QuotVal := {
+    name := ``Quot.ind, kind := .ind, levelParams := [`u], type := quotIndTypeExpr }
+  return markQuotInit <| ← addQuotInfo env quotInd fuel
+
 /-- The declaration fragment covered by the current end-to-end verification proof. -/
 def addDeclVerified (env : Environment) (decl : Declaration)
     (fuel : FuelConfig := {}) : Except Exception Environment := do
   match decl with
   | .axiomDecl v => addAxiom env v true fuel
-  | .defnDecl v =>
-    if v.safety == .unsafe then
-      throw <| .other "unsafe definitions are not supported by the verified checker"
-    addDefinition env v true fuel
+  | .defnDecl v => addDefinition env v true fuel
   | .thmDecl v => addTheorem env v true fuel
   | .opaqueDecl v => addOpaque env v true fuel
-  | .mutualDefnDecl _ =>
-    throw <| .other "mutual definitions are not supported by the verified checker"
-  | .quotDecl =>
-    throw <| .other "quotient initialization is not supported by the verified checker"
+  | .mutualDefnDecl vs => addMutual env vs true fuel
+  | .quotDecl => addQuotVerified env fuel
   | .inductDecl .. =>
     throw <| .other "inductive declarations are not supported by the verified checker"

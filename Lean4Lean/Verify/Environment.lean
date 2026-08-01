@@ -261,6 +261,22 @@ theorem addDefinition.WF_primitive {env : Environment} {ves : VEnvs} (wf : ves.W
   (addDefinition.WF wf value fuel).mono fun _ ⟨models, wellFormed, monotone, _⟩ =>
     ⟨models, wellFormed, monotone⟩
 
+theorem addDefinition.WF_unsafe {env : Environment} {ves : VEnvs} (wf : ves.WF env)
+    (value : DefinitionVal) (_unsafeSafety : value.safety = .unsafe) (fuel : FuelConfig := {}) :
+    (addDefinition env value true fuel).WF fun env' =>
+      ∃ models : VEnvs, models.WF env' ∧ ∀ safety, ves.venv safety ≤ models.venv safety :=
+  (addDefinition.WF wf value fuel).mono fun _ ⟨models, wellFormed, monotone, _⟩ =>
+    ⟨models, wellFormed, monotone⟩
+
+theorem addQuotVerified.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env)
+    (fuel : FuelConfig := {}) :
+    (addQuotVerified env fuel).WF fun env' =>
+      ∃ models : VEnvs, models.WF env' ∧ ∀ safety, ves.venv safety ≤ models.venv safety := by
+  unfold addQuotVerified
+  split
+  · exact .pure ⟨ves, wf, fun _ => .rfl⟩
+  · exact (checkEqType.WF wf).bind fun _ impossible => False.elim impossible
+
 /-- Successful checked addition preserves well-formedness and extends every safety-indexed
 abstract environment. The only declaration form still outstanding is inductives, which need a
 constructive `AddInduct` model. -/
@@ -341,12 +357,9 @@ theorem addDeclVerified.WF {ves : VEnvs} (wf : ves.WF env) (decl : Declaration)
       (addAxiom.WF wf v fuel).mono fun _ ⟨models, wellFormed, _, extension⟩ =>
         ⟨models, wellFormed, (extension · |>.le)⟩
   | defnDecl v =>
-    simp only [addDeclVerified]
-    split
-    · exact nofun
-    · simpa only [pure_bind] using
-        (addDefinition.WF wf v fuel).mono fun _ ⟨models, wellFormed, extension, _⟩ =>
-          ⟨models, wellFormed, extension⟩
+    simpa [addDeclVerified] using
+      (addDefinition.WF wf v fuel).mono fun _ ⟨models, wellFormed, extension, _⟩ =>
+        ⟨models, wellFormed, extension⟩
   | thmDecl v =>
     simpa [addDeclVerified] using
       (addTheorem.WF wf v fuel).mono fun _ ⟨models, wellFormed, _, extension⟩ =>
@@ -355,8 +368,8 @@ theorem addDeclVerified.WF {ves : VEnvs} (wf : ves.WF env) (decl : Declaration)
     simpa [addDeclVerified] using
       (addOpaque.WF wf v fuel).mono fun _ ⟨models, wellFormed, _, extension⟩ =>
         ⟨models, wellFormed, (extension · |>.le)⟩
-  | mutualDefnDecl _ => simp [addDeclVerified, Except.WF]
-  | quotDecl => simp [addDeclVerified, Except.WF]
+  | mutualDefnDecl values => simpa [addDeclVerified] using addMutual.WF wf values fuel
+  | quotDecl => simpa [addDeclVerified] using addQuotVerified.WF wf fuel
   | inductDecl lparams nparams types isUnsafe => simp [addDeclVerified, Except.WF]
 
 end Lean4Lean

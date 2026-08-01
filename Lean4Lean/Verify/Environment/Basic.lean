@@ -11,9 +11,6 @@ theorem ConstantInfo.hasValue_eq (ci : ConstantInfo) : ci.hasValue = ci.value?.i
 theorem ConstantInfo.value!_eq (ci : ConstantInfo) : ci.value! = ci.value?.get! := by
   cases ci <;> simp [ConstantInfo.value?, ConstantInfo.value!]
 
-def _root_.Lean.ConstantInfo.safety (ci : ConstantInfo) : DefinitionSafety :=
-  if ci.isUnsafe then .unsafe else if ci.isPartial then .partial else .safe
-
 variable (safety : DefinitionSafety) (env : VEnv) in
 def TrConstant (ci : ConstantInfo) (ci' : VConstant) : Prop :=
   safety ≤ ci.safety ∧ ci.levelParams.length = ci'.uvars ∧
