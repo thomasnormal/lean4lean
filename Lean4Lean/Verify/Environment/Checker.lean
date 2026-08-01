@@ -213,6 +213,20 @@ def checkOpaque (env : Environment) (v : OpaqueVal) : M Unit := do
   if !(← isDefEq valueType v.type) then
     throw <| Exception.declTypeMismatch env (.opaqueDecl v) valueType
 
+theorem checkDefinition.WF_primitive {env : Environment} {ves : VEnvs} (wf : ves.WF env)
+    (value : DefinitionVal) (primitiveName : Environment.primitives.contains value.name = true)
+    (fuel : FuelConfig := {}) :
+    (checkDefinition env value).WF (.mk' wf .safe value.levelParams fuel) {} fun _ _ =>
+      ∃ translated : VDefVal, Primitive.PrimitiveResult (ves.venv .safe) value translated ∧
+        value.levelParams.length = translated.uvars ∧
+        TrExprS (ves.venv .safe) value.levelParams [] value.type translated.type ∧
+        value.name = translated.name ∧
+        TrExprS (ves.venv .safe) value.levelParams [] value.value translated.value ∧
+        translated.WF (ves.venv .safe) ∧ env.find? value.name = none :=
+  (checkDefinition.WF wf value fuel).mono
+    fun _ _ _ ⟨translated, primitive, universes, header, name, body, wellFormed, fresh⟩ =>
+      ⟨translated, primitive primitiveName, universes, header, name, body, wellFormed, fresh⟩
+
 /-- Verify the complete opaque-declaration check. The body is checked, so it is packaged into
 the resulting `VDefVal`; `TrEnv'.opaque` consumes it. An opaque body still contributes no
 definitional equality -- that is `TrEnv'.opaque` adding no `addDefEq`, not the body going

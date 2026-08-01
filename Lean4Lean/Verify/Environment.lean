@@ -252,6 +252,15 @@ theorem addDefinition.WF_nonprimitive {env : Environment} {ves : VEnvs} (wf : ve
   (addDefinition.WF wf v fuel).mono fun _ ⟨ves', wellFormed, monotone, _⟩ =>
     ⟨ves', wellFormed, monotone⟩
 
+theorem addDefinition.WF_primitive {env : Environment} {ves : VEnvs} (wf : ves.WF env)
+    (value : DefinitionVal) (_nonUnsafe : value.safety ≠ .unsafe)
+    (_primitiveName : Environment.primitives.contains value.name = true)
+    (fuel : FuelConfig := {}) :
+    (addDefinition env value true fuel).WF fun env' =>
+      ∃ ves' : VEnvs, ves'.WF env' ∧ ∀ safety, ves.venv safety ≤ ves'.venv safety :=
+  (addDefinition.WF wf value fuel).mono fun _ ⟨models, wellFormed, monotone, _⟩ =>
+    ⟨models, wellFormed, monotone⟩
+
 /-- Successful checked addition preserves well-formedness and extends every safety-indexed
 abstract environment. The only declaration form still outstanding is inductives, which need a
 constructive `AddInduct` model. -/
