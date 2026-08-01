@@ -15,7 +15,7 @@ Semantic soundness of the universe-level operations in Lean's standard library.
 `normalize` is an opaque `partial def`, so `Lean4Lean.Verify.Axioms` assumes it
 equals the total copy `Lean.Level.Total.normalize` defined there; the semantic
 behavior of that copy is `eval_normalize` below, which is still open. The exact
-correspondence between `geqCore` below and the private recursion used by
+correspondence between `geqCoreStd` below and the private recursion used by
 `Lean.Level.geq` is proved.
 -/
 
@@ -60,35 +60,35 @@ theorem fallback_sound
     simp [hv, eval]
     omega
 
-def geqCore : Level → Level → Bool
+def geqCoreStd : Level → Level → Bool
   -- Keep this in the same source-shaped form as `go`'s `u == v || ...` prefix.
   -- The apparently redundant `|| true` is therefore deliberate.
   | u, .zero => u == .zero || true
-  | u, .max v₁ v₂ => u == .max v₁ v₂ || (geqCore u v₁ && geqCore u v₂)
+  | u, .max v₁ v₂ => u == .max v₁ v₂ || (geqCoreStd u v₁ && geqCoreStd u v₂)
   | .max u₁ u₂, .imax v₁ v₂ =>
     (.max u₁ u₂ : Level) == .imax v₁ v₂ ||
-      (geqCore u₁ (.imax v₁ v₂) || geqCore u₂ (.imax v₁ v₂) ||
-        (geqCore (.max u₁ u₂) v₁ && geqCore (.max u₁ u₂) v₂))
+      (geqCoreStd u₁ (.imax v₁ v₂) || geqCoreStd u₂ (.imax v₁ v₂) ||
+        (geqCoreStd (.max u₁ u₂) v₁ && geqCoreStd (.max u₁ u₂) v₂))
   | .max u₁ u₂, v =>
     let u := .max u₁ u₂
-    u == v || (geqCore u₁ v || geqCore u₂ v ||
+    u == v || (geqCoreStd u₁ v || geqCoreStd u₂ v ||
       ((u.getLevelOffset == v.getLevelOffset || v.getLevelOffset.isZero) &&
         u.getOffset ≥ v.getOffset))
-  | .imax u₁ u₂, v => (.imax u₁ u₂ : Level) == v || geqCore u₂ v
-  | .succ u, .succ v => (.succ u : Level) == .succ v || geqCore u v
-  | u, .imax v₁ v₂ => u == .imax v₁ v₂ || (geqCore u v₁ && geqCore u v₂)
+  | .imax u₁ u₂, v => (.imax u₁ u₂ : Level) == v || geqCoreStd u₂ v
+  | .succ u, .succ v => (.succ u : Level) == .succ v || geqCoreStd u v
+  | u, .imax v₁ v₂ => u == .imax v₁ v₂ || (geqCoreStd u v₁ && geqCoreStd u v₂)
   | u, v => u == v ||
     ((u.getLevelOffset == v.getLevelOffset || v.getLevelOffset.isZero) &&
       u.getOffset ≥ v.getOffset)
   termination_by u v => (u, v)
 
-private theorem geqCore_eq_go : geqCore u v = go u v := by
+private theorem geqCoreStd_eq_go : geqCoreStd u v = go u v := by
   fun_induction go with | _ u v
-  cases u <;> cases v <;> simp_all [geqCore, go]
+  cases u <;> cases v <;> simp_all [geqCoreStd, go]
 
-theorem geqCore_sound (h : geqCore u v) : eval ρ μ v ≤ eval ρ μ u := by
-  induction u, v using geqCore.induct with
-    simp only [geqCore, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq,
+theorem geqCoreStd_sound (h : geqCoreStd u v) : eval ρ μ v ≤ eval ρ μ u := by
+  induction u, v using geqCoreStd.induct with
+    simp only [geqCoreStd, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq,
       decide_eq_true_eq] at h
   | case1 => simp [eval]
   | case2 _ _ _ ih₂ ih₁ =>
@@ -494,8 +494,8 @@ theorem eval_normalize_total {l : Level} : eval ρ μ (Total.normalize l) = eval
 theorem eval_normalize {ρ μ l} : eval ρ μ l.normalize = eval ρ μ l := by
   rw [normalize_eq]; exact eval_normalize_total
 
-theorem geq_eq_core : geq u v = geqCore (normalize u) (normalize v) := by
-  simp [geq, geqCore_eq_go]
+theorem geq_eq_core : geq u v = geqCoreStd (normalize u) (normalize v) := by
+  simp [geq, geqCoreStd_eq_go]
 
 theorem isEquiv_sound (h : isEquiv u v) : eval ρ μ u = eval ρ μ v := by
   simp only [Level.isEquiv, Bool.or_eq_true, beq_iff_eq] at h
@@ -505,7 +505,7 @@ theorem isEquiv_sound (h : isEquiv u v) : eval ρ μ u = eval ρ μ v := by
 theorem geq_sound (h : geq u v) : eval ρ μ v ≤ eval ρ μ u := by
   rw [geq_eq_core] at h
   rw [← eval_normalize (l := u), ← eval_normalize (l := v)]
-  exact geqCore_sound h
+  exact geqCoreStd_sound h
 
 theorem eval_ofLevel (h : VLevel.ofLevel Us l = some l') :
     l'.eval ns = eval (fun n => ns.getD (Us.idxOf n) 0) μ l := by

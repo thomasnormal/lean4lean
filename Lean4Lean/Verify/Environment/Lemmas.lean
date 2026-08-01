@@ -10,6 +10,18 @@ theorem TrConstant.sf_mono (hsf : safety ≤ safety')
     (H : TrConstant safety' env ci ci') : TrConstant safety env ci ci' :=
   ⟨safety.le_trans hsf H.1, H.2⟩
 
+theorem TrConstVal.sf_mono (hsf : safety ≤ safety')
+    (H : TrConstVal safety' env ci ci') : TrConstVal safety env ci ci' :=
+  ⟨H.1.sf_mono hsf, H.2⟩
+
+theorem TrDefVal.sf_mono (hsf : safety ≤ safety')
+    (H : TrDefVal safety' env ci ci') : TrDefVal safety env ci ci' :=
+  ⟨H.1.sf_mono hsf, H.2⟩
+
+theorem TrOpaqueVal.sf_mono (hsf : safety ≤ safety')
+    (H : TrOpaqueVal safety' env ci ci') : TrOpaqueVal safety env ci ci' :=
+  ⟨H.1.sf_mono hsf, H.2⟩
+
 theorem TrConstant.mono {env env' : VEnv} (henv : env ≤ env')
     (H : TrConstant safety env ci ci') : TrConstant safety env' ci ci' :=
   ⟨H.1, H.2.1, H.2.2.mono henv⟩
@@ -22,9 +34,13 @@ theorem TrDefVal.mono {env env' : VEnv} (henv : env ≤ env')
     (H : TrDefVal safety env ci ci') : TrDefVal safety env' ci ci' :=
   ⟨H.1.mono henv, H.2.mono henv⟩
 
+theorem TrOpaqueVal.mono {env env' : VEnv} (henv : env ≤ env')
+    (H : TrOpaqueVal safety env ci ci') : TrOpaqueVal safety env' ci ci' :=
+  ⟨H.1.mono henv, H.2.mono henv⟩
+
 variable (safety : DefinitionSafety) in
 inductive Aligned : ConstMap → VEnv → Prop where
-  | empty : Aligned {} .empty
+  | empty : Aligned { stage₁ } .empty
   | ignoreConst : Aligned C venv → C.find? n = none → ¬safety ≤ ci.safety →
     ci.name = n → Aligned (C.insert n ci) venv
   | const : Aligned C venv → C.find? n = none → TrConstant safety venv ci ci' →
@@ -33,7 +49,7 @@ inductive Aligned : ConstMap → VEnv → Prop where
 
 theorem Aligned.map_wf (H : Aligned safety C venv) : C.WF := by
   induction H with
-  | empty => exact .empty
+  | empty => exact .emptyStage _
   | ignoreConst _ h1 _ _ ih
   | const _ h1 _ _ _ ih => exact ih.insert _ _ h1
   | defeq _ ih => exact ih
@@ -41,7 +57,7 @@ theorem Aligned.map_wf (H : Aligned safety C venv) : C.WF := by
 theorem Aligned.find?_iff (H : Aligned safety C venv) :
     (∃ ci, C.find? name = some ci ∧ safety ≤ ci.safety) ↔ ∃ ci, venv.constants name = some ci := by
   induction H with
-  | empty => simp [SMap.find?, VEnv.empty]
+  | empty => simp [SMap.find?_emptyStage, VEnv.empty]
   | ignoreConst H _ h2 _ ih =>
     simp [H.map_wf.find?_insert]; split <;> [skip; assumption]
     rename_i eq1 eq2; subst eq2; simp [← ih, *]
@@ -125,7 +141,7 @@ theorem Aligned.find? (H : Aligned safety C venv)
       (∃ ci', env₂.constants name = some ci' ∧ TrConstant safety env₂ ci ci')
     | ⟨_, h1, h2⟩ => ⟨_, H.constants h1, h2.mono H⟩
   induction H with
-  | empty => simp [SMap.find?] at h
+  | empty => simp [SMap.find?_emptyStage] at h
   | ignoreConst h1 _ _ _ ih =>
     rw [h1.map_wf.find?_insert] at h; split at h
     · cases h; contradiction
@@ -143,7 +159,7 @@ theorem Aligned.find?_uniq (H : Aligned safety C venv)
     (h : C.find? name = some ci) (hs : venv.constants name = some ci') :
     ci.name = name ∧ TrConstant safety venv ci ci' := by
   induction H with
-  | empty => simp [SMap.find?] at h
+  | empty => simp [SMap.find?_emptyStage] at h
   | ignoreConst H h2 h3 _ ih =>
     simp [H.map_wf.find?_insert] at h; split at h
     · rename_i n ci _ h'; subst n h'
@@ -220,7 +236,7 @@ theorem TrEnv'.of_value (H : TrEnv' safety C Q venv) (h : C.find? name = some ci
       C.find? name = some ci ∨ n = name ∧ ci' = ci := by
     rw [hC.find?_insert]; simp; split <;> simp +contextual [*]
   induction H with
-  | empty => simp [SMap.find?] at h
+  | empty => simp [SMap.find?_emptyStage] at h
   | ignore h1 h2 H ih =>
     obtain h | ⟨rfl, rfl⟩ := this H.map_wf h
     · exact ih h

@@ -36,10 +36,10 @@ theorem checkDef.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env)
     (htype : TrExprS (ves.venv .safe) v.levelParams [] v.type ci'.type)
     (hvalue : TrExprS (ves.venv .safe) v.levelParams [] v.value ci'.value)
     (hci : ci'.WF (ves.venv .safe))
-    (state : VState := {}) :
-    (checkDef v).WF (.mk' wf .safe v.levelParams) state fun allow _ =>
+    (state : VState := {}) (fuel : FuelConfig := {}) :
+    (checkDef v).WF (.mk' wf .safe v.levelParams fuel) state fun allow _ =>
       allow → PrimitiveResult (ves.venv .safe) v ci' := by
-  have P : Data v ci' (.mk' wf .safe v.levelParams) := ⟨rfl, rfl, hu, htype, hvalue, hci⟩
+  have P : Data v ci' (.mk' wf .safe v.levelParams fuel) := ⟨rfl, rfl, hu, htype, hvalue, hci⟩
   unfold checkDef; split
   · exact (checkNatAdd.WF wf ‹_› P).bind fun _ _ _ h => .pure fun _ => h
   · exact (checkNatPred.WF wf ‹_› P).bind fun _ _ _ h => .pure fun _ => h
