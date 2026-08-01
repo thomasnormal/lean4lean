@@ -28,6 +28,11 @@ def TrDefVal (ci : ConstantInfo) (ci' : VDefVal) : Prop :=
   TrConstVal safety env ci ci'.toVConstVal ∧
   TrExprS env ci.levelParams [] ci.value! ci'.value
 
+variable (safety : DefinitionSafety) (env : VEnv) in
+def TrOpaqueVal (ci : OpaqueVal) (ci' : VDefVal) : Prop :=
+  TrConstVal safety env (.opaqueInfo ci) ci'.toVConstVal ∧
+  TrExprS env ci.levelParams [] ci.value ci'.value
+
 def AddQuot1 (name : Name) (kind : QuotKind) (ci' : VConstant) (P : ConstMap → VEnv → Prop)
     (m : ConstMap) (env : VEnv) : Prop :=
   ∃ levelParams type env',
@@ -78,6 +83,10 @@ nonrec theorem AddInduct.to_addInduct
 variable (safety : DefinitionSafety) in
 inductive TrEnv' : ConstMap → Bool → VEnv → Prop where
   | empty : TrEnv' {} false .empty
+  | ignoreConst :
+    C.find? ci.name = none → ¬safety ≤ ci.safety →
+    TrEnv' C Q env →
+    TrEnv' (C.insert ci.name ci) Q env
   | axiom :
     TrConstant safety env (.axiomInfo ci) ci' →
     C.find? ci.name = none → ci'.WF env →
@@ -90,8 +99,14 @@ inductive TrEnv' : ConstMap → Bool → VEnv → Prop where
     env.addConst ci.name ci'.toVConstant = some env' →
     TrEnv' C Q env →
     TrEnv' (C.insert ci.name (.defnInfo ci)) Q (env'.addDefEq ci'.toDefEq)
+  | thm {ci' : VDefVal} :
+    TrDefVal safety env (.thmInfo ci) ci' →
+    C.find? ci.name = none → ci'.WF env →
+    env.addConst ci.name ci'.toVConstant = some env' →
+    TrEnv' C Q env →
+    TrEnv' (C.insert ci.name (.thmInfo ci)) Q (env'.addDefEq ci'.toDefEq)
   | opaque {ci' : VDefVal} :
-    TrDefVal safety env (.opaqueInfo ci) ci' →
+    TrOpaqueVal safety env ci ci' →
     C.find? ci.name = none → ci'.WF env →
     env.addConst ci.name ci'.toVConstant = some env' →
     TrEnv' C Q env →
@@ -113,10 +128,15 @@ def TrEnv (safety : DefinitionSafety) (env : Environment) (venv : VEnv) : Prop :
 theorem TrEnv'.wf (H : TrEnv' safety C Q venv) : venv.WF := by
   induction H with
   | empty => exact ⟨_, .empty⟩
+  | ignoreConst _ _ _ ih => exact ih
   | «axiom» _ _ h1 h2 _ ih =>
     have ⟨_, H⟩ := ih
     exact ⟨_, H.decl <| .axiom (ci := ⟨_, _⟩) h1 h2⟩
   | defn h1 _ h2 h3 _ ih =>
+    have ⟨_, H⟩ := ih
+    have := h1.1.2; dsimp [ConstantInfo.name, ConstantInfo.toConstantVal] at this
+    exact ⟨_, H.decl <| .def h2 (this ▸ h3)⟩
+  | thm h1 _ h2 h3 _ ih =>
     have ⟨_, H⟩ := ih
     have := h1.1.2; dsimp [ConstantInfo.name, ConstantInfo.toConstantVal] at this
     exact ⟨_, H.decl <| .def h2 (this ▸ h3)⟩

@@ -42,7 +42,10 @@ def addDefinition (env : Environment) (v : DefinitionVal)
   else
     if check then
       M.run env (safety := .safe) (lctx := {}) (lparams := v.levelParams) (fuel := fuel) do
-        checkConstantVal env v.toConstantVal (← checkPrimitiveDef v)
+        let allowPrimitive ←
+          if Environment.primitives.contains v.name then checkPrimitiveDef v else pure false
+        checkConstantVal env v.toConstantVal allowPrimitive
+        checkNoMVarNoFVar env v.name v.value
         let valType ← TypeChecker.checkType v.value
         if !(← isDefEq valType v.type) then
           throw <| .declTypeMismatch env (.defnDecl v) valType
@@ -53,9 +56,10 @@ def addTheorem (env : Environment) (v : TheoremVal) (check := true) (fuel : Fuel
   if check then
     -- TODO(Leo): we must add support for handling tasks here
     M.run env (safety := .safe) (lctx := {}) (lparams := v.levelParams) (fuel := fuel) do
+      checkConstantVal env v.toConstantVal
       if !(← isProp v.type) then
         throw <| .thmTypeIsNotProp env v.name v.type
-      checkConstantVal env v.toConstantVal
+      checkNoMVarNoFVar env v.name v.value
       let valType ← TypeChecker.checkType v.value
       if !(← isDefEq valType v.type) then
         throw <| .declTypeMismatch env (.thmDecl v) valType
@@ -66,6 +70,7 @@ def addOpaque (env : Environment) (v : OpaqueVal) (check := true) (fuel : FuelCo
   if check then
     M.run env (safety := .safe) (lctx := {}) (lparams := v.levelParams) (fuel := fuel) do
       checkConstantVal env v.toConstantVal
+      checkNoMVarNoFVar env v.name v.value
       let valType ← TypeChecker.checkType v.value
       if !(← isDefEq valType v.type) then
         throw <| .declTypeMismatch env (.opaqueDecl v) valType

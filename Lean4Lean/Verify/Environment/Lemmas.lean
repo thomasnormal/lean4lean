@@ -9,6 +9,18 @@ theorem TrConstant.sf_mono (hsf : safety ≤ safety')
     (H : TrConstant safety' env ci ci') : TrConstant safety env ci ci' :=
   ⟨safety.le_trans hsf H.1, H.2⟩
 
+theorem TrConstVal.sf_mono (hsf : safety ≤ safety')
+    (H : TrConstVal safety' env ci ci') : TrConstVal safety env ci ci' :=
+  ⟨H.1.sf_mono hsf, H.2⟩
+
+theorem TrDefVal.sf_mono (hsf : safety ≤ safety')
+    (H : TrDefVal safety' env ci ci') : TrDefVal safety env ci ci' :=
+  ⟨H.1.sf_mono hsf, H.2⟩
+
+theorem TrOpaqueVal.sf_mono (hsf : safety ≤ safety')
+    (H : TrOpaqueVal safety' env ci ci') : TrOpaqueVal safety env ci ci' :=
+  ⟨H.1.sf_mono hsf, H.2⟩
+
 theorem TrConstant.mono {env env' : VEnv} (henv : env ≤ env')
     (H : TrConstant safety env ci ci') : TrConstant safety env' ci ci' :=
   ⟨H.1, H.2.1, H.2.2.mono henv⟩
@@ -19,6 +31,10 @@ theorem TrConstVal.mono {env env' : VEnv} (henv : env ≤ env')
 
 theorem TrDefVal.mono {env env' : VEnv} (henv : env ≤ env')
     (H : TrDefVal safety env ci ci') : TrDefVal safety env' ci ci' :=
+  ⟨H.1.mono henv, H.2.mono henv⟩
+
+theorem TrOpaqueVal.mono {env env' : VEnv} (henv : env ≤ env')
+    (H : TrOpaqueVal safety env ci ci') : TrOpaqueVal safety env' ci ci' :=
   ⟨H.1.mono henv, H.2.mono henv⟩
 
 variable (safety : DefinitionSafety) in
@@ -69,7 +85,9 @@ theorem Aligned.addInduct (H : AddInduct C₁ venv₁ decl C₂ venv₂) :
 theorem TrEnv'.aligned (H : TrEnv' safety C Q venv) : Aligned safety C venv := by
   induction H with
   | empty => exact .empty
+  | ignoreConst h1 h2 _ ih => exact ih.ignoreConst h1 h2 rfl
   | «axiom» h1 h2 _ h _ ih => exact ih.const h2 h1 h rfl
+  | thm h1 h2 _ h _ ih => exact (ih.const h2 h1.1.1 h rfl).defeq
   | «opaque» h1 h2 _ h _ ih => exact ih.const h2 h1.1.1 h rfl
   | defn h1 h2 _ h _ ih => exact (ih.const h2 h1.1.1 h rfl).defeq
   | quot _ h _ ih => exact ih.addQuot h
@@ -146,6 +164,10 @@ theorem TrEnv'.of_value (H : TrEnv' safety C Q venv) (h : C.find? name = some ci
     rw [hC.find?_insert]; simp; split <;> simp +contextual [*]
   induction H with
   | empty => simp [SMap.find?] at h
+  | ignoreConst h1 _ H ih =>
+    obtain h | ⟨rfl, rfl⟩ := this H.map_wf h
+    · exact ih h
+    · contradiction
   | «axiom» _ _ _ h1 H ih | «opaque» _ _ _ h1 H ih =>
     obtain h | ⟨rfl, rfl⟩ := this H.map_wf h
     · exact (ih h).mono (VEnv.addConst_le h1)
@@ -157,6 +179,15 @@ theorem TrEnv'.of_value (H : TrEnv' safety C Q venv) (h : C.find? name = some ci
     · cases hv
       have := VEnv.IsDefEq.extra0 VEnv.addDefEq_self <|
         (H.defn h2 h3 h4 h1).wf.ordered.defEqWF VEnv.addDefEq_self
+      let ⟨⟨⟨b1, b2, b3⟩, b4⟩, b5⟩ := h2
+      refine ⟨_, b5.mono le, b2.symm ▸ b4.symm ▸ ⟨_, this.symm⟩⟩
+  | thm h2 h3 h4 h1 H ih =>
+    have' le := (VEnv.addConst_le h1).trans VEnv.addDefEq_le
+    obtain h | ⟨rfl, rfl⟩ := this H.map_wf h
+    · exact (ih h).mono le
+    · cases hv
+      have := VEnv.IsDefEq.extra0 VEnv.addDefEq_self <|
+        (H.thm h2 h3 h4 h1).wf.ordered.defEqWF VEnv.addDefEq_self
       let ⟨⟨⟨b1, b2, b3⟩, b4⟩, b5⟩ := h2
       refine ⟨_, b5.mono le, b2.symm ▸ b4.symm ▸ ⟨_, this.symm⟩⟩
   | quot _ h1 H ih =>
