@@ -171,5 +171,11 @@ theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
                         subst f
                         exact hP ▸ reduceBinNatOpG.WF (guard := fun _ _ => False) he
                           (hprims.2 (by simp [prims])) c.hasPrimitives.natShiftRight
-                      · exact hP ▸ .pure nofun
+                      · split
+                        · rename_i h
+                          simp only [beq_iff_eq] at h
+                          subst f
+                          exact hP ▸ reduceBinNatOpG.WF (guard := fun _ _ => False) he
+                            (hprims.2 (by simp [prims])) c.hasPrimitives.natMod
+                        · exact hP ▸ .pure nofun
     · exact hP ▸ .pure nofun

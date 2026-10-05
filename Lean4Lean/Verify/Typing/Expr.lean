@@ -171,6 +171,9 @@ structure VEnv.HasPrimitives (env : VEnv) : Prop where
   natDivType : env.contains ``Nat.div →
     env.HasType 0 [] (.const ``Nat.div []) (.forallE .nat (.forallE .nat .nat))
   natShiftRight : env.ReflectsNatNatNat ``Nat.shiftRight Nat.shiftRight
+  natMod : env.ReflectsNatNatNat ``Nat.mod Nat.mod
+  natModType : env.contains ``Nat.mod →
+    env.HasType 0 [] (.const ``Nat.mod []) (.forallE .nat (.forallE .nat .nat))
   charOfNat : env.constants ``Char.ofNat = some ci →
     ci = { uvars := 0, type := .forallE .nat .char }
   stringOfList : env.constants ``String.ofList = some ci →

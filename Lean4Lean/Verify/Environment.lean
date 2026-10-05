@@ -90,7 +90,7 @@ private theorem not_reduction_primitive
     (hn : Environment.primitives.contains n = false) : n ∉ [
       ``Bool, ``Bool.false, ``Bool.true, ``Nat, ``Nat.zero, ``Nat.succ,
       ``Char.ofNat, ``String.ofList, ``Nat.add, ``Nat.mul, ``Nat.pow, ``Nat.pred, ``Nat.sub,
-      ``Nat.beq, ``Nat.ble, ``Nat.shiftLeft, ``Nat.div, ``Nat.shiftRight] := by
+      ``Nat.beq, ``Nat.ble, ``Nat.shiftLeft, ``Nat.div, ``Nat.shiftRight, ``Nat.mod] := by
   intro h
   have : Environment.primitives.contains n := primitive_contains n <| by
     simp only [List.mem_cons] at h ⊢
@@ -642,7 +642,10 @@ theorem VEnv.HasPrimitives.mono_of_constants {env env' : VEnv}
     (hdiv : env'.ReflectsNatNatNat ``Nat.div Nat.div)
     (hdivType : env'.contains ``Nat.div →
       env'.HasType 0 [] (.const ``Nat.div []) (.forallE .nat (.forallE .nat .nat)))
-    (hshr : env'.ReflectsNatNatNat ``Nat.shiftRight Nat.shiftRight) :
+    (hshr : env'.ReflectsNatNatNat ``Nat.shiftRight Nat.shiftRight)
+    (hmod : env'.ReflectsNatNatNat ``Nat.mod Nat.mod)
+    (hmodType : env'.contains ``Nat.mod →
+      env'.HasType 0 [] (.const ``Nat.mod []) (.forallE .nat (.forallE .nat .nat))) :
     env'.HasPrimitives := by
   have hcontains (m : Name) (hm : m ∈ [
       ``Bool, ``Bool.false, ``Bool.true, ``Nat, ``Nat.zero, ``Nat.succ,
@@ -682,6 +685,8 @@ theorem VEnv.HasPrimitives.mono_of_constants {env env' : VEnv}
     natDiv := hdiv
     natDivType := hdivType
     natShiftRight := hshr
+    natMod := hmod
+    natModType := hmodType
     charOfNat := fun h => hp.charOfNat
       (hconst ``Char.ofNat (by simp) ▸ h)
     stringOfList := fun h =>
@@ -694,11 +699,11 @@ theorem VEnv.HasPrimitives.addConst {env env' : VEnv} {n : Name} {ci : VConstant
     (hn : n ∉ [``Bool, ``Bool.false, ``Bool.true, ``Nat, ``Nat.zero, ``Nat.succ,
       ``Char.ofNat, ``String.ofList, ``Nat.add, ``Nat.mul, ``Nat.pow,
       ``Nat.pred, ``Nat.sub, ``Nat.beq, ``Nat.ble, ``Nat.shiftLeft,
-      ``Nat.div, ``Nat.shiftRight]) : env'.HasPrimitives := by
+      ``Nat.div, ``Nat.shiftRight, ``Nat.mod]) : env'.HasPrimitives := by
   have hle := VEnv.addConst_le hadd
   have hcontains (m : Name)
       (hm : m ∈ [``Nat.add, ``Nat.mul, ``Nat.pow, ``Nat.pred, ``Nat.sub,
-        ``Nat.beq, ``Nat.ble, ``Nat.shiftLeft, ``Nat.div, ``Nat.shiftRight]) :
+        ``Nat.beq, ``Nat.ble, ``Nat.shiftLeft, ``Nat.div, ``Nat.shiftRight, ``Nat.mod]) :
       env'.contains m → env.contains m := by
     have heq := VEnv.addConst_constants hadd (m := m) (by
       rintro rfl
@@ -724,6 +729,8 @@ theorem VEnv.HasPrimitives.addConst {env env' : VEnv} {n : Name} {ci : VConstant
   · exact fun h a b => (hp.natDiv (hcontains _ (by simp) h) a b).mono hle
   · exact fun h => (hp.natDivType (hcontains _ (by simp) h)).mono hle
   · exact fun h a b => (hp.natShiftRight (hcontains _ (by simp) h) a b).mono hle
+  · exact fun h a b => (hp.natMod (hcontains _ (by simp) h) a b).mono hle
+  · exact fun h => (hp.natModType (hcontains _ (by simp) h)).mono hle
 
 theorem VEnv.HasPrimitives.extendPrimitive {env env' : VEnv} {n : Name}
     (hp : env.HasPrimitives) (hle : env ≤ env')
@@ -749,7 +756,10 @@ theorem VEnv.HasPrimitives.extendPrimitive {env env' : VEnv} {n : Name}
     (hdiv : n = ``Nat.div →
       env'.HasType 0 [] (.const ``Nat.div []) (.forallE .nat (.forallE .nat .nat)) ∧
       env'.ReflectsNatNatNat ``Nat.div Nat.div)
-    (hshr : n = ``Nat.shiftRight → env'.ReflectsNatNatNat ``Nat.shiftRight Nat.shiftRight) :
+    (hshr : n = ``Nat.shiftRight → env'.ReflectsNatNatNat ``Nat.shiftRight Nat.shiftRight)
+    (hmod : n = ``Nat.mod →
+      env'.HasType 0 [] (.const ``Nat.mod []) (.forallE .nat (.forallE .nat .nat)) ∧
+      env'.ReflectsNatNatNat ``Nat.mod Nat.mod) :
     env'.HasPrimitives := by
   have hcontains {m : Name} (hm : n ≠ m) : env'.contains m → env.contains m := by
     simp only [VEnv.contains, hconst m hm, imp_self]
@@ -800,6 +810,12 @@ theorem VEnv.HasPrimitives.extendPrimitive {env env' : VEnv} {n : Name}
   · by_cases h : n = ``Nat.shiftRight
     · exact hshr h
     · exact fun hx a b => (hp.natShiftRight (hcontains h hx) a b).mono hle
+  · by_cases h : n = ``Nat.mod
+    · exact (hmod h).2
+    · exact fun hx a b => (hp.natMod (hcontains h hx) a b).mono hle
+  · by_cases h : n = ``Nat.mod
+    · exact fun _ => (hmod h).1
+    · exact fun hx => (hp.natModType (hcontains h hx)).mono hle
 
 theorem VEnv.HasPrimitives.addLiteralDef {env env' : VEnv} {n : Name} {ci : VConstant}
     (hp : env.HasPrimitives) (hadd : env.addConst n ci = some env')
@@ -813,7 +829,7 @@ theorem VEnv.HasPrimitives.addLiteralDef {env env' : VEnv} {n : Name} {ci : VCon
   have hle := VEnv.addConst_le hadd
   have hprim (m : Name)
       (hm : m ∈ [``Nat.add, ``Nat.mul, ``Nat.pow, ``Nat.pred, ``Nat.sub,
-        ``Nat.beq, ``Nat.ble, ``Nat.shiftLeft, ``Nat.div, ``Nat.shiftRight]) :
+        ``Nat.beq, ``Nat.ble, ``Nat.shiftLeft, ``Nat.div, ``Nat.shiftRight, ``Nat.mod]) :
       env'.contains m → env.contains m := by
     have heq := VEnv.addConst_constants hadd (m := m) (by
       rcases hn with rfl | rfl <;> rintro rfl <;> simp at hm)
@@ -860,6 +876,8 @@ theorem VEnv.HasPrimitives.addLiteralDef {env env' : VEnv} {n : Name} {ci : VCon
     natDiv := fun h a b => (hp.natDiv (hprim _ (by simp) h) a b).mono hle
     natDivType := fun h => (hp.natDivType (hprim _ (by simp) h)).mono hle
     natShiftRight := fun h a b => (hp.natShiftRight (hprim _ (by simp) h) a b).mono hle
+    natMod := fun h a b => (hp.natMod (hprim _ (by simp) h) a b).mono hle
+    natModType := fun h => (hp.natModType (hprim _ (by simp) h)).mono hle
     charOfNat := fun h => by
       by_cases heq : n = ``Char.ofNat
       · subst n
@@ -900,6 +918,8 @@ theorem VEnv.HasPrimitives.addDefEq {env : VEnv} {df : VDefEq} (hp : env.HasPrim
     natDiv := fun h a b => (hp.natDiv h a b).mono VEnv.addDefEq_le
     natDivType := fun h => (hp.natDivType h).mono VEnv.addDefEq_le
     natShiftRight := fun h a b => (hp.natShiftRight h a b).mono VEnv.addDefEq_le
+    natMod := fun h a b => (hp.natMod h a b).mono VEnv.addDefEq_le
+    natModType := fun h => (hp.natModType h).mono VEnv.addDefEq_le
     charOfNat := hp.charOfNat
     stringOfList := fun h =>
       let ⟨h₁, h₂, h₃⟩ := hp.stringOfList h
@@ -1503,6 +1523,11 @@ theorem addDefinition.WF_primitive {ves : VEnvs} (wf : ves.WF env)
             · intro hnat
               rw [hnat] at hdef'
               exact Environment.checkPrimitiveDef_natShiftRight.extension
+                wf v hnat ht hv hf hcheck (htr' safety).wf
+                ((wf.mono DefinitionSafety.le_safe).trans hle) hdef'
+            · intro hnat
+              rw [hnat] at hdef'
+              exact Environment.checkPrimitiveDef_natMod.extension
                 wf v hnat ht hv hf hcheck (htr' safety).wf
                 ((wf.mono DefinitionSafety.le_safe).trans hle) hdef'
         safePrimitives := by
