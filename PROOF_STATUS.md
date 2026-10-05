@@ -22,6 +22,12 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   declaration proof reconstructs addition reflection in the extended environment.
   The bridge uses the old environment's primitive invariant, not the invariant it
   is trying to establish. The native addition reduction is enabled again.
+- `NatMulSpec.eval` derives literal multiplication from its zero/successor
+  equations and typed addition reflection. Multiplication's primitive-check and
+  environment-extension proofs are connected, and its native reduction is also
+  enabled. `HasPrimitives` now records the function types of addition and
+  multiplication as well as their literal evaluation: the type information is
+  needed when checking equations that use already-declared primitives on variables.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -36,7 +42,7 @@ Main review entry points: `Lean4Lean/Verify/Environment.lean`,
   inductives. Arithmetic results are conditional on an appropriate starting
   environment translation; runtime tests against the imported prelude do not
   construct that translation.
-- Native binary reductions other than addition remain disabled in this fork.
+- Native binary reductions other than addition and multiplication remain disabled.
   Restoring them with their primitive-extension proofs is unfinished work, not
   an optional optimization that can be dropped from the objective. The checker
   still hits a recursion limit when replaying `Lean4Lean.Verify.Level`, at
@@ -61,18 +67,21 @@ lake build Lean4Lean.Theory Lean4Lean.Verify lean4lean
 lake env lean tests/Environment.lean
 lake env lean tests/Primitive.lean
 lake env lean --run tests/Levels.lean
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Primitive
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Environment
 ```
 
-The tests cover acceptance/rejection from an empty environment, rejection of an
-incorrect addition implementation, large literal addition with low fuel, and
-agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 296 declarations in the environment
-verification module. This is module replay against imported dependencies, not a
+The tests cover acceptance/rejection from an empty environment, rejection of
+incorrect addition/multiplication implementations, large literal arithmetic with
+low fuel, and agreement with upstream on 3,280 small normalizations and 10,000 generated level
+cases. The executable successfully replayed 69 declarations in the primitive
+verification module and 301 in the environment verification module.
+This is module replay against imported dependencies, not a
 verified replay of the entire dependency closure.
 
 `#print axioms` reports only `propext` and `Quot.sound` for
-`Lean4Lean.VEnv.NatAddSpec.eval` and `.reflects`. The level soundness theorems
+`Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, and `Lean4Lean.VEnv.NatMulSpec.eval`.
+The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
 without `sorryAx`. The frontend audit includes `sorryAx` and the existing

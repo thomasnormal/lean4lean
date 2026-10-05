@@ -32,3 +32,18 @@ run_meta
   let badAdd := { add with value := q(fun a (_ : Nat) => a) }
   if ((Lean4Lean.Environment.checkPrimitiveDef badAdd).run env).isOk then
     throwError "accepted a Nat.add implementation that ignores its second argument"
+
+  for (a, b) in [(0, 0), (17, 0), (0, 23), (1, 29), (31, 1), (1000000, 2000000),
+      (1208925819614629174706177, 1208925819614629174706179)] do
+    let e := mkApp2 q(Nat.mul) (mkNatLit a) (mkNatLit b)
+    match (TypeChecker.whnf e).run env (fuel := fuel) with
+    | .ok r =>
+      unless r.rawNatLit? == some (a * b) do
+        throwError "Nat.mul {a} {b}: expected literal {a * b}"
+    | .error _ => throwError "Nat.mul {a} {b}: reduction failed"
+
+  let some (.defnInfo mul) := env.find? ``Nat.mul | throwError "missing Nat.mul"
+  for badMul in [{ mul with value := q(fun (_ _ : Nat) => Nat.zero) },
+      { mul with value := q(Nat.add) }] do
+    if ((Lean4Lean.Environment.checkPrimitiveDef badMul).run env).isOk then
+      throwError "accepted an incorrect Nat.mul implementation"
