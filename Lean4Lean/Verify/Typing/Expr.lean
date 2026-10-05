@@ -150,6 +150,7 @@ structure VEnv.HasPrimitives (env : VEnv) : Prop where
   natZero : env.constants ``Nat.zero = some ci → ci = { uvars := 0, type := .nat }
   natSucc : env.constants ``Nat.succ = some ci →
     ci = { uvars := 0, type := .forallE .nat .nat }
+  natAdd : env.ReflectsNatNatNat ``Nat.add Nat.add
   charOfNat : env.constants ``Char.ofNat = some ci →
     ci = { uvars := 0, type := .forallE .nat .char }
   stringOfList : env.constants ``String.ofList = some ci →

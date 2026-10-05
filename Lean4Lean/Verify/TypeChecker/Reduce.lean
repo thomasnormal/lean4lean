@@ -112,4 +112,13 @@ theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
       refine p2.toU.symm.trans c.Ewf c.Δwf ?_
       exact ⟨_, ha1.appDF <| a3.of_r c.Ewf c.Δwf ha2⟩
     · exact hP ▸ .pure nofun
-  · exact hP ▸ .pure nofun
+  · split
+    · split <;> [rename_i f ls a b _ h2; exact hP ▸ .pure nofun]
+      split
+      · rename_i h
+        simp at h ⊢
+        subst f
+        exact hP ▸ reduceBinNatOpG.WF (guard := fun _ _ => False) he
+          (hprims.2 (by simp [prims])) c.hasPrimitives.natAdd
+      · exact hP ▸ .pure nofun
+    · exact hP ▸ .pure nofun

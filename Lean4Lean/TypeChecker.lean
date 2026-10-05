@@ -406,6 +406,9 @@ def reduceNat (e : Expr) : RecM (Option Expr) := do
     if f == .const ``Nat.succ [] then
       let some v := rawNatLitExt? (← whnf e.appArg!) | return none
       return some <| .lit <| .natVal <| v + 1
+  else if nargs == 2 then
+    let .app (.app (.const f _) a) b := e | return none
+    if f == ``Nat.add then return ← reduceBinNatOp Nat.add a b
   return none
 
 def whnf' (e : Expr) : RecM Expr := do

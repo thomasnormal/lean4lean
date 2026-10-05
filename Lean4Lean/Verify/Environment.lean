@@ -1,11 +1,28 @@
 import Lean4Lean.Environment
-import Lean4Lean.Verify.TypeChecker
+import Lean4Lean.Verify.Primitive
 
 namespace Lean4Lean
 open Lean hiding Environment Exception
 open Kernel TypeChecker
 open private eqReady? eqTypeExpr quotTypeExpr quotMkTypeExpr quotLiftTypeExpr
   quotIndTypeExpr from Lean4Lean.Quot
+
+def VEnvs.empty : VEnvs := ⟨fun _ => ∅⟩
+
+theorem VEnvs.WF.empty (mainModule : Name) (trustLevel : UInt32 := 0) :
+    VEnvs.empty.WF (Environment.empty mainModule trustLevel) := by
+  refine {
+    tr := .empty
+    hasPrimitives := ?_
+    safePrimitives := ?_
+    mono := fun _ => .rfl }
+  · intro safety
+    change VEnv.HasPrimitives VEnv.empty
+    constructor <;> simp [VEnv.empty, VEnv.contains, VEnv.ReflectsNatNatNat]
+  · intro n ci h _
+    change ({} : ConstMap).find?' n = some ci at h
+    rw [SMap.WF.empty.find?'_eq_find?] at h
+    simp [SMap.find?] at h
 
 private def trExprResult (Us : List Name) (Δ : VLCtx) : Expr → Option VExpr
   | .bvar i => (Δ.find? (.inl i)).map fun x => x.1
@@ -69,10 +86,10 @@ private theorem primitive_contains (n : Name) (h : n ∈ [
   apply Std.TreeSet.mem_iff_contains.mp
   simpa [Environment.primitives, NameSet.ofList] using h
 
-private theorem not_literal_primitive
+private theorem not_reduction_primitive
     (hn : Environment.primitives.contains n = false) : n ∉ [
       ``Bool, ``Bool.false, ``Bool.true, ``Nat, ``Nat.zero, ``Nat.succ,
-      ``Char.ofNat, ``String.ofList] := by
+      ``Char.ofNat, ``String.ofList, ``Nat.add] := by
   intro h
   have : Environment.primitives.contains n := primitive_contains n <| by
     simp only [List.mem_cons] at h ⊢
@@ -416,6 +433,18 @@ theorem checkPrimitiveDefinition.WF {ves : VEnvs} (wf : ves.WF env)
     refine (M.WF.run wf (checkStringPrimitiveDeps.WF (ves := ves) wf v)).bind
       fun _ hdeps => finish true fun _ => hdeps
 
+theorem checkPrimitiveDefinition.primitiveCheck (env : Environment) (v : DefinitionVal)
+    (fuel : FuelConfig) :
+    (checkPrimitiveDefinition env v fuel).WF fun _ =>
+      ∃ b, M.run env .safe {} v.levelParams fuel (Environment.checkPrimitiveDef v) = .ok b := by
+  unfold checkPrimitiveDefinition
+  refine (show (checkPrimitiveHeader v).WF (fun _ => True) from fun _ _ => trivial).bind
+    fun _ _ => ?_
+  refine (show (M.run env .safe {} v.levelParams fuel (Environment.checkPrimitiveDef v)).WF
+    (fun b => M.run env .safe {} v.levelParams fuel (Environment.checkPrimitiveDef v) = .ok b)
+    from fun _ h => h).bind fun b hb => ?_
+  exact fun _ _ => ⟨b, hb⟩
+
 private theorem TrDefVal.charOfNat_type
     (htr : TrDefVal .safe env (.defnInfo v) ci')
     (hp : v.levelParams = []) (ht : v.type == q(Nat → Char)) :
@@ -587,19 +616,12 @@ theorem VEnv.addDefEq_mono {env₁ env₂ : VEnv} {df : VDefEq} (hle : env₁ �
     · exact VEnv.addDefEq_self
     · exact VEnv.addDefEq_le.defeqs (hle.defeqs h)
 
-theorem VEnv.HasPrimitives.addConst {env env' : VEnv} {n : Name} {ci : VConstant}
-    (hp : env.HasPrimitives)
-    (hadd : env.addConst n ci = some env')
-    (hn : n ∉ [``Bool, ``Bool.false, ``Bool.true, ``Nat, ``Nat.zero, ``Nat.succ,
-      ``Char.ofNat, ``String.ofList]) : env'.HasPrimitives := by
-  have hle := VEnv.addConst_le hadd
-  have hconst (m : Name) (hm : m ∈ [
+theorem VEnv.HasPrimitives.mono_of_constants {env env' : VEnv}
+    (hp : env.HasPrimitives) (hle : env ≤ env')
+    (hconst : ∀ m ∈ [
       ``Bool, ``Bool.false, ``Bool.true, ``Nat, ``Nat.zero, ``Nat.succ,
-      ``Char.ofNat, ``String.ofList]) :
-      env'.constants m = env.constants m := by
-    apply VEnv.addConst_constants hadd
-    rintro rfl
-    exact hn hm
+      ``Char.ofNat, ``String.ofList], env'.constants m = env.constants m)
+    (hadd : env'.ReflectsNatNatNat ``Nat.add Nat.add) : env'.HasPrimitives := by
   have hcontains (m : Name) (hm : m ∈ [
       ``Bool, ``Bool.false, ``Bool.true, ``Nat, ``Nat.zero, ``Nat.succ,
       ``Char.ofNat, ``String.ofList]) :
@@ -623,12 +645,30 @@ theorem VEnv.HasPrimitives.addConst {env env' : VEnv} {n : Name} {ci : VConstant
       (hconst ``Nat.zero (by simp) ▸ h)
     natSucc := fun h => hp.natSucc
       (hconst ``Nat.succ (by simp) ▸ h)
+    natAdd := hadd
     charOfNat := fun h => hp.charOfNat
       (hconst ``Char.ofNat (by simp) ▸ h)
     stringOfList := fun h =>
       let ⟨h₁, h₂, h₃⟩ := hp.stringOfList
         (hconst ``String.ofList (by simp) ▸ h)
       ⟨h₁, h₂.mono hle, h₃.mono hle⟩ }
+
+theorem VEnv.HasPrimitives.addConst {env env' : VEnv} {n : Name} {ci : VConstant}
+    (hp : env.HasPrimitives) (hadd : env.addConst n ci = some env')
+    (hn : n ∉ [``Bool, ``Bool.false, ``Bool.true, ``Nat, ``Nat.zero, ``Nat.succ,
+      ``Char.ofNat, ``String.ofList, ``Nat.add]) : env'.HasPrimitives := by
+  have hle := VEnv.addConst_le hadd
+  apply hp.mono_of_constants hle
+  · intro m hm
+    apply VEnv.addConst_constants hadd
+    rintro rfl
+    exact hn (by simp_all)
+  · intro h a b
+    have heq := VEnv.addConst_constants hadd (m := ``Nat.add) (by
+      rintro rfl
+      exact hn (by simp))
+    have h' : env.contains ``Nat.add := by simpa only [VEnv.contains, heq] using h
+    exact (hp.natAdd h' a b).mono hle
 
 theorem VEnv.HasPrimitives.addLiteralDef {env env' : VEnv} {n : Name} {ci : VConstant}
     (hp : env.HasPrimitives) (hadd : env.addConst n ci = some env')
@@ -667,6 +707,11 @@ theorem VEnv.HasPrimitives.addLiteralDef {env env' : VEnv} {n : Name} {ci : VCon
         (hcontains ``Nat.succ (by simp)).2 hs⟩
     natZero := fun h => hp.natZero (hconst ``Nat.zero (by simp) ▸ h)
     natSucc := fun h => hp.natSucc (hconst ``Nat.succ (by simp) ▸ h)
+    natAdd := fun h a b => by
+      have heq := VEnv.addConst_constants hadd (m := ``Nat.add) (by
+        rcases hn with rfl | rfl <;> decide)
+      have h' : env.contains ``Nat.add := by simpa only [VEnv.contains, heq] using h
+      exact (hp.natAdd h' a b).mono hle
     charOfNat := fun h => by
       by_cases heq : n = ``Char.ofNat
       · subst n
@@ -692,6 +737,7 @@ theorem VEnv.HasPrimitives.addDefEq {env : VEnv} {df : VDefEq} (hp : env.HasPrim
     nat := hp.nat
     natZero := hp.natZero
     natSucc := hp.natSucc
+    natAdd := fun h a b => (hp.natAdd h a b).mono VEnv.addDefEq_le
     charOfNat := hp.charOfNat
     stringOfList := fun h =>
       let ⟨h₁, h₂, h₃⟩ := hp.stringOfList h
@@ -765,7 +811,7 @@ theorem addAxiom.WF {ves : VEnvs} (wf : ves.WF env) (v : AxiomVal)
         split
         · exact wf.hasPrimitives.addConst
             ((ves.venv safety).addConst_insert (hvnone safety))
-            (not_literal_primitive (hnprim rfl))
+            (not_reduction_primitive (hnprim rfl))
         · exact wf.hasPrimitives
       safePrimitives := by
         intro n ci hfind hp
@@ -843,7 +889,7 @@ private theorem addQuotInfo.WF {ves : VEnvs} (wf : ves.WF env)
         intro safety
         exact wf.hasPrimitives.addConst
           ((ves.venv safety).addConst_insert (hvnone safety))
-          (not_literal_primitive (hnprim rfl))
+          (not_reduction_primitive (hnprim rfl))
       safePrimitives := by
         intro n ci hfind hp
         have hmap := (wf.tr (safety := .safe)).map_wf
@@ -997,7 +1043,7 @@ theorem addDefinitionHeader.WF {ves : VEnvs} (wf : ves.WF env)
         split
         · exact wf.hasPrimitives.addConst
             ((ves.venv safety).addConst_insert (hvnone safety))
-            (not_literal_primitive (hnprim rfl))
+            (not_reduction_primitive (hnprim rfl))
         · exact wf.hasPrimitives
       safePrimitives := by
         intro n ci hfind hp
@@ -1124,7 +1170,7 @@ theorem addDefinition.WF_nonprimitive {ves : VEnvs} (wf : ves.WF env)
           split
           · exact (wf.hasPrimitives.addConst
               ((ves.venv safety).addConst_insertDef (hvnone' safety))
-              (not_literal_primitive hn')).addDefEq
+              (not_reduction_primitive hn')).addDefEq
           · exact wf.hasPrimitives
         safePrimitives := by
           intro n ci hfind hp
@@ -1173,8 +1219,11 @@ theorem addDefinition.WF_primitive {ves : VEnvs} (wf : ves.WF env)
   ·
     unfold addDefinition
     simp only [hs, pure_bind, if_true, hp]
-    refine (checkPrimitiveDefinition.WF (ves := ves) wf v (fuel := fuel)).bind
-      fun _ ⟨ci', htr, hciwf, hfresh, hsafe, hparams, hprim, hchar, hstring, hdeps⟩ => ?_
+    refine Except.WF.bind (x := checkPrimitiveDefinition env v fuel)
+      (fun r h => And.intro (checkPrimitiveDefinition.WF wf v (fuel := fuel) r h)
+        (checkPrimitiveDefinition.primitiveCheck env v fuel r h)) ?_
+    rintro _ ⟨⟨ci', htr, hciwf, hfresh, hsafe, hparams, hprim, hchar, hstring, hdeps⟩,
+      b, hcheck⟩
     apply Except.WF.pure
     have hvnone (safety) : (ves.venv safety).constants v.name = none :=
       (wf.tr).constants_eq_none hfresh
@@ -1184,22 +1233,51 @@ theorem addDefinition.WF_primitive {ves : VEnvs} (wf : ves.WF env)
       hname ▸ hvnone safety
     let ves' : VEnvs := ⟨fun safety =>
       ((ves.venv safety).insertDefConst ci').addDefEq ci'.toDefEq⟩
+    have htr' (safety) : TrEnv safety (env.add (.defnInfo v)) (ves'.venv safety) := by
+      apply TrEnv'.defn
+      · exact (htr.sf_mono (DefinitionSafety.le_safe (a := safety))).mono
+          (wf.mono (safety := safety) (safety' := .safe) DefinitionSafety.le_safe)
+      · exact hfresh
+      · exact hciwf.mono
+          (wf.mono (safety := safety) (safety' := .safe) DefinitionSafety.le_safe)
+      · simpa [hname] using (ves.venv safety).addConst_insertDef (hvnone' safety)
+      · exact wf.tr
     refine ⟨ves', ?_, ?_⟩
     · refine {
-        tr := by
-          intro safety
-          simp only [ves']
-          apply TrEnv'.defn
-          · exact (htr.sf_mono (DefinitionSafety.le_safe (a := safety))).mono
-              (wf.mono (safety := safety) (safety' := .safe) DefinitionSafety.le_safe)
-          · exact hfresh
-          · exact hciwf.mono
-              (wf.mono (safety := safety) (safety' := .safe) DefinitionSafety.le_safe)
-          · simpa [hname] using (ves.venv safety).addConst_insertDef (hvnone' safety)
-          · exact wf.tr
+        tr := htr' _
         hasPrimitives := by
           intro safety
           have hadd := (ves.venv safety).addConst_insertDef (hvnone' safety)
+          by_cases hnat : v.name = ``Nat.add
+          · have hnat' : ci'.name = ``Nat.add := hname.symm.trans hnat
+            have hle : ves.venv safety ≤ ves'.venv safety :=
+              (VEnv.addConst_le hadd).trans VEnv.addDefEq_le
+            apply (wf.hasPrimitives (safety := safety)).mono_of_constants hle
+            · intro m hm
+              change ((ves.venv safety).insertDefConst ci').constants m =
+                (ves.venv safety).constants m
+              exact VEnv.addConst_constants hadd (by
+                rw [hnat']
+                rintro rfl
+                simp at hm)
+            · have hu : ci'.uvars = 0 := by
+                have h := htr.1.1.2.1
+                change v.levelParams.length = ci'.uvars at h
+                simpa [hparams] using h.symm
+              have ht := htr.1.1.2.2
+              have hv := htr.2
+              change TrExprS (ves.venv .safe) v.levelParams [] v.type ci'.type at ht
+              change TrExprS (ves.venv .safe) v.levelParams [] v.value ci'.value at hv
+              rw [hparams] at ht hv hcheck
+              have hf : (ves.venv .safe).HasType 0 [] ci'.value ci'.type := by
+                simpa [VDefVal.WF, hu] using hciwf
+              have hdef := VEnv.IsDefEq.extra0 VEnv.addDefEq_self
+                ((htr' safety).wf.ordered.defEqWF VEnv.addDefEq_self)
+              have hdef' : (ves'.venv safety).IsDefEq 0 []
+                  (.const ``Nat.add []) ci'.value ci'.type := by
+                simpa [ves', VDefVal.toDefEq, hu, hnat', VLevel.params] using hdef
+              exact Environment.checkPrimitiveDef_natAdd.reflects wf v hnat ht hv hf hcheck
+                (htr' safety).wf ((wf.mono DefinitionSafety.le_safe).trans hle) hdef'
           by_cases hlit : v.name = ``Char.ofNat ∨ v.name = ``String.ofList
           · apply (wf.hasPrimitives.addLiteralDef hadd (hlit.imp hname.symm.trans hname.symm.trans)
                 (fun hn => ?_) (fun hn => ?_)).addDefEq
@@ -1215,7 +1293,7 @@ theorem addDefinition.WF_primitive {ves : VEnvs} (wf : ves.WF env)
             rw [← hname] at hm
             simp only [List.mem_cons] at hm
             simp at hm
-            rcases hm with hm | hm | hm | hm | hm | hm | hm | hm
+            rcases hm with hm | hm | hm | hm | hm | hm | hm | hm | hm
             · rw [hm] at hprim; simp at hprim
             · rw [hm] at hprim; simp at hprim
             · rw [hm] at hprim; simp at hprim
@@ -1224,6 +1302,7 @@ theorem addDefinition.WF_primitive {ves : VEnvs} (wf : ves.WF env)
             · rw [hm] at hprim; simp at hprim
             · exact hlit (.inl hm)
             · exact hlit (.inr hm)
+            · exact hnat hm
         safePrimitives := by
           intro n ci hfind hnprim
           have hmap := (wf.tr (safety := .safe)).map_wf
@@ -1304,7 +1383,7 @@ theorem addOpaque.WF {ves : VEnvs} (wf : ves.WF env) (v : OpaqueVal)
         split
         · exact wf.hasPrimitives.addConst
             ((ves.venv safety).addConst_insert (hvnone safety))
-            (not_literal_primitive hnprim)
+            (not_reduction_primitive hnprim)
         · exact wf.hasPrimitives
       safePrimitives := by
         intro n ci hfind hp
@@ -1376,7 +1455,7 @@ theorem addTheorem.WF {ves : VEnvs} (wf : ves.WF env) (v : TheoremVal)
         intro safety
         exact (wf.hasPrimitives.addConst
           ((ves.venv safety).addConst_insertDef (hvnone' safety))
-          (not_literal_primitive hn')).addDefEq
+          (not_reduction_primitive hn')).addDefEq
       safePrimitives := by
         intro n ci hfind hp
         have hmap := (wf.tr (safety := .safe)).map_wf
@@ -1432,10 +1511,9 @@ theorem addMutual.WF {ves : VEnvs} (wf : ves.WF env) (vs : List DefinitionVal)
 if `env` is well-formed and `addDecl env decl` (in checking mode) succeeds,
 then the resulting environment is also well-formed, and it extends `env`.
 
-None of the pieces of this theorem exist yet: nothing relates
-`Lean.Kernel.Environment.add` to the `TrEnv` relation, and nothing repackages
-the `checkType.WF`/`isDefEq.WF` postconditions at the empty local context into
-the abstract `VDecl.WF` premises needed to extend `TrEnv`. -/
+The non-inductive frontend is covered by `addDeclVerified.WF` below. The
+unrestricted theorem still requires the missing inductive specification and
+its connection to the executable checker. -/
 theorem addDecl.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env) (decl : Declaration) :
     (addDecl env decl).WF fun env' =>
       ∃ ves' : VEnvs, ves'.WF env' ∧ ∀ safety, ves.venv safety ≤ ves'.venv safety :=
@@ -1454,5 +1532,24 @@ theorem addDeclVerified.WF {ves : VEnvs} (wf : ves.WF env) (decl : Declaration)
   | mutualDefnDecl vs => simpa [addDeclVerified] using addMutual.WF wf vs fuel
   | quotDecl => simpa [addDeclVerified] using addQuotVerified.WF wf fuel
   | inductDecl lparams nparams types isUnsafe => simp [addDeclVerified, Except.WF]
+
+theorem addDeclVerified.foldlM_WF {ves : VEnvs} (wf : ves.WF env)
+    (decls : List Declaration) (fuel : FuelConfig := {}) :
+    (decls.foldlM (fun env decl => addDeclVerified env decl fuel) env).WF fun env' =>
+      ∃ ves' : VEnvs, ves'.WF env' ∧ ∀ safety, ves.venv safety ≤ ves'.venv safety := by
+  induction decls generalizing env ves with
+  | nil => exact .pure ⟨ves, wf, fun _ => .rfl⟩
+  | cons decl decls ih =>
+    simp only [List.foldlM_cons]
+    refine (addDeclVerified.WF wf decl fuel).bind fun env' ⟨ves', wf', hle⟩ => ?_
+    exact (ih wf').mono fun _ ⟨ves'', wf'', hle'⟩ =>
+      ⟨ves'', wf'', fun safety => (hle safety).trans (hle' safety)⟩
+
+theorem addDeclVerified.fromEmpty (mainModule : Name) (decls : List Declaration)
+    (fuel : FuelConfig := {}) :
+    (decls.foldlM (fun env decl => addDeclVerified env decl fuel)
+      (Environment.empty mainModule)).WF fun env => ∃ ves : VEnvs, ves.WF env :=
+  (addDeclVerified.foldlM_WF (.empty mainModule) decls fuel).mono
+    fun _ ⟨ves, wf, _⟩ => ⟨ves, wf⟩
 
 end Lean4Lean
