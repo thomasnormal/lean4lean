@@ -71,11 +71,20 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   function and proof term from the checked decision function by substitution,
   and records its checked equality to the declared decision function. It still
   requires a translation of the proposition function used by the initial
-  infer-only check. Division checks that proposition explicitly, but currently
-  does so after checking the condition; this ordering needs to be addressed in
-  its bridge proof. Deriving the division entry/loop contracts remains unfinished,
-  and native division is still disabled. No executable checks changed in this
-  checkpoint.
+  infer-only check. `checkNatDivCondition.WF` now supplies that translation from
+  the explicit proposition check: division's existing checks have been factored
+  into this helper, with the proposition check performed before the condition
+  validator.
+- `Reflection.natDITE_witness` derives the dependent witness's required type
+  from the checked selector and decision application. `NatDITEInstance`
+  packages the selector, converters, equations, and typed input.
+  `Condition.ReflectedNatNatChecked.apply` instantiates a checked condition at
+  arbitrary typed natural-number arguments, and `.natBle_apply` connects
+  literal arguments to the verified Boolean ordering primitive. These proofs
+  use the existing unique-typing and weakening-inversion APIs and inherit their
+  metatheory assumptions. The equality between the executable conditional and
+  the reflected selector application, and extraction of the division entry/loop
+  contracts, remain unfinished; native division is still disabled.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -114,6 +123,7 @@ lake build Lean4Lean.Theory Lean4Lean.Verify lean4lean
 lake env lean tests/Environment.lean
 lake env lean tests/Primitive.lean
 lake env lean tests/Reflection.lean
+lake env lean tests/Division.lean
 lake env lean --run tests/Levels.lean
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Primitive
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Environment
@@ -126,7 +136,7 @@ subtraction truncation at zero, equal and unequal large literals, rejection of
 incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 550 declarations across the primitive
+cases. The executable successfully replayed 598 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -141,6 +151,9 @@ environment translation.
 The full natural-number ordering and equality condition validators are also
 tested: both are accepted, and replacing their decision function, Boolean
 function, or proof with an invalid one is rejected.
+The division regression accepts the reference implementation and rejects
+constant-zero and first-argument implementations, both before and after moving
+the proposition check ahead of the condition validator.
 
 `#print axioms` reports only `propext` and `Quot.sound` for
 `Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, `Lean4Lean.VEnv.NatMulSpec.eval`,
@@ -162,6 +175,11 @@ implementation-interface axioms.
 executable checks, inherits `sorryAx` and the implementation-interface axioms.
 The same inherited axioms appear in `Condition.check_reflectNatNat.WF` and
 `Condition.natLE.check.WF`.
+`Reflection.NatDITEInstance.eval` uses only `propext` and `Quot.sound`.
+`Reflection.natDITE_witness` and `Condition.ReflectedNatNatChecked.apply`
+inherit `sorryAx`; `.natBle_apply` also inherits the existing persistent-map
+and array interface axioms. `checkNatDivCondition.WF` inherits the verification
+stack's axioms.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,

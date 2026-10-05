@@ -243,6 +243,10 @@ def unfoldNatWellFounded (e : Expr) (fvs : Array Expr) (eq_def : Expr) (fail : �
   unless ← isDefEq rhs rhs' do fail
   return (← getLCtx).mkLambda fvs rhs
 
+def checkNatDivCondition (fail : ∀ {α}, M α) : M Unit := do
+  unless ← isDefEq (← checkType q(@LE.le Nat _)) q(Nat → Nat → Prop) do fail
+  Condition.natLE.check fail (dite := true)
+
 def checkPrimitiveDef (v : DefinitionVal) : M Bool := do
   let fail {α} : M α := throw <| .other s!"invalid form for primitive def {v.name}"
   let tru := q(true)
@@ -333,8 +337,8 @@ def checkPrimitiveDef (v : DefinitionVal) : M Bool := do
     -- div : Nat → Nat → Nat
     unless ← isDefEq v.type q(Nat → Nat → Nat) do fail
     let div := mkApp2 v.value
-    let c := Condition.natLE; c.check fail (dite := true)
-    unless ← isDefEq (← checkType q(@LE.le Nat _)) q(Nat → Nat → Prop) do fail
+    checkNatDivCondition fail
+    let c := Condition.natLE
     let le := mkApp2 q(@LE.le Nat _)
     unless ← isDefEq (← checkType q(Nat.div.go))
       q(∀ y, Nat.succ Nat.zero ≤ y → ∀ fuel x : Nat, Nat.succ x ≤ fuel → Nat) do fail
