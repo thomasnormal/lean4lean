@@ -284,6 +284,66 @@ theorem NatShiftLeftSpec.eval (h : NatShiftLeftSpec env f) (henv : env.Ordered)
       (ha.closedN henv trivial).instN_eq (Nat.zero_le _)] at hs
     exact hs.trans <| ((hf.appDF (heval 2 a)).appDF hb).trans (ih (2 * a))
 
+def natLeExpr (le : VExpr) (a b : Nat) : VExpr :=
+  .app (.app le (.natLit a)) (.natLit b)
+
+def natDivLoopExpr (go : VExpr) (y : Nat) (hy : VExpr) (fuel a : Nat) (ha : VExpr) : VExpr :=
+  .app (.app (.app (.app (.app go (.natLit y)) hy) (.natLit fuel)) (.natLit a)) ha
+
+/-- The division loop equations after evaluating the checked conditional and
+subtraction. The proof arguments remain explicit, including the new fuel witness
+needed by the recursive call. Establishing this specification from
+`checkPrimitiveDef` requires the correctness of `Condition.natLE.check`. -/
+structure NatDivLoopSpec (env : VEnv) (go le : VExpr) : Prop where
+  step : ∀ y fuel a hy ha, 0 < y → a < fuel + 1 → y ≤ a →
+    env.HasType 0 [] hy (natLeExpr le 1 y) →
+    env.HasType 0 [] ha (natLeExpr le (a + 1) (fuel + 1)) →
+    ∃ ha', env.HasType 0 [] ha' (natLeExpr le (a - y + 1) fuel) ∧
+      env.IsDefEq 0 [] (natDivLoopExpr go y hy (fuel + 1) a ha)
+        (.app .natSucc (natDivLoopExpr go y hy fuel (a - y) ha')) .nat
+  stop : ∀ y fuel a hy ha, 0 < y → a < fuel + 1 → a < y →
+    env.HasType 0 [] hy (natLeExpr le 1 y) →
+    env.HasType 0 [] ha (natLeExpr le (a + 1) (fuel + 1)) →
+    env.IsDefEq 0 [] (natDivLoopExpr go y hy (fuel + 1) a ha) .natZero .nat
+
+theorem NatDivLoopSpec.eval (h : NatDivLoopSpec env go le)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat) (hy : 0 < y)
+    (hpos : env.HasType 0 [] py (natLeExpr le 1 y)) (ha : a < fuel)
+    (hbound : env.HasType 0 [] pa (natLeExpr le (a + 1) fuel)) :
+    env.IsDefEq 0 [] (natDivLoopExpr go y py fuel a pa) (.natLit (a / y)) .nat := by
+  induction fuel generalizing a pa with
+  | zero => omega
+  | succ fuel ih =>
+    by_cases hle : y ≤ a
+    · obtain ⟨pa', hbound', hstep⟩ := h.step y fuel a py pa hy ha hle hpos hbound
+      have ha' : a - y < fuel := by omega
+      rw [Nat.div_eq_sub_div hy hle]
+      exact hstep.trans <| (hp.natSucc_type hn).appDF (ih ha' hbound')
+    · have hlt : a < y := Nat.lt_of_not_ge hle
+      simpa only [Nat.div_eq_of_lt hlt, VExpr.natLit] using
+        h.stop y fuel a py pa hy ha hlt hpos hbound
+
+/-- The entry equations for division, together with the loop specification.
+These are intermediate obligations, not an assumption added to `HasPrimitives`. -/
+structure NatDivSpec (env : VEnv) (f go le : VExpr) : Prop where
+  loop : NatDivLoopSpec env go le
+  zero : ∀ a, env.IsDefEq 0 []
+    (.app (.app f (.natLit a)) .natZero) .natZero .nat
+  start : ∀ a y, 0 < y →
+    ∃ py pa, env.HasType 0 [] py (natLeExpr le 1 y) ∧
+      env.HasType 0 [] pa (natLeExpr le (a + 1) (a + 1)) ∧
+      env.IsDefEq 0 [] (.app (.app f (.natLit a)) (.natLit y))
+        (natDivLoopExpr go y py (a + 1) a pa) .nat
+
+theorem NatDivSpec.eval (h : NatDivSpec env f go le)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat) (a y : Nat) :
+    env.IsDefEq 0 [] (.app (.app f (.natLit a)) (.natLit y)) (.natLit (a / y)) .nat := by
+  cases y with
+  | zero => simpa only [Nat.div_zero, VExpr.natLit] using h.zero a
+  | succ y =>
+    obtain ⟨py, pa, hpos, hbound, hstart⟩ := h.start a (y + 1) (Nat.succ_pos _)
+    exact hstart.trans <| h.loop.eval hp hn (Nat.succ_pos _) hpos (Nat.lt_succ_self _) hbound
+
 end VEnv
 
 private theorem TrExprS.weakBV_closed (henv : env.Ordered)
@@ -294,6 +354,31 @@ private theorem TrExprS.weakBV_closed (henv : env.Ordered)
 
 namespace Environment
 open TypeChecker
+
+theorem Reflection.check.WF {c : VContext} (r : Reflection) (fail : ∀ {α}, M α)
+    (hfail : ∀ {s}, (fail (α := Unit)).WF c s fun _ _ => False)
+    (hr : r.type.FVarsIn (· ∈ c.vlctx.fvars)) (hb : c.venv.contains ``Bool) :
+    (r.check fail).WF c s fun _ _ => ∃ r', c.TrExprS r.type r' ∧
+      c.HasType r' (.forallE (.sort .zero) (.forallE .bool (.sort .zero))) := by
+  have ht := TrExprS.boolTrue (Us := c.lparams) (Δ := []) c.hasPrimitives hb
+  obtain ⟨u, hBool⟩ := ht.2.isType c.Ewf.ordered trivial
+  obtain ⟨ci, hci, _, hu⟩ := hBool.const_inv c.Ewf.ordered trivial
+  have trBool {Δ : VLCtx} : TrExprS c.venv c.lparams Δ q(Bool) .bool := .const hci rfl hu
+  have trProp {Δ : VLCtx} : TrExprS c.venv c.lparams Δ q(Prop) (.sort .zero) := .sort rfl
+  have propType {Γ : List VExpr} : c.venv.IsType c.lparams.length Γ (.sort .zero) :=
+    ⟨_, .sort trivial⟩
+  have boolType {Γ : List VExpr} : c.venv.IsType c.lparams.length Γ .bool :=
+    ⟨u, hBool.weak0 c.Ewf.ordered⟩
+  have trType : c.TrExprS q(Prop → Bool → Prop)
+      (.forallE (.sort .zero) (.forallE .bool (.sort .zero))) :=
+    .forallE propType (boolType.forallE propType) trProp
+      (.forallE boolType propType trBool trProp)
+  unfold Reflection.check
+  refine (checkType.WF hr).bind fun _ _ _ ⟨r', _, _, htr, hty, hrt⟩ => ?_
+  refine (isDefEq.WF hty trType).bind fun b _ _ htype => ?_
+  cases b
+  · exact hfail.mono fun _ _ _ h => h.elim
+  · exact .pure ⟨r', htr, hrt.defeqU_r c.Ewf c.Δwf (htype rfl)⟩
 
 private theorem contains_primitive (c : VContext) (hn : c.env.contains n)
     (hp : Kernel.Environment.primitives.contains n) : c.venv.contains n := by

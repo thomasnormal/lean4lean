@@ -37,6 +37,24 @@ theorem Methods.withFuel.WF : ∀ {n}, (withFuel n).WF
 theorem RecM.WF.run {x : RecM α} (H : x.WF c s Q) : (RecM.run x).WF c s Q :=
   H _ Methods.withFuel.WF
 
+protected theorem M.WF.withLocalDecl {c : VContext} {m} [cwf : c.MLCWF m]
+    {s : VState} {f : Expr → M α} {Q name ty ty' bi}
+    (hty : (c.withMLC m).TrExprS ty ty')
+    (hty' : (c.withMLC m).IsType ty')
+    (hs : s₀ ≤ s)
+    (H : ∀ id cwf' s', s₀ ≤ s' → ¬s.ngen.Reserves id →
+      WF (c.withMLC (.vlam id name ty ty' bi m) (wf := cwf')) s' (f (.fvar id)) Q) :
+    (withLocalDecl name bi ty f).WF (c.withMLC m) s Q := by
+  have h : RecM.WF (c.withMLC m) s
+      (withLocalDecl name bi ty (fun e => (f e : RecM α))) Q :=
+    .withLocalDecl hty hty' hs fun id cwf' s' hle hfresh =>
+      (H id cwf' s' hle hfresh).lift
+  exact h (Methods.withFuel 0) {
+    isDefEqCore _ _ := .throw
+    whnfCore _ := .throw
+    whnf _ := .throw
+    inferType _ _ := .throw }
+
 def VContext.mk' {env : Environment} {ves : VEnvs} (wf : ves.WF env)
     (safety : DefinitionSafety := .safe) (lparams : List Name := [])
     (fuel : FuelConfig := {}) : VContext where
