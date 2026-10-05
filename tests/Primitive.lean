@@ -145,3 +145,19 @@ run_meta
       q(fun a b : Nat => (Nat.beq a 0) || !(Nat.beq b 0))] do
     if ((Lean4Lean.Environment.checkPrimitiveDef { ble with value }).run env).isOk then
       throwError "accepted an incorrect Nat.ble implementation"
+
+  for (a, b) in [(0, 0), (17, 0), (0, 256), (1, 1), (17, 3), (1, 80),
+      (1208925819614629174706177, 200)] do
+    let expected := a * 2 ^ b
+    let e := mkApp2 q(Nat.shiftLeft) (mkNatLit a) (mkNatLit b)
+    match (TypeChecker.whnf e).run env (fuel := fuel) with
+    | .ok r =>
+      unless r.rawNatLit? == some expected do
+        throwError "Nat.shiftLeft {a} {b}: expected literal {expected}"
+    | .error _ => throwError "Nat.shiftLeft {a} {b}: reduction failed"
+
+  let some (.defnInfo shl) := env.find? ``Nat.shiftLeft | throwError "missing Nat.shiftLeft"
+  for value in [q(fun (_ _ : Nat) => Nat.zero), q(fun a (_ : Nat) => a),
+      q(Nat.add), q(fun a b : Nat => Nat.shiftLeft a (Nat.pred b))] do
+    if ((Lean4Lean.Environment.checkPrimitiveDef { shl with value }).run env).isOk then
+      throwError "accepted an incorrect Nat.shiftLeft implementation"

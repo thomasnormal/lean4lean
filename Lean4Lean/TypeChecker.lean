@@ -414,6 +414,7 @@ def reduceNat (e : Expr) : RecM (Option Expr) := do
     else if f == ``Nat.sub then return ← reduceBinNatOp Nat.sub a b
     else if f == ``Nat.beq then return ← reduceBinNatPred Nat.beq a b
     else if f == ``Nat.ble then return ← reduceBinNatPred Nat.ble a b
+    else if f == ``Nat.shiftLeft then return ← reduceBinNatOp Nat.shiftLeft a b
   return none
 
 def whnf' (e : Expr) : RecM Expr := do
