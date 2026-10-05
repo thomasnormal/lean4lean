@@ -58,10 +58,14 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
 - `Reflection.checkNatDITETypes.WF` verifies the four initial type checks of the
   dependent conditional validator, including both witness converters. The
   `checkNatDITE_eq` theorem proves that regrouping this prefix reconstructs the
-  unchanged executable. The two computation equations under local binders are
-  still unproved; correctly typed witness converters alone do not establish
-  correct branch selection. `withLocalDecl_isDefEq.WF` provides equation
-  extraction through a fresh local binder for that next step.
+  unchanged executable. Correctly typed witness converters alone do not establish
+  correct branch selection.
+- `Reflection.checkNatDITE.WF` now derives both typed computation equations from
+  the full validator, including its fresh-local checks. `NatDITESpec.apply`
+  instantiates the open equations with closed propositions, branches, and typed
+  witnesses. Connecting `Condition.natLE.check` and the checked division
+  equations to this specification remains unfinished; native division is still
+  disabled.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -112,7 +116,7 @@ subtraction truncation at zero, equal and unequal large literals, rejection of
 incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 504 declarations across the primitive
+cases. The executable successfully replayed 523 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -140,6 +144,9 @@ The witness-application lemmas `Reflection.ofTrueType.apply` and
 uses `propext`, `Classical.choice`, and `Quot.sound`. The new type-checking-prefix
 and fresh-local equation-extraction proofs inherit `sorryAx` and the existing
 implementation-interface axioms.
+`Reflection.NatDITESpec.apply` uses only `propext` and `Quot.sound`.
+`Reflection.checkNatDITE.WF`, which extracts the computation equations from the
+executable checks, inherits `sorryAx` and the implementation-interface axioms.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
