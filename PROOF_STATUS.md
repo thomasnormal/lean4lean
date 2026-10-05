@@ -103,10 +103,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   retaining the positivity and fuel-bound witnesses. `checkNatDivLoop.WF`
   connects the executable loop-type check to that abstract type, and
   `checkNatDivPrefix.WF` verifies it together with the preceding condition checks.
-  These are proofs of the existing checking fragments; the executable was not
-  changed at this checkpoint. The local entry/recursive equation checks and the
-  primitive-extension proof remain to be connected before restoring native
-  division.
+  These are proofs of the existing checking fragments; the local recursive
+  equation checks and the primitive-extension proof remain to be connected before
+  restoring native division.
 - `Condition.ReflectedNatNatChecked.natBle_dite_eval_inputs` accepts arbitrary
   typed source arguments translated to natural-number values, retaining a source
   expression for the selected proof witness. `.natBle_dite_body_inputs` reduces
@@ -118,9 +117,22 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   the constructor-form comparison argument `Nat.succ Nat.zero`. `.natDiv_zero`
   proves the zero-divisor entry branch. These are semantic bridges from supplied
   translations, not yet proofs extracting those translations and equations from
-  division's fresh-local checks. The recursive branch, full primitive-check
-  bridge, and environment-extension proof remain unfinished; native division
+  division's fresh-local checks. The full primitive-check
+  bridge and environment-extension proof remain unfinished; native division
   remains disabled. No executable code was changed at this checkpoint.
+- `natDivLoopExpr.proofIrrel` shows that changing the typed positivity or
+  fuel-bound proof does not change a loop result. `.natDiv_step` reduces the
+  selected recursive branch, evaluates its subtraction using the already
+  verified primitive, and recovers the new fuel-bound proof at the canonical loop
+  type. Proof irrelevance restores the supplied positivity witness; neither
+  witness is erased from the statement. This is still a semantic bridge from a
+  supplied translation of the conditional, not the full primitive-check proof.
+- `checkNatDivEntry.WF` extracts the open equation and structural translation
+  from the actual two-fresh-local entry-check fragment. `natDivEntryBody.at_literals`
+  instantiates both together, providing the translation needed by the entry
+  branch-evaluation lemmas. The five-local recursive check and assembly of the
+  complete division specification remain unfinished. The executable checks are
+  unchanged at this checkpoint.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -172,7 +184,7 @@ subtraction truncation at zero, equal and unequal large literals, rejection of
 incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 643 declarations across the primitive
+cases. The executable successfully replayed 661 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -229,6 +241,12 @@ The generalized source-input selection and branch reduction lemmas, and the
 division entry lemmas `.natDiv_start` and `.natDiv_zero`, inherit `sorryAx`
 and the existing map/array interface axioms. `tr_natDivLoopApp` uses the standard
 logical axioms and inherited `sorryAx`; it does not introduce a new assumption.
+`natDivLoopExpr.proofIrrel` uses only `propext` and `Quot.sound`, and
+`natDivEntryBody.instantiate_literals` uses only `propext`. The source
+instantiation bridge `natDivEntryBody.at_literals` inherits `sorryAx` from the
+existing structural-translation API. `.natDiv_step` additionally uses the existing
+map/array interface axioms, and `checkNatDivEntry.WF` inherits the checker stack's
+axioms. No new axioms or admitted proofs were introduced at this checkpoint.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
