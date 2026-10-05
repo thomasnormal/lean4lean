@@ -40,6 +40,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
 - `NatBeqSpec.eval` derives Boolean natural-number equality from the four checked
   zero/successor equations. The primitive-check and environment-extension proofs
   are connected, and native equality reduction is restored.
+- `NatBleSpec.eval` similarly derives Boolean natural-number ordering. Its
+  primitive-check and environment-extension proofs are connected, and native
+  ordering reduction is restored. Equality and ordering share the verification
+  of their common checking sequence; their executable checks are unchanged.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -55,11 +59,9 @@ Main review entry points: `Lean4Lean/Verify/Environment.lean`,
   environment translation; runtime tests against the imported prelude do not
   construct that translation.
 - Native binary reductions other than addition, multiplication, exponentiation,
-  subtraction, and equality remain disabled.
+  subtraction, equality, and ordering remain disabled.
   Restoring them with their primitive-extension proofs is unfinished work, not
-  an optional optimization that can be dropped from the objective. The checker
-  now passes the earlier recursion failure in `Lean4Lean.Verify.Level`, but
-  replay still fails with a deterministic timeout in `Lean.Level.mkData_depth`.
+  an optional optimization that can be dropped from the objective.
 - The unrestricted `addDecl.WF` and the existing inductive/injectivity/
   strengthening obligations remain open. The experimental subsumption algorithm
   is not the verified public level-comparison path.
@@ -82,22 +84,26 @@ lake env lean tests/Primitive.lean
 lake env lean --run tests/Levels.lean
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Primitive
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Environment
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Level
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
 incorrect arithmetic implementations, large literal arithmetic with low fuel,
 subtraction truncation at zero, equal and unequal large literals, rejection of
-incorrect equality implementations, both sides of the native exponent-limit boundary, and
+incorrect equality and ordering implementations, both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 435 declarations across the primitive
-and environment verification modules.
+cases. The executable successfully replayed 446 declarations across the primitive
+and environment verification modules, and 511 declarations in the level verification
+module. Restoring native ordering resolved the previous deterministic timeout in
+`Lean.Level.mkData_depth`.
 This is module replay against imported dependencies, not a
 verified replay of the entire dependency closure.
 
 `#print axioms` reports only `propext` and `Quot.sound` for
 `Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, `Lean4Lean.VEnv.NatMulSpec.eval`,
 `Lean4Lean.VEnv.NatPowSpec.eval`, `Lean4Lean.VEnv.NatPredSpec.eval`, and
-`Lean4Lean.VEnv.NatSubSpec.eval`, as well as `Lean4Lean.VEnv.NatBeqSpec.eval`. The shared
+`Lean4Lean.VEnv.NatSubSpec.eval`, as well as `Lean4Lean.VEnv.NatBeqSpec.eval` and
+`Lean4Lean.VEnv.NatBleSpec.eval`. The shared
 `Lean4Lean.VEnv.HasPrimitives.extendPrimitive` lemma has the same axiom set.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
