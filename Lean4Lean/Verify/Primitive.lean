@@ -391,6 +391,16 @@ theorem NatDivLoopSpec.eval (h : NatDivLoopSpec env go le)
       simpa only [Nat.div_eq_of_lt hlt, VExpr.natLit] using
         h.stop y fuel a py pa hy ha hlt hpos hbound
 
+/-- The entry equations extracted independently of the division loop checks. -/
+structure NatDivEntrySpec (env : VEnv) (f go le : VExpr) : Prop where
+  zero : ∀ a, env.IsDefEq 0 []
+    (.app (.app f (.natLit a)) .natZero) .natZero .nat
+  start : ∀ a y, 0 < y →
+    ∃ py pa, env.HasType 0 [] py (natLeExpr le 1 y) ∧
+      env.HasType 0 [] pa (natLeExpr le (a + 1) (a + 1)) ∧
+      env.IsDefEq 0 [] (.app (.app f (.natLit a)) (.natLit y))
+        (natDivLoopExpr go y py (a + 1) a pa) .nat
+
 /-- The entry equations for division, together with the loop specification.
 These are intermediate obligations, not an assumption added to `HasPrimitives`. -/
 structure NatDivSpec (env : VEnv) (f go le : VExpr) : Prop where
@@ -402,6 +412,10 @@ structure NatDivSpec (env : VEnv) (f go le : VExpr) : Prop where
       env.HasType 0 [] pa (natLeExpr le (a + 1) (a + 1)) ∧
       env.IsDefEq 0 [] (.app (.app f (.natLit a)) (.natLit y))
         (natDivLoopExpr go y py (a + 1) a pa) .nat
+
+theorem NatDivSpec.ofEntry (h : NatDivEntrySpec env f go le)
+    (hloop : NatDivLoopSpec env go le) : NatDivSpec env f go le :=
+  ⟨hloop, h.zero, h.start⟩
 
 theorem NatDivSpec.eval (h : NatDivSpec env f go le)
     (hp : env.HasPrimitives) (hn : env.contains ``Nat) (a y : Nat) :
@@ -1548,6 +1562,35 @@ theorem Condition.ReflectedNatNatChecked.natDITE_eval {c : VContext}
   have hcomp := v.eval c.Ewf.ordered b hb ha he
   exact (eq.trans c.Ewf trivial ⟨_, hcomp⟩).of_r c.Ewf trivial hcomp.hasType.2
 
+/-- Produce a source-level proof of a true reflected comparison. This lets
+dependent checker equations be instantiated without assuming a source
+representation for an arbitrary abstract proof. -/
+theorem Condition.ReflectedNatNatChecked.natBle_witness {c : VContext}
+    {prop dec proof na nb : Expr} {r : Reflection}
+    (h : ReflectedNatNatChecked c prop dec q(Nat.ble) proof r p')
+    (hc : c.vlctx = []) (hu : c.lparams = []) (hdc : r.toDec.Closed)
+    (tp : c.TrExprS prop p') (n m : Nat)
+    (tn : c.TrExprS na (.natLit n)) (tm : c.TrExprS nb (.natLit m))
+    (hn : c.HasType (.natLit n) .nat) (hm : c.HasType (.natLit m) .nat)
+    (hle : n ≤ m) :
+    ∃ w witness, c.TrExprS w witness ∧
+      c.venv.HasType c.lparams.length [] witness (VEnv.natLeExpr p' n m) := by
+  have hprop := h.1
+  have hprop₁ := hprop.app hn
+  simp only [VExpr.inst, VExpr.nat] at hprop₁
+  have tP := TrExprS.app hprop₁ hm (.app hprop hn tp tn) tm
+  obtain ⟨B, H, v, tB, tH, _, _, _, tt, _⟩ := h.apply hc hdc tp tn hn tm hm
+  have hB : c.HasType B .bool := by
+    simpa only [VContext.HasType, hc, VLCtx.toCtx] using v.bool_type
+  have hb := h.natBle_value_inputs hc hu n m tn tm hn hm tB hB
+  rw [Nat.ble_eq_true_of_le hle] at hb
+  have hH' := (((v.r_type.app v.prop_type).appDF hb).defeqDF v.proof_type).hasType.1
+  have hr := v.r_type.closedN c.Ewf.ordered trivial
+  have hneg := v.neg_type.closedN c.Ewf.ordered trivial
+  simp only [VContext.TrExprS, hc] at tP tH tt
+  have ⟨tW, hW⟩ := tr_reflectionProof true hr hneg v.t_type v.prop_type hH' tt tP tH
+  exact ⟨_, _, (by simpa only [VContext.TrExprS, hc] using tW), hW⟩
+
 /-- Select a branch at typed source arguments representing natural numbers.
 The source witness is retained so a branch lambda can subsequently be reduced. -/
 theorem Condition.ReflectedNatNatChecked.natBle_dite_eval_inputs {c : VContext}
@@ -2266,6 +2309,41 @@ theorem natDivEntryBody.at_literals {env : VEnv} (henv : env.Ordered)
       (ta.2.closedN henv trivial).instN_eq (Nat.zero_le _),
       (ta.2.closedN henv trivial).liftN_eq (Nat.zero_le _)] using heq₂
 
+/-- Evaluate both entry branches of the checked open equation. The loop's own
+equations are separate obligations. -/
+theorem natDivEntryBody.spec {c : VContext} {proof : Expr} {r : Reflection}
+    (hc : c.vlctx = []) (hu : c.lparams = []) (hdc : r.toDec.Closed)
+    (h : Condition.ReflectedNatNatChecked c q(@LE.le Nat _) q(Nat.decLe)
+      q(Nat.ble) proof r le)
+    (tp : c.TrExprS q(@LE.le Nat _) le) (hn : c.venv.contains ``Nat)
+    (tg : c.TrExprS q(Nat.div.go) go) (hg : c.HasType go (VEnv.natDivLoopType le))
+    (hf : c.venv.HasType c.lparams.length [] f (.forallE .nat (.forallE .nat .nat)))
+    (tout : TrExprS c.venv c.lparams [(none, .vlam .nat), (none, .vlam .nat)]
+      natDivEntryBody out)
+    (heq : c.venv.IsDefEq c.lparams.length [.nat, .nat]
+      (.app (.app f (.bvar 1)) (.bvar 0)) out .nat) :
+    VEnv.NatDivEntrySpec c.venv f go le := by
+  have hfc := hf.closedN c.Ewf.ordered trivial
+  have tlit (n : Nat) : c.TrExprS (.lit (.natVal n)) (.natLit n) := by
+    simpa only [VContext.TrExprS, hc] using
+      (TrExprS.natLit (Us := c.lparams) (Δ := []) c.hasPrimitives hn n).1
+  constructor
+  · intro a
+    obtain ⟨tr, eq⟩ := at_literals c.Ewf.ordered c.hasPrimitives hn hfc tout heq a 0
+    rw [← hc] at tr
+    have hz := h.natDiv_zero hc hu hdc tp hn (tlit 0) tr
+    simpa only [hu, List.length_nil, VExpr.natLit] using eq.trans hz
+  · intro a y hy
+    obtain ⟨tr, eq⟩ := at_literals c.Ewf.ordered c.hasPrimitives hn hfc tout heq a y
+    rw [← hc] at tr
+    have hbound : (mkApp q(Nat.lt_succ_self) (.lit (.natVal a))).Closed := by
+      simp [Closed]
+    obtain ⟨py, pa, _, hpy, hpa, hs⟩ :=
+      h.natDiv_start hc hu hdc tp hn hg tg (tlit y) (tlit a) hbound hy tr
+    exact ⟨py, pa, (by simpa only [hu, List.length_nil] using hpy),
+      (by simpa only [hu, List.length_nil] using hpa),
+      (by simpa only [hu, List.length_nil] using eq.trans hs)⟩
+
 /-- Extract the open entry equation from the two fresh-local checks. -/
 theorem checkNatDivEntry.WF {c : VContext} (hc : c.vlctx = [])
     (hn : c.venv.contains ``Nat)
@@ -2346,6 +2424,219 @@ theorem checkNatDivEntry.WF {c : VContext} (hc : c.vlctx = [])
     exact ⟨out, (by simpa only [cx, VContext.withMLC, VContext.vlctx, MLCtx.vlctx, hc] using tout),
       (by simpa only [cx, VContext.withMLC, VContext.vlctx, MLCtx.vlctx, VLCtx.toCtx, hc] using heq)⟩
   exact wfy
+
+/-- The recursive equation's anonymous context, ordered as `[h, fuel, hy, y, x]`. -/
+def natDivLoopContext (le : VExpr) : VLCtx :=
+  [(none, .vlam (.app (.app le (.app .natSucc (.bvar 3))) (.app .natSucc (.bvar 0)))),
+    (none, .vlam .nat),
+    (none, .vlam (.app (.app le (.natLit 1)) (.bvar 0))),
+    (none, .vlam .nat), (none, .vlam .nat)]
+
+/-- The recursive conditional before substituting the five checked locals. -/
+def natDivLoopBody : Expr :=
+  let p := mkApp2 q(@LE.le Nat _) (.bvar 3) (.bvar 4)
+  mkApp4 q(@dite Nat) p (mkApp2 q(Nat.decLe) (.bvar 3) (.bvar 4))
+    (.lam0 p (mkApp q(Nat.succ)
+      (mkApp5 q(Nat.div.go) (.bvar 4) (.bvar 3) (.bvar 2)
+        (mkApp2 q(Nat.sub) (.bvar 5) (.bvar 4))
+        (mkApp6 q(@Nat.div_rec_fuel_lemma) (.bvar 5) (.bvar 4) (.bvar 2)
+          (.bvar 3) (.bvar 0) (.bvar 1)))))
+    (.lam0 (mkApp q(Not) p) q(Nat.zero))
+
+/-- Substituting the five locals recovers the executable recursive-check body. -/
+theorem natDivLoopBody.instantiate_fvars (x y hy fuel h : FVarId) :
+    ((((natDivLoopBody.instantiate1' (.fvar x) 4).instantiate1' (.fvar y) 3).instantiate1'
+      (.fvar hy) 2).instantiate1' (.fvar fuel) 1).instantiate1' (.fvar h) =
+      Condition.natLE.dite #[.fvar y, .fvar x]
+        (mkApp q(Nat.succ) (mkApp5 q(Nat.div.go) (.fvar y) (.fvar hy) (.fvar fuel)
+          (mkApp2 q(Nat.sub) (.fvar x) (.fvar y))
+          (mkApp6 q(@Nat.div_rec_fuel_lemma) (.fvar x) (.fvar y) (.fvar fuel)
+            (.fvar hy) (.bvar 0) (.fvar h)))) q(Nat.zero) := by
+  simp only [natDivLoopBody, Condition.dite, Condition.natLE, mkAppN,
+    Expr.lam0, Expr.instantiate1', Expr.liftLooseBVars',
+    Nat.reduceAdd, Nat.reduceSub, Nat.reduceLT, Nat.reduceEqDiff, if_true, if_false]
+  rfl
+
+theorem natDivLoopBody.instantiate_literals (a y fuel : Nat)
+    (hpy : epy.Closed) (hpa : epa.Closed) :
+    ((((natDivLoopBody.instantiate1' (.lit (.natVal a)) 4).instantiate1'
+      (.lit (.natVal y)) 3).instantiate1' epy 2).instantiate1'
+      (.lit (.natVal fuel)) 1).instantiate1' epa =
+      Condition.natLE.dite #[.lit (.natVal y), .lit (.natVal a)]
+        (mkApp q(Nat.succ) (mkApp5 q(Nat.div.go) (.lit (.natVal y)) epy
+          (.lit (.natVal fuel)) (mkApp2 q(Nat.sub) (.lit (.natVal a)) (.lit (.natVal y)))
+          (mkApp6 q(@Nat.div_rec_fuel_lemma) (.lit (.natVal a)) (.lit (.natVal y))
+            (.lit (.natVal fuel)) epy (.bvar 0) epa))) q(Nat.zero) := by
+  have hinst (e : Expr) (he : e.Closed) (v : Expr) (k : Nat) :
+      e.instantiate1' v k = e :=
+    Expr.instantiate1'_eq_self (Nat.le_trans he.looseBVarRange_le (Nat.zero_le _))
+  have hlift (e : Expr) (he : e.Closed) (k : Nat) : e.liftLooseBVars' 0 k = e :=
+    Expr.liftLooseBVars_eq_self he.looseBVarRange_le
+  simp only [natDivLoopBody, Condition.dite, Condition.natLE, mkAppN,
+    Expr.lam0, Expr.instantiate1', hinst _ hpy, hlift _ hpy, hlift _ hpa,
+    Expr.liftLooseBVars', Nat.reduceAdd, Nat.reduceSub, Nat.reduceLT,
+    Nat.reduceEqDiff, if_true, if_false]
+  rfl
+
+/-- Instantiate the recursive equation and its translation using source proofs
+of positivity and the fuel bound. -/
+theorem natDivLoopBody.at_literals {env : VEnv} (henv : env.Ordered)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat)
+    (hlc : le.ClosedN) (hgc : go.ClosedN)
+    (tpy : TrExprS env Us [] epy py)
+    (hpy : env.HasType Us.length [] py (VEnv.natLeExpr le 1 y))
+    (tpa : TrExprS env Us [] epa pa)
+    (hpa : env.HasType Us.length [] pa (VEnv.natLeExpr le (a + 1) (fuel + 1)))
+    (tout : TrExprS env Us (natDivLoopContext le) natDivLoopBody out)
+    (heq : env.IsDefEq Us.length (natDivLoopContext le).toCtx
+      (.app (.app (.app (.app (.app go (.bvar 3)) (.bvar 2))
+        (.app .natSucc (.bvar 1))) (.bvar 4)) (.bvar 0)) out .nat) :
+    TrExprS env Us []
+      (Condition.natLE.dite #[.lit (.natVal y), .lit (.natVal a)]
+        (mkApp q(Nat.succ) (mkApp5 q(Nat.div.go) (.lit (.natVal y)) epy
+          (.lit (.natVal fuel)) (mkApp2 q(Nat.sub) (.lit (.natVal a)) (.lit (.natVal y)))
+          (mkApp6 q(@Nat.div_rec_fuel_lemma) (.lit (.natVal a)) (.lit (.natVal y))
+            (.lit (.natVal fuel)) epy (.bvar 0) epa))) q(Nat.zero))
+      (((((out.inst (.natLit a) 4).inst (.natLit y) 3).inst py 2).inst
+        (.natLit fuel) 1).inst pa) ∧
+    env.IsDefEq Us.length [] (VEnv.natDivLoopExpr go y py (fuel + 1) a pa)
+      (((((out.inst (.natLit a) 4).inst (.natLit y) 3).inst py 2).inst
+        (.natLit fuel) 1).inst pa) .nat := by
+  have ta := TrExprS.natLit (Us := Us) (Δ := []) hp hn a
+  have ty := TrExprS.natLit (Us := Us) (Δ := []) hp hn y
+  have tf := TrExprS.natLit (Us := Us) (Δ := []) hp hn fuel
+  have hac := ta.2.closedN henv trivial
+  have hyc := ty.2.closedN henv trivial
+  have hfc := tf.2.closedN henv trivial
+  have hpc := hpy.closedN henv trivial
+  have tq := ta.1.instN henv ta.2 (.succ (.succ (.succ (.succ .zero)))) tout
+  have eq := heq.instN henv ta.2 (.succ (.succ (.succ (.succ .zero))))
+  simp only [VLocalDecl.inst, VLocalDecl.depth, Nat.reduceAdd, VLCtx.toCtx, VExpr.inst,
+    hlc.instN_eq (Nat.zero_le _), VExpr.instVar_succ, VExpr.instVar_zero,
+    VExpr.instVar_lower, VExpr.nat, VExpr.natLit, VExpr.natSucc, VExpr.natZero] at tq eq
+  have tq := ty.1.instN henv ty.2 (.succ (.succ (.succ .zero))) tq
+  have eq := eq.instN henv ty.2 (.succ (.succ (.succ .zero)))
+  simp only [VLocalDecl.inst, VLocalDecl.depth, Nat.reduceAdd, VExpr.inst,
+    hlc.instN_eq (Nat.zero_le _),
+    hac.instN_eq (Nat.zero_le _), hac.liftN_eq (Nat.zero_le _),
+    VExpr.instVar_zero, VExpr.instVar_lower] at tq eq
+  have tq := tpy.instN henv hpy (.succ (.succ .zero)) tq
+  have eq := eq.instN henv hpy (.succ (.succ .zero))
+  simp only [VLocalDecl.inst, VLocalDecl.depth, Nat.reduceAdd, VExpr.inst,
+    hlc.instN_eq (Nat.zero_le _),
+    hac.instN_eq (Nat.zero_le _), VExpr.instVar_lower] at tq eq
+  have tq := tf.1.instN henv tf.2 (.succ .zero) tq
+  have eq := eq.instN henv tf.2 (.succ .zero)
+  simp only [VLocalDecl.inst, VLocalDecl.depth, Nat.reduceAdd, VExpr.inst,
+    hlc.instN_eq (Nat.zero_le _),
+    hac.instN_eq (Nat.zero_le _), VExpr.instVar_zero, VExpr.instVar_lower] at tq eq
+  have tq := tq.inst henv hpa tpa
+  have eq := eq.instN henv hpa .zero
+  refine ⟨?_, ?_⟩
+  · simpa only [instantiate_literals _ _ _ tpy.closed tpa.closed] using tq
+  · simpa only [VEnv.natDivLoopExpr, VExpr.inst, hgc.instN_eq (Nat.zero_le _),
+      hac.instN_eq (Nat.zero_le _), hyc.instN_eq (Nat.zero_le _),
+      hyc.liftN_eq (Nat.zero_le _), hfc.liftN_eq (Nat.zero_le _),
+      hfc.instN_eq (Nat.zero_le _),
+      hpc.instN_eq (Nat.zero_le _), hpc.liftN_eq (Nat.zero_le _),
+      VExpr.instVar_succ, VExpr.instVar_zero, VExpr.instVar_lower, VExpr.instVar_upper,
+      VExpr.nat, VExpr.natLit, VExpr.natSucc, VExpr.natZero,
+      VExpr.liftN, VExpr.lift, liftVar_base] using eq
+
+/-- The checked open recursive equation implies the loop contract for arbitrary
+abstract proof arguments. Reflection supplies source witnesses for substitution;
+proof irrelevance then removes the dependence on their particular translations. -/
+theorem natDivLoopBody.spec {c : VContext} {proof : Expr} {r : Reflection}
+    (hc : c.vlctx = []) (hu : c.lparams = []) (hdc : r.toDec.Closed)
+    (h : Condition.ReflectedNatNatChecked c q(@LE.le Nat _) q(Nat.decLe)
+      q(Nat.ble) proof r le)
+    (tp : c.TrExprS q(@LE.le Nat _) le) (hn : c.venv.contains ``Nat)
+    (hsub : c.venv.contains ``Nat.sub)
+    (tg : c.TrExprS q(Nat.div.go) go) (hg : c.HasType go (VEnv.natDivLoopType le))
+    (tout : TrExprS c.venv c.lparams (natDivLoopContext le) natDivLoopBody out)
+    (heq : c.venv.IsDefEq c.lparams.length (natDivLoopContext le).toCtx
+      (.app (.app (.app (.app (.app go (.bvar 3)) (.bvar 2))
+        (.app .natSucc (.bvar 1))) (.bvar 4)) (.bvar 0)) out .nat) :
+    VEnv.NatDivLoopSpec c.venv go le := by
+  have hle₀ : c.venv.HasType 0 [] le (.forallE .nat (.forallE .nat (.sort .zero))) := by
+    simpa only [VContext.HasType, hc, hu, List.length_nil, VLCtx.toCtx] using h.1
+  have hg₀ : c.venv.HasType 0 [] go (VEnv.natDivLoopType le) := by
+    simpa only [VContext.HasType, hc, hu, List.length_nil, VLCtx.toCtx] using hg
+  have tout₀ := tout
+  have heq₀ := heq
+  simp only [hu, List.length_nil] at tout₀ heq₀
+  have tlit (n : Nat) : c.TrExprS (.lit (.natVal n)) (.natLit n) := by
+    simpa only [VContext.TrExprS, hc] using
+      (TrExprS.natLit (Us := c.lparams) (Δ := []) c.hasPrimitives hn n).1
+  have witnesses (y fuel a : Nat) (hy : 0 < y) (ha : a < fuel + 1) :
+      ∃ epy py epa pa, c.TrExprS epy py ∧
+        c.venv.HasType 0 [] py (VEnv.natLeExpr le 1 y) ∧ c.TrExprS epa pa ∧
+        c.venv.HasType 0 [] pa (VEnv.natLeExpr le (a + 1) (fuel + 1)) := by
+    obtain ⟨epy, py, tpy, hpy⟩ := h.natBle_witness hc hu hdc tp 1 y (tlit 1) (tlit y)
+      (c.hasPrimitives.natLit_type hn 1) (c.hasPrimitives.natLit_type hn y) hy
+    obtain ⟨epa, pa, tpa, hpa⟩ := h.natBle_witness hc hu hdc tp (a + 1) (fuel + 1)
+      (tlit (a + 1)) (tlit (fuel + 1)) (c.hasPrimitives.natLit_type hn (a + 1))
+      (c.hasPrimitives.natLit_type hn (fuel + 1)) (by omega)
+    exact ⟨epy, py, epa, pa, tpy, (by simpa only [hu, List.length_nil] using hpy),
+      tpa, (by simpa only [hu, List.length_nil] using hpa)⟩
+  constructor
+  · intro y fuel a py pa hy ha hya hpy hpa
+    obtain ⟨epy, py', epa, pa', tpy, hpy', tpa, hpa'⟩ := witnesses y fuel a hy ha
+    have tpy₀ := tpy
+    have tpa₀ := tpa
+    simp only [VContext.TrExprS, hc, hu] at tpy₀ tpa₀
+    obtain ⟨tr, eq⟩ := at_literals c.Ewf.ordered c.hasPrimitives hn
+      (hle₀.closedN c.Ewf.ordered trivial) (hg₀.closedN c.Ewf.ordered trivial)
+      tpy₀ hpy' tpa₀ hpa' tout₀ heq₀
+    rw [← hu, ← hc] at tr
+    have hpyc : c.HasType py' (VEnv.natLeExpr le 1 y) := by
+      simpa only [VContext.HasType, hc, hu, List.length_nil, VLCtx.toCtx] using hpy'
+    obtain ⟨pa'', hpa'', hstep⟩ := h.natDiv_step hc hu hdc tp hn hsub hg tg
+      (tlit y) (tlit fuel) (tlit a) tpy hpyc hya tr
+    simp only [hu, List.length_nil] at hpa'' hstep
+    have eqIn := VEnv.natDivLoopExpr.proofIrrel c.Ewf.ordered c.hasPrimitives hn
+      hle₀ hg₀ hpy hpy' hpa hpa'
+    have eqOut := VEnv.natDivLoopExpr.proofIrrel c.Ewf.ordered c.hasPrimitives hn
+      hle₀ hg₀ hpy' hpy hpa'' hpa''
+    exact ⟨pa'', hpa'', eqIn.trans (eq.trans hstep) |>.trans
+      ((c.hasPrimitives.natSucc_type hn).appDF eqOut)⟩
+  · intro y fuel a py pa hy ha hay hpy hpa
+    obtain ⟨epy, py', epa, pa', tpy, hpy', tpa, hpa'⟩ := witnesses y fuel a hy ha
+    have tpy₀ := tpy
+    have tpa₀ := tpa
+    simp only [VContext.TrExprS, hc, hu] at tpy₀ tpa₀
+    obtain ⟨tr, eq⟩ := at_literals c.Ewf.ordered c.hasPrimitives hn
+      (hle₀.closedN c.Ewf.ordered trivial) (hg₀.closedN c.Ewf.ordered trivial)
+      tpy₀ hpy' tpa₀ hpa' tout₀ heq₀
+    rw [← hu, ← hc] at tr
+    have hz := h.natBle_dite_zero_inputs hc hu hdc tp hn y a (tlit y) (tlit a)
+      (c.hasPrimitives.natLit_type hn y) (c.hasPrimitives.natLit_type hn a) hay tr
+    simp only [hu, List.length_nil] at hz
+    have eqIn := VEnv.natDivLoopExpr.proofIrrel c.Ewf.ordered c.hasPrimitives hn
+      hle₀ hg₀ hpy hpy' hpa hpa'
+    exact eqIn.trans (eq.trans hz)
+
+/-- The actual entry checks establish both closed entry equations. -/
+theorem checkNatDivEntry.spec {c : VContext} {proof : Expr} {r : Reflection}
+    (hc : c.vlctx = []) (hu : c.lparams = []) (hdc : r.toDec.Closed)
+    (h : Condition.ReflectedNatNatChecked c q(@LE.le Nat _) q(Nat.decLe)
+      q(Nat.ble) proof r le)
+    (tp : c.TrExprS q(@LE.le Nat _) le) (hn : c.venv.contains ``Nat)
+    (tg : c.TrExprS q(Nat.div.go) go) (hg : c.HasType go (VEnv.natDivLoopType le))
+    (hv : TrExprS c.venv c.lparams [] value f)
+    (hf : c.venv.HasType c.lparams.length [] f (.forallE .nat (.forallE .nat .nat)))
+    (fail : ∀ {α}, M α)
+    (hfail : ∀ {c : VContext} {s}, (fail (α := Unit)).WF c s fun _ _ => False) :
+    (withLocalDecl `x .default q(Nat) fun x =>
+      withLocalDecl `y .default q(Nat) fun y => do
+        let e := Condition.natLE.dite #[q(Nat.succ Nat.zero), y]
+          (mkApp5 q(Nat.div.go) y (.bvar 0) (mkApp q(Nat.succ) x) x
+            (mkApp q(Nat.lt_succ_self) x)) q(Nat.zero)
+        _ ← checkType e
+        unless ← isDefEq (mkApp2 value x y) e do fail).WF c s
+      fun _ _ => VEnv.NatDivEntrySpec c.venv f go le :=
+  (checkNatDivEntry.WF hc hn hv hf fail hfail).mono fun _ _ _ ⟨_, tout, heq⟩ =>
+    natDivEntryBody.spec hc hu hdc h tp hn tg hg hf tout heq
 
 private theorem contains_primitive (c : VContext) (hn : c.env.contains n)
     (hp : Kernel.Environment.primitives.contains n) : c.venv.contains n := by
