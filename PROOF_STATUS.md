@@ -37,6 +37,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   are connected, and native subtraction is restored. The environment invariant
   records predecessor's typed evaluation and the function types needed by later
   primitives. A shared extension lemma preserves the unchanged primitives.
+- `NatBeqSpec.eval` derives Boolean natural-number equality from the four checked
+  zero/successor equations. The primitive-check and environment-extension proofs
+  are connected, and native equality reduction is restored.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -52,7 +55,7 @@ Main review entry points: `Lean4Lean/Verify/Environment.lean`,
   environment translation; runtime tests against the imported prelude do not
   construct that translation.
 - Native binary reductions other than addition, multiplication, exponentiation,
-  and subtraction remain disabled.
+  subtraction, and equality remain disabled.
   Restoring them with their primitive-extension proofs is unfinished work, not
   an optional optimization that can be dropped from the objective. The checker
   now passes the earlier recursion failure in `Lean4Lean.Verify.Level`, but
@@ -83,17 +86,18 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Environment
 
 The tests cover acceptance/rejection from an empty environment, rejection of
 incorrect arithmetic implementations, large literal arithmetic with low fuel,
-subtraction truncation at zero, both sides of the native exponent-limit boundary, and
+subtraction truncation at zero, equal and unequal large literals, rejection of
+incorrect equality implementations, both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 114 declarations in the primitive
-verification module and 300 in the environment verification module.
+cases. The executable successfully replayed 435 declarations across the primitive
+and environment verification modules.
 This is module replay against imported dependencies, not a
 verified replay of the entire dependency closure.
 
 `#print axioms` reports only `propext` and `Quot.sound` for
 `Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, `Lean4Lean.VEnv.NatMulSpec.eval`,
 `Lean4Lean.VEnv.NatPowSpec.eval`, `Lean4Lean.VEnv.NatPredSpec.eval`, and
-`Lean4Lean.VEnv.NatSubSpec.eval`. The shared
+`Lean4Lean.VEnv.NatSubSpec.eval`, as well as `Lean4Lean.VEnv.NatBeqSpec.eval`. The shared
 `Lean4Lean.VEnv.HasPrimitives.extendPrimitive` lemma has the same axiom set.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
