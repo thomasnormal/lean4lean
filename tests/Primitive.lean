@@ -124,3 +124,24 @@ run_meta
       q(fun a b : Nat => (Nat.beq a 0) == (Nat.beq b 0))] do
     if ((Lean4Lean.Environment.checkPrimitiveDef { beq with value }).run env).isOk then
       throwError "accepted an incorrect Nat.beq implementation"
+
+  let orderingCases : List (Nat × Nat × Bool) := [
+    (0, 0, true), (0, 17, true), (17, 0, false), (17, 17, true),
+    (31, 7, false), (7, 31, true),
+    (1208925819614629174706177, 1208925819614629174706177, true),
+    (1208925819614629174706177, 1208925819614629174706179, true),
+    (1208925819614629174706179, 1208925819614629174706177, false)]
+  for (a, b, expected) in orderingCases do
+    let e := mkApp2 q(Nat.ble) (mkNatLit a) (mkNatLit b)
+    match (TypeChecker.whnf e).run env (fuel := fuel) with
+    | .ok r =>
+      unless r == toExpr expected do
+        throwError "Nat.ble {a} {b}: expected {expected}"
+    | .error _ => throwError "Nat.ble {a} {b}: reduction failed"
+
+  let some (.defnInfo ble) := env.find? ``Nat.ble | throwError "missing Nat.ble"
+  for value in [q(fun (_ _ : Nat) => false), q(fun (_ _ : Nat) => true),
+      q(Nat.beq), q(fun a b : Nat => Nat.ble b a),
+      q(fun a b : Nat => (Nat.beq a 0) || !(Nat.beq b 0))] do
+    if ((Lean4Lean.Environment.checkPrimitiveDef { ble with value }).run env).isOk then
+      throwError "accepted an incorrect Nat.ble implementation"
