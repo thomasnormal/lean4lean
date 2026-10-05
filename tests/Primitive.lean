@@ -73,3 +73,32 @@ run_meta
       { pow with value := q(Nat.mul) }] do
     if ((Lean4Lean.Environment.checkPrimitiveDef badPow).run env).isOk then
       throwError "accepted an incorrect Nat.pow implementation"
+
+  for a in [0, 1, 2, 1208925819614629174706177] do
+    match (TypeChecker.whnf (mkApp q(Nat.pred) (mkNatLit a))).run env with
+    | .ok r =>
+      unless TypeChecker.Inner.rawNatLitExt? r == some a.pred do
+        throwError "Nat.pred {a}: expected {a.pred}"
+    | .error _ => throwError "Nat.pred {a}: reduction failed"
+
+  let some (.defnInfo pred) := env.find? ``Nat.pred | throwError "missing Nat.pred"
+  for badPred in [{ pred with value := q(fun (n : Nat) => n) },
+      { pred with value := q(Nat.succ) }] do
+    if ((Lean4Lean.Environment.checkPrimitiveDef badPred).run env).isOk then
+      throwError "accepted an incorrect Nat.pred implementation"
+
+  for (a, b) in [(0, 0), (0, 17), (17, 0), (17, 17), (31, 7), (7, 31),
+      (1208925819614629174706177, 1208925819614629174706175),
+      (1208925819614629174706175, 1208925819614629174706177)] do
+    let e := mkApp2 q(Nat.sub) (mkNatLit a) (mkNatLit b)
+    match (TypeChecker.whnf e).run env (fuel := fuel) with
+    | .ok r =>
+      unless r.rawNatLit? == some (a - b) do
+        throwError "Nat.sub {a} {b}: expected literal {a - b}"
+    | .error _ => throwError "Nat.sub {a} {b}: reduction failed"
+
+  let some (.defnInfo sub) := env.find? ``Nat.sub | throwError "missing Nat.sub"
+  for badSub in [{ sub with value := q(fun (a : Nat) (_ : Nat) => a) },
+      { sub with value := q(fun (_ _ : Nat) => Nat.zero) }] do
+    if ((Lean4Lean.Environment.checkPrimitiveDef badSub).run env).isOk then
+      throwError "accepted an incorrect Nat.sub implementation"
