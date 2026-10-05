@@ -68,9 +68,11 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   from explicit loop and entry contracts, including zero divisors and the
   early return when the dividend is smaller. The loop retains its typed
   positivity and fuel-bound witnesses and shares division's dependent argument
-  shape. These contracts are not yet extracted from the modulo validator;
-  neither modulo's primitive-extension proof nor its native reduction is
-  connected.
+  shape. The full modulo validator now supplies these contracts; its
+  declaration-extension proof and native reduction are connected.
+  `HasPrimitives` records modulo's literal evaluation and function type, and the
+  extension proof establishes both from the checked equations. No modulo
+  validation checks were changed.
 - `Reflection.checkITE.WF` extracts the two polymorphic branch equations from
   the complete conditional validator. `ITESpec.apply` instantiates them, and
   `.eval` evaluates the selector after its Boolean argument reduces, retaining
@@ -83,7 +85,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `Condition.natLE.checkITE.WF` verifies the condition validator with both
   conditional modes enabled, retaining the existing dependent-selector facts
   alongside `ITEChecked`. The dependent-only theorem's statement is unchanged.
-  These are prerequisites for the unfinished modulo bridge, not a proof of it.
+  These are used by the full modulo bridge, not sufficient in isolation.
 - `Reflection.ite_carrier` recovers the carrier's `Type` bound from the
   selector's structural translation and the actual `ite` application.
   `ITEInstance` packages the typed selector and reflection input.
@@ -100,9 +102,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `natMod_entry_start` and `natMod_entry_stop` evaluate the complete nested
   `natModEntryAt` template for a positive in-range divisor, a zero divisor, or
   an oversized divisor. These proofs start from supplied structural translations.
-  Extraction from modulo's fresh-local checks, assembly of its loop/entry
-  contracts, and the declaration-extension proof remain unfinished; native
-  modulo is still disabled.
+  These supply the branch reductions used by the complete modulo validator
+  proof; they are not sufficient without extracting the actual checked equations.
 - `natModEntryBody.spec` supplies the successor entry contracts from the open
   two-local equation, including zero and oversized divisors.
   `natModLoopBody.spec` supplies the recursive contract from the open five-local
@@ -111,8 +112,14 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   literal instances. The recursive substitution proof is shared with division
   through a private helper; division's published statement is unchanged.
   `NatModSpec.ofEntry` combines these contracts with a separately supplied zero
-  equation. Extraction of all three equations from the complete modulo validator
-  and the primitive-extension/native-reduction connection remain unfinished.
+  equation. `checkNatModRecursion.WF` extracts the five-local recursive equation
+  using a private helper shared with division; division's published statement
+  is unchanged. `checkNatModEquations.WF` extracts the entry equation in the
+  surrounding two-local context and assembles the contracts in executable order.
+  `checkPrimitiveDef_natMod.WF` additionally extracts the zero equation from its
+  checked lambda and retains the guard, proposition check, loop-type check,
+  and both conditional modes. `.extension` supplies the restored invariant
+  fields, which the frontend and native-reduction proofs now use.
 - `Reflection.checkNatDITETypes.WF` verifies the four initial type checks of the
   dependent conditional validator, including both witness converters. The
   `checkNatDITE_eq` theorem proves that regrouping this prefix reconstructs the
@@ -218,7 +225,7 @@ Main review entry points: `Lean4Lean/Verify/Environment.lean`,
   inductives. Arithmetic results are conditional on an appropriate starting
   environment translation; runtime tests against the imported prelude do not
   construct that translation.
-- Native `Nat.gcd`, `Nat.mod`, `Nat.land`, `Nat.lor`, and `Nat.xor` reductions
+- Native `Nat.gcd`, `Nat.land`, `Nat.lor`, and `Nat.xor` reductions
   remain disabled.
   Restoring them with their primitive-extension proofs is unfinished work, not
   an optional optimization that can be dropped from the objective.
@@ -257,7 +264,7 @@ incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, right shifts at and beyond the input's bit length (including a shift count
 beyond machine-word sizes), both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 862 declarations across the primitive
+cases. The executable successfully replayed 882 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -282,8 +289,9 @@ division with low fuel, covering zero divisors, exact division, smaller dividend
 and inputs and quotients beyond machine-word sizes. Moving the proposition check
 ahead of the condition validator was checked at an earlier checkpoint.
 The modulo regression accepts the reference validator and rejects constant-zero
-and first-argument implementations. It does not test a restored native modulo
-path: that path is still disabled. It additionally evaluates the nested entry
+and first-argument implementations. It checks restored native modulo with low
+fuel, covering zero divisors, exact division, smaller dividends, and dividends
+and divisors beyond machine-word sizes. It additionally evaluates the nested entry
 template on nine small input pairs, covering zero divisors, recursive calls,
 equal dividends/divisors, and oversized divisors. The same inputs check that
 substitution into the open entry body produces the tested template. Four
@@ -370,6 +378,11 @@ persistent-map/array interface axioms. No new assumptions were added for them.
 `Quot.sound`, without `sorryAx`. Both `.at_literals` bridges inherit `sorryAx`
 from the structural-translation API; both `.spec` bridges additionally inherit
 the existing map/array interface axioms. No new axiom or admitted proof was added.
+`checkNatModRecursion.WF`, `checkNatModEquations.WF`,
+`checkPrimitiveDef_natMod.WF`, and `.extension` inherit the verification stack's
+`sorryAx` and implementation-interface axioms. The modulo invariant is supplied
+by the extension proof, not assumed for the new declaration. The unchanged
+division-recursion statement now uses the same private extraction helper.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,

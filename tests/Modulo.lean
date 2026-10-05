@@ -13,6 +13,18 @@ run_meta
     if ((Environment.checkPrimitiveDef { mod with value }).run env).isOk then
       throwError "accepted an incorrect Nat.mod implementation"
 
+  -- The large dividends require native reduction at this low fuel.
+  let fuel : FuelConfig := { recDepth := 16, whnf := 8, lazyDelta := 8 }
+  for (a, y) in [(0, 0), (17, 0), (0, 17), (17, 1), (17, 17), (31, 7), (7, 31),
+      (1208925819614629174706177, 3),
+      (1208925819614629174706177, 1208925819614629174706175)] do
+    let e := mkApp2 q(Nat.mod) (mkNatLit a) (mkNatLit y)
+    match (TypeChecker.whnf e).run env (fuel := fuel) with
+    | .ok r =>
+      unless r.rawNatLit? == some (a % y) do
+        throwError "Nat.mod {a} {y}: expected literal {a % y}"
+    | .error _ => throwError "Nat.mod {a} {y}: reduction failed"
+
   -- Exercise both nested entry conditions and the supplied recursion witness.
   for (a, y) in [(0, 0), (0, 1), (1, 5), (5, 2), (5, 6), (5, 7),
       (17, 3), (17, 18), (17, 19)] do
