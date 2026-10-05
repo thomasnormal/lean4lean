@@ -82,9 +82,16 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   arbitrary typed natural-number arguments, and `.natBle_apply` connects
   literal arguments to the verified Boolean ordering primitive. These proofs
   use the existing unique-typing and weakening-inversion APIs and inherit their
-  metatheory assumptions. The equality between the executable conditional and
-  the reflected selector application, and extraction of the division entry/loop
-  contracts, remain unfinished; native division is still disabled.
+  metatheory assumptions.
+- `Condition.ReflectedNatNatChecked.natDITE_translate` connects the actual
+  declared dependent conditional to the reflected selector application. It
+  instantiates the checked decision-function equality, replaces that argument
+  inside the typed conditional, and compares translations after beta-reducing
+  the selector. `.natDITE_eval` then derives the selected branch equation when
+  the Boolean argument reduces to a literal. Both the branch functions and the
+  dependent witness retain their typing premises. Extracting division's full
+  entry/loop contracts from its executable checks remains unfinished, so native
+  division is still disabled.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -136,7 +143,7 @@ subtraction truncation at zero, equal and unequal large literals, rejection of
 incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 598 declarations across the primitive
+cases. The executable successfully replayed 605 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -180,6 +187,9 @@ The same inherited axioms appear in `Condition.check_reflectNatNat.WF` and
 inherit `sorryAx`; `.natBle_apply` also inherits the existing persistent-map
 and array interface axioms. `checkNatDivCondition.WF` inherits the verification
 stack's axioms.
+`Condition.ReflectedNatNatChecked.natDITE_translate` and `.natDITE_eval`
+depend on `propext`, `Classical.choice`, `Quot.sound`, and inherited `sorryAx`;
+no new axioms or admitted proofs were added for the conditional bridge.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
