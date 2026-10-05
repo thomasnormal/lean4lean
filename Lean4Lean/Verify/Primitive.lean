@@ -177,6 +177,47 @@ theorem NatSubSpec.eval (h : NatSubSpec env f) (henv : env.Ordered)
     simpa only [Nat.sub_succ] using hs.trans <|
       ((hp.natPredType hpred).appDF ih).trans (hp.natPred hpred (a - b))
 
+/-- The four equations checked for a candidate implementation of `Nat.beq`. -/
+structure NatBeqSpec (env : VEnv) (f : VExpr) : Prop where
+  zero_zero : env.IsDefEq 0 []
+    (.app (.app f .natZero) .natZero) .boolTrue .bool
+  zero_succ : env.IsDefEq 0 [.nat]
+    (.app (.app f.lift .natZero) (.app .natSucc (.bvar 0))) .boolFalse .bool
+  succ_zero : env.IsDefEq 0 [.nat]
+    (.app (.app f.lift (.app .natSucc (.bvar 0))) .natZero) .boolFalse .bool
+  succ_succ : env.IsDefEq 0 [.nat, .nat]
+    (.app (.app f.lift.lift (.app .natSucc (.bvar 1))) (.app .natSucc (.bvar 0)))
+    (.app (.app f.lift.lift (.bvar 1)) (.bvar 0)) .bool
+
+theorem NatBeqSpec.eval (h : NatBeqSpec env f) (henv : env.Ordered)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat) (a b : Nat) :
+    env.IsDefEq 0 [] (.app (.app f (.natLit a)) (.natLit b))
+      (.boolLit (Nat.beq a b)) .bool := by
+  induction a generalizing b with
+  | zero =>
+    cases b with
+    | zero => exact h.zero_zero
+    | succ b =>
+      simpa only [VExpr.inst, VExpr.inst_lift, VExpr.instVar_zero, VExpr.nat,
+        VExpr.natZero, VExpr.natSucc, VExpr.bool, VExpr.boolFalse] using
+        h.zero_succ.instN henv (hp.natLit_type hn b) .zero
+  | succ a ih =>
+    have ha := hp.natLit_type (U := 0) (Γ := []) hn a
+    cases b with
+    | zero =>
+      simpa only [VExpr.inst, VExpr.inst_lift, VExpr.instVar_zero, VExpr.nat,
+        VExpr.natZero, VExpr.natSucc, VExpr.bool, VExpr.boolFalse] using
+        h.succ_zero.instN henv ha .zero
+    | succ b =>
+      have hb := hp.natLit_type (U := 0) (Γ := []) hn b
+      have hs := h.succ_succ.instN henv (hb.weak0 henv (Γ := [.nat])) .zero
+      simp only [VExpr.inst, VExpr.inst_lift, VExpr.instVar_zero, VExpr.instVar_upper,
+        VExpr.nat, VExpr.natSucc, VExpr.bool] at hs
+      have hs := hs.instN henv ha .zero
+      simp only [VExpr.inst, VExpr.inst_lift, VExpr.instVar_zero,
+        (hb.closedN henv trivial).instN_eq (Nat.zero_le _)] at hs
+      exact hs.trans (ih b)
+
 end VEnv
 
 private theorem TrExprS.weakBV_closed (henv : env.Ordered)
@@ -644,6 +685,140 @@ theorem checkPrimitiveDef_natSub.WF {env : Kernel.Environment} {ves : VEnvs}
             have he := VEnv.IsDefEq.lam_body c.Ewf.ordered (.lam natTy hl) (.lam natTy hr) he
             exact VEnv.IsDefEq.lam_body c.Ewf.ordered hl hr he
   · exact nofun
+
+theorem checkPrimitiveDef_natBeq.WF {env : Kernel.Environment} {ves : VEnvs}
+    (wf : ves.WF env) (v : DefinitionVal) (hname : v.name = ``Nat.beq)
+    (ht : TrExprS (ves.venv .safe) [] [] v.type type)
+    (hv : TrExprS (ves.venv .safe) [] [] v.value f)
+    (hf : (ves.venv .safe).HasType 0 [] f type) :
+    (checkPrimitiveDef v).WF (.mk' wf .safe [] fuel) s fun _ _ =>
+      (ves.venv .safe).contains ``Nat ∧
+      (ves.venv .safe).IsDefEqU 0 [] type (.forallE .nat (.forallE .nat .bool)) ∧
+      VEnv.NatBeqSpec (ves.venv .safe) f := by
+  let c := VContext.mk' wf .safe [] fuel
+  unfold checkPrimitiveDef
+  simp only [hname]
+  refine (getEnv.WF (c := c)).bind fun _ _ _ ⟨rfl, rfl⟩ => ?_
+  split
+  · rename_i hguard
+    simp only [Bool.and_eq_true] at hguard
+    have hn := contains_primitive c hguard.1.1
+      (by simp [Kernel.Environment.primitives, NameSet.contains, NameSet.ofList])
+    have hb := contains_primitive c hguard.1.2
+      (by simp [Kernel.Environment.primitives, NameSet.contains, NameSet.ofList])
+    have hz := TrExprS.natZero (Us := []) (Δ := []) c.hasPrimitives hn
+    have htBool := TrExprS.boolTrue (Us := []) (Δ := []) c.hasPrimitives hb
+    obtain ⟨u, hNat⟩ := hz.2.isType c.Ewf.ordered trivial
+    obtain ⟨ci, hci, _, hu⟩ := hNat.const_inv c.Ewf.ordered trivial
+    obtain ⟨uBool, hBool⟩ := htBool.2.isType c.Ewf.ordered trivial
+    obtain ⟨ciBool, hciBool, _, huBool⟩ := hBool.const_inv c.Ewf.ordered trivial
+    have trNat {Δ : VLCtx} : TrExprS c.venv [] Δ q(Nat) .nat := .const hci rfl hu
+    have trBool {Δ : VLCtx} : TrExprS c.venv [] Δ q(Bool) .bool :=
+      .const hciBool rfl huBool
+    have natTy {Γ : List VExpr} : c.venv.HasType 0 Γ .nat (.sort u) := hNat.weak0 c.Ewf.ordered
+    have natType {Γ : List VExpr} : c.venv.IsType 0 Γ .nat := ⟨u, natTy⟩
+    have boolType {Γ : List VExpr} : c.venv.IsType 0 Γ .bool :=
+      ⟨uBool, hBool.weak0 c.Ewf.ordered⟩
+    have trType : c.TrExprS q(Nat → Nat → Bool) (.forallE .nat (.forallE .nat .bool)) :=
+      .forallE natType (natType.forallE boolType) trNat
+        (.forallE natType boolType trNat trBool)
+    simp only [pure_bind]
+    refine (isDefEq.WF (c := c) ht trType).bind fun b _ _ htype => ?_
+    cases b
+    · exact nofun
+    · simp only [if_true]
+      have hf := hf.defeqU_r c.Ewf c.Δwf (htype rfl)
+      have tzz := TrExprS.app (hf.app hz.2) hz.2 (.app hf hz.2 hv hz.1) hz.1
+      refine (isDefEq.WF (c := c) tzz htBool.1).bind fun b _ _ hzz => ?_
+      cases b
+      · exact nofun
+      · simp only [if_true]
+        let Δ₁ : VLCtx := [(none, .vlam .nat)]
+        let Δ₂ : VLCtx := (none, .vlam .nat) :: Δ₁
+        have hf₁ : c.venv.HasType 0 [.nat] f.lift (.forallE .nat (.forallE .nat .bool)) :=
+          hf.weak c.Ewf.ordered
+        have hf₂ : c.venv.HasType 0 [.nat, .nat] f.lift.lift
+            (.forallE .nat (.forallE .nat .bool)) := hf₁.weak c.Ewf.ordered
+        have hv₁ : TrExprS c.venv [] Δ₁ v.value f.lift :=
+          hv.weakBV_closed c.Ewf.ordered (.skip (.vlam .nat) .refl)
+        have hv₂ : TrExprS c.venv [] Δ₂ v.value f.lift.lift := by
+          simpa only [VExpr.lift, VExpr.liftN_liftN] using
+            hv.weakBV_closed c.Ewf.ordered (.skip (.vlam .nat) (.skip (.vlam .nat) .refl))
+        have tx₁ : TrExprS c.venv [] Δ₁ (.bvar 0) (.bvar 0) := .bvar rfl
+        have tx₂ : TrExprS c.venv [] Δ₂ (.bvar 0) (.bvar 0) := .bvar rfl
+        have ty₂ : TrExprS c.venv [] Δ₂ (.bvar 1) (.bvar 1) := .bvar rfl
+        have hx₁ : c.venv.HasType 0 [.nat] (.bvar 0) .nat := .bvar .zero
+        have hx₂ : c.venv.HasType 0 [.nat, .nat] (.bvar 0) .nat := .bvar .zero
+        have hy₂ : c.venv.HasType 0 [.nat, .nat] (.bvar 1) .nat := .bvar (.succ .zero)
+        have hz₁ := TrExprS.natZero (Us := []) (Δ := Δ₁) c.hasPrimitives hn
+        have hs₁ := TrExprS.natSucc (Us := []) (Δ := Δ₁) c.hasPrimitives hn
+        have hfalse := TrExprS.boolFalse (Us := []) (Δ := Δ₁) c.hasPrimitives hb
+        have tsx₁ := TrExprS.app hs₁.2 hx₁ hs₁.1 tx₁
+        have tzs := TrExprS.app (hf₁.app hz₁.2) (hs₁.2.app hx₁)
+          (.app hf₁ hz₁.2 hv₁ hz₁.1) tsx₁
+        have tzs' := TrExprS.lam (name := `_) (bi := .default) natType trNat tzs
+        have tf' := TrExprS.lam (name := `_) (bi := .default) natType trNat hfalse.1
+        refine (isDefEq.WF (c := c) tzs' tf').bind fun b _ _ hzs => ?_
+        cases b
+        · exact nofun
+        · simp only [if_true]
+          have tsz := TrExprS.app (hf₁.app (hs₁.2.app hx₁)) hz₁.2
+            (.app hf₁ (hs₁.2.app hx₁) hv₁ tsx₁) hz₁.1
+          have tsz' := TrExprS.lam (name := `_) (bi := .default) natType trNat tsz
+          refine (isDefEq.WF (c := c) tsz' tf').bind fun b _ _ hsz => ?_
+          cases b
+          · exact nofun
+          · simp only [if_true]
+            have hs₂ := TrExprS.natSucc (Us := []) (Δ := Δ₂) c.hasPrimitives hn
+            have tsy := TrExprS.app hs₂.2 hy₂ hs₂.1 ty₂
+            have tsx := TrExprS.app hs₂.2 hx₂ hs₂.1 tx₂
+            have tleft := TrExprS.app (hf₂.app (hs₂.2.app hy₂)) (hs₂.2.app hx₂)
+              (.app hf₂ (hs₂.2.app hy₂) hv₂ tsy) tsx
+            have tright := TrExprS.app (hf₂.app hy₂) hx₂ (.app hf₂ hy₂ hv₂ ty₂) tx₂
+            have tleft' := TrExprS.lam (name := `_) (bi := .default) natType trNat
+              (TrExprS.lam (name := `_) (bi := .default) natType trNat tleft)
+            have tright' := TrExprS.lam (name := `_) (bi := .default) natType trNat
+              (TrExprS.lam (name := `_) (bi := .default) natType trNat tright)
+            refine (isDefEq.WF (c := c) tleft' tright').bind fun b _ _ hss => ?_
+            cases b
+            · exact nofun
+            · simp only [if_true]
+              apply M.WF.pure
+              refine ⟨hn, htype rfl, (hzz rfl).of_r c.Ewf c.Δwf htBool.2, ?_, ?_, ?_⟩
+              · exact VEnv.IsDefEq.lam_body c.Ewf.ordered
+                  ((hf₁.app hz₁.2).app (hs₁.2.app hx₁)) hfalse.2
+                  ((hzs rfl).of_r c.Ewf c.Δwf (.lam natTy hfalse.2))
+              · exact VEnv.IsDefEq.lam_body c.Ewf.ordered
+                  ((hf₁.app (hs₁.2.app hx₁)).app hz₁.2) hfalse.2
+                  ((hsz rfl).of_r c.Ewf c.Δwf (.lam natTy hfalse.2))
+              · have hl : c.venv.HasType 0 [.nat, .nat]
+                    (.app (.app f.lift.lift (.app .natSucc (.bvar 1)))
+                      (.app .natSucc (.bvar 0))) .bool :=
+                  (hf₂.app (hs₂.2.app hy₂)).app (hs₂.2.app hx₂)
+                have hr : c.venv.HasType 0 [.nat, .nat]
+                    (.app (.app f.lift.lift (.bvar 1)) (.bvar 0)) .bool :=
+                  (hf₂.app hy₂).app hx₂
+                have he := (hss rfl).of_r c.Ewf c.Δwf (.lam natTy (.lam natTy hr))
+                have he := VEnv.IsDefEq.lam_body c.Ewf.ordered (.lam natTy hl) (.lam natTy hr) he
+                exact VEnv.IsDefEq.lam_body c.Ewf.ordered hl hr he
+  · exact nofun
+
+theorem checkPrimitiveDef_natBeq.extension {env : Kernel.Environment} {ves : VEnvs}
+    (wf : ves.WF env) (v : DefinitionVal) (hname : v.name = ``Nat.beq)
+    (ht : TrExprS (ves.venv .safe) [] [] v.type type)
+    (hv : TrExprS (ves.venv .safe) [] [] v.value f)
+    (hf : (ves.venv .safe).HasType 0 [] f type)
+    (hcheck : M.run env .safe {} [] fuel (checkPrimitiveDef v) = .ok b)
+    (henv' : env'.WF) (hle : ves.venv .safe ≤ env')
+    (hdef : env'.IsDefEq 0 [] (.const ``Nat.beq []) f type) :
+    env'.ReflectsNatNatBool ``Nat.beq Nat.beq := by
+  have ⟨hn, htype, hspec⟩ := M.WF.run wf (checkPrimitiveDef_natBeq.WF wf v hname ht hv hf) _ hcheck
+  have hdef' := (htype.mono hle).defeqDF henv' trivial hdef
+  intro _ a b
+  have ha := (wf.hasPrimitives.natLit_type (U := 0) (Γ := []) hn a).mono hle
+  have hb := (wf.hasPrimitives.natLit_type (U := 0) (Γ := []) hn b).mono hle
+  have heval := (hspec.eval (wf.tr (safety := .safe)).wf.ordered wf.hasPrimitives hn a b).mono hle
+  exact ((hdef'.appDF ha |>.appDF hb).trans heval).toU
 
 theorem checkPrimitiveDef_natAdd.extension {env : Kernel.Environment} {ves : VEnvs}
     (wf : ves.WF env) (v : DefinitionVal) (hname : v.name = ``Nat.add)

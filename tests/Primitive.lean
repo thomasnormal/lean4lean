@@ -102,3 +102,25 @@ run_meta
       { sub with value := q(fun (_ _ : Nat) => Nat.zero) }] do
     if ((Lean4Lean.Environment.checkPrimitiveDef badSub).run env).isOk then
       throwError "accepted an incorrect Nat.sub implementation"
+
+  let equalityCases : List (Nat × Nat × Bool) := [
+    (0, 0, true), (0, 17, false), (17, 0, false), (17, 17, true),
+    (31, 7, false), (7, 31, false),
+    (1208925819614629174706177, 1208925819614629174706177, true),
+    (1208925819614629174706177, 1208925819614629174706179, false),
+    (1208925819614629174706179, 1208925819614629174706177, false)]
+  for (a, b, expected) in equalityCases do
+    let e := mkApp2 q(Nat.beq) (mkNatLit a) (mkNatLit b)
+    match (TypeChecker.whnf e).run env (fuel := fuel) with
+    | .ok r =>
+      unless r == toExpr expected do
+        throwError "Nat.beq {a} {b}: expected {expected}"
+    | .error _ => throwError "Nat.beq {a} {b}: reduction failed"
+
+  let some (.defnInfo beq) := env.find? ``Nat.beq | throwError "missing Nat.beq"
+  -- Exercise each base equation and the recursive equation independently.
+  for value in [q(fun (_ _ : Nat) => false), q(fun (_ _ : Nat) => true),
+      q(Nat.ble), q(fun a b : Nat => Nat.ble b a),
+      q(fun a b : Nat => (Nat.beq a 0) == (Nat.beq b 0))] do
+    if ((Lean4Lean.Environment.checkPrimitiveDef { beq with value }).run env).isOk then
+      throwError "accepted an incorrect Nat.beq implementation"
