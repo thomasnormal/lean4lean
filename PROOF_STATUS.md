@@ -238,6 +238,52 @@ it includes the restricted frontend, additional primitive validation, safe-only
 delta unfolding, the level replacement, and the reduced native-arithmetic set.
 Those behavioral changes need review alongside the proofs.
 
+## Well-founded primitive validation gap
+
+`tests/WellFoundedGap.lean` characterizes a missing obligation before restoring
+native GCD and bitwise reduction. It defines otherwise ordinary Euclidean GCD
+and bitwise functions with termination measures `m + measureOffset` and
+`n + measureOffset`, where `measureOffset` is an opaque natural-number constant
+defined to be zero. Both definitions type-check, and both pass this fork's
+primitive validators when supplied as the corresponding primitive's value.
+Nevertheless, comparison of their applications on literals with the expected
+result returns `false`, both in Lean4Lean and in Lean's own comparison at full
+transparency. The examples include GCD at `(0, 5)` and `(6, 9)`, and bitwise
+AND/OR/XOR at those inputs. Comparisons terminate normally rather than exhausting
+fuel.
+
+The test also shows that the equation body returned by `unfoldNatWellFounded`
+does reduce GCD at `(0, 5)` to `5`. The missing connection is between that body
+and the original well-founded fixpoint. `WellFounded.Nat.fix` obtains its fuel
+from `Nat.eager (measure input + 1)`; an opaque measure need not evaluate on
+literal inputs. The library's `WellFounded.Nat.fix_eq` is a propositional
+equation, not automatically an abstract definitional-equality derivation.
+
+The example functions are propositionally equal to the reference functions for
+all inputs: `WellFoundedGap.measuredGcd_eq` and `.measuredBitwise_eq` are proved,
+and their axiom audits contain only `propext` and `Quot.sound`. Thus these are
+not demonstrated wrong arithmetic results or a Lean kernel soundness exploit.
+The executable comparisons also do not constitute a formal non-derivability
+proof about the abstract typing judgment. They do show why extracting the checked
+equation body alone is insufficient evidence for the needed primitive-extension
+contract.
+
+One possible repair is to check that the measure applied to the initial state
+is definitionally the designated natural-number argument (the first GCD
+argument, or the first natural-number bitwise argument). Its computation on
+literals would then follow from already verified facts. That restriction and
+the subsequent fixpoint simulation still need a proof; neither is implemented
+here. A more permissive alternative would require a checked literal-computation
+contract for the measure. Native GCD and bitwise reductions remain disabled.
+
+This diagnostic concerns the fork after its earlier lambda-wrapper correction
+in `unfoldNatWellFounded`, not a demonstration that unmodified upstream `master`
+accepts these examples. The test intentionally asserts the current acceptance
+behavior and must be updated when the validator is hardened.
+It was compiled and axiom-audited separately after a successful cached build of
+both proof libraries and the executable. It changes no kernel implementation
+or verification-library proof.
+
 ## Reproduction and evidence
 
 Using the pinned toolchain, the package was rebuilt from clean generated outputs
@@ -251,6 +297,7 @@ lake env lean tests/Primitive.lean
 lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
 lake env lean tests/Modulo.lean
+lake env lean tests/WellFoundedGap.lean
 lake env lean --run tests/Levels.lean
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Primitive
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Environment
