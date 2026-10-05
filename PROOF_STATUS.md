@@ -92,6 +92,24 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   dependent witness retain their typing premises. Extracting division's full
   entry/loop contracts from its executable checks remains unfinished, so native
   division is still disabled.
+- `Condition.ReflectedNatNatChecked.natDITE_branches` recovers the canonical
+  dependent branch types from the actual conditional translation.
+  `.natBle_dite_eval` combines this with the verified Boolean ordering primitive
+  and returns the selected branch together with its typed proof argument, without
+  asking the caller to provide the branch types. `.natBle_dite_zero_of_gt`
+  establishes the zero-valued false branch used by division's entry and stopping
+  cases.
+- `natDivLoopType.apply` verifies the loop's five dependent applications,
+  retaining the positivity and fuel-bound witnesses. `checkNatDivLoop.WF`
+  connects the executable loop-type check to that abstract type, and
+  `checkNatDivPrefix.WF` verifies it together with the preceding condition checks.
+  These are proofs of the existing checking fragments; the executable was not
+  changed at this checkpoint. The local entry/recursive equation checks and the
+  primitive-extension proof remain to be connected before restoring native
+  division.
+  The literal-selection API currently takes raw `.lit (.natVal n)` expressions;
+  applying it to the entry check's constructor-form `Nat.succ Nat.zero` requires
+  a variant accepting arbitrary source arguments translated to `natLit` values.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -143,7 +161,7 @@ subtraction truncation at zero, equal and unequal large literals, rejection of
 incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 605 declarations across the primitive
+cases. The executable successfully replayed 629 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -190,6 +208,12 @@ stack's axioms.
 `Condition.ReflectedNatNatChecked.natDITE_translate` and `.natDITE_eval`
 depend on `propext`, `Classical.choice`, `Quot.sound`, and inherited `sorryAx`;
 no new axioms or admitted proofs were added for the conditional bridge.
+`natDivLoopType.apply` uses only `propext`, and
+`Reflection.NatDITEInstance.branchProof_type` uses only `propext` and `Quot.sound`.
+The branch-type recovery proof inherits `sorryAx` and standard logical axioms;
+the literal-selection and zero-branch proofs additionally inherit the existing
+persistent-map/array interface axioms. `checkNatDivLoop.WF` and
+`checkNatDivPrefix.WF` inherit the checker stack's axioms, including `sorryAx`.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
