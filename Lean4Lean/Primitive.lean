@@ -90,14 +90,18 @@ def Reflection.natDITE (r : Reflection) : Expr :=
   .lam0 q(Prop) <| .lam0 q(Bool) <| .lam0 (mkApp2 r.type (.bvar 1) (.bvar 0)) <|
     mkApp2 q(@dite Nat) (.bvar 2) (mkApp3 r.toDec (.bvar 2) (.bvar 1) (.bvar 0))
 
+def Reflection.iteBranchExpr (b : Bool) : Expr :=
+  if b then q(fun α : Type => fun a _ : α => a)
+  else q(fun α : Type => fun _ a : α => a)
+
 def Reflection.checkITE (r : Reflection) (fail : ∀ {α}, M α) : M Unit := do
   unless ← isDefEq (← checkType r.ite) (.arrow q(Prop) <| .arrow q(Bool) <|
     .arrow (mkApp2 r.type (.bvar 1) (.bvar 0)) q(∀ α : Type, α → α → α)) do fail
   withLocalDecl `p .default q(Prop) fun p => do
   withLocalDecl `H .default (mkApp2 r.type p q(true)) fun H => do
-    unless ← isDefEq (mkApp3 r.ite p q(true) H) q(fun α : Type => fun a _ : α => a) do fail
+    unless ← isDefEq (mkApp3 r.ite p q(true) H) (iteBranchExpr true) do fail
   withLocalDecl `H .default (mkApp2 r.type p q(false)) fun H => do
-    unless ← isDefEq (mkApp3 r.ite p q(false) H) q(fun α : Type => fun _ a : α => a) do fail
+    unless ← isDefEq (mkApp3 r.ite p q(false) H) (iteBranchExpr false) do fail
 
 def Reflection.checkNatDITE (r : Reflection) (fail : ∀ {α}, M α) : M Unit := do
   unless ← isDefEq (← checkType q(Not)) q(Prop → Prop) do fail

@@ -64,6 +64,26 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `Reflection.check.WF` verifies the
   reflection-family type check; an `M.WF.withLocalDecl` wrapper exposes the existing local-context
   rule for the remaining conditional checks.
+- `NatModLoopSpec.eval` and `NatModSpec.eval` establish remainder evaluation
+  from explicit loop and entry contracts, including zero divisors and the
+  early return when the dividend is smaller. The loop retains its typed
+  positivity and fuel-bound witnesses and shares division's dependent argument
+  shape. These contracts are not yet extracted from the modulo validator;
+  neither modulo's primitive-extension proof nor its native reduction is
+  connected.
+- `Reflection.checkITE.WF` extracts the two polymorphic branch equations from
+  the complete conditional validator. `ITESpec.apply` instantiates them, and
+  `.eval` evaluates the selector after its Boolean argument reduces, retaining
+  the reflection witness and both branch types. The carrier's `Type` universe
+  bound remains explicit; arbitrary primitive well-formedness does not imply
+  that bound. The two reference branch expressions are shared with the
+  executable validator via `iteBranchExpr`; no validation checks were removed.
+  `Reflection.ite_witness` recovers the reflection witness's canonical type
+  from a translation of the actual polymorphic selector and decision application.
+  `Condition.natLE.checkITE.WF` verifies the condition validator with both
+  conditional modes enabled, retaining the existing dependent-selector facts
+  alongside `ITEChecked`. The dependent-only theorem's statement is unchanged.
+  These are prerequisites for the unfinished modulo bridge, not a proof of it.
 - `Reflection.checkNatDITETypes.WF` verifies the four initial type checks of the
   dependent conditional validator, including both witness converters. The
   `checkNatDITE_eq` theorem proves that regrouping this prefix reconstructs the
@@ -194,6 +214,7 @@ lake env lean tests/Environment.lean
 lake env lean tests/Primitive.lean
 lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
+lake env lean tests/Modulo.lean
 lake env lean --run tests/Levels.lean
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Primitive
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Environment
@@ -207,7 +228,7 @@ incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, right shifts at and beyond the input's bit length (including a shift count
 beyond machine-word sizes), both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 716 declarations across the primitive
+cases. The executable successfully replayed 782 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -219,6 +240,10 @@ swapped proof converters. They also check selectors that ignore their Boolean
 argument: their type-checking prefixes succeed, while their computation checks
 fail. These are runtime checks against the imported prelude, not a proof of its
 environment translation.
+The polymorphic-conditional regressions likewise accept both reference encodings,
+check that Boolean-ignoring selectors pass their type checks, and reject those
+selectors at the computation checks. The condition regressions retain the
+dependent-only path and additionally exercise both conditional modes together.
 The full natural-number ordering and equality condition validators are also
 tested: both are accepted, and replacing their decision function, Boolean
 function, or proof with an invalid one is rejected.
@@ -227,6 +252,9 @@ constant-zero and first-argument implementations. It also checks native literal
 division with low fuel, covering zero divisors, exact division, smaller dividends,
 and inputs and quotients beyond machine-word sizes. Moving the proposition check
 ahead of the condition validator was checked at an earlier checkpoint.
+The modulo regression accepts the reference validator and rejects constant-zero
+and first-argument implementations. It does not test a restored native modulo
+path: that path is still disabled.
 
 `#print axioms` reports only `propext` and `Quot.sound` for
 `Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, `Lean4Lean.VEnv.NatMulSpec.eval`,
@@ -288,6 +316,14 @@ established by the extension proof; no new axiom or admitted proof was added.
 verification stack's `sorryAx` and implementation-interface axioms. Right-shift
 reflection is established from the checked equations and the old environment's
 division reflection; no new axiom or admitted proof was added.
+`NatModLoopSpec.eval` and `NatModSpec.eval` use `propext`, `Classical.choice`,
+and `Quot.sound`, without `sorryAx`. `Reflection.iteBranch.eval`,
+`Reflection.ITESpec.apply`, and `.eval` use only `propext` and `Quot.sound`;
+`Reflection.checkITE_eq` additionally uses `Classical.choice`.
+`Reflection.checkITE.WF` and `Condition.natLE.checkITE.WF` inherit the checker
+stack's `sorryAx` and implementation-interface axioms. `Reflection.ite_witness`
+inherits `sorryAx` and the standard logical axioms, without additional
+implementation-interface axioms. No new axioms or admitted proofs were added.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
