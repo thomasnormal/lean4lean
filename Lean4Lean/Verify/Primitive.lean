@@ -532,6 +532,109 @@ theorem NatModSpec.ofEntry (h : NatModEntrySpec env f go le)
     (hzero : ∀ y, env.IsDefEq 0 [] (.app (.app f .natZero) (.natLit y)) .natZero .nat) :
     NatModSpec env f go le := ⟨hloop, hzero, h.stop, h.start⟩
 
+/-- Literal equations for the original GCD candidate. Equations about only the
+body returned by `unfoldNatWellFounded` do not supply this specification. -/
+structure NatGcdSpec (env : VEnv) (f : VExpr) : Prop where
+  zero : ∀ b, env.IsDefEq 0 []
+    (.app (.app f .natZero) (.natLit b)) (.natLit b) .nat
+  succ : ∀ a b, env.IsDefEq 0 []
+    (.app (.app f (.natLit (a + 1))) (.natLit b))
+    (.app (.app f (.app (.app (.const ``Nat.mod []) (.natLit b)) (.natLit (a + 1))))
+      (.natLit (a + 1))) .nat
+
+theorem NatGcdSpec.mono (h : NatGcdSpec env f) (hle : env ≤ env') :
+    NatGcdSpec env' f := ⟨fun b => (h.zero b).mono hle, fun a b => (h.succ a b).mono hle⟩
+
+theorem NatGcdSpec.eval (h : NatGcdSpec env f)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat)
+    (hf : env.HasType 0 [] f (.forallE .nat (.forallE .nat .nat)))
+    (heval : ∀ a b, env.IsDefEq 0 []
+      (.app (.app (.const ``Nat.mod []) (.natLit a)) (.natLit b)) (.natLit (a % b)) .nat)
+    (a b : Nat) :
+    env.IsDefEq 0 [] (.app (.app f (.natLit a)) (.natLit b)) (.natLit (Nat.gcd a b)) .nat := by
+  induction a using Nat.strongRecOn generalizing b with
+  | ind a ih =>
+    cases a with
+    | zero => simpa only [Nat.gcd_zero_left, VExpr.natLit] using h.zero b
+    | succ a =>
+      rw [Nat.gcd_succ]
+      exact (h.succ a b).trans <|
+        (((hf.appDF (heval b (a + 1))).appDF (hp.natLit_type hn (a + 1))).trans
+          (ih _ (Nat.mod_lt b (Nat.succ_pos a)) (a + 1)))
+
+theorem NatGcdSpec.reflects (h : NatGcdSpec env f)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat)
+    (hf : env.HasType 0 [] f (.forallE .nat (.forallE .nat .nat)))
+    (heval : ∀ a b, env.IsDefEq 0 []
+      (.app (.app (.const ``Nat.mod []) (.natLit a)) (.natLit b)) (.natLit (a % b)) .nat)
+    (hle : env ≤ env')
+    (hdef : env'.IsDefEq 0 [] (.const fc []) f (.forallE .nat (.forallE .nat .nat))) :
+    env'.ReflectsNatNatNat fc Nat.gcd := by
+  intro _ a b
+  have ha := (hp.natLit_type (U := 0) (Γ := []) hn a).mono hle
+  have hb := (hp.natLit_type (U := 0) (Γ := []) hn b).mono hle
+  exact ((hdef.appDF ha |>.appDF hb).trans ((h.eval hp hn hf heval a b).mono hle)).toU
+
+/-- Literal bitwise equations after evaluating the conditionals and recursive
+arguments. These must hold for the original candidate, not only its unfolded body. -/
+structure NatBitwiseSpec (env : VEnv) (f : VExpr) (g : Bool → Bool → Bool) : Prop where
+  zero_left : ∀ m, env.IsDefEq 0 []
+    (.app (.app f .natZero) (.natLit m)) (.natLit (if g false true then m else 0)) .nat
+  zero_right : ∀ n, env.IsDefEq 0 []
+    (.app (.app f (.natLit n)) .natZero) (.natLit (if g true false then n else 0)) .nat
+  step : ∀ n m, 0 < n → 0 < m →
+    let r := .app (.app f (.natLit (n / 2))) (.natLit (m / 2))
+    let double := .app (.app (.const ``Nat.add []) r) r
+    env.IsDefEq 0 [] (.app (.app f (.natLit n)) (.natLit m))
+      (if g (decide (n % 2 = 1)) (decide (m % 2 = 1)) then
+        .app (.app (.const ``Nat.add []) double) (.natLit 1) else double) .nat
+
+theorem NatBitwiseSpec.eval (h : NatBitwiseSpec env f g)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat)
+    (hadd : env.HasType 0 [] (.const ``Nat.add []) (.forallE .nat (.forallE .nat .nat)))
+    (heval : ∀ a b, env.IsDefEq 0 []
+      (.app (.app (.const ``Nat.add []) (.natLit a)) (.natLit b)) (.natLit (a + b)) .nat)
+    (n m : Nat) :
+    env.IsDefEq 0 [] (.app (.app f (.natLit n)) (.natLit m))
+      (.natLit (Nat.bitwise g n m)) .nat := by
+  induction n using Nat.strongRecOn generalizing m with
+  | ind n ih =>
+    cases n with
+    | zero =>
+      rw [Nat.bitwise]
+      simpa only [if_true, VExpr.natLit] using h.zero_left m
+    | succ n =>
+      cases m with
+      | zero =>
+        rw [Nat.bitwise]
+        simpa only [Nat.succ_ne_zero, if_false, if_true, VExpr.natLit] using
+          h.zero_right (n + 1)
+      | succ m =>
+        have hrec := ih _ (Nat.div_lt_self (Nat.succ_pos n) (by decide : 1 < 2)) ((m + 1) / 2)
+        have hdouble := ((hadd.appDF hrec).appDF hrec).trans (heval _ _)
+        have hs := h.step (n + 1) (m + 1) (Nat.succ_pos _) (Nat.succ_pos _)
+        dsimp only at hs
+        rw [Nat.bitwise]
+        simp only [Nat.succ_ne_zero, if_false]
+        split at hs <;> rename_i hg
+        · simp only [hg, if_true]
+          exact hs.trans <| ((hadd.appDF hdouble).appDF (hp.natLit_type hn 1)).trans (heval _ _)
+        · simp only [hg]
+          exact hs.trans hdouble
+
+theorem NatBitwiseSpec.reflects (h : NatBitwiseSpec env f g)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat)
+    (hadd : env.HasType 0 [] (.const ``Nat.add []) (.forallE .nat (.forallE .nat .nat)))
+    (heval : ∀ a b, env.IsDefEq 0 []
+      (.app (.app (.const ``Nat.add []) (.natLit a)) (.natLit b)) (.natLit (a + b)) .nat)
+    (hle : env ≤ env')
+    (hdef : env'.IsDefEq 0 [] (.const fc []) f (.forallE .nat (.forallE .nat .nat))) :
+    env'.ReflectsNatNatNat fc (Nat.bitwise g) := by
+  intro _ n m
+  have hn' := (hp.natLit_type (U := 0) (Γ := []) hn n).mono hle
+  have hm' := (hp.natLit_type (U := 0) (Γ := []) hn m).mono hle
+  exact ((hdef.appDF hn' |>.appDF hm').trans ((h.eval hp hn hadd heval n m).mono hle)).toU
+
 end VEnv
 
 private theorem TrExprS.weakBV_closed (henv : env.Ordered)

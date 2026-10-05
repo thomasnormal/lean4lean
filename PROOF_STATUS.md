@@ -73,6 +73,22 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `HasPrimitives` records modulo's literal evaluation and function type, and the
   extension proof establishes both from the checked equations. No modulo
   validation checks were changed.
+- `NatGcdSpec.eval` derives literal GCD evaluation by strong induction on the
+  first argument, using typed modulo evaluation to reduce the recursive input.
+  The contract explicitly requires equations for the original candidate, not
+  merely the equation body returned by the well-founded validator.
+  `.reflects` transports evaluation from the old environment into an extension
+  and connects it to the newly declared constant, without assuming the new
+  environment's primitive invariant.
+- `NatBitwiseSpec.eval` derives literal bitwise evaluation for an arbitrary
+  Boolean binary function, by strong induction on the first natural-number
+  input. Its contract contains the two zero cases and the positive step after
+  evaluating the conditionals and recursive arguments. Typed addition evaluates
+  the doubling and optional increment. `.reflects` likewise evaluates using the
+  old environment's invariant before transporting the result into an extension.
+  The executable validator does not yet supply either of these new contracts;
+  native GCD, AND, OR, and XOR remain disabled. These are intermediate proofs
+  toward restoring those reductions, not replacements for the missing bridge.
 - `Reflection.checkITE.WF` extracts the two polymorphic branch equations from
   the complete conditional validator. `ITESpec.apply` instantiates them, and
   `.eval` evaluates the selector after its Boolean argument reduces, retaining
@@ -232,6 +248,12 @@ Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 - The unrestricted `addDecl.WF` and the existing inductive/injectivity/
   strengthening obligations remain open. The experimental subsumption algorithm
   is not the verified public level-comparison path.
+- Full syntactic agreement with the upstream level normalizer remains
+  regression-tested, not proved. Upstream `Lean.Level.normalize` and several of
+  its helpers are partial definitions whose implementations are opaque to Lean's
+  logic. No additional interface assumption has been introduced to assert that
+  agreement. The total fork normalizer's evaluation-preservation proof and the
+  comparison core's agreement theorem are independent of such an assumption.
 
 This is a modified executable, not merely new proofs about an unchanged checker:
 it includes the restricted frontend, additional primitive validation, safe-only
@@ -298,6 +320,7 @@ lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
 lake env lean tests/Modulo.lean
 lake env lean tests/WellFoundedGap.lean
+lake env lean tests/GcdAndBitwise.lean
 lake env lean --run tests/Levels.lean
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Primitive
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Environment
@@ -311,7 +334,7 @@ incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, right shifts at and beyond the input's bit length (including a shift count
 beyond machine-word sizes), both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 882 declarations across the primitive
+cases. The executable successfully replayed 902 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -344,6 +367,11 @@ equal dividends/divisors, and oversized divisors. The same inputs check that
 substitution into the open entry body produces the tested template. Four
 additional source-only checks exercise substitution into the recursive body;
 their placeholder proof terms are not asserted to be well-typed.
+The GCD/bitwise regression checks both reference validators, rejects three
+incorrect implementations for each, evaluates eight GCD input pairs, and
+evaluates forty bitwise cases using AND, OR, XOR, and constant-false/constant-true
+Boolean functions. The bitwise inputs include values beyond machine-word sizes.
+These tests exercise unfolding, not the still-disabled native reductions.
 
 `#print axioms` reports only `propext` and `Quot.sound` for
 `Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, `Lean4Lean.VEnv.NatMulSpec.eval`,
@@ -430,6 +458,10 @@ the existing map/array interface axioms. No new axiom or admitted proof was adde
 `sorryAx` and implementation-interface axioms. The modulo invariant is supplied
 by the extension proof, not assumed for the new declaration. The unchanged
 division-recursion statement now uses the same private extraction helper.
+`NatGcdSpec.mono` uses only `propext`. `NatGcdSpec.eval`, `.reflects`,
+`NatBitwiseSpec.eval`, and `.reflects` use only `propext` and `Quot.sound`, without
+`sorryAx`. Their computation equations remain explicit premises; they are not
+added as assumptions to the environment invariant.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
