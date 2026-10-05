@@ -225,6 +225,12 @@ Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 - The unrestricted `addDecl.WF` and the existing inductive/injectivity/
   strengthening obligations remain open. The experimental subsumption algorithm
   is not the verified public level-comparison path.
+- Full syntactic agreement with the upstream level normalizer remains
+  regression-tested, not proved. Upstream `Lean.Level.normalize` and several of
+  its helpers are partial definitions whose implementations are opaque to Lean's
+  logic. No additional interface assumption has been introduced to assert that
+  agreement. The total fork normalizer's evaluation-preservation proof and the
+  comparison core's agreement theorem are independent of such an assumption.
 
 This is a modified executable, not merely new proofs about an unchanged checker:
 it includes the restricted frontend, additional primitive validation, safe-only
@@ -291,6 +297,7 @@ lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
 lake env lean tests/Modulo.lean
 lake env lean tests/WellFoundedGap.lean
+lake env lean tests/GcdAndBitwise.lean
 lake env lean --run tests/Levels.lean
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Primitive
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Environment
@@ -336,6 +343,11 @@ equal dividends/divisors, and oversized divisors. The same inputs check that
 substitution into the open entry body produces the tested template. Four
 additional source-only checks exercise substitution into the recursive body;
 their placeholder proof terms are not asserted to be well-typed.
+The GCD/bitwise regression checks both reference validators, rejects three
+incorrect implementations for each, evaluates eight GCD input pairs, and
+evaluates forty bitwise cases using AND, OR, XOR, and constant-false/constant-true
+Boolean functions. The bitwise inputs include values beyond machine-word sizes.
+These tests exercise unfolding, not the still-disabled native reductions.
 
 `#print axioms` reports only `propext` and `Quot.sound` for
 `Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, `Lean4Lean.VEnv.NatMulSpec.eval`,
