@@ -86,6 +86,8 @@ theorem reduceBinNatPred.WF {c : VContext}
   have := ha1.appDF a3 |>.toU.of_r c.Ewf c.Δwf hb1
   exact  ⟨_, .appDF this b3⟩
 
+-- Split only the current test, without resimplifying the remaining dispatch chain.
+set_option backward.split false in
 theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
     RecM.WF c s (reduceNat e) fun oe _ => ∀ e₁, oe = some e₁ →
       c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' := by
@@ -94,6 +96,7 @@ theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
   replace hprims {a} : Environment.primitives.contains a ↔ a ∈ prims := by
     simp [hprims, NameSet.contains, NameSet.ofList]
   unfold reduceNat; extract_lets nargs F1 fn
+  simp only [bind_pure]
   split
   · split
     · rename_i h1 h2
@@ -116,51 +119,57 @@ theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
     · split <;> [rename_i f ls a b _ h2; exact hP ▸ .pure nofun]
       split
       · rename_i h
-        simp at h ⊢
+        simp only [beq_iff_eq] at h
         subst f
         exact hP ▸ reduceBinNatOpG.WF (guard := fun _ _ => False) he
           (hprims.2 (by simp [prims])) c.hasPrimitives.natAdd
       · split
         · rename_i h
-          simp at h ⊢
+          simp only [beq_iff_eq] at h
           subst f
           exact hP ▸ reduceBinNatOpG.WF (guard := fun _ _ => False) he
             (hprims.2 (by simp [prims])) c.hasPrimitives.natMul
         · split
           · rename_i h
-            simp at h ⊢
+            simp only [beq_iff_eq] at h
             subst f
             exact hP ▸ reduceBinNatOpG.WF (guard := fun _ b => b > reducePowMaxExp) he
               (hprims.2 (by simp [prims])) c.hasPrimitives.natPow
           · split
             · rename_i h
-              simp at h ⊢
+              simp only [beq_iff_eq] at h
               subst f
               exact hP ▸ reduceBinNatOpG.WF (guard := fun _ _ => False) he
                 (hprims.2 (by simp [prims])) c.hasPrimitives.natSub
             · split
               · rename_i h
-                simp at h ⊢
+                simp only [beq_iff_eq] at h
                 subst f
                 exact hP ▸ reduceBinNatPred.WF he
                   (hprims.2 (by simp [prims])) c.hasPrimitives.natBeq
               · split
                 · rename_i h
-                  simp at h ⊢
+                  simp only [beq_iff_eq] at h
                   subst f
                   exact hP ▸ reduceBinNatPred.WF he
                     (hprims.2 (by simp [prims])) c.hasPrimitives.natBle
                 · split
                   · rename_i h
-                    simp at h ⊢
+                    simp only [beq_iff_eq] at h
                     subst f
                     exact hP ▸ reduceBinNatOpG.WF (guard := fun _ _ => False) he
                       (hprims.2 (by simp [prims])) c.hasPrimitives.natShiftLeft
                   · split
                     · rename_i h
-                      simp at h ⊢
+                      simp only [beq_iff_eq] at h
                       subst f
                       exact hP ▸ reduceBinNatOpG.WF (guard := fun _ _ => False) he
                         (hprims.2 (by simp [prims])) c.hasPrimitives.natDiv
-                    · exact hP ▸ .pure nofun
+                    · split
+                      · rename_i h
+                        simp only [beq_iff_eq] at h
+                        subst f
+                        exact hP ▸ reduceBinNatOpG.WF (guard := fun _ _ => False) he
+                          (hprims.2 (by simp [prims])) c.hasPrimitives.natShiftRight
+                      · exact hP ▸ .pure nofun
     · exact hP ▸ .pure nofun
