@@ -193,7 +193,7 @@ def forallTelescope (e : Expr) (k : Array Expr → Expr → M α) : M α := loop
 
 def unfoldNatWellFounded (e : Expr) (fvs : Array Expr) (eq_def : Expr) (fail : ∀ {α}, M α) : M Expr := do
   let succ := mkApp q(Nat.succ)
-  let defeq1 a b := isDefEq (.arrow q(Nat) a) (.arrow q(Nat) b)
+  let defeq1 a b := isDefEq (.lam0 q(Nat) a) (.lam0 q(Nat) b)
   let x := .bvar 0
   let .app (.app _ lhs) rhs := eq_def.getForallBody.instantiateRev fvs | fail
   let orig := lhs.getAppFn
@@ -257,8 +257,10 @@ def checkPrimitiveDef (v : DefinitionVal) : M Bool := do
   let div := mkApp2 q(Nat.div)
   let one := succ zero
   let two := succ one
-  let defeq1 a b := isDefEq (.arrow q(Nat) a) (.arrow q(Nat) b)
-  let defeq2 a b := defeq1 (.arrow q(Nat) a) (.arrow q(Nat) b)
+  -- Bind values with lambdas: a forall body would have to be a type.
+  let defeq1 a b := isDefEq (.lam0 q(Nat) a) (.lam0 q(Nat) b)
+  let defeq2 a b := defeq1 (.lam0 q(Nat) a) (.lam0 q(Nat) b)
+  let defeqBool1 a b := isDefEq (.lam0 q(Bool) a) (.lam0 q(Bool) b)
   let x := .bvar 0
   let y := .bvar 1
   let env ← getEnv
@@ -406,16 +408,16 @@ def checkPrimitiveDef (v : DefinitionVal) : M Bool := do
     unless ← isDefEq v.type q(Nat → Nat → Nat) do fail
     let .app (.const ``Nat.bitwise []) and := v.value | fail
     let and := mkApp2 and
-    unless ← defeq1 (and fal x) fal do fail
-    unless ← defeq1 (and tru x) x do fail
+    unless ← defeqBool1 (and fal x) fal do fail
+    unless ← defeqBool1 (and tru x) x do fail
   | ``Nat.lor =>
     unless env.contains ``Nat.bitwise && v.levelParams.isEmpty do fail
     -- lor : Nat → Nat → Nat
     unless ← isDefEq v.type q(Nat → Nat → Nat) do fail
     let .app (.const ``Nat.bitwise []) or := v.value | fail
     let or := mkApp2 or
-    unless ← defeq1 (or fal x) x do fail
-    unless ← defeq1 (or tru x) tru do fail
+    unless ← defeqBool1 (or fal x) x do fail
+    unless ← defeqBool1 (or tru x) tru do fail
   | ``Nat.xor =>
     unless env.contains ``Nat.bitwise && v.levelParams.isEmpty do fail
     -- xor : Nat → Nat → Nat
