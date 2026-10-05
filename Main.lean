@@ -295,8 +295,10 @@ unsafe def replayFromImports (module : Name) (verbose := false) (compare := fals
   for name in mod.constNames, ci in mod.constants do
     newConstants := newConstants.insert name ci
   let (n, env') ← replay { newConstants, verbose, compare, fuel } env
+  -- Drop the module-data references before releasing the memory they point into.
+  let regions := parts.map (·.2)
   (Environment.ofKernelEnv env').freeRegions
-  parts.forM fun (_, region) => region.free
+  regions.forM fun region => region.free
   pure n
 
 unsafe def replayFromFresh (module : Name)
