@@ -303,13 +303,14 @@ unsafe def replayFromImports (module : Name) (verbose := false) (compare := fals
   for name in mod.constNames, ci in mod.constants do
     newConstants := newConstants.insert name ci
   let (n, env') ← replay { newConstants, verbose, compare, fuel } env
-  (Environment.ofKernelEnv env').freeRegions
   -- Project out the regions *before* freeing them: `CompactedRegion` is a `USize`, so the
   -- projected array holds no pointers into the regions, and `parts` -- whose `ModuleData`s
   -- live inside them -- is consumed by the `map` and dead by the time we free. Iterating
   -- `parts` directly would leave this frame's own locals dangling, and the decrefs on
   -- return would segfault.
-  parts.map (·.2) |>.forM CompactedRegion.free
+  let regions := parts.map (·.2)
+  (Environment.ofKernelEnv env').freeRegions
+  regions.forM CompactedRegion.free
   pure n
 
 unsafe def replayFromFresh (module : Name)
