@@ -409,6 +409,7 @@ def reduceNat (e : Expr) : RecM (Option Expr) := do
   else if nargs == 2 then
     let .app (.app (.const f _) a) b := e | return none
     if f == ``Nat.add then return ← reduceBinNatOp Nat.add a b
+    else if f == ``Nat.mul then return ← reduceBinNatOp Nat.mul a b
   return none
 
 def whnf' (e : Expr) : RecM Expr := do
