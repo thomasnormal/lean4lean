@@ -50,9 +50,12 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   connected, and native left-shift reduction is restored.
 - `NatDivLoopSpec.eval` and `NatDivSpec.eval` establish division evaluation from
   explicit loop and entry equations, retaining the typed positivity and fuel
-  witnesses. These are intermediate contracts, not new `HasPrimitives` fields:
-  extracting the loop's open equation from the five fresh-local checks remains
-  open, and native division remains disabled. `Reflection.check.WF` verifies the
+  witnesses. The full validator and declaration-extension proofs now supply
+  these intermediate contracts, and native division is restored.
+  `HasPrimitives` records division's typed literal evaluation; the extension
+  proof establishes it from the old environment's invariant and the checked
+  equations, without assuming the new declaration's correctness.
+  `Reflection.check.WF` verifies the
   reflection-family type check; an `M.WF.withLocalDecl` wrapper exposes the existing local-context
   rule for the remaining conditional checks.
 - `Reflection.checkNatDITETypes.WF` verifies the four initial type checks of the
@@ -89,9 +92,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   inside the typed conditional, and compares translations after beta-reducing
   the selector. `.natDITE_eval` then derives the selected branch equation when
   the Boolean argument reduces to a literal. Both the branch functions and the
-  dependent witness retain their typing premises. Extracting division's full
-  entry/loop contracts from its executable checks remains unfinished, so native
-  division is still disabled.
+  dependent witness retain their typing premises. These semantic bridges are
+  now connected to division's full executable validator.
 - `Condition.ReflectedNatNatChecked.natDITE_branches` recovers the canonical
   dependent branch types from the actual conditional translation.
   `.natBle_dite_eval` combines this with the verified Boolean ordering primitive
@@ -103,9 +105,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   retaining the positivity and fuel-bound witnesses. `checkNatDivLoop.WF`
   connects the executable loop-type check to that abstract type, and
   `checkNatDivPrefix.WF` verifies it together with the preceding condition checks.
-  These are proofs of the existing checking fragments; the local recursive
-  equation checks and the primitive-extension proof remain to be connected before
-  restoring native division.
+  These are proofs of the existing checking fragments, now used by the complete
+  division validator proof.
 - `Condition.ReflectedNatNatChecked.natBle_dite_eval_inputs` accepts arbitrary
   typed source arguments translated to natural-number values, retaining a source
   expression for the selected proof witness. `.natBle_dite_body_inputs` reduces
@@ -115,11 +116,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   at its canonical dependent type. `.natDiv_start` combines it with branch
   reduction to prove the positive entry equation with successor fuel, including
   the constructor-form comparison argument `Nat.succ Nat.zero`. `.natDiv_zero`
-  proves the zero-divisor entry branch. These are semantic bridges from supplied
-  translations, not yet proofs extracting those translations and equations from
-  division's fresh-local checks. The full primitive-check
-  bridge and environment-extension proof remain unfinished; native division
-  remains disabled. No executable code was changed at this checkpoint.
+  proves the zero-divisor entry branch. The full primitive-check bridge now
+  extracts the translations and equations needed by these semantic bridges
+  from division's fresh-local checks.
 - `natDivLoopExpr.proofIrrel` shows that changing the typed positivity or
   fuel-bound proof does not change a loop result. `.natDiv_step` reduces the
   selected recursive branch, evaluates its subtraction using the already
@@ -130,9 +129,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
 - `checkNatDivEntry.WF` extracts the open equation and structural translation
   from the actual two-fresh-local entry-check fragment. `natDivEntryBody.at_literals`
   instantiates both together, providing the translation needed by the entry
-  branch-evaluation lemmas. The five-local recursive check and assembly of the
-  complete division specification remain unfinished. The executable checks are
-  unchanged at this checkpoint.
+  branch-evaluation lemmas. This is also used when assembling the complete
+  division specification; the executable checks are unchanged.
 - `checkNatDivEntry.spec` evaluates both branches of the actual entry-check
   fragment and supplies `NatDivEntrySpec`; `NatDivSpec.ofEntry` combines that
   contract with a loop contract without changing the existing specification.
@@ -144,9 +142,13 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   the selected branch, and uses proof irrelevance to cover arbitrary abstract
   proof arguments. The source substitution lemmas also identify this open body
   with the executable recursive-check body and retain its literal-instance
-  translation. Extracting that open equation from the actual five-local checks,
-  full primitive-check assembly, and the declaration-extension proof remain
-  unfinished. Native division remains disabled; no executable checks were changed.
+  translation. `checkNatDivRecursion.WF` extracts the open recursive equation
+  from the actual five-local checks, retaining the dependent proof arguments.
+  `checkNatDivEquations.WF` combines the entry and recursive checks in their
+  executable order. `checkPrimitiveDef_natDiv.WF` verifies the full validator,
+  including its guard and type checks; `.extension` derives typed literal
+  division for the extended environment. The declaration and native-reduction
+  proofs are connected. No division validation checks were changed.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -162,7 +164,7 @@ Main review entry points: `Lean4Lean/Verify/Environment.lean`,
   environment translation; runtime tests against the imported prelude do not
   construct that translation.
 - Native binary reductions other than addition, multiplication, exponentiation,
-  subtraction, equality, ordering, and left shift remain disabled.
+  subtraction, equality, ordering, left shift, and division remain disabled.
   Restoring them with their primitive-extension proofs is unfinished work, not
   an optional optimization that can be dropped from the objective.
 - The unrestricted `addDecl.WF` and the existing inductive/injectivity/
@@ -198,7 +200,7 @@ subtraction truncation at zero, equal and unequal large literals, rejection of
 incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 682 declarations across the primitive
+cases. The executable successfully replayed 701 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -214,8 +216,10 @@ The full natural-number ordering and equality condition validators are also
 tested: both are accepted, and replacing their decision function, Boolean
 function, or proof with an invalid one is rejected.
 The division regression accepts the reference implementation and rejects
-constant-zero and first-argument implementations, both before and after moving
-the proposition check ahead of the condition validator.
+constant-zero and first-argument implementations. It also checks native literal
+division with low fuel, covering zero divisors, exact division, smaller dividends,
+and inputs and quotients beyond machine-word sizes. Moving the proposition check
+ahead of the condition validator was checked at an earlier checkpoint.
 
 `#print axioms` reports only `propext` and `Quot.sound` for
 `Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, `Lean4Lean.VEnv.NatMulSpec.eval`,
@@ -268,6 +272,10 @@ existing structural API. The reflected-witness, entry-contract, and loop-contrac
 bridges inherit `sorryAx` and the existing map/array interface axioms;
 `checkNatDivEntry.spec` also inherits the checker-interface axioms. No new
 assumptions were added for these contracts.
+`checkNatDivRecursion.WF`, `checkNatDivEquations.WF`,
+`checkPrimitiveDef_natDiv.WF`, and `.extension` inherit `sorryAx` and the existing
+checker-interface axioms. The new division reflection and type fields are
+established by the extension proof; no new axiom or admitted proof was added.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,

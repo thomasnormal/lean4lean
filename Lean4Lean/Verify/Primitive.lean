@@ -2616,6 +2616,228 @@ theorem natDivLoopBody.spec {c : VContext} {proof : Expr} {r : Reflection}
       hle₀ hg₀ hpy hpy' hpa hpa'
     exact eqIn.trans (eq.trans hz)
 
+private theorem tr_natDivLoopApply {env : VEnv} {g ey ehy ef ea eha : Expr}
+    (hlc : le.ClosedN)
+    (hg : env.HasType Us.length Δ.toCtx go (VEnv.natDivLoopType le))
+    (hy : env.HasType Us.length Δ.toCtx y .nat)
+    (hpy : env.HasType Us.length Δ.toCtx py (.app (.app le (.natLit 1)) y))
+    (hf : env.HasType Us.length Δ.toCtx fuel .nat)
+    (ha : env.HasType Us.length Δ.toCtx a .nat)
+    (hpa : env.HasType Us.length Δ.toCtx pa (.app (.app le (.app .natSucc a)) fuel))
+    (tg : TrExprS env Us Δ g go) (ty : TrExprS env Us Δ ey y)
+    (tpy : TrExprS env Us Δ ehy py) (tf : TrExprS env Us Δ ef fuel)
+    (ta : TrExprS env Us Δ ea a) (tpa : TrExprS env Us Δ eha pa) :
+    TrExprS env Us Δ (mkApp5 g ey ehy ef ea eha)
+      (.app (.app (.app (.app (.app go y) py) fuel) a) pa) ∧
+    env.HasType Us.length Δ.toCtx
+      (.app (.app (.app (.app (.app go y) py) fuel) a) pa) .nat := by
+  have t₁ := TrExprS.app hg hy tg ty
+  have h₁ := hg.app hy
+  simp only [VExpr.inst, hlc.instN_eq (Nat.zero_le _),
+    VExpr.instVar_succ, VExpr.instVar_zero, VExpr.instVar_lower,
+    VExpr.lift, VExpr.liftN, liftVar_base, Nat.reduceAdd,
+    VExpr.natLit, VExpr.natSucc, VExpr.natZero, VExpr.nat] at h₁
+  have t₂ := TrExprS.app h₁ hpy t₁ tpy
+  have h₂ := h₁.app hpy
+  simp only [VExpr.inst, hlc.instN_eq (Nat.zero_le _), VExpr.instVar_succ,
+    VExpr.instVar_lower, VExpr.lift, VExpr.liftN, liftVar_base, Nat.reduceAdd] at h₂
+  have t₃ := TrExprS.app h₂ hf t₂ tf
+  have h₃ := h₂.app hf
+  simp only [VExpr.inst, hlc.instN_eq (Nat.zero_le _), VExpr.instVar_succ,
+    VExpr.instVar_zero, VExpr.instVar_lower, VExpr.lift, Nat.reduceAdd] at h₃
+  have t₄ := TrExprS.app h₃ ha t₃ ta
+  have h₄ := h₃.app ha
+  simp only [VExpr.inst, hlc.instN_eq (Nat.zero_le _), VExpr.instVar_zero,
+    VExpr.inst_lift] at h₄
+  exact ⟨.app h₄ hpa t₄ tpa, h₄.app hpa⟩
+
+/-- Extract the recursive equation inside the existing `[y, x]` context. -/
+theorem checkNatDivRecursion.WF {c : VContext} {x y : Expr}
+    (hn : c.venv.contains ``Nat)
+    (tl : TrExprS c.venv c.lparams [] q(@LE.le Nat _) le)
+    (hl : c.venv.HasType c.lparams.length [] le
+      (.forallE .nat (.forallE .nat (.sort .zero))))
+    (tg : TrExprS c.venv c.lparams [] q(Nat.div.go) go)
+    (hg : c.venv.HasType c.lparams.length [] go (VEnv.natDivLoopType le))
+    (tx : c.TrExprS x (.bvar 1)) (ty : c.TrExprS y (.bvar 0))
+    (hx : c.HasType (.bvar 1) .nat) (hy : c.HasType (.bvar 0) .nat)
+    (fail : ∀ {α}, M α)
+    (hfail : ∀ {c : VContext} {s}, (fail (α := Unit)).WF c s fun _ _ => False) :
+    (withLocalDecl `hy .default (mkApp2 q(@LE.le Nat _) q(Nat.succ Nat.zero) y) fun hy =>
+      withLocalDecl `fuel .default q(Nat) fun fuel =>
+      withLocalDecl `h .default
+          (mkApp2 q(@LE.le Nat _) (mkApp q(Nat.succ) x) (mkApp q(Nat.succ) fuel)) fun h => do
+        let e := Condition.natLE.dite #[y, x]
+          (mkApp q(Nat.succ) (mkApp5 q(Nat.div.go) y hy fuel (mkApp2 q(Nat.sub) x y)
+            (mkApp6 q(@Nat.div_rec_fuel_lemma) x y fuel hy (.bvar 0) h))) q(Nat.zero)
+        _ ← checkType e
+        unless ← isDefEq (mkApp5 q(Nat.div.go) y hy (mkApp q(Nat.succ) fuel) x h) e do fail
+      ).WF c s fun _ _ => ∃ out,
+        TrExprS c.venv c.lparams (List.append ((natDivLoopContext le).take 3) c.vlctx)
+          ((natDivLoopBody.instantiate1' x 4).instantiate1' y 3) out ∧
+        c.venv.IsDefEq c.lparams.length
+          (VLCtx.toCtx (List.append ((natDivLoopContext le).take 3) c.vlctx))
+          (.app (.app (.app (.app (.app go (.bvar 3)) (.bvar 2))
+            (.app .natSucc (.bvar 1))) (.bvar 4)) (.bvar 0)) out .nat := by
+  have hlc := hl.closedN c.Ewf.ordered trivial
+  have hgc := hg.closedN c.Ewf.ordered trivial
+  have hxc : x.Closed := c.mlctx.noBV ▸ tx.closed
+  have hyc : y.Closed := c.mlctx.noBV ▸ ty.closed
+  have hz := TrExprS.natZero (Us := c.lparams) (Δ := c.vlctx) c.hasPrimitives hn
+  have hs := TrExprS.natSucc (Us := c.lparams) (Δ := c.vlctx) c.hasPrimitives hn
+  obtain ⟨u, hNat⟩ := hz.2.isType c.Ewf.ordered c.Δwf.toCtx
+  obtain ⟨_, hciNat, _, huNat⟩ := hNat.const_inv c.Ewf.ordered c.Δwf.toCtx
+  have trNat {Δ : VLCtx} : TrExprS c.venv c.lparams Δ q(Nat) .nat := .const hciNat rfl huNat
+  have natType {Γ : List VExpr} : c.venv.IsType c.lparams.length Γ .nat := by
+    have hn₀ := (c.hasPrimitives.natLit_type (U := c.lparams.length) (Γ := []) hn 0).isType
+      c.Ewf.ordered trivial
+    obtain ⟨u, hu⟩ := hn₀
+    exact ⟨u, hu.weak0 c.Ewf.ordered⟩
+  let P := VExpr.app (.app le (.natLit 1)) (.bvar 0)
+  let eP := mkApp2 q(@LE.le Nat _) q(Nat.succ Nat.zero) y
+  have tOne := TrExprS.app hs.2 hz.2 hs.1 hz.1
+  have hOne := hs.2.app hz.2
+  have hl₁ := (hl.weak0 c.Ewf.ordered (Γ := c.vlctx.toCtx)).app hOne
+  simp only [VExpr.inst, VExpr.nat] at hl₁
+  have tP : c.TrExprS eP P := .app hl₁ hy (.app
+    (hl.weak0 c.Ewf.ordered) hOne (tr_inContext tl hlc) tOne) ty
+  have hP : c.IsType P := ⟨.zero, hl₁.app hy⟩
+  rw [← c.withMLC_self]
+  refine M.WF.withLocalDecl tP hP (.rfl (s := s)) fun hid hwf sh _ _ => ?_
+  let ch := c.withMLC (.vlam hid `hy eP P .default c.mlctx) (wf := hwf)
+  have W : VLCtx.FVLift c.vlctx ch.vlctx 0 1 0 := .skip_fvar _ _ .refl
+  have tx₁ : ch.TrExprS x (.bvar 2) := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base] using tx.weakFV c.Ewf.ordered W ch.Δwf
+  have ty₁ : ch.TrExprS y (.bvar 1) := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base] using ty.weakFV c.Ewf.ordered W ch.Δwf
+  have hx₁ : ch.HasType (.bvar 2) .nat := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base, VExpr.nat] using hx.weak c.Ewf.ordered
+  have hy₁ : ch.HasType (.bvar 1) .nat := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base, VExpr.nat] using hy.weak c.Ewf.ordered
+  refine M.WF.withLocalDecl (c := c) (m := ch.mlctx) (cwf := hwf)
+    trNat natType (.rfl (s := sh)) fun fid fwf sf _ _ => ?_
+  let cf := c.withMLC (.vlam fid `fuel q(Nat) .nat .default ch.mlctx) (wf := fwf)
+  have W₁ : VLCtx.FVLift ch.vlctx cf.vlctx 0 1 0 := .skip_fvar _ _ .refl
+  have tx₂ : cf.TrExprS x (.bvar 3) := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base] using tx₁.weakFV c.Ewf.ordered W₁ cf.Δwf
+  have hx₂ : cf.HasType (.bvar 3) .nat := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base, VExpr.nat] using hx₁.weak c.Ewf.ordered
+  have tf : cf.TrExprS (.fvar fid) (.bvar 0) := .fvar (A := .nat) (by
+    simp [cf, VContext.withMLC, MLCtx.vlctx, VLCtx.find?, VLCtx.next,
+      VLocalDecl.value, VLocalDecl.type, VExpr.lift, VExpr.liftN, VExpr.nat])
+  have hf : cf.HasType (.bvar 0) .nat := .bvar .zero
+  let H := VExpr.app (.app le (.app .natSucc (.bvar 3))) (.app .natSucc (.bvar 0))
+  let eH := mkApp2 q(@LE.le Nat _) (mkApp q(Nat.succ) x) (mkApp q(Nat.succ) (.fvar fid))
+  have hsF := TrExprS.natSucc (Us := c.lparams) (Δ := cf.vlctx) c.hasPrimitives hn
+  have hleF := hl.weak0 c.Ewf.ordered (Γ := cf.vlctx.toCtx)
+  have hleFx := hleF.app (hsF.2.app hx₂)
+  simp only [VExpr.inst, VExpr.nat] at hleFx
+  have tH : cf.TrExprS eH H := .app hleFx (hsF.2.app hf)
+    (.app hleF (hsF.2.app hx₂) (tr_inContext tl hlc) (.app hsF.2 hx₂ hsF.1 tx₂))
+    (.app hsF.2 hf hsF.1 tf)
+  have hH : cf.IsType H := ⟨.zero, hleFx.app (hsF.2.app hf)⟩
+  let Δ : VLCtx := (none, .vlam H) :: cf.vlctx
+  have ty₂ : cf.TrExprS y (.bvar 2) := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base] using ty₁.weakFV c.Ewf.ordered W₁ cf.Δwf
+  have hy₂ : cf.HasType (.bvar 2) .nat := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base, VExpr.nat] using hy₁.weak c.Ewf.ordered
+  have tposH : ch.TrExprS (.fvar hid) (.bvar 0) := .fvar (A := P.lift) (by
+    simp [ch, VContext.withMLC, MLCtx.vlctx, VLCtx.find?, VLCtx.next,
+      VLocalDecl.value, VLocalDecl.type])
+  have tpos : cf.TrExprS (.fvar hid) (.bvar 1) := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base]
+      using tposH.weakFV c.Ewf.ordered W₁ cf.Δwf
+  have tx₃ : TrExprS c.venv c.lparams Δ x (.bvar 4) := by
+    simpa only [Expr.liftLooseBVars_eq_self (s := 0) hxc.looseBVarRange_le,
+      VExpr.liftN, liftVar_base] using tx₂.weakBV c.Ewf.ordered (.skip (.vlam H) .refl)
+  have ty₃ : TrExprS c.venv c.lparams Δ y (.bvar 3) := by
+    simpa only [Expr.liftLooseBVars_eq_self (s := 0) hyc.looseBVarRange_le,
+      VExpr.liftN, liftVar_base] using ty₂.weakBV c.Ewf.ordered (.skip (.vlam H) .refl)
+  have tf₁ : TrExprS c.venv c.lparams Δ (.fvar fid) (.bvar 1) := by
+    simpa only [Expr.liftLooseBVars', VExpr.liftN, liftVar_base]
+      using tf.weakBV c.Ewf.ordered (.skip (.vlam H) .refl)
+  have tpos₁ : TrExprS c.venv c.lparams Δ (.fvar hid) (.bvar 2) := by
+    simpa only [Expr.liftLooseBVars', VExpr.liftN, liftVar_base]
+      using tpos.weakBV c.Ewf.ordered (.skip (.vlam H) .refl)
+  have tg₁ : TrExprS c.venv c.lparams Δ q(Nat.div.go) go := by
+    have tgF : cf.TrExprS q(Nat.div.go) go := tr_inContext tg hgc
+    simpa only [Expr.liftLooseBVars', hgc.liftN_eq (Nat.zero_le _)]
+      using tgF.weakBV c.Ewf.ordered (.skip (.vlam H) .refl)
+  have hx₃ : c.venv.HasType c.lparams.length Δ.toCtx (.bvar 4) .nat := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base, VExpr.nat] using hx₂.weak c.Ewf.ordered
+  have hy₃ : c.venv.HasType c.lparams.length Δ.toCtx (.bvar 3) .nat := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base, VExpr.nat] using hy₂.weak c.Ewf.ordered
+  have hf₁ : c.venv.HasType c.lparams.length Δ.toCtx (.bvar 1) .nat := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base, VExpr.nat] using hf.weak c.Ewf.ordered
+  have hpos : c.venv.HasType c.lparams.length Δ.toCtx (.bvar 2)
+      (.app (.app le (.natLit 1)) (.bvar 3)) := by
+    have h : c.venv.HasType c.lparams.length Δ.toCtx (.bvar 2) P.lift.lift.lift :=
+      .bvar (.succ (.succ .zero))
+    simpa only [P, Δ, VExpr.lift, VExpr.liftN, hlc.liftN_eq (Nat.zero_le _),
+      liftVar_base, VExpr.natLit, VExpr.natSucc, VExpr.natZero] using h
+  have hbound : c.venv.HasType c.lparams.length Δ.toCtx (.bvar 0)
+      (.app (.app le (.app .natSucc (.bvar 4))) (.app .natSucc (.bvar 1))) := by
+    have h : c.venv.HasType c.lparams.length Δ.toCtx (.bvar 0) H.lift := .bvar .zero
+    simpa only [H, VExpr.lift, VExpr.liftN, hlc.liftN_eq (Nat.zero_le _),
+      liftVar_base, VExpr.natSucc] using h
+  have tb : TrExprS c.venv c.lparams Δ (.bvar 0) (.bvar 0) := .bvar rfl
+  have hs₁ := TrExprS.natSucc (Us := c.lparams) (Δ := Δ) c.hasPrimitives hn
+  have ⟨tleft, hleft⟩ := tr_natDivLoopApply hlc (hg.weak0 c.Ewf.ordered)
+    hy₃ hpos (hs₁.2.app hf₁) hx₃ hbound tg₁ ty₃ tpos₁
+    (TrExprS.app hs₁.2 hf₁ hs₁.1 tf₁) tx₃ tb
+  let rhs := (((natDivLoopBody.instantiate1' x 4).instantiate1' y 3).instantiate1'
+    (.fvar hid) 2).instantiate1' (.fvar fid) 1
+  have hbody {P : FVarId → Prop} : natDivLoopBody.FVarsIn P := by
+    simp [natDivLoopBody, Expr.lam0, FVarsIn, mkApp4, mkApp5, mkApp6,
+      mkApp2, mkAppB, mkApp, Level.hasMVar']
+  have hposFV : (.fvar hid : Expr).FVarsIn (· ∈ cf.vlctx.fvars) := tpos.fvarsIn
+  have hright : rhs.FVarsIn (· ∈ cf.vlctx.fvars) :=
+    (((hbody.instantiate1_go tx₂.fvarsIn).instantiate1_go ty₂.fvarsIn).instantiate1_go
+      hposFV).instantiate1_go tf.fvarsIn
+  let l := fun h => mkApp5 q(Nat.div.go) y (.fvar hid) (mkApp q(Nat.succ) (.fvar fid)) x h
+  let r := fun h => Condition.natLE.dite #[y, x]
+    (mkApp q(Nat.succ) (mkApp5 q(Nat.div.go) y (.fvar hid) (.fvar fid) (mkApp2 q(Nat.sub) x y)
+      (mkApp6 q(@Nat.div_rec_fuel_lemma) x y (.fvar fid) (.fvar hid) (.bvar 0) h))) q(Nat.zero)
+  have hinst (e : Expr) (he : e.Closed) (a : Expr) (k : Nat) : e.instantiate1' a k = e :=
+    Expr.instantiate1'_eq_self (Nat.le_trans he.looseBVarRange_le (Nat.zero_le _))
+  have hlift (e : Expr) (he : e.Closed) (k : Nat) : e.liftLooseBVars' 0 k = e :=
+    Expr.liftLooseBVars_eq_self he.looseBVarRange_le
+  have hl' : ∀ id, l (.fvar id) = (l (.bvar 0)).instantiate1' (.fvar id) := by
+    intro id
+    simp [l, mkApp5, mkApp4, mkAppB, mkApp, Expr.instantiate1',
+      hinst _ hxc, hinst _ hyc, Expr.liftLooseBVars']
+  have hr' : ∀ id, r (.fvar id) = rhs.instantiate1' (.fvar id) := by
+    intro id
+    simp [r, rhs, natDivLoopBody, Condition.dite, Condition.natLE, mkAppN,
+      mkApp4, mkApp5, mkApp6, mkApp2, mkAppB, mkApp, Expr.lam0,
+      Expr.instantiate1', hinst _ hxc, hinst _ hyc, hlift _ hxc, hlift _ hyc,
+      Expr.liftLooseBVars']
+  have wfh := withLocalDecl_checkEq.WF (name := `h) (bi := .default) (c := cf) (s := sf)
+    (A := .nat) tH hH tleft hleft hright l r hl' hr' fail hfail
+  exact wfh.mono fun _ _ _ ⟨out, tout, heq⟩ => by
+    -- Forget the fresh source names; their anonymous binders remain in the model context.
+    have hbase : ((natDivLoopBody.instantiate1' x 4).instantiate1' y 3).FVarsIn
+        (· ∈ c.vlctx.fvars) :=
+      (hbody.instantiate1_go tx.fvarsIn).instantiate1_go ty.fvarsIn
+    have hnotF : fid ∉ ch.vlctx.fvars := (cf.Δwf.fvwf.2 fid q(Nat).fvarsList rfl).1
+    have hbaseH : ((natDivLoopBody.instantiate1' x 4).instantiate1' y 3).FVarsIn
+        (· ∈ ch.vlctx.fvars) := hbase.fvars_cons
+    have hscF : (((natDivLoopBody.instantiate1' x 4).instantiate1' y 3).instantiate1'
+        (.fvar hid) 2).FVarsIn (· ≠ fid) :=
+      (hbaseH.instantiate1_go tposH.fvarsIn).mono fun fv hmem he => hnotF (he ▸ hmem)
+    have tout := tout.uninstantiateN (.succ .zero) hscF
+    have hnotH : hid ∉ c.vlctx.fvars := (ch.Δwf.fvwf.2 hid eP.fvarsList rfl).1
+    have hscH : ((natDivLoopBody.instantiate1' x 4).instantiate1' y 3).FVarsIn (· ≠ hid) :=
+      hbase.mono fun fv hmem he => hnotH (he ▸ hmem)
+    have tout := tout.uninstantiateN (.succ (.succ .zero)) hscH
+    exact ⟨out,
+      (by simpa only [VContext.withMLC_self, cf, ch, H, P, VContext.withMLC, VContext.vlctx, MLCtx.vlctx,
+        natDivLoopContext, List.take_succ_cons, List.take_zero, List.append_cons,
+        List.nil_append] using tout),
+      (by simpa only [VContext.withMLC_self, cf, ch, H, P, VContext.withMLC, VContext.vlctx, MLCtx.vlctx,
+        natDivLoopContext, List.take_succ_cons, List.take_zero, List.append_cons,
+        List.nil_append, VLCtx.toCtx] using heq)⟩
+
 /-- The actual entry checks establish both closed entry equations. -/
 theorem checkNatDivEntry.spec {c : VContext} {proof : Expr} {r : Reflection}
     (hc : c.vlctx = []) (hu : c.lparams = []) (hdc : r.toDec.Closed)
@@ -2637,6 +2859,131 @@ theorem checkNatDivEntry.spec {c : VContext} {proof : Expr} {r : Reflection}
       fun _ _ => VEnv.NatDivEntrySpec c.venv f go le :=
   (checkNatDivEntry.WF hc hn hv hf fail hfail).mono fun _ _ _ ⟨_, tout, heq⟩ =>
     natDivEntryBody.spec hc hu hdc h tp hn tg hg hf tout heq
+
+/-- The entry and recursive equation checks, in their executable order, supply
+the complete division specification. -/
+theorem checkNatDivEquations.WF {c : VContext} {proof : Expr} {r : Reflection}
+    (hc : c.vlctx = []) (hu : c.lparams = []) (hdc : r.toDec.Closed)
+    (h : Condition.ReflectedNatNatChecked c q(@LE.le Nat _) q(Nat.decLe)
+      q(Nat.ble) proof r le)
+    (tp : c.TrExprS q(@LE.le Nat _) le) (hn : c.venv.contains ``Nat)
+    (hsub : c.venv.contains ``Nat.sub)
+    (tg : c.TrExprS q(Nat.div.go) go) (hg : c.HasType go (VEnv.natDivLoopType le))
+    (hv : TrExprS c.venv c.lparams [] value f)
+    (hf : c.venv.HasType c.lparams.length [] f (.forallE .nat (.forallE .nat .nat)))
+    (fail : ∀ {α}, M α)
+    (hfail : ∀ {c : VContext} {s}, (fail (α := Unit)).WF c s fun _ _ => False) :
+    (withLocalDecl `x .default q(Nat) fun x => do
+      withLocalDecl `y .default q(Nat) fun y => do
+      let e := Condition.natLE.dite #[q(Nat.succ Nat.zero), y]
+        (mkApp5 q(Nat.div.go) y (.bvar 0) (mkApp q(Nat.succ) x) x
+          (mkApp q(Nat.lt_succ_self) x)) q(Nat.zero)
+      _ ← checkType e
+      unless ← isDefEq (mkApp2 value x y) e do fail
+      withLocalDecl `hy .default (mkApp2 q(@LE.le Nat _) q(Nat.succ Nat.zero) y) fun hy => do
+      withLocalDecl `fuel .default q(Nat) fun fuel => do
+      withLocalDecl `h .default
+        (mkApp2 q(@LE.le Nat _) (mkApp q(Nat.succ) x) (mkApp q(Nat.succ) fuel)) fun h => do
+      let e := Condition.natLE.dite #[y, x]
+        (mkApp q(Nat.succ) (mkApp5 q(Nat.div.go) y hy fuel (mkApp2 q(Nat.sub) x y)
+          (mkApp6 q(@Nat.div_rec_fuel_lemma) x y fuel hy (.bvar 0) h))) q(Nat.zero)
+      _ ← checkType e
+      unless ← isDefEq (mkApp5 q(Nat.div.go) y hy (mkApp q(Nat.succ) fuel) x h) e do fail
+      ).WF c s fun _ _ => VEnv.NatDivSpec c.venv f go le := by
+  have tl₀ : TrExprS c.venv c.lparams [] q(@LE.le Nat _) le := by
+    simpa only [VContext.TrExprS, hc] using tp
+  have hl₀ : c.venv.HasType c.lparams.length [] le
+      (.forallE .nat (.forallE .nat (.sort .zero))) := by
+    simpa only [VContext.HasType, hc, VLCtx.toCtx] using h.1
+  have tg₀ : TrExprS c.venv c.lparams [] q(Nat.div.go) go := by
+    simpa only [VContext.TrExprS, hc] using tg
+  have hg₀ : c.venv.HasType c.lparams.length [] go (VEnv.natDivLoopType le) := by
+    simpa only [VContext.HasType, hc, VLCtx.toCtx] using hg
+  have hz := TrExprS.natZero (Us := c.lparams) (Δ := []) c.hasPrimitives hn
+  obtain ⟨u, hNat⟩ := hz.2.isType c.Ewf.ordered trivial
+  obtain ⟨_, hciNat, _, huNat⟩ := hNat.const_inv c.Ewf.ordered trivial
+  have trNat {Δ : VLCtx} : TrExprS c.venv c.lparams Δ q(Nat) .nat := .const hciNat rfl huNat
+  have natType {Γ : List VExpr} : c.venv.IsType c.lparams.length Γ .nat :=
+    ⟨u, hNat.weak0 c.Ewf.ordered⟩
+  have hfc := hf.closedN c.Ewf.ordered trivial
+  rw [← c.withMLC_self]
+  refine M.WF.withLocalDecl (c := c) (m := c.mlctx) trNat natType (.rfl (s := s))
+    fun xid xwf sx _ _ => ?_
+  let cx := c.withMLC (.vlam xid `x q(Nat) .nat .default c.mlctx) (wf := xwf)
+  have tx : cx.TrExprS (.fvar xid) (.bvar 0) := .fvar (A := .nat) (by
+    simp [cx, VContext.withMLC, MLCtx.vlctx, VLCtx.find?, VLCtx.next,
+      VLocalDecl.value, VLocalDecl.type, VExpr.lift, VExpr.liftN, VExpr.nat])
+  have hx : cx.HasType (.bvar 0) .nat := .bvar .zero
+  refine M.WF.withLocalDecl (c := c) (m := cx.mlctx) (cwf := xwf)
+    trNat natType (.rfl (s := sx)) fun yid ywf sy _ _ => ?_
+  let cy := c.withMLC (.vlam yid `y q(Nat) .nat .default cx.mlctx) (wf := ywf)
+  have W : VLCtx.FVLift cx.vlctx cy.vlctx 0 1 0 := .skip_fvar _ _ .refl
+  have tx₁ : cy.TrExprS (.fvar xid) (.bvar 1) := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base] using tx.weakFV c.Ewf.ordered W cy.Δwf
+  have hx₁ : cy.HasType (.bvar 1) .nat := by
+    simpa only [VExpr.lift, VExpr.liftN, liftVar_base, VExpr.nat] using hx.weak c.Ewf.ordered
+  have ty : cy.TrExprS (.fvar yid) (.bvar 0) := .fvar (A := .nat) (by
+    simp [cy, VContext.withMLC, MLCtx.vlctx, VLCtx.find?, VLCtx.next,
+      VLocalDecl.value, VLocalDecl.type, VExpr.lift, VExpr.liftN, VExpr.nat])
+  have hy : cy.HasType (.bvar 0) .nat := .bvar .zero
+  have hf₁ : cy.HasType f (.forallE .nat (.forallE .nat .nat)) := hf.weak0 c.Ewf.ordered
+  have tv : cy.TrExprS value f := tr_inContext hv hfc
+  have tleft := TrExprS.app (hf₁.app hx₁) hy (.app hf₁ hx₁ tv tx₁) ty
+  let e := Condition.natLE.dite #[q(Nat.succ Nat.zero), .fvar yid]
+    (mkApp5 q(Nat.div.go) (.fvar yid) (.bvar 0) (mkApp q(Nat.succ) (.fvar xid)) (.fvar xid)
+      (mkApp q(Nat.lt_succ_self) (.fvar xid))) q(Nat.zero)
+  have heFV : e.FVarsIn (· ∈ cy.vlctx.fvars) := by
+    simp [e, Condition.dite, Condition.natLE, mkAppN, mkApp4, mkApp5,
+      mkAppB, mkApp, Expr.lam0, FVarsIn,
+      cy, cx, VContext.withMLC, MLCtx.vlctx, VLCtx.fvars, Level.hasMVar']
+  refine (checkType.WF (c := cy) heFV).bind fun _ _ _ ⟨outE, _, _, toutE, _, _⟩ => ?_
+  refine (isDefEq.WF (c := cy) tleft toutE).bind fun b _ _ heqE => ?_
+  cases b
+  · simp only [Bool.false_eq_true, if_false]
+    exact hfail.bind fun _ _ _ h => h.elim
+  simp only [if_true, pure_bind]
+  have heqE := (heqE rfl).of_l cy.Ewf cy.Δwf.toCtx ((hf₁.app hx₁).app hy)
+  refine (checkNatDivRecursion.WF (c := cy) hn tl₀ hl₀ tg₀ hg₀
+    tx₁ ty hx₁ hy fail hfail).mono fun _ _ _ ⟨outL, toutL, heqL⟩ => ?_
+  have hnotY : yid ∉ cx.vlctx.fvars := (cy.Δwf.fvwf.2 yid q(Nat).fvarsList rfl).1
+  have hbodyE {P : FVarId → Prop} : natDivEntryBody.FVarsIn P := by
+    simp [natDivEntryBody, Expr.lam0, FVarsIn, mkApp4, mkApp5,
+      mkApp2, mkAppB, mkApp, Level.hasMVar']
+  have hscEY : (natDivEntryBody.instantiate1' (.fvar xid) 1).FVarsIn (· ≠ yid) :=
+    (hbodyE.instantiate1_go tx.fvarsIn).mono fun fv hmem he => hnotY (he ▸ hmem)
+  have eqE : e = (natDivEntryBody.instantiate1' (.fvar xid) 1).instantiate1' (.fvar yid) := by
+    simp only [e, natDivEntryBody, Condition.dite, Condition.natLE, mkAppN,
+      Expr.lam0, Expr.instantiate1', Expr.liftLooseBVars',
+      Nat.reduceAdd, Nat.reduceSub, Nat.reduceLT, Nat.reduceEqDiff, if_true, if_false]
+    rfl
+  rw [eqE] at toutE
+  have toutE := (toutE.uninstantiate hscEY).uninstantiateN (.succ .zero) hbodyE
+  have trE : TrExprS c.venv c.lparams [(none, .vlam .nat), (none, .vlam .nat)]
+      natDivEntryBody outE := by
+    simpa only [cy, cx, VContext.withMLC, VContext.vlctx, MLCtx.vlctx, hc] using toutE
+  have eqE : c.venv.IsDefEq c.lparams.length [.nat, .nat]
+      (.app (.app f (.bvar 1)) (.bvar 0)) outE .nat := by
+    simpa only [cy, cx, VContext.withMLC, VContext.vlctx, MLCtx.vlctx, VLCtx.toCtx, hc] using heqE
+  have hbodyL {P : FVarId → Prop} : natDivLoopBody.FVarsIn P := by
+    simp [natDivLoopBody, Expr.lam0, FVarsIn, mkApp4, mkApp5, mkApp6,
+      mkApp2, mkAppB, mkApp, Level.hasMVar']
+  have hscLY : (natDivLoopBody.instantiate1' (.fvar xid) 4).FVarsIn (· ≠ yid) :=
+    (hbodyL.instantiate1_go tx.fvarsIn).mono fun fv hmem he => hnotY (he ▸ hmem)
+  simp only [natDivLoopContext, List.take_succ_cons, List.take_zero] at toutL
+  have toutL := toutL.uninstantiateN (.succ (.succ (.succ .zero))) hscLY
+  have toutL := toutL.uninstantiateN (.succ (.succ (.succ (.succ .zero)))) hbodyL
+  have trL : TrExprS c.venv c.lparams (natDivLoopContext le) natDivLoopBody outL := by
+    simpa only [cy, cx, VContext.withMLC, VContext.vlctx, MLCtx.vlctx, hc,
+      natDivLoopContext] using toutL
+  have eqL : c.venv.IsDefEq c.lparams.length (natDivLoopContext le).toCtx
+      (.app (.app (.app (.app (.app go (.bvar 3)) (.bvar 2))
+        (.app .natSucc (.bvar 1))) (.bvar 4)) (.bvar 0)) outL .nat := by
+    simpa only [cy, cx, VContext.withMLC, VContext.vlctx, MLCtx.vlctx, hc,
+      natDivLoopContext, List.take_succ_cons, List.take_zero, List.append_cons,
+      List.nil_append, VLCtx.toCtx] using heqL
+  have hentry := natDivEntryBody.spec hc hu hdc h tp hn tg hg hf trE eqE
+  have hloop := natDivLoopBody.spec hc hu hdc h tp hn hsub tg hg trL eqL
+  simpa only [VContext.withMLC_self] using VEnv.NatDivSpec.ofEntry hentry hloop
 
 private theorem contains_primitive (c : VContext) (hn : c.env.contains n)
     (hp : Kernel.Environment.primitives.contains n) : c.venv.contains n := by
@@ -3202,6 +3549,59 @@ theorem checkPrimitiveDef_natShiftLeft.WF {env : Kernel.Environment} {ves : VEnv
             exact VEnv.IsDefEq.lam_body c.Ewf.ordered hl hr he
   · exact nofun
 
+theorem checkPrimitiveDef_natDiv.WF {env : Kernel.Environment} {ves : VEnvs}
+    (wf : ves.WF env) (v : DefinitionVal) (hname : v.name = ``Nat.div)
+    (ht : TrExprS (ves.venv .safe) [] [] v.type type)
+    (hv : TrExprS (ves.venv .safe) [] [] v.value f)
+    (hf : (ves.venv .safe).HasType 0 [] f type) :
+    (checkPrimitiveDef v).WF (.mk' wf .safe [] fuel) s fun _ _ =>
+      (ves.venv .safe).contains ``Nat ∧
+      (ves.venv .safe).IsDefEqU 0 [] type (.forallE .nat (.forallE .nat .nat)) ∧
+      ∃ go le, VEnv.NatDivSpec (ves.venv .safe) f go le := by
+  let c := VContext.mk' wf .safe [] fuel
+  unfold checkPrimitiveDef
+  simp only [hname]
+  refine (getEnv.WF (c := c)).bind fun _ _ _ ⟨rfl, rfl⟩ => ?_
+  split
+  · rename_i hguard
+    simp only [Bool.and_eq_true] at hguard
+    have hsub := contains_primitive c hguard.1.1
+      (by simp [Kernel.Environment.primitives, NameSet.contains, NameSet.ofList])
+    have hb := contains_primitive c hguard.1.2
+      (by simp [Kernel.Environment.primitives, NameSet.contains, NameSet.ofList])
+    have hsubTy := c.hasPrimitives.natSubType hsub
+    obtain ⟨u, hNat⟩ := (hsubTy.isType c.Ewf.ordered trivial).forallE_inv c.Ewf.ordered |>.1
+    obtain ⟨_, hciNat, _, huNat⟩ := hNat.const_inv c.Ewf.ordered trivial
+    have hn : c.venv.contains ``Nat := ⟨_, hciNat⟩
+    have trNat {Δ : VLCtx} : TrExprS c.venv [] Δ q(Nat) .nat := .const hciNat rfl huNat
+    have natType {Γ : List VExpr} : c.venv.IsType 0 Γ .nat :=
+      ⟨u, hNat.weak0 c.Ewf.ordered⟩
+    have trType : c.TrExprS q(Nat → Nat → Nat) (.forallE .nat (.forallE .nat .nat)) :=
+      .forallE natType (natType.forallE natType) trNat
+        (.forallE natType natType trNat trNat)
+    simp only [pure_bind]
+    refine (isDefEq.WF (c := c) ht trType).bind fun b _ _ htype => ?_
+    cases b
+    · exact nofun
+    · simp only [if_true]
+      have hf := hf.defeqU_r c.Ewf c.Δwf (htype rfl)
+      let fail {α} : M α := throw <| .other s!"invalid form for primitive def {``Nat.div}"
+      have hfail {c : VContext} {s} : (fail (α := Unit)).WF c s fun _ _ => False := nofun
+      have hdc : Reflection.defn₁.toDec.Closed := by simp [Reflection.defn₁, Closed]
+      refine (checkNatDivCondition.WF (c := c) rfl fail hfail hb hn).bind
+        fun _ _ _ ⟨le, tp, hcond⟩ => ?_
+      have tty := tr_natDivLoopType c.Ewf.ordered c.hasPrimitives hn tp hcond.1
+      refine (checkType.WF (c := c) (e := q(Nat.div.go)) (by simp [FVarsIn])).bind
+        fun _ _ _ ⟨go, _, _, tg, tt, hg⟩ => ?_
+      refine (isDefEq.WF (c := c) tt tty).bind fun b _ _ hloopType => ?_
+      cases b
+      · exact nofun
+      · simp only [if_true]
+        have hg := hg.defeqU_r c.Ewf c.Δwf (hloopType rfl)
+        exact (checkNatDivEquations.WF (c := c) rfl rfl hdc hcond tp hn hsub
+          tg hg hv hf fail hfail).bind fun _ _ _ hspec => .pure ⟨hn, htype rfl, go, le, hspec⟩
+  · exact nofun
+
 -- Both comparison branches are definitionally equal to this shared sequence of checks.
 private def checkNatComparison (v : DefinitionVal) (zeroSucc : Bool) : M Bool := do
   let fail {α} : M α := throw <| .other s!"invalid form for primitive def {v.name}"
@@ -3536,6 +3936,25 @@ theorem checkPrimitiveDef_natShiftLeft.extension {env : Kernel.Environment} {ves
   have heval := hspec.eval henv.ordered hp hn hf'
     (fun a b => (hp.natMul hmul a b).of_r henv trivial (hp.natLit_type hn (a * b))) a b
   exact ((hdef'.appDF ha |>.appDF hb).trans (heval.mono hle)).toU
+
+theorem checkPrimitiveDef_natDiv.extension {env : Kernel.Environment} {ves : VEnvs}
+    (wf : ves.WF env) (v : DefinitionVal) (hname : v.name = ``Nat.div)
+    (ht : TrExprS (ves.venv .safe) [] [] v.type type)
+    (hv : TrExprS (ves.venv .safe) [] [] v.value f)
+    (hf : (ves.venv .safe).HasType 0 [] f type)
+    (hcheck : M.run env .safe {} [] fuel (checkPrimitiveDef v) = .ok b)
+    (henv' : env'.WF) (hle : ves.venv .safe ≤ env')
+    (hdef : env'.IsDefEq 0 [] (.const ``Nat.div []) f type) :
+    env'.HasType 0 [] (.const ``Nat.div []) (.forallE .nat (.forallE .nat .nat)) ∧
+    env'.ReflectsNatNatNat ``Nat.div Nat.div := by
+  have ⟨hn, htype, go, le, hspec⟩ :=
+    M.WF.run wf (checkPrimitiveDef_natDiv.WF wf v hname ht hv hf) _ hcheck
+  have hdef' := (htype.mono hle).defeqDF henv' trivial hdef
+  refine ⟨hdef'.hasType.1, fun _ a b => ?_⟩
+  have ha := (wf.hasPrimitives.natLit_type (U := 0) (Γ := []) hn a).mono hle
+  have hb := (wf.hasPrimitives.natLit_type (U := 0) (Γ := []) hn b).mono hle
+  have heval := (hspec.eval wf.hasPrimitives hn a b).mono hle
+  exact ((hdef'.appDF ha |>.appDF hb).trans heval).toU
 
 end Environment
 end Lean4Lean
