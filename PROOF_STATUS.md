@@ -48,6 +48,13 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   generalizing the input value and using typed multiplication reflection for the
   doubling step. Its primitive-check and environment-extension proofs are
   connected, and native left-shift reduction is restored.
+- `NatDivLoopSpec.eval` and `NatDivSpec.eval` establish division evaluation from
+  explicit loop and entry equations, retaining the typed positivity and fuel
+  witnesses. These are intermediate contracts, not new `HasPrimitives` fields:
+  deriving them from the checked dependent conditionals remains open, and native
+  division remains disabled. `Reflection.check.WF` verifies the reflection-family
+  type check; an `M.WF.withLocalDecl` wrapper exposes the existing local-context
+  rule for the remaining conditional checks.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -97,7 +104,7 @@ subtraction truncation at zero, equal and unequal large literals, rejection of
 incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 461 declarations across the primitive
+cases. The executable successfully replayed 482 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -110,6 +117,10 @@ verified replay of the entire dependency closure.
 `Lean4Lean.VEnv.NatSubSpec.eval`, as well as `Lean4Lean.VEnv.NatBeqSpec.eval` and
 `Lean4Lean.VEnv.NatBleSpec.eval` and `Lean4Lean.VEnv.NatShiftLeftSpec.eval`. The shared
 `Lean4Lean.VEnv.HasPrimitives.extendPrimitive` lemma has the same axiom set.
+`Lean4Lean.VEnv.NatDivLoopSpec.eval` and `Lean4Lean.VEnv.NatDivSpec.eval` use
+`propext`, `Classical.choice`, and `Quot.sound`, without `sorryAx`. The new
+reflection-check and local-context lemmas inherit the existing verification
+stack's axioms, including `sorryAx`.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
