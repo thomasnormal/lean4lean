@@ -103,6 +103,16 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   Extraction from modulo's fresh-local checks, assembly of its loop/entry
   contracts, and the declaration-extension proof remain unfinished; native
   modulo is still disabled.
+- `natModEntryBody.spec` supplies the successor entry contracts from the open
+  two-local equation, including zero and oversized divisors.
+  `natModLoopBody.spec` supplies the recursive contract from the open five-local
+  equation, preserving the dependent proof arguments. Their source substitution
+  lemmas identify the templates with the executable fresh-local bodies and their
+  literal instances. The recursive substitution proof is shared with division
+  through a private helper; division's published statement is unchanged.
+  `NatModSpec.ofEntry` combines these contracts with a separately supplied zero
+  equation. Extraction of all three equations from the complete modulo validator
+  and the primitive-extension/native-reduction connection remain unfinished.
 - `Reflection.checkNatDITETypes.WF` verifies the four initial type checks of the
   dependent conditional validator, including both witness converters. The
   `checkNatDITE_eq` theorem proves that regrouping this prefix reconstructs the
@@ -247,7 +257,7 @@ incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, right shifts at and beyond the input's bit length (including a shift count
 beyond machine-word sizes), both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 839 declarations across the primitive
+cases. The executable successfully replayed 862 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -275,7 +285,10 @@ The modulo regression accepts the reference validator and rejects constant-zero
 and first-argument implementations. It does not test a restored native modulo
 path: that path is still disabled. It additionally evaluates the nested entry
 template on nine small input pairs, covering zero divisors, recursive calls,
-equal dividends/divisors, and oversized divisors.
+equal dividends/divisors, and oversized divisors. The same inputs check that
+substitution into the open entry body produces the tested template. Four
+additional source-only checks exercise substitution into the recursive body;
+their placeholder proof terms are not asserted to be well-typed.
 
 `#print axioms` reports only `propext` and `Quot.sound` for
 `Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, `Lean4Lean.VEnv.NatMulSpec.eval`,
@@ -351,6 +364,12 @@ translation, and evaluation bridges inherit `sorryAx` and the standard logical
 axioms. The literal-ordering specialization, closed-false-branch reduction,
 and modulo entry/recursion bridges additionally inherit the existing
 persistent-map/array interface axioms. No new assumptions were added for them.
+`NatModSpec.ofEntry`, both modulo free-variable substitution lemmas, and
+`natModEntryBody.instantiate_literals` use only `propext`;
+`natModLoopBody.instantiate_literals` additionally uses `Classical.choice` and
+`Quot.sound`, without `sorryAx`. Both `.at_literals` bridges inherit `sorryAx`
+from the structural-translation API; both `.spec` bridges additionally inherit
+the existing map/array interface axioms. No new axiom or admitted proof was added.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,

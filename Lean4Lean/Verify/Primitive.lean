@@ -516,6 +516,22 @@ theorem NatModSpec.eval (h : NatModSpec env f go le) (a y : Nat) :
       · have hlt : a + 1 < y := Nat.lt_of_not_ge hle
         simpa only [Nat.mod_eq_of_lt hlt] using h.stop a y (.inr hlt)
 
+/-- The successor entry equation is checked separately from the zero equation
+and the loop equation. -/
+structure NatModEntrySpec (env : VEnv) (f go le : VExpr) : Prop where
+  stop : ∀ a y, y = 0 ∨ a + 1 < y →
+    env.IsDefEq 0 [] (.app (.app f (.natLit (a + 1))) (.natLit y)) (.natLit (a + 1)) .nat
+  start : ∀ a y, 0 < y → y ≤ a + 1 →
+    ∃ py pa, env.HasType 0 [] py (natLeExpr le 1 y) ∧
+      env.HasType 0 [] pa (natLeExpr le (a + 2) (a + 2)) ∧
+      env.IsDefEq 0 [] (.app (.app f (.natLit (a + 1))) (.natLit y))
+        (natDivLoopExpr go y py (a + 2) (a + 1) pa) .nat
+
+theorem NatModSpec.ofEntry (h : NatModEntrySpec env f go le)
+    (hloop : NatModLoopSpec env go le)
+    (hzero : ∀ y, env.IsDefEq 0 [] (.app (.app f .natZero) (.natLit y)) .natZero .nat) :
+    NatModSpec env f go le := ⟨hloop, hzero, h.stop, h.start⟩
+
 end VEnv
 
 private theorem TrExprS.weakBV_closed (henv : env.Ordered)
@@ -3425,6 +3441,107 @@ theorem natDivEntryBody.spec {c : VContext} {proof : Expr} {r : Reflection}
       (by simpa only [hu, List.length_nil] using hpa),
       (by simpa only [hu, List.length_nil] using eq.trans hs)⟩
 
+/-- Modulo's nested entry conditional in the open context `[y, x]`. The inner
+dependent branches shift both data variables under their proof binder. -/
+def natModEntryBody : Expr :=
+  let sx := mkApp q(Nat.succ) (.bvar 1)
+  let p := mkApp2 q(@LE.le Nat _) q(Nat.succ Nat.zero) (.bvar 0)
+  let sx' := mkApp q(Nat.succ) (.bvar 2)
+  mkApp5 q(@_root_.ite.{1}) q(Nat)
+    (mkApp2 q(@LE.le Nat _) (.bvar 0) sx) (mkApp2 q(Nat.decLe) (.bvar 0) sx)
+    (mkApp4 q(@dite Nat) p (mkApp2 q(Nat.decLe) q(Nat.succ Nat.zero) (.bvar 0))
+      (.lam0 p (mkApp5 q(Nat.modCore.go) (.bvar 1) (.bvar 0)
+        (mkApp q(Nat.succ) sx') sx' (mkApp q(Nat.lt_succ_self) sx')))
+      (.lam0 (mkApp q(Not) p) sx')) sx
+
+theorem natModEntryBody.instantiate_literals (a y : Nat) :
+    (natModEntryBody.instantiate1' (.lit (.natVal a)) 1).instantiate1' (.lit (.natVal y)) =
+      natModEntryAt q(@LE.le Nat _) q(Nat.decLe) q(Nat.modCore.go)
+        (.lit (.natVal a)) (.lit (.natVal y))
+        (mkApp q(Nat.lt_succ_self) (mkApp q(Nat.succ) (.lit (.natVal a)))) := by
+  simp only [natModEntryBody, natModEntryAt,
+    Expr.lam0, Expr.instantiate1', Expr.liftLooseBVars',
+    Nat.reduceAdd, Nat.reduceSub, Nat.reduceLT, Nat.reduceEqDiff, if_true, if_false]
+  rfl
+
+theorem natModEntryBody.instantiate_fvars (x y : FVarId) :
+    (natModEntryBody.instantiate1' (.fvar x) 1).instantiate1' (.fvar y) =
+      Condition.natLE.ite q(Nat) #[.fvar y, mkApp q(Nat.succ) (.fvar x)]
+        (Condition.natLE.dite #[q(Nat.succ Nat.zero), .fvar y]
+          (mkApp5 q(Nat.modCore.go) (.fvar y) (.bvar 0)
+            (mkApp q(Nat.succ) (mkApp q(Nat.succ) (.fvar x)))
+            (mkApp q(Nat.succ) (.fvar x))
+            (mkApp q(Nat.lt_succ_self) (mkApp q(Nat.succ) (.fvar x))))
+          (mkApp q(Nat.succ) (.fvar x))) (mkApp q(Nat.succ) (.fvar x)) := by
+  simp only [natModEntryBody, Condition.ite, Condition.dite, Condition.natLE, mkAppN,
+    Expr.lam0, Expr.instantiate1', Expr.liftLooseBVars',
+    Nat.reduceAdd, Nat.reduceSub, Nat.reduceLT, Nat.reduceEqDiff, if_true, if_false]
+  rfl
+
+/-- Instantiate the successor entry equation and its structural translation. -/
+theorem natModEntryBody.at_literals {env : VEnv} (henv : env.Ordered)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat) (hfc : f.ClosedN)
+    (tout : TrExprS env Us [(none, .vlam .nat), (none, .vlam .nat)] natModEntryBody out)
+    (heq : env.IsDefEq Us.length [.nat, .nat]
+      (.app (.app f (.app .natSucc (.bvar 1))) (.bvar 0)) out .nat) (a y : Nat) :
+    TrExprS env Us []
+      (natModEntryAt q(@LE.le Nat _) q(Nat.decLe) q(Nat.modCore.go)
+        (.lit (.natVal a)) (.lit (.natVal y))
+        (mkApp q(Nat.lt_succ_self) (mkApp q(Nat.succ) (.lit (.natVal a)))))
+      ((out.inst (.natLit a) 1).inst (.natLit y)) ∧
+    env.IsDefEq Us.length [] (.app (.app f (.natLit (a + 1))) (.natLit y))
+      ((out.inst (.natLit a) 1).inst (.natLit y)) .nat := by
+  have ta := TrExprS.natLit (Us := Us) (Δ := []) hp hn a
+  have ty := TrExprS.natLit (Us := Us) (Δ := []) hp hn y
+  have tout₁ := ta.1.instN henv ta.2 (.succ .zero) tout
+  have heq₁ := heq.instN henv ta.2 (.succ .zero)
+  simp only [VExpr.nat] at tout₁
+  have tout₂ := tout₁.inst henv ty.2 ty.1
+  have heq₂ := heq₁.instN henv ty.2 .zero
+  refine ⟨?_, ?_⟩
+  · simpa only [instantiate_literals] using tout₂
+  · simpa only [VExpr.inst, hfc.instN_eq (Nat.zero_le _), VExpr.instVar_succ,
+      VExpr.instVar_zero, VExpr.instVar_lower, VExpr.nat, VExpr.natSucc,
+      VExpr.natLit, VExpr.natZero,
+      (ta.2.closedN henv trivial).instN_eq (Nat.zero_le _),
+      (ta.2.closedN henv trivial).liftN_eq (Nat.zero_le _)] using heq₂
+
+/-- The open successor equation supplies both modulo entry contracts. The zero
+equation and recursive equation remain separate checking obligations. -/
+theorem natModEntryBody.spec {c : VContext} {proof : Expr} {r : Reflection}
+    (hc : c.vlctx = []) (hu : c.lparams = []) (hdc : r.toDec.Closed)
+    (h : Condition.ReflectedNatNatChecked c q(@LE.le Nat _) q(Nat.decLe)
+      q(Nat.ble) proof r le)
+    (hi : Reflection.ITEChecked c r)
+    (tp : c.TrExprS q(@LE.le Nat _) le) (hn : c.venv.contains ``Nat)
+    (tg : c.TrExprS q(Nat.modCore.go) go) (hg : c.HasType go (VEnv.natDivLoopType le))
+    (hf : c.venv.HasType c.lparams.length [] f (.forallE .nat (.forallE .nat .nat)))
+    (tout : TrExprS c.venv c.lparams [(none, .vlam .nat), (none, .vlam .nat)]
+      natModEntryBody out)
+    (heq : c.venv.IsDefEq c.lparams.length [.nat, .nat]
+      (.app (.app f (.app .natSucc (.bvar 1))) (.bvar 0)) out .nat) :
+    VEnv.NatModEntrySpec c.venv f go le := by
+  have hfc := hf.closedN c.Ewf.ordered trivial
+  have tlit (n : Nat) : c.TrExprS (.lit (.natVal n)) (.natLit n) := by
+    simpa only [VContext.TrExprS, hc] using
+      (TrExprS.natLit (Us := c.lparams) (Δ := []) c.hasPrimitives hn n).1
+  constructor
+  · intro a y hy
+    obtain ⟨tr, eq⟩ := at_literals c.Ewf.ordered c.hasPrimitives hn hfc tout heq a y
+    rw [← hc] at tr
+    have hz := h.natMod_entry_stop hi hc hu hdc tp hn (tlit a) (tlit y) hy tr
+    simpa only [hu, List.length_nil] using eq.trans hz
+  · intro a y hy hle
+    obtain ⟨tr, eq⟩ := at_literals c.Ewf.ordered c.hasPrimitives hn hfc tout heq a y
+    rw [← hc] at tr
+    have hbound : (mkApp q(Nat.lt_succ_self) (mkApp q(Nat.succ) (.lit (.natVal a)))).Closed := by
+      simp [Closed]
+    obtain ⟨py, pa, _, hpy, hpa, hs⟩ :=
+      h.natMod_entry_start hi hc hu hdc tp hn hg tg (tlit a) (tlit y) hbound hy hle tr
+    exact ⟨py, pa, (by simpa only [hu, List.length_nil] using hpy),
+      (by simpa only [hu, List.length_nil] using hpa),
+      (by simpa only [hu, List.length_nil] using eq.trans hs)⟩
+
 /-- Extract the open entry equation from the two fresh-local checks. -/
 theorem checkNatDivEntry.WF {c : VContext} (hc : c.vlctx = [])
     (hn : c.venv.contains ``Nat)
@@ -3559,25 +3676,67 @@ theorem natDivLoopBody.instantiate_literals (a y fuel : Nat)
     Nat.reduceEqDiff, if_true, if_false]
   rfl
 
+/-- Modulo's recursive conditional in the same five-local context as division. -/
+def natModLoopBody : Expr :=
+  let p := mkApp2 q(@LE.le Nat _) (.bvar 3) (.bvar 4)
+  mkApp4 q(@dite Nat) p (mkApp2 q(Nat.decLe) (.bvar 3) (.bvar 4))
+    (.lam0 p (mkApp5 q(Nat.modCore.go) (.bvar 4) (.bvar 3) (.bvar 2)
+      (mkApp2 q(Nat.sub) (.bvar 5) (.bvar 4))
+      (mkApp6 q(@Nat.div_rec_fuel_lemma) (.bvar 5) (.bvar 4) (.bvar 2)
+        (.bvar 3) (.bvar 0) (.bvar 1))))
+    (.lam0 (mkApp q(Not) p) (.bvar 5))
+
+theorem natModLoopBody.instantiate_fvars (x y hy fuel h : FVarId) :
+    ((((natModLoopBody.instantiate1' (.fvar x) 4).instantiate1' (.fvar y) 3).instantiate1'
+      (.fvar hy) 2).instantiate1' (.fvar fuel) 1).instantiate1' (.fvar h) =
+      Condition.natLE.dite #[.fvar y, .fvar x]
+        (mkApp5 q(Nat.modCore.go) (.fvar y) (.fvar hy) (.fvar fuel)
+          (mkApp2 q(Nat.sub) (.fvar x) (.fvar y))
+          (mkApp6 q(@Nat.div_rec_fuel_lemma) (.fvar x) (.fvar y) (.fvar fuel)
+            (.fvar hy) (.bvar 0) (.fvar h))) (.fvar x) := by
+  simp only [natModLoopBody, Condition.dite, Condition.natLE, mkAppN,
+    Expr.lam0, Expr.instantiate1', Expr.liftLooseBVars',
+    Nat.reduceAdd, Nat.reduceSub, Nat.reduceLT, Nat.reduceEqDiff, if_true, if_false]
+  rfl
+
+theorem natModLoopBody.instantiate_literals (a y fuel : Nat)
+    (hpy : epy.Closed) (hpa : epa.Closed) :
+    ((((natModLoopBody.instantiate1' (.lit (.natVal a)) 4).instantiate1'
+      (.lit (.natVal y)) 3).instantiate1' epy 2).instantiate1'
+      (.lit (.natVal fuel)) 1).instantiate1' epa =
+      Condition.natLE.dite #[.lit (.natVal y), .lit (.natVal a)]
+        (mkApp5 q(Nat.modCore.go) (.lit (.natVal y)) epy
+          (.lit (.natVal fuel)) (mkApp2 q(Nat.sub) (.lit (.natVal a)) (.lit (.natVal y)))
+          (mkApp6 q(@Nat.div_rec_fuel_lemma) (.lit (.natVal a)) (.lit (.natVal y))
+            (.lit (.natVal fuel)) epy (.bvar 0) epa)) (.lit (.natVal a)) := by
+  have hinst (e : Expr) (he : e.Closed) (v : Expr) (k : Nat) :
+      e.instantiate1' v k = e :=
+    Expr.instantiate1'_eq_self (Nat.le_trans he.looseBVarRange_le (Nat.zero_le _))
+  have hlift (e : Expr) (he : e.Closed) (k : Nat) : e.liftLooseBVars' 0 k = e :=
+    Expr.liftLooseBVars_eq_self he.looseBVarRange_le
+  simp only [natModLoopBody, Condition.dite, Condition.natLE, mkAppN,
+    Expr.lam0, Expr.instantiate1', hinst _ hpy, hlift _ hpy, hlift _ hpa,
+    Expr.liftLooseBVars', Nat.reduceAdd, Nat.reduceSub, Nat.reduceLT,
+    Nat.reduceEqDiff, if_true, if_false]
+  rfl
+
 /-- Instantiate the recursive equation and its translation using source proofs
 of positivity and the fuel bound. -/
-theorem natDivLoopBody.at_literals {env : VEnv} (henv : env.Ordered)
+private theorem natLoopBody_at_literals {env : VEnv} {body : Expr} (henv : env.Ordered)
     (hp : env.HasPrimitives) (hn : env.contains ``Nat)
     (hlc : le.ClosedN) (hgc : go.ClosedN)
     (tpy : TrExprS env Us [] epy py)
     (hpy : env.HasType Us.length [] py (VEnv.natLeExpr le 1 y))
     (tpa : TrExprS env Us [] epa pa)
     (hpa : env.HasType Us.length [] pa (VEnv.natLeExpr le (a + 1) (fuel + 1)))
-    (tout : TrExprS env Us (natDivLoopContext le) natDivLoopBody out)
+    (tout : TrExprS env Us (natDivLoopContext le) body out)
     (heq : env.IsDefEq Us.length (natDivLoopContext le).toCtx
       (.app (.app (.app (.app (.app go (.bvar 3)) (.bvar 2))
         (.app .natSucc (.bvar 1))) (.bvar 4)) (.bvar 0)) out .nat) :
     TrExprS env Us []
-      (Condition.natLE.dite #[.lit (.natVal y), .lit (.natVal a)]
-        (mkApp q(Nat.succ) (mkApp5 q(Nat.div.go) (.lit (.natVal y)) epy
-          (.lit (.natVal fuel)) (mkApp2 q(Nat.sub) (.lit (.natVal a)) (.lit (.natVal y)))
-          (mkApp6 q(@Nat.div_rec_fuel_lemma) (.lit (.natVal a)) (.lit (.natVal y))
-            (.lit (.natVal fuel)) epy (.bvar 0) epa))) q(Nat.zero))
+      (((((body.instantiate1' (.lit (.natVal a)) 4).instantiate1'
+        (.lit (.natVal y)) 3).instantiate1' epy 2).instantiate1'
+        (.lit (.natVal fuel)) 1).instantiate1' epa)
       (((((out.inst (.natLit a) 4).inst (.natLit y) 3).inst py 2).inst
         (.natLit fuel) 1).inst pa) ∧
     env.IsDefEq Us.length [] (VEnv.natDivLoopExpr go y py (fuel + 1) a pa)
@@ -3614,7 +3773,7 @@ theorem natDivLoopBody.at_literals {env : VEnv} (henv : env.Ordered)
   have tq := tq.inst henv hpa tpa
   have eq := eq.instN henv hpa .zero
   refine ⟨?_, ?_⟩
-  · simpa only [instantiate_literals _ _ _ tpy.closed tpa.closed] using tq
+  · exact tq
   · simpa only [VEnv.natDivLoopExpr, VExpr.inst, hgc.instN_eq (Nat.zero_le _),
       hac.instN_eq (Nat.zero_le _), hyc.instN_eq (Nat.zero_le _),
       hyc.liftN_eq (Nat.zero_le _), hfc.liftN_eq (Nat.zero_le _),
@@ -3623,6 +3782,31 @@ theorem natDivLoopBody.at_literals {env : VEnv} (henv : env.Ordered)
       VExpr.instVar_succ, VExpr.instVar_zero, VExpr.instVar_lower, VExpr.instVar_upper,
       VExpr.nat, VExpr.natLit, VExpr.natSucc, VExpr.natZero,
       VExpr.liftN, VExpr.lift, liftVar_base] using eq
+
+theorem natDivLoopBody.at_literals {env : VEnv} (henv : env.Ordered)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat)
+    (hlc : le.ClosedN) (hgc : go.ClosedN)
+    (tpy : TrExprS env Us [] epy py)
+    (hpy : env.HasType Us.length [] py (VEnv.natLeExpr le 1 y))
+    (tpa : TrExprS env Us [] epa pa)
+    (hpa : env.HasType Us.length [] pa (VEnv.natLeExpr le (a + 1) (fuel + 1)))
+    (tout : TrExprS env Us (natDivLoopContext le) natDivLoopBody out)
+    (heq : env.IsDefEq Us.length (natDivLoopContext le).toCtx
+      (.app (.app (.app (.app (.app go (.bvar 3)) (.bvar 2))
+        (.app .natSucc (.bvar 1))) (.bvar 4)) (.bvar 0)) out .nat) :
+    TrExprS env Us []
+      (Condition.natLE.dite #[.lit (.natVal y), .lit (.natVal a)]
+        (mkApp q(Nat.succ) (mkApp5 q(Nat.div.go) (.lit (.natVal y)) epy
+          (.lit (.natVal fuel)) (mkApp2 q(Nat.sub) (.lit (.natVal a)) (.lit (.natVal y)))
+          (mkApp6 q(@Nat.div_rec_fuel_lemma) (.lit (.natVal a)) (.lit (.natVal y))
+            (.lit (.natVal fuel)) epy (.bvar 0) epa))) q(Nat.zero))
+      (((((out.inst (.natLit a) 4).inst (.natLit y) 3).inst py 2).inst
+        (.natLit fuel) 1).inst pa) ∧
+    env.IsDefEq Us.length [] (VEnv.natDivLoopExpr go y py (fuel + 1) a pa)
+      (((((out.inst (.natLit a) 4).inst (.natLit y) 3).inst py 2).inst
+        (.natLit fuel) 1).inst pa) .nat := by
+  obtain ⟨tq, eq⟩ := natLoopBody_at_literals henv hp hn hlc hgc tpy hpy tpa hpa tout heq
+  exact ⟨by simpa only [instantiate_literals _ _ _ tpy.closed tpa.closed] using tq, eq⟩
 
 /-- The checked open recursive equation implies the loop contract for arbitrary
 abstract proof arguments. Reflection supplies source witnesses for substitution;
@@ -3692,6 +3876,104 @@ theorem natDivLoopBody.spec {c : VContext} {proof : Expr} {r : Reflection}
     rw [← hu, ← hc] at tr
     have hz := h.natBle_dite_zero_inputs hc hu hdc tp hn y a (tlit y) (tlit a)
       (c.hasPrimitives.natLit_type hn y) (c.hasPrimitives.natLit_type hn a) hay tr
+    simp only [hu, List.length_nil] at hz
+    have eqIn := VEnv.natDivLoopExpr.proofIrrel c.Ewf.ordered c.hasPrimitives hn
+      hle₀ hg₀ hpy hpy' hpa hpa'
+    exact eqIn.trans (eq.trans hz)
+
+theorem natModLoopBody.at_literals {env : VEnv} (henv : env.Ordered)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat)
+    (hlc : le.ClosedN) (hgc : go.ClosedN)
+    (tpy : TrExprS env Us [] epy py)
+    (hpy : env.HasType Us.length [] py (VEnv.natLeExpr le 1 y))
+    (tpa : TrExprS env Us [] epa pa)
+    (hpa : env.HasType Us.length [] pa (VEnv.natLeExpr le (a + 1) (fuel + 1)))
+    (tout : TrExprS env Us (natDivLoopContext le) natModLoopBody out)
+    (heq : env.IsDefEq Us.length (natDivLoopContext le).toCtx
+      (.app (.app (.app (.app (.app go (.bvar 3)) (.bvar 2))
+        (.app .natSucc (.bvar 1))) (.bvar 4)) (.bvar 0)) out .nat) :
+    TrExprS env Us []
+      (Condition.natLE.dite #[.lit (.natVal y), .lit (.natVal a)]
+        (mkApp5 q(Nat.modCore.go) (.lit (.natVal y)) epy
+          (.lit (.natVal fuel)) (mkApp2 q(Nat.sub) (.lit (.natVal a)) (.lit (.natVal y)))
+          (mkApp6 q(@Nat.div_rec_fuel_lemma) (.lit (.natVal a)) (.lit (.natVal y))
+            (.lit (.natVal fuel)) epy (.bvar 0) epa)) (.lit (.natVal a)))
+      (((((out.inst (.natLit a) 4).inst (.natLit y) 3).inst py 2).inst
+        (.natLit fuel) 1).inst pa) ∧
+    env.IsDefEq Us.length [] (VEnv.natDivLoopExpr go y py (fuel + 1) a pa)
+      (((((out.inst (.natLit a) 4).inst (.natLit y) 3).inst py 2).inst
+        (.natLit fuel) 1).inst pa) .nat := by
+  obtain ⟨tq, eq⟩ := natLoopBody_at_literals henv hp hn hlc hgc tpy hpy tpa hpa tout heq
+  exact ⟨by simpa only [instantiate_literals _ _ _ tpy.closed tpa.closed] using tq, eq⟩
+
+/-- The checked open recursive equation implies the loop contract for arbitrary
+abstract proof arguments. Reflection supplies source witnesses for substitution;
+proof irrelevance then removes the dependence on their particular translations. -/
+theorem natModLoopBody.spec {c : VContext} {proof : Expr} {r : Reflection}
+    (hc : c.vlctx = []) (hu : c.lparams = []) (hdc : r.toDec.Closed)
+    (h : Condition.ReflectedNatNatChecked c q(@LE.le Nat _) q(Nat.decLe)
+      q(Nat.ble) proof r le)
+    (tp : c.TrExprS q(@LE.le Nat _) le) (hn : c.venv.contains ``Nat)
+    (hsub : c.venv.contains ``Nat.sub)
+    (tg : c.TrExprS q(Nat.modCore.go) go) (hg : c.HasType go (VEnv.natDivLoopType le))
+    (tout : TrExprS c.venv c.lparams (natDivLoopContext le) natModLoopBody out)
+    (heq : c.venv.IsDefEq c.lparams.length (natDivLoopContext le).toCtx
+      (.app (.app (.app (.app (.app go (.bvar 3)) (.bvar 2))
+        (.app .natSucc (.bvar 1))) (.bvar 4)) (.bvar 0)) out .nat) :
+    VEnv.NatModLoopSpec c.venv go le := by
+  have hle₀ : c.venv.HasType 0 [] le (.forallE .nat (.forallE .nat (.sort .zero))) := by
+    simpa only [VContext.HasType, hc, hu, List.length_nil, VLCtx.toCtx] using h.1
+  have hg₀ : c.venv.HasType 0 [] go (VEnv.natDivLoopType le) := by
+    simpa only [VContext.HasType, hc, hu, List.length_nil, VLCtx.toCtx] using hg
+  have tout₀ := tout
+  have heq₀ := heq
+  simp only [hu, List.length_nil] at tout₀ heq₀
+  have tlit (n : Nat) : c.TrExprS (.lit (.natVal n)) (.natLit n) := by
+    simpa only [VContext.TrExprS, hc] using
+      (TrExprS.natLit (Us := c.lparams) (Δ := []) c.hasPrimitives hn n).1
+  have witnesses (y fuel a : Nat) (hy : 0 < y) (ha : a < fuel + 1) :
+      ∃ epy py epa pa, c.TrExprS epy py ∧
+        c.venv.HasType 0 [] py (VEnv.natLeExpr le 1 y) ∧ c.TrExprS epa pa ∧
+        c.venv.HasType 0 [] pa (VEnv.natLeExpr le (a + 1) (fuel + 1)) := by
+    obtain ⟨epy, py, tpy, hpy⟩ := h.natBle_witness hc hu hdc tp 1 y (tlit 1) (tlit y)
+      (c.hasPrimitives.natLit_type hn 1) (c.hasPrimitives.natLit_type hn y) hy
+    obtain ⟨epa, pa, tpa, hpa⟩ := h.natBle_witness hc hu hdc tp (a + 1) (fuel + 1)
+      (tlit (a + 1)) (tlit (fuel + 1)) (c.hasPrimitives.natLit_type hn (a + 1))
+      (c.hasPrimitives.natLit_type hn (fuel + 1)) (by omega)
+    exact ⟨epy, py, epa, pa, tpy, (by simpa only [hu, List.length_nil] using hpy),
+      tpa, (by simpa only [hu, List.length_nil] using hpa)⟩
+  constructor
+  · intro y fuel a py pa hy ha hya hpy hpa
+    obtain ⟨epy, py', epa, pa', tpy, hpy', tpa, hpa'⟩ := witnesses y fuel a hy ha
+    have tpy₀ := tpy
+    have tpa₀ := tpa
+    simp only [VContext.TrExprS, hc, hu] at tpy₀ tpa₀
+    obtain ⟨tr, eq⟩ := at_literals c.Ewf.ordered c.hasPrimitives hn
+      (hle₀.closedN c.Ewf.ordered trivial) (hg₀.closedN c.Ewf.ordered trivial)
+      tpy₀ hpy' tpa₀ hpa' tout₀ heq₀
+    rw [← hu, ← hc] at tr
+    have hpyc : c.HasType py' (VEnv.natLeExpr le 1 y) := by
+      simpa only [VContext.HasType, hc, hu, List.length_nil, VLCtx.toCtx] using hpy'
+    obtain ⟨pa'', hpa'', hstep⟩ := h.natMod_step hc hu hdc tp hn hsub hg tg
+      (tlit y) (tlit fuel) (tlit a) tpy hpyc hya tr
+    simp only [hu, List.length_nil] at hpa'' hstep
+    have eqIn := VEnv.natDivLoopExpr.proofIrrel c.Ewf.ordered c.hasPrimitives hn
+      hle₀ hg₀ hpy hpy' hpa hpa'
+    have eqOut := VEnv.natDivLoopExpr.proofIrrel c.Ewf.ordered c.hasPrimitives hn
+      hle₀ hg₀ hpy' hpy hpa'' hpa''
+    exact ⟨pa'', hpa'', (eqIn.trans (eq.trans hstep)).trans eqOut⟩
+  · intro y fuel a py pa hy ha hay hpy hpa
+    obtain ⟨epy, py', epa, pa', tpy, hpy', tpa, hpa'⟩ := witnesses y fuel a hy ha
+    have tpy₀ := tpy
+    have tpa₀ := tpa
+    simp only [VContext.TrExprS, hc, hu] at tpy₀ tpa₀
+    obtain ⟨tr, eq⟩ := at_literals c.Ewf.ordered c.hasPrimitives hn
+      (hle₀.closedN c.Ewf.ordered trivial) (hg₀.closedN c.Ewf.ordered trivial)
+      tpy₀ hpy' tpa₀ hpa' tout₀ heq₀
+    rw [← hu, ← hc] at tr
+    have hz := h.natBle_dite_false_inputs hc hu hdc tp y a (tlit y) (tlit a)
+      (c.hasPrimitives.natLit_type hn y) (c.hasPrimitives.natLit_type hn a)
+      (tlit a) (c.hasPrimitives.natLit_type hn a) hay tr
     simp only [hu, List.length_nil] at hz
     have eqIn := VEnv.natDivLoopExpr.proofIrrel c.Ewf.ordered c.hasPrimitives hn
       hle₀ hg₀ hpy hpy' hpa hpa'
