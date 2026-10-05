@@ -1,4 +1,4 @@
-import Lean4Lean.Primitive
+import Lean4Lean.Verify.Primitive
 
 -- Run with: lake env lean tests/Modulo.lean
 open Lean Lean4Lean
@@ -12,3 +12,14 @@ run_meta
   for value in [q(fun (_ _ : Nat) => Nat.zero), q(fun (a : Nat) (_ : Nat) => a)] do
     if ((Environment.checkPrimitiveDef { mod with value }).run env).isOk then
       throwError "accepted an incorrect Nat.mod implementation"
+
+  -- Exercise both nested entry conditions and the supplied recursion witness.
+  for (a, y) in [(0, 0), (0, 1), (1, 5), (5, 2), (5, 6), (5, 7),
+      (17, 3), (17, 18), (17, 19)] do
+    let sx := mkApp q(Nat.succ) (mkNatLit a)
+    let bound := mkApp q(Nat.lt_succ_self) sx
+    let e := Environment.natModEntryAt q(@LE.le Nat _) q(Nat.decLe) q(Nat.modCore.go)
+      (mkNatLit a) (mkNatLit y) bound
+    match (TypeChecker.isDefEq e (mkNatLit ((a + 1) % y))).run env with
+    | .ok true => pure ()
+    | _ => throwError "incorrect modulo entry result for dividend {a + 1}, divisor {y}"

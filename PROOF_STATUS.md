@@ -84,6 +84,25 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   conditional modes enabled, retaining the existing dependent-selector facts
   alongside `ITEChecked`. The dependent-only theorem's statement is unchanged.
   These are prerequisites for the unfinished modulo bridge, not a proof of it.
+- `Reflection.ite_carrier` recovers the carrier's `Type` bound from the
+  selector's structural translation and the actual `ite` application.
+  `ITEInstance` packages the typed selector and reflection input.
+  `Condition.ReflectedNatNatChecked.ite_apply` instantiates it at typed
+  natural-number arguments; `.ite_branches` recovers both branch types;
+  `.ite_translate` connects the declared conditional through its checked decision
+  function to the selector; and `.ite_eval` returns the selected branch.
+  `.natBle_ite_eval_inputs` specializes this to verified literal ordering.
+  The carrier's bound is derived rather than assumed from `HasPrimitives`.
+- `natMod_start`, `natMod_step`, and `natBle_dite_false_inputs` evaluate the
+  modulo-specific dependent branches, retaining positivity and fuel witnesses.
+  The positive entry helper shares the existing division proof through a private
+  generic loop helper; the published division-entry statement is unchanged.
+  `natMod_entry_start` and `natMod_entry_stop` evaluate the complete nested
+  `natModEntryAt` template for a positive in-range divisor, a zero divisor, or
+  an oversized divisor. These proofs start from supplied structural translations.
+  Extraction from modulo's fresh-local checks, assembly of its loop/entry
+  contracts, and the declaration-extension proof remain unfinished; native
+  modulo is still disabled.
 - `Reflection.checkNatDITETypes.WF` verifies the four initial type checks of the
   dependent conditional validator, including both witness converters. The
   `checkNatDITE_eq` theorem proves that regrouping this prefix reconstructs the
@@ -228,7 +247,7 @@ incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, right shifts at and beyond the input's bit length (including a shift count
 beyond machine-word sizes), both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 782 declarations across the primitive
+cases. The executable successfully replayed 839 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -254,7 +273,9 @@ and inputs and quotients beyond machine-word sizes. Moving the proposition check
 ahead of the condition validator was checked at an earlier checkpoint.
 The modulo regression accepts the reference validator and rejects constant-zero
 and first-argument implementations. It does not test a restored native modulo
-path: that path is still disabled.
+path: that path is still disabled. It additionally evaluates the nested entry
+template on nine small input pairs, covering zero divisors, recursive calls,
+equal dividends/divisors, and oversized divisors.
 
 `#print axioms` reports only `propext` and `Quot.sound` for
 `Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, `Lean4Lean.VEnv.NatMulSpec.eval`,
@@ -324,6 +345,12 @@ and `Quot.sound`, without `sorryAx`. `Reflection.iteBranch.eval`,
 stack's `sorryAx` and implementation-interface axioms. `Reflection.ite_witness`
 inherits `sorryAx` and the standard logical axioms, without additional
 implementation-interface axioms. No new axioms or admitted proofs were added.
+`Reflection.ITEInstance.eval` uses only `propext` and `Quot.sound`.
+`Reflection.ite_carrier` and the polymorphic instantiation, branch-type recovery,
+translation, and evaluation bridges inherit `sorryAx` and the standard logical
+axioms. The literal-ordering specialization, closed-false-branch reduction,
+and modulo entry/recursion bridges additionally inherit the existing
+persistent-map/array interface axioms. No new assumptions were added for them.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
