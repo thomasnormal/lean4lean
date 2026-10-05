@@ -105,6 +105,20 @@ nonrec theorem isDefEq.WF {c : VContext} {s : VState}
     M.WF c s (isDefEq e₁ e₂) fun b _ => b → c.IsDefEqU e₁' e₂' :=
   (isDefEq.WF he₁ he₂).run
 
+theorem withLocalDecl_isDefEq.WF {c : VContext} {s : VState}
+    (hty : c.TrExprS ty ty') (hty' : c.IsType ty')
+    (he₁ : TrExprS c.venv c.lparams ((none, .vlam ty') :: c.vlctx) e₁ e₁')
+    (he₂ : TrExprS c.venv c.lparams ((none, .vlam ty') :: c.vlctx) e₂ e₂') :
+    (withLocalDecl name bi ty fun x =>
+      isDefEq (e₁.instantiate1 x) (e₂.instantiate1 x)).WF c s fun b _ =>
+        b → c.venv.IsDefEqU c.lparams.length (ty' :: c.vlctx.toCtx) e₁' e₂' := by
+  rw [← c.withMLC_self]
+  refine M.WF.withLocalDecl hty hty' (.rfl (s := s)) fun id cwf' s' _ _ => ?_
+  have hΔ := cwf'.1.tr.wf
+  simpa only [Expr.instantiate1_eq] using
+    isDefEq.WF (c := c.withMLC (.vlam id name ty ty' bi c.mlctx))
+      (he₁.inst_fvar c.Ewf.ordered hΔ) (he₂.inst_fvar c.Ewf.ordered hΔ)
+
 nonrec theorem isProp.WF {c : VContext} {s : VState}
     (he : c.TrExprS e e') : (isProp e).WF c s fun b _ => b → c.HasType e' (.sort .zero) :=
   (isProp.WF he).run

@@ -55,6 +55,13 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   division remains disabled. `Reflection.check.WF` verifies the reflection-family
   type check; an `M.WF.withLocalDecl` wrapper exposes the existing local-context
   rule for the remaining conditional checks.
+- `Reflection.checkNatDITETypes.WF` verifies the four initial type checks of the
+  dependent conditional validator, including both witness converters. The
+  `checkNatDITE_eq` theorem proves that regrouping this prefix reconstructs the
+  unchanged executable. The two computation equations under local binders are
+  still unproved; correctly typed witness converters alone do not establish
+  correct branch selection. `withLocalDecl_isDefEq.WF` provides equation
+  extraction through a fresh local binder for that next step.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -92,6 +99,7 @@ lake clean lean4lean
 lake build Lean4Lean.Theory Lean4Lean.Verify lean4lean
 lake env lean tests/Environment.lean
 lake env lean tests/Primitive.lean
+lake env lean tests/Reflection.lean
 lake env lean --run tests/Levels.lean
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Primitive
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Environment
@@ -104,12 +112,18 @@ subtraction truncation at zero, equal and unequal large literals, rejection of
 incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 482 declarations across the primitive
+cases. The executable successfully replayed 504 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
 This is module replay against imported dependencies, not a
 verified replay of the entire dependency closure.
+
+The reflection regressions accept both supported reflection encodings and reject
+swapped proof converters. They also check selectors that ignore their Boolean
+argument: their type-checking prefixes succeed, while their computation checks
+fail. These are runtime checks against the imported prelude, not a proof of its
+environment translation.
 
 `#print axioms` reports only `propext` and `Quot.sound` for
 `Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, `Lean4Lean.VEnv.NatMulSpec.eval`,
@@ -121,6 +135,11 @@ verified replay of the entire dependency closure.
 `propext`, `Classical.choice`, and `Quot.sound`, without `sorryAx`. The new
 reflection-check and local-context lemmas inherit the existing verification
 stack's axioms, including `sorryAx`.
+The witness-application lemmas `Reflection.ofTrueType.apply` and
+`Reflection.ofFalseType.apply` use only `propext`; `Reflection.checkNatDITE_eq`
+uses `propext`, `Classical.choice`, and `Quot.sound`. The new type-checking-prefix
+and fresh-local equation-extraction proofs inherit `sorryAx` and the existing
+implementation-interface axioms.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
