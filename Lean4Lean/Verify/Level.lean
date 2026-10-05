@@ -582,6 +582,10 @@ theorem normalizeIMax_eval (u v : Level) :
   unfold normalizeIMax
   split <;> rename_i h
   · have := LawfulBEq.eq_of_beq h
+    subst v
+    simp [evalLevel, Nat.imax]
+  split <;> rename_i h
+  · have := LawfulBEq.eq_of_beq h
     subst u
     simp [evalLevel, Nat.imax]
   split <;> rename_i h
@@ -595,14 +599,134 @@ theorem normalizeIMax_eval (u v : Level) :
   · have := LawfulBEq.eq_of_beq h
     subst v
     by_cases hz : evalLevel s u = 0 <;> simp [evalLevel, Nat.imax, hz]
-  split <;> rename_i h
-  · have hn := evalLevel_isNeverZero (s := s) h
-    simp [evalLevel, Nat.imax, hn]
   · rfl
+
+theorem evalLevel_addOffset (u : Level) (k : Nat) :
+    evalLevel s (u.addOffset k) = evalLevel s u + k := by
+  change evalLevel s (addOffsetAux k u) = _
+  induction k generalizing u with
+  | zero => rfl
+  | succ k ih => simp [addOffsetAux, ih, evalLevel, Nat.add_right_comm, Nat.add_assoc]
+
+namespace NormalizeCore
+
+private def evalMax (s : Name → Nat) : List Level → Nat
+  | [] => 0
+  | u :: us => Nat.max (evalLevel s u) (evalMax s us)
+
+private theorem evalMax_le : evalMax s us ≤ n ↔ ∀ u ∈ us, evalLevel s u ≤ n := by
+  induction us with
+  | nil => simp [evalMax]
+  | cons u us ih => simp [evalMax, Nat.max_le, ih]
+
+private theorem evalMax_append (us vs : List Level) :
+    evalMax s (us ++ vs) = Nat.max (evalMax s us) (evalMax s vs) := by
+  induction us with
+  | nil => simp [evalMax]
+  | cons u us ih => simp [evalMax, ih, Nat.max_assoc]
+
+private theorem evalMax_maxArgs (u : Level) : evalMax s (maxArgs u) = evalLevel s u := by
+  induction u <;> simp [maxArgs, evalMax, evalMax_append, evalLevel, *]
+
+theorem accMax_eval (result u : Level) :
+    evalLevel s (accMax result u) = Nat.max (evalLevel s result) (evalLevel s u) := by
+  cases result <;> simp [accMax, evalLevel]
+
+private theorem mergeMax_eval (us : List Level) (prev result : Level) :
+    evalLevel s (mergeMax us prev result) =
+      Nat.max (evalLevel s result) (Nat.max (evalLevel s prev) (evalMax s us)) := by
+  induction us generalizing prev result with
+  | nil => simp [mergeMax, accMax_eval, evalMax]
+  | cons u us ih =>
+    simp only [mergeMax]
+    split
+    · rename_i hbase
+      have hbase' := LawfulBEq.eq_of_beq hbase
+      have hp := evalLevel_getLevelOffset_add (s := s) prev
+      have hu := evalLevel_getLevelOffset_add (s := s) u
+      rw [hbase'] at hu
+      split <;> rw [ih] <;> simp only [evalMax, Nat.max_eq_max] <;> omega
+    · rw [ih, accMax_eval]
+      simp only [evalMax, Nat.max_assoc]
+
+private theorem subsumed_witness (hu : subsumed us u) :
+    ∃ v ∈ us, subsumed us v = false ∧ evalLevel s u ≤ evalLevel s v := by
+  simp only [subsumed, Bool.and_eq_true, List.any_eq_true, Bool.not_eq_true',
+    decide_eq_true_eq] at hu
+  obtain ⟨hz, v, hv, hnz, hle⟩ := hu
+  have hzero : u.getLevelOffset = .zero := by
+    cases h : u.getLevelOffset <;> simp_all [Level.isZero]
+  refine ⟨v, hv, by simp [subsumed, hnz], ?_⟩
+  have he := evalLevel_getLevelOffset_add (s := s) u
+  rw [hzero] at he
+  have hv' := evalLevel_getLevelOffset_add (s := s) v
+  simp only [evalLevel, Nat.zero_add] at he
+  omega
+
+private theorem evalMax_filter (us : List Level) :
+    evalMax s (us.filter fun u => !subsumed us u) = evalMax s us := by
+  apply Nat.le_antisymm
+  · apply evalMax_le.2
+    intro u hu
+    exact evalMax_le.1 (Nat.le_refl _) u (List.mem_filter.1 hu).1
+  · apply evalMax_le.2
+    intro u hu
+    cases h : subsumed us u
+    · apply evalMax_le.1 (Nat.le_refl _)
+      exact List.mem_filter.2 ⟨hu, by simp [h]⟩
+    · obtain ⟨v, hv, hn, hle⟩ := subsumed_witness (s := s) h
+      apply Nat.le_trans hle
+      apply evalMax_le.1 (Nat.le_refl _)
+      exact List.mem_filter.2 ⟨hv, by simp [hn]⟩
+
+private theorem evalMax_sort (us : List Level) :
+    evalMax s (us.mergeSort normLt) = evalMax s us := by
+  apply Normalize.ext_le
+  intro n
+  simp only [evalMax_le, List.mem_mergeSort]
+
+theorem max_eval (u v : Level) :
+    evalLevel s (max u v) = Nat.max (evalLevel s u) (evalLevel s v) := by
+  have h := evalMax_sort (s := s) ((maxArgs u ++ maxArgs v).filter
+    fun w => !subsumed (maxArgs u ++ maxArgs v) w)
+  rw [evalMax_filter, evalMax_append, evalMax_maxArgs, evalMax_maxArgs] at h
+  unfold max
+  dsimp only
+  split <;> rename_i he
+  · simpa only [he, evalMax, evalLevel] using h
+  · simpa only [he, mergeMax_eval, evalMax, evalLevel, Nat.zero_max] using h
+
+theorem addOffset_eval (u : Level) (k : Nat) :
+    evalLevel s (addOffset u k) = evalLevel s u + k := by
+  induction u <;> simp [addOffset, evalLevel_addOffset, evalLevel, *, Nat.add_max_add_right]
+
+theorem normalize_eval (u : Level) (k : Nat) :
+    evalLevel s (normalize u k) = evalLevel s u + k := by
+  induction u generalizing k with
+  | succ u ih => simp [normalize, ih, evalLevel, Nat.add_assoc, Nat.add_comm 1]
+  | max u v ihu ihv =>
+    simp [normalize, max_eval, addOffset_eval, ihu, ihv, evalLevel, Nat.add_max_add_right]
+  | imax u v ihu ihv =>
+    simp only [normalize]
+    split
+    · rename_i h
+      simp [max_eval, evalLevel_addOffset, ihu, ihv, evalLevel, Nat.imax,
+        evalLevel_isNeverZero (s := s) h]
+    · simp [evalLevel_addOffset, normalizeIMax_eval, evalLevel, ihu, ihv]
+  | zero | param | mvar => simp [normalize, evalLevel_addOffset]
+
+end NormalizeCore
 
 theorem normalizeCore_eval (u : Level) :
     evalLevel s (normalizeCore u) = evalLevel s u := by
-  induction u <;> simp [normalizeCore, evalLevel, normalizeIMax_eval, *]
+  simpa [normalizeCore] using NormalizeCore.normalize_eval (s := s) u 0
+
+open private geq.go from Lean.Level in
+theorem geqCore_eq_go (u v : Level) : geqCore u v = geq.go u v := by
+  induction u, v using geqCore.induct with
+  | case1 u v ih =>
+    rw [geqCore.eq_def, geq.go.eq_def]
+    cases u <;> cases v <;> simp_all only
 
 theorem geqCore_sound (u v : Level) (h : geqCore u v) :
     evalLevel s v ≤ evalLevel s u := by
@@ -702,9 +826,14 @@ theorem geq'_wf (h : geq' u v)
 
 theorem isEquiv'_wf (h : isEquiv' u v)
     (hu : VLevel.ofLevel ls u = some u') (hv : VLevel.ofLevel ls v = some v') : u' ≈ v' := by
-  rw [VLevel.le_antisymm_iff]
-  simp only [isEquiv', Bool.and_eq_true] at h
-  exact ⟨geq'_wf h.2 hv hu, geq'_wf h.1 hu hv⟩
+  rw [VLevel.equiv_def]
+  intro ρ
+  rw [← evalLevel_ofLevel hu, ← evalLevel_ofLevel hv]
+  simp only [isEquiv', Bool.or_eq_true, beq_iff_eq] at h
+  obtain h | h := h
+  · rw [h]
+  · rw [← normalizeCore_eval (s := Normalize.evalParam ls ρ) u,
+      ← normalizeCore_eval (s := Normalize.evalParam ls ρ) v, h]
 
 theorem isEquivList_wf (H : Level.isEquivList us vs) :
     List.mapM (VLevel.ofLevel Us) us = some us' →
