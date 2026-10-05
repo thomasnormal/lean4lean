@@ -48,6 +48,12 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   generalizing the input value and using typed multiplication reflection for the
   doubling step. Its primitive-check and environment-extension proofs are
   connected, and native left-shift reduction is restored.
+- `NatShiftRightSpec.eval` derives right shift by induction on the shift count,
+  using typed division reflection for division by two. Its primitive-check and
+  environment-extension proofs are connected, and native right-shift reduction
+  is restored. Both shift validators are unchanged. The native dispatch proof
+  uses explicit Boolean-equality simplification and splits only the current
+  test, avoiding repeated simplification of the growing remaining dispatch chain.
 - `NatDivLoopSpec.eval` and `NatDivSpec.eval` establish division evaluation from
   explicit loop and entry equations, retaining the typed positivity and fuel
   witnesses. The full validator and declaration-extension proofs now supply
@@ -163,8 +169,8 @@ Main review entry points: `Lean4Lean/Verify/Environment.lean`,
   inductives. Arithmetic results are conditional on an appropriate starting
   environment translation; runtime tests against the imported prelude do not
   construct that translation.
-- Native binary reductions other than addition, multiplication, exponentiation,
-  subtraction, equality, ordering, left shift, and division remain disabled.
+- Native `Nat.gcd`, `Nat.mod`, `Nat.land`, `Nat.lor`, and `Nat.xor` reductions
+  remain disabled.
   Restoring them with their primitive-extension proofs is unfinished work, not
   an optional optimization that can be dropped from the objective.
 - The unrestricted `addDecl.WF` and the existing inductive/injectivity/
@@ -198,9 +204,10 @@ The tests cover acceptance/rejection from an empty environment, rejection of
 incorrect arithmetic implementations, large literal arithmetic with low fuel,
 subtraction truncation at zero, equal and unequal large literals, rejection of
 incorrect equality and ordering implementations, left shifts beyond machine-word
-sizes, both sides of the native exponent-limit boundary, and
+sizes, right shifts at and beyond the input's bit length (including a shift count
+beyond machine-word sizes), both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 701 declarations across the primitive
+cases. The executable successfully replayed 716 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -225,7 +232,8 @@ ahead of the condition validator was checked at an earlier checkpoint.
 `Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, `Lean4Lean.VEnv.NatMulSpec.eval`,
 `Lean4Lean.VEnv.NatPowSpec.eval`, `Lean4Lean.VEnv.NatPredSpec.eval`, and
 `Lean4Lean.VEnv.NatSubSpec.eval`, as well as `Lean4Lean.VEnv.NatBeqSpec.eval` and
-`Lean4Lean.VEnv.NatBleSpec.eval` and `Lean4Lean.VEnv.NatShiftLeftSpec.eval`. The shared
+`Lean4Lean.VEnv.NatBleSpec.eval`, `Lean4Lean.VEnv.NatShiftLeftSpec.eval`, and
+`Lean4Lean.VEnv.NatShiftRightSpec.eval`. The shared
 `Lean4Lean.VEnv.HasPrimitives.extendPrimitive` lemma has the same axiom set.
 `Lean4Lean.VEnv.NatDivLoopSpec.eval` and `Lean4Lean.VEnv.NatDivSpec.eval` use
 `propext`, `Classical.choice`, and `Quot.sound`, without `sorryAx`. The new
@@ -276,6 +284,10 @@ assumptions were added for these contracts.
 `checkPrimitiveDef_natDiv.WF`, and `.extension` inherit `sorryAx` and the existing
 checker-interface axioms. The new division reflection and type fields are
 established by the extension proof; no new axiom or admitted proof was added.
+`checkPrimitiveDef_natShiftRight.WF` and `.extension` likewise inherit the
+verification stack's `sorryAx` and implementation-interface axioms. Right-shift
+reflection is established from the checked equations and the old environment's
+division reflection; no new axiom or admitted proof was added.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,

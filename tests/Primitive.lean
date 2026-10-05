@@ -161,3 +161,22 @@ run_meta
       q(Nat.add), q(fun a b : Nat => Nat.shiftLeft a (Nat.pred b))] do
     if ((Lean4Lean.Environment.checkPrimitiveDef { shl with value }).run env).isOk then
       throwError "accepted an incorrect Nat.shiftLeft implementation"
+
+  let rightShiftCases : List (Nat × Nat × Nat) := [
+    (0, 0, 0), (17, 0, 17), (17, 1, 8), (17, 4, 1), (17, 5, 0), (0, 256, 0),
+    (1208925819614629174706177, 80, 1),
+    (1208925819614629174706177, 81, 0),
+    (1208925819614629174706177, 1208925819614629174706177, 0)]
+  for (a, b, expected) in rightShiftCases do
+    let e := mkApp2 q(Nat.shiftRight) (mkNatLit a) (mkNatLit b)
+    match (TypeChecker.whnf e).run env (fuel := fuel) with
+    | .ok r =>
+      unless r.rawNatLit? == some expected do
+        throwError "Nat.shiftRight {a} {b}: expected literal {expected}"
+    | .error _ => throwError "Nat.shiftRight {a} {b}: reduction failed"
+
+  let some (.defnInfo shr) := env.find? ``Nat.shiftRight | throwError "missing Nat.shiftRight"
+  for value in [q(fun (_ _ : Nat) => Nat.zero), q(fun a (_ : Nat) => a),
+      q(Nat.shiftLeft), q(fun a b : Nat => Nat.shiftRight a (Nat.pred b))] do
+    if ((Lean4Lean.Environment.checkPrimitiveDef { shr with value }).run env).isOk then
+      throwError "accepted an incorrect Nat.shiftRight implementation"
