@@ -831,6 +831,37 @@ theorem Reflection.NatDITESpec.apply {env : VEnv} (h : NatDITESpec env U r neg d
       hpc.instN_eq (Nat.zero_le _), hac.instN_eq (Nat.zero_le _), hec.instN_eq (Nat.zero_le _),
       VExpr.nat, VExpr.boolLit, VExpr.boolTrue, VExpr.boolFalse] using eq.instN henv hH .zero
 
+/-- Evaluate the selector after its Boolean argument reduces, converting the
+dependent witness along the same equality. -/
+theorem Reflection.NatDITESpec.eval {env : VEnv} (h : NatDITESpec env U r neg d t f)
+    (henv : env.Ordered)
+    (hr : env.HasType U [] r (.forallE (.sort .zero) (.forallE .bool (.sort .zero))))
+    (hn : neg.ClosedN) (hd : env.HasType U [] d (natDITEType r neg))
+    (ht : t.ClosedN) (hf : f.ClosedN) (b : Bool)
+    (hp : env.HasType U [] p (.sort .zero))
+    (hb : env.IsDefEq U [] value (.boolLit b) .bool)
+    (hH : env.HasType U [] H (.app (.app r p) value))
+    (ha : env.HasType U [] a (.forallE p .nat))
+    (he : env.HasType U [] e (.forallE (.app neg p) .nat)) :
+    env.IsDefEq U [] (natDITEApp d p value H a e)
+      (.app (if b then a else e) (.app (.app (if b then t else f) p) H)) .nat := by
+  have hrc := hr.closedN henv trivial
+  have hdc := hd.closedN henv trivial
+  have hpEq := (hr.app hp).appDF hb
+  have hH' : env.HasType U [] H (.app (.app r p) (.boolLit b)) := hpEq.defeqDF hH
+  have hd₁ := hd.app hp
+  simp only [VExpr.inst, hrc.instN_eq (Nat.zero_le _), hn.instN_eq (Nat.zero_le _),
+    VExpr.instVar_succ, VExpr.instVar_zero, VExpr.instVar_lower, VExpr.nat, VExpr.bool] at hd₁
+  have hd₂ := hd₁.appDF hb
+  simp only [VExpr.inst, hrc.instN_eq (Nat.zero_le _), hn.instN_eq (Nat.zero_le _),
+    VExpr.instVar_zero, ← VExpr.lift_instN_lo, VExpr.inst_lift] at hd₂
+  have hd₃ := hd₂.appDF hH
+  simp only [VExpr.inst, hn.instN_eq (Nat.zero_le _), ← VExpr.lift_instN_lo,
+    VExpr.inst_lift] at hd₃
+  have hd₄ := hd₃.appDF ha
+  simp only [VExpr.inst, hn.instN_eq (Nat.zero_le _), VExpr.inst_lift] at hd₄
+  exact (hd₄.appDF he).trans (h.apply henv hrc hn hdc ht hf b hp ha he hH')
+
 theorem Reflection.checkNatDITE.WF {c : VContext} (hc : c.vlctx = [])
     (r : Reflection) (fail : ∀ {α}, M α)
     (hfail : ∀ {c : VContext} {s}, (fail (α := Unit)).WF c s fun _ _ => False)
@@ -927,6 +958,162 @@ theorem Reflection.checkNatDITE.WF {c : VContext} (hc : c.vlctx = [])
       using htrue
   · simpa only [cf, ca, cp, VContext.withMLC, VContext.vlctx, MLCtx.vlctx, VLCtx.toCtx, hc]
       using hfalse
+
+/-- The decision function assembled by the reflected natural-number condition check. -/
+def Condition.reflectedDec (prop asBool proof : Expr) (r : Reflection) : Expr :=
+  .lam0 q(Nat) <| .lam0 q(Nat) <| mkApp3 r.toDec
+    (mkApp2 prop (.bvar 1) (.bvar 0)) (mkApp2 asBool (.bvar 1) (.bvar 0))
+    (mkApp2 proof (.bvar 1) (.bvar 0))
+
+private theorem tr_closedUnderNatNat {env : VEnv}
+    (henv : env.Ordered) (hp : env.HasPrimitives) (hn : env.contains ``Nat)
+    (hc : e.Closed)
+    (he : TrExprS env Us [(none, .vlam .nat), (none, .vlam .nat)] e e') :
+    ∃ e', TrExprS env Us [] e e' := by
+  -- Both binders are unused in `e`, so instantiating them with zero recovers
+  -- a translation in the empty context.
+  have hz₁ := TrExprS.natZero (Us := Us) (Δ := [(none, .vlam .nat)]) hp hn
+  have hz₀ := TrExprS.natZero (Us := Us) (Δ := []) hp hn
+  have he := he.inst henv hz₁.2 hz₁.1
+  rw [Expr.instantiate1_eq_self hc.looseBVarRange_zero] at he
+  have he := he.inst henv hz₀.2 hz₀.1
+  rw [Expr.instantiate1_eq_self hc.looseBVarRange_zero] at he
+  exact ⟨_, he⟩
+
+private theorem Condition.reflectedDec_components {c : VContext}
+    {prop asBool proof : Expr} {r : Reflection} (hc : c.vlctx = [])
+    (hb : asBool.Closed) (hp : proof.Closed) (hn : c.venv.contains ``Nat)
+    (he : c.TrExprS (reflectedDec prop asBool proof r) e') :
+    (∃ b, c.TrExprS asBool b) ∧ (∃ p, c.TrExprS proof p) := by
+  simp only [VContext.TrExprS, hc] at he ⊢
+  cases he with
+  | lam _ tNat he =>
+    cases tNat with
+    | const _ hu _ =>
+      cases hu
+      cases he with
+      | lam _ tNat he =>
+        cases tNat with
+        | const _ hv _ =>
+          cases hv
+          let .app _ _ hfun hproof := he
+          let .app _ _ _ hbool := hfun
+          let .app _ _ hbool _ := hbool
+          let .app _ _ hbool _ := hbool
+          let .app _ _ hproof _ := hproof
+          let .app _ _ hproof _ := hproof
+          exact ⟨tr_closedUnderNatNat c.Ewf.ordered c.hasPrimitives hn hb hbool,
+            tr_closedUnderNatNat c.Ewf.ordered c.hasPrimitives hn hp hproof⟩
+
+/-- Facts extracted from the reflected condition validator with only the
+Nat-valued dependent conditional enabled. This does not yet identify its
+Boolean function with any particular operation on natural numbers. -/
+def Condition.ReflectedNatNatChecked (c : VContext)
+    (prop dec asBool proof : Expr) (r : Reflection) (p' : VExpr) : Prop :=
+  c.HasType p' (.forallE .nat (.forallE .nat (.sort .zero))) ∧
+    ∃ b' proof' proofTy dec' e' ty' r' neg d t f,
+      c.TrExprS asBool b' ∧ c.HasType b' (.forallE .nat (.forallE .nat .bool)) ∧
+      c.TrExprS proof proof' ∧ c.HasType proof' proofTy ∧
+      c.HasType proofTy (.sort .zero) ∧
+      c.TrExprS dec dec' ∧ c.TrExprS (reflectedDec prop asBool proof r) e' ∧
+      c.venv.IsDefEq c.lparams.length c.vlctx.toCtx e' dec' ty' ∧
+      c.TrExprS r.type r' ∧
+      c.HasType r' (.forallE (.sort .zero) (.forallE .bool (.sort .zero))) ∧
+      c.TrExprS q(Not) neg ∧ c.HasType neg (.forallE (.sort .zero) (.sort .zero)) ∧
+      c.TrExprS r.natDITE d ∧ c.HasType d (Reflection.natDITEType r' neg) ∧
+      c.TrExprS r.ofTrue t ∧ c.HasType t (Reflection.ofTrueType r') ∧
+      c.TrExprS r.ofFalse f ∧ c.HasType f (Reflection.ofFalseType r' neg) ∧
+      Reflection.NatDITESpec c.venv c.lparams.length r' neg d t f
+
+theorem Condition.check_reflectNatNat.WF {c : VContext}
+    {prop dec asBool proof : Expr} (hc : c.vlctx = []) (r : Reflection)
+    (fail : ∀ {α}, M α)
+    (hfail : ∀ {c : VContext} {s}, (fail (α := Unit)).WF c s fun _ _ => False)
+    (tp : c.TrExprS prop p') (hbclosed : asBool.Closed) (hpclosed : proof.Closed)
+    (hdec : dec.FVarsIn (· ∈ c.vlctx.fvars))
+    (he : (reflectedDec prop asBool proof r).FVarsIn (· ∈ c.vlctx.fvars))
+    (hr : r.type.FVarsIn (· ∈ c.vlctx.fvars))
+    (hd : r.natDITE.FVarsIn (· ∈ c.vlctx.fvars))
+    (ht : r.ofTrue.FVarsIn (· ∈ c.vlctx.fvars))
+    (hf : r.ofFalse.FVarsIn (· ∈ c.vlctx.fvars))
+    (hb : c.venv.contains ``Bool) (hn : c.venv.contains ``Nat) :
+    (Condition.check ⟨prop, dec, .reflectNatNat asBool r proof⟩ fail (dite := true)).WF c s
+      fun _ _ => ReflectedNatNatChecked c prop dec asBool proof r p' := by
+  have hz := TrExprS.natZero (Us := c.lparams) (Δ := []) c.hasPrimitives hn
+  obtain ⟨uNat, hNat⟩ := hz.2.isType c.Ewf.ordered trivial
+  obtain ⟨_, hciNat, _, huNat⟩ := hNat.const_inv c.Ewf.ordered trivial
+  have trNat {Δ : VLCtx} : TrExprS c.venv c.lparams Δ q(Nat) .nat := .const hciNat rfl huNat
+  have natType {Γ : List VExpr} : c.venv.IsType c.lparams.length Γ .nat :=
+    ⟨uNat, hNat.weak0 c.Ewf.ordered⟩
+  have htBool := TrExprS.boolTrue (Us := c.lparams) (Δ := []) c.hasPrimitives hb
+  obtain ⟨uBool, hBool⟩ := htBool.2.isType c.Ewf.ordered trivial
+  obtain ⟨_, hciBool, _, huBool⟩ := hBool.const_inv c.Ewf.ordered trivial
+  have trBool {Δ : VLCtx} : TrExprS c.venv c.lparams Δ q(Bool) .bool := .const hciBool rfl huBool
+  have boolType {Γ : List VExpr} : c.venv.IsType c.lparams.length Γ .bool :=
+    ⟨uBool, hBool.weak0 c.Ewf.ordered⟩
+  have propType {Γ : List VExpr} : c.venv.IsType c.lparams.length Γ (.sort .zero) :=
+    ⟨_, .sort trivial⟩
+  have tpType : c.TrExprS q(Nat → Nat → Prop)
+      (.forallE .nat (.forallE .nat (.sort .zero))) :=
+    .forallE natType (natType.forallE propType) trNat
+      (.forallE natType propType trNat (.sort rfl))
+  have tbType : c.TrExprS q(Nat → Nat → Bool) (.forallE .nat (.forallE .nat .bool)) :=
+    .forallE natType (natType.forallE boolType) trNat
+      (.forallE natType boolType trNat trBool)
+  unfold Condition.check
+  simp only [Bool.false_eq_true, if_false, if_true, pure_bind]
+  refine (checkType.WF hdec).bind fun _ _ _ ⟨dec', _, _, tdec, _, _⟩ => ?_
+  refine (inferType.WF tp).bind fun _ _ _ ⟨_, _, _, tpty, hp⟩ => ?_
+  refine (isDefEq.WF tpty tpType).bind fun b _ _ hpty => ?_
+  cases b
+  · simp only [Bool.false_eq_true, if_false]
+    exact hfail.bind fun _ _ _ h => h.elim
+  simp only [if_true]
+  have hp := hp.defeqU_r c.Ewf c.Δwf (hpty rfl)
+  refine (Reflection.check.WF r fail hfail hr hb).bind fun _ _ _ ⟨r', tr, hrt⟩ => ?_
+  have tr₀ : TrExprS c.venv c.lparams [] r.type r' := by
+    simpa only [VContext.TrExprS, hc] using tr
+  have hrt₀ : c.venv.HasType c.lparams.length [] r'
+      (.forallE (.sort .zero) (.forallE .bool (.sort .zero))) := by
+    simpa only [VContext.HasType, hc, VLCtx.toCtx] using hrt
+  refine (Reflection.checkNatDITE.WF hc r fail hfail hd ht hf tr₀ hrt₀ hb hn).bind
+    fun _ _ _ ⟨neg, d, t, f, tneg, hneg, td, hdt, tt, htt, tf, hft, hspec⟩ => ?_
+  refine (checkType.WF he).bind fun _ _ _ ⟨e', ty', _, te, _, hety⟩ => ?_
+  obtain ⟨⟨b', tb⟩, ⟨proof', tproof⟩⟩ := reflectedDec_components hc hbclosed hpclosed hn te
+  refine (inferType.WF tb).bind fun _ _ _ ⟨_, _, _, tbty, hbt⟩ => ?_
+  refine (isDefEq.WF tbty tbType).bind fun b _ _ hbty => ?_
+  cases b
+  · simp only [Bool.false_eq_true, if_false]
+    exact hfail.bind fun _ _ _ h => h.elim
+  simp only [if_true]
+  have hbt := hbt.defeqU_r c.Ewf c.Δwf (hbty rfl)
+  refine (inferType.WF tproof).bind fun _ _ _ ⟨proofTy, _, _, tpty, hproof⟩ => ?_
+  refine (isProp.WF tpty).bind fun b _ _ hprop => ?_
+  cases b
+  · simp only [Bool.false_eq_true, if_false]
+    exact hfail.bind fun _ _ _ h => h.elim
+  simp only [if_true]
+  refine (isDefEq.WF te tdec).bind fun b _ _ heq => ?_
+  cases b
+  · exact hfail.mono fun _ _ _ h => h.elim
+  · exact .pure ⟨hp, b', proof', proofTy, dec', e', ty', r', neg, d, t, f,
+      tb, hbt, tproof, hproof, hprop rfl, tdec, te,
+      (heq rfl).of_l c.Ewf c.Δwf.toCtx hety, tr, hrt,
+      tneg, hneg, td, hdt, tt, htt, tf, hft, hspec⟩
+
+theorem Condition.natLE.check.WF {c : VContext} (hc : c.vlctx = [])
+    (fail : ∀ {α}, M α)
+    (hfail : ∀ {c : VContext} {s}, (fail (α := Unit)).WF c s fun _ _ => False)
+    (tp : c.TrExprS q(@LE.le Nat _) p')
+    (hb : c.venv.contains ``Bool) (hn : c.venv.contains ``Nat) :
+    (Condition.natLE.check fail (dite := true)).WF c s fun _ _ =>
+      ReflectedNatNatChecked c q(@LE.le Nat _) q(Nat.decLe) q(Nat.ble)
+        q(fun n m {q : Prop} (H : _ → _ → q) =>
+          H (@Nat.le_of_ble_eq_true n m) (@Nat.not_le_of_not_ble_eq_true n m))
+        Reflection.defn₁ p' := by
+  apply Condition.check_reflectNatNat.WF hc _ fail hfail tp (hb := hb) (hn := hn)
+  all_goals simp [reflectedDec, Reflection.natDITE, Reflection.defn₁,
+    Expr.lam0, mkApp2, mkApp3, Closed, FVarsIn, Level.hasMVar']
 
 private theorem contains_primitive (c : VContext) (hn : c.env.contains n)
     (hp : Kernel.Environment.primitives.contains n) : c.venv.contains n := by

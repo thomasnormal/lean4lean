@@ -32,3 +32,15 @@ run_meta
       throwError "malformed test: the conditional and proof converters should be well typed"
     if ((bad.checkNatDITE fail).run env).isOk then
       throwError "accepted a dependent conditional that ignores its Boolean argument"
+
+  for cond in [Environment.Condition.natLE, Environment.Condition.natEq] do
+    unless ((cond.check fail (dite := true)).run env).isOk do
+      throwError "rejected a supported reflected natural-number condition"
+    let .reflectNatNat asBool reflect proof := cond.impl
+      | throwError "malformed test: expected a reflected condition"
+    for bad in [
+        { cond with dec := q(fun (_ _ : Nat) => true) },
+        { cond with impl := .reflectNatNat q(fun (_ _ : Nat) => true) reflect proof },
+        { cond with impl := .reflectNatNat asBool reflect q(fun (_ _ : Nat) => Nat.zero) }] do
+      if ((bad.check fail (dite := true)).run env).isOk then
+        throwError "accepted an invalid reflected decision function, Boolean function, or proof"
