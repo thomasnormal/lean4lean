@@ -20,6 +20,24 @@ run_meta
     let bound := mkApp q(Nat.lt_succ_self) sx
     let e := Environment.natModEntryAt q(@LE.le Nat _) q(Nat.decLe) q(Nat.modCore.go)
       (mkNatLit a) (mkNatLit y) bound
+    let openEntry := (Environment.natModEntryBody.instantiate1' (mkNatLit a) 1).instantiate1'
+      (mkNatLit y)
+    unless openEntry == e do
+      throwError "incorrect modulo entry substitution for dividend {a + 1}, divisor {y}"
     match (TypeChecker.isDefEq e (mkNatLit ((a + 1) % y))).run env with
     | .ok true => pure ()
     | _ => throwError "incorrect modulo entry result for dividend {a + 1}, divisor {y}"
+
+  -- Check only source substitution here; the proof placeholders are untyped.
+  for (a, y, fuel) in [(0, 1, 0), (5, 2, 5), (5, 6, 5), (17, 3, 17)] do
+    let py := q(True.intro)
+    let pa := q(True.intro)
+    let body := ((((Environment.natModLoopBody.instantiate1' (mkNatLit a) 4).instantiate1'
+      (mkNatLit y) 3).instantiate1' py 2).instantiate1' (mkNatLit fuel) 1).instantiate1' pa
+    let expected := Environment.Condition.natLE.dite #[mkNatLit y, mkNatLit a]
+      (mkApp5 q(Nat.modCore.go) (mkNatLit y) py (mkNatLit fuel)
+        (mkApp2 q(Nat.sub) (mkNatLit a) (mkNatLit y))
+        (mkApp6 q(@Nat.div_rec_fuel_lemma) (mkNatLit a) (mkNatLit y)
+          (mkNatLit fuel) py (.bvar 0) pa)) (mkNatLit a)
+    unless body == expected do
+      throwError "incorrect modulo recursion substitution for {a}, {y}, {fuel}"
