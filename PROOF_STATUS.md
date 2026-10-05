@@ -63,9 +63,19 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
 - `Reflection.checkNatDITE.WF` now derives both typed computation equations from
   the full validator, including its fresh-local checks. `NatDITESpec.apply`
   instantiates the open equations with closed propositions, branches, and typed
-  witnesses. Connecting `Condition.natLE.check` and the checked division
-  equations to this specification remains unfinished; native division is still
-  disabled.
+  witnesses. `NatDITESpec.eval` also handles a Boolean argument that reduces to
+  a literal, converting the dependent witness along that equality.
+- `Condition.check_reflectNatNat.WF` verifies the dependent-conditional path of
+  the reflected condition validator, and `Condition.natLE.check.WF` specializes
+  it to natural-number ordering. The proof extracts translations of the Boolean
+  function and proof term from the checked decision function by substitution,
+  and records its checked equality to the declared decision function. It still
+  requires a translation of the proposition function used by the initial
+  infer-only check. Division checks that proposition explicitly, but currently
+  does so after checking the condition; this ordering needs to be addressed in
+  its bridge proof. Deriving the division entry/loop contracts remains unfinished,
+  and native division is still disabled. No executable checks changed in this
+  checkpoint.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -116,7 +126,7 @@ subtraction truncation at zero, equal and unequal large literals, rejection of
 incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 523 declarations across the primitive
+cases. The executable successfully replayed 550 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -128,6 +138,9 @@ swapped proof converters. They also check selectors that ignore their Boolean
 argument: their type-checking prefixes succeed, while their computation checks
 fail. These are runtime checks against the imported prelude, not a proof of its
 environment translation.
+The full natural-number ordering and equality condition validators are also
+tested: both are accepted, and replacing their decision function, Boolean
+function, or proof with an invalid one is rejected.
 
 `#print axioms` reports only `propext` and `Quot.sound` for
 `Lean4Lean.VEnv.NatAddSpec.eval`, `.reflects`, `Lean4Lean.VEnv.NatMulSpec.eval`,
@@ -144,9 +157,11 @@ The witness-application lemmas `Reflection.ofTrueType.apply` and
 uses `propext`, `Classical.choice`, and `Quot.sound`. The new type-checking-prefix
 and fresh-local equation-extraction proofs inherit `sorryAx` and the existing
 implementation-interface axioms.
-`Reflection.NatDITESpec.apply` uses only `propext` and `Quot.sound`.
+`Reflection.NatDITESpec.apply` and `.eval` use only `propext` and `Quot.sound`.
 `Reflection.checkNatDITE.WF`, which extracts the computation equations from the
 executable checks, inherits `sorryAx` and the implementation-interface axioms.
+The same inherited axioms appear in `Condition.check_reflectNatNat.WF` and
+`Condition.natLE.check.WF`.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
