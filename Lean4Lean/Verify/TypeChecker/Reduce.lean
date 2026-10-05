@@ -86,6 +86,8 @@ theorem reduceBinNatPred.WF {c : VContext}
   have := ha1.appDF a3 |>.toU.of_r c.Ewf c.Δwf hb1
   exact  ⟨_, .appDF this b3⟩
 
+-- Split only the current test, without resimplifying the remaining dispatch chain.
+set_option backward.split false in
 theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
     RecM.WF c s (reduceNat e) fun oe _ => ∀ e₁, oe = some e₁ →
       c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' := by
