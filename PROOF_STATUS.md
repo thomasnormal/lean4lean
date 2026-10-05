@@ -107,9 +107,20 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   changed at this checkpoint. The local entry/recursive equation checks and the
   primitive-extension proof remain to be connected before restoring native
   division.
-  The literal-selection API currently takes raw `.lit (.natVal n)` expressions;
-  applying it to the entry check's constructor-form `Nat.succ Nat.zero` requires
-  a variant accepting arbitrary source arguments translated to `natLit` values.
+- `Condition.ReflectedNatNatChecked.natBle_dite_eval_inputs` accepts arbitrary
+  typed source arguments translated to natural-number values, retaining a source
+  expression for the selected proof witness. `.natBle_dite_body_inputs` reduces
+  the selected branch lambda; `.natBle_dite_zero_inputs` handles the false branch.
+  The existing literal-specific statements are unchanged.
+- `tr_natDivLoopApp` recovers both proof arguments of a checked loop application
+  at its canonical dependent type. `.natDiv_start` combines it with branch
+  reduction to prove the positive entry equation with successor fuel, including
+  the constructor-form comparison argument `Nat.succ Nat.zero`. `.natDiv_zero`
+  proves the zero-divisor entry branch. These are semantic bridges from supplied
+  translations, not yet proofs extracting those translations and equations from
+  division's fresh-local checks. The recursive branch, full primitive-check
+  bridge, and environment-extension proof remain unfinished; native division
+  remains disabled. No executable code was changed at this checkpoint.
 
 Main review entry points: `Lean4Lean/Verify/Environment.lean`,
 `Lean4Lean/Verify/Primitive.lean`, and `Lean4Lean/Verify/Level.lean`.
@@ -161,7 +172,7 @@ subtraction truncation at zero, equal and unequal large literals, rejection of
 incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 629 declarations across the primitive
+cases. The executable successfully replayed 643 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -214,6 +225,10 @@ The branch-type recovery proof inherits `sorryAx` and standard logical axioms;
 the literal-selection and zero-branch proofs additionally inherit the existing
 persistent-map/array interface axioms. `checkNatDivLoop.WF` and
 `checkNatDivPrefix.WF` inherit the checker stack's axioms, including `sorryAx`.
+The generalized source-input selection and branch reduction lemmas, and the
+division entry lemmas `.natDiv_start` and `.natDiv_zero`, inherit `sorryAx`
+and the existing map/array interface axioms. `tr_natDivLoopApp` uses the standard
+logical axioms and inherited `sorryAx`; it does not introduce a new assumption.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
