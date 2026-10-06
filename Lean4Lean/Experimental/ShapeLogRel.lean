@@ -1,6 +1,16 @@
 import Lean4Lean.Experimental.SExpr
 
+/-
+`Shape.plift` and friends below are written in `Option`-monad `do`/`return` notation, and
+the proofs about them `simp` through the exact term that notation elaborates to.
+leanprover/lean4#13305 made the new `do` elaborator the default in v4.32.0, which reshapes
+those terms. Pin the legacy elaborator here until the proofs are migrated
+(digama0/lean4lean#31).
+-/
+set_option backward.do.legacy true
+
 namespace Lean4Lean
+open Lean4Lean
 
 namespace SExpr
 variable [Params]
@@ -21,12 +31,12 @@ private noncomputable instance : DecidableEq SLevel := fun a b => Classical.prop
     simp [SLevel.imax, SLevel.zero] at hv
     apply Subtype.ext; funext v
     have := congrFun hv v
-    simp [Nat.imax, VLevel.eval] at this
+    simp [Lean.Nat.imax, VLevel.eval] at this
     exact Decidable.byContradiction fun h => absurd (this h).2 h
   · intro h
     subst h
     apply Subtype.ext; funext v
-    simp [SLevel.imax, SLevel.zero, Nat.imax, VLevel.eval]
+    simp [SLevel.imax, SLevel.zero, Lean.Nat.imax, VLevel.eval]
 
 inductive Shape0 : Type where
   | bot : Shape0
@@ -40,7 +50,7 @@ inductive ShapeS (Shape : Type) : Type where
   | ctor : Name → List Shape → ShapeS Shape
   | indTy : ShapeS Shape
 
-def Shape : Nat → Type
+@[implicit_reducible] def Shape : Nat → Type
   | 0 => Shape0
   | n + 1 => ShapeS (Shape n)
 
@@ -915,8 +925,8 @@ protected theorem Shape.WF.sort : (Shape.sort (n := n) r).WF := by cases n <;> t
 protected theorem ShapeFun.WF.bot : (ShapeFun.bot (n := n)).WF Shape.WF := by
   simp [WF, bot, Shape.Compat.bot_l, Shape.bot_join, Shape.WF.bot]
 
-def WShape (n : Nat) := {s : Shape n // s.WF}
-def WShapeFun (n : Nat) := {s : ShapeFun n // s.WF Shape.WF}
+@[implicit_reducible] def WShape (n : Nat) := {s : Shape n // s.WF}
+@[implicit_reducible] def WShapeFun (n : Nat) := {s : ShapeFun n // s.WF Shape.WF}
 
 instance : Membership (WShape n × WShape n) (WShapeFun n) := ⟨fun f a => (a.1.1, a.2.1) ∈ f.1⟩
 
@@ -1508,7 +1518,8 @@ theorem ih_fun {f f' : WShapeFun n} :
     have ⟨_, g1, g2, dg⟩ := app_core ih f' d; have ⟨g3, g4, g2⟩ := f'.mem_val' g2
     have ⟨e, e1, e2⟩ := of_compat ih (x := ⟨_, f4⟩) (x' := ⟨_, g4⟩) (compat_app_l ih hc d)
     refine d1 ▸ e1 ▸ ⟨d.2, e.2⟩
-  · intro f₃; conv => enter [1,x,y,1]; simp only [WShapeFun.mem_def, ShapeFun.mem_join]
+  · intro f₃; conv =>
+      enter [1,x,y,1]; (conv => apply propext WShapeFun.mem_def); simp only [ShapeFun.mem_join]
     refine ⟨fun H => ?_, fun ⟨H1, H2⟩ => ?_⟩
     · refine ⟨fun x y hf => ?_, fun x y hf' => ?_⟩
       · have ⟨_, hf'⟩ := f'.bot_mem
@@ -1805,7 +1816,7 @@ theorem WShapeFun.mem_ofElems {f : List (WShape n × WShape n)} {h1 h2} :
   exact ⟨fun ⟨⟨a, b⟩, h, ha, hb⟩ => by cases WShape.ext ha; cases WShape.ext hb; exact h,
     fun h => ⟨_, h, rfl, rfl⟩⟩
 
-def TShape := Σ n, WShape n
+@[implicit_reducible] def TShape := Σ n, WShape n
 abbrev WShape.T : WShape n → TShape := Sigma.mk _
 
 def TShape.LE (a b : TShape) : Prop := a.2.lift (max a.1 b.1) ≤ b.2.lift _
@@ -2156,9 +2167,7 @@ theorem WShape.ctor'_join {l l' : List (WShape n)} {c : Name}
     exact ih (fun z hz => h2' z (.tail _ hz))
   · rw [dif_pos (key.mpr (.inr h2))]; simp [ctor, bot, Shape.bot_join]
     have h1' : ∀ x ∈ l, x.1 ≤ Shape.bot := by
-      have ⟨hIs, hNZ⟩ : IsStruct c = true ∧ ¬ListNonZero l := by
-        refine ⟨?_, fun hNZ => h1 fun _ => hNZ⟩
-        by_contra hIs; exact h1 fun h => (hIs h).elim
+      have ⟨_, hNZ⟩ := Decidable.not_imp_iff_and_not.1 h1
       simp [ListNonZero] at hNZ; exact hNZ
     congr 1; clear h1 h2 key
     induction h with | nil => rfl | @cons x y L L' hh _ ih
@@ -2258,7 +2267,7 @@ theorem ShapeFun.app_core (f : ShapeFun n) (x) :
   have ⟨h1, h2⟩ := mem_trunc.1 <| List.mem_of_find?_eq_some h
   refine .inr ⟨_, h2, h1, this⟩
 
-def ShapeFun.WF.app {f : ShapeFun n} (wf : WF Shape.WF f) (wfa : a.WF) : (ShapeFun.app f a).WF := by
+theorem ShapeFun.WF.app {f : ShapeFun n} (wf : WF Shape.WF f) (wfa : a.WF) : (ShapeFun.app f a).WF := by
   have ⟨_, _, h, _⟩ := WShape.join_prop.app_core WShape.join_prop ⟨_, wf⟩ ⟨_, wfa⟩
   exact (wf.2 _ h).2
 
@@ -2531,7 +2540,7 @@ theorem Shape.HasType.unfold_iff {m a : Shape n} : HasType m a ↔ HasTypeU m a 
     | indTy => rfl
     | forallE => simpa [HasType, hasType] using h
   | sort => cases n <;> rfl
-  | forallE H => simpa [HasType, hasType, hasType.core.iff] using H
+  | forallE H => simpa [HasType, hasType, hasType.core.iff, HasTypePi] using H
   | lam H => simp [HasType, hasType, hasType.core.iff]; exact H
   | ctor | indTy => rfl
 
@@ -2639,7 +2648,7 @@ theorem WShape.HasDom.def : HasDom f a ↔
   ⟨fun H _ _ h => have ⟨_, _, h1, h2⟩ := H _ _ h; ⟨_, _, f.mem_val h1, h2⟩,
    fun H _ _ h => have ⟨_, _, h1, h2⟩ := H _ _ (f.mem_val h); ⟨_, _, h1, h2⟩⟩
 
-def WShape.HasTypePi.def {b : WShapeFun n} :
+theorem WShape.HasTypePi.def {b : WShapeFun n} :
     HasTypePi b a rel ↔ HasDom b a ∧ ∀ x y, (x, y) ∈ b → y.HasType (.sort rel) :=
   and_congr_right' ⟨fun H _ _ h => H _ _ h, fun H _ _ h => H _ _ (b.mem_val h)⟩
 
@@ -2802,7 +2811,7 @@ theorem WShape.HasDom.iff {f : WShapeFun n} :
       have ⟨x₁, b1, b2⟩ := f.app_eq x'
       exact ⟨_, b2, _, b1, a1, (f.app_of_mem (f.mem_val h)).2.trans a3, a2⟩
 
-def WShape.HasTypePi.iff {b : WShapeFun n} :
+theorem WShape.HasTypePi.iff {b : WShapeFun n} :
     HasTypePi b a rel ↔ HasDom b a ∧ ∀ x, x.HasType a → (b.app x).HasType (.sort rel) := by
   refine WShape.HasTypePi.def.trans <| and_congr_right fun hd =>
     ⟨fun H x h => ?_, fun H x y h => ?_⟩
@@ -2811,7 +2820,7 @@ def WShape.HasTypePi.iff {b : WShapeFun n} :
     have ⟨x', a1, a2, a3⟩ := HasDom.iff.1 hd x
     exact (H _ a2).mono_l (b.app_mono_r a1 |>.trans h1) (h2.trans a3)
 
-def WShape.HasTypePi.iff' {b : WShapeFun n} :
+theorem WShape.HasTypePi.iff' {b : WShapeFun n} :
     HasTypePi b a rel ↔ HasDom b a ∧ ∀ x, (b.app x).HasType (.sort rel) := by
   refine WShape.HasTypePi.iff.trans <| and_congr_right fun h1 => ⟨fun H x => ?_, fun H _ _ => H _⟩
   have ⟨x', a1, a2, a3⟩ := HasDom.iff.1 h1 x
@@ -2831,7 +2840,7 @@ theorem WShape.HasTypeLam.iff {f : WShapeFun n} {a b} :
       ((WShape.HasTypePi.iff.1 hp).2 _ b2 |>.mono_l (b.app_mono_r b1) b3)
       ((H _ a2).mono_l (.trans (f.app_mono_r a1) h1) (h2.trans a3))
 
-def WShape.HasTypeLam.iff' {b : WShapeFun n} :
+theorem WShape.HasTypeLam.iff' {b : WShapeFun n} :
     HasTypeLam f a b ↔ HasTypePi b a true ∧ HasDom f a ∧ ∀ x, (f.app x).HasType (b.app x) := by
   refine WShape.HasTypeLam.iff.trans <| and_congr_right fun h1 => and_congr_right fun h2 =>
     ⟨fun H x => ?_, fun H _ _ => H _⟩
@@ -3440,7 +3449,7 @@ theorem LE_Interp.Matches.head_wf (H : Matches p c rargs m) (wf : p.WF cl top k)
 theorem LE_Interp.Matches.head_wf_eq (H : Matches p c rargs m) (wf : p.WF cl top k) :
     cl c = some (if top then .symb (k + rargs.length) else .ctor (k + rargs.length)) := by
   induction H generalizing k with
-  | const => simpa using wf
+  | const => simpa [Pattern.WF] using wf
   | var _ ih =>
     have := ih (k := k + 1) wf
     rw [List.length_cons]; rw [Nat.add_succ, ← Nat.succ_add]; exact this
@@ -3615,8 +3624,8 @@ theorem pat_arity (hP : Params.Pat p r) (h : Arity (.const c) n p) :
   clear r hP h; intro cl n k h1 h2
   induction h2 generalizing k with
   | refl => simpa only [Nat.zero_add]
-  | var _ ih => simpa [Nat.succ_add] using ih _ h1
-  | app _ ih => simpa [Nat.succ_add] using ih _ h1.1
+  | var _ ih => simpa [Nat.succ_add, ← Nat.add_assoc] using ih _ h1
+  | app _ ih => simpa [Nat.succ_add, ← Nat.add_assoc] using ih _ h1.1
 
 theorem LE_Interp.Matches.lift (le : n ≤ n') (H : Matches (n := n) p c rargs m) :
     ∃ m', Matches p c (rargs.map (.lift n')) m' ∧ ∀ p, m p ≤ m' p ∧ m' p ≤ m p := by
@@ -4627,7 +4636,7 @@ structure StrongSoundEq (Γ : List SExpr) (M N A : SExpr) : Prop where
   left : StrongSound Γ M A
   right : StrongSound Γ N A
 
-theorem SoundEq.rfl : SoundEq Γ M M := fun _ _ _ _ => .rfl
+protected theorem SoundEq.rfl : SoundEq Γ M M := fun _ _ _ _ => .rfl
 theorem SoundEq.symm : SoundEq Γ M N → SoundEq Γ N M := fun H _ _ W _ => (H W).symm
 theorem StrongSoundEq.hasType : StrongSoundEq Γ M N A → StrongSound Γ M A ∧ StrongSound Γ N A
   | ⟨_, _, h1, h2⟩ => ⟨h1, h2⟩
@@ -4713,7 +4722,8 @@ theorem SoundEq.forallE_inv (H : SoundEq Γ (.forallE A B) (.forallE A' B'))
       · refine fun _ => ⟨_, WShape.bot_le, .bot' (.bot' .sort), ?_⟩
         simpa [WShapeFun.single_app] using .rfl
       · intro x h'; cases h'.bot_r
-        simpa [WShapeFun.single_app] using h.mono_l fun _ => TShape.bot_le'
+        simpa [WShapeFun.single_app, show m.2.T = m from rfl] using
+          h.mono_l fun _ => TShape.bot_le'
     | @cons Γ ρ A a x b1 b2 b3 b4 =>
       let k := max (max x.1 m.1) a.1
       have hk := Nat.max_le.1 (Nat.le_refl k); simp [Nat.max_le] at hk

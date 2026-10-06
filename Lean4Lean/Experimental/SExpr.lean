@@ -2,6 +2,7 @@ import Lean4Lean.Theory.Typing.Lemmas
 import Lean4Lean.Theory.Typing.Pattern
 
 namespace Lean4Lean
+open Lean4Lean
 
 inductive Classification where
   | ctor (arity : Nat)
@@ -61,7 +62,7 @@ def max (l₁ l₂ : SLevel) : SLevel :=
     let ⟨u, h1, h2⟩ := l₁.2; let ⟨v, h3, h4⟩ := l₂.2; ⟨u.max v, ⟨h1, h3⟩, h2 ▸ h4 ▸ rfl⟩⟩
 
 def imax (l₁ l₂ : SLevel) : SLevel :=
-  ⟨fun v => (l₁.1 v).imax (l₂.1 v),
+  ⟨fun v => Lean.Nat.imax (l₁.1 v) (l₂.1 v),
     let ⟨u, h1, h2⟩ := l₁.2; let ⟨v, h3, h4⟩ := l₂.2; ⟨u.imax v, ⟨h1, h3⟩, h2 ▸ h4 ▸ rfl⟩⟩
 
 def inst (ls : List SLevel) (l : SLevel) : SLevel := by
@@ -160,7 +161,7 @@ theorem _root_.Lean4Lean.VExpr.ClosedN.mkS : ∀ {e : VExpr}, e.ClosedN k → Cl
   | .bvar .., h | .sort .., h | .const .., h => h
   | .app .., h | .lam .., h | .forallE .., h => ⟨h.1.mkS, h.2.mkS⟩
 
-def Subst := Nat → SExpr
+@[reducible] def Subst := Nat → SExpr
 
 def Subst.Depth (σ : Subst) (n n' : Nat) := ∀ i, σ (i + n') = .bvar (i + n)
 
@@ -524,7 +525,7 @@ def _root_.Lean4Lean.Pattern.RHS.Closed {p : Pattern} : p.RHS → Prop
   | .var _ => True
   | .app f a => f.Closed ∧ a.Closed
 
-def _root_.Lean4Lean.Pattern.RHS.Closed.applyS {p : Pattern} {m1 m2} :
+theorem _root_.Lean4Lean.Pattern.RHS.Closed.applyS {p : Pattern} {m1 m2} :
     ∀ r : p.RHS, r.Closed → (∀ a, (m2 a).ClosedN k) → (r.applyS m1 m2).ClosedN k
   | .fixed .., h1, _ => h1.mkS.instL.mono (Nat.zero_le _)
   | .var _, _, h2 => h2 _

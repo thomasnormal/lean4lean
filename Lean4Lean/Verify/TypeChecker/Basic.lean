@@ -37,9 +37,10 @@ theorem WF.pureBind  {f : β → Except ε α} {Q}
 end Except
 
 namespace Lean4Lean
+open Lean4Lean
 open Lean hiding Environment Exception
 open Kernel
-open scoped List
+open scoped _root_.List
 
 namespace EquivManager
 
@@ -239,7 +240,7 @@ theorem WHNFCache.WF.empty : WHNFCache.WF c s {} := fun _ => by simp
 
 def UnfoldCache.WF (c : VContext) (m : ExprMap Expr) : Prop :=
   ∀ ⦃e e' : Expr⦄, m[e]? = some e' → ∃ n ls ci, e = .const n ls ∧
-      c.env.find? n = some ci ∧ e' = ci.instantiateValueLevelParams! ls
+      c.env.find? n = some ci ∧ e' = Inner.instantiateDeltaValue ci ls
 
 class VState.WF (c : VContext) (s : VState) where
   trctx : c.TrLCtx
@@ -314,7 +315,7 @@ structure Methods.WF (m : Methods) where
   isDefEqCore : c.TrExprS e₁ e₁' → c.TrExprS e₂ e₂' →
     (m.isDefEqCore e₁ e₂).WF c s fun b _ => b → c.IsDefEqU e₁' e₂'
   whnfCore : c.TrExprS e e' →
-    (m.whnfCore e cheapRec cheapProj).WF c s fun e₁ _ => c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e'
+    (m.whnfCore e cheapProj).WF c s fun e₁ _ => c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e'
   whnf : c.TrExprS e e' →
     (m.whnf e).WF c s fun e₁ _ => c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e'
   inferType : e.FVarsIn (· ∈ c.vlctx.fvars) →
@@ -376,6 +377,9 @@ theorem getEnv.WF {c : VContext} {s : VState} :
     M.WF c s getEnv fun a s' => c.env = a ∧ s = s' := by
   rintro wf _ _ ⟨⟩; exact ⟨_, rfl, .rfl, wf, rfl, rfl⟩
 
+theorem M.WF.getEnv {c : VContext} {s : VState} {f : Environment → M α} {Q}
+    (H : WF c s (f c.env) Q) : (liftM getEnv >>= f).WF c s Q := H
+
 theorem RecM.WF.getEnv {c : VContext} {s : VState} {f : Environment → RecM α} {Q}
     (H : WF c s (f c.env) Q) : (liftM getEnv >>= f).WF c s Q := H
 
@@ -421,6 +425,15 @@ def VContext.withMLC (c : VContext) (m : MLCtx) [wf : c.MLCWF m] : VContext :=
 @[simp] theorem VContext.withMLC_self (c : VContext) : c.withMLC c.mlctx = c := by
   simp [withMLC, c.lctx_eq]
 
+/-- `withMLC` only moves the local context; the ambient environment and universe parameters are
+untouched, so judgements stated at `c` and at `c.withMLC m` are interchangeable. -/
+@[simp] theorem VContext.withMLC_venv (c : VContext) (m) [c.MLCWF m] :
+    (c.withMLC m).venv = c.venv := rfl
+@[simp] theorem VContext.withMLC_lparams (c : VContext) (m) [c.MLCWF m] :
+    (c.withMLC m).lparams = c.lparams := rfl
+@[simp] theorem VContext.withMLC_mlctx (c : VContext) (m) [c.MLCWF m] :
+    (c.withMLC m).mlctx = m := rfl
+
 def VState.next (s : VState) : VState := { s with ngen := s.ngen.next }
 
 protected theorem RecM.WF.withLocalDecl {c : VContext} {m} [cwf : c.MLCWF m]
@@ -457,6 +470,56 @@ protected theorem RecM.WF.withLocalDecl {c : VContext} {m} [cwf : c.MLCWF m]
       trctx, inferTypeI_wf := hic wf.inferTypeI_wf, inferTypeC_wf := hic wf.inferTypeC_wf
       whnfCore_wf := hwc wf.whnfCore_wf, whnf_wf := hwc wf.whnf_wf, unfold_wf := wf.unfold_wf }
   let ⟨s', hs1, hs2, wf', hs4⟩ := H _ _ _ (hs.trans le) h1 _ mwf this a s' e
+  refine have le' := le.trans hs2; ⟨s', hs1, le', ?_, hs4⟩
+  have hic {ic} (H : InferCache.WF (c.withMLC m') s' ic) :
+      InferCache.WF (c.withMLC m) s' ic := fun _ _ h => (H h).weakN_inv c.Ewf wf'.trctx.wf
+  have hwc {wc} (H : WHNFCache.WF (c.withMLC m') s' wc) :
+      WHNFCache.WF (c.withMLC m) s' wc := fun _ _ h => (H h).weakN_inv c.Ewf wf'.trctx.wf
+  let ⟨_, _, a1, a2, a3⟩ := wf'.ectx
+  exact {
+    ngen_wf := (by simpa [VContext.withMLC] using wf'.ngen_wf :).2
+    ectx := ⟨_, _, a1, .comp (.skip_fvar _ _ .refl) a2, a3⟩
+    trctx := wf.trctx
+    inferTypeI_wf := hic wf'.inferTypeI_wf, inferTypeC_wf := hic wf'.inferTypeC_wf
+    whnfCore_wf := hwc wf'.whnfCore_wf, whnf_wf := hwc wf'.whnf_wf, unfold_wf := wf'.unfold_wf
+  }
+
+/-- The `M`-level twin of `RecM.WF.withLocalDecl`. The primitive checker probes its
+definitions under `withLocalDecl` in `M`, so it needs this form. -/
+protected theorem M.WF.withLocalDecl {c : VContext} {m} [cwf : c.MLCWF m]
+    {s : VState} {f : Expr → M α} {Q name ty ty' bi}
+    (hty : (c.withMLC m).TrExprS ty ty')
+    (hty' : (c.withMLC m).IsType ty')
+    (hs : s₀ ≤ s)
+    (H : ∀ id cwf' s', s₀ ≤ s' → ¬s.ngen.Reserves id →
+      WF (c.withMLC (.vlam id name ty ty' bi m) (wf := cwf')) s' (f (.fvar id)) Q) :
+    (withLocalDecl name bi ty f).WF (c.withMLC m) s Q := by
+  intro wf a s' e
+  let id := s.ngen.curr
+  have h0 := s.ngen.next_reserves_self
+  have h1 := s.ngen.not_reserves_self
+  have le : s ≤ s.next := .next
+  have h1' := wf.find?_eq_none h1
+  let m' := m.vlam ⟨id⟩ name ty ty' bi
+  have cwf' : c.MLCWF m' := ⟨cwf.1, h1', hty, hty'⟩
+  have : VState.WF (c.withMLC m') s.next :=
+    have trctx := wf.trctx.mkLocalDecl h1' hty hty'
+    have hic {ic} (H : InferCache.WF (c.withMLC m) s ic) : InferCache.WF (c.withMLC m') s.next ic :=
+      fun _ _ h => ((H h).fresh c.Ewf.ordered trctx.wf).mono le
+    have hwc {wc} (H : WHNFCache.WF (c.withMLC m) s wc) : WHNFCache.WF (c.withMLC m') s.next wc :=
+      fun _ _ h => ((H h).fresh c.Ewf trctx.wf).mono le
+    { ngen_wf := by
+        simp [m', VContext.withMLC]; exact ⟨h0, fun _ h => le.reservesV (wf.ngen_wf _ h)⟩
+      ectx := by
+        let ⟨_, _, a1, a2, a3, a4⟩ := wf.ectx
+        refine
+          have b1 := ⟨a1, ?_, hty'.weak' c.Ewf.ordered a2.toCtx⟩
+          ⟨_, _, b1, a2.cons_fvar _ _ hty.fvarsList, a3.weak' c.Ewf (.skip_fvar _ _ .refl) b1,
+            fun _ h => by obtain _ | ⟨_, h⟩ := h <;> [exact h0; exact (a4 _ h).mono le]⟩
+        rintro _ _ ⟨⟩; exact ⟨mt (a4 _) h1, hty.fvarsList.trans a2.fvars_sublist.subset⟩
+      trctx, inferTypeI_wf := hic wf.inferTypeI_wf, inferTypeC_wf := hic wf.inferTypeC_wf
+      whnfCore_wf := hwc wf.whnfCore_wf, whnf_wf := hwc wf.whnf_wf, unfold_wf := wf.unfold_wf }
+  let ⟨s', hs1, hs2, wf', hs4⟩ := H _ _ _ (hs.trans le) h1 this a s' e
   refine have le' := le.trans hs2; ⟨s', hs1, le', ?_, hs4⟩
   have hic {ic} (H : InferCache.WF (c.withMLC m') s' ic) :
       InferCache.WF (c.withMLC m) s' ic := fun _ _ h => (H h).weakN_inv c.Ewf wf'.trctx.wf
@@ -731,6 +794,27 @@ theorem MLCtx.fvarRevList_prefix (c : MLCtx)
   | zero => simp
   | succ n ih => match c with | .vlam .. | .vlet .. => simp [ih]
 
+/-- The sharper form of `fvarRevList_prefix`: the variables a telescope opened and the ones it
+started from, in order. This is what says a term mentioning none of the former lives in the
+context the telescope was entered at. -/
+theorem MLCtx.fvars_eq_append (c : MLCtx) {n hn} :
+    c.vlctx.fvars = c.fvarRevList n hn ++ (c.dropN n hn).vlctx.fvars := by
+  induction n generalizing c with
+  | zero => simp
+  | succ n ih => match c with | .vlam .. | .vlet .. => simp; exact ih _
+
+/-- "Lives in the context the telescope was entered at" is an up-set for the telescope: the
+variables it opened are fresh, so the predicate is false on them and their dependency condition
+is vacuous. This is what lets `FVarsBelow` -- which `inferType`/`whnf` hand out -- be read as
+"still in the base context". -/
+theorem MLCtx.WF.isFVarUpSet_dropN : ∀ {c : MLCtx} (_ : c.WF env Us) (n hn),
+    IsFVarUpSet (· ∈ (c.dropN n hn).vlctx.fvars) c.vlctx
+  | _, wf, 0, _ => .fvars wf.tr.wf.fvwf
+  | .vlam _ _ _ _ _ c, ⟨h1, h2, _⟩, _+1, _
+  | .vlet _ _ _ _ _ _ c, ⟨h1, h2, _⟩, _+1, _ =>
+    ⟨h1.isFVarUpSet_dropN _ _, fun h =>
+      (h1.tr.find?_eq_none.1 h2 (dropN_fvars_subset (c := c) _ _ h)).elim⟩
+
 theorem MLCtx.WF.fvars_nodup : ∀ {c : MLCtx}, c.WF env Us → c.vlctx.fvars.Nodup
   | .nil, _ => .nil
   | .vlam _ _ _ _ _ c, ⟨h1, h2, _⟩
@@ -860,8 +944,10 @@ theorem inferType.WF' {c : VContext} {s : VState} (h1 : e.FVarsIn (· ∈ c.vlct
     RecM.WF c s (inferType e inferOnly) fun ty _ => ∃ e' ty', c.TrTyping e ty e' ty' :=
   fun _ wf => wf.inferType h1 hinf
 
+/-- With the translation already in hand, `hinf` is satisfied whichever mode is used, so this
+holds at both settings of `inferOnly`. -/
 theorem inferType.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
-    RecM.WF c s (inferType e true) fun ty _ => ∃ ty', c.TrTyping e ty e' ty' := by
+    RecM.WF c s (inferType e inferOnly) fun ty _ => ∃ ty', c.TrTyping e ty e' ty' := by
   refine .stateWF fun wf => ?_
   refine (inferType.WF' he.fvarsIn fun _ => ⟨_, he⟩).le
     fun _ _ _ ⟨_, _, h1, h2, h3, h4⟩ => ⟨_, h1, he, h3, ?_⟩
@@ -879,19 +965,19 @@ theorem checkType.WF {c : VContext} {s : VState} (h1 : e.FVarsIn (· ∈ c.vlctx
   inferType.WF' h1 nofun
 
 theorem whnfCore.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
-    RecM.WF c s (whnfCore e cheapRec cheapProj) fun e₁ _ => c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' :=
+    RecM.WF c s (whnfCore e cheapProj) fun e₁ _ => c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' :=
   fun _ wf => wf.whnfCore he
 
 theorem isDelta_is_some : isDelta env e = some ci ↔
-    ∃ n, env.find? n = some ci ∧ (∃ v, ci.value? = some v) ∧ ∃ ls, e.getAppFn = .const n ls := by
-  simp [isDelta]
+    ∃ n, env.find? n = some ci ∧ (∃ v, ci.deltaValue? = some v) ∧
+      ∃ ls, e.getAppFn = .const n ls ∧ ls.length = ci.numLevelParams := by
+  simp only [isDelta]
   split <;> [split <;> [split; skip]; skip] <;>
-    simp_all [ConstantInfo.hasValue_eq, Option.isSome_iff_exists] <;>
-    rintro rfl <;> assumption
+    simp_all [Option.isSome_iff_exists] <;> grind
 
 def UnfoldDefinition.WF (c : VContext) (e e₀ : Expr) (e' : VExpr) : Option Expr → Prop
   | some e₁ => c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e'
-  | none => ∀ {{n ci v ls}}, c.env.find? n = some ci → ci.value? = some v →
+  | none => ∀ {{n ci v ls}}, c.env.find? n = some ci → ci.deltaValue? = some v →
     e₀ = .const n ls → ls.length = ci.numLevelParams → False
 
 theorem unfoldDefinitionCore.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
@@ -899,17 +985,15 @@ theorem unfoldDefinitionCore.WF {c : VContext} {s : VState} (he : c.TrExprS e e'
   dsimp [unfoldDefinitionCore]
   split <;> [refine .getEnv ?_; (rename_i H; exact .pure fun _ _ _ _ _ _ h => nomatch H _ _ h)]
   split; rotate_left
-  · rename_i H; refine .pure ?_; rintro _ _ _ _ h1 h2 ⟨⟩
-    cases H _ (isDelta_is_some.2 ⟨_, h1, ⟨_, h2⟩, _, rfl⟩)
+  · rename_i H; refine .pure ?_; rintro _ _ _ _ h1 h2 ⟨⟩ hlen
+    cases H _ (isDelta_is_some.2 ⟨_, h1, ⟨_, h2⟩, _, rfl, hlen⟩)
   rename_i n ls oci ci h1
-  obtain ⟨_, h3, ⟨_, h4⟩, _, ⟨⟩⟩ := isDelta_is_some.1 h1
-  split <;> rename_i h2 <;> [refine .pureBind ?_; refine .pure ?_]; rotate_left
-  · simp at h2; rintro _ _ _ _ h1 _ ⟨⟩; cases h1 ▸ h3; exact h2
+  obtain ⟨_, h3, ⟨_, h4⟩, _, ⟨⟩, hlen⟩ := isDelta_is_some.1 h1
   have : UnfoldDefinition.WF c (.const n ls) (.const n ls) e'
-      (some (ci.instantiateValueLevelParams! ls)) := by
+      (some (instantiateDeltaValue ci ls)) := by
     let .const a1 a2 a3 := he
     have ⟨rfl, b1, b2, b3⟩ := c.trenv.find?_uniq h3 a1
-    simp [ConstantInfo.instantiateValueLevelParams!, ConstantInfo.value!_eq, h4]
+    simp [instantiateDeltaValue, h4]
     have c1 := c.trenv.of_value h3 b1 h4 |>.instL c.Ewf (by trivial) a2 (b2.trans a3.symm)
     have := c1.weakFV c.Ewf (.from_nil c.mlctx.noBV) c.Δwf
     rw [c1.wf.closedN c.Ewf trivial |>.liftN_eq (Nat.zero_le _)] at this
@@ -918,7 +1002,7 @@ theorem unfoldDefinitionCore.WF {c : VContext} {s : VState} (he : c.TrExprS e e'
     · exact (List.mapM_eq_some.1 a2).length_eq.symm.trans <| a3.trans b2.symm
   split <;> [rename_i h5; exact .pure this]
   refine .pureBind <| .get ?_
-  split <;> [rename_i eq; refine .pureBind ?_]
+  split <;> [rename_i eq; skip]
   · refine .stateWF fun wf => .pure ?_
     obtain ⟨_, _, _, ⟨⟩, a1, rfl⟩ := wf.unfold_wf eq
     cases h3.symm.trans a1; exact this
@@ -944,3 +1028,14 @@ theorem unfoldDefinition.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
   simp only [Expr.getAppArgsRevList_reverse]; constructor
   · exact (e.mkAppList_getAppArgsList ▸ h1.mkAppList :)
   · exact h2.rebuild_mkAppList c.Ewf c.Δwf stk.tr (e.mkAppList_getAppArgsList ▸ he :)
+
+theorem ensureSortCore.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
+    RecM.WF c s (ensureSortCore e e₀) fun e1 _ =>
+      (∃ u, e1 = .sort u) ∧ c.TrExpr e1 e' ∧ c.FVarsBelow e e1 := by
+  simp [ensureSortCore]; split
+  · let .sort _ := e
+    exact .pure ⟨⟨_, rfl⟩, he.trExpr c.Ewf c.Δwf, .rfl⟩
+  refine (whnf.WF he).bind fun e _ _ ⟨hb, he⟩ => ?_; split
+  · let .sort _ := e
+    exact .pure ⟨⟨_, rfl⟩, he, hb⟩
+  exact .getEnv <| .getLCtx .throw

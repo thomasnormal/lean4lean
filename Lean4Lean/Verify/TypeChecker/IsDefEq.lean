@@ -1,6 +1,8 @@
 import Lean4Lean.Verify.TypeChecker.Reduce
 import Lean4Lean.Verify.EquivManager
 
+open Lean4Lean
+
 namespace Lean4Lean.TypeChecker.Inner
 open Lean hiding Environment Exception
 
@@ -13,7 +15,7 @@ theorem isDefEqLambda.WF {c : VContext} {s : VState}
       b → (c.withMLC m).IsDefEqU ei₁' ei₂' := by
   unfold isDefEqLambda; let c' := c.withMLC m
   split <;> [rename_i n₁ d₁ b₁ bi₁ n₂ d₂ b₂ bi₂; (simp [hsubst]; exact isDefEq.WF he₁ he₂)]
-  extract_lets F di₁ di₂ G; unfold G di₁ di₂
+  extract_lets F di₁ di₂; unfold di₁ di₂
   simp at he₁ he₂
   let .lam (ty' := t₁') (body' := b₁') ⟨_, a1⟩ a2 a3 := he₁
   let .lam (ty' := t₂') (body' := b₂') b1 b2 b3 := he₂
@@ -83,7 +85,7 @@ theorem isDefEqForall.WF {c : VContext} {s : VState}
       b → (c.withMLC m).IsDefEqU ei₁' ei₂' := by
   unfold isDefEqForall; let c' := c.withMLC m
   split <;> [rename_i n₁ d₁ b₁ bi₁ n₂ d₂ b₂ bi₂; (simp [hsubst]; exact isDefEq.WF he₁ he₂)]
-  extract_lets F di₁ di₂ G; unfold G di₁ di₂
+  extract_lets F di₁ di₂; unfold di₁ di₂
   simp at he₁ he₂
   let .forallE (ty' := t₁') (body' := b₁') ⟨_, a1⟩ _ a2 a3 := he₁
   let .forallE (ty' := t₂') (body' := b₂') b1 ⟨_, bT⟩ b2 b3 := he₂
@@ -162,15 +164,14 @@ theorem quickIsDefEq.WF {c : VContext} {s : VState}
     · intro h; apply (VEnv.IsDefEqU.weak'_iff c.Ewf a1 a2.toCtx).1
       exact (h1 h).uniq c.Ewf (a2.bvars_eq.trans c.mlctx.noBV)
         a1 (he₁.weakFV' c.Ewf a2 a1) (he₂.weakFV' c.Ewf a2 a1)
-  extract_lets F; split <;> [exact .pure fun _ => h ‹_›; skip]
-  refine .pureBind ?_; unfold F; split
+  split <;> [exact .pure fun _ => h ‹_›; split]
   · exact .toLBoolM <| c.withMLC_self ▸
       isDefEqLambda.WF (subst := #[]) (fvs := []) rfl (c.withMLC_self ▸ he₁) (c.withMLC_self ▸ he₂)
   · exact .toLBoolM <| c.withMLC_self ▸
       isDefEqForall.WF (subst := #[]) (fvs := []) rfl (c.withMLC_self ▸ he₁) (c.withMLC_self ▸ he₂)
   · have .sort hu := he₁; have .sort hv := he₂
     refine .pure fun h => ⟨_, .sortDF (.of_ofLevel hu) (.of_ofLevel hv) ?_⟩
-    exact Level.isEquiv'_wf (toLBool_true.1 h) hu hv
+    exact Level.isEquiv_wf (toLBool_true.1 h) hu hv
   · let .mdata he₁ := he₁; let .mdata he₂ := he₂
     exact .toLBoolM <| isDefEq.WF he₁ he₂
   · cases he₁
@@ -185,7 +186,7 @@ theorem isDefEqArgs.WF {c : VContext} {s : VState}
   unfold isDefEqArgs; split <;> (unfold Expr.getAppFn at H)
   · let .app a1 a2 a3 a4 := he₁
     let .app b1 b2 b3 b4 := he₂
-    refine (isDefEq.WF a4 b4).bind fun _ _ _ h2 => ?_; extract_lets F
+    refine (isDefEq.WF a4 b4).bind fun _ _ _ h2 => ?_
     split <;> [exact .pure nofun; rename_i hb2]
     refine (isDefEqArgs.WF H a3 b3).mono fun _ _ _ h1 hb1 => ?_
     simp at hb2
@@ -236,14 +237,13 @@ theorem tryEtaStruct.WF {c : VContext} {s : VState}
 theorem isDefEqApp.WF {c : VContext} {s : VState}
     (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
     RecM.WF c s (isDefEqApp e₁ e₂) fun b _ => b → c.IsDefEqU e₁' e₂' := by
-  unfold isDefEqApp; extract_lets F1
-  split <;> [(refine .pureBind ?_; unfold F1); exact .pure nofun]
+  unfold isDefEqApp; split <;> [skip; exact .pure nofun]
   rw [Expr.withApp_eq, Expr.withApp_eq]
   split <;> [rename_i eq; exact .pure nofun]
   have ⟨_, he₁'⟩ := AppStack.build <| e₁.mkAppList_getAppArgsList ▸ he₁
   have ⟨_, he₂'⟩ := AppStack.build <| e₂.mkAppList_getAppArgsList ▸ he₂
-  refine (isDefEq.WF he₁'.tr he₂'.tr).bind fun _ _ _ h => ?_; extract_lets F2
-  split <;> [(refine .pureBind ?_; unfold F2); exact .pure nofun]
+  refine (isDefEq.WF he₁'.tr he₂'.tr).bind fun _ _ _ h => ?_
+  split <;> [skip; exact .pure nofun]
   let rec loop.WF {s args₁ args₂ f₁ f₂ f₁' f₂' eq i} (l₁ r₁ l₂ r₂)
       (h₁ : args₁.toList = l₁ ++ r₁) (hi₁ : l₁.length = i)
       (h₂ : args₂.toList = l₂ ++ r₂) (hi₂ : l₂.length = i)
@@ -279,23 +279,28 @@ theorem isDefEqApp.WF {c : VContext} {s : VState}
   simp [Expr.getAppArgs_toList, Expr.mkAppList_getAppArgsList] at h2
   exact h2 hb _ he₁ _ he₂
 
+theorem getSortLevel.WF
+    (he : c.TrExprS e e') : (getSortLevel e).WF c s fun l _ =>
+      ∃ u', VLevel.ofLevel c.lparams l = some u' ∧ c.HasType e' (.sort u') := by
+  refine (inferType.WF he).bind fun ty _ le ⟨ty', _, _, h1, h2⟩ => ?_
+  refine (ensureSortCore.WF h1).bind fun ty _ le h => ?_
+  obtain ⟨⟨u, rfl⟩, ⟨ty₂, h3, h4⟩, _⟩ := h
+  let .sort hu := h3
+  exact .pure ⟨_, hu, h2.defeqU_r c.Ewf c.Δwf h4.symm⟩
+
 theorem isProp.WF
     (he : c.TrExprS e e') : (isProp e).WF c s fun b _ => b → c.HasType e' (.sort .zero) := by
-  unfold isProp
-  refine (inferType.WF he).bind fun ty _ le ⟨ty', _, _, h1, h2⟩ => ?_
-  refine .stateWF fun wf => ?_
-  refine (whnf.WF h1).bind fun ty _ le ⟨_, ty₂, h3, h4⟩ => .pure ?_
-  simp [Expr.prop, Expr.eqv_sort]; rintro rfl
-  let .sort h3 := h3; cases h3
-  exact h2.defeqU_r c.Ewf c.Δwf h4.symm
+  refine (getSortLevel.WF he).bind fun l _ le ⟨u', hu, h⟩ => .pure fun H => ?_
+  exact h.defeqU_r c.Ewf c.Δwf
+    ⟨_, .sortDF (.of_ofLevel hu) trivial (ofLevel_isAlwaysZero hu H)⟩
 
 theorem isDefEqProofIrrel.WF {c : VContext} {s : VState}
     (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
     RecM.WF c s (isDefEqProofIrrel e₁ e₂) fun b _ => b = .true → c.IsDefEqU e₁' e₂' := by
   unfold isDefEqProofIrrel
-  refine (inferType.WF he₁).bind fun _ _ _ ⟨_, a1, a2, a3, a4⟩ => ?_; extract_lets F1
+  refine (inferType.WF he₁).bind fun _ _ _ ⟨_, a1, a2, a3, a4⟩ => ?_
   refine (isProp.WF a3).bind fun _ _ _ h1 => ?_
-  split <;> [exact .pure nofun; (refine .pureBind ?_; unfold F1)]
+  split <;> [exact .pure nofun; skip]
   rename_i h; simp at h
   refine (inferType.WF he₂).bind fun _ _ _ ⟨_, b1, b2, b3, b4⟩ => .toLBoolM ?_
   refine (isDefEq.WF a3 b3).mono fun _ _ _ h2 hb => ?_
@@ -309,9 +314,8 @@ theorem cacheFailure.WF {c : VContext} {s : VState} :
 theorem tryUnfoldProjApp.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
     (tryUnfoldProjApp e).WF c s fun oe _ =>
     ∀ e₁, oe = some e₁ → c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' := by
-  unfold tryUnfoldProjApp; extract_lets f F
+  unfold tryUnfoldProjApp; extract_lets f
   split <;> [exact .pure nofun; skip]
-  refine .pureBind ?_; unfold F
   refine (whnfCore.WF he).bind fun _ _ _ h => ?_
   refine .pure fun _ => ?_
   split <;> rintro ⟨⟩; exact h
@@ -319,18 +323,25 @@ theorem tryUnfoldProjApp.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
 def _root_.Lean4Lean.TypeChecker.ReductionStatus.WF
     (c : VContext) (e₁' e₂' : VExpr) (allowContinue := false) : ReductionStatus → Prop
   | .continue e₁ e₂ => allowContinue ∧ c.TrExpr e₁ e₁' ∧ c.TrExpr e₂ e₂'
-  | .unknown e₁ e₂ => c.TrExpr e₁ e₁' ∧ c.TrExpr e₂ e₂'
-  | .bool b => b → c.IsDefEqU e₁' e₂'
+  | .unknown e₁ e₂ | .false e₁ e₂ => c.TrExpr e₁ e₁' ∧ c.TrExpr e₂ e₂'
+  | .true => c.IsDefEqU e₁' e₂'
 
-def _root_.Lean4Lean.TypeChecker.ReductionStatus.WF.defeq
+theorem _root_.Lean4Lean.TypeChecker.ReductionStatus.WF.bool
+    (H1 : c.TrExpr e₁ e₁') (H2 : c.TrExpr e₂ e₂') (H : b = true → c.IsDefEqU e₁' e₂') :
+    ReductionStatus.WF c e₁' e₂' allowContinue (.bool e₁ e₂ b) :=
+  match b with
+  | .false => ⟨H1, H2⟩
+  | .true => H rfl
+
+theorem _root_.Lean4Lean.TypeChecker.ReductionStatus.WF.defeq
     (h1 : c.IsDefEqU e₁' e₁'') (h2 : c.IsDefEqU e₂' e₂'')
     (H : ReductionStatus.WF c e₁' e₂' ac r) : ReductionStatus.WF c e₁'' e₂'' ac r :=
   match r, H with
   | .continue .., ⟨a1, a2, a3⟩ =>
     ⟨a1, a2.defeq c.Ewf c.Δwf h1, a3.defeq c.Ewf c.Δwf h2⟩
-  | .unknown .., ⟨a2, a3⟩ =>
+  | .unknown .., ⟨a2, a3⟩ | .false .., ⟨a2, a3⟩ =>
     ⟨a2.defeq c.Ewf c.Δwf h1, a3.defeq c.Ewf c.Δwf h2⟩
-  | .bool _, h => fun hb => h1.symm.trans c.Ewf c.Δwf (h hb) |>.trans c.Ewf c.Δwf h2
+  | .true, h => h1.symm.trans c.Ewf c.Δwf h |>.trans c.Ewf c.Δwf h2
 
 theorem lazyDeltaReductionStep.WF {c : VContext} {s : VState}
     (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
@@ -339,7 +350,7 @@ theorem lazyDeltaReductionStep.WF {c : VContext} {s : VState}
   refine .getEnv ?_; extract_lets delta cont F1 F2
   have hdelta {s e e' ci} (he : c.TrExprS e e') (H : isDelta c.env e = some ci) :
       (delta e).WF c s fun r _ => c.TrExpr r e' := by
-    let ⟨n, h1, ⟨_, h2⟩, ls, h3⟩ := isDelta_is_some.1 H
+    let ⟨n, h1, ⟨_, h2⟩, ls, h3, _⟩ := isDelta_is_some.1 H
     have ⟨_, stk⟩ := AppStack.build (e.mkAppList_getAppArgsList ▸ he)
     have .const a1 a2 a3 := h3 ▸ stk.tr
     have ⟨b1, b2, b3, b4⟩ := c.trenv.find?_uniq h1 a1
@@ -352,8 +363,8 @@ theorem lazyDeltaReductionStep.WF {c : VContext} {s : VState}
     let ⟨_, se₁, de₁⟩ := he₁; let ⟨_, se₂, de₂⟩ := he₂
     refine (quickIsDefEq.WF se₁ se₂).bind fun _ _ _ h => .pure ?_; split
     · exact ⟨rfl, he₁, he₂⟩
-    · intro; exact de₁.symm.trans c.Ewf c.Δwf (h rfl) |>.trans c.Ewf c.Δwf de₂
-    · nofun
+    · exact de₁.symm.trans c.Ewf c.Δwf (h rfl) |>.trans c.Ewf c.Δwf de₂
+    · exact ⟨he₁, he₂⟩
   split
   · exact .pure ⟨he₁.trExpr c.Ewf c.Δwf, he₂.trExpr c.Ewf c.Δwf⟩
   · refine (tryUnfoldProjApp.WF he₂).bind fun _ _ _ h => ?_; split
@@ -371,8 +382,8 @@ theorem lazyDeltaReductionStep.WF {c : VContext} {s : VState}
   split <;> [skip; exact cacheFailure.WF.lift.bind fun _ _ _ _ => hF1]
   rename_i h1 h2; simp at h1
   cases ptrEqConstantInfo_eq h1.1.1.2
-  have ⟨n₁, b1₁, ⟨_, b2₁⟩, ls₁, b3₁⟩ := isDelta_is_some.1 hd1
-  have ⟨n₂, b1₂, ⟨_, b2₂⟩, ls₂, b3₂⟩ := isDelta_is_some.1 hd2
+  have ⟨n₁, b1₁, ⟨_, b2₁⟩, ls₁, b3₁, _⟩ := isDelta_is_some.1 hd1
+  have ⟨n₂, b1₂, ⟨_, b2₂⟩, ls₂, b3₂, _⟩ := isDelta_is_some.1 hd2
   simp [b3₁, b3₂, Expr.constLevels!] at h2
   have ⟨_, stk₁⟩ := AppStack.build (e₁.mkAppList_getAppArgsList ▸ he₁)
   have ⟨_, stk₂⟩ := AppStack.build (e₂.mkAppList_getAppArgsList ▸ he₂)
@@ -387,7 +398,7 @@ theorem lazyDeltaReductionStep.WF {c : VContext} {s : VState}
     (Level.isEquivList_wf h2 c2₁ c2₂)
   refine (isDefEqArgs.WF ⟨_, stk₁.tr, _, stk₂.tr, _, this⟩ he₁ he₂).bind fun _ _ _ h => ?_
   split <;> [skip; exact cacheFailure.WF.lift.bind fun _ _ _ _ => hF1]
-  exact .pure fun _ => h ‹_›
+  exact .pure <| h ‹_›
 
 theorem isNatZero_wf {c : VContext} (H : isNatZero e) (h : c.TrExprS e e') : e' = .natZero := by
   have h1 : c.TrExprS (.lit (.natVal 0)) e' := by
@@ -413,11 +424,11 @@ theorem isNatSuccOf?_wf {c : VContext} (H : isNatSuccOf? e = some e₁)
 theorem isDefEqOffset.WF {c : VContext} {s : VState}
     (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
     (isDefEqOffset e₁ e₂).WF c s fun b _ => b = .true → c.IsDefEqU e₁' e₂' := by
-  unfold isDefEqOffset; extract_lets F; split
+  unfold isDefEqOffset; split
   · rename_i h; simp at h
     cases isNatZero_wf h.1 he₁; cases isNatZero_wf h.2 he₂
     exact .pure fun _ => .refl <| he₁.wf c.Ewf c.Δwf
-  · refine .pureBind ?_; unfold F; split <;> [skip; exact .pure nofun]
+  · split <;> [skip; exact .pure nofun]
     obtain ⟨_, a1, rfl⟩ := isNatSuccOf?_wf ‹_› he₁
     obtain ⟨_, b1, rfl⟩ := isNatSuccOf?_wf ‹_› he₂
     refine .toLBoolM <| (isDefEqCore.WF a1 b1).mono fun _ _ _ h hb => ?_
@@ -429,32 +440,34 @@ theorem lazyDeltaReduction.loop.WF {c : VContext} {s : VState}
     (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
     (lazyDeltaReduction.loop e₁ e₂ n).WF c s fun r _ => r.WF c e₁' e₂' := by
   induction n generalizing s e₁ e₂ e₁' e₂' with | zero => exact .throw | succ n ih
-  unfold loop; extract_lets F1 F2 F3
+  unfold loop; extract_lets F1
   refine (isDefEqOffset.WF he₁ he₂).bind fun _ _ _ h => ?_; split
-  · exact .pure fun hb => h (by simpa using hb)
-  suffices hF2 : ∀ {s}, (F2 ⟨⟩).WF c s fun r _ => r.WF c e₁' e₂' by
-    refine .pureBind <|.readThe ?_; split <;> [skip; exact hF2]
+  · exact .pure <| .bool (he₁.trExpr c.Ewf c.Δwf) (he₂.trExpr c.Ewf c.Δwf) fun hb =>
+      h (by simpa using hb)
+  suffices hF1 : ∀ {s}, (F1 ⟨⟩).WF c s fun r _ => r.WF c e₁' e₂' by
+    refine .readThe ?_; split <;> [skip; exact hF1]
     refine (reduceNat.WF he₁).bind fun _ _ _ h => ?_; split
     · have ⟨_, a1, a2⟩ := (h _ rfl).2
-      refine (isDefEqCore.WF a1 he₂).bind fun _ _ _ h => .pure fun hb => ?_
+      refine (isDefEqCore.WF a1 he₂).bind fun _ _ _ h => ?_
+      refine .pure <| .bool ⟨_, a1, a2⟩ (he₂.trExpr c.Ewf c.Δwf) fun hb => ?_
       exact a2.symm.trans c.Ewf c.Δwf (h hb)
     refine (reduceNat.WF he₂).bind fun _ _ _ h => ?_; split
     · have ⟨_, a1, a2⟩ := (h _ rfl).2
-      refine (isDefEqCore.WF he₁ a1).bind fun _ _ _ h => .pure fun hb => ?_
+      refine (isDefEqCore.WF he₁ a1).bind fun _ _ _ h => ?_
+      refine .pure <| .bool (he₁.trExpr c.Ewf c.Δwf) ⟨_, a1, a2⟩ fun hb => ?_
       exact (h hb).trans c.Ewf c.Δwf a2
-    exact hF2
-  intro s; unfold F2; refine .getEnv ?_
+    exact hF1
+  intro s; unfold F1; refine .getEnv ?_
   refine (M.WF.liftExcept reduceNative.WF).lift.bind fun _ _ _ h => ?_
   split <;> [cases h _ rfl; skip]
   refine (M.WF.liftExcept reduceNative.WF).lift.bind fun _ _ _ h => ?_
   split <;> [cases h _ rfl; skip]
-  refine .pureBind ?_; unfold F1
   refine (lazyDeltaReductionStep.WF he₁ he₂).bind fun r _ _ h => ?_
-  obtain r|r|r := r
-  · let ⟨_, ⟨_, a1, a2⟩, ⟨_, b1, b2⟩⟩ := h
+  cases r with
+  | «continue» =>
+    let ⟨_, ⟨_, a1, a2⟩, ⟨_, b1, b2⟩⟩ := h
     exact (ih a1 b1).mono fun _ _ _ h => h.defeq a2 b2
-  · exact .pure h
-  · exact .pure h
+  | _ => exact .pure h
 
 theorem tryStringLitExpansionCore.WF {c : VContext} {s : VState}
     (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
@@ -474,14 +487,52 @@ theorem isDefEqUnitLike.WF {c : VContext} {s : VState}
     (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
     RecM.WF c s (isDefEqUnitLike e₁ e₂) fun b _ => b = .true → c.IsDefEqU e₁' e₂' := sorry
 
+theorem lazyDeltaProjReduction.finish.WF {c : VContext} {s : VState}
+    (he₁ : c.TrExprS (.proj n₁ i e₁) e₁') (he₂ : c.TrExprS (.proj n₂ i e₂) e₂') :
+    (finish i e₁ e₂).WF c s fun r _ => r → c.IsDefEqU e₁' e₂' := by
+  unfold finish
+  refine (reduceProjCore.WF he₁).bind fun _ _ _ h1 => ?_; extract_lets F
+  have hF {s} : (F ⟨⟩).WF c s fun r _ => r → c.IsDefEqU e₁' e₂' := by
+    have .proj a1 a2 := he₁; have .proj b1 b2 := he₂
+    refine (isDefEqCore.WF a1 b1).mono fun _ _ _ h hb => ?_
+    exact a2.uniq c.Ewf (.refl c.Δwf.toCtx) b2 (h hb)
+  split <;> [have ⟨a1, _, a2, a3⟩ := h1 _ rfl; exact .pureBind hF]
+  refine (reduceProjCore.WF he₂).bind fun _ _ _ h2 => ?_
+  split <;> [have ⟨b1, _, b2, b3⟩ := h2 _ rfl; exact .pureBind hF]
+  exact (isDefEqCore.WF a2 b2).mono fun _ _ _ h hb =>
+    a3.symm.trans c.Ewf c.Δwf <| (h hb).trans c.Ewf c.Δwf b3
+
+theorem lazyDeltaProjReduction.loop.WF {c : VContext} {s : VState}
+    (he₁ : c.TrExprS (.proj n₁ i e₁) e₁') (he₂ : c.TrExprS (.proj n₂ i e₂) e₂') :
+    (loop i e₁ e₂ n).WF c s fun r _ => r → c.IsDefEqU e₁' e₂' := by
+  induction n generalizing s e₁ e₂ e₁' e₂' with | zero => exact .throw | succ n ih
+  unfold loop; have .proj a1 a2 := he₁; have .proj b1 b2 := he₂
+  refine (lazyDeltaReductionStep.WF a1 b1).bind fun _ _ _ h => ?_; split
+  · have ⟨_, ⟨_, c1, c2⟩, ⟨_, d1, d2⟩⟩ := h
+    have ⟨_, e1⟩ := a2.defeqDFC c.Ewf (.refl c.Δwf.toCtx) c2.symm
+    have ⟨_, e2⟩ := b2.defeqDFC c.Ewf (.refl c.Δwf.toCtx) d2.symm
+    refine (ih (.proj c1 e1) (.proj d1 e2)).mono fun _ _ _ h hb => ?_
+    have f1 := e1.uniq c.Ewf (.refl c.Δwf.toCtx) a2 c2
+    have f2 := e2.uniq c.Ewf (.refl c.Δwf.toCtx) b2 d2
+    exact f1.symm.trans c.Ewf c.Δwf <| (h hb).trans c.Ewf c.Δwf f2
+  · exact .pure fun _ => a2.uniq c.Ewf (.refl c.Δwf.toCtx) b2 h
+  all_goals
+    have ⟨⟨_, c1, c2⟩, ⟨_, d1, d2⟩⟩ := h
+    have ⟨_, e1⟩ := a2.defeqDFC c.Ewf (.refl c.Δwf.toCtx) c2.symm
+    have ⟨_, e2⟩ := b2.defeqDFC c.Ewf (.refl c.Δwf.toCtx) d2.symm
+    refine (finish.WF (.proj c1 e1) (.proj d1 e2)).mono fun _ _ _ h hb => ?_
+    have f1 := e1.uniq c.Ewf (.refl c.Δwf.toCtx) a2 c2
+    have f2 := e2.uniq c.Ewf (.refl c.Δwf.toCtx) b2 d2
+    exact f1.symm.trans c.Ewf c.Δwf <| (h hb).trans c.Ewf c.Δwf f2
+
 theorem isDefEqCore'.WF {c : VContext} {s : VState}
     (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
     RecM.WF c s (isDefEqCore' e₁ e₂) fun b _ => b = true → c.IsDefEqU e₁' e₂' := by
-  unfold isDefEqCore'; extract_lets F1 F2 F3
+  unfold isDefEqCore'; extract_lets F1
   refine (quickIsDefEq.WF he₁ he₂).bind fun _ _ _ h => ?_
   split <;> [exact .pure fun hb => h (by simpa using hb); skip]
-  refine .pureBind <| .readThe ?_
-  suffices ∀ {s}, RecM.WF c s (F2 ⟨⟩) fun b _ => b = true → c.IsDefEqU e₁' e₂' by
+  refine .readThe ?_
+  suffices ∀ {s}, RecM.WF c s (F1 ⟨⟩) fun b _ => b = true → c.IsDefEqU e₁' e₂' by
     split <;> [rename_i h1; exact this]
     refine (whnf.WF he₁).bind fun _ _ _ ⟨_, _, a1, a2⟩ => ?_
     split <;> [rename_i h2; exact this]
@@ -494,29 +545,30 @@ theorem isDefEqCore'.WF {c : VContext} {s : VState}
     cases c.hasPrimitives.boolTrue c1
     simp at b3 c3; subst b3 c3; simp at b2 c2; subst b2 c2
     exact a2.symm
-  intro; unfold F2
+  intro; unfold F1
   refine (whnfCore.WF he₁).bind fun _ _ _ ⟨_, e₁', a1, a2⟩ => ?_
   refine (whnfCore.WF he₂).bind fun _ _ _ ⟨_, e₂', b1, b2⟩ => ?_
-  extract_lets F2 F3
+  extract_lets F2
   refine .mono (Q := fun b _ => b = true → c.IsDefEqU e₁' e₂') ?_ fun _ _ _ h hb =>
     a2.symm.trans c.Ewf c.Δwf (h (by simpa using hb)) |>.trans c.Ewf c.Δwf b2
-  suffices ∀ {s}, RecM.WF c s (F3 ⟨⟩) fun b _ => b = true → c.IsDefEqU e₁' e₂' by
+  suffices ∀ {s}, RecM.WF c s (F2 ⟨⟩) fun b _ => b = true → c.IsDefEqU e₁' e₂' by
     split <;> [skip; exact this]
     refine (quickIsDefEq.WF a1 b1).bind fun _ _ _ h => ?_
     split <;> [skip; exact this]
     exact .pure fun hb => h (by simpa using hb)
-  intro; unfold F3
+  intro; unfold F2
   refine (isDefEqProofIrrel.WF a1 b1).bind fun _ _ _ h => ?_
   split
   · exact .pure fun hb => h (by simpa using hb)
-  refine .pureBind <| (lazyDeltaReduction.loop.WF a1 b1).readThe.bind fun _ _ _ h => ?_; split
+  refine (lazyDeltaReduction.loop.WF a1 b1).readThe.bind fun _ _ _ h => ?_; split
   · cases h.1
-  · exact .pure h
+  · exact .pure fun _ => h
+  · exact .pure nofun
   have ⟨⟨e₁', c1, c4⟩, ⟨e₂', d1, d4⟩⟩ := h
   refine .mono (Q := fun b _ => b = true → c.IsDefEqU e₁' e₂') ?_ fun _ _ _ h hb =>
     c4.symm.trans c.Ewf c.Δwf (h (by simpa using hb)) |>.trans c.Ewf c.Δwf d4
-  extract_lets F2 F3 F4 F5 F6 F7
-  suffices ∀ {s}, RecM.WF c s (F7 ⟨⟩) fun b _ => b = true → c.IsDefEqU e₁' e₂' by
+  extract_lets F3
+  suffices ∀ {s}, RecM.WF c s (F3 ⟨⟩) fun b _ => b = true → c.IsDefEqU e₁' e₂' by
     split
     · split <;> [rename_i h2; exact this]
       refine .pure fun _ => ?_
@@ -531,27 +583,24 @@ theorem isDefEqCore'.WF {c : VContext} {s : VState}
     · split <;> [rename_i h; exact this]
       simp at h; subst h
       exact .pure fun _ => c1.uniq c.Ewf (.refl c.Ewf c.Δwf) d1
-    · split <;> [rename_i h2; exact this]
-      have .proj c1 c2 := c1; have .proj d1 d2 := d1
-      refine (isDefEq.WF c1 d1).bind fun _ _ _ h => ?_
-      split <;> [skip; exact this]
-      simp at h2; subst h2; clear h
-      exact .pure fun _ => c2.uniq c.Ewf (.refl c.Δwf) d2 (h ‹_›)
+    · split <;> [rename_i h2; exact this]; simp at h2; subst h2
+      refine (lazyDeltaProjReduction.loop.WF c1 d1).bind fun _ _ _ h => ?_
+      split <;> [refine .pure fun _ => h ‹_›; exact this]
     · exact this
-  intro; unfold F7
+  intro; unfold F3
   refine (whnfCore.WF c1).bind fun _ _ _ ⟨_, e₁'', c5, c6⟩ => ?_
   refine (whnfCore.WF d1).bind fun _ _ _ ⟨_, e₂'', d5, d6⟩ => ?_
   split
-  · exact (isDefEqCore.WF c5 d5).bind fun _ _ _ h => .pure fun hb =>
+  · exact (isDefEqCore.WF c5 d5).mono fun _ _ _ h hb =>
       c6.symm.trans c.Ewf c.Δwf (h (by simpa using hb)) |>.trans c.Ewf c.Δwf d6
-  refine .pureBind <| (isDefEqApp.WF c1 d1).bind fun _ _ _ h => ?_
+  refine (isDefEqApp.WF c1 d1).bind fun _ _ _ h => ?_
   split <;> [exact .pure fun _ => h ‹_›; skip]
-  refine .pureBind <| (tryEtaExpansion.WF c1 d1).bind fun _ _ _ h => ?_
+  refine (tryEtaExpansion.WF c1 d1).bind fun _ _ _ h => ?_
   split <;> [exact .pure fun _ => h ‹_›; skip]
-  refine .pureBind <| (tryEtaStruct.WF c1 d1).bind fun _ _ _ h => ?_
+  refine (tryEtaStruct.WF c1 d1).bind fun _ _ _ h => ?_
   split <;> [exact .pure fun _ => h ‹_›; skip]
-  refine .pureBind <| (tryStringLitExpansion.WF c1 d1).bind fun _ _ _ h => ?_
+  refine (tryStringLitExpansion.WF c1 d1).bind fun _ _ _ h => ?_
   split <;> [exact .pure fun hb => h (by simpa using hb); skip]
-  refine .pureBind <| (isDefEqUnitLike.WF c1 d1).bind fun _ _ _ h => ?_
+  refine (isDefEqUnitLike.WF c1 d1).bind fun _ _ _ h => ?_
   split <;> [exact .pure fun _ => h ‹_›; skip]
-  exact .pureBind <| .pure nofun
+  exact .pure nofun

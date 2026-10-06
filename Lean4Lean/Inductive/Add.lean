@@ -99,7 +99,7 @@ def checkInductiveTypes
       if stats.indConsts.isEmpty then
         let lctx := (← read).lctx
         stats := { stats with lctx, resultLevel, isNotZero := resultLevel.isNeverZero }
-      else if !resultLevel.isEquiv' stats.resultLevel then
+      else if !resultLevel.isEquiv stats.resultLevel then
         throw <| .other "mutually inductive types must live in the same universe"
       stats := { stats with
         nindices := stats.nindices.push nindices
@@ -223,7 +223,7 @@ def checkConstructors (indTypes : Array InductiveType)
             loop (body.instantiate1 param) (i + 1) fuel
           else
             let s ← ensureType dom
-            unless stats.resultLevel.isZero || stats.resultLevel.geq' s.sortLevel! do
+            unless stats.resultLevel.isAlwaysZero || stats.resultLevel.geq' s.sortLevel! do
               throw <| .other s!"universe level of type_of(arg #{i + 1}) of '{n}' \
                 is too big for the corresponding inductive datatype"
             if !isUnsafe then
@@ -268,7 +268,7 @@ def isLargeEliminator (stats : InductiveStats) (indTypes : Array InductiveType) 
         withLocalDecl name bi dom.consumeTypeAnnotations fun arg => do
           let mut toCheck := toCheck
           if i ≥ stats.params.size then
-            if !(← ensureType dom).sortLevel!.isZero then
+            if !(← ensureType dom).sortLevel!.isAlwaysZero then
               toCheck := toCheck.push arg
           loop (body.instantiate1 arg) (i + 1) toCheck fuel
       else
@@ -288,7 +288,7 @@ def getElimLevel (stats : InductiveStats) (indTypes : Array InductiveType) :
 
 def isKTarget (stats : InductiveStats) (indTypes : Array InductiveType) : M Bool := do
   let #[indType] := indTypes | return false
-  unless stats.resultLevel.isZero do return false
+  unless stats.resultLevel.isAlwaysZero do return false
   let [ctor] := indType.ctors | return false
   let rec loop i
     | .forallE _ _ body _ => i < stats.params.size && loop (i + 1) body
@@ -459,6 +459,7 @@ def run (nparams : Nat) (types : List InductiveType) (numNested : Nat) : M Envir
   checkConstructors indTypes stats isUnsafe
   withEnv (← declareConstructors stats indTypes isUnsafe) do
   let elimLevel ← getElimLevel stats indTypes
+  let k ← isKTarget stats indTypes
   mkRecInfos stats indTypes elimLevel fun recInfos => do
   let motives := recInfos.map (·.motive)
   let minors := recInfos.flatMap (·.minors)
@@ -466,7 +467,6 @@ def run (nparams : Nat) (types : List InductiveType) (numNested : Nat) : M Envir
   let numMotives := motives.size
   let all := indTypes.map (·.name) |>.toList
   let lctx ← getLCtx
-  let k ← isKTarget stats indTypes
   let isUnsafe := (← read).safety != .safe
   StateT.run' (s := 0) do
   let mut env ← getEnv
@@ -501,7 +501,8 @@ structure Result where
   ngen : NameGenerator
   nparams : Nat
   lctx : LocalContext
-  aux2nested : NameMap Expr -- exprs contain `nparams` loose bvars
+  params : Array Expr -- the fvars declared in `lctx`
+  aux2nested : NameMap Expr -- exprs are open over `params`, like the C++ `m_aux2nested`
   types : List InductiveType
 
 instance [MonadStateOf NameGenerator m] : MonadNameGenerator m where
@@ -543,11 +544,11 @@ def restoreNested (r : Result) (env' : Environment) (e : Expr)
     if let some nested := r.aux2nested.find? c then
       let args := t.getAppArgs
       assert! args.size ≥ r.nparams
-      return mkAppRange (nested.instantiateRev As) r.nparams args.size args
+      return mkAppRange ((nested.abstract r.params).instantiateRev As) r.nparams args.size args
     let (nested, auxI_name) ← r.getNestedIfAuxCtor env' c
     let args := t.getAppArgs
     assert! args.size ≥ r.nparams
-    let nested' := nested.instantiateRev As
+    let nested' := (nested.abstract r.params).instantiateRev As
     nested'.withApp fun I I_args => do
     let .const I_c I_ls := I | unreachable!
     let c' := .const (c.replacePrefix auxI_name I_c) I_ls
@@ -698,8 +699,8 @@ def run (fuel nparams : Nat) (types : List InductiveType) : M Result := do
       modify fun s => { s with newTypes := s.newTypes.set! i { indType with ctors } }
       loop (i+1) fuel
     else
-      let aux2nested := s.nestedAux.foldl (fun m (e, n) => m.insert n (e.abstract params)) {}
-      return { s with nparams := params.size, lctx, aux2nested, types := s.newTypes.toList }
+      let aux2nested := s.nestedAux.foldl (fun m (e, n) => m.insert n e) {}
+      return { s with nparams := params.size, lctx, params, aux2nested, types := s.newTypes.toList }
   loop 0 fuel
 end ElimNestedInductive
 
@@ -722,9 +723,21 @@ def mkAuxRecNameMap (env' : Environment) (types : List InductiveType) :
     oldRecNames := oldRecNames.push oldRecName
   return (oldRecNames.toList, recMap)
 
+def checkNoNestedAux (n : Name) (e : Expr) : Except Exception Unit := do
+  if (e.find? fun
+      | .const c _ => (`_nested).isPrefixOf c
+      | .proj s _ _ => (`_nested).isPrefixOf s
+      | _ => false).isSome then
+    throw <| .other s!"invalid declaration '{n}', it uses the reserved prefix '_nested'"
+
 def Environment.addInductive (env : Environment) (lparams : List Name) (nparams : Nat)
     (types : List InductiveType) (isUnsafe allowPrimitive : Bool) (fuel : FuelConfig := {}) :
     Except Exception Environment := do
+  for indType in types do
+    env.checkNoMVarNoFVar indType.name indType.type
+    for ctor in indType.ctors do
+      env.checkNoMVarNoFVar ctor.name ctor.type
+      checkNoNestedAux ctor.name ctor.type
   let res ← ElimNestedInductive.run fuel.inductiveFuel nparams types env
     |>.run' { lvls := lparams.map .param, newTypes := types.toArray }
   let numNested := res.aux2nested.size
