@@ -1,4 +1,5 @@
 import Batteries.Tactic.OpenPrivate
+import Lean4Lean.Level
 import Lean4Lean.Theory.VLevel
 import Lean4Lean.Verify.QSort
 import Lean4Lean.Verify.NormLt
@@ -536,5 +537,21 @@ theorem geq_wf (h : geq u v)
   intro ns
   rw [eval_ofLevel (μ := fun _ => 0) hv, eval_ofLevel (μ := fun _ => 0) hu]
   exact geq_sound h
+
+theorem isEquivListStd_wf (H : isEquivListStd us vs) :
+    List.mapM (VLevel.ofLevel Us) us = some us' →
+    List.mapM (VLevel.ofLevel Us) vs = some vs' → us'.Forall₂ (· ≈ ·) vs' := by
+  simp only [isEquivListStd] at H
+  revert us' vs'
+  induction us generalizing vs with
+  | nil => cases vs <;> simp [List.all2] at H ⊢
+  | cons u us ih =>
+    cases vs with
+    | nil => simp [List.all2] at H
+    | cons v vs =>
+      simp [List.all2] at H
+      simp
+      rintro _ _ u' hu us' hus rfl v' hv vs' hvs rfl
+      exact .cons (isEquiv_wf H.1 hu hv) (ih H.2 hus hvs)
 
 end Lean.Level

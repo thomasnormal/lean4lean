@@ -88,3 +88,21 @@ info: 'Lean.Level.geq_wf' depends on axioms: [propext,
  Level.normalize_eq]
 -/
 #guard_msgs in #print axioms Level.geq_wf
+
+-- This equivalence needs the complete fallback. The standard-only entry point must
+-- reject it, while still accepting ordinary equalities and checking list lengths.
+#guard !(Level.isEquivListStd [.max p q] [.max (.imax q p) q])
+#guard Level.isEquivList [.max p q] [.max (.imax q p) q]
+#guard Level.isEquivListStd [.max p q, .succ p] [.max q p, .succ p]
+#guard !(Level.isEquivListStd [p] [])
+#guard !(Level.isEquivListStd [] [p])
+
+/--
+info: 'Lean.Level.isEquivListStd_wf' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound,
+ Level.instLawfulBEqLevel,
+ Level.isExplicitSubsumedAux_eq,
+ Level.normalize_eq]
+-/
+#guard_msgs in #print axioms Level.isEquivListStd_wf

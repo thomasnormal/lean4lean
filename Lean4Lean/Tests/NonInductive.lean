@@ -40,6 +40,17 @@ run_meta
   for n in [`Checkpoint.A, `Checkpoint.id, `Checkpoint.opaqueId, `Checkpoint.idProof,
       `Checkpoint.recursive, `Checkpoint.first, `Checkpoint.second] do
     unless (env.find? n).isSome do throwError "missing declaration {n}"
+  let p := Level.param `p
+  let q := Level.param `q
+  let compareLevels (u v : Level) := TypeChecker.M.run env (lparams := [`p, `q])
+    (x := TypeChecker.isDefEq (.const `Checkpoint.A [u]) (.const `Checkpoint.A [v]))
+  -- Check the actual constant-comparison path, not just the list helper.
+  match compareLevels (.max p q) (.max q p) with
+  | .ok true => pure ()
+  | _ => throwError "standard level equivalence was rejected"
+  match compareLevels (.max p q) (.max (.imax q p) q) with
+  | .ok false => pure ()
+  | _ => throwError "constant comparison used the complete level fallback"
   match addDeclVerified env declarations.head! with
   | .error _ => pure ()
   | .ok _ => throwError "duplicate declaration was accepted"

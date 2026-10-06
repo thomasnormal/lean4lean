@@ -358,6 +358,10 @@ def isEquiv' (u v : Level) : Bool :=
 
 def isEquivList : List Level → List Level → Bool := List.all2 isEquiv'
 
+/-- Compare universe arguments using only the standard-library algorithm, without the
+complete normalization fallback. -/
+def isEquivListStd : List Level → List Level → Bool := List.all2 isEquiv
+
 /-- Core's `geq` as a fast path, on the same grounds as `isEquiv'`. -/
 def geq' (u v : Level) : Bool :=
   geq u v || (Normalize.normalize v).le (Normalize.normalize u)

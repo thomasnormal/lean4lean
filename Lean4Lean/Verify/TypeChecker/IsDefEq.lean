@@ -395,7 +395,7 @@ theorem lazyDeltaReductionStep.WF {c : VContext} {s : VState}
   have := VEnv.IsDefEq.constDF c1₁
     (Γ := c.vlctx.toCtx) (.of_mapM_ofLevel c2₁) (.of_mapM_ofLevel c2₂)
     ((List.mapM_eq_some.1 c2₁).length_eq.symm.trans c3₁)
-    (Level.isEquivList_wf h2 c2₁ c2₂)
+    (Level.isEquivListStd_wf h2 c2₁ c2₂)
   refine (isDefEqArgs.WF ⟨_, stk₁.tr, _, stk₂.tr, _, this⟩ he₁ he₂).bind fun _ _ _ h => ?_
   split <;> [skip; exact cacheFailure.WF.lift.bind fun _ _ _ _ => hF1]
   exact .pure <| h ‹_›
@@ -578,7 +578,7 @@ theorem isDefEqCore'.WF {c : VContext} {s : VState}
       have := VEnv.IsDefEq.constDF c1
         (Γ := c.vlctx.toCtx) (.of_mapM_ofLevel c2) (.of_mapM_ofLevel d2)
         ((List.mapM_eq_some.1 c2).length_eq.symm.trans c3)
-        (Level.isEquivList_wf h2.2 c2 d2)
+        (Level.isEquivListStd_wf h2.2 c2 d2)
       exact this.toU
     · split <;> [rename_i h; exact this]
       simp at h; subst h

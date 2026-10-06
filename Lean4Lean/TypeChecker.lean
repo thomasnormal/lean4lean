@@ -739,7 +739,7 @@ def lazyDeltaReductionStep (tn sn : Expr) : RecM ReductionStatus := do
       if tn.isApp && sn.isApp && ptrEqConstantInfo dt ds && dt.hints.isRegular
         && !failedBefore (← get).failure tn sn
       then
-        if Level.isEquivList tn.getAppFn.constLevels! sn.getAppFn.constLevels! then
+        if Level.isEquivListStd tn.getAppFn.constLevels! sn.getAppFn.constLevels! then
           if ← isDefEqArgs tn sn then
             return .true
         cacheFailure tn sn
@@ -863,7 +863,7 @@ def isDefEqCore' (t s : Expr) : RecM Bool := do
 
   match tn, sn with
   | .const tf tl, .const sf sl =>
-    if tf == sf && Level.isEquivList tl sl then return true
+    if tf == sf && Level.isEquivListStd tl sl then return true
   | .fvar tv, .fvar sv => if tv == sv then return true
   | .proj _ ti te, .proj _ si se =>
     -- optimized by the previous reduction functions using `cheapProj := true`
