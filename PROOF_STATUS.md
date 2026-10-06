@@ -298,6 +298,26 @@ the subsequent fixpoint simulation still need a proof; neither is implemented
 here. A more permissive alternative would require a checked literal-computation
 contract for the measure. Native GCD and bitwise reductions remain disabled.
 
+The diagnostic now extracts the initial measure using the validator's existing
+unfolding prefix and tests the proposed equality guard without changing the
+validator. Both reference definitions pass: GCD's measure equals its first
+argument, and bitwise's measure equals its first natural-number argument. The
+opaque-offset candidates fail that guard. For GCD, a generic `offsetGcd k`
+fixture additionally distinguishes a transparent zero offset (which passes)
+from a transparent one offset (which fails). Both transparent-offset fixtures
+pass the current primitive validator and compare definitionally equal to the
+expected results at `(0, 5)` and `(6, 9)`. `offsetGcd_eq` proves propositional
+equality with the reference GCD for all offsets and inputs, using only `propext`
+and `Quot.sound`.
+
+Consequently, requiring exactly the canonical measure would accept the pinned
+reference definitions and rule out the demonstrated opaque-measure gap, but
+would also reject the computable `m + 1` variant. It is a conservative restriction
+on accepted implementations, not a claim that every rejected implementation is
+incorrect. A more permissive repair should certify computation of the measure
+rather than merely testing its equality with the input. Selecting and authorizing
+that acceptance-policy change is still pending; no new guard is enabled.
+
 This diagnostic concerns the fork after its earlier lambda-wrapper correction
 in `unfoldNatWellFounded`, not a demonstration that unmodified upstream `master`
 accepts these examples. The test intentionally asserts the current acceptance

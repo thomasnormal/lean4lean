@@ -10,6 +10,22 @@ namespace WellFoundedGap
 
 opaque measureOffset : Nat := 0
 
+def offsetGcd (k m n : Nat) : Nat :=
+  if m = 0 then n else offsetGcd k (n % m) m
+termination_by m + k
+decreasing_by
+  exact Nat.add_lt_add_right (Nat.mod_lt _ (Nat.zero_lt_of_ne_zero ‹m ≠ 0›)) _
+
+theorem offsetGcd_eq (k m n : Nat) : offsetGcd k m n = Nat.gcd m n := by
+  induction m using Nat.strongRecOn generalizing n with
+  | ind m ih =>
+    rw [offsetGcd]
+    split
+    · next hm => subst m; exact (Nat.gcd_zero_left n).symm
+    · next hm =>
+      rw [Nat.gcd_rec]
+      exact ih _ (Nat.mod_lt _ (Nat.zero_lt_of_ne_zero hm)) _
+
 def measuredGcd (m n : Nat) : Nat :=
   if m = 0 then n else measuredGcd (n % m) m
 termination_by m + measureOffset
@@ -55,6 +71,14 @@ theorem measuredBitwise_eq (f : Bool → Bool → Bool) (n m : Nat) :
       · simp only [hm, if_false]
         rw [ih _ (Nat.bitwise_rec_lemma hn)]
 
+private def initialMeasure (e : Expr) (fvs : Array Expr) : TypeChecker.M Expr := do
+  let e ← TypeChecker.whnfCore (mkAppN e fvs)
+  let e ← TypeChecker.unfoldDefinition e
+  (← TypeChecker.whnfCore e).withApp fun fix args => do
+    let .const ``WellFounded.Nat.fix [_, _] := fix | throw <| .other "not Nat.fix"
+    let #[_, _, measure, _, state] := args | throw <| .other "unexpected Nat.fix arguments"
+    return mkApp measure state
+
 run_meta
   let env := (← Lean.getEnv).toKernelEnv
   let checkAccepted (label : String) (v : DefinitionVal) := do
@@ -72,6 +96,7 @@ run_meta
 
   let some (.defnInfo gcd) := env.find? ``Nat.gcd | throwError "missing Nat.gcd"
   let some (.defnInfo candidate) := env.find? ``measuredGcd | throwError "missing measuredGcd"
+  let some (.defnInfo offset) := env.find? ``offsetGcd | throwError "missing offsetGcd"
   checkAccepted "reference gcd" gcd
   checkAccepted "opaque-measure gcd" { gcd with value := candidate.value }
   unless ((TypeChecker.checkType candidate.value).run env).isOk do
@@ -93,6 +118,27 @@ run_meta
   | .ok true => pure ()
   | _ => throwError "unfolded gcd body did not reduce at zero"
 
+  let offsetZero := mkApp offset.value (mkNatLit 0)
+  let offsetOne := mkApp offset.value (mkNatLit 1)
+  for value in [offsetZero, offsetOne] do
+    checkAccepted "computable-offset gcd" { gcd with value }
+    for (m, n) in [(0, 5), (6, 9)] do
+      match (TypeChecker.isDefEq (mkApp2 value (mkNatLit m) (mkNatLit n))
+          (mkNatLit (Nat.gcd m n))).run env with
+      | .ok true => pure ()
+      | _ => throwError "computable-offset gcd did not reduce at {m}, {n}"
+
+  let gcdMeasures : TypeChecker.M (Array Bool) :=
+    Lean4Lean.withLocalDecl `m .default q(Nat) fun m =>
+    Lean4Lean.withLocalDecl `n .default q(Nat) fun n => do
+      let mut results := #[]
+      for value in [gcd.value, offsetZero, offsetOne, candidate.value] do
+        results := results.push (← TypeChecker.isDefEq (← initialMeasure value #[m, n]) m)
+      return results
+  match gcdMeasures.run env with
+  | .ok #[true, true, false, false] => pure ()
+  | _ => throwError "unexpected GCD measures"
+
   let some (.defnInfo bitwise) := env.find? ``Nat.bitwise | throwError "missing Nat.bitwise"
   let some (.defnInfo candidate) := env.find? ``measuredBitwise | throwError "missing measuredBitwise"
   checkAccepted "reference bitwise" bitwise
@@ -104,5 +150,17 @@ run_meta
         (q(Bool.xor), Nat.xor n m)] do
       checkComparison s!"bitwise {n} {m}"
         (mkApp3 candidate.value f (mkNatLit n) (mkNatLit m)) expected
+
+  let bitwiseMeasures : TypeChecker.M (Array Bool) :=
+    Lean4Lean.withLocalDecl `f .default q(Bool → Bool → Bool) fun f =>
+    Lean4Lean.withLocalDecl `n .default q(Nat) fun n =>
+    Lean4Lean.withLocalDecl `m .default q(Nat) fun m => do
+      let mut results := #[]
+      for value in [bitwise.value, candidate.value] do
+        results := results.push (← TypeChecker.isDefEq (← initialMeasure value #[f, n, m]) n)
+      return results
+  match bitwiseMeasures.run env with
+  | .ok #[true, false] => pure ()
+  | _ => throwError "unexpected bitwise measures"
 
 end WellFoundedGap
