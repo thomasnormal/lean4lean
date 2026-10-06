@@ -233,3 +233,72 @@ theorem addDecl.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env) (decl : D
   | quotDecl => exact addQuot.WF wf
   | mutualDefnDecl vs => exact addMutual.WF wf vs
   | inductDecl _ _ _ _ => sorry
+
+private theorem SMap.stage₁_insert {C : ConstMap} :
+    (C.insert n ci).stage₁ = C.stage₁ := by
+  cases C with | mk stage map₁ map₂ => cases stage <;> rfl
+
+private theorem Aligned.stage₁ (H : Aligned safety C venv) : C.stage₁ = true := by
+  induction H with
+  | empty => rfl
+  | ignoreConst _ _ _ _ ih
+  | const _ _ _ _ _ ih => rw [SMap.stage₁_insert, ih]
+  | defeq _ ih => exact ih
+
+/-- The current translation relation cannot model the stage-2 default initializer. -/
+theorem VEnvs.WF.not_empty_stage₂ {ves : VEnvs} (mainModule : Name) (trustLevel : UInt32 := 0) :
+    ¬ves.WF (Environment.empty mainModule (trustLevel := trustLevel)) := by
+  intro wf
+  have h : false = true := (wf.tr (safety := .safe)).aligned.stage₁
+  cases h
+
+def VEnvs.empty : VEnvs := ⟨fun _ => .empty⟩
+
+/-- `TrEnv'.empty` uses the stage-1 map, not `Environment.empty`'s stage-2 default. -/
+theorem VEnvs.WF.empty (mainModule : Name) (trustLevel : UInt32 := 0) :
+    VEnvs.empty.WF (Environment.empty mainModule (stage₁ := true) (trustLevel := trustLevel)) := by
+  refine {
+    tr := .empty
+    hasPrimitives := ?_
+    safePrimitives := ?_
+    mono := fun _ => .rfl }
+  · intro safety p _
+    change p.2.Holds VEnv.empty p.1
+    cases p.2 <;> simp only [PrimSpec.Holds, VEnv.ReflectsNatNat,
+      VEnv.ReflectsNatNatNat, VEnv.ReflectsNatNatBool, VEnv.ReflectsNatBitwise,
+      VEnv.contains, VEnv.empty, reduceCtorEq, exists_false, false_implies, implies_true]
+  · intro n ci h _
+    change ({} : ConstMap).find?' n = some ci at h
+    rw [SMap.WF.empty.find?'_eq_find?] at h
+    simp only [SMap.find?, Std.HashMap.getElem?_empty, reduceCtorEq] at h
+
+theorem addDeclVerified.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env)
+    (decl : Declaration) :
+    (addDeclVerified env decl).WF fun env' =>
+      ∃ ves' : VEnvs, ves'.WF env' ∧ ∀ safety, ves.venv safety ≤ ves'.venv safety := by
+  cases decl with
+  | axiomDecl v => exact (addAxiom.WF wf v).mono fun _ ⟨ves', hwf, _, h⟩ => ⟨ves', hwf, (h · |>.le)⟩
+  | thmDecl v => exact (addTheorem.WF wf v).mono fun _ ⟨ves', hwf, _, h⟩ => ⟨ves', hwf, (h · |>.le)⟩
+  | defnDecl v => exact (addDefinition.WF wf v).mono fun _ ⟨ves', hwf, h, _⟩ => ⟨ves', hwf, h⟩
+  | opaqueDecl v =>
+    exact (addOpaque.WF wf v).mono fun _ ⟨ves', hwf, _, h⟩ => ⟨ves', hwf, (h · |>.le)⟩
+  | quotDecl => exact addQuot.WF wf
+  | mutualDefnDecl vs => exact addMutual.WF wf vs
+  | inductDecl _ _ _ _ => exact Except.WF.throw
+
+theorem addDeclVerified.foldlM_WF {env : Environment} {ves : VEnvs} (wf : ves.WF env)
+    (decls : List Declaration) :
+    (decls.foldlM addDeclVerified env).WF fun env' =>
+      ∃ ves' : VEnvs, ves'.WF env' ∧ ∀ safety, ves.venv safety ≤ ves'.venv safety := by
+  induction decls generalizing env ves with
+  | nil => exact .pure ⟨ves, wf, fun _ => .rfl⟩
+  | cons decl decls ih =>
+    rw [List.foldlM_cons]
+    refine (addDeclVerified.WF wf decl).bind fun env' ⟨ves', wf', hle⟩ => ?_
+    exact (ih wf').mono fun _ ⟨ves'', wf'', hle'⟩ =>
+      ⟨ves'', wf'', fun safety => (hle safety).trans (hle' safety)⟩
+
+theorem addDeclVerified.fromEmpty (mainModule : Name) (decls : List Declaration) :
+    (decls.foldlM addDeclVerified (Environment.empty mainModule (stage₁ := true))).WF fun env =>
+      ∃ ves : VEnvs, ves.WF env :=
+  (addDeclVerified.foldlM_WF (.empty mainModule) decls).mono fun _ ⟨ves, wf, _⟩ => ⟨ves, wf⟩

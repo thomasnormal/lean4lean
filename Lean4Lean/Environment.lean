@@ -127,3 +127,9 @@ def addDecl (env : Environment) (decl : Declaration) (check := true) (fuel : Fue
   | .inductDecl lparams nparams types isUnsafe =>
     let allowPrimitive ← Primitive.checkInductive env lparams nparams types isUnsafe
     addInductive env lparams nparams types isUnsafe allowPrimitive fuel
+
+/-- Checked declaration addition restricted to the verified non-inductive fragment. -/
+def addDeclVerified (env : Environment) (decl : Declaration) : Except Exception Environment :=
+  match decl with
+  | .inductDecl .. => throw <| .other "inductive declarations are outside the verified fragment"
+  | _ => addDecl env decl (check := true) (fuel := {})
