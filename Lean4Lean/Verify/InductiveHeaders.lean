@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.Inductive
 import Lean4Lean.Verify.Environment
+import Lean4Lean.Verify.InductiveStats
 
 namespace Lean4Lean
 open Lean hiding Environment Exception
@@ -113,6 +114,39 @@ theorem AddInductive.declareInductiveTypes.ordered
         Aligned safety env'.constants venv' ∧ venv'.Ordered :=
   (declareInductiveTypes.refines ctx stats numParams indTypes numNested isUnsafe
     haligned hsafety hsize hheaders).mono fun _ ⟨venv', hadd, haligned'⟩ =>
+      ⟨venv', hadd, haligned', VEnv.addInductHeaders.ordered hordered htypes hadd⟩
+
+theorem AddInductive.checkInductiveTypes.refinesHeaders
+    (ctx : AddInductive.Context) (numParams : Nat) (indTypes : Array InductiveType)
+    (numNested : Nat) (isUnsafe : Bool)
+    {safety : DefinitionSafety} {venv : VEnv} {headers : List VInductiveType}
+    (haligned : Aligned safety ctx.env.constants venv)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe)
+    (hheaders : List.Forall₂ (TrInductiveHeader venv ctx.lparams) indTypes.toList headers) :
+    (checkInductiveTypes numParams indTypes
+      (fun stats => declareInductiveTypes stats numParams indTypes numNested isUnsafe) ctx).WF
+      fun env' => ∃ venv', venv.addInductHeaders headers = some venv' ∧
+        Aligned safety env'.constants venv' := by
+  apply checkInductiveTypes.frameHeaderSizes
+  intro stats ctx' hsizes hframe
+  apply declareInductiveTypes.refines ctx' stats numParams indTypes numNested isUnsafe
+    (by simpa [hframe.env] using haligned) hsafety hsizes.1
+    (by simpa [hframe.lparams] using hheaders)
+
+theorem AddInductive.checkInductiveTypes.orderedHeaders
+    (ctx : AddInductive.Context) (numParams : Nat) (indTypes : Array InductiveType)
+    (numNested : Nat) (isUnsafe : Bool)
+    {safety : DefinitionSafety} {venv : VEnv} {headers : List VInductiveType}
+    (haligned : Aligned safety ctx.env.constants venv) (hordered : venv.Ordered)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe)
+    (hheaders : List.Forall₂ (TrInductiveHeader venv ctx.lparams) indTypes.toList headers)
+    (htypes : ∀ header ∈ headers, header.toVConstant.WF venv) :
+    (checkInductiveTypes numParams indTypes
+      (fun stats => declareInductiveTypes stats numParams indTypes numNested isUnsafe) ctx).WF
+      fun env' => ∃ venv', venv.addInductHeaders headers = some venv' ∧
+        Aligned safety env'.constants venv' ∧ venv'.Ordered :=
+  (checkInductiveTypes.refinesHeaders ctx numParams indTypes numNested isUnsafe
+    haligned hsafety hheaders).mono fun _ ⟨venv', hadd, haligned'⟩ =>
       ⟨venv', hadd, haligned', VEnv.addInductHeaders.ordered hordered htypes hadd⟩
 
 end Lean4Lean

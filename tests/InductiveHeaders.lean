@@ -82,6 +82,11 @@ private def ordinaryContext (isUnsafe : Bool) : AddInductive.Context := {
   env := Kernel.Environment.empty `InductiveHeadersTest,
   lparams := [], safety := if isUnsafe then .unsafe else .safe, allowPrimitive := false }
 
+private def checkedHeaders (numParams : Nat) (types : Array InductiveType) (isUnsafe : Bool) :
+    AddInductive.M Kernel.Environment :=
+  AddInductive.checkInductiveTypes numParams types fun stats =>
+    AddInductive.declareInductiveTypes stats numParams types 0 isUnsafe
+
 example (isUnsafe : Bool) :
     (AddInductive.declareInductiveTypes ordinaryStats 0 ordinaryTypes 0 isUnsafe
       (ordinaryContext isUnsafe)).WF fun env' =>
@@ -94,6 +99,36 @@ example (isUnsafe : Bool) :
   · intro header hmem
     simp [ordinaryHeaders] at hmem
     rcases hmem with rfl | rfl <;> exact ⟨_, .sort trivial⟩
+
+example (isUnsafe : Bool) :
+    (checkedHeaders 0 ordinaryTypes isUnsafe (ordinaryContext isUnsafe)).WF fun env' =>
+      ∃ venv', VEnv.empty.addInductHeaders ordinaryHeaders = some venv' ∧
+        Aligned (if isUnsafe then .unsafe else .safe) env'.constants venv' ∧ venv'.Ordered := by
+  apply AddInductive.checkInductiveTypes.orderedHeaders (ordinaryContext isUnsafe)
+    0 ordinaryTypes 0 isUnsafe Aligned.empty VEnv.Ordered.empty DefinitionSafety.le_rfl
+  · exact .cons ⟨rfl, rfl, .sort rfl⟩ (.cons ⟨rfl, rfl, .sort rfl⟩ .nil)
+  · intro header hmem
+    simp [ordinaryHeaders] at hmem
+    rcases hmem with rfl | rfl <;> exact ⟨_, .sort trivial⟩
+
+example (isUnsafe : Bool) :
+    (checkedHeaders 0 #[] isUnsafe (ordinaryContext isUnsafe)).WF fun env' =>
+      ∃ venv', VEnv.empty.addInductHeaders [] = some venv' ∧
+        Aligned (if isUnsafe then .unsafe else .safe) env'.constants venv' ∧ venv'.Ordered :=
+  AddInductive.checkInductiveTypes.orderedHeaders (ordinaryContext isUnsafe)
+    0 #[] 0 isUnsafe Aligned.empty VEnv.Ordered.empty DefinitionSafety.le_rfl .nil (by simp)
+
+example (ctx : AddInductive.Context) (numParams : Nat) (types : Array InductiveType)
+    (isUnsafe : Bool) {safety : DefinitionSafety} {venv : VEnv}
+    {headers : List VInductiveType} (haligned : Aligned safety ctx.env.constants venv)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe)
+    (hheaders : List.Forall₂ (TrInductiveHeader venv ctx.lparams) types.toList headers) :
+    (checkedHeaders numParams types isUnsafe ctx).WF fun env' =>
+      ∃ venv', venv ≤ venv' ∧ venv'.defeqs = venv.defeqs ∧
+        Aligned safety env'.constants venv' :=
+  (AddInductive.checkInductiveTypes.refinesHeaders ctx numParams types 0 isUnsafe
+    haligned hsafety hheaders).mono fun _ ⟨venv', hadd, haligned'⟩ =>
+      ⟨venv', VEnv.addInductHeaders.le hadd, VEnv.addInductHeaders.defeqs_eq hadd, haligned'⟩
 
 private def audit (theoremName : Name) (allowed : List Name) : MetaM Unit := do
   let axioms ← collectAxioms theoremName
@@ -114,38 +149,82 @@ private def checkExecutableHeader (imported : Kernel.Environment) (typeName : Na
   let ctx : AddInductive.Context := {
     env := Kernel.Environment.empty `InductiveHeadersTest,
     lparams := [], safety := .safe, allowPrimitive := true }
-  let action := AddInductive.declareInductiveTypes stats 0 #[type] 0 false
-  let .ok result := action ctx | throwError "failed to stage {typeName}"
-  let some (.inductInfo registered) := result.find? typeName | throwError "missing staged header"
-  unless registered.levelParams.isEmpty && registered.numParams == 0 && registered.numIndices == 0 &&
-      registered.type == type.type && registered.ctors == info.ctors && registered.all == [typeName] &&
-      !registered.isUnsafe do
-    throwError "incorrect staged metadata for {typeName}"
-  for name in info.ctors do
-    if result.contains name then throwError "header staging installed constructor {name}"
-  if (action { ctx with env := imported }).isOk then throwError "accepted duplicate {typeName}"
-  if (action { ctx with allowPrimitive := false }).isOk then
-    throwError "accepted {typeName} without primitive authorization"
+  for action in [AddInductive.declareInductiveTypes stats 0 #[type] 0 false,
+      checkedHeaders 0 #[type] false] do
+    let .ok result := action ctx | throwError "failed to stage {typeName}"
+    let some (.inductInfo registered) := result.find? typeName | throwError "missing staged header"
+    unless registered.levelParams.isEmpty && registered.numParams == 0 && registered.numIndices == 0 &&
+        registered.type == type.type && registered.ctors == info.ctors && registered.all == [typeName] &&
+        !registered.isUnsafe do
+      throwError "incorrect staged metadata for {typeName}"
+    for name in info.ctors do
+      if result.contains name then throwError "header staging installed constructor {name}"
+    if (action { ctx with env := imported }).isOk then throwError "accepted duplicate {typeName}"
+    if (action { ctx with allowPrimitive := false }).isOk then
+      throwError "accepted {typeName} without primitive authorization"
 
 private def checkMutualHeaders (isUnsafe : Bool) : MetaM Unit := do
   let ctx := ordinaryContext isUnsafe
-  let action := AddInductive.declareInductiveTypes ordinaryStats 0 ordinaryTypes 0 isUnsafe
-  let .ok result := action ctx | throwError "failed to stage mutual headers"
-  for type in ordinaryTypes do
-    let some (.inductInfo info) := result.find? type.name | throwError "missing {type.name}"
-    unless info.name == type.name && info.type == type.type && info.isUnsafe == isUnsafe &&
-        info.levelParams.isEmpty && info.numParams == 0 && info.numIndices == 0 &&
-        info.all == [`First, `Second] && info.ctors.isEmpty do
-      throwError "incorrect mutual header metadata for {type.name}"
-  if (action { ctx with env := result }).isOk then throwError "accepted a mutual-header collision"
-  let duplicate := AddInductive.declareInductiveTypes ordinaryStats 0
-    #[ordinaryType `First, ordinaryType `First] 0 isUnsafe
-  if (duplicate ctx).isOk then throwError "accepted duplicate names in a mutual declaration"
+  for action in [fun types => AddInductive.declareInductiveTypes ordinaryStats 0 types 0 isUnsafe,
+      fun types => checkedHeaders 0 types isUnsafe] do
+    let .ok result := action ordinaryTypes ctx | throwError "failed to stage mutual headers"
+    for type in ordinaryTypes do
+      let some (.inductInfo info) := result.find? type.name | throwError "missing {type.name}"
+      unless info.name == type.name && info.type == type.type && info.isUnsafe == isUnsafe &&
+          info.levelParams.isEmpty && info.numParams == 0 && info.numIndices == 0 &&
+          info.all == [`First, `Second] && info.ctors.isEmpty do
+        throwError "incorrect mutual header metadata for {type.name}"
+    if (action ordinaryTypes { ctx with env := result }).isOk then
+      throwError "accepted a mutual-header collision"
+    if (action #[ordinaryType `First, ordinaryType `First] ctx).isOk then
+      throwError "accepted duplicate names in a mutual declaration"
   let shortStats := { ordinaryStats with nindices := #[0] }
   let .ok truncated := AddInductive.declareInductiveTypes shortStats 0 ordinaryTypes 0 isUnsafe ctx
     | throwError "unexpected rejection by the unchecked header prefix"
   unless truncated.contains `First && !truncated.contains `Second do
     throwError "statistics-length boundary changed; revisit the refinement precondition"
+
+private def checkCheckedMetadata (ctx : AddInductive.Context) (numParams : Nat)
+    (types : Array InductiveType) (indices : Array Nat) (isUnsafe : Bool) : MetaM Unit := do
+  let .ok result := checkedHeaders numParams types isUnsafe ctx
+    | throwError "failed to check and stage datatype headers"
+  unless types.size == indices.size do throwError "invalid metadata fixture"
+  for type in types, index in indices do
+    let some (.inductInfo info) := result.find? type.name | throwError "missing {type.name}"
+    unless info.name == type.name && info.type == type.type && info.levelParams == ctx.lparams &&
+        info.numParams == numParams && info.numIndices == index && info.isUnsafe == isUnsafe &&
+        info.all == types.toList.map (·.name) && info.ctors.isEmpty && info.numNested == 0 do
+      throwError "incorrect checked header metadata"
+
+private def checkCheckedFixtures (imported : Kernel.Environment) (isUnsafe : Bool) : MetaM Unit := do
+  let ctx := { ordinaryContext isUnsafe with env := imported }
+  let sortType : Expr := .sort (.succ .zero)
+  let indexed (count : Nat) := count.fold
+    (fun _ _ type => Expr.forallE `index (.const ``Nat []) type .default) sortType
+  checkCheckedMetadata ctx 0
+    #[{ ordinaryType `IndexedFirst with type := indexed 1 },
+      { ordinaryType `IndexedSecond with type := indexed 2 }] #[1, 2] isUnsafe
+  let polyCtx := { ctx with lparams := [`u] }
+  let polyType : Expr := .forallE `A (.sort (.param `u))
+    (.forallE `value (.bvar 0) (.sort (.param `u)) .default) .default
+  checkCheckedMetadata polyCtx 1
+    #[{ ordinaryType `PolyFirst with type := polyType },
+      { ordinaryType `PolySecond with type := polyType }] #[1, 1] isUnsafe
+
+private def checkCheckedRejections (imported : Kernel.Environment) : MetaM Unit := do
+  let ctx := { ordinaryContext false with env := imported }
+  let parameter (domain : Expr) := Expr.forallE `A domain (.sort (.succ .zero)) .default
+  let cases : List (Nat × Array InductiveType × AddInductive.Context) := [
+    (1, ordinaryTypes, ctx),
+    (1, #[{ ordinaryType `First with type := parameter (.sort (.succ .zero)) },
+      { ordinaryType `Second with type := parameter (.sort .zero) }], ctx),
+    (0, #[ordinaryType `First, { ordinaryType `Second with type := .sort .zero }], ctx),
+    (0, #[{ ordinaryType `UnknownUniverse with type := .sort (.param `u) }], ctx),
+    (0, #[{ ordinaryType `InvalidType with type := .const `Missing [] }], ctx),
+    (0, ordinaryTypes, { ctx with fuel := { ctx.fuel with inductiveFuel := 0 } })]
+  for (numParams, types, ctx) in cases do
+    if (checkedHeaders numParams types false ctx).isOk then
+      throwError "accepted invalid datatype types before header registration"
 
 run_meta
   let standard := [``propext, ``Classical.choice, ``Quot.sound]
@@ -163,10 +242,14 @@ run_meta
     ``Lean.PersistentHashMap.WF.toList'_insert, ``Lean.PersistentHashMap.WF.find?_eq]
   audit ``AddInductive.declareInductiveTypes.refines registration
   audit ``AddInductive.declareInductiveTypes.ordered registration
+  audit ``AddInductive.checkInductiveTypes.refinesHeaders registration
+  audit ``AddInductive.checkInductiveTypes.orderedHeaders registration
   let imported := (← Lean.getEnv).toKernelEnv
   for typeName in [``Bool, ``Nat] do
     checkExecutableHeader imported typeName
   for isUnsafe in [false, true] do
     checkMutualHeaders isUnsafe
+    checkCheckedFixtures imported isUnsafe
+  checkCheckedRejections imported
 
 end InductiveHeadersTest
