@@ -323,6 +323,19 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   All fourteen audits exclude `sorryAx` and instantiation/typing interfaces; the
   proofs reuse the existing persistent-array push and persistent-map lookup/insert
   bridges without adding axioms or changing older theorem audit sets.
+- `ParamValidity.indices` identifies the chronological declaration indices with
+  `List.range numParams`; `declarationAt` identifies the declaration at each
+  bounded parameter-array position. `parameterLookupAt` proves that concrete
+  `findFVar?` returns that declaration with exactly the array index, parameter
+  expression, default kind, and no let value. `getFVar!_index` verifies the actual
+  getter's index. `IndexedParamLookup` packages this indexed lookup contract with
+  the exact array size, and `withParams.getIndexedLookup` supplies it for successful
+  extraction. `Result.IndexedParamLookup`, `run.indexedLookup`, and its
+  state-discarding projection preserve it through arbitrary nested preprocessing.
+  These proofs do not establish parameter re-abstraction or semantic binder typing.
+  Source-expression freshness, nested rewriting, positivity, recursors, and full
+  inductive soundness remain unproved. All eight new audits exclude `sorryAx` and
+  use only existing array/map bridges, without expanding older theorem assumptions.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -658,6 +671,7 @@ lake env lean tests/InductiveHiddenParameter.lean
 lake env lean tests/InductiveParams.lean
 lake env lean tests/InductiveParamContext.lean
 lake env lean tests/InductiveParamValidity.lean
+lake env lean tests/InductiveParamIndices.lean
 lake env lean tests/NestedInductiveParams.lean
 lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
@@ -885,7 +899,8 @@ Every successful fixture also compares the result context's executable declarati
 array against the original extraction, including free-variable order, indices,
 names, instantiated domains, binder information, kind, and let status.
 Each resulting declaration also checks exact executable lookup metadata against
-the declaration array, including all auxiliary-growing cases.
+the declaration array and its parameter-array position, including the actual
+`getFVar!` index in all auxiliary-growing cases.
 Executable preprocessing is unchanged; no new guard, cache, or special path is
 introduced.
 
@@ -921,8 +936,21 @@ next-name absence, and concrete lookup metadata. These runtime progress checks
 are not additional monotonicity claims for nested rewriting. No executable checker
 path, guard, cache, or dependency is added.
 
-Focused executable replay checks 26 declarations in `Verify.InductiveParamValidity`
-and 83 in `Verify.InductiveParams`, assuming imported dependencies are correct.
+`tests/InductiveParamIndices.lean` contains twelve proof regressions and eight axiom
+audits for chronological indices, bounded declaration witnesses, concrete indexed
+lookup, the actual getter, extraction, and both preprocessing projections. Empty,
+first/last-index, and duplicate-parameter boundaries are included. Sixteen accepted
+extractions cover two initial states and 0/1/2/3/31/32/33/65 dependent parameters,
+repeated/anonymous binder names, and all four binder-info forms. Every extraction
+checks chronological declaration indices and actual lookup/getter indices; twelve
+reversed-array checks show that correspondence depends on parameter order.
+The declaration-list audits use only the existing persistent-array push bridge;
+the lookup audits additionally use existing persistent-map lookup/insert bridges.
+No executable checker change, dependency, axiom, or admitted proof is introduced.
+
+Focused executable replay checks 40 declarations in `Verify.InductiveParamValidity`,
+including the indexed lookup proofs, and 83 in `Verify.InductiveParams`, assuming
+imported dependencies are correct.
 
 `tests/ConstructorParams.lean` contains seven proof regressions and thirteen axiom
 audits, all excluding `sorryAx`. The core constructor-loop arity proof uses

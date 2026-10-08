@@ -74,6 +74,68 @@ theorem ParamValidity.parameterLookup {numParams : Nat} {lctx : LocalContext}
   have hid : decl.fvarId = fvar := Expr.fvar.inj hexpr
   exact ⟨decl, hid ▸ hvalid.find?_eq hdecl, hexpr, hshape⟩
 
+private theorem context_indices {lctx : LocalContext} (hwf : lctx.WF) :
+    lctx.toList.reverse.map LocalDecl.index = List.range lctx.numIndices := by
+  induction hwf with
+  | nil => rfl
+  | cons hid hlookup hindex hwf ih =>
+    simp [LocalContext.toList, LocalContext.numIndices, hindex, List.range_succ] at ih ⊢
+    exact ih
+
+theorem ParamValidity.indices {numParams : Nat} {lctx : LocalContext} {params : Array Expr}
+    (hvalid : ParamValidity numParams lctx params) :
+    lctx.toList.reverse.map LocalDecl.index = List.range numParams := by
+  simpa only [hvalid.context.count] using context_indices hvalid.wf
+
+theorem ParamValidity.declarationAt {numParams : Nat} {lctx : LocalContext} {params : Array Expr}
+    (hvalid : ParamValidity numParams lctx params) (index : Nat) (hindex : index < params.size) :
+    ∃ decl, lctx.toList.reverse[index]? = some decl ∧ decl.index = index ∧
+      decl.toExpr = params[index] ∧ decl.value? (allowNondep := true) = none ∧
+      decl.kind = .default := by
+  have hnum : index < numParams := by simpa only [hvalid.context.size] using hindex
+  have hlist : index < lctx.toList.reverse.length := by
+    simpa only [List.length_reverse, hvalid.context.length] using hnum
+  let decl := lctx.toList.reverse[index]'hlist
+  have hposition : lctx.toList.reverse[index]? = some decl := List.getElem?_eq_getElem hlist
+  have hdeclindex := congrArg (fun entries => entries[index]?) hvalid.indices
+  simp only [List.getElem?_map, hposition, Option.map_some, List.getElem?_range hnum,
+    Option.some.injEq] at hdeclindex
+  have hvars : lctx.toList.reverse.map LocalDecl.toExpr = params.toList := by
+    rw [List.map_reverse, hvalid.context.decls, List.reverse_reverse]
+  have hexpr := congrArg (fun entries => entries[index]?) hvars
+  simp only [List.getElem?_map, hposition, Option.map_some, Array.getElem?_toList,
+    Array.getElem?_eq_getElem hindex, Option.some.injEq] at hexpr
+  have hmem : decl ∈ lctx.toList := List.mem_reverse.mp (List.getElem_mem hlist)
+  exact ⟨decl, hposition, hdeclindex, hexpr, hvalid.context.binders decl hmem⟩
+
+theorem ParamValidity.parameterLookupAt {numParams : Nat} {lctx : LocalContext}
+    {params : Array Expr} (hvalid : ParamValidity numParams lctx params)
+    (index : Nat) (hindex : index < params.size) :
+    ∃ decl, lctx.findFVar? params[index] = some decl ∧ decl.index = index ∧
+      decl.toExpr = params[index] ∧ decl.value? (allowNondep := true) = none ∧
+      decl.kind = .default := by
+  rcases hvalid.declarationAt index hindex with ⟨decl, hposition, hdeclindex, hexpr, hshape⟩
+  have hmem : decl ∈ lctx.toList := List.mem_reverse.mp (List.mem_of_getElem? hposition)
+  refine ⟨decl, ?_, hdeclindex, hexpr, hshape⟩
+  rw [← hexpr]
+  exact hvalid.find?_eq hmem
+
+theorem ParamValidity.getFVar!_index {numParams : Nat} {lctx : LocalContext} {params : Array Expr}
+    (hvalid : ParamValidity numParams lctx params) (index : Nat) (hindex : index < params.size) :
+    (lctx.getFVar! params[index]).index = index := by
+  rcases hvalid.parameterLookupAt index hindex with ⟨decl, hlookup, hdeclindex, _⟩
+  simp only [LocalContext.findFVar?] at hlookup
+  simp only [LocalContext.getFVar!, LocalContext.get!, hlookup, hdeclindex]
+
+def IndexedParamLookup (numParams : Nat) (lctx : LocalContext) (params : Array Expr) : Prop :=
+  params.size = numParams ∧ ∀ (index : Nat) (hindex : index < params.size),
+    ∃ decl, lctx.findFVar? params[index] = some decl ∧ decl.index = index ∧
+      decl.toExpr = params[index] ∧ decl.value? (allowNondep := true) = none ∧ decl.kind = .default
+
+theorem ParamValidity.indexedLookup {numParams : Nat} {lctx : LocalContext} {params : Array Expr}
+    (hvalid : ParamValidity numParams lctx params) : IndexedParamLookup numParams lctx params :=
+  ⟨hvalid.context.size, hvalid.parameterLookupAt⟩
+
 private theorem withParams_loop_validContext (remaining : Nat) (type : Expr)
     (lctx : LocalContext) (params : Array Expr)
     (next : LocalContext → Expr → Array Expr → M α)
@@ -123,6 +185,12 @@ theorem withParams.getValidContext (type : Expr) (numParams : Nat)
   withParams.validContext type numParams _ env state _ fun _ _ _ _ hvalid hreserved =>
     .pure ⟨hvalid, hreserved⟩
 
+theorem withParams.getIndexedLookup (type : Expr) (numParams : Nat)
+    (env : Environment) (state : State) :
+    (withParams type numParams (fun lctx remainder params => pure (lctx, remainder, params))
+      env state).WF fun result => IndexedParamLookup numParams result.1.1 result.1.2.2 :=
+  (withParams.getValidContext type numParams env state).mono fun _ hvalid => hvalid.1.indexedLookup
+
 def Result.ParamValidity (numParams : Nat) (result : Result) : Prop :=
   result.nparams = numParams ∧ ∃ params, ElimNestedInductive.ParamValidity numParams result.lctx params
 
@@ -159,5 +227,21 @@ theorem run.paramValidity_run' (fuel numParams : Nat) (types : List InductiveTyp
     (StateT.run' (run fuel numParams types env) state).WF fun result =>
       result.ParamValidity numParams :=
   (run.paramValidity fuel numParams types env state).map fun _ hvalid => hvalid
+
+def Result.IndexedParamLookup (numParams : Nat) (result : Result) : Prop :=
+  result.nparams = numParams ∧ ∃ params, ElimNestedInductive.IndexedParamLookup numParams result.lctx params
+
+theorem run.indexedLookup (fuel numParams : Nat) (types : List InductiveType)
+    (env : Environment) (state : State) :
+    (run fuel numParams types env state).WF fun result => result.1.IndexedParamLookup numParams :=
+  (run.paramValidity fuel numParams types env state).mono fun _ hvalid => by
+    rcases hvalid.2 with ⟨params, hparams⟩
+    exact ⟨hvalid.1, params, hparams.indexedLookup⟩
+
+theorem run.indexedLookup_run' (fuel numParams : Nat) (types : List InductiveType)
+    (env : Environment) (state : State) :
+    (StateT.run' (run fuel numParams types env) state).WF fun result =>
+      result.IndexedParamLookup numParams :=
+  (run.indexedLookup fuel numParams types env state).map fun _ hlookup => hlookup
 
 end Lean4Lean.ElimNestedInductive
