@@ -336,6 +336,24 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   Source-expression freshness, nested rewriting, positivity, recursors, and full
   inductive soundness remain unproved. All eight new audits exclude `sorryAx` and
   use only existing array/map bridges, without expanding older theorem assumptions.
+- `Verify.InductiveParamBinding` verifies concrete parameter re-abstraction.
+  `ParamValidity.mkForall_eq` identifies the executable `LocalContext.mkForall`
+  with `paramForall`: a chronological declaration fold retaining names and binder
+  flags, abstracting each domain over its indexed parameter prefix and the body
+  over the full parameter array. This exact equation uses only existing array/map
+  bridges, not the expression-abstraction interfaces, and permits loose variables
+  in bodies/domains. `mkForall_arity` proves the exact raw binder count is
+  `numParams + arity body`; it additionally inherits `Expr.abstract_eq`.
+  `ParamBinding`, extraction, and both preprocessing projections expose these
+  contracts. `withParams.getReabstractArity` recovers the original source's raw
+  arity, additionally using the existing instantiation bridge.
+  `withParams.mkForall_arity` verifies the parameter-prefix lower bound after any
+  successful transformed-body action, including the actual constructor callback.
+  These are syntactic contracts, not binder typing, nested rewriting correctness,
+  original-expression reconstruction, or unrestricted inductive soundness.
+  The new loose-variable regression exposes an existing abstraction-interface
+  scope mismatch documented in `divergences.md`; the exact fold deliberately
+  avoids that interface, while its arity projection retains the audited assumption.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -672,6 +690,7 @@ lake env lean tests/InductiveParams.lean
 lake env lean tests/InductiveParamContext.lean
 lake env lean tests/InductiveParamValidity.lean
 lake env lean tests/InductiveParamIndices.lean
+lake env lean tests/InductiveParamBinding.lean
 lake env lean tests/NestedInductiveParams.lean
 lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
@@ -703,6 +722,7 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorMetadata
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveMetadata
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParams
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParamValidity
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParamBinding
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -901,6 +921,9 @@ names, instantiated domains, binder information, kind, and let status.
 Each resulting declaration also checks exact executable lookup metadata against
 the declaration array and its parameter-array position, including the actual
 `getFVar!` index in all auxiliary-growing cases.
+Every accepted fixture additionally checks parameter re-abstraction of its original
+source header through the final preprocessing context. This is runtime round-trip
+evidence for these closed fixtures, not a general source-reconstruction theorem.
 Executable preprocessing is unchanged; no new guard, cache, or special path is
 introduced.
 
@@ -951,6 +974,27 @@ No executable checker change, dependency, axiom, or admitted proof is introduced
 Focused executable replay checks 40 declarations in `Verify.InductiveParamValidity`,
 including the indexed lookup proofs, and 83 in `Verify.InductiveParams`, assuming
 imported dependencies are correct.
+
+`tests/InductiveParamBinding.lean` contains sixteen proof regressions and eleven
+axiom audits for the chronological binding fold, exact arity, arbitrary successful
+body transformations, extraction, and both preprocessing projections. Empty/single
+parameters, annotation-hidden binders, and the exact constructor callback including
+its count assertion are covered. The exact fold's audit excludes every expression
+interface; arity adds only `Expr.abstract_eq`, and source-arity restoration also
+adds `Expr.instantiate1_eq`. All audits exclude `sorryAx`.
+Forty-eight closed-source round trips cover two initial states, 0/1/2/3/31/32/33/65
+dependent parameters, and zero/one/two residual binders. They also check 576 body
+replacements spanning all expression constructors, including loose variables,
+metavariables, external free variables, dependent applications, lets, lambdas,
+annotations, and projections. Two unscoped-source fixtures check the exact
+executable fold with loose domains. Two source-capture and two unused-let fixtures
+demonstrate why structural validity alone does not imply source reconstruction or
+permit let-bound parameters. A minimal loose-variable abstraction observation
+reproduces the existing trusted-interface scope mismatch in `divergences.md`.
+No checker change, dependency, new axiom, or admitted proof is introduced.
+
+Focused executable replay checks 37 declarations in `Verify.InductiveParamBinding`,
+assuming imported dependencies and the explicitly audited interfaces are correct.
 
 `tests/ConstructorParams.lean` contains seven proof regressions and thirteen axiom
 audits, all excluding `sorryAx`. The core constructor-loop arity proof uses

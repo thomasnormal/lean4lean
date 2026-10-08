@@ -51,3 +51,33 @@ Separately, aliases hiding only indices are accepted by both kernels and show
 why checked parameter-plus-index counts need not equal raw syntactic binder
 arity. The verified general header contract remains a lower bound, not equality;
 the syntactic parameter guard must not reject legitimate normalized indices.
+
+## Loose-variable abstraction interface boundary (observed 2026-10-08)
+
+This is an existing **verification-interface scope mismatch**, not evidence of a
+Lean kernel soundness bug or different public frontend acceptance. For any free
+variable identifier `fvar`, evaluating `(Expr.bvar 0).abstract #[.fvar fvar]` with
+Lean 4.29.0 returns `.bvar 0`. The structural model
+`(Expr.bvar 0).abstractList [fvar]` returns `.bvar 1`: `Expr.abstract1` lifts existing
+loose variables when introducing a binder. The unconditional `Expr.abstract_eq`
+axiom in `Verify.Axioms` equates these expressions, so its full stated scope does
+not match executable abstraction on bodies containing loose variables.
+
+Run `lake env lean tests/InductiveParamBinding.lean`; `checkAbstractionBoundary`
+asserts this minimal observation. With a one-parameter constant-declaration
+context, executable `mkForall` therefore wraps `.bvar 0` as the new bound variable,
+whereas an iterated structural `abstract1` fold would leave it at `.bvar 1`.
+Neither behavior is a source-expression round-trip theorem on unscoped input.
+Two additional fixtures show that extraction can capture a free variable already
+present in its source when that identifier equals the generated parameter name.
+These deliberately bypass source typing/freshness premises at the helper boundary;
+they do not exercise public declaration acceptance.
+
+`Verify.InductiveParamBinding` states the exact re-abstraction equation using
+executable full-array/body and indexed-prefix/domain abstraction, rather than an
+unrestricted iterated `abstract1` model. Its exact-equation audit uses no expression
+interface axioms and the regression includes loose bodies and domains. Its raw
+arity projection still inherits the existing `Expr.abstract_eq` interface, whose
+scope issue remains unresolved. Restricting/replacing that interface and auditing
+its callers, or establishing the appropriate well-scopedness premises, is separate
+work; no new axiom or executable workaround is introduced here.
