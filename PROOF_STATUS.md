@@ -520,10 +520,14 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   native parameter re-abstraction at the same limit. `replaceAllNested.rangeWithNewTypes`
   explicitly isolates the generated auxiliary `newTypes` closure and retained-index
   premise instead of assuming arbitrary environment declaration ranges or
-  `instantiateForallParams` behavior. `State.NewTypesRange` and
+  `instantiateForallParams` behavior. The new
+  `Expr.instantiateRevRange_looseBVarRange` and `instantiateForallParams.range`
+  contracts prove bounded reverse substitution after leading-binder stripping;
+  environment declaration closure and generated-state preservation remain explicit
+  premises. `State.NewTypesRange` and
   `run.loop.newTypesRange` then propagate preexisting and generated ranges through
   constructor `mapM`, bounded re-abstraction, and the executable `set!` update into
-  both the final state and result types. Twenty-six focused audits exclude
+  both the final state and result types. Twenty-eight focused audits exclude
   `sorryAx` and use only the existing logical, metadata, application-building,
   abstraction, instantiation, and array interfaces. These are explicit range
   contracts; they do not prove environment declaration closure, auxiliary
