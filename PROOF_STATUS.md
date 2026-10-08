@@ -492,6 +492,14 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   container declarations but test local classifier/rebinding expressions, not
   full declaration typing or frontend acceptance. Auxiliary-map/traversal scope,
   semantic typing, positivity, recursors, and full inductive soundness remain open.
+- `Verify.InductiveNestedRewrite` introduces the `State.NestedAuxScoped` invariant
+  for the auxiliary map. It proves that a scoped result of `replaceParams` can be
+  pushed into `nestedAux` while preserving the invariant, and supplies generic
+  `forIn`/`mapM` state-preservation lemmas for the upcoming rewrite traversal.
+  The classifier's constant-prefix range is also transferred to arbitrary mutual
+  family names. This is a structural state-scope result, not yet a proof of the
+  complete `replaceIfNested` loop, auxiliary typing, positivity, recursors, or
+  full inductive soundness.
 - `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
   preserving existing bound variables and unmatched metavariables and choosing
   the last duplicate identifier at the appropriate binder depth. The existing
