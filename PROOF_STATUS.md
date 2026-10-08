@@ -278,6 +278,26 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   or the subsequent checker/recursor stages. All four audits exclude `sorryAx`;
   guard/loop proofs use only standard logical axioms, while the public run proofs
   also inherit the existing extraction instantiation interface.
+  `ParamContext` adds a structural context contract: the declared parameter count
+  equals both the context's index count and the parameter array size, and mapping
+  the context's local declaration list to free variables yields the extracted
+  parameters in reverse order. Every declaration has default kind and no value,
+  including nondependent let values. Its `length` and `declaration` theorems expose
+  an exact declaration count and a corresponding declaration for every parameter.
+  `withParams.context` supplies this contract to arbitrary continuations;
+  `getContext` returns it and `getContextPrefix` combines it with the existing raw
+  arity/free-variable prefix contract. `run.loop.frame` proves the preprocessing
+  loop returns the exact lexical parameter context despite constructor rewriting
+  and auxiliary-array growth. `Result.ParamContext`, `run.paramContext`, and its
+  state-discarding projection carry the context contract to successful results;
+  `run.contextCount` exposes both index and declaration counts.
+  These structural proofs use the existing `PersistentArray.toList'_push` interface
+  for declaration-list observations, not new axioms. The combined extraction
+  theorem additionally uses the existing instantiation bridge. The older prefix
+  and numeric count APIs retain their original audited axiom sets. Actual map
+  lookup equality, fresh-name/distinctness, local-context map validity, semantic
+  domain typing, and nested transformation correctness are not proved here;
+  executable lookup and domain metadata are runtime-regression observations only.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -611,6 +631,7 @@ lake env lean tests/InductiveStats.lean
 lake env lean tests/InductiveArity.lean
 lake env lean tests/InductiveHiddenParameter.lean
 lake env lean tests/InductiveParams.lean
+lake env lean tests/InductiveParamContext.lean
 lake env lean tests/NestedInductiveParams.lean
 lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
@@ -833,11 +854,29 @@ the final declared count, auxiliary growth, and every header/constructor prefix.
 Additional-state-header and empty-state-array fixtures exercise the low-level
 theorem without assuming the initial array matches the input list. These runtime
 observations do not prove nested transformation or context-hygiene semantics.
+Every successful fixture also compares the result context's executable declaration
+array against the original extraction, including free-variable order, indices,
+names, instantiated domains, binder information, kind, and let status.
 Executable preprocessing is unchanged; no new guard, cache, or special path is
 introduced.
 
-Focused executable replay checks 59 declarations in `Verify.InductiveParams`,
-including the new guard/count proofs, assuming its imported dependencies are
+`tests/InductiveParamContext.lean` contains twelve proof regressions and eleven
+axiom audits for empty/extended contexts, declaration witnesses, extraction
+continuations, exact preprocessing context preservation, and result projections.
+The audit allowlists distinguish the existing persistent-array bridge from the
+combined theorem's additional instantiation bridge; all exclude `sorryAx`.
+Thirty extraction outcomes cover default and seeded preprocessing states,
+zero through four dependent parameters, repeated/anonymous/namespaced binder names,
+all four binder-info forms, annotated heads/tails, and exact guard rejection.
+Ten accepted wide contexts exercise persistent-array boundaries at 31, 32, 33,
+64, and 65 declarations. Twenty-four outcomes accept and six reject. Accepted
+cases check every executable declaration's index, free variable, name, instantiated
+domain, binder information, default kind, absence of let values, and executable
+lookup metadata. These observations do not replace structural proofs with
+semantic typing or map-lookup correctness claims.
+
+Focused executable replay checks 83 declarations in `Verify.InductiveParams`,
+including the structural context proofs, assuming its imported dependencies are
 correct.
 
 `tests/ConstructorParams.lean` contains seven proof regressions and thirteen axiom
