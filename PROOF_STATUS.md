@@ -13,6 +13,15 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `addDeclVerified.fromEmpty` provide initialization and composition for finite
   declaration sequences. These are partial-correctness statements: they do not
   promise that checking any particular declaration succeeds.
+- `Environment.checkPrimitiveInductive.eq_true_iff` characterizes exactly when
+  the primitive-inductive validator returns `true`: a safe, monomorphic,
+  parameter-free singleton declaration with precisely the `Bool` or `Nat`
+  header and constructors. Successor binder names and annotations are unrestricted,
+  as in the executable validator. `checkPrimitiveInductive.WF` exposes this
+  classification as a partial-correctness contract. These shape proofs do not
+  establish the correctness of inductive elaboration or its generated recursors.
+  Their axiom audits contain no `sorryAx`, but do include the existing expression,
+  level, and syntax equality interface assumptions listed below.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -335,6 +344,7 @@ Using the pinned toolchain, the package was rebuilt from clean generated outputs
 lake clean lean4lean
 lake build Lean4Lean.Theory Lean4Lean.Verify lean4lean
 lake env lean tests/Environment.lean
+lake env lean tests/PrimitiveInductive.lean
 lake env lean tests/Primitive.lean
 lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
@@ -345,6 +355,7 @@ lake env lean --run tests/Levels.lean
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Primitive
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Environment
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Level
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.PrimitiveInductive
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -360,6 +371,18 @@ module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
 This is module replay against imported dependencies, not a
 verified replay of the entire dependency closure.
+
+`tests/PrimitiveInductive.lean` runs 39 primitive-inductive checks against each
+of an empty and an imported environment. It covers both accepted shapes,
+all four successor binder annotations and three binder names, declined headers
+and nonprimitive declarations, and rejected malformed constructor lists/types.
+It also audits both new validator theorems, allowing only the existing
+axioms `propext`, `Classical.choice`, `Quot.sound`, `Lean.Expr.eqv_eq`,
+`Lean.Level.instLawfulBEqLevel`, and `Lean.Syntax.structEq_eq`; any additional
+axiom, including `sorryAx`, fails the regression. These interface assumptions
+are already present in `Verify.Axioms`; no new assumption is introduced here.
+Focused executable replay of `Lean4Lean.Verify.PrimitiveInductive` checks 43
+declarations successfully; as above, imported dependencies are assumed correct.
 
 The reflection regressions accept both supported reflection encodings and reject
 swapped proof converters. They also check selectors that ignore their Boolean
