@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.InductiveNestedGuard
+import Lean4Lean.Verify.InductiveParamBinding
 
 namespace Lean4Lean.ElimNestedInductive
 open Lean hiding Environment Exception
@@ -765,46 +766,148 @@ private theorem withParams_loop_context_range (remaining : Nat) (type : Expr)
     (lctx : LocalContext) (params : Array Expr)
     (next : LocalContext → Expr → Array Expr → M α)
     (env : Environment) (state : State) (post : α × State → Prop)
-    (hcontext : ParamContext params.size lctx params)
-    (htype : type.looseBVarRange' = 0) (hstate : state.NestedAuxScoped)
+    (hvalid : ParamValidity params.size lctx params)
+    (hreserved : ContextReserved lctx state.ngen)
+    (hscope : ∀ decl ∈ lctx.toList, decl.type.looseBVarRange' ≤ params.size + remaining)
+    (htype : type.looseBVarRange' ≤ params.size + remaining)
+    (hstate : state.NestedAuxScoped)
     (hnext : ∀ lctx' remainder params' state',
-      ParamContext (params.size + remaining) lctx' params' →
-      state'.NestedAuxScoped → remainder.looseBVarRange' = 0 →
+      ParamValidity (params.size + remaining) lctx' params' →
+      ContextReserved lctx' state'.ngen →
+      (∀ decl ∈ lctx'.toList, decl.type.looseBVarRange' ≤ params.size + remaining) →
+      state'.NestedAuxScoped → remainder.looseBVarRange' ≤ params.size + remaining →
       (next lctx' remainder params' env state').WF post) :
     (withParams.loop next lctx type params remaining env state).WF post := by
   induction remaining generalizing type lctx params state with
-  | zero => exact hnext lctx type params state (by simpa using hcontext) hstate htype
+  | zero =>
+    apply hnext
+    · simpa using hvalid
+    · simpa using hreserved
+    · simpa using hscope
+    · exact hstate
+    · exact htype
   | succ remaining ih =>
     cases type with
     | forallE name domain body bi =>
-      have hparts : domain.looseBVarRange' = 0 ∧ body.looseBVarRange' ≤ 1 := by
-        change max domain.looseBVarRange' (body.looseBVarRange' - 1) = 0 at htype
+      have hparts : domain.looseBVarRange' ≤ params.size + remaining + 1 ∧
+          body.looseBVarRange' ≤ params.size + remaining + 2 := by
+        change max domain.looseBVarRange' (body.looseBVarRange' - 1) ≤
+          params.size + remaining + 1 at htype
         omega
       change (withParams.loop next
         (lctx.mkLocalDecl ⟨state.ngen.curr⟩ name domain bi)
         (body.instantiate1 (.fvar ⟨state.ngen.curr⟩))
         (params.push (.fvar ⟨state.ngen.curr⟩)) remaining env
         { state with ngen := state.ngen.next }).WF post
-      exact ih _ _ _ _ (by simpa using hcontext.push ⟨state.ngen.curr⟩ name domain bi)
-        (instantiate1_fvar_noLooseBVars body _ hparts.2)
+      exact ih _ _ _ _ (by simpa using hvalid.push_current hreserved name domain bi)
+        (by simpa using hreserved.push_current name domain bi)
+        (by
+          intro decl hdecl
+          simp only [LocalContext.mkLocalDecl_toList, List.mem_cons] at hdecl
+          rcases hdecl with rfl | hdecl
+          · simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hparts.1
+          · simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
+              hscope decl hdecl)
+        (by
+          simpa [Expr.instantiate1_eq, Array.size_push, Nat.add_assoc, Nat.add_comm,
+            Nat.add_left_comm] using
+            (Expr.instantiate1'_looseBVarRange (n := params.size + remaining + 1) (k := 0)
+              (by simpa [Nat.add_assoc] using hparts.2) (by simp [Expr.looseBVarRange'])))
         (by simpa [State.NestedAuxScoped] using hstate)
-        (fun lctx' remainder params' state' hcontext' hstate' htype' =>
+        (fun lctx' remainder params' state' hvalid' hreserved' hscope' hstate' htype' =>
           hnext lctx' remainder params' state'
-            (by simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hcontext')
-            hstate' htype')
+            (by simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hvalid')
+            hreserved'
+            (by simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hscope')
+            hstate'
+            (by simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using htype'))
     | _ => exact Except.WF.throw
 
 theorem withParams.contextRange (type : Expr) (numParams : Nat)
     (next : LocalContext → Expr → Array Expr → M α)
-    (env : Environment) (state : State) (htype : type.looseBVarRange' = 0)
+    (env : Environment) (state : State) (htype : type.looseBVarRange' ≤ numParams)
     (hstate : state.NestedAuxScoped) (post : α × State → Prop)
-    (hnext : ∀ lctx remainder params state', ParamContext numParams lctx params →
-      state'.NestedAuxScoped → remainder.looseBVarRange' = 0 →
+    (hnext : ∀ lctx remainder params state', ParamValidity numParams lctx params →
+      ContextReserved lctx state'.ngen →
+      (∀ decl ∈ lctx.toList, decl.type.looseBVarRange' ≤ numParams) →
+      state'.NestedAuxScoped → remainder.looseBVarRange' ≤ numParams →
       (next lctx remainder params env state').WF post) :
     (withParams type numParams next env state).WF post := by
   exact withParams_loop_context_range numParams type {} #[] next env state post
-    ParamContext.empty htype hstate (fun lctx remainder params state' hcontext' hstate' htype' =>
-      hnext lctx remainder params state' (by simpa using hcontext') hstate' htype')
+    ParamValidity.empty (ContextReserved.empty state.ngen)
+    (by
+      intro decl hdecl
+      have hzero := ContextNoLooseBVars.empty decl hdecl
+      omega)
+    (by simpa [Nat.zero_add] using htype) hstate
+    (fun lctx remainder params state' hvalid' hreserved' hscope' hstate' htype' =>
+      hnext lctx remainder params state' (by simpa using hvalid') hreserved'
+        (by simpa [Nat.add_zero] using hscope') hstate'
+        (by simpa [Nat.add_zero] using htype'))
+
+private theorem abstractRange_fvars_range (type : Expr) (n : Nat) (ids : List FVarId)
+    (bound : Nat) (htype : type.looseBVarRange' ≤ bound) :
+    (type.abstractRange n (ids.map Expr.fvar).toArray).looseBVarRange' ≤ max bound n := by
+  rw [Expr.abstractRange_eq]
+  have harray : ((ids.map Expr.fvar).toArray.extract 0 n) =
+      ((ids.take n).map Expr.fvar).toArray := by
+    apply Array.toList_inj.mp
+    simp
+  rw [harray, Expr.abstract_eq]
+  have hrange := Expr.abstractFVars_looseBVarRange type (ids.take n) 0
+  apply Nat.le_trans hrange
+  refine (Nat.max_le).2 ⟨?_, ?_⟩
+  · exact Nat.le_trans htype (Nat.le_max_left _ _)
+  · simpa only [Nat.zero_add, List.length_take] using
+      Nat.le_trans (Nat.min_le_left _ _) (Nat.le_max_right _ _)
+
+private theorem ParamContext.abstractRange_range {numParams : Nat} {lctx : LocalContext}
+    {params : Array Expr} (hcontext : ParamContext numParams lctx params)
+    (type : Expr) (index : Nat) (hindex : index < numParams)
+    (htype : type.looseBVarRange' ≤ numParams) :
+    (type.abstractRange index params).looseBVarRange' ≤ numParams := by
+  rw [hcontext.params_eq_fvars]
+  have hr := abstractRange_fvars_range type index
+    (lctx.toList.reverse.map LocalDecl.fvarId) numParams htype
+  simpa [LocalDecl.fvarId] using
+    Nat.le_trans hr (Nat.max_le.2 ⟨Nat.le_refl _, Nat.le_of_lt hindex⟩)
+
+private theorem paramForall_range_aux {numParams : Nat} {lctx : LocalContext}
+    {params : Array Expr} (hcontext : ParamContext numParams lctx params)
+    (decls : List LocalDecl) (body : Expr) (hbody : body.looseBVarRange' ≤ numParams)
+    (hdecls : ∀ decl ∈ decls, decl.type.looseBVarRange' ≤ numParams)
+    (hindices : ∀ decl ∈ decls, decl.index < numParams) :
+    (paramForall decls params body).looseBVarRange' ≤ numParams := by
+  induction decls with
+  | nil =>
+    exact Nat.le_trans (hcontext.abstract_range body) (Nat.max_le.2 ⟨hbody, Nat.le_refl _⟩)
+  | cons decl decls ih =>
+    simp only [paramForall, List.foldr]
+    refine (Nat.max_le).2 ⟨?_, ?_⟩
+    · exact hcontext.abstractRange_range decl.type decl.index
+        (hindices decl (by simp)) (hdecls decl (by simp))
+    · apply Nat.le_trans (Nat.sub_le _ _)
+      apply ih
+      · intro other hother
+        exact hdecls other (by simp [hother])
+      · intro other hother
+        exact hindices other (by simp [hother])
+
+private theorem ParamValidity.mkForall_range {numParams : Nat} {lctx : LocalContext}
+    {params : Array Expr} (hvalid : ParamValidity numParams lctx params)
+    (hscope : ∀ decl ∈ lctx.toList, decl.type.looseBVarRange' ≤ numParams) (body : Expr)
+    (hbody : body.looseBVarRange' ≤ numParams) :
+    (lctx.mkForall params body).looseBVarRange' ≤ numParams := by
+  rw [hvalid.mkForall_eq]
+  apply paramForall_range_aux hvalid.context
+  · exact hbody
+  · intro decl hdecl
+    exact hscope decl (List.mem_reverse.mp hdecl)
+  · intro decl hdecl
+    have hmem : decl.index ∈ lctx.toList.reverse.map LocalDecl.index :=
+      List.mem_map.mpr ⟨decl, hdecl, rfl⟩
+    rw [hvalid.indices] at hmem
+    exact List.mem_range.mp hmem
 
 private theorem bindWF_nestedAuxScoped (action : M α) (next : α → M β)
     (env : Environment) (state : State) (post : β × State → Prop)

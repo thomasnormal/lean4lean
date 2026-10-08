@@ -201,7 +201,9 @@ run_meta do
   audit ``mkAppN_range []
   audit ``mkAppRange_tail_range [``Lean.Expr.mkAppRangeAux.eq_def]
   audit ``withParams.contextScope [``Lean.PersistentArray.toList'_push]
-  audit ``withParams.contextRange [``Lean.PersistentArray.toList'_push, ``Expr.instantiate1_eq]
+  audit ``withParams.contextRange [``Lean.PersistentArray.toList'_push,
+    ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
+    ``Expr.instantiate1_eq]
   for theoremName in [``run.loop.nestedAuxScoped, ``run.nestedAuxScoped] do
     audit theoremName [``Lean.PersistentArray.toList'_push, ``Expr.looseBVarRange_eq,
       ``Expr.abstract_eq, ``Expr.instantiate_eq, ``Expr.instantiateRev_eq,
