@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveParamValidity
+import Lean4Lean.Verify.InductiveParamBinding
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean
@@ -80,9 +80,11 @@ private def datatype (numParams : Nat) (nested : Bool) : InductiveType :=
 private def checkResultContext (env : Kernel.Environment) (state : State)
     (numParams : Nat) (types : List InductiveType) (result : Result) : MetaM Unit := do
   let header :: _ := types | throwError "successful preprocessing without a source header"
-  let .ok ((lctx, _, params), _) :=
+  let .ok ((lctx, remainder, params), _) :=
     withParams header.type numParams (fun lctx remainder params => pure (lctx, remainder, params))
       env state | throwError "successful preprocessing without an extracted parameter context"
+  unless result.lctx.mkForall params remainder == header.type do
+    throwError "result context changed parameter re-abstraction of the original source header"
   let actual := result.lctx.decls.toList.filterMap id
   let expected := lctx.decls.toList.filterMap id
   let fields := fun (decl : LocalDecl) =>
