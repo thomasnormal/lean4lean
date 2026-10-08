@@ -512,11 +512,13 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   bounds needed for generated applications. `replaceIfNested.range` proves
   each generated nested replacement stays within the original expression's
   loose-bound-variable range, and `replaceAllNested.range` lifts that contract
-  through the complete structural traversal. The exported contracts still do
-  not prove constructor-expression range before the callback is applied,
-  auxiliary semantic typing, positivity, recursors, or full inductive
-  soundness. Twenty-three focused audits exclude `sorryAx` and use only the
-  existing logical, metadata, application-building, abstraction,
+  through the complete structural traversal. `withParams.contextRange` now
+  combines the state invariant with the zero-range remainder needed when
+  applying the rewrite contract to constructor bodies. The exported contracts
+  still do not prove constructor/new-type range propagation, auxiliary
+  semantic typing, positivity, recursors, or full inductive soundness.
+  Twenty-four focused audits exclude `sorryAx` and use only the existing
+  logical, metadata, application-building, abstraction,
   instantiation, and array interfaces.
 - `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
   preserving existing bound variables and unmatched metavariables and choosing
