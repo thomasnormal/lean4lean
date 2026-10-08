@@ -909,6 +909,74 @@ private theorem ParamValidity.mkForall_range {numParams : Nat} {lctx : LocalCont
     rw [hvalid.indices] at hmem
     exact List.mem_range.mp hmem
 
+private theorem stripForall_loop (items : List Nat) (e : Expr) (bound : Nat)
+    (step : Nat → Expr → Except Exception (ForInStep Expr))
+    (hstep : ∀ i e, step i e = match e with
+      | .forallE _ _ body _ => .ok (.yield body)
+      | _ => .error illFormed)
+    (he : e.looseBVarRange' ≤ bound) :
+    (forIn items e step).WF fun result => result.looseBVarRange' ≤ bound + items.length := by
+  induction items generalizing e bound with
+  | nil => exact .pure (by simpa)
+  | cons item items ih =>
+    rw [List.forIn_cons]
+    rw [hstep]
+    cases e with
+    | forallE name domain body bi =>
+      change (forIn items body step).WF fun result =>
+        result.looseBVarRange' ≤ bound + (items.length + 1)
+      refine (ih body (bound + 1) ?_).mono ?_
+      change max domain.looseBVarRange' (body.looseBVarRange' - 1) ≤ bound at he
+      omega
+      intro result hresult
+      simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hresult
+    | _ => exact .throw
+
+private def stripForallStep (_ : Nat) (e : Expr) : Except Exception (ForInStep Expr) :=
+  match e with
+  | .forallE _ _ body _ => .ok (.yield body)
+  | _ => .error illFormed
+
+private theorem stripForall_range (e : Expr) (hi bound : Nat)
+    (he : e.looseBVarRange' ≤ bound) :
+    (forIn [:hi] e stripForallStep).WF fun result =>
+      result.looseBVarRange' ≤ bound + hi := by
+  rw [Std.Legacy.Range.forIn_eq_forIn_range']
+  have h := stripForall_loop (List.range' 0 hi 1) e bound stripForallStep
+    (by intro i e; rfl) he
+  simpa using h
+
+theorem Expr.instantiateRevRange_looseBVarRange (e : Expr) (hi : Nat) (params : Array Expr)
+    (bound : Nat) (he : e.looseBVarRange' ≤ bound + (params.extract 0 hi).size)
+    (hparams : ∀ param ∈ params, param.looseBVarRange' ≤ bound) :
+    (e.instantiateRevRange 0 hi params).looseBVarRange' ≤ bound := by
+  rw [Expr.instantiateRevRange_eq, Expr.instantiateRev_eq, Expr.instantiate_eq]
+  apply Expr.instantiateList_looseBVarRange (n := bound) (k := 0)
+  · simpa using he
+  · intro param hparam
+    have hparam' : param ∈ List.take hi params.toList := by simpa using hparam
+    have hmemList : param ∈ params.toList := List.mem_of_mem_take hparam'
+    simpa using hparams param (by simpa using hmemList)
+
+theorem instantiateForallParams.range (e : Expr) (hi : Nat) (params : Array Expr)
+    (bound : Nat) (he : e.looseBVarRange' ≤ bound)
+    (hparams : ∀ param ∈ params, param.looseBVarRange' ≤ bound)
+    (hsize : hi ≤ params.size) :
+    (instantiateForallParams e hi params).WF fun result =>
+      result.looseBVarRange' ≤ bound := by
+  unfold instantiateForallParams
+  change (forIn [:hi] e stripForallStep >>= fun body =>
+    pure (body.instantiateRevRange 0 hi params)).WF _
+  refine (stripForall_range e hi bound he).bind ?_
+  intro body hbody
+  have hsize' : (params.extract 0 hi).size = hi := by
+    simp [Array.size_extract]
+    omega
+  have hbound : bound + hi ≤ bound + (params.extract 0 hi).size := by
+    simp [hsize']
+  exact .pure (Expr.instantiateRevRange_looseBVarRange body hi params bound
+    (Nat.le_trans hbody hbound) hparams)
+
 private theorem bindWF_nestedAuxScoped (action : M α) (next : α → M β)
     (env : Environment) (state : State) (post : β × State → Prop)
     (hnext : ∀ value state', (next value env state').WF post) :
