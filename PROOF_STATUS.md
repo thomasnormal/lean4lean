@@ -354,6 +354,25 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   The new loose-variable regression exposes an existing abstraction-interface
   scope mismatch documented in `divergences.md`; the exact fold deliberately
   avoids that interface, while its arity projection retains the audited assumption.
+- `Verify.InductiveParamScope` verifies the no-loose-bound-variable extraction
+  invariant. Given a source with structural `looseBVarRange' = 0`, every extracted
+  parameter domain and the remaining expression also have range zero.
+  `ContextNoLooseBVars` records the domain property; ordinary local declaration
+  insertion and one-binder instantiation preserve it. `withParams.noLooseBVars`
+  supplies both facts to arbitrary continuations, and `getScopedContext` combines
+  them with concrete parameter validity. `ParamValidity.parameterScopeAt` proves
+  the actual indexed getter's domain has range zero. Flag projections additionally
+  expose `hasLooseBVars = false` through the existing range-metadata bridge.
+  `run.contextScope`, its state-discarding projection, and final context flags
+  preserve domain scope through the exact preprocessing frame; only the first
+  source header needs the range-zero premise. They do not claim scope preservation
+  for opaque rewritten bodies or auxiliary datatype types.
+  All thirteen audits exclude `sorryAx` and expression-abstraction interfaces.
+  Structural extraction uses existing array-push/instantiation bridges; concrete
+  getter/validity projections also use existing map bridges, and flag projections
+  use `Expr.looseBVarRange_eq`. Range zero permits metavariables and arbitrary free
+  variables: it is not semantic typing, `Expr.Closed`, or source-ID freshness.
+  The unconditional abstraction-interface mismatch remains unresolved.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -691,6 +710,7 @@ lake env lean tests/InductiveParamContext.lean
 lake env lean tests/InductiveParamValidity.lean
 lake env lean tests/InductiveParamIndices.lean
 lake env lean tests/InductiveParamBinding.lean
+lake env lean tests/InductiveParamScope.lean
 lake env lean tests/NestedInductiveParams.lean
 lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
@@ -723,6 +743,7 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveMetadata
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParams
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParamValidity
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParamBinding
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParamScope
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -924,6 +945,8 @@ the declaration array and its parameter-array position, including the actual
 Every accepted fixture additionally checks parameter re-abstraction of its original
 source header through the final preprocessing context. This is runtime round-trip
 evidence for these closed fixtures, not a general source-reconstruction theorem.
+All accepted preprocessing fixtures also check zero structural bound-variable
+range and false executable loose-variable flags for every final parameter domain.
 Executable preprocessing is unchanged; no new guard, cache, or special path is
 introduced.
 
@@ -994,6 +1017,27 @@ reproduces the existing trusted-interface scope mismatch in `divergences.md`.
 No checker change, dependency, new axiom, or admitted proof is introduced.
 
 Focused executable replay checks 37 declarations in `Verify.InductiveParamBinding`,
+assuming imported dependencies and the explicitly audited interfaces are correct.
+
+`tests/InductiveParamScope.lean` contains eighteen proof regressions and thirteen
+axiom audits for empty/extended domain scope, one-binder instantiation, arbitrary
+continuations, concrete indexed getters, extraction validity, metadata flags,
+the preprocessing frame, and result projections. Zero-parameter, loose-variable,
+metavariable, and source-capture boundaries are included. The audit allowlists keep
+the structural, concrete lookup, and executable metadata assumptions separate;
+none uses an expression-abstraction interface.
+One hundred forty-four accepted well-scoped extractions cover two initial states,
+0/1/2/3/31/32/33/65 dependent parameters, repeated/anonymous names, all binder-info
+forms, and nine residual expression forms including binders, lets, annotations,
+projections, metavariables, and external free variables. Every case checks stored
+domains, concrete lookup/getter domains, and the remainder against both structural
+range and executable flags. Twelve accepted ill-scoped helper-boundary fixtures
+expose loose domains or remainders when the source premise is omitted; this does
+not add an executable rejection guard. Two range-zero capture fixtures show that
+bound-variable scope does not imply free-variable freshness or source round trips.
+No checker change, dependency, new axiom, or admitted proof is introduced.
+
+Focused executable replay checks 17 declarations in `Verify.InductiveParamScope`,
 assuming imported dependencies and the explicitly audited interfaces are correct.
 
 `tests/ConstructorParams.lean` contains seven proof regressions and thirteen axiom

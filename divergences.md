@@ -81,3 +81,15 @@ arity projection still inherits the existing `Expr.abstract_eq` interface, whose
 scope issue remains unresolved. Restricting/replacing that interface and auditing
 its callers, or establishing the appropriate well-scopedness premises, is separate
 work; no new axiom or executable workaround is introduced here.
+
+`Verify.InductiveParamScope` now proves a prerequisite for correctly scoped use:
+parameter extraction from a source with structural `looseBVarRange' = 0` produces
+range-zero local declaration domains and a range-zero remainder. It exposes actual
+indexed getter domains and executable flag projections, and preserves the local
+domain property through the preprocessing context frame. The proofs use no
+expression-abstraction interfaces. This does not establish scope for opaque
+rewritten bodies, source free-variable freshness, or the full caller audit needed
+to restrict `Expr.abstract_eq`. Range zero also allows metavariables and therefore
+is not the stronger existing `Expr.Closed` predicate. Run
+`lake env lean tests/InductiveParamScope.lean` for the premise, metadata, and
+ill-scoped/source-capture helper boundaries. The interface issue remains open.
