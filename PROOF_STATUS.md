@@ -517,12 +517,17 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   extraction preserves a `≤ numParams` loose range and carries explicit
   parameter validity, fresh-name reservation, and bounded local-domain facts.
   `ParamContext.abstractRange_range` and `ParamValidity.mkForall_range` bound
-  native parameter re-abstraction at the same limit. The exported contracts
-  still do not prove constructor/new-type range propagation, auxiliary
+  native parameter re-abstraction at the same limit. `replaceAllNested.rangeWithNewTypes`
+  explicitly isolates the generated auxiliary `newTypes` closure and retained-index
+  premise instead of assuming arbitrary environment declaration ranges or
+  `instantiateForallParams` behavior. `State.NewTypesRange` and
+  `run.loop.newTypesRange` then propagate preexisting and generated ranges through
+  constructor `mapM`, bounded re-abstraction, and the executable `set!` update into
+  both the final state and result types. Twenty-six focused audits exclude
+  `sorryAx` and use only the existing logical, metadata, application-building,
+  abstraction, instantiation, and array interfaces. These are explicit range
+  contracts; they do not prove environment declaration closure, auxiliary
   semantic typing, positivity, recursors, or full inductive soundness.
-  Twenty-four focused audits exclude `sorryAx` and use only the existing
-  logical, metadata, application-building, abstraction,
-  instantiation, and array interfaces.
 - `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
   preserving existing bound variables and unmatched metavariables and choosing
   the last duplicate identifier at the appropriate binder depth. The existing

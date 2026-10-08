@@ -198,15 +198,19 @@ run_meta do
     ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def]
   audit ``replaceAllNested.range [``Expr.looseBVarRange_eq, ``Expr.abstract_eq, ``Expr.instantiate_eq,
     ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def]
+  audit ``replaceAllNested.rangeWithNewTypes [``Expr.looseBVarRange_eq, ``Expr.abstract_eq,
+    ``Expr.instantiate_eq, ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def]
   audit ``mkAppN_range []
   audit ``mkAppRange_tail_range [``Lean.Expr.mkAppRangeAux.eq_def]
   audit ``withParams.contextScope [``Lean.PersistentArray.toList'_push]
   audit ``withParams.contextRange [``Lean.PersistentArray.toList'_push,
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
     ``Expr.instantiate1_eq]
-  for theoremName in [``run.loop.nestedAuxScoped, ``run.nestedAuxScoped] do
+  for theoremName in [``run.loop.nestedAuxScoped, ``run.loop.newTypesRange, ``run.nestedAuxScoped] do
     audit theoremName [``Lean.PersistentArray.toList'_push, ``Expr.looseBVarRange_eq,
       ``Expr.abstract_eq, ``Expr.instantiate_eq, ``Expr.instantiateRev_eq,
+      ``Expr.abstractRange_eq, ``Lean.PersistentHashMap.WF.find?_eq,
+      ``Lean.PersistentHashMap.WF.toList'_insert, ``Expr.instantiate1_eq,
       `Lean.Expr.mkAppRangeAux.eq_def]
   let env := (← Lean.getEnv).toKernelEnv
   for generator in [NameGenerator.mk `_nested_fresh 0, { namePrefix := `SourceSeed, idx := 17 }] do
@@ -222,6 +226,6 @@ run_meta do
       for type in cases do
         checkRawAbstraction ids depth type
   checkPremiseBoundaries env
-  logInfo "checked twenty-four proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
+  logInfo "checked twenty-six proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
 
 end InductiveNestedRebindingTest
