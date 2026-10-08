@@ -11,6 +11,10 @@ noncomputable def toList (lctx : LocalContext) : List LocalDecl :=
 noncomputable def fvars (lctx : LocalContext) : List FVarId :=
   lctx.toList.map (·.fvarId)
 
+def BindingScope (lctx : LocalContext) : Prop :=
+  ∀ fvar decl, lctx.find? fvar = some decl → decl.type.looseBVarRange' = 0 ∧
+    ∀ value, decl.value? (allowNondep := true) = some value → value.looseBVarRange' = 0
+
 def mkBindingList1 (isLambda : Bool) (lctx : LocalContext)
     (xs : List FVarId) (x : FVarId) (b : Expr) : Expr :=
   match lctx.find? x with
@@ -37,7 +41,8 @@ where
   | [], b => b
   | x :: xs, b => go xs (mkBindingList1 isLambda lctx xs.reverse x b)
 
-theorem mkBinding_eq :
+theorem mkBinding_eq (_hbody : b.looseBVarRange' = 0)
+    (_hscope : BindingScope lctx) (_hnodup : xs.Nodup) :
     mkBinding isLambda lctx ⟨xs.map .fvar⟩ b = mkBindingList isLambda lctx xs b := by
   simp only [mkBinding, List.getElem_toArray, Expr.abstractRange_eq, Expr.hasLooseBVar_eq,
     Expr.abstract_eq, ← Array.take_eq_extract, List.take_toArray, Bool.and_false,
@@ -46,6 +51,7 @@ theorem mkBinding_eq :
   simp only [List.getElem_eq_getElem?_get, Option.get_eq_getD (fallback := default)]
   change Nat.foldRev _ (fun i x =>
     mkBindingList1 isLambda lctx (xs.take i) (xs[i]?.getD default)) .. = mkBindingList.go ..
+  clear _hbody _hscope _hnodup
   rw [List.length_map]; generalize eq : xs.length = n
   generalize b.abstractList xs = b
   induction n generalizing xs b with

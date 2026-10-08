@@ -52,7 +52,7 @@ why checked parameter-plus-index counts need not equal raw syntactic binder
 arity. The verified general header contract remains a lower bound, not equality;
 the syntactic parameter guard must not reject legitimate normalized indices.
 
-## Loose-variable abstraction interface boundary (observed 2026-10-08)
+## Abstraction and binding interface boundaries (observed 2026-10-08)
 
 This is an existing **verification-interface scope mismatch**, not evidence of a
 Lean kernel soundness bug or different public frontend acceptance. For any free
@@ -62,6 +62,26 @@ Lean 4.29.0 returns `.bvar 0`. The structural model
 loose variables when introducing a binder. The unconditional `Expr.abstract_eq`
 axiom in `Verify.Axioms` equates these expressions, so its full stated scope does
 not match executable abstraction on bodies containing loose variables.
+
+A range-zero body alone is insufficient. Duplicate identifiers expose another
+minimal mismatch, without any loose variables in the input:
+
+```lean
+import Lean4Lean.Verify.Axioms
+open Lean
+
+#eval
+  let fvar : FVarId := ⟨`audit⟩
+  ((Expr.fvar fvar).abstract #[.fvar fvar, .fvar fvar],
+    (Expr.fvar fvar).abstractList [fvar, fvar])
+```
+
+The executable result is `.bvar 0`, while the structural result is `.bvar 1`.
+Native abstraction selects the last array occurrence; sequential `abstract1`
+replaces the first occurrence and then lifts it. Thus any bridge to this
+sequential model must also require distinct identifiers, or change the model.
+`tests/BindingScope.lean` checks the minimal observation and its forall/lambda
+binding consequences with a closed declaration type and range-zero body.
 
 Run `lake env lean tests/InductiveParamBinding.lean`; `checkAbstractionBoundary`
 asserts this minimal observation. With a one-parameter constant-declaration
@@ -93,3 +113,29 @@ to restrict `Expr.abstract_eq`. Range zero also allows metavariables and therefo
 is not the stronger existing `Expr.Closed` predicate. Run
 `lake env lean tests/InductiveParamScope.lean` for the premise, metadata, and
 ill-scoped/source-capture helper boundaries. The interface issue remains open.
+
+The direct whole-expression reconstruction contracts are now scoped:
+`LocalContext.mkBinding_eq` requires a range-zero body, `LocalContext.BindingScope`
+(range-zero lookup declaration types and all let values, including nondependent
+ones), and a `Nodup` identifier list. Closed bodies alone do not suffice when a
+later declaration domain or let value contains loose variables: indexed-prefix
+abstraction still differs. `MLCtx.WF.bindingScope` derives the context premise
+from translated declarations. `MLCtx.WF.mkForall_partial`, `mkForall_eq`, and
+`mkLambda_eq` now require range-zero bodies; their context and distinctness
+premises follow from well-formedness. The two concrete callers, the lambda and
+let branches in `Verify.TypeChecker.InferType`, obtain body scope from the
+cheap-beta-reduced type's translation and the context's no-bound-variable fact.
+The new regression reproduces both executable-to-structural and
+executable-to-`MLCtx` failures for loose bodies, and indexed-domain/value failures.
+
+This is an API-premise correction and caller audit, **not a replacement or repair
+of the global `Expr.abstract_eq` axiom**. The binding proof still inherits that
+unconditional axiom. Its only other explicit verification consumer is
+`ParamValidity.mkForall_arity` in `Verify.InductiveParamBinding`; that scalar
+leading-binder-count contract is not contradicted by these whole-expression
+counterexamples, including on arbitrary bodies. It retains its existing public
+signature and audited trust dependency. Replacing its use with a
+constructor-preservation property, or correcting the raw abstraction model,
+remains necessary before restricting the global bridge. No new axiom or
+executable checker change is introduced, and no public frontend acceptance or
+kernel soundness discrepancy is demonstrated here.

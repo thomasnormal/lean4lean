@@ -760,6 +760,31 @@ theorem MLCtx.WF.find?_eq {c : MLCtx} (wf : c.WF env Us) :
     c.lctx.find? x = c.decls.find? (x == ·.fvarId) := by
   simp [wf.tr.1.find?_eq_find?_toList, wf.toList_eq]
 
+private theorem MLCtx.WF.declScope : ∀ {c : MLCtx}, c.WF env Us →
+    ∀ decl ∈ c.decls, decl.type.looseBVarRange' = 0 ∧
+      ∀ value, decl.value? (allowNondep := true) = some value → value.looseBVarRange' = 0
+  | .nil, _, _, hmem => by cases hmem
+  | .vlam fvar name domain domain' bi context, ⟨hwf, _, hdomain, _⟩, decl, hmem => by
+    rcases List.mem_cons.mp hmem with rfl | hmem
+    · refine ⟨(context.noBV ▸ hdomain.closed).looseBVarRange_zero, ?_⟩
+      intro value hvalue
+      cases hvalue
+    · exact hwf.declScope decl hmem
+  | .vlet fvar name domain value domain' value' context,
+      ⟨hwf, _, hdomain, hvalue, _⟩, decl, hmem => by
+    rcases List.mem_cons.mp hmem with rfl | hmem
+    · refine ⟨(context.noBV ▸ hdomain.closed).looseBVarRange_zero, ?_⟩
+      intro actual hactual
+      have heq : value = actual := Option.some.inj hactual
+      subst actual
+      exact (context.noBV ▸ hvalue.closed).looseBVarRange_zero
+    · exact hwf.declScope decl hmem
+
+theorem MLCtx.WF.bindingScope {c : MLCtx} (wf : c.WF env Us) : c.lctx.BindingScope := by
+  intro fvar decl hlookup
+  rw [wf.find?_eq] at hlookup
+  exact wf.declScope decl (List.mem_of_find?_eq_some hlookup)
+
 inductive MLCtx.PartialForall : MLCtx → Nat → List FVarId → Expr → Prop where
   | nil : PartialForall c 0 [] e
   | vlam : PartialForall c n fvs (.forallE x ty (.abstract1 fv e) bi) →
@@ -785,12 +810,15 @@ theorem MLCtx.PartialForall.sublist (H : MLCtx.PartialForall c n l e) : l <+ c.v
   | skip _ _ _ _ ih => exact ih.trans (List.sublist_cons_self ..)
 
 theorem MLCtx.WF.mkForall_partial {c : MLCtx} (wf : c.WF env Us) (n hn)
-    (harr : arr.toList.reverse = l.map .fvar) (hp : MLCtx.PartialForall c n l e) :
+    (harr : arr.toList.reverse = l.map .fvar) (hp : MLCtx.PartialForall c n l e)
+    (hbody : e.looseBVarRange' = 0) :
     c.lctx.mkForall arr e = c.mkForall n hn e := by
   have := congrArg (Array.mk ·.reverse) harr; simp at this
-  rw [LocalContext.mkForall, this, ← List.map_reverse, LocalContext.mkBinding_eq,
+  have hnodup := List.nodup_reverse.2 (hp.sublist.nodup wf.fvars_nodup)
+  rw [LocalContext.mkForall, this, ← List.map_reverse,
+    LocalContext.mkBinding_eq hbody wf.bindingScope hnodup,
     LocalContext.mkBindingList_eq_fold, List.foldr_reverse]
-  · clear harr this
+  · clear harr this hbody hnodup
     induction hp with
     | nil => simp
     | vlam hp ih | vlet hp ih =>
@@ -817,16 +845,20 @@ theorem MLCtx.WF.mkForall_partial {c : MLCtx} (wf : c.WF env Us) (n hn)
   · exact List.nodup_reverse.2 (hp.sublist.nodup wf.fvars_nodup)
 
 theorem MLCtx.WF.mkForall_eq {c : MLCtx} (wf : c.WF env Us) (n hn)
-    (harr : arr.toList.reverse = (c.fvarRevList n hn).map .fvar) :
-    c.lctx.mkForall arr e = c.mkForall n hn e := mkForall_partial wf n hn harr .full
+    (harr : arr.toList.reverse = (c.fvarRevList n hn).map .fvar)
+    (hbody : e.looseBVarRange' = 0) :
+    c.lctx.mkForall arr e = c.mkForall n hn e := mkForall_partial wf n hn harr .full hbody
 
 theorem MLCtx.WF.mkLambda_eq {c : MLCtx} (wf : c.WF env Us) (n hn)
-    (harr : arr.toList.reverse = (c.fvarRevList n hn).map .fvar) :
+    (harr : arr.toList.reverse = (c.fvarRevList n hn).map .fvar)
+    (hbody : e.looseBVarRange' = 0) :
     c.lctx.mkLambda arr e = c.mkLambda n hn e := by
   have := congrArg (Array.mk ·.reverse) harr; simp at this
-  rw [LocalContext.mkLambda, this, ← List.map_reverse, LocalContext.mkBinding_eq,
+  have hnodup := List.nodup_reverse.2 (wf.fvarRevList_nodup n hn)
+  rw [LocalContext.mkLambda, this, ← List.map_reverse,
+    LocalContext.mkBinding_eq hbody wf.bindingScope hnodup,
     LocalContext.mkBindingList_eq_fold, List.foldr_reverse]
-  · clear harr this
+  · clear harr this hbody hnodup
     induction n generalizing c e with
     | zero => simp
     | succ n ih =>
