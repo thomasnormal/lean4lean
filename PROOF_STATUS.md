@@ -42,8 +42,16 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   header environment and preserves alignment. The `ordered` corollary also
   preserves orderedness when the translated header types are well-formed.
   This proof covers arbitrary header batches, including mutually declared and
-  unsafe headers, without changing the executable checker. It does not prove
-  that the preceding type-checking stage establishes its input invariants.
+  unsafe headers, without changing the executable checker. The preceding stage's
+  header-size invariant is now proved, but its semantic translation invariants
+  remain open.
+- `AddInductive.checkInductiveTypes.headerSizes` proves that its continuation
+  receives exactly one index-count entry and one datatype constant per input
+  datatype. The continuation-style theorem supports arbitrary result
+  postconditions; `getHeaderSizes` specializes it to returning the statistics.
+  The proof follows both nested executable loops and does not assume a verified
+  starting environment or type-checker correctness. It establishes cardinality,
+  not header translation, parameter typing, or full inductive soundness.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -274,8 +282,9 @@ Main review entry points: `Lean4Lean/Verify/Environment.lean`,
   construct that translation.
   The abstract header-registration, executable-prefix refinement, and primitive
   translation bridges do not discharge this obligation. Constructor/recursor
-  generation, inductive reduction equations, and the checked-statistics/header
-  translation invariants of the preceding stage remain unverified.
+  generation, inductive reduction equations, and the semantic statistics/header
+  translation invariants of the preceding stage remain unverified; the paired
+  header-array lengths are now proved.
 - Native `Nat.gcd`, `Nat.land`, `Nat.lor`, and `Nat.xor` reductions
   remain disabled.
   Restoring them with their primitive-extension proofs is unfinished work, not
@@ -372,6 +381,7 @@ lake build Lean4Lean.Theory Lean4Lean.Verify lean4lean
 lake env lean tests/Environment.lean
 lake env lean tests/PrimitiveInductive.lean
 lake env lean tests/InductiveHeaders.lean
+lake env lean tests/InductiveStats.lean
 lake env lean tests/Primitive.lean
 lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
@@ -386,6 +396,7 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.PrimitiveInductive
 lake env .lake/build/bin/lean4lean Lean4Lean.Theory.InductiveHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Inductive
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveHeaders
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveStats
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -447,6 +458,22 @@ proofs additionally inherit the existing persistent-map interface assumptions
 dependencies. No new axiom, admitted proof body, or full-environment translation
 constructor is introduced by the registration refinement.
 Focused executable replay checks 15 declarations in `Verify.InductiveHeaders`,
+assuming its imported dependencies are correct.
+
+`tests/InductiveStats.lean` contains five proof regressions and two axiom audits
+for the paired header-array lengths. Fourteen executable acceptance cases cover
+empty, singleton, and mutual batches; safe and unsafe contexts; parameters;
+dependent indices; distinct index counts; and universe parameters. Six rejection
+cases cover missing or mismatched parameters, mismatched result universes,
+undeclared universes, invalid types, and exhausted inductive fuel. The two size
+theorems use only `propext`, `Quot.sound`, and `Classical.choice`; their audits
+exclude `sorryAx` and all implementation-interface axioms.
+The proof tracks parameter and universe counts internally to justify the terminal
+assertions for nonempty batches. Its empty-batch case also accounts for the
+kernel-level default value of a failed parameter-count assertion; the size
+invariant does not claim that malformed empty input succeeds at runtime or that
+every assertion is unreachable. No executable behavior changes.
+Focused executable replay checks 32 declarations in `Verify.InductiveStats`,
 assuming its imported dependencies are correct.
 
 The reflection regressions accept both supported reflection encodings and reject
