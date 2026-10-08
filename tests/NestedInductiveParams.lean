@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.InductiveParamBinding
+import Lean4Lean.Verify.InductiveParamScope
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean
@@ -94,6 +95,8 @@ private def checkResultContext (env : Kernel.Environment) (state : State)
       actual.map fields == expected.map fields do
     throwError "preprocessing changed the original extracted parameter declarations"
   for (decl, index) in actual.zipIdx do
+    unless decl.type.looseBVarRange' == 0 && !decl.type.hasLooseBVars do
+      throwError "preprocessing result context lost its parameter domain scope"
     let some found := result.lctx.find? decl.fvarId
       | throwError "result parameter declaration missing from concrete lookup"
     unless fields found == fields decl && decl.index == index &&
