@@ -109,6 +109,21 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   logical panic/default model when a nonzero declared count fails the terminal
   assertion; it does not claim runtime acceptance of malformed empty input.
   These proofs need only standard logical axioms, not checker soundness.
+- `AddInductive.checkInductiveTypes.frameHeaderSizesAritiesParamsCountDistinct`
+  also proves `InductiveStats.HeaderArities`: every source datatype's raw leading
+  binder count is at most the declared parameter count plus its checked index
+  count. `headerArities` and `getHeaderArities` supply this invariant to arbitrary
+  continuations and returned statistics. Equality is not a valid general claim:
+  checking weak-head normalizes before and between binders, so delta, beta, let,
+  or annotation reduction can expose additional binders.
+  The shared traversal proof is parameterized by a private binder measure;
+  old contracts instantiate the zero measure and keep their logical-only axiom
+  boundaries, while the new raw-arity contract uses the existing executable
+  instantiation bridge. Successful WHNF cannot remove a raw leading forall:
+  the executable checker returns such a head unchanged, and all other raw heads
+  have zero leading binder count. No semantic WHNF soundness premise is needed.
+  Empty arrays retain the proof-only panic/default treatment and have no arity
+  entries to constrain.
 - `Verify.ConstructorArity` proves offset additivity for the actual executable
   constructor binder counter and that substituting a free variable preserves
   its raw leading-forall spine. Consuming one forall binder therefore preserves
@@ -117,7 +132,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   The specification-level substitution proof uses only `propext`; its bridge to
   `Expr.instantiate1` additionally uses the existing `Lean.Expr.instantiate1_eq`
   interface axiom, without `sorryAx`. These arity prerequisites feed the
-  constructor parameter-consumption and full-batch arity proofs below.
+  constructor parameter-consumption and full-batch arity proofs below. The four
+  foundational count/substitution lemmas now live in
+  `Verify.ConstructorArity.Basic` to share them with header statistics without
+  introducing an import cycle; their names and statements are unchanged.
 - `Verify.ConstructorParams` proves that the executable return-application check
   requires a matching argument at every parameter position. For free-variable
   parameters, arbitrary `FVarsIn` predicates on the return expression therefore
@@ -212,6 +230,17 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   uses only standard logical axioms, while registration additionally uses the
   existing map and guarded-arity interfaces. No new axioms, admitted proofs,
   executable paths, or caches are added.
+  `DeclaredHeaderArities` additionally exposes exact header lookups whose raw type
+  arity is bounded by the installed parameter-plus-index counts.
+  `InductiveStats.declaredHeaderArities` derives it from checked statistics and
+  header metadata, including headers with no constructors.
+  `checkInductiveTypes.registeredHeaderArities` carries both source/header bounds
+  through the full checked prefix, preserving the older metadata APIs as
+  projections. The arity contracts are audited separately in
+  `tests/InductiveArity.lean`; no semantic typing or inductive soundness claim is
+  added. That test and the minimal `tests/InductiveHiddenParameter.lean` document
+  a staged hidden-parameter acceptance mismatch with Lean 4.29.0 in
+  `divergences.md`, not a demonstrated full-checker or kernel soundness bug.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -542,6 +571,8 @@ lake env lean tests/Environment.lean
 lake env lean tests/PrimitiveInductive.lean
 lake env lean tests/InductiveHeaders.lean
 lake env lean tests/InductiveStats.lean
+lake env lean tests/InductiveArity.lean
+lake env lean tests/InductiveHiddenParameter.lean
 lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
 lake env lean tests/ConstructorParams.lean
@@ -566,6 +597,7 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveStats
 lake env .lake/build/bin/lean4lean Lean4Lean.Theory.ConstructorHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorArity
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorArity.Basic
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorParams
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorMetadata
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveMetadata
@@ -671,7 +703,7 @@ full environment equality; the runtime lookup checks are regressions, not its
 proof.
 Every accepted statistics fixture additionally checks parameter uniqueness and
 the exact introduction names/order, including reuse across mutual declarations.
-Focused executable replay checks 71 declarations in `Verify.InductiveStats`,
+Focused executable replay checks 114 declarations in `Verify.InductiveStats`,
 assuming its imported dependencies are correct.
 
 `tests/ConstructorHeaders.lean` contains fourteen proof regressions and eight
@@ -710,7 +742,27 @@ free-variable substitutions and why raw metadata counting does not strip
 annotations or reduce let expressions. The existing statistics fixtures now
 check the free-variable invariant, including repeated parameter pushes in
 dependent and universe-polymorphic mutual declarations. Focused replay checks
-22 declarations in `Verify.ConstructorArity`, assuming imports are correct.
+26 declarations in `Verify.ConstructorArity` and 22 in
+`Verify.ConstructorArity.Basic`, assuming imports are correct.
+
+`tests/InductiveArity.lean` adds ten proof regressions and seven axiom audits for
+WHNF/instantiation binder bounds, arbitrary continuations, successful indexed
+statistics, proof-only empty batches, exact header metadata, and the complete
+registered prefix. All audits exclude `sorryAx`; raw-arity substitution uses only
+the existing `Lean.Expr.instantiate1_eq` bridge beyond standard logical axioms,
+and registration additionally inherits the existing map/guarded-arity interfaces.
+Twenty-four safe/unsafe normalized-prefix outcomes cover explicit telescopes,
+delta aliases, dependent hidden tails, annotations, beta reduction, let reduction,
+and mutual types. Sixteen fixtures agree with the native kernel's accepted
+parameter/index counts; eight prefixes hiding declared parameters succeed while
+the native kernel rejects the identical declarations with its parameter-count
+diagnostic. Native checking is enabled. The minimal safe-mode reproducer is
+`tests/InductiveHiddenParameter.lean`. These tests do not run elimination/recursor
+construction in lean4lean or claim full `AddInductive.run` acceptance.
+Existing statistics and registration fixtures also check the new raw-arity
+lower bounds. No executable checker behavior changes. Focused replay additionally
+checks 114 declarations in `Verify.InductiveStats` and 16 in
+`Verify.InductiveMetadata`, assuming imports are correct.
 
 `tests/ConstructorParams.lean` contains seven proof regressions and thirteen axiom
 audits, all excluding `sorryAx`. The core constructor-loop arity proof uses
@@ -797,7 +849,7 @@ registered headers or imported entries, insufficient parameters, wrong returns,
 and exhaustion in the header or constructor traversal. These are numeric
 prefix tests; no malformed constructor field-count assertion is executed and no
 kernel discrepancy is claimed.
-Focused executable replay checks thirteen declarations in `Verify.InductiveMetadata`,
+Focused executable replay checks sixteen declarations in `Verify.InductiveMetadata`,
 assuming its imported dependencies are correct.
 
 The reflection regressions accept both supported reflection encodings and reject

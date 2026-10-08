@@ -31,6 +31,22 @@ def DeclaredParameterMetadata (numParams : Nat) (indTypes : Array InductiveType)
         header.numParams = numParams ∧ info.numParams = numParams ∧
         info.numParams + info.numFields = declareConstructors.arity 0 ctor.type
 
+def DeclaredHeaderArities (numParams : Nat) (indTypes : Array InductiveType)
+    (env : Kernel.Environment) : Prop :=
+  ∀ (index : Nat) (hindex : index < indTypes.size), ∃ header : InductiveVal,
+    env.find? indTypes[index].name = some (.inductInfo header) ∧
+      header.numParams = numParams ∧
+      declareConstructors.arity 0 header.type ≤ header.numParams + header.numIndices
+
+theorem InductiveStats.declaredHeaderArities (stats : InductiveStats) (numParams : Nat)
+    (indTypes : Array InductiveType) (numNested : Nat) (isUnsafe : Bool)
+    (lparams : List Name) (env : Kernel.Environment)
+    (harities : stats.HeaderArities numParams indTypes)
+    (hheaders : stats.HeaderMetadata numParams indTypes numNested isUnsafe lparams env) :
+    DeclaredHeaderArities numParams indTypes env := by
+  intro index hindex
+  exact ⟨_, hheaders index hindex, rfl, harities index hindex⟩
+
 theorem InductiveStats.declaredParameterMetadata (stats : InductiveStats) (numParams : Nat)
     (indTypes : Array InductiveType) (numNested : Nat) (isUnsafe : Bool)
     (lparams : List Name) (env : Kernel.Environment)
@@ -91,7 +107,7 @@ theorem declareInductiveTypes.metadata (stats : InductiveStats) (numParams : Nat
   simp only [Array.getElem_zipWith, getElem!_pos stats.nindices index hstats,
     declareInductiveTypes.metadataVal]
 
-theorem checkInductiveTypes.registeredParameterMetadata (numParams : Nat)
+theorem checkInductiveTypes.registeredHeaderArities (numParams : Nat)
     (indTypes : Array InductiveType) (numNested : Nat) (isUnsafe : Bool)
     (ctx : Context) (hwf : ctx.env.constants.WF) :
     (checkInductiveTypes numParams indTypes (fun stats => do
@@ -104,9 +120,11 @@ theorem checkInductiveTypes.registeredParameterMetadata (numParams : Nat)
           result.1.HeaderMetadata numParams indTypes numNested isUnsafe ctx.lparams result.2 ∧
           result.1.ConstructorMetadata ctx.lparams indTypes isUnsafe result.2 ∧
           result.1.ParamsCount numParams indTypes.size ∧
-          DeclaredParameterMetadata numParams indTypes result.2 := by
-  apply checkInductiveTypes.frameHeaderSizesParamsCountDistinct
-  intro stats current hsizes hcount hfvars hnodup hframe
+          DeclaredParameterMetadata numParams indTypes result.2 ∧
+          result.1.HeaderArities numParams indTypes ∧
+          DeclaredHeaderArities numParams indTypes result.2 := by
+  apply checkInductiveTypes.frameHeaderSizesAritiesParamsCountDistinct
+  intro stats current hsizes harities hcount hfvars hnodup hframe
   have hcurrent : current.env.constants.WF := by simpa only [hframe.env] using hwf
   refine (declareInductiveTypes.metadata stats numParams indTypes numNested isUnsafe current
     hcurrent hsizes.1).bind ?_
@@ -124,9 +142,30 @@ theorem checkInductiveTypes.registeredParameterMetadata (numParams : Nat)
     simpa only [hframe.lparams] using hctors
   refine .pure ⟨hfinal, ?_, hheaders', hctors', hcount,
     stats.declaredParameterMetadata numParams indTypes numNested isUnsafe ctx.lparams env
-      hcount hheaders' hctors'⟩
+      hcount hheaders' hctors', harities,
+    stats.declaredHeaderArities numParams indTypes numNested isUnsafe ctx.lparams env
+      harities hheaders'⟩
   · intro name info hold
     exact hkeep _ _ (hpreserve name info (by simpa only [hframe.env] using hold))
+
+theorem checkInductiveTypes.registeredParameterMetadata (numParams : Nat)
+    (indTypes : Array InductiveType) (numNested : Nat) (isUnsafe : Bool)
+    (ctx : Context) (hwf : ctx.env.constants.WF) :
+    (checkInductiveTypes numParams indTypes (fun stats => do
+      let headers ← declareInductiveTypes stats numParams indTypes numNested isUnsafe
+      withEnv headers do
+        checkConstructors indTypes stats isUnsafe
+        let env ← declareConstructors stats indTypes isUnsafe
+        pure (stats, env)) ctx).WF fun result => result.2.constants.WF ∧
+          (∀ name info, ctx.env.find? name = some info → result.2.find? name = some info) ∧
+          result.1.HeaderMetadata numParams indTypes numNested isUnsafe ctx.lparams result.2 ∧
+          result.1.ConstructorMetadata ctx.lparams indTypes isUnsafe result.2 ∧
+          result.1.ParamsCount numParams indTypes.size ∧
+          DeclaredParameterMetadata numParams indTypes result.2 :=
+  (checkInductiveTypes.registeredHeaderArities numParams indTypes numNested isUnsafe ctx
+    hwf).mono fun _ hmetadata =>
+      ⟨hmetadata.1, hmetadata.2.1, hmetadata.2.2.1, hmetadata.2.2.2.1,
+        hmetadata.2.2.2.2.1, hmetadata.2.2.2.2.2.1⟩
 
 theorem checkInductiveTypes.registeredConstructorMetadata (numParams : Nat)
     (indTypes : Array InductiveType) (numNested : Nat) (isUnsafe : Bool)
