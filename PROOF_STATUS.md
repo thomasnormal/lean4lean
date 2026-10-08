@@ -167,6 +167,32 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   positivity, recursors, full `TrEnv` extension, and inductive soundness remain
   separate. All three theorem audits exclude `sorryAx`, with no new axioms,
   admitted proofs, executable checker paths, or caches.
+- `Verify.InductiveMetadata` completes the numeric checked-type/header-register/
+  constructor-check/register prefix. `declareInductiveTypes.metadataVal` models
+  the actual header records, including the declared parameter count, each
+  datatype's stored index count, family and constructor-name lists, nested count,
+  universe parameters, safety, and computed recursion/reflexivity flags.
+  `declareInductiveTypes.metadata` proves every indexed header lookup, old-entry
+  preservation, and constant-map validity under an initial map-validity premise
+  and matching header/index-array sizes. The size premise prevents the executable
+  `zipWith` from truncating the input datatype batch.
+  `checkInductiveTypes.registeredConstructorMetadata` supplies that size invariant
+  and the parameter invariants internally, registers headers, checks the complete
+  constructor batch in that environment, and registers its constructors. The
+  final environment preserves all original entries and every newly installed
+  header, contains the exact constructor records with nontruncating field counts,
+  and has a valid concrete constant map. Its only starting invariant premise is
+  concrete map validity; no externally supplied translations, semantic typing,
+  array-size, or parameter-shape/distinctness premises are required.
+  This is a partial-correctness contract for the indicated executable prefix,
+  not `AddInductive.run` or unrestricted `addDecl.WF`. The earlier universe-name
+  guard and subsequent elimination/recursor stages are not included. Header
+  flags are copied from the executable computations, not proved to characterize
+  semantic recursion/reflexivity. Header counts use the declared parameter count,
+  while constructor counts use actual checked parameter-array size; relating
+  those in every empty-header case remains separate. Both audits exclude
+  `sorryAx`, using only the existing map and guarded-arity interfaces, with no new
+  axioms, admitted proofs, executable paths, or caches.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -502,6 +528,7 @@ lake env lean tests/ConstructorArity.lean
 lake env lean tests/ConstructorParams.lean
 lake env lean tests/ConstructorBatchArity.lean
 lake env lean tests/ConstructorMetadata.lean
+lake env lean tests/InductiveMetadata.lean
 lake env lean tests/Primitive.lean
 lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
@@ -522,6 +549,7 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorArity
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorParams
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorMetadata
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveMetadata
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -725,6 +753,26 @@ duplicate rejection. No malformed constructor field-count assertion is executed,
 and no kernel discrepancy is reported. Header registration in the staged runtime
 fixtures does not establish that step's semantic translation prerequisites.
 Focused executable replay checks 29 declarations in `Verify.ConstructorMetadata`,
+assuming its imported dependencies are correct.
+
+`tests/InductiveMetadata.lean` adds six proof regressions and two axiom audits for
+standalone header registration, the fully composed prefix, exact header records,
+old-entry preservation, numeric/name-list projections, and the conditional prefix
+contract from an empty concrete environment. All audits exclude `sorryAx`.
+Forty-two executable outcomes cover safe/unsafe contexts, empty batches,
+zero/one/two parameters, dependent fields, direct recursive and reflexive
+signatures, indexed results, universe parameters, and mutual batches with empty
+middle parents. A mutual fixture records distinct index counts `[2, 0, 1]` and
+another copies a nonzero nested count. Seeded contexts use a preexisting local,
+nondefault fresh-name prefix/index, and primitive authorization. Accepted cases
+check every final header and constructor field, field-count sums, original-entry
+preservation, and absence of recursors. Rejections include duplicate/existing
+header names, duplicate constructors, constructor names colliding with newly
+registered headers or imported entries, insufficient parameters, wrong returns,
+and exhaustion in the header or constructor traversal. These are numeric
+prefix tests; no malformed constructor field-count assertion is executed and no
+kernel discrepancy is claimed.
+Focused executable replay checks nine declarations in `Verify.InductiveMetadata`,
 assuming its imported dependencies are correct.
 
 The reflection regressions accept both supported reflection encodings and reject
