@@ -32,9 +32,18 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   the recognized primitive shapes to those canonical declarations. Their
   `TrInductDecl` translations check datatype headers in the old environment and
   constructor types in the successfully registered header environment, where
-  recursive datatype references are available. This is a staging/specification
-  bridge, not a proof about the executable `declareInductiveTypes` or the full
-  inductive frontend; no recursor or reduction equation is installed at this stage.
+  recursive datatype references are available. These translations do not prove
+  the full inductive frontend; no recursor or reduction equation is installed at
+  this stage.
+- `AddInductive.declareInductiveTypes.refines` now connects the executable header
+  stage to `VEnv.addInductHeaders`. Given an initially `Aligned` constant map,
+  translated headers, an admitting safety filter, and exactly one index-count
+  entry per datatype, successful registration produces the corresponding abstract
+  header environment and preserves alignment. The `ordered` corollary also
+  preserves orderedness when the translated header types are well-formed.
+  This proof covers arbitrary header batches, including mutually declared and
+  unsafe headers, without changing the executable checker. It does not prove
+  that the preceding type-checking stage establishes its input invariants.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -263,9 +272,10 @@ Main review entry points: `Lean4Lean/Verify/Environment.lean`,
   inductives. Arithmetic results are conditional on an appropriate starting
   environment translation; runtime tests against the imported prelude do not
   construct that translation.
-  The new abstract header-registration and primitive-translation bridges do not
-  discharge this obligation; their concrete executable-header checks are runtime
-  regressions, not a refinement proof.
+  The abstract header-registration, executable-prefix refinement, and primitive
+  translation bridges do not discharge this obligation. Constructor/recursor
+  generation, inductive reduction equations, and the checked-statistics/header
+  translation invariants of the preceding stage remain unverified.
 - Native `Nat.gcd`, `Nat.land`, `Nat.lor`, and `Nat.xor` reductions
   remain disabled.
   Restoring them with their primitive-extension proofs is unfinished work, not
@@ -375,6 +385,7 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Level
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.PrimitiveInductive
 lake env .lake/build/bin/lean4lean Lean4Lean.Theory.InductiveHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Inductive
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveHeaders
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -407,9 +418,15 @@ declarations successfully; as above, imported dependencies are assumed correct.
 lookups, duplicate/collision rejection, empty batches, polymorphic headers, and
 orderedness. It confirms that the header stage does not install constructors.
 Runtime checks exercise the executable `declareInductiveTypes` for `Bool` and
-`Nat`, including duplicate-name and primitive-authorization rejection. Seven
-abstract header-theorem audits exclude `sorryAx` and implementation-interface
-axioms; two translation-bridge audits track their inherited assumptions.
+`Nat`, including duplicate-name and primitive-authorization rejection, and for
+two ordinary mutually declared headers in safe and unsafe modes. They cover
+within-batch duplicates and existing-header collisions. A deliberately short
+`nindices` array demonstrates why the refinement's exact-length precondition
+matters: the unchecked prefix's `zipWith` truncates the batch. This test
+deliberately bypasses the preceding stage's statistics-length assertions; it is
+a precondition-boundary regression, not a kernel discrepancy. Seven abstract
+header-theorem audits exclude `sorryAx` and implementation-interface
+axioms; five translation/refinement audits track their inherited assumptions.
 The abstract extension, lookup, equation-preservation, and orderedness proofs
 use only `propext` and `Quot.sound`; the header-well-formedness proofs use only
 `propext`. `PrimitiveInductiveDecl.toVDecl` additionally inherits
@@ -420,6 +437,17 @@ assumptions of the validator classification. No new axiom or admitted proof
 is added, and these bridges do not claim unconditional inductive soundness.
 Focused executable replay checks 21 declarations in `Theory.InductiveHeaders`
 and eight in `Verify.Inductive`, assuming their imported dependencies are correct.
+
+The header-extraction lemma inherits the structural-translation API's
+`sorryAx` and standard logical axioms. The executable `refines` and `ordered`
+proofs additionally inherit the existing persistent-map interface assumptions
+`Lean.PersistentHashMap.findAux_isSome`,
+`Lean.PersistentHashMap.WF.find?_eq`, and
+`Lean.PersistentHashMap.WF.toList'_insert`. The audits allow only these known
+dependencies. No new axiom, admitted proof body, or full-environment translation
+constructor is introduced by the registration refinement.
+Focused executable replay checks 15 declarations in `Verify.InductiveHeaders`,
+assuming its imported dependencies are correct.
 
 The reflection regressions accept both supported reflection encodings and reject
 swapped proof converters. They also check selectors that ignore their Boolean
