@@ -5,6 +5,84 @@ open Lean Lean4Lean Lean4Lean.AddInductive
 
 namespace InductiveMetadataTest
 
+example (numParams : Nat) (types : Array InductiveType) (numNested : Nat)
+    (isUnsafe : Bool) (ctx : Context) (hwf : ctx.env.constants.WF) :
+    (checkInductiveTypes numParams types (fun stats => do
+      let headers ← declareInductiveTypes stats numParams types numNested isUnsafe
+      withEnv headers do
+        checkConstructors types stats isUnsafe
+        let env ← declareConstructors stats types isUnsafe
+        pure (stats, env)) ctx).WF fun result => result.2.constants.WF ∧
+          (∀ name info, ctx.env.find? name = some info → result.2.find? name = some info) ∧
+          result.1.HeaderMetadata numParams types numNested isUnsafe ctx.lparams result.2 ∧
+          result.1.ConstructorMetadata ctx.lparams types isUnsafe result.2 ∧
+          result.1.ParamsCount numParams types.size ∧
+          DeclaredParameterMetadata numParams types result.2 :=
+  checkInductiveTypes.registeredParameterMetadata numParams types numNested isUnsafe ctx hwf
+
+example (stats : InductiveStats) (numParams : Nat) (types : Array InductiveType)
+    (numNested : Nat) (isUnsafe : Bool) (lparams : List Name) (env : Kernel.Environment)
+    (hcount : stats.ParamsCount numParams types.size)
+    (hheaders : stats.HeaderMetadata numParams types numNested isUnsafe lparams env)
+    (hctors : stats.ConstructorMetadata lparams types isUnsafe env) :
+    DeclaredParameterMetadata numParams types env :=
+  stats.declaredParameterMetadata numParams types numNested isUnsafe lparams env
+    hcount hheaders hctors
+
+example (numParams : Nat) (env : Kernel.Environment) :
+    DeclaredParameterMetadata numParams #[] env := by
+  intro index hindex
+  simp only [Array.size_empty] at hindex
+  omega
+
+example (numParams : Nat) (types : Array InductiveType) (env : Kernel.Environment)
+    (hmetadata : DeclaredParameterMetadata numParams types env)
+    (index : Nat) (hindex : index < types.size) (ctorIndex : Nat) (ctor : Constructor)
+    (hctor : types[index].ctors[ctorIndex]? = some ctor)
+    (header : InductiveVal) (info : ConstructorVal)
+    (hheader : env.find? types[index].name = some (.inductInfo header))
+    (hlookup : env.find? ctor.name = some (.ctorInfo info)) :
+    header.numParams = info.numParams ∧ info.numParams = numParams ∧
+      info.numParams + info.numFields = declareConstructors.arity 0 ctor.type := by
+  obtain ⟨header', info', hheader', hlookup', hparams, hcount, harity⟩ :=
+    hmetadata index hindex ctorIndex ctor hctor
+  rw [hheader] at hheader'
+  rw [hlookup] at hlookup'
+  have hheaders := ConstantInfo.inductInfo.inj (Option.some.inj hheader')
+  have hinfos := ConstantInfo.ctorInfo.inj (Option.some.inj hlookup')
+  subst header'
+  subst info'
+  exact ⟨hparams.trans hcount.symm, hcount, harity⟩
+
+example (numParams : Nat) (types : Array InductiveType) (numNested : Nat)
+    (isUnsafe : Bool) (ctx : Context) (hwf : ctx.env.constants.WF)
+    (hnonempty : types.size ≠ 0) :
+    (checkInductiveTypes numParams types (fun stats => do
+      let headers ← declareInductiveTypes stats numParams types numNested isUnsafe
+      withEnv headers do
+        checkConstructors types stats isUnsafe
+        let env ← declareConstructors stats types isUnsafe
+        pure (stats, env)) ctx).WF fun result => result.1.params.size = numParams ∧
+          DeclaredParameterMetadata numParams types result.2 :=
+  (checkInductiveTypes.registeredParameterMetadata numParams types numNested isUnsafe ctx
+    hwf).mono fun _ hmetadata =>
+      ⟨by simpa only [InductiveStats.ParamsCount, hnonempty, ite_false] using
+          hmetadata.2.2.2.2.1, hmetadata.2.2.2.2.2⟩
+
+example (numParams numNested : Nat) (isUnsafe : Bool) (ctx : Context)
+    (hwf : ctx.env.constants.WF) :
+    (checkInductiveTypes numParams #[] (fun stats => do
+      let headers ← declareInductiveTypes stats numParams #[] numNested isUnsafe
+      withEnv headers do
+        checkConstructors #[] stats isUnsafe
+        let env ← declareConstructors stats #[] isUnsafe
+        pure (stats, env)) ctx).WF fun result => result.1.params.size = 0 ∧
+          DeclaredParameterMetadata numParams #[] result.2 :=
+  (checkInductiveTypes.registeredParameterMetadata numParams #[] numNested isUnsafe ctx
+    hwf).mono fun _ hmetadata =>
+      ⟨by simpa only [InductiveStats.ParamsCount, Array.size_empty, ite_true] using
+          hmetadata.2.2.2.2.1, hmetadata.2.2.2.2.2⟩
+
 example (stats : InductiveStats) (numParams : Nat) (types : Array InductiveType)
     (numNested : Nat) (isUnsafe : Bool) (ctx : Context) (hwf : ctx.env.constants.WF)
     (hsize : stats.nindices.size = types.size) :
@@ -107,8 +185,10 @@ private def checkHeader (stats : InductiveStats) (ctx : Context) (env : Kernel.E
     throwError "incorrect final header metadata for {type.name}"
 
 private def checkCtor (stats : InductiveStats) (ctx : Context) (env : Kernel.Environment)
-    (isUnsafe : Bool) (type : InductiveType) (index : Nat) (ctor : Constructor) : MetaM Unit := do
+    (numParams : Nat) (isUnsafe : Bool) (type : InductiveType) (index : Nat)
+    (ctor : Constructor) : MetaM Unit := do
   let some (.ctorInfo actual) := env.find? ctor.name | throwError "missing constructor {ctor.name}"
+  let some (.inductInfo parent) := env.find? type.name | throwError "missing final parent"
   let expected := declareConstructors.metadataVal stats ctx.lparams isUnsafe type.name index ctor
   unless actual.name == expected.name && actual.type == expected.type &&
       actual.levelParams == expected.levelParams && actual.induct == expected.induct &&
@@ -117,6 +197,9 @@ private def checkCtor (stats : InductiveStats) (ctx : Context) (env : Kernel.Env
     throwError "incorrect final constructor metadata for {ctor.name}"
   unless actual.numParams + actual.numFields == declareConstructors.arity 0 ctor.type do
     throwError "final field subtraction truncated"
+  unless parent.numParams == numParams && actual.numParams == numParams &&
+      parent.numParams == actual.numParams do
+    throwError "declared header/constructor parameter counts disagree"
 
 private def checkPrefix (ctx : Context) (numParams : Nat) (types : Array InductiveType)
     (isUnsafe expected : Bool) (numNested : Nat := 0) : MetaM Unit := do
@@ -125,13 +208,13 @@ private def checkPrefix (ctx : Context) (numParams : Nat) (types : Array Inducti
     throwError "incorrect registered-prefix outcome for {types.map (·.name)}"
   if let .ok (stats, env) := result then
     unless stats.nindices.size == types.size && stats.indConsts.size == types.size &&
-        stats.params.size == numParams do
+        stats.params.size == (if types.isEmpty then 0 else numParams) do
       throwError "incorrect full-prefix statistics"
     for index in [:types.size] do
       checkHeader stats ctx env numParams types numNested isUnsafe index
       let type := types[index]!
       for ctorIndex in [:type.ctors.length] do
-        checkCtor stats ctx env isUnsafe type ctorIndex type.ctors[ctorIndex]!
+        checkCtor stats ctx env numParams isUnsafe type ctorIndex type.ctors[ctorIndex]!
       if env.contains (type.name ++ `rec) then
         throwError "numeric prefix generated a recursor"
     for name in [``Nat, ``Nat.zero, ``Nat.succ, ``List] do
@@ -152,10 +235,12 @@ private def audit (theoremName : Name) (interfaces : List Name) : MetaM Unit := 
 run_meta
   let maps := [``Lean.PersistentHashMap.findAux_isSome,
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert]
+  let arity := [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
+    ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
   audit ``declareInductiveTypes.metadata maps
-  audit ``checkInductiveTypes.registeredConstructorMetadata (maps ++
-    [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
-      ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq])
+  audit ``InductiveStats.declaredParameterMetadata []
+  audit ``checkInductiveTypes.registeredParameterMetadata (maps ++ arity)
+  audit ``checkInductiveTypes.registeredConstructorMetadata (maps ++ arity)
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let leaf := Expr.const `PrefixLeaf []
