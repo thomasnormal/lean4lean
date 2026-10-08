@@ -295,9 +295,34 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   for declaration-list observations, not new axioms. The combined extraction
   theorem additionally uses the existing instantiation bridge. The older prefix
   and numeric count APIs retain their original audited axiom sets. Actual map
-  lookup equality, fresh-name/distinctness, local-context map validity, semantic
-  domain typing, and nested transformation correctness are not proved here;
-  executable lookup and domain metadata are runtime-regression observations only.
+  lookup equality, fresh-ID/distinctness, or local-context map validity do not
+  follow from the structural-only contract; the next module verifies those
+  additional obligations. Semantic domain typing and nested transformation
+  correctness remain separate; exact source-domain metadata is runtime evidence.
+- `Verify.InductiveParamValidity` verifies concrete parameter-context validity.
+  `ContextReserved` records that every existing local free-variable identifier is
+  reserved by the current name generator. Its `fresh` theorem proves the next
+  generated identifier is absent from a well-formed concrete context, and
+  `push_current` preserves reservations when that identifier is declared.
+  `ParamValidity` combines the structural parameter contract with `LocalContext.WF`.
+  It proves distinct extracted parameters, exact `find?` equality for every local
+  declaration, and a default-kind/non-let lookup record for every extracted
+  parameter. `withParams.validContext` supplies validity and reservations to
+  arbitrary continuations; `getValidContext` returns them with the extraction
+  result and its generator. No initial environment or state validity premise is
+  required: extraction starts with an empty local context.
+  `Result.ParamValidity`, `run.paramValidity`, and the state-discarding projection
+  preserve this validity through the exact preprocessing context frame, including
+  auxiliary datatype growth. `contextWF` and `contextLookup` expose the concrete
+  map validity and exact final declaration lookups. These are concrete-data
+  partial-correctness contracts, not semantic `TrLCtx` or binder-domain typing.
+  Reservations are proved at the extraction boundary, not against the final
+  preprocessing generator after opaque nested-rewriting actions. Freshness
+  relative to arbitrary free variables in the source expression, nested rewriting,
+  positivity, recursors, and unrestricted inductive soundness remain separate.
+  All fourteen audits exclude `sorryAx` and instantiation/typing interfaces; the
+  proofs reuse the existing persistent-array push and persistent-map lookup/insert
+  bridges without adding axioms or changing older theorem audit sets.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -632,6 +657,7 @@ lake env lean tests/InductiveArity.lean
 lake env lean tests/InductiveHiddenParameter.lean
 lake env lean tests/InductiveParams.lean
 lake env lean tests/InductiveParamContext.lean
+lake env lean tests/InductiveParamValidity.lean
 lake env lean tests/NestedInductiveParams.lean
 lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
@@ -662,6 +688,7 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorParams
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorMetadata
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveMetadata
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParams
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParamValidity
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -857,6 +884,8 @@ observations do not prove nested transformation or context-hygiene semantics.
 Every successful fixture also compares the result context's executable declaration
 array against the original extraction, including free-variable order, indices,
 names, instantiated domains, binder information, kind, and let status.
+Each resulting declaration also checks exact executable lookup metadata against
+the declaration array, including all auxiliary-growing cases.
 Executable preprocessing is unchanged; no new guard, cache, or special path is
 introduced.
 
@@ -878,6 +907,22 @@ semantic typing or map-lookup correctness claims.
 Focused executable replay checks 83 declarations in `Verify.InductiveParams`,
 including the structural context proofs, assuming its imported dependencies are
 correct.
+
+`tests/InductiveParamValidity.lean` contains seventeen proof regressions and fourteen
+axiom audits for reservations, fresh insertion, concrete context validity,
+parameter distinctness, exact extraction/result lookups, arbitrary continuations,
+and state-discarding projections. A duplicate-parameter proof regression shows
+why the older structural-only contract cannot supply distinctness by itself.
+Sixty-four extraction outcomes (32 accept, 32 exact-diagnostic rejections) cover
+zero/one/two/three and 31/32/33/65 dependent parameters, repeated binder names,
+default/seeded/anonymous generator prefixes, and a large initial generator index.
+Accepted cases check exact fresh identifiers, distinctness, generator progress,
+next-name absence, and concrete lookup metadata. These runtime progress checks
+are not additional monotonicity claims for nested rewriting. No executable checker
+path, guard, cache, or dependency is added.
+
+Focused executable replay checks 26 declarations in `Verify.InductiveParamValidity`
+and 83 in `Verify.InductiveParams`, assuming imported dependencies are correct.
 
 `tests/ConstructorParams.lean` contains seven proof regressions and thirteen axiom
 audits, all excluding `sorryAx`. The core constructor-loop arity proof uses
