@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveParams
+import Lean4Lean.Verify.InductiveParamValidity
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean
@@ -91,6 +91,11 @@ private def checkResultContext (env : Kernel.Environment) (state : State)
   unless actual.length == params.size && expected.length == params.size &&
       actual.map fields == expected.map fields do
     throwError "preprocessing changed the original extracted parameter declarations"
+  for decl in actual do
+    let some found := result.lctx.find? decl.fvarId
+      | throwError "result parameter declaration missing from concrete lookup"
+    unless fields found == fields decl do
+      throwError "result parameter lookup disagrees with its declaration"
 
 private def checkPreprocessing (env : Kernel.Environment) (state : State)
     (fuel numParams : Nat) (types : List InductiveType) (expected : Except String Nat)
