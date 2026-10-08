@@ -19,8 +19,9 @@ def Environment.InductiveDeclRange (env : Kernel.Environment) : Prop :=
   ∀ name info, env.get name = .ok (.inductInfo info) →
     info.type.looseBVarRange' = 0 ∧
       ∀ ctorName, ctorName ∈ info.ctors →
-        ∀ ctorInfo, env.get ctorName = .ok (.ctorInfo ctorInfo) →
-          ctorInfo.type.looseBVarRange' = 0
+        (∃ ctorInfo, env.get ctorName = .ok (.ctorInfo ctorInfo)) ∧
+          ∀ ctorInfo, env.get ctorName = .ok (.ctorInfo ctorInfo) →
+            ctorInfo.type.looseBVarRange' = 0
 
 theorem Environment.InductiveDeclRange.inductiveType
     (h : Environment.InductiveDeclRange env)
@@ -37,7 +38,14 @@ theorem Environment.InductiveDeclRange.constructorType
     (hctorGet : env.get ctorName = .ok (.ctorInfo ctorInfo)) :
     (ctorInfo.type.instantiateLevelParams ctorInfo.levelParams levels).looseBVarRange' = 0 := by
   rw [Expr.instantiateLevelParams_looseBVarRange]
-  exact (h name info hget).2 ctorName hctor ctorInfo hctorGet
+  exact (h name info hget).2 ctorName hctor |>.2 ctorInfo hctorGet
+
+theorem Environment.InductiveDeclRange.constructorInfo
+    (h : Environment.InductiveDeclRange env)
+    (hget : env.get name = .ok (.inductInfo info))
+    (ctorName : Name) (hctor : ctorName ∈ info.ctors) :
+    ∃ ctorInfo, env.get ctorName = .ok (.ctorInfo ctorInfo) :=
+  (h name info hget).2 ctorName hctor |>.1
 
 end Lean4Lean
 
@@ -84,6 +92,13 @@ private theorem lift_scope (action : Except Exception α) (env : Environment) (s
   | error exception => exact .throw
   | ok value => exact .pure hstate
 
+private theorem lift_wf (action : Except Exception α) (env : Environment) (state : State)
+    (Q : α → Prop) (haction : action.WF Q) :
+    ((liftM action : M α) env state).WF fun returned => Q returned.1 ∧ returned.2 = state := by
+  cases action with
+  | error exception => exact .throw
+  | ok value => exact .pure ⟨haction _ rfl, rfl⟩
+
 private theorem lift_bind_scope (action : Except Exception α) (next : α → M β)
     (env : Environment) (state : State)
     (hnext : ∀ value, (next value env state).WF fun returned => returned.2.NestedAuxScoped) :
@@ -99,6 +114,15 @@ private theorem lift_bind_any (action : Except Exception α) (next : α → M β
   cases action with
   | error exception => exact .throw
   | ok value => exact hnext value
+
+private theorem lift_bind_wf (action : Except Exception α) (next : α → M β)
+    (env : Environment) (state : State) (post : β × State → Prop)
+    (Q : α → Prop) (haction : action.WF Q)
+    (hnext : ∀ value, Q value → (next value env state).WF post) :
+    ((liftM action >>= next) env state).WF post := by
+  cases action with
+  | error exception => exact .throw
+  | ok value => exact hnext value (haction _ rfl)
 
 private theorem liftM_ok_eq (value : α) :
     (liftM (m := Except Exception) (Except.ok value) : M α) = pure value := by
@@ -278,6 +302,98 @@ private theorem mapM_scope (items : List α) (step : α → M β)
     refine (hstep item state hstate).bind ?_
     rintro ⟨value, state'⟩ hnext
     exact (ih state' hnext).bind fun returned hreturned => .pure hreturned
+
+def ConstructorRange (numParams : Nat) (ctor : Constructor) : Prop :=
+  ctor.type.looseBVarRange' ≤ numParams
+
+def InductiveTypeRange (numParams : Nat) (indType : InductiveType) : Prop :=
+  indType.type.looseBVarRange' ≤ numParams ∧
+    ∀ ctor ∈ indType.ctors, ConstructorRange numParams ctor
+
+def State.NewTypesRange (numParams : Nat) (state : State) : Prop :=
+  ∀ indType ∈ state.newTypes, InductiveTypeRange numParams indType
+
+def Result.TypesRange (numParams : Nat) (result : Result) : Prop :=
+  ∀ indType ∈ result.types, InductiveTypeRange numParams indType
+
+theorem State.NewTypesRange.push {numParams : Nat} {state : State}
+    (hstate : State.NewTypesRange numParams state)
+    (newType : InductiveType) (hnewType : InductiveTypeRange numParams newType) :
+    State.NewTypesRange numParams { state with newTypes := state.newTypes.push newType } := by
+  intro indType hmem
+  rcases Array.mem_push.mp hmem with hmem | rfl
+  · exact hstate indType hmem
+  · exact hnewType
+
+private theorem NestedAppScope.prefixArgsRange {type : Expr} {info : InductiveVal}
+    (hscope : NestedAppScope type info) :
+    ∀ param ∈ type.getAppArgs.extract 0 info.numParams, param.looseBVarRange' = 0 := by
+  intro param hparam
+  rcases Array.mem_iff_getElem.mp hparam with ⟨index, hindex, hvalue⟩
+  have hindex' : index < info.numParams := by
+    simp [Array.size_extract] at hindex
+    omega
+  have hargs := hscope.2.1
+  have hvalue' : type.getAppArgs[index]! = param := by
+    rw [getElem!_pos _ _ (by omega)]
+    have hget := Array.getElem_extract (xs := type.getAppArgs) (start := 0)
+      (stop := info.numParams) (i := index) hindex
+    simpa using hget.symm.trans hvalue
+  rw [← hvalue']
+  exact hscope.argRange index hindex'
+
+private theorem forIn_scope_newTypesRange (items : List α) (initial : Option Expr)
+    (step : α → Option Expr → M (ForInStep (Option Expr))) (rangeBound optionBound : Nat)
+    (env : Environment) (state : State) (hstate : state.NestedAuxScoped)
+    (hrange : State.NewTypesRange rangeBound state) (hinitial : OptionExprRange optionBound initial)
+    (hstep : ∀ item acc state', state'.NestedAuxScoped →
+      State.NewTypesRange rangeBound state' → OptionExprRange optionBound acc →
+      item ∈ items →
+      (step item acc env state').WF fun returned =>
+        returned.2.NestedAuxScoped ∧ State.NewTypesRange rangeBound returned.2 ∧
+          ForInStepOptionRange optionBound returned.1) :
+    (forIn items initial step env state).WF fun returned =>
+      returned.2.NestedAuxScoped ∧ State.NewTypesRange rangeBound returned.2 ∧
+        OptionExprRange optionBound returned.1 := by
+  induction items generalizing initial state with
+  | nil => exact .pure ⟨hstate, hrange, hinitial⟩
+  | cons item items ih =>
+    rw [List.forIn_cons]
+    refine (hstep item initial state hstate hrange hinitial (by simp)).bind ?_
+    rintro ⟨next, state'⟩ hnext
+    cases next with
+    | done acc => exact .pure ⟨hnext.1, hnext.2.1, hnext.2.2⟩
+    | yield acc =>
+      exact ih acc state' hnext.1 hnext.2.1 hnext.2.2 (by
+        intro other otherAcc otherState otherScope otherRange otherOption otherMem
+        exact hstep other otherAcc otherState otherScope otherRange otherOption
+          (by simp [otherMem]))
+
+private theorem mapM_scope_newTypesRange (items : List α) (step : α → M β)
+    (pred : β → Prop) (bound : Nat) (env : Environment) (state : State)
+    (hstate : state.NestedAuxScoped) (hrange : State.NewTypesRange bound state)
+    (hstep : ∀ item state', state'.NestedAuxScoped → State.NewTypesRange bound state' →
+      item ∈ items →
+      (step item env state').WF fun returned =>
+        returned.2.NestedAuxScoped ∧ State.NewTypesRange bound returned.2 ∧ pred returned.1) :
+    (items.mapM step env state).WF fun returned =>
+      returned.2.NestedAuxScoped ∧ State.NewTypesRange bound returned.2 ∧
+        ∀ value ∈ returned.1, pred value := by
+  induction items generalizing state with
+  | nil => exact .pure ⟨hstate, hrange, by simp⟩
+  | cons item items ih =>
+    rw [List.mapM_cons]
+    refine (hstep item state hstate hrange (by simp)).bind ?_
+    rintro ⟨value, state'⟩ hnext
+    refine (ih state' hnext.1 hnext.2.1 (by
+      intro other otherState otherScope otherRange otherMem
+      exact hstep other otherState otherScope otherRange (by simp [otherMem]))).bind ?_
+    intro returned hrest
+    exact .pure ⟨hrest.1, hrest.2.1, by
+      intro other hother
+      rcases List.mem_cons.mp hother with rfl | hother
+      · exact hnext.2.2
+      · exact hrest.2.2 other hother⟩
 
 private theorem mkAppList_scope (fn : Expr) (args : List Expr)
     (hfn : fn.looseBVarRange' = 0) (hargs : ∀ arg ∈ args, arg.looseBVarRange' = 0) :
@@ -579,6 +695,352 @@ theorem replaceIfNested.range (numParams : Nat) (source : LocalContext)
         | some result =>
           dsimp
           exact .pure hresult
+
+private theorem abstractRange_fvars_range (type : Expr) (n : Nat) (ids : List FVarId)
+    (bound : Nat) (htype : type.looseBVarRange' ≤ bound) :
+    (type.abstractRange n (ids.map Expr.fvar).toArray).looseBVarRange' ≤ max bound n := by
+  rw [Expr.abstractRange_eq]
+  have harray : ((ids.map Expr.fvar).toArray.extract 0 n) =
+      ((ids.take n).map Expr.fvar).toArray := by
+    apply Array.toList_inj.mp
+    simp
+  rw [harray, Expr.abstract_eq]
+  have hrange := Expr.abstractFVars_looseBVarRange type (ids.take n) 0
+  apply Nat.le_trans hrange
+  refine (Nat.max_le).2 ⟨?_, ?_⟩
+  · exact Nat.le_trans htype (Nat.le_max_left _ _)
+  · simpa only [Nat.zero_add, List.length_take] using
+      Nat.le_trans (Nat.min_le_left _ _) (Nat.le_max_right _ _)
+
+private theorem ParamContext.abstractRange_range {numParams : Nat} {lctx : LocalContext}
+    {params : Array Expr} (hcontext : ParamContext numParams lctx params)
+    (type : Expr) (index : Nat) (hindex : index < numParams)
+    (htype : type.looseBVarRange' ≤ numParams) :
+    (type.abstractRange index params).looseBVarRange' ≤ numParams := by
+  rw [hcontext.params_eq_fvars]
+  have hr := abstractRange_fvars_range type index
+    (lctx.toList.reverse.map LocalDecl.fvarId) numParams htype
+  simpa [LocalDecl.fvarId] using
+    Nat.le_trans hr (Nat.max_le.2 ⟨Nat.le_refl _, Nat.le_of_lt hindex⟩)
+
+private theorem paramForall_range_aux {numParams : Nat} {lctx : LocalContext}
+    {params : Array Expr} (hcontext : ParamContext numParams lctx params)
+    (decls : List LocalDecl) (body : Expr) (hbody : body.looseBVarRange' ≤ numParams)
+    (hdecls : ∀ decl ∈ decls, decl.type.looseBVarRange' ≤ numParams)
+    (hindices : ∀ decl ∈ decls, decl.index < numParams) :
+    (paramForall decls params body).looseBVarRange' ≤ numParams := by
+  induction decls with
+  | nil =>
+    exact Nat.le_trans (hcontext.abstract_range body) (Nat.max_le.2 ⟨hbody, Nat.le_refl _⟩)
+  | cons decl decls ih =>
+    simp only [paramForall, List.foldr]
+    refine (Nat.max_le).2 ⟨?_, ?_⟩
+    · exact hcontext.abstractRange_range decl.type decl.index
+        (hindices decl (by simp)) (hdecls decl (by simp))
+    · apply Nat.le_trans (Nat.sub_le _ _)
+      apply ih
+      · intro other hother
+        exact hdecls other (by simp [hother])
+      · intro other hother
+        exact hindices other (by simp [hother])
+
+private theorem ParamValidity.mkForall_range {numParams : Nat} {lctx : LocalContext}
+    {params : Array Expr} (hvalid : ParamValidity numParams lctx params)
+    (hscope : ∀ decl ∈ lctx.toList, decl.type.looseBVarRange' ≤ numParams) (body : Expr)
+    (hbody : body.looseBVarRange' ≤ numParams) :
+    (lctx.mkForall params body).looseBVarRange' ≤ numParams := by
+  rw [hvalid.mkForall_eq]
+  apply paramForall_range_aux hvalid.context
+  · exact hbody
+  · intro decl hdecl
+    exact hscope decl (List.mem_reverse.mp hdecl)
+  · intro decl hdecl
+    have hmem : decl.index ∈ lctx.toList.reverse.map LocalDecl.index :=
+      List.mem_map.mpr ⟨decl, hdecl, rfl⟩
+    rw [hvalid.indices] at hmem
+    exact List.mem_range.mp hmem
+
+private theorem stripForall_loop (items : List Nat) (e : Expr) (bound : Nat)
+    (step : Nat → Expr → Except Exception (ForInStep Expr))
+    (hstep : ∀ i e, step i e = match e with
+      | .forallE _ _ body _ => .ok (.yield body)
+      | _ => .error illFormed)
+    (he : e.looseBVarRange' ≤ bound) :
+    (forIn items e step).WF fun result => result.looseBVarRange' ≤ bound + items.length := by
+  induction items generalizing e bound with
+  | nil => exact .pure (by simpa)
+  | cons item items ih =>
+    rw [List.forIn_cons]
+    rw [hstep]
+    cases e with
+    | forallE name domain body bi =>
+      change (forIn items body step).WF fun result =>
+        result.looseBVarRange' ≤ bound + (items.length + 1)
+      refine (ih body (bound + 1) ?_).mono ?_
+      change max domain.looseBVarRange' (body.looseBVarRange' - 1) ≤ bound at he
+      omega
+      intro result hresult
+      simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hresult
+    | _ => exact .throw
+
+private def stripForallStep (_ : Nat) (e : Expr) : Except Exception (ForInStep Expr) :=
+  match e with
+  | .forallE _ _ body _ => .ok (.yield body)
+  | _ => .error illFormed
+
+private theorem stripForall_range (e : Expr) (hi bound : Nat)
+    (he : e.looseBVarRange' ≤ bound) :
+    (forIn [:hi] e stripForallStep).WF fun result =>
+      result.looseBVarRange' ≤ bound + hi := by
+  rw [Std.Legacy.Range.forIn_eq_forIn_range']
+  have h := stripForall_loop (List.range' 0 hi 1) e bound stripForallStep
+    (by intro i e; rfl) he
+  simpa using h
+
+theorem Expr.instantiateRevRange_looseBVarRange (e : Expr) (hi : Nat) (params : Array Expr)
+    (bound : Nat) (he : e.looseBVarRange' ≤ bound + (params.extract 0 hi).size)
+    (hparams : ∀ param ∈ params.extract 0 hi, param.looseBVarRange' ≤ bound) :
+    (e.instantiateRevRange 0 hi params).looseBVarRange' ≤ bound := by
+  rw [Expr.instantiateRevRange_eq, Expr.instantiateRev_eq, Expr.instantiate_eq]
+  apply Expr.instantiateList_looseBVarRange (n := bound) (k := 0)
+  · simpa using he
+  · intro param hparam
+    have hparam' : param ∈ List.take hi params.toList := by simpa using hparam
+    have hmemExtract : param ∈ (params.extract 0 hi).toList := by
+      rw [Array.toList_extract]
+      simpa using hparam'
+    exact hparams param (Array.mem_toList_iff.mp hmemExtract)
+
+theorem instantiateForallParams.range (e : Expr) (hi : Nat) (params : Array Expr)
+    (bound : Nat) (he : e.looseBVarRange' ≤ bound)
+    (hparams : ∀ param ∈ params.extract 0 hi, param.looseBVarRange' ≤ bound)
+    (hsize : hi ≤ params.size) :
+    (instantiateForallParams e hi params).WF fun result =>
+      result.looseBVarRange' ≤ bound := by
+  unfold instantiateForallParams
+  change (forIn [:hi] e stripForallStep >>= fun body =>
+    pure (body.instantiateRevRange 0 hi params)).WF _
+  refine (stripForall_range e hi bound he).bind ?_
+  intro body hbody
+  have hsize' : (params.extract 0 hi).size = hi := by
+    simp [Array.size_extract]
+    omega
+  have hbound : bound + hi ≤ bound + (params.extract 0 hi).size := by
+    simp [hsize']
+  exact .pure (Expr.instantiateRevRange_looseBVarRange body hi params bound
+    (Nat.le_trans hbody hbound) hparams)
+
+theorem replaceIfNested.rangeWithNewTypes (numParams : Nat) (source : LocalContext)
+    (lctx : LocalContext) (sourceParams As : Array Expr) (e : Expr)
+    (env : Environment) (state : State) (bound : Nat)
+    (hsource : ParamValidity numParams lctx As)
+    (htarget : ParamContext numParams source sourceParams)
+    (hlocalScope : ∀ decl ∈ lctx.toList, decl.type.looseBVarRange' ≤ numParams)
+    (hstate : state.NestedAuxScoped) (hrange : State.NewTypesRange numParams state)
+    (hclosure : Lean4Lean.Environment.InductiveDeclRange env)
+    (he : e.looseBVarRange' ≤ bound) :
+    (replaceIfNested lctx sourceParams As e env state).WF fun returned =>
+      returned.2.NestedAuxScoped ∧ State.NewTypesRange numParams returned.2 ∧
+        OptionExprRange bound returned.1 := by
+  unfold replaceIfNested
+  refine (isNestedInductiveApp?.scope e env state).bind ?_
+  rintro ⟨selected, state'⟩ ⟨hframe, hselected⟩
+  dsimp only at hframe hselected
+  subst state'
+  cases selected with
+  | none => exact .pure ⟨hstate, hrange, trivial⟩
+  | some info =>
+    dsimp only
+    rw [Expr.withApp_eq]
+    have hscope := hselected info rfl
+    rcases hscope.1 with ⟨headName, headLevels, hhead⟩
+    rw [hhead]
+    have harity : info.numParams ≤ e.getAppArgs.size := hscope.2.1
+    simp only [if_pos harity]
+    have hprefix :
+        (mkAppRange (.const headName headLevels) 0 info.numParams e.getAppArgs).looseBVarRange' = 0 := by
+      simpa [hhead] using hscope.prefixRange
+    refine (replaceParams.noLooseBVars numParams lctx source As sourceParams _ env state
+      hsource.context htarget hprefix).bind ?_
+    rintro ⟨Iparams, state'⟩ ⟨hIparams, hframe⟩
+    dsimp only at hIparams hframe
+    subst state'
+    simp only
+    rw [get_bind]
+    generalize hfound : Array.findSome? _ state.nestedAux = found
+    cases found with
+    | some auxI_name =>
+      exact .pure ⟨hstate, hrange, nestedApp_range auxI_name state.lvls As e info.numParams bound
+        hscope.2.1 hsource.context.params_noLooseBVars he⟩
+    | none =>
+      simp only
+      simp only [pure_bind]
+      rw [read_bind]
+      refine (forIn_scope_newTypesRange info.all none _ numParams bound env state hstate hrange trivial ?_).bind ?_
+      · intro J_name result state' hloop hloopRange hacc hJmem
+        generalize hget : env.get J_name = found
+        cases found with
+        | error exception => exact .throw
+        | ok constant =>
+          cases constant with
+          | inductInfo J_info =>
+            have hJtype := hclosure.inductiveType (levels := headLevels) hget
+            have hJbody := instantiateForallParams.range
+              (J_info.type.instantiateLevelParams J_info.levelParams headLevels)
+              info.numParams e.getAppArgs 0 (Nat.le_of_eq hJtype)
+              (fun param hparam => Nat.le_of_eq (hscope.prefixArgsRange param hparam)) harity
+            rw [liftM_ok_eq]
+            simp only [pure_bind]
+            rw [bind_eq]
+            generalize hname : mkUniqueName (`_nested ++ J_name) env state' = named
+            cases named with
+            | error exception => exact .throw
+            | ok named =>
+              rcases named with ⟨auxJ_name, state''⟩
+              have hnamed := mkUniqueName.frame (`_nested ++ J_name) env state'
+              rw [hname] at hnamed
+              have hnamed' := hnamed _ rfl
+              have hpre : state''.NestedAuxScoped := by
+                intro entry hentry
+                apply hloop entry
+                rw [← hnamed'.1]
+                exact hentry
+              have hrange' : State.NewTypesRange numParams state'' := by
+                intro indType hmem
+                apply hloopRange indType
+                rw [← hnamed'.2.1]
+                exact hmem
+              simp only
+              refine (lift_wf
+                (instantiateForallParams
+                  (J_info.type.instantiateLevelParams J_info.levelParams headLevels)
+                  info.numParams e.getAppArgs) env state''
+                (fun value => value.looseBVarRange' ≤ 0) hJbody).bind ?_
+              rintro ⟨auxJ_type, state'''⟩ ⟨hauxJ_type, hstateFrame⟩
+              change state''' = state'' at hstateFrame
+              subst state'''
+              have hauxJ_type' : auxJ_type.looseBVarRange' ≤ numParams :=
+                Nat.le_trans hauxJ_type (Nat.zero_le _)
+              have hJprefix :
+                  (mkAppRange (.const J_name headLevels) 0 info.numParams e.getAppArgs).looseBVarRange' = 0 :=
+                hscope.constPrefixRange J_name headLevels
+              refine (replaceParams.noLooseBVars numParams lctx source As sourceParams _ env state''
+                hsource.context htarget hJprefix).bind ?_
+              rintro ⟨JAs', state'''⟩ ⟨hJscope, hframe⟩
+              dsimp only at hJscope hframe
+              subst state'''
+              have hpush :
+                  ({ state'' with nestedAux := state''.nestedAux.push (JAs', auxJ_name) } : State).NestedAuxScoped :=
+                State.NestedAuxScoped.push hpre JAs' auxJ_name hJscope
+              have hpushRange : State.NewTypesRange numParams
+                  { state'' with nestedAux := state''.nestedAux.push (JAs', auxJ_name) } := by
+                simpa using hrange'
+              have hnewTypeType :
+                  (lctx.mkForall As auxJ_type).looseBVarRange' ≤ numParams :=
+                hsource.mkForall_range hlocalScope auxJ_type hauxJ_type'
+              dsimp
+              rw [modify_bind]
+              split
+              · rw [get_bind]
+                refine (mapM_scope_newTypesRange J_info.ctors _
+                  (pred := fun ctor => ConstructorRange numParams ctor) numParams env _ hpush
+                  hpushRange ?_).bind ?_
+                · intro J_ctor_name state''' hctorScope hctorRange hctorMem
+                  generalize hctor : env.get J_ctor_name = found
+                  cases found with
+                  | error exception => exact .throw
+                  | ok J_ctor_info =>
+                    rcases hclosure.constructorInfo hget J_ctor_name hctorMem with
+                      ⟨J_ctor_val, hctorGet⟩
+                    rw [hctorGet] at hctor
+                    cases hctor
+                    rw [liftM_ok_eq]
+                    simp only [pure_bind]
+                    have hJctor := hclosure.constructorType (levels := headLevels) hget
+                      J_ctor_name hctorMem J_ctor_val hctorGet
+                    have hJctorBody := instantiateForallParams.range
+                      (J_ctor_val.type.instantiateLevelParams J_ctor_val.levelParams headLevels)
+                      info.numParams e.getAppArgs 0 (Nat.le_of_eq hJctor)
+                      (fun param hparam => Nat.le_of_eq (hscope.prefixArgsRange param hparam)) harity
+                    refine (lift_wf
+                      (instantiateForallParams
+                        (J_ctor_val.type.instantiateLevelParams J_ctor_val.levelParams headLevels)
+                        info.numParams e.getAppArgs) env state'''
+                      (fun value => value.looseBVarRange' ≤ 0) hJctorBody).bind ?_
+                    rintro ⟨auxJ_ctor_type, state''''⟩ ⟨hauxJ_ctor_type, hstateFrame⟩
+                    change state'''' = state''' at hstateFrame
+                    subst state''''
+                    simp only
+                    have hauxJ_ctor_type'' : auxJ_ctor_type.looseBVarRange' ≤ 0 := by
+                      simpa using hauxJ_ctor_type
+                    have hauxJ_ctor_type' : auxJ_ctor_type.looseBVarRange' ≤ numParams :=
+                      Nat.le_trans hauxJ_ctor_type'' (Nat.zero_le _)
+                    exact .pure ⟨hctorScope, hctorRange,
+                      hsource.mkForall_range hlocalScope auxJ_ctor_type hauxJ_ctor_type'⟩
+                · rintro ⟨auxJ_ctors, state''''⟩ hctors
+                  have hnewType : InductiveTypeRange numParams {
+                      name := auxJ_name, type := lctx.mkForall As auxJ_type, ctors := auxJ_ctors } :=
+                    ⟨hnewTypeType, hctors.2.2⟩
+                  dsimp
+                  rw [modify_bind]
+                  have hrangeNew := State.NewTypesRange.push hctors.2.1
+                    { name := auxJ_name, type := lctx.mkForall As auxJ_type, ctors := auxJ_ctors } hnewType
+                  exact .pure ⟨hctors.1, hrangeNew, by
+                    simp [ForInStepOptionRange, OptionExprRange]
+                    exact nestedApp_range auxJ_name state''.lvls As e info.numParams bound
+                      hscope.2.1 hsource.context.params_noLooseBVars he⟩
+              · refine (mapM_scope_newTypesRange J_info.ctors _
+                  (pred := fun ctor => ConstructorRange numParams ctor) numParams env _ hpush
+                  hpushRange ?_).bind ?_
+                · intro J_ctor_name state''' hctorScope hctorRange hctorMem
+                  generalize hctor : env.get J_ctor_name = found
+                  cases found with
+                  | error exception => exact .throw
+                  | ok J_ctor_info =>
+                    rcases hclosure.constructorInfo hget J_ctor_name hctorMem with
+                      ⟨J_ctor_val, hctorGet⟩
+                    rw [hctorGet] at hctor
+                    cases hctor
+                    rw [liftM_ok_eq]
+                    simp only [pure_bind]
+                    have hJctor := hclosure.constructorType (levels := headLevels) hget
+                      J_ctor_name hctorMem J_ctor_val hctorGet
+                    have hJctorBody := instantiateForallParams.range
+                      (J_ctor_val.type.instantiateLevelParams J_ctor_val.levelParams headLevels)
+                      info.numParams e.getAppArgs 0 (Nat.le_of_eq hJctor)
+                      (fun param hparam => Nat.le_of_eq (hscope.prefixArgsRange param hparam)) harity
+                    refine (lift_wf
+                      (instantiateForallParams
+                        (J_ctor_val.type.instantiateLevelParams J_ctor_val.levelParams headLevels)
+                        info.numParams e.getAppArgs) env state'''
+                      (fun value => value.looseBVarRange' ≤ 0) hJctorBody).bind ?_
+                    rintro ⟨auxJ_ctor_type, state''''⟩ ⟨hauxJ_ctor_type, hstateFrame⟩
+                    change state'''' = state''' at hstateFrame
+                    subst state''''
+                    simp only
+                    have hauxJ_ctor_type'' : auxJ_ctor_type.looseBVarRange' ≤ 0 := by
+                      simpa using hauxJ_ctor_type
+                    have hauxJ_ctor_type' : auxJ_ctor_type.looseBVarRange' ≤ numParams :=
+                      Nat.le_trans hauxJ_ctor_type'' (Nat.zero_le _)
+                    exact .pure ⟨hctorScope, hctorRange,
+                      hsource.mkForall_range hlocalScope auxJ_ctor_type hauxJ_ctor_type'⟩
+                · rintro ⟨auxJ_ctors, state''''⟩ hctors
+                  have hnewType : InductiveTypeRange numParams {
+                      name := auxJ_name, type := lctx.mkForall As auxJ_type, ctors := auxJ_ctors } :=
+                    ⟨hnewTypeType, hctors.2.2⟩
+                  dsimp
+                  rw [modify_bind]
+                  have hrangeNew := State.NewTypesRange.push hctors.2.1
+                    { name := auxJ_name, type := lctx.mkForall As auxJ_type, ctors := auxJ_ctors } hnewType
+                  exact .pure ⟨hctors.1, hrangeNew, by
+                    simpa [ForInStepOptionRange, OptionExprRange] using hacc⟩
+          | _ => exact .pure ⟨hloop, hloopRange, hacc⟩
+      · rintro ⟨result, state'⟩ hresult
+        cases result with
+        | none => exact .pure ⟨hresult.1, hresult.2.1, trivial⟩
+        | some result =>
+          dsimp
+          exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
 
 theorem replaceIfNested.scope (numParams : Nat) (source : LocalContext)
     (lctx : LocalContext) (sourceParams As : Array Expr) (e : Expr)
@@ -885,138 +1347,6 @@ theorem withParams.contextRange (type : Expr) (numParams : Nat)
         (by simpa [Nat.add_zero] using hscope') hstate'
         (by simpa [Nat.add_zero] using htype'))
 
-private theorem abstractRange_fvars_range (type : Expr) (n : Nat) (ids : List FVarId)
-    (bound : Nat) (htype : type.looseBVarRange' ≤ bound) :
-    (type.abstractRange n (ids.map Expr.fvar).toArray).looseBVarRange' ≤ max bound n := by
-  rw [Expr.abstractRange_eq]
-  have harray : ((ids.map Expr.fvar).toArray.extract 0 n) =
-      ((ids.take n).map Expr.fvar).toArray := by
-    apply Array.toList_inj.mp
-    simp
-  rw [harray, Expr.abstract_eq]
-  have hrange := Expr.abstractFVars_looseBVarRange type (ids.take n) 0
-  apply Nat.le_trans hrange
-  refine (Nat.max_le).2 ⟨?_, ?_⟩
-  · exact Nat.le_trans htype (Nat.le_max_left _ _)
-  · simpa only [Nat.zero_add, List.length_take] using
-      Nat.le_trans (Nat.min_le_left _ _) (Nat.le_max_right _ _)
-
-private theorem ParamContext.abstractRange_range {numParams : Nat} {lctx : LocalContext}
-    {params : Array Expr} (hcontext : ParamContext numParams lctx params)
-    (type : Expr) (index : Nat) (hindex : index < numParams)
-    (htype : type.looseBVarRange' ≤ numParams) :
-    (type.abstractRange index params).looseBVarRange' ≤ numParams := by
-  rw [hcontext.params_eq_fvars]
-  have hr := abstractRange_fvars_range type index
-    (lctx.toList.reverse.map LocalDecl.fvarId) numParams htype
-  simpa [LocalDecl.fvarId] using
-    Nat.le_trans hr (Nat.max_le.2 ⟨Nat.le_refl _, Nat.le_of_lt hindex⟩)
-
-private theorem paramForall_range_aux {numParams : Nat} {lctx : LocalContext}
-    {params : Array Expr} (hcontext : ParamContext numParams lctx params)
-    (decls : List LocalDecl) (body : Expr) (hbody : body.looseBVarRange' ≤ numParams)
-    (hdecls : ∀ decl ∈ decls, decl.type.looseBVarRange' ≤ numParams)
-    (hindices : ∀ decl ∈ decls, decl.index < numParams) :
-    (paramForall decls params body).looseBVarRange' ≤ numParams := by
-  induction decls with
-  | nil =>
-    exact Nat.le_trans (hcontext.abstract_range body) (Nat.max_le.2 ⟨hbody, Nat.le_refl _⟩)
-  | cons decl decls ih =>
-    simp only [paramForall, List.foldr]
-    refine (Nat.max_le).2 ⟨?_, ?_⟩
-    · exact hcontext.abstractRange_range decl.type decl.index
-        (hindices decl (by simp)) (hdecls decl (by simp))
-    · apply Nat.le_trans (Nat.sub_le _ _)
-      apply ih
-      · intro other hother
-        exact hdecls other (by simp [hother])
-      · intro other hother
-        exact hindices other (by simp [hother])
-
-private theorem ParamValidity.mkForall_range {numParams : Nat} {lctx : LocalContext}
-    {params : Array Expr} (hvalid : ParamValidity numParams lctx params)
-    (hscope : ∀ decl ∈ lctx.toList, decl.type.looseBVarRange' ≤ numParams) (body : Expr)
-    (hbody : body.looseBVarRange' ≤ numParams) :
-    (lctx.mkForall params body).looseBVarRange' ≤ numParams := by
-  rw [hvalid.mkForall_eq]
-  apply paramForall_range_aux hvalid.context
-  · exact hbody
-  · intro decl hdecl
-    exact hscope decl (List.mem_reverse.mp hdecl)
-  · intro decl hdecl
-    have hmem : decl.index ∈ lctx.toList.reverse.map LocalDecl.index :=
-      List.mem_map.mpr ⟨decl, hdecl, rfl⟩
-    rw [hvalid.indices] at hmem
-    exact List.mem_range.mp hmem
-
-private theorem stripForall_loop (items : List Nat) (e : Expr) (bound : Nat)
-    (step : Nat → Expr → Except Exception (ForInStep Expr))
-    (hstep : ∀ i e, step i e = match e with
-      | .forallE _ _ body _ => .ok (.yield body)
-      | _ => .error illFormed)
-    (he : e.looseBVarRange' ≤ bound) :
-    (forIn items e step).WF fun result => result.looseBVarRange' ≤ bound + items.length := by
-  induction items generalizing e bound with
-  | nil => exact .pure (by simpa)
-  | cons item items ih =>
-    rw [List.forIn_cons]
-    rw [hstep]
-    cases e with
-    | forallE name domain body bi =>
-      change (forIn items body step).WF fun result =>
-        result.looseBVarRange' ≤ bound + (items.length + 1)
-      refine (ih body (bound + 1) ?_).mono ?_
-      change max domain.looseBVarRange' (body.looseBVarRange' - 1) ≤ bound at he
-      omega
-      intro result hresult
-      simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hresult
-    | _ => exact .throw
-
-private def stripForallStep (_ : Nat) (e : Expr) : Except Exception (ForInStep Expr) :=
-  match e with
-  | .forallE _ _ body _ => .ok (.yield body)
-  | _ => .error illFormed
-
-private theorem stripForall_range (e : Expr) (hi bound : Nat)
-    (he : e.looseBVarRange' ≤ bound) :
-    (forIn [:hi] e stripForallStep).WF fun result =>
-      result.looseBVarRange' ≤ bound + hi := by
-  rw [Std.Legacy.Range.forIn_eq_forIn_range']
-  have h := stripForall_loop (List.range' 0 hi 1) e bound stripForallStep
-    (by intro i e; rfl) he
-  simpa using h
-
-theorem Expr.instantiateRevRange_looseBVarRange (e : Expr) (hi : Nat) (params : Array Expr)
-    (bound : Nat) (he : e.looseBVarRange' ≤ bound + (params.extract 0 hi).size)
-    (hparams : ∀ param ∈ params, param.looseBVarRange' ≤ bound) :
-    (e.instantiateRevRange 0 hi params).looseBVarRange' ≤ bound := by
-  rw [Expr.instantiateRevRange_eq, Expr.instantiateRev_eq, Expr.instantiate_eq]
-  apply Expr.instantiateList_looseBVarRange (n := bound) (k := 0)
-  · simpa using he
-  · intro param hparam
-    have hparam' : param ∈ List.take hi params.toList := by simpa using hparam
-    have hmemList : param ∈ params.toList := List.mem_of_mem_take hparam'
-    simpa using hparams param (by simpa using hmemList)
-
-theorem instantiateForallParams.range (e : Expr) (hi : Nat) (params : Array Expr)
-    (bound : Nat) (he : e.looseBVarRange' ≤ bound)
-    (hparams : ∀ param ∈ params, param.looseBVarRange' ≤ bound)
-    (hsize : hi ≤ params.size) :
-    (instantiateForallParams e hi params).WF fun result =>
-      result.looseBVarRange' ≤ bound := by
-  unfold instantiateForallParams
-  change (forIn [:hi] e stripForallStep >>= fun body =>
-    pure (body.instantiateRevRange 0 hi params)).WF _
-  refine (stripForall_range e hi bound he).bind ?_
-  intro body hbody
-  have hsize' : (params.extract 0 hi).size = hi := by
-    simp [Array.size_extract]
-    omega
-  have hbound : bound + hi ≤ bound + (params.extract 0 hi).size := by
-    simp [hsize']
-  exact .pure (Expr.instantiateRevRange_looseBVarRange body hi params bound
-    (Nat.le_trans hbody hbound) hparams)
-
 private theorem bindWF_nestedAuxScoped (action : M α) (next : α → M β)
     (env : Environment) (state : State) (post : β × State → Prop)
     (hnext : ∀ value state', (next value env state').WF post) :
@@ -1026,19 +1356,6 @@ private theorem bindWF_nestedAuxScoped (action : M α) (next : α → M β)
 
 def Result.Aux2NestedScoped (numParams : Nat) (result : Result) : Prop :=
   ∀ name type, result.aux2nested.find? name = some type → type.looseBVarRange' ≤ numParams
-
-def ConstructorRange (numParams : Nat) (ctor : Constructor) : Prop :=
-  ctor.type.looseBVarRange' ≤ numParams
-
-def InductiveTypeRange (numParams : Nat) (indType : InductiveType) : Prop :=
-  indType.type.looseBVarRange' ≤ numParams ∧
-    ∀ ctor ∈ indType.ctors, ConstructorRange numParams ctor
-
-def State.NewTypesRange (numParams : Nat) (state : State) : Prop :=
-  ∀ indType ∈ state.newTypes, InductiveTypeRange numParams indType
-
-def Result.TypesRange (numParams : Nat) (result : Result) : Prop :=
-  ∀ indType ∈ result.types, InductiveTypeRange numParams indType
 
 private theorem state_newTypesRange_set (numParams index : Nat) (state : State)
     (newType : InductiveType)
@@ -1053,6 +1370,96 @@ private theorem state_newTypesRange_set (numParams index : Nat) (state : State)
   rcases hmem' with hmem' | rfl
   · exact hstate indType hmem'
   · exact hnewType
+
+private theorem withParams_loop_context_range_newTypes (remaining : Nat) (type : Expr)
+    (lctx : LocalContext) (params : Array Expr)
+    (next : LocalContext → Expr → Array Expr → M α) (bound : Nat)
+    (env : Environment) (state : State) (post : α × State → Prop)
+    (hvalid : ParamValidity params.size lctx params)
+    (hreserved : ContextReserved lctx state.ngen)
+    (hscope : ∀ decl ∈ lctx.toList, decl.type.looseBVarRange' ≤ params.size + remaining)
+    (htype : type.looseBVarRange' ≤ params.size + remaining)
+    (hstate : state.NestedAuxScoped)
+    (hrange : State.NewTypesRange bound state)
+    (hnext : ∀ lctx' remainder params' state',
+      ParamValidity (params.size + remaining) lctx' params' →
+      ContextReserved lctx' state'.ngen →
+      (∀ decl ∈ lctx'.toList, decl.type.looseBVarRange' ≤ params.size + remaining) →
+      state'.NestedAuxScoped → remainder.looseBVarRange' ≤ params.size + remaining →
+      State.NewTypesRange bound state' →
+      (next lctx' remainder params' env state').WF post) :
+    (withParams.loop next lctx type params remaining env state).WF post := by
+  induction remaining generalizing type lctx params state with
+  | zero =>
+    apply hnext
+    · simpa using hvalid
+    · simpa using hreserved
+    · simpa using hscope
+    · exact hstate
+    · exact htype
+    · exact hrange
+  | succ remaining ih =>
+    cases type with
+    | forallE name domain body bi =>
+      have hparts : domain.looseBVarRange' ≤ params.size + remaining + 1 ∧
+          body.looseBVarRange' ≤ params.size + remaining + 2 := by
+        change max domain.looseBVarRange' (body.looseBVarRange' - 1) ≤
+          params.size + remaining + 1 at htype
+        omega
+      change (withParams.loop next
+        (lctx.mkLocalDecl ⟨state.ngen.curr⟩ name domain bi)
+        (body.instantiate1 (.fvar ⟨state.ngen.curr⟩))
+        (params.push (.fvar ⟨state.ngen.curr⟩)) remaining env
+        { state with ngen := state.ngen.next }).WF post
+      exact ih _ _ _ _ (by simpa using hvalid.push_current hreserved name domain bi)
+        (by simpa using hreserved.push_current name domain bi)
+        (by
+          intro decl hdecl
+          simp only [LocalContext.mkLocalDecl_toList, List.mem_cons] at hdecl
+          rcases hdecl with rfl | hdecl
+          · simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hparts.1
+          · simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
+              hscope decl hdecl)
+        (by
+          simpa [Expr.instantiate1_eq, Array.size_push, Nat.add_assoc, Nat.add_comm,
+            Nat.add_left_comm] using
+            (Expr.instantiate1'_looseBVarRange (n := params.size + remaining + 1) (k := 0)
+              (by simpa [Nat.add_assoc] using hparts.2) (by simp [Expr.looseBVarRange'])))
+        (by simpa [State.NestedAuxScoped] using hstate)
+        hrange
+        (fun lctx' remainder params' state' hvalid' hreserved' hscope' hstate' htype' hrange' =>
+          hnext lctx' remainder params' state'
+            (by simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hvalid')
+            hreserved'
+            (by simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hscope')
+            hstate'
+            (by simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using htype')
+            hrange')
+    | _ => exact Except.WF.throw
+
+theorem withParams.contextRangeNewTypes (type : Expr) (numParams : Nat)
+    (next : LocalContext → Expr → Array Expr → M α)
+    (env : Environment) (state : State) (htype : type.looseBVarRange' ≤ numParams)
+    (hstate : state.NestedAuxScoped) (hrange : State.NewTypesRange numParams state)
+    (post : α × State → Prop)
+    (hnext : ∀ lctx remainder params state', ParamValidity numParams lctx params →
+      ContextReserved lctx state'.ngen →
+      (∀ decl ∈ lctx.toList, decl.type.looseBVarRange' ≤ numParams) →
+      state'.NestedAuxScoped → remainder.looseBVarRange' ≤ numParams →
+      State.NewTypesRange numParams state' →
+      (next lctx remainder params env state').WF post) :
+    (withParams type numParams next env state).WF post := by
+  exact withParams_loop_context_range_newTypes numParams type {} #[] next numParams env state post
+    ParamValidity.empty (ContextReserved.empty state.ngen)
+    (by
+      intro decl hdecl
+      have hzero := ContextNoLooseBVars.empty decl hdecl
+      omega)
+    (by simpa [Nat.zero_add] using htype) hstate hrange
+    (fun lctx remainder params state' hvalid' hreserved' hscope' hstate' htype' hrange' =>
+      hnext lctx remainder params state' (by simpa using hvalid') hreserved'
+        (by simpa [Nat.add_zero] using hscope') hstate'
+        (by simpa [Nat.add_zero] using htype') (by simpa using hrange'))
 
 private theorem mapM_newTypesRange (numParams index : Nat) (items : List α)
     (step : α → M β) (pred : β → Prop) (env : Environment) (state : State)
