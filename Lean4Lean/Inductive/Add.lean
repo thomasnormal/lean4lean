@@ -574,15 +574,15 @@ instance : MonadNameGenerator M where
   getNGen := return (← get).ngen
   setNGen ngen := modify fun s => { s with ngen }
 
--- TODO: remove partial
-partial def mkUniqueName (n : Name) : M Name := fun env s =>
-  let rec loop i :=
-    let r := n.appendIndexAfter i
-    if env.contains r then
-      loop (i + 1)
-    else
-      pure (r, { s with nextIdx := i + 1 })
-  loop s.nextIdx
+private partial def nextUniqueIndex (env : Environment) (name : Name) (index : Nat) : Nat :=
+  if env.contains (name.appendIndexAfter index) then
+    nextUniqueIndex env name (index + 1)
+  else
+    index
+
+def mkUniqueName (name : Name) : M Name := fun env state =>
+  let index := nextUniqueIndex env name state.nextIdx
+  pure (name.appendIndexAfter index, { state with nextIdx := index + 1 })
 
 def illFormed : Exception :=
   .other "invalid nested inductive datatype, ill-formed declaration"
