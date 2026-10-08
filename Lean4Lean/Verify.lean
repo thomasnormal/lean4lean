@@ -3,3 +3,4 @@ import Lean4Lean.Verify.PrimitiveInductive
 import Lean4Lean.Verify.Inductive
 import Lean4Lean.Verify.InductiveHeaders
 import Lean4Lean.Verify.InductiveStats
+import Lean4Lean.Verify.ConstructorHeaders
