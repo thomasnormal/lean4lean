@@ -229,4 +229,17 @@ theorem checkConstructors.checked_loop_arity (stats : InductiveStats) (isUnsafe 
     checkConstructors.loop_arity_of_noFVars stats isUnsafe parent ctor type fuel ctx
       hfvars hnodup htype
 
+theorem checkInductiveTypes.checkedConstructorArity (nparams : Nat)
+    (indTypes : Array InductiveType) (isUnsafe : Bool) (parent : Nat) (ctor : Name)
+    (type : Expr) (ctx : Context) :
+    (checkInductiveTypes nparams indTypes (fun stats current =>
+      (current.env.checkNoMVarNoFVar ctor type >>= fun _ =>
+        checkConstructors.loop stats isUnsafe parent ctor type 0
+          current.fuel.inductiveFuel current) >>= fun _ => pure stats) ctx).WF fun stats =>
+            stats.params.size ≤ declareConstructors.arity 0 type := by
+  apply checkInductiveTypes.frameHeaderSizesParamsDistinct
+  intro stats current _ hfvars hnodup _
+  exact (checkConstructors.checked_loop_arity stats isUnsafe parent ctor type
+    current.fuel.inductiveFuel current hfvars hnodup).bind fun _ hbound => .pure hbound
+
 end Lean4Lean.AddInductive

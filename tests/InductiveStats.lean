@@ -7,6 +7,29 @@ open Lean Lean4Lean Lean4Lean.AddInductive
 namespace InductiveStatsTest
 
 example (ctx : Context) (nparams : Nat) (types : Array InductiveType) :
+    (checkInductiveTypes nparams types pure ctx).WF fun stats => stats.params.toList.Nodup :=
+  checkInductiveTypes.getParamsNodup nparams types ctx
+
+example (ctx : Context) (nparams : Nat) (types : Array InductiveType)
+    (stats : InductiveStats) (hcheck : checkInductiveTypes nparams types pure ctx = .ok stats) :
+    stats.params.toList.Nodup :=
+  checkInductiveTypes.getParamsNodup nparams types ctx stats hcheck
+
+example (ctx : Context) (nparams : Nat) (types : Array InductiveType)
+    (next : InductiveStats → M α) (post : α → Prop)
+    (hnext : ∀ stats ctx', stats.params.toList.Nodup → (next stats ctx').WF post) :
+    (checkInductiveTypes nparams types next ctx).WF post :=
+  checkInductiveTypes.paramsNodup nparams types next ctx post hnext
+
+example (ctx : Context) (nparams : Nat) (types : Array InductiveType)
+    (next : InductiveStats → M α) (post : α → Prop)
+    (hnext : ∀ stats ctx', stats.HeaderSizes types.size → stats.ParamsAreFVars →
+      stats.params.toList.Nodup → ctx'.env = ctx.env → (next stats ctx').WF post) :
+    (checkInductiveTypes nparams types next ctx).WF post :=
+  checkInductiveTypes.frameHeaderSizesParamsDistinct nparams types next ctx post
+    fun stats ctx' hsizes hfvars hnodup hframe => hnext stats ctx' hsizes hfvars hnodup hframe.env
+
+example (ctx : Context) (nparams : Nat) (types : Array InductiveType) :
     (checkInductiveTypes nparams types pure ctx).WF fun stats =>
       stats.nindices.size = types.size ∧ stats.indConsts.size = types.size :=
   checkInductiveTypes.getHeaderSizes nparams types ctx
@@ -114,9 +137,14 @@ private def checkStats (ctx : Context) (nparams : Nat) (types : Array InductiveT
   unless stats.nindices == indices && stats.nindices.size == types.size &&
       stats.indConsts.size == types.size && stats.params.size == nparams &&
       stats.params.all Expr.isFVar &&
+      stats.params.toList.eraseDups.length == stats.params.size &&
       stats.levels == ctx.lparams.map Level.param &&
       stats.indConsts == types.map (fun type => Expr.const type.name stats.levels) do
     throwError "incorrect inductive statistics"
+  let expectedParams := (List.range nparams).map fun index =>
+    Expr.fvar ⟨.num ctx.ngen.namePrefix (ctx.ngen.idx + index)⟩
+  unless stats.params.toList == expectedParams do
+    throwError "incorrect parameter introduction names or ordering"
   let scopes := if types.isEmpty then 0 else nparams + indices.foldl (· + ·) 0
   checkFrame ctx observed scopes types
 
@@ -134,6 +162,9 @@ private def audit (theoremName : Name) : MetaM Unit := do
 run_meta
   audit ``Context.HeaderFrame.refl
   audit ``Context.HeaderFrame.trans
+  audit ``checkInductiveTypes.frameHeaderSizesParamsDistinct
+  audit ``checkInductiveTypes.paramsNodup
+  audit ``checkInductiveTypes.getParamsNodup
   audit ``checkInductiveTypes.frameHeaderSizes
   audit ``checkInductiveTypes.frame
   audit ``checkInductiveTypes.getFrameHeaderSizes
@@ -150,12 +181,15 @@ run_meta
     checkStats ctx 0 #[datatype `First (indexedType 1), datatype `Second (indexedType 2)] #[1, 2]
     checkStats ctx 1 #[datatype `First dependentType, datatype `Second dependentType] #[1, 1]
     checkStats ctx 2 #[datatype `First dependentType, datatype `Second dependentType] #[0, 0]
+    let threeParams := Expr.forallE `A sortType (.forallE `value (.bvar 0)
+      (.forallE `other (.bvar 1) sortType .strictImplicit) .implicit) .default
+    checkStats ctx 3 #[datatype `First threeParams, datatype `Second threeParams] #[0, 0]
   let polyCtx := { ctx with lparams := [`u] }
   checkStats polyCtx 0 #[] #[]
   checkStats polyCtx 0 #[datatype `Poly (.sort (.param `u))] #[0]
   let seededCtx : Context := { polyCtx with
     lctx := polyCtx.lctx.mkLocalDecl ⟨`existing⟩ `existing sortType,
-    ngen := { namePrefix := `_frame_fixture }, allowPrimitive := true,
+    ngen := { namePrefix := `_frame_fixture, idx := 37 }, allowPrimitive := true,
     fuel := {
       whnf := 73, whnfEager := 211, lazyDelta := 89
       etaExpand := 43, recDepth := 71, inductiveFuel := 9 } }

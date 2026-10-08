@@ -5,6 +5,15 @@ open Lean Lean4Lean Lean4Lean.AddInductive
 
 namespace ConstructorParamsTest
 
+example (ctx : Context) (nparams : Nat) (types : Array InductiveType) (isUnsafe : Bool)
+    (parent : Nat) (ctor : Name) (type : Expr) :
+    (checkInductiveTypes nparams types (fun stats current =>
+      (current.env.checkNoMVarNoFVar ctor type >>= fun _ =>
+        checkConstructors.loop stats isUnsafe parent ctor type 0
+          current.fuel.inductiveFuel current) >>= fun _ => pure stats) ctx).WF fun stats =>
+            stats.params.size ≤ declareConstructors.arity 0 type :=
+  checkInductiveTypes.checkedConstructorArity nparams types isUnsafe parent ctor type ctx
+
 example (stats : InductiveStats) (type : Expr) (parent : Nat)
     (hvalid : isValidIndAppIdx stats type parent = true) :
     stats.params.size ≤ type.getAppArgs.size :=
@@ -69,6 +78,23 @@ private def checkLoop (ctx : Context) (stats : InductiveStats) (type : Expr)
     unless declareConstructors.arity 0 type ≥ stats.params.size do
       throwError "successful distinct-parameter loop has too few raw binders"
 
+private def checkCheckedArity (ctx : Context) (nparams : Nat) (type : Expr)
+    (isUnsafe expected : Bool) : MetaM Unit := do
+  let headerType := nparams.fold
+    (fun _ _ body => Expr.forallE `parameter sortType body .default) sortType
+  let headers : Array InductiveType := #[{ name := `CheckedType, type := headerType, ctors := [] }]
+  let result := checkInductiveTypes nparams headers (fun stats current =>
+    (current.env.checkNoMVarNoFVar `CheckedCtor type >>= fun _ =>
+      checkConstructors.loop stats isUnsafe 0 `CheckedCtor type 0
+        current.fuel.inductiveFuel current) >>= fun _ => pure stats) ctx
+  unless result.isOk == expected do
+    throwError "incorrect checked-parameter constructor-arity outcome"
+  if let .ok stats := result then
+    unless stats.params.size == nparams &&
+        stats.params.toList.eraseDups.length == stats.params.size &&
+        stats.params.size ≤ declareConstructors.arity 0 type do
+      throwError "checked parameters failed distinctness or constructor arity"
+
 private def audit (theoremName : Name) (interfaces : List Name := []) : MetaM Unit := do
   let axioms ← collectAxioms theoremName
   logInfo m!"{theoremName}: axioms = {repr axioms}"
@@ -90,6 +116,9 @@ run_meta
   audit ``checkConstructors.loop_arity [``Expr.eqv_eq, ``Expr.instantiate1_eq]
   audit ``checkConstructors.loop_arity_of_noFVars [``Expr.eqv_eq, ``Expr.instantiate1_eq]
   audit ``checkConstructors.checked_loop_arity
+    [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
+      ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
+  audit ``checkInductiveTypes.checkedConstructorArity
     [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
       ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
   let imported := (← Lean.getEnv).toKernelEnv
@@ -142,5 +171,27 @@ run_meta
       throwError "duplicate parameters must demonstrate the distinctness premise"
   unless (ctx.env.checkNoMVarNoFVar `Open (.app listConst first)).isOk == false do
     throwError "open source return must be rejected before constructor traversal"
+  let checkedHead := Expr.const `CheckedType []
+  let checkedOne := Expr.forallE `A sortType (.app checkedHead (.bvar 0)) .default
+  let checkedTwo := Expr.forallE `A sortType (.forallE `B sortType
+    (.mkAppList checkedHead [.bvar 1, .bvar 0]) .default) .default
+  let checkedField := Expr.forallE `A sortType (.forallE `B sortType
+    (.forallE `value (.bvar 1) (.mkAppList checkedHead [.bvar 2, .bvar 1]) .default)
+      .default) .default
+  let checkedMissing := Expr.forallE `A sortType
+    (.mkAppList checkedHead [.bvar 0, .bvar 0]) .default
+  let checkedSwapped := Expr.forallE `A sortType (.forallE `B sortType
+    (.mkAppList checkedHead [.bvar 0, .bvar 1]) .default) .default
+  for isUnsafe in [false, true] do
+    let ctx := { ctx with safety := if isUnsafe then .unsafe else .safe }
+    checkCheckedArity ctx 0 checkedHead isUnsafe true
+    checkCheckedArity ctx 1 checkedOne isUnsafe true
+    checkCheckedArity ctx 2 checkedTwo isUnsafe true
+    checkCheckedArity ctx 2 checkedField isUnsafe true
+    checkCheckedArity ctx 2 checkedMissing isUnsafe false
+    checkCheckedArity ctx 2 checkedSwapped isUnsafe false
+    checkCheckedArity ctx 1 (.app checkedHead first) isUnsafe false
+    checkCheckedArity { ctx with fuel := { ctx.fuel with inductiveFuel := 3 } }
+      2 checkedField isUnsafe false
 
 end ConstructorParamsTest
