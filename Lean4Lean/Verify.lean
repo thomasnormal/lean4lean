@@ -5,3 +5,4 @@ import Lean4Lean.Verify.InductiveHeaders
 import Lean4Lean.Verify.InductiveStats
 import Lean4Lean.Verify.ConstructorHeaders
 import Lean4Lean.Verify.ConstructorArity
+import Lean4Lean.Verify.ConstructorParams
