@@ -7,6 +7,23 @@ open Lean hiding Environment Exception
 def InductiveStats.HeaderSizes (stats : InductiveStats) (numTypes : Nat) : Prop :=
   stats.nindices.size = numTypes ∧ stats.indConsts.size = numTypes
 
+structure Context.HeaderFrame (original current : Context) : Prop where
+  env : current.env = original.env
+  lparams : current.lparams = original.lparams
+  safety : current.safety = original.safety
+  allowPrimitive : current.allowPrimitive = original.allowPrimitive
+  fuel : current.fuel = original.fuel
+
+theorem Context.HeaderFrame.refl (ctx : Context) : ctx.HeaderFrame ctx :=
+  ⟨rfl, rfl, rfl, rfl, rfl⟩
+
+theorem Context.HeaderFrame.trans {original middle current : Context}
+    (hfirst : original.HeaderFrame middle) (hsecond : middle.HeaderFrame current) :
+    original.HeaderFrame current :=
+  ⟨hsecond.env.trans hfirst.env, hsecond.lparams.trans hfirst.lparams,
+    hsecond.safety.trans hfirst.safety, hsecond.allowPrimitive.trans hfirst.allowPrimitive,
+    hsecond.fuel.trans hfirst.fuel⟩
+
 private structure PrefixSizes (stats : InductiveStats) (numTypes numParams numLevels : Nat) : Prop where
   nindices : stats.nindices.size = numTypes
   indConsts : stats.indConsts.size = numTypes
@@ -23,9 +40,9 @@ private theorem readWF {ctx : Context} {next : Context → M α} {post : α → 
 
 private theorem withLocalDeclWF {ctx : Context} {name : Name} {bi : BinderInfo} {type : Expr}
     {next : Expr → M α} {post : α → Prop}
-    (hnext : ∀ param ctx', ctx'.lparams = ctx.lparams → (next param ctx').WF post) :
+    (hnext : ∀ param ctx', ctx.HeaderFrame ctx' → (next param ctx').WF post) :
     (withLocalDecl name bi type next ctx).WF post :=
-  hnext _ _ rfl
+  hnext _ _ ⟨rfl, rfl, rfl, rfl, rfl⟩
 
 private theorem loop_headerSizes (nparams numTypes : Nat) (fuel : Nat)
     (stats : InductiveStats) (type : Expr) (index nindices : Nat)
@@ -34,6 +51,7 @@ private theorem loop_headerSizes (nparams numTypes : Nat) (fuel : Nat)
       ctx.lparams.length)
     (hnext : ∀ type stats nindices ctx',
       PrefixSizes stats numTypes nparams ctx'.lparams.length →
+      ctx.HeaderFrame ctx' →
       (next type stats nindices ctx').WF post) :
     (checkInductiveTypes.loopInd.loop nparams stats type index nindices fuel next ctx).WF post := by
   induction fuel generalizing stats type index nindices ctx with
@@ -46,7 +64,7 @@ private theorem loop_headerSizes (nparams numTypes : Nat) (fuel : Nat)
       split
       · split
         · apply withLocalDeclWF
-          intro param ctx' hlparams
+          intro param ctx' hframe
           apply bindWF
           intro type'
           apply ih _ type' (index + 1) nindices ctx'
@@ -54,7 +72,9 @@ private theorem loop_headerSizes (nparams numTypes : Nat) (fuel : Nat)
               simpa [Array.isEmpty, hstats.indConsts] using ‹stats.indConsts.isEmpty = true›
             subst numTypes
             exact ⟨hstats.nindices, hstats.indConsts,
-              by simpa [hlparams] using hstats.levels, by simpa using hstats.params⟩
+              by simpa [hframe.lparams] using hstats.levels, by simpa using hstats.params⟩
+          · intro type stats nindices ctx'' hsizes hframe'
+            exact hnext type stats nindices ctx'' hsizes (hframe.trans hframe')
         · apply bindWF
           intro type'
           apply bindWF
@@ -68,24 +88,29 @@ private theorem loop_headerSizes (nparams numTypes : Nat) (fuel : Nat)
             · have hnonzero : numTypes ≠ 0 := by
                 simpa [Array.isEmpty, hstats.indConsts] using ‹¬stats.indConsts.isEmpty = true›
               simpa [hnonzero] using hstats
+            · exact hnext
           · exact Except.WF.throw
       · apply withLocalDeclWF
-        intro param ctx' hlparams
+        intro param ctx' hframe
         apply bindWF
         intro type'
-        exact ih stats type' index (nindices + 1) ctx' (by simpa [hlparams] using hstats)
+        apply ih stats type' index (nindices + 1) ctx'
+        · simpa [hframe.lparams] using hstats
+        · intro type stats nindices ctx'' hsizes hframe'
+          exact hnext type stats nindices ctx'' hsizes (hframe.trans hframe')
     · split
       · exact Except.WF.throw
       · have hindex : index = nparams := by simpa using ‹¬(index != nparams) = true›
         subst index
-        exact hnext type stats nindices ctx (by simpa using hstats)
+        exact hnext type stats nindices ctx (by simpa using hstats) (.refl ctx)
 
 private theorem loopInd_headerSizes (nparams : Nat) (indTypes : Array InductiveType)
     (next : InductiveStats → M α) (processed : Nat) (stats : InductiveStats)
     (ctx : Context) (post : α → Prop) (hbound : processed ≤ indTypes.size)
     (hstats : PrefixSizes stats processed (if processed = 0 then 0 else nparams)
       ctx.lparams.length)
-    (hnext : ∀ stats ctx', stats.HeaderSizes indTypes.size → (next stats ctx').WF post) :
+    (hnext : ∀ stats ctx', stats.HeaderSizes indTypes.size →
+      ctx.HeaderFrame ctx' → (next stats ctx').WF post) :
     (checkInductiveTypes.loopInd nparams indTypes next processed stats ctx).WF post := by
   rw [checkInductiveTypes.loopInd.eq_def]
   dsimp only
@@ -99,7 +124,7 @@ private theorem loopInd_headerSizes (nparams : Nat) (indTypes : Array InductiveT
     apply bindWF
     intro type
     apply loop_headerSizes nparams processed _ stats type 0 0 _ ctx post hstats
-    intro type stats' nindices ctx' hsizes
+    intro type stats' nindices ctx' hsizes hframe
     apply bindWF
     intro sort
     split
@@ -111,7 +136,8 @@ private theorem loopInd_headerSizes (nparams : Nat) (indTypes : Array InductiveT
       · exact ⟨by simpa using hsizes.nindices,
           by simpa using hsizes.indConsts,
           hsizes.levels, by simpa using hsizes.params⟩
-      · exact hnext
+      · intro stats ctx'' hsizes hframe'
+        exact hnext stats ctx'' hsizes (hframe.trans hframe')
     · split
       · exact Except.WF.throw
       · apply bindWF
@@ -121,9 +147,10 @@ private theorem loopInd_headerSizes (nparams : Nat) (indTypes : Array InductiveT
         · exact ⟨by simpa using hsizes.nindices,
             by simpa using hsizes.indConsts,
             hsizes.levels, by simpa using hsizes.params⟩
-        · exact hnext
+        · intro stats ctx'' hsizes hframe'
+          exact hnext stats ctx'' hsizes (hframe.trans hframe')
   · apply readWF
-    apply hnext
+    refine hnext _ ctx ?_ (.refl ctx)
     have hcount : processed = indTypes.size := by omega
     simp only [InductiveStats.HeaderSizes, hstats.levels, hstats.nindices,
       hstats.indConsts, hcount, beq_self_eq_true, ite_true]
@@ -139,9 +166,10 @@ private theorem loopInd_headerSizes (nparams : Nat) (indTypes : Array InductiveT
 termination_by indTypes.size - processed
 decreasing_by all_goals simp_wf; omega
 
-theorem checkInductiveTypes.headerSizes (nparams : Nat) (indTypes : Array InductiveType)
+theorem checkInductiveTypes.frameHeaderSizes (nparams : Nat) (indTypes : Array InductiveType)
     (next : InductiveStats → M α) (ctx : Context) (post : α → Prop)
-    (hnext : ∀ stats ctx', stats.HeaderSizes indTypes.size → (next stats ctx').WF post) :
+    (hnext : ∀ stats ctx', stats.HeaderSizes indTypes.size →
+      ctx.HeaderFrame ctx' → (next stats ctx').WF post) :
     (checkInductiveTypes nparams indTypes next ctx).WF post := by
   unfold checkInductiveTypes
   apply readWF
@@ -149,10 +177,31 @@ theorem checkInductiveTypes.headerSizes (nparams : Nat) (indTypes : Array Induct
   · exact ⟨rfl, rfl, by simp, rfl⟩
   · exact hnext
 
+theorem checkInductiveTypes.headerSizes (nparams : Nat) (indTypes : Array InductiveType)
+    (next : InductiveStats → M α) (ctx : Context) (post : α → Prop)
+    (hnext : ∀ stats ctx', stats.HeaderSizes indTypes.size → (next stats ctx').WF post) :
+    (checkInductiveTypes nparams indTypes next ctx).WF post :=
+  checkInductiveTypes.frameHeaderSizes nparams indTypes next ctx post fun stats ctx' hsizes _ =>
+    hnext stats ctx' hsizes
+
+theorem checkInductiveTypes.frame (nparams : Nat) (indTypes : Array InductiveType)
+    (next : InductiveStats → M α) (ctx : Context) (post : α → Prop)
+    (hnext : ∀ stats ctx', ctx.HeaderFrame ctx' → (next stats ctx').WF post) :
+    (checkInductiveTypes nparams indTypes next ctx).WF post :=
+  checkInductiveTypes.frameHeaderSizes nparams indTypes next ctx post fun stats ctx' _ hframe =>
+    hnext stats ctx' hframe
+
 theorem checkInductiveTypes.getHeaderSizes (nparams : Nat) (indTypes : Array InductiveType)
     (ctx : Context) :
     (checkInductiveTypes nparams indTypes pure ctx).WF fun stats =>
       stats.HeaderSizes indTypes.size :=
   checkInductiveTypes.headerSizes nparams indTypes pure ctx _ fun _ _ hsizes => .pure hsizes
+
+theorem checkInductiveTypes.getFrameHeaderSizes (nparams : Nat)
+    (indTypes : Array InductiveType) (ctx : Context) :
+    (checkInductiveTypes nparams indTypes (fun stats => do return (stats, ← read)) ctx).WF
+      fun result => result.1.HeaderSizes indTypes.size ∧ ctx.HeaderFrame result.2 :=
+  checkInductiveTypes.frameHeaderSizes nparams indTypes _ ctx _ fun _ _ hsizes hframe =>
+    .pure ⟨hsizes, hframe⟩
 
 end Lean4Lean.AddInductive
