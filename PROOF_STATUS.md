@@ -263,6 +263,21 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `Lean.Expr.instantiate1_eq` interface, without new axioms or `sorryAx`.
   Executable behavior is unchanged: the full frontend already enforces the guard
   before the isolated numeric checking/registration prefix.
+  `withParams.assert_size` proves the extracted-size guard can be removed without
+  changing the action, including errors, for arbitrary continuations and mismatch
+  branches. `run.loop.paramCount` uses this equality to discharge the actual
+  constructor-prefix assertion before following the preprocessing loop. Its fuel
+  induction allows arbitrary state mutations and auxiliary datatype growth;
+  no fixed `newTypes` size or header/constructor typing premise is required.
+  `run.paramCount` proves every successful nested preprocessing result stores the
+  original declared parameter count, for arbitrary fuel, input lists, environments,
+  and states. `paramCount_run'` supplies the state-discarding projection used by
+  `Environment.addInductive`. Empty inputs and exhausted fuel cannot return a
+  result and satisfy the successful-result contract vacuously. This does not
+  verify nested rewriting, auxiliary constructor typing, other internal assertions,
+  or the subsequent checker/recursor stages. All four audits exclude `sorryAx`;
+  guard/loop proofs use only standard logical axioms, while the public run proofs
+  also inherit the existing extraction instantiation interface.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -596,6 +611,7 @@ lake env lean tests/InductiveStats.lean
 lake env lean tests/InductiveArity.lean
 lake env lean tests/InductiveHiddenParameter.lean
 lake env lean tests/InductiveParams.lean
+lake env lean tests/NestedInductiveParams.lean
 lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
 lake env lean tests/ConstructorParams.lean
@@ -804,8 +820,25 @@ Sixteen full frontend rejections cover safe/unsafe declarations, both checking
 flags, and ordinary or zero inductive fuel. Hidden parameters fail before later
 checking/recursor stages. Normalized indices remain accepted in the separate full
 frontend fixtures. No executable guards, caches, or special paths are added.
-Focused executable replay checks 38 declarations in `Verify.InductiveParams`,
-assuming its imported dependencies are correct.
+
+`tests/NestedInductiveParams.lean` contains eight proof regressions and four axiom
+audits for the arbitrary mismatch branch, the literal `assert!` action, the exact
+constructor preprocessing callback, the fuel loop, and both result projections.
+Fifty-six preprocessing outcomes cover zero/one/two parameters, dependent
+constructor fields, default and seeded fresh-name/auxiliary states, empty input,
+zero/insufficient fuel, and constructors with missing or hidden parameters.
+Twenty-four accept and thirty-two reject with exact diagnostics. Six accepted
+nested `List` fixtures grow the datatype array from one to two entries and check
+the final declared count, auxiliary growth, and every header/constructor prefix.
+Additional-state-header and empty-state-array fixtures exercise the low-level
+theorem without assuming the initial array matches the input list. These runtime
+observations do not prove nested transformation or context-hygiene semantics.
+Executable preprocessing is unchanged; no new guard, cache, or special path is
+introduced.
+
+Focused executable replay checks 59 declarations in `Verify.InductiveParams`,
+including the new guard/count proofs, assuming its imported dependencies are
+correct.
 
 `tests/ConstructorParams.lean` contains seven proof regressions and thirteen axiom
 audits, all excluding `sorryAx`. The core constructor-loop arity proof uses

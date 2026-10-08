@@ -76,6 +76,83 @@ theorem withParams.getPrefix (type : Expr) (numParams : Nat)
       env state).WF fun result => ParamPrefix numParams type result.1.2.1 result.1.2.2 :=
   withParams.prefix type numParams _ env state _ fun _ _ _ _ hprefix => .pure hprefix
 
+private theorem withParams_loop_assert_size (remaining numParams : Nat) (type : Expr)
+    (lctx : LocalContext) (params : Array Expr)
+    (next mismatch : LocalContext → Expr → Array Expr → M α)
+    (env : Environment) (state : State) (hsize : params.size + remaining = numParams) :
+    withParams.loop (fun lctx remainder params =>
+      if params.size == numParams then next lctx remainder params else mismatch lctx remainder params)
+      lctx type params remaining env state =
+    withParams.loop next lctx type params remaining env state := by
+  induction remaining generalizing type lctx params state with
+  | zero =>
+    simp only [Nat.add_zero] at hsize
+    simp [withParams.loop, hsize]
+  | succ remaining ih =>
+    cases type with
+    | forallE name domain body bi =>
+      change withParams.loop _
+        (lctx.mkLocalDecl ⟨state.ngen.curr⟩ name domain bi)
+        (body.instantiate1 (.fvar ⟨state.ngen.curr⟩))
+        (params.push (.fvar ⟨state.ngen.curr⟩)) remaining env
+        { state with ngen := state.ngen.next } = _
+      apply ih
+      simp only [Array.size_push]
+      omega
+    | _ => rfl
+
+theorem withParams.assert_size (type : Expr) (numParams : Nat)
+    (next mismatch : LocalContext → Expr → Array Expr → M α) :
+    withParams type numParams (fun lctx remainder params =>
+      if params.size == numParams then next lctx remainder params else mismatch lctx remainder params)
+      = withParams type numParams next := by
+  funext env state
+  exact withParams_loop_assert_size numParams numParams type {} #[] next mismatch env state (by simp)
+
+private theorem bindWF (action : M α) (next : α → M β)
+    (env : Environment) (state : State) (post : β × State → Prop)
+    (hnext : ∀ value state', (next value env state').WF post) :
+    ((action >>= next) env state).WF post :=
+  (show (action env state).WF fun _ => True from fun _ _ => trivial).bind
+    fun result _ => hnext result.1 result.2
+
+theorem run.loop.paramCount (numParams : Nat) (lctx : LocalContext) (params : Array Expr)
+    (index fuel : Nat) (env : Environment) (state : State) (hsize : params.size = numParams) :
+    (run.loop numParams lctx params index fuel env state).WF fun result =>
+      result.1.nparams = numParams := by
+  induction fuel generalizing index state with
+  | zero => exact Except.WF.throw
+  | succ fuel ih =>
+    rw [run.loop.eq_def]
+    dsimp only
+    apply bindWF
+    intro current state'
+    split
+    · simp only [withParams.assert_size]
+      apply bindWF
+      intro ctors state''
+      apply bindWF
+      intro _ state'''
+      exact ih (index + 1) state'''
+    · exact .pure hsize
+
+theorem run.paramCount (fuel numParams : Nat) (types : List InductiveType)
+    (env : Environment) (state : State) :
+    (run fuel numParams types env state).WF fun result => result.1.nparams = numParams := by
+  cases types with
+  | nil => exact Except.WF.throw
+  | cons type types =>
+    unfold run
+    apply withParams.prefix
+    intro lctx remainder params state' hprefix
+    exact run.loop.paramCount numParams lctx params 0 fuel env state' hprefix.1
+
+theorem run.paramCount_run' (fuel numParams : Nat) (types : List InductiveType)
+    (env : Environment) (state : State) :
+    (StateT.run' (run fuel numParams types env) state).WF fun result =>
+      result.nparams = numParams :=
+  (run.paramCount fuel numParams types env state).map fun _ hcount => hcount
+
 private theorem withParams_loop_reject (remaining : Nat) (type : Expr)
     (lctx : LocalContext) (params : Array Expr)
     (next : LocalContext → Expr → Array Expr → M α)
