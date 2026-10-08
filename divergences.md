@@ -195,3 +195,49 @@ deliberately bypass source typing/freshness at the extraction helper; they do
 not exhibit a newly accepted invalid inductive declaration or a kernel bug.
 Discharging these source premises from frontend checking and proving scope for
 opaque rewritten constructor bodies remain separate verification obligations.
+
+## Inductive source preflight (2026-10-08)
+
+`Environment.addInductive` now calls `checkInductiveSources` before any parameter
+extraction or nested rewriting. The preflight uniformly applies the existing
+`checkNoMVarNoFVar` guard to every original header and constructor type; it does
+not depend on datatype names, generator prefixes, or the availability of nested
+inductive declarations. Header-first, constructor-list, and datatype-list order
+determine the first reported error. Existing source metavariable/free-variable
+diagnostics retain the offending original name and expression.
+
+This intentionally rejects an invalid source that Lean 4.29.0's native kernel
+accepts: a constructor free variable named `_nested_fresh.1` can be captured as
+the newly generated parameter. The old lean4lean frontend similarly captures
+`_nested_fresh.2`. See the minimal native reproducer and bounded unguarded-stage
+regression documented in `bugs-found.md`. Neither observation alone establishes
+logical unsoundness; this is a demonstrated source-validation/capture defect.
+
+`Verify.InductiveSourceChecks` proves the preflight's no-metavariable/no-free-variable
+contract for all original source types and derives generator-independent
+`SourceReserved`. The actual successful `addInductive` and inductive `addDecl`
+branches now carry that source contract. The preflight equals `pure ()` on sources
+satisfying it, so it leaves valid source processing unchanged. Its eight axiom
+audits exclude `sorryAx` and abstraction/instantiation interfaces; they use only
+logical axioms and the existing variable-metadata bridges.
+
+Early source errors now take precedence over the old syntactic parameter-count
+diagnostic on inputs violating both guards. The frontend arity-rejection equation
+records this preflight/error ordering; its unconditional successful-result arity
+bound remains intact. Clean-source parameter-shortage diagnostics are unchanged.
+The preflight does not prove absence of loose bound variables, semantic typing,
+rewritten-body scope, or full inductive soundness. Lower-level preprocessing and
+the staged checker remain available with their explicitly separate contracts.
+
+### Adjacent parameterized nested scope gap (observed 2026-10-08)
+
+Validation also exposes an existing downstream rejection, not changed by the
+source preflight: a clean datatype `I (A : Type) : Type` with a constructor
+`(A : Type) → List (I A) → I A` passes native Lean 4.29.0, but lean4lean reports
+`type checker does not support loose bound variables, replace them with free
+variables before invoking it`. Eight fixtures in `tests/InductiveSourceChecks.lean`
+record this for one/two parameters, both safety modes, and both check settings.
+Plain constructors and zero-parameter nested constructors still accept.
+These inputs contain no source free variables/metavariables, so the new preflight
+is a no-op. Resolving this auxiliary-expression scope/type-checking boundary is
+a separate item; the source-capture fix does not establish full nested support.

@@ -331,7 +331,8 @@ theorem Environment.addInductive.reject_of_paramArity (env : Environment)
     (isUnsafe allowPrimitive : Bool) (fuel : FuelConfig)
     (hsmall : AddInductive.declareConstructors.arity 0 type.type < numParams) :
     addInductive env lparams numParams (type :: types) isUnsafe allowPrimitive fuel =
-      .error (.other "invalid inductive datatype declaration, incorrect number of parameters") := by
+      (Environment.checkInductiveSources env (type :: types) >>= fun _ =>
+        .error (.other "invalid inductive datatype declaration, incorrect number of parameters")) := by
   unfold addInductive
   simp only [StateT.run']
   rw [ElimNestedInductive.run.reject_of_paramArity _ _ _ _ _ _ hsmall]
@@ -350,7 +351,8 @@ theorem addDecl.inductiveParamArity (env : Environment) (lparams : List Name)
       (type :: types) isUnsafe).WF fun _ => True from fun _ _ => trivial).bind ?_
     intro allowPrimitive _
     rw [Environment.addInductive.reject_of_paramArity _ _ _ _ _ _ _ _ hsmall]
-    exact Except.WF.throw
+    exact (show (Environment.checkInductiveSources env (type :: types)).WF
+      (fun _ => True) from fun _ _ => trivial).bind fun _ _ => Except.WF.throw
 
 theorem addDecl.reject_inductive_of_paramArity (env result : Environment)
     (lparams : List Name) (numParams : Nat) (type : InductiveType) (types : List InductiveType)

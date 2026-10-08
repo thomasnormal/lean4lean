@@ -722,9 +722,16 @@ def mkAuxRecNameMap (env' : Environment) (types : List InductiveType) :
     oldRecNames := oldRecNames.push oldRecName
   return (oldRecNames.toList, recMap)
 
+def Environment.checkInductiveSources (env : Environment) (types : List InductiveType) :
+    Except Exception Unit := do
+  types.forM fun indType => do
+    env.checkNoMVarNoFVar indType.name indType.type
+    indType.ctors.forM fun ctor => env.checkNoMVarNoFVar ctor.name ctor.type
+
 def Environment.addInductive (env : Environment) (lparams : List Name) (nparams : Nat)
     (types : List InductiveType) (isUnsafe allowPrimitive : Bool) (fuel : FuelConfig := {}) :
     Except Exception Environment := do
+  Environment.checkInductiveSources env types
   let res ← ElimNestedInductive.run fuel.inductiveFuel nparams types env
     |>.run' { lvls := lparams.map .param, newTypes := types.toArray }
   let numNested := res.aux2nested.size
