@@ -1,6 +1,46 @@
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveParamBinding
 
+namespace Lean
+
+theorem Expr.instantiateLevelParams_looseBVarRange (e : Expr) (params : List Name)
+    (levels : List Level) :
+    (e.instantiateLevelParams params levels).looseBVarRange' = e.looseBVarRange' := by
+  rw [Expr.instantiateLevelParams_eq]
+  induction e <;> simp_all [Expr.instantiateLevelParamsCore', Expr.looseBVarRange']
+
+end Lean
+
+namespace Lean4Lean
+open Lean hiding Environment Exception
+open Kernel
+
+def Environment.InductiveDeclRange (env : Kernel.Environment) : Prop :=
+  ∀ name info, env.get name = .ok (.inductInfo info) →
+    info.type.looseBVarRange' = 0 ∧
+      ∀ ctorName, ctorName ∈ info.ctors →
+        ∀ ctorInfo, env.get ctorName = .ok (.ctorInfo ctorInfo) →
+          ctorInfo.type.looseBVarRange' = 0
+
+theorem Environment.InductiveDeclRange.inductiveType
+    (h : Environment.InductiveDeclRange env)
+    (hget : env.get name = .ok (.inductInfo info)) :
+    (info.type.instantiateLevelParams info.levelParams levels).looseBVarRange' = 0 := by
+  rw [Expr.instantiateLevelParams_looseBVarRange]
+  exact (h name info hget).1
+
+theorem Environment.InductiveDeclRange.constructorType
+    (h : Environment.InductiveDeclRange env)
+    (hget : env.get name = .ok (.inductInfo info))
+    (ctorName : Name) (hctor : ctorName ∈ info.ctors)
+    (ctorInfo : ConstructorVal)
+    (hctorGet : env.get ctorName = .ok (.ctorInfo ctorInfo)) :
+    (ctorInfo.type.instantiateLevelParams ctorInfo.levelParams levels).looseBVarRange' = 0 := by
+  rw [Expr.instantiateLevelParams_looseBVarRange]
+  exact (h name info hget).2 ctorName hctor ctorInfo hctorGet
+
+end Lean4Lean
+
 namespace Lean4Lean.ElimNestedInductive
 open Lean hiding Environment Exception
 open Kernel

@@ -523,11 +523,15 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `instantiateForallParams` behavior. The new
   `Expr.instantiateRevRange_looseBVarRange` and `instantiateForallParams.range`
   contracts prove bounded reverse substitution after leading-binder stripping;
-  environment declaration closure and generated-state preservation remain explicit
-  premises. `State.NewTypesRange` and
+  `Lean.Expr.instantiateLevelParams_looseBVarRange` proves that universe-level
+  substitution preserves expression bound-variable range. The explicit
+  `Lean4Lean.Environment.InductiveDeclRange` predicate requires range-zero
+  inductive and successful constructor declarations, and its two transport lemmas
+  establish the same bound after level substitution. Generated-state preservation
+  remains an explicit premise. `State.NewTypesRange` and
   `run.loop.newTypesRange` then propagate preexisting and generated ranges through
   constructor `mapM`, bounded re-abstraction, and the executable `set!` update into
-  both the final state and result types. Twenty-eight focused audits exclude
+  both the final state and result types. Thirty-one focused audits exclude
   `sorryAx` and use only the existing logical, metadata, application-building,
   abstraction, instantiation, and array interfaces. These are explicit range
   contracts; they do not prove environment declaration closure, auxiliary
