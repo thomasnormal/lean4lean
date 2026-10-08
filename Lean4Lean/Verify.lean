@@ -11,3 +11,4 @@ import Lean4Lean.Verify.InductiveMetadata
 import Lean4Lean.Verify.InductiveParams
 import Lean4Lean.Verify.InductiveParamValidity
 import Lean4Lean.Verify.InductiveParamBinding
+import Lean4Lean.Verify.InductiveParamScope
