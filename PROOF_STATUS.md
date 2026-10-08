@@ -105,8 +105,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   The specification-level substitution proof uses only `propext`; its bridge to
   `Expr.instantiate1` additionally uses the existing `Lean.Expr.instantiate1_eq`
   interface axiom, without `sorryAx`. These arity prerequisites feed the
-  constructor parameter-consumption proof below; composing the full constructor
-  batch remains open.
+  constructor parameter-consumption and full-batch arity proofs below.
 - `Verify.ConstructorParams` proves that the executable return-application check
   requires a matching argument at every parameter position. For free-variable
   parameters, arbitrary `FVarsIn` predicates on the return expression therefore
@@ -127,8 +126,22 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   no externally constructed statistics or parameter-invariant premises and
   returns the checked statistics with their raw constructor-arity bound.
   The composition does not register datatype headers, check constructor type
-  well-formedness, or traverse the full constructor batch; neither field-count
-  registration composition nor full positivity/inductive soundness follows.
+  well-formedness, or traverse the full constructor batch.
+  `checkConstructors.arity` now lifts the inner-loop bound through the actual
+  constructor lists and datatype-index range. Successful full batch checking
+  guarantees the lower bound for every constructor, given free-variable and
+  distinct parameter arrays. The proof handles duplicate-name rejection, the
+  source guard, and constructor type checking without assuming type-checker
+  soundness. Its traversal invariant requires successful steps to yield, so
+  an early loop exit cannot bypass remaining constructors.
+  `checkInductiveTypes.checkedConstructorsArity` supplies both parameter
+  invariants from checked types and composes them with full batch checking.
+  The standalone batch theorem also applies after replacing the context's
+  environment with registered datatype headers. These are arity contracts,
+  not semantic constructor-typing or positivity proofs. Datatype-header
+  registration is not part of the checked-type/batch composition; connecting
+  the lower bound through constructor registration and its numeric field-count
+  metadata remains open, as do recursors and full inductive soundness.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -462,6 +475,7 @@ lake env lean tests/InductiveStats.lean
 lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
 lake env lean tests/ConstructorParams.lean
+lake env lean tests/ConstructorBatchArity.lean
 lake env lean tests/Primitive.lean
 lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
@@ -641,7 +655,25 @@ generated parameters, dependent fields, safe/unsafe contexts, missing/swapped
 parameters, open source expressions, and fuel exhaustion. The checked-parameter
 arity theorem adds no interface assumptions beyond the existing guarded-loop
 bridge and excludes `sorryAx`.
-Focused executable replay checks 54 declarations in `Verify.ConstructorParams`,
+`tests/ConstructorBatchArity.lean` adds four proof regressions and two axiom
+audits for full-batch checking, successful-result projection, arbitrary
+environment replacement, and checked-type/batch composition. Both audits
+exclude `sorryAx` and use exactly the guarded inner loop's existing interfaces.
+Thirty-eight executable batch outcomes follow checked types and datatype-header
+registration in safe and unsafe contexts. They cover empty constructor/type
+batches, zero/one/two parameters, dependent fields, indexed results, mutual
+occurrences, and a middle datatype without constructors. Rejections include
+duplicate names within a parent, too few or swapped parameters, missing indices,
+ill-typed or open/metavariable source types, mismatched parameter domains, wrong
+return parents in the last datatype, and exhausted constructor fuel. Constructor
+names shared by distinct parents are deliberately accepted at the checker-only
+stage; registration would reject their global collision. No constructor
+registration or malformed field-count assertion is executed by these fixtures.
+Eight additional outcomes exercise the exact checked-type/full-batch composition
+against imported `Nat`/`Bool` headers and a universe-polymorphic `List`, including
+duplicate-name rejection. This is runtime evidence against the imported prelude,
+not its semantic environment translation.
+Focused executable replay checks 58 declarations in `Verify.ConstructorParams`,
 assuming its imported dependencies are correct.
 
 The reflection regressions accept both supported reflection encodings and reject
