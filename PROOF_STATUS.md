@@ -394,6 +394,33 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `sorryAx`; no new admission, axiom, dependency, or executable checker change is
   introduced. The raw scoped binding equality and empty-context scope audits
   exclude `sorryAx`.
+- `Verify.InductiveParamReconstruction` proves source-expression round trips for
+  successful parameter extraction. `SourceReserved` requires every source free
+  variable in the generator's namespace to precede its starting index; free
+  variables outside that namespace are unrestricted. It excludes capture by
+  every subsequently generated parameter ID, not merely the first one.
+  `SourceReserved.noFVars` discharges this sufficient freshness condition from
+  `hasFVar = false`, without excluding expression or level metavariables.
+  `withParams.reconstruct` supplies arbitrary continuations with the exact
+  sequential `reconstructParams` fold back to the source; this structural
+  contract needs freshness but no bound-variable scope premise.
+  `ParamValidity.bindingScope` connects extracted domain scope to the generic
+  binding interface, ruling out local let declarations using parameter validity.
+  `mkForall_reconstruct` identifies native re-abstraction with the sequential
+  fold for a scoped context/body. `withParams.getReconstruction` combines these
+  proofs with scoped extraction to recover the complete original expression,
+  retaining names, dependent domains, binder flags, and remaining binders.
+  `getReconstruction_noFVars` exposes the scoped free-variable-free corollary.
+  `sourceReconstruction` supplies the native source equality to arbitrary
+  continuations using a uniform extraction/bind factorization; `mkForall_source`
+  verifies the direct extraction-and-re-abstraction callback.
+  All sixteen new audits exclude `sorryAx`; native reconstruction still inherits
+  the existing corrected abstraction and map/array/instantiation bridges, and
+  the no-free-variable corollary additionally uses `Expr.hasFVar_eq`.
+  The source scope/freshness conditions remain explicit, not newly proved
+  consequences of the inductive frontend. These syntactic round trips do not
+  establish semantic typing, rewritten-body scope, nested rewriting correctness,
+  positivity, recursors, or full inductive soundness.
 - `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
   preserving existing bound variables and unmatched metavariables and choosing
   the last duplicate identifier at the appropriate binder depth. The existing
@@ -1107,6 +1134,23 @@ dependent domains/let values, both nondependent-let flags, and all constructors.
 Every case also checks native leading-binder preservation at starting counts
 0/1/7 (2736 checks); 396 scope/distinctness cases additionally compare the
 sequential model. Run `lake env lean tests/NativeAbstraction.lean`.
+
+`tests/InductiveParamReconstruction.lean` contains sixteen proof regressions and
+sixteen axiom audits for source freshness, fresh instantiation/abstraction,
+extracted-context binding scope, sequential continuation reconstruction, native
+round trips, arbitrary native continuations, and the no-free-variable corollary.
+All audits exclude `sorryAx`; seven use only logical axioms.
+Six hundred twenty-four native/sequential/direct-callback source fixtures
+(1872 reconstruction comparisons) cover three generator states,
+0/1/2/3/31/32/33/65 parameters,
+dependent/external-variable domains, prior generated free variables, repeated
+binder names, all binder flags, both let flags, remaining binders, metadata,
+projections, literals, and expression/level metavariables. Twelve capture cases
+isolate current/future generated IDs in bodies and later domains. Six loose-source
+cases distinguish native reconstruction failure from valid sequential inversion;
+three parameter-shortage cases retain the exact diagnostic. These are helper
+boundaries, not accepted ill-typed frontend declarations. Run
+`lake env lean tests/InductiveParamReconstruction.lean`.
 
 Focused executable replays check 168 declarations in `Verify.Axioms`,
 817 in `Verify.Expr`, 144 in `Verify.LocalContext`,

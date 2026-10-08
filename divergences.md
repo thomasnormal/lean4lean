@@ -163,3 +163,35 @@ the corrected raw model. All new audits exclude `sorryAx`; native comparison
 theorems inherit only the corrected `Expr.abstract_eq` beyond logical axioms.
 No executable checker change, public frontend acceptance mismatch, or kernel
 soundness bug is demonstrated. The native implementation bridge remains trusted.
+
+### Scoped source reconstruction (2026-10-08)
+
+`Verify.InductiveParamReconstruction` now proves the conditional source round
+trip previously missing at this helper boundary. In addition to structural
+range-zero scope, it requires `SourceReserved`: source free variables with the
+generator's prefix have indices strictly below the initial generator index.
+Other free variables are allowed. This sufficient condition prevents capture
+by any generated parameter ID, including a later ID appearing in an earlier
+source expression. A scoped source with `hasFVar = false` satisfies it for any
+generator; expression and level metavariables need not be excluded.
+
+Fresh instantiation followed by sequential abstraction is inverted structurally
+even on loose-bound-variable input. The native source round trip additionally
+uses the proved extracted-domain/remainder scope and distinct parameter IDs.
+The parameter-context validity contract supplies `LocalContext.BindingScope`
+because every extracted declaration is an ordinary constant binder, not a let.
+No new axiom is introduced: native abstraction remains connected through the
+corrected existing `Expr.abstract_eq` implementation bridge.
+
+The native equality is also supplied to arbitrary continuations, and the direct
+extraction-and-re-abstraction callback recovers its source on success.
+
+Run `lake env lean tests/InductiveParamReconstruction.lean`: 624 source fixtures
+compare native, sequential, and direct-callback reconstruction. They accompany
+twelve current/future source-capture counterexamples,
+six loose-source counterexamples, and three unchanged parameter-shortage
+diagnostics. All sixteen axiom audits exclude `sorryAx`. The negative fixtures
+deliberately bypass source typing/freshness at the extraction helper; they do
+not exhibit a newly accepted invalid inductive declaration or a kernel bug.
+Discharging these source premises from frontend checking and proving scope for
+opaque rewritten constructor bodies remain separate verification obligations.
