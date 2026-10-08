@@ -59,8 +59,17 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   deliberately excluded because binder traversal changes them. The `frame`
   corollary discards the size information, while `getFrameHeaderSizes` returns
   statistics and the observed callback context. These proofs preserve the older
-  size-only API and do not establish semantic header translation or the combined
-  checked-header registration refinement.
+  size-only API and do not establish semantic header translation.
+- `AddInductive.checkInductiveTypes.refinesHeaders` composes the actual checked
+  type prefix with `declareInductiveTypes`, refining the resulting environment
+  against `VEnv.addInductHeaders`. No externally constructed statistics or
+  array-length premise is required: the preceding stage supplies the size and
+  frame invariants. Initial alignment, header translation, and an admitting
+  safety filter remain explicit assumptions. `orderedHeaders` also preserves
+  orderedness when the translated header types are well-formed; their typing is
+  not derived from the concrete check in this theorem. This is partial
+  correctness of the checked-header prefix, not full inductive frontend
+  correctness, constructor installation, positivity, or recursor soundness.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -436,17 +445,24 @@ declarations successfully; as above, imported dependencies are assumed correct.
 
 `tests/InductiveHeaders.lean` checks successful registration, registered type
 lookups, duplicate/collision rejection, empty batches, polymorphic headers, and
-orderedness. It confirms that the header stage does not install constructors.
+orderedness, with eighteen proof regressions and fourteen axiom audits. It
+confirms that the header stage does not install constructors.
 Runtime checks exercise the executable `declareInductiveTypes` for `Bool` and
 `Nat`, including duplicate-name and primitive-authorization rejection, and for
-two ordinary mutually declared headers in safe and unsafe modes. They cover
-within-batch duplicates and existing-header collisions. A deliberately short
+two ordinary mutually declared headers in safe and unsafe modes. The same cases
+also exercise the checked type-and-registration composition. Additional checked
+cases verify automatically computed index counts, shared parameters, dependent
+indices, and universe parameters in safe and unsafe modes. Rejection cases cover
+missing/mismatched parameters, mismatched result universes, undeclared universes,
+invalid types, and exhausted inductive fuel. These checks total thirty-six
+executable outcomes and include within-batch duplicates and existing-header
+collisions. A deliberately short
 `nindices` array demonstrates why the refinement's exact-length precondition
 matters: the unchecked prefix's `zipWith` truncates the batch. This test
 deliberately bypasses the preceding stage's statistics-length assertions; it is
 a precondition-boundary regression, not a kernel discrepancy. Seven abstract
 header-theorem audits exclude `sorryAx` and implementation-interface
-axioms; five translation/refinement audits track their inherited assumptions.
+axioms; seven translation/refinement audits track their inherited assumptions.
 The abstract extension, lookup, equation-preservation, and orderedness proofs
 use only `propext` and `Quot.sound`; the header-well-formedness proofs use only
 `propext`. `PrimitiveInductiveDecl.toVDecl` additionally inherits
@@ -466,7 +482,11 @@ proofs additionally inherit the existing persistent-map interface assumptions
 `Lean.PersistentHashMap.WF.toList'_insert`. The audits allow only these known
 dependencies. No new axiom, admitted proof body, or full-environment translation
 constructor is introduced by the registration refinement.
-Focused executable replay checks 15 declarations in `Verify.InductiveHeaders`,
+The two checked-prefix composition theorems inherit exactly the same known
+dependencies as the standalone executable header refinement; their audits do
+not introduce additional assumptions. No claim is made that concrete header
+checking establishes the supplied structural translations or abstract typing.
+Focused executable replay checks 18 declarations in `Verify.InductiveHeaders`,
 assuming its imported dependencies are correct.
 
 `tests/InductiveStats.lean` contains twelve proof regressions and seven axiom audits
