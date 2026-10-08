@@ -38,7 +38,7 @@ theorem VEnv.addInductHeaders.constants
     · exact (addInductHeaders.le hrest).constants (addConst_self hstep)
     · exact ih hrest hmem
 
-private theorem VEnv.addConst.defeqs_eq
+theorem VEnv.addConst.defeqs_eq
     (hadd : env.addConst name constant = some env') : env'.defeqs = env.defeqs := by
   unfold VEnv.addConst at hadd
   split at hadd <;> cases hadd
