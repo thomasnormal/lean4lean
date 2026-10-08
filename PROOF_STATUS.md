@@ -500,11 +500,19 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `newTypes` update. A structural `Expr.replaceM` induction composes that
   callback contract into `replaceAllNested.scope`, covering every expression
   constructor and preserving state scope across the full rewrite traversal. The
-  classifier's constant-prefix range is transferred to arbitrary mutual family
-  names. The exported contracts are state-only; auxiliary semantic typing,
-  positivity, recursors, and full inductive soundness remain open. Sixteen
-  focused audits exclude `sorryAx` and use only the existing logical, metadata,
-  application-building, abstraction, and instantiation interfaces.
+  `withParams.contextScope`, `run.loop.nestedAuxScoped`, and
+  `run.nestedAuxScoped` contracts now carry the invariant through constructor
+  parameter extraction, every generated auxiliary constructor rewrite, the
+  `newTypes` update, and the final preprocessing result. Its final result map
+  contract proves every folded auxiliary expression has bound-variable range at
+  most the retained parameter count, using the existing scoped abstraction
+  contract and the standard `NameMap` insertion equation. The classifier's
+  constant-prefix range is transferred to arbitrary mutual family names. The
+  exported contracts still do not prove constructor-expression range before
+  abstraction, auxiliary semantic typing, positivity, recursors, or full
+  inductive soundness. Nineteen focused audits exclude `sorryAx` and use only
+  the existing logical, metadata, application-building, abstraction,
+  instantiation, and array interfaces.
 - `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
   preserving existing bound variables and unmatched metavariables and choosing
   the last duplicate identifier at the appropriate binder depth. The existing
