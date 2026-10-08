@@ -513,8 +513,11 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   each generated nested replacement stays within the original expression's
   loose-bound-variable range, and `replaceAllNested.range` lifts that contract
   through the complete structural traversal. `withParams.contextRange` now
-  combines the state invariant with the zero-range remainder needed when
-  applying the rewrite contract to constructor bodies. The exported contracts
+  combines the state invariant with a bounded remainder contract: parameter
+  extraction preserves a `≤ numParams` loose range and carries explicit
+  parameter validity, fresh-name reservation, and bounded local-domain facts.
+  `ParamContext.abstractRange_range` and `ParamValidity.mkForall_range` bound
+  native parameter re-abstraction at the same limit. The exported contracts
   still do not prove constructor/new-type range propagation, auxiliary
   semantic typing, positivity, recursors, or full inductive soundness.
   Twenty-four focused audits exclude `sorryAx` and use only the existing
