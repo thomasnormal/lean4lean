@@ -52,6 +52,15 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   The proof follows both nested executable loops and does not assume a verified
   starting environment or type-checker correctness. It establishes cardinality,
   not header translation, parameter typing, or full inductive soundness.
+- `AddInductive.checkInductiveTypes.frameHeaderSizes` strengthens that contract:
+  the continuation also sees the original environment, universe parameters,
+  safety, primitive authorization, and fuel configuration. `Context.HeaderFrame`
+  packages these equalities; local contexts and fresh-name generators are
+  deliberately excluded because binder traversal changes them. The `frame`
+  corollary discards the size information, while `getFrameHeaderSizes` returns
+  statistics and the observed callback context. These proofs preserve the older
+  size-only API and do not establish semantic header translation or the combined
+  checked-header registration refinement.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -460,12 +469,13 @@ constructor is introduced by the registration refinement.
 Focused executable replay checks 15 declarations in `Verify.InductiveHeaders`,
 assuming its imported dependencies are correct.
 
-`tests/InductiveStats.lean` contains five proof regressions and two axiom audits
-for the paired header-array lengths. Fourteen executable acceptance cases cover
+`tests/InductiveStats.lean` contains twelve proof regressions and seven axiom audits
+for the paired header-array lengths and fixed callback-context fields.
+Sixteen executable acceptance cases cover
 empty, singleton, and mutual batches; safe and unsafe contexts; parameters;
 dependent indices; distinct index counts; and universe parameters. Six rejection
 cases cover missing or mismatched parameters, mismatched result universes,
-undeclared universes, invalid types, and exhausted inductive fuel. The two size
+undeclared universes, invalid types, and exhausted inductive fuel. The size/frame
 theorems use only `propext`, `Quot.sound`, and `Classical.choice`; their audits
 exclude `sorryAx` and all implementation-interface axioms.
 The proof tracks parameter and universe counts internally to justify the terminal
@@ -473,7 +483,15 @@ assertions for nonempty batches. Its empty-batch case also accounts for the
 kernel-level default value of a failed parameter-count assertion; the size
 invariant does not claim that malformed empty input succeeds at runtime or that
 every assertion is unreachable. No executable behavior changes.
-Focused executable replay checks 32 declarations in `Verify.InductiveStats`,
+All acceptance cases observe the callback context: they check preserved fixed
+fields, existing `Nat` header metadata, absence of newly registered datatype
+headers, and the expected changes to local-context size and fresh-name state.
+Seeded cases additionally exercise a nonempty starting local context, a distinct
+name-generator prefix, enabled primitive authorization, universe parameters,
+and nondefault values for every fuel field. The environment frame theorem proves
+full environment equality; the runtime lookup checks are regressions, not its
+proof.
+Focused executable replay checks 46 declarations in `Verify.InductiveStats`,
 assuming its imported dependencies are correct.
 
 The reflection regressions accept both supported reflection encodings and reject
