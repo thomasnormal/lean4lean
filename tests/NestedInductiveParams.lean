@@ -77,6 +77,21 @@ private def datatype (numParams : Nat) (nested : Bool) : InductiveType :=
     (.forallE `field domain (familyApp name numParams 1) .default)
   { name, type, ctors := [{ name := name ++ `node, type := ctorType }] }
 
+private def checkResultContext (env : Kernel.Environment) (state : State)
+    (numParams : Nat) (types : List InductiveType) (result : Result) : MetaM Unit := do
+  let header :: _ := types | throwError "successful preprocessing without a source header"
+  let .ok ((lctx, _, params), _) :=
+    withParams header.type numParams (fun lctx remainder params => pure (lctx, remainder, params))
+      env state | throwError "successful preprocessing without an extracted parameter context"
+  let actual := result.lctx.decls.toList.filterMap id
+  let expected := lctx.decls.toList.filterMap id
+  let fields := fun (decl : LocalDecl) =>
+    (decl.index, decl.toExpr, decl.userName, decl.type, decl.binderInfo, decl.kind,
+      decl.isLet (allowNondep := true))
+  unless actual.length == params.size && expected.length == params.size &&
+      actual.map fields == expected.map fields do
+    throwError "preprocessing changed the original extracted parameter declarations"
+
 private def checkPreprocessing (env : Kernel.Environment) (state : State)
     (fuel numParams : Nat) (types : List InductiveType) (expected : Except String Nat)
     (addedAux : Nat := 0) : MetaM Unit := do
@@ -86,6 +101,7 @@ private def checkPreprocessing (env : Kernel.Environment) (state : State)
         result.types.length == numTypes && final.newTypes.size == numTypes &&
         final.nestedAux.size == state.nestedAux.size + addedAux do
       throwError "incorrect nested preprocessing parameter count or auxiliary growth"
+    checkResultContext env state numParams types result
     for type in result.types do
       unless numParams ≤ AddInductive.declareConstructors.arity 0 type.type do
         throwError "preprocessed header lost its parameter prefix"
