@@ -214,6 +214,45 @@ private theorem mkAppList_scope (fn : Expr) (args : List Expr)
     · intro other hmem
       exact hargs other (List.mem_cons_of_mem arg hmem)
 
+private theorem mkAppList_range (fn : Expr) (args : List Expr) (bound : Nat)
+    (hfn : fn.looseBVarRange' ≤ bound)
+    (hargs : ∀ arg ∈ args, arg.looseBVarRange' ≤ bound) :
+    (fn.mkAppList args).looseBVarRange' ≤ bound := by
+  induction args generalizing fn with
+  | nil => exact hfn
+  | cons arg args ih =>
+    apply ih
+    · have hmax : max fn.looseBVarRange' arg.looseBVarRange' ≤ bound :=
+        (Nat.max_le).2 ⟨hfn, hargs arg (by simp)⟩
+      simpa [Expr.looseBVarRange'] using hmax
+    · intro other hmem
+      exact hargs other (by simp [hmem])
+
+theorem mkAppN_range (fn : Expr) (args : Array Expr) (bound : Nat)
+    (hfn : fn.looseBVarRange' ≤ bound)
+    (hargs : ∀ arg ∈ args, arg.looseBVarRange' ≤ bound) :
+    (mkAppN fn args).looseBVarRange' ≤ bound := by
+  change (args.foldl Expr.app fn).looseBVarRange' ≤ bound
+  rw [← Array.foldl_toList, ← Expr.mkAppList_eq_foldl]
+  apply mkAppList_range
+  · exact hfn
+  · intro arg hmem
+    apply hargs arg
+    simpa using hmem
+
+theorem mkAppRange_tail_range (fn : Expr) (args : Array Expr) (start bound : Nat)
+    (hstart : start ≤ args.size) (hfn : fn.looseBVarRange' ≤ bound)
+    (hargs : ∀ arg ∈ args.toList.drop start, arg.looseBVarRange' ≤ bound) :
+    (mkAppRange fn start args.size args).looseBVarRange' ≤ bound := by
+  rw [Expr.mkAppRange_eq (e := fn) (args := args) (i := start) (j := args.size)
+    (l₁ := args.toList.take start) (l₂ := args.toList.drop start) (l₃ := [])
+    (by simp [List.take_append_drop])]
+  · apply mkAppList_range
+    · exact hfn
+    · exact hargs
+  · simp [List.length_take, Nat.min_eq_left hstart]
+  · simp
+
 theorem NestedAppScope.constPrefixRange {type : Expr} {info : InductiveVal}
     (hscope : NestedAppScope type info) (name : Name) (levels : List Level) :
     (mkAppRange (.const name levels) 0 info.numParams type.getAppArgs).looseBVarRange' = 0 := by
