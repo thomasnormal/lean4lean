@@ -465,12 +465,33 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   is assumed for this chain. All eight audits exclude `sorryAx`; three use only
   logical axioms, and the rest use the existing abstraction/instantiation bridge
   and, for the flag corollary, the range-metadata bridge.
-  This does not yet prove the nested-app guard's parameter-prefix source scope,
-  preservation of that invariant across the complete rewrite traversal/map,
+  The nested-app guard's parameter-prefix source scope is now supplied by
+  `Verify.InductiveNestedGuard`; preservation across the complete rewrite traversal/map,
   auxiliary semantic typing, positivity, recursors, or full inductive soundness.
   Tests deliberately bypass the nested-app guard to demonstrate why source scope
   and a free-variable target context are necessary; these helper boundaries are
   not newly accepted invalid frontend declarations. The checker is unchanged.
+- `Verify.InductiveNestedGuard` verifies the actual `isNestedInductiveApp?`
+  classifier without changing its executable code. `.scope` proves every
+  successful result preserves the preprocessing state, and every returned
+  inductive value has a constant application head, enough arguments, and no
+  loose variables in any parameter argument. `.frame` projects state identity;
+  `NestedAppScope.argRange` and `.prefixRange` establish structural range zero
+  for the exact `mkAppRange` prefix consumed by `replaceParams`. `.prefixScope`
+  and `.prefixScopeFlag` carry those contracts through the actual classifier.
+  `.checkedRebinding` composes classification, rebinding, final abstraction, and
+  `Result.openAux`, requiring parameter-context validity but no original-prefix
+  or rewritten-output scope premise. Seven audits exclude `sorryAx`; the two
+  classifier/frame audits use only logical axioms, while range/opening proofs
+  inherit the existing metadata, application-building, abstraction, and
+  instantiation interfaces. No new axiom, admission, or executable guard is added.
+  The contract deliberately concerns parameter arguments, not index arguments:
+  a loose index can coexist with a scoped parameter prefix. Non-nested inputs
+  may also contain loose variables and still classify as `none`; unchanged
+  parameter-count/error priority is regression-tested. Fixtures use native-checked
+  container declarations but test local classifier/rebinding expressions, not
+  full declaration typing or frontend acceptance. Auxiliary-map/traversal scope,
+  semantic typing, positivity, recursors, and full inductive soundness remain open.
 - `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
   preserving existing bound variables and unmatched metavariables and choosing
   the last duplicate identifier at the appropriate binder depth. The existing
@@ -823,6 +844,7 @@ lake env lean tests/InductiveParamBinding.lean
 lake env lean tests/InductiveParamScope.lean
 lake env lean tests/InductiveNestedScope.lean
 lake env lean tests/InductiveNestedRebinding.lean
+lake env lean tests/InductiveNestedGuard.lean
 lake env lean tests/NestedInductiveParams.lean
 lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
@@ -858,6 +880,7 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParamBinding
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParamScope
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveNestedScope
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveNestedRebinding
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveNestedGuard
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of

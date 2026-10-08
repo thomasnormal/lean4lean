@@ -290,6 +290,36 @@ The negative helper fixtures deliberately bypass the nested-app guard: a loose
 source bound variable can become a target free variable during rebinding, while
 a target containing a bound variable can introduce a scope error. These do not
 exhibit newly accepted invalid frontend declarations or a kernel bug. Proving
-the actual nested-app guard's parameter-prefix scope and propagating it through
-the complete traversal/auxiliary map remain next steps; semantic typing,
+the complete traversal/auxiliary map scope remains the next step; the guard's
+parameter-prefix scope is now proved below. Semantic typing,
 positivity, recursors, and full inductive soundness remain separate.
+
+### Checked nested-app parameter scope (2026-10-08)
+
+`Verify.InductiveNestedGuard` proves the existing classifier's successful-result
+contract: state identity, a constant head, enough arguments, and no loose bound
+variables in each parameter argument. It derives structural range zero and the
+actual loose-variable metadata flag for the exact parameter prefix passed to
+`replaceParams`. The checked rebinding/final-abstraction/opening chain now needs
+parameter-context validity but no separate source-prefix or output-range premise.
+
+This contract does not claim scope of the entire application. Loose indices are
+permitted when the parameter prefix is scoped; an indexed-family regression
+records that boundary. A non-nested expression with loose arguments still returns
+`none`, and insufficient arguments take precedence over the loose-parameter
+diagnostic. The executable guard, diagnostics, and error order are unchanged.
+
+Run `lake env lean tests/InductiveNestedGuard.lean`: seven axiom audits accompany
+768 guard/rebinding fixtures (672 accepts/96 `none`), 168 loose-parameter
+rejections, 64 arity-boundary `none` cases, and seven classification/index
+boundaries. Native-checked containers span zero through 65 parameters; local
+fixtures cover different generators, zero through 33 extracted parameters, and
+all expression constructors. Those fixtures test classifier/rebinding scope,
+not semantic typing or acceptance of complete invalid declarations.
+
+Both classifier/frame audits use only logical axioms; the remaining audits use
+only the existing range-metadata/application-building/abstraction/instantiation
+interfaces and exclude `sorryAx`. No new implementation axiom, admission, checker
+workaround, or kernel discrepancy is introduced. Scope propagation through the
+complete rewrite traversal and auxiliary map, auxiliary semantic typing,
+positivity, recursors, and full inductive soundness remain separate obligations.
