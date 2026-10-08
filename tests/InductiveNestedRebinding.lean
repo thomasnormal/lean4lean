@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.InductiveNestedRebinding
+import Lean4Lean.Verify.InductiveNestedRewrite
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.ElimNestedInductive
@@ -34,6 +35,18 @@ example (result : Result) (numParams : Nat) (source : LocalContext)
       (result.openAux (returned.1.abstract result.params)).hasLooseBVars = false :=
   replaceParams.finalAux_scope result numParams source sourceParams type env state
     hsource htarget htype
+
+example (numParams : Nat) (source target : LocalContext) (sourceParams params : Array Expr)
+    (type : Expr) (name : Name) (env : Kernel.Environment) (state : State)
+    (hsource : ParamContext numParams source sourceParams)
+    (htarget : ParamContext numParams target params)
+    (hstate : state.NestedAuxScoped) (htype : type.looseBVarRange' = 0) :
+    (do
+      let entry ← replaceParams params type sourceParams
+      modify fun state => { state with nestedAux := state.nestedAux.push (entry, name) }
+      return entry : M Expr) env state |>.WF fun returned => returned.2.NestedAuxScoped :=
+  replaceParams.pushNestedAuxScoped numParams source target sourceParams params type name env state
+    hsource htarget hstate htype
 
 private def parameterType (numParams : Nat) (dependent : Bool) : Expr :=
   if dependent then
@@ -153,6 +166,12 @@ run_meta do
   for theoremName in [``replaceParams.noLooseBVars, ``replaceParams.auxRange] do
     audit theoremName interfaces
   audit ``replaceParams.finalAux_scope (``Expr.looseBVarRange_eq :: interfaces)
+  for theoremName in [``State.NestedAuxScoped.empty, ``State.NestedAuxScoped.push,
+      ``mkUniqueName.frame] do
+    audit theoremName []
+  audit ``NestedAppScope.constPrefixRange [``Expr.looseBVarRange_eq,
+    `Lean.Expr.mkAppRangeAux.eq_def]
+  audit ``replaceParams.pushNestedAuxScoped interfaces
   let env := (← Lean.getEnv).toKernelEnv
   for generator in [NameGenerator.mk `_nested_fresh 0, { namePrefix := `SourceSeed, idx := 17 }] do
     for numParams in [0, 1, 2, 3, 31, 32, 33, 65] do
@@ -167,6 +186,6 @@ run_meta do
       for type in cases do
         checkRawAbstraction ids depth type
   checkPremiseBoundaries env
-  logInfo "checked eight proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
+  logInfo "checked fourteen proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
 
 end InductiveNestedRebindingTest
