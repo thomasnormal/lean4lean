@@ -9,3 +9,4 @@ import Lean4Lean.Verify.ConstructorParams
 import Lean4Lean.Verify.ConstructorMetadata
 import Lean4Lean.Verify.InductiveMetadata
 import Lean4Lean.Verify.InductiveParams
+import Lean4Lean.Verify.InductiveParamValidity
