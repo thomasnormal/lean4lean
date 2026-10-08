@@ -211,10 +211,10 @@ private theorem bindWF (action : M α) (next : α → M β)
   (show (action env state).WF fun _ => True from fun _ _ => trivial).bind
     fun result _ => hnext result.1 result.2
 
-theorem run.loop.frame (numParams : Nat) (lctx : LocalContext) (params : Array Expr)
+theorem run.loop.frameWithParams (numParams : Nat) (lctx : LocalContext) (params : Array Expr)
     (index fuel : Nat) (env : Environment) (state : State) :
     (run.loop numParams lctx params index fuel env state).WF fun result =>
-      result.1.nparams = params.size ∧ result.1.lctx = lctx := by
+      result.1.nparams = params.size ∧ result.1.lctx = lctx ∧ result.1.params = params := by
   induction fuel generalizing index state with
   | zero => exact Except.WF.throw
   | succ fuel ih =>
@@ -229,7 +229,14 @@ theorem run.loop.frame (numParams : Nat) (lctx : LocalContext) (params : Array E
       apply bindWF
       intro _ state'''
       exact ih (index + 1) state'''
-    · exact .pure ⟨rfl, rfl⟩
+    · exact .pure ⟨rfl, rfl, rfl⟩
+
+theorem run.loop.frame (numParams : Nat) (lctx : LocalContext) (params : Array Expr)
+    (index fuel : Nat) (env : Environment) (state : State) :
+    (run.loop numParams lctx params index fuel env state).WF fun result =>
+      result.1.nparams = params.size ∧ result.1.lctx = lctx :=
+  (run.loop.frameWithParams numParams lctx params index fuel env state).mono fun _ hframe =>
+    ⟨hframe.1, hframe.2.1⟩
 
 theorem run.loop.paramCount (numParams : Nat) (lctx : LocalContext) (params : Array Expr)
     (index fuel : Nat) (env : Environment) (state : State) (hsize : params.size = numParams) :

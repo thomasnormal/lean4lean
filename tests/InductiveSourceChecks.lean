@@ -118,14 +118,10 @@ private def checkValidFrontend (env : Lean.Environment) (numParams : Nat)
     name, type := parameterBinders numParams (.sort (.succ .zero)), ctors := [ctor] }] isUnsafe
   unless (env.addDeclCore 0 decl none).isOk do
     throwError "clean source unexpectedly fails native validation"
-  let expectsScopeGap := nested && numParams != 0
   match Lean4Lean.addDecl env.toKernelEnv decl check with
-  | .ok _ =>
-    unless !expectsScopeGap do throwError "known parameterized nested scope gap changed"
+  | .ok _ => pure ()
   | .error (.other message) =>
-    unless expectsScopeGap && message ==
-        "type checker does not support loose bound variables, replace them with free variables before invoking it" do
-      throwError "unexpected clean-source rejection: {message}"
+    throwError "unexpected clean-source rejection: {message}"
   | .error _ => throwError "unexpected structured clean-source rejection"
 
 private def captureType (index : Nat) : InductiveType :=
@@ -186,6 +182,6 @@ run_meta
       for nested in [false, true] do
         for check in [false, true] do
           checkValidFrontend env numParams isUnsafe nested check
-  logInfo "checked 20 clean/168 invalid source batches, 16 captured frontend rejections, 24 clean native inputs (16 frontend accepts/8 known nested scope rejections), and the unguarded capture pipeline"
+  logInfo "checked 20 clean/168 invalid source batches, 16 captured frontend rejections, 24 clean native/frontend accepts, and the unguarded capture pipeline"
 
 end InductiveSourceChecksTest

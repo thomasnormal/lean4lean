@@ -229,15 +229,35 @@ The preflight does not prove absence of loose bound variables, semantic typing,
 rewritten-body scope, or full inductive soundness. Lower-level preprocessing and
 the staged checker remain available with their explicitly separate contracts.
 
-### Adjacent parameterized nested scope gap (observed 2026-10-08)
+### Parameterized nested auxiliary scope (resolved 2026-10-08)
 
-Validation also exposes an existing downstream rejection, not changed by the
-source preflight: a clean datatype `I (A : Type) : Type` with a constructor
-`(A : Type) → List (I A) → I A` passes native Lean 4.29.0, but lean4lean reports
+Validation exposed an existing downstream rejection, unrelated to the source
+preflight: a clean datatype `I (A : Type) : Type` with a constructor
+`(A : Type) → List (I A) → I A` passes native Lean 4.29.0, but lean4lean reported
 `type checker does not support loose bound variables, replace them with free
-variables before invoking it`. Eight fixtures in `tests/InductiveSourceChecks.lean`
-record this for one/two parameters, both safety modes, and both check settings.
-Plain constructors and zero-parameter nested constructors still accept.
-These inputs contain no source free variables/metavariables, so the new preflight
-is a no-op. Resolving this auxiliary-expression scope/type-checking boundary is
-a separate item; the source-capture fix does not establish full nested support.
+variables before invoking it`. Preprocessing and the staged inductive checker
+both succeeded; the final auxiliary check passed parameter-abstracted expressions
+directly to a checker expecting free variables in the retained local context.
+
+Preprocessing now retains its actual chronological parameter array alongside
+that context. `Result.openAux` uses reverse instantiation to open every auxiliary
+before final type checking. No parameters are synthesized, no type checks are
+skipped, and the existing loose-variable guard remains unchanged. All 24 clean
+fixtures in `tests/InductiveSourceChecks.lean` now accept, including the eight
+previously rejected parameterized nested inputs.
+
+`Verify.InductiveNestedScope` proves that successful preprocessing retains the
+exact parameter array with its context validity and order. It proves that opening
+an expression whose structural bound-variable range is at most the parameter
+count leaves range zero, and connects this to the actual loose-variable flag.
+The auxiliary-range premise remains explicit: this does not prove range bounds
+for arbitrary nested rewrites, semantic auxiliary typing, positivity, recursors,
+or full inductive soundness. The eight audits exclude `sorryAx`; they inherit only
+logical axioms and existing context/instantiation/range interfaces.
+
+Run `lake env lean tests/InductiveNestedScope.lean` for the stage-isolated
+raw/opened regression, 36 retained-context scope checks, and 144 native/frontend
+acceptance and restored-type comparisons. Fixtures cover zero through four
+parameters, dependent parameter domains, concrete/polymorphic universes,
+`List`, `Option`, and composed nesting, both safety modes, and both check settings.
+Out-of-range auxiliary variables still retain loose-variable metadata.

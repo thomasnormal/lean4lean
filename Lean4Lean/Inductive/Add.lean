@@ -501,6 +501,7 @@ structure Result where
   ngen : NameGenerator
   nparams : Nat
   lctx : LocalContext
+  params : Array Expr
   aux2nested : NameMap Expr -- exprs contain `nparams` loose bvars
   types : List InductiveType
 
@@ -509,6 +510,9 @@ instance [MonadStateOf NameGenerator m] : MonadNameGenerator m where
   setNGen := set
 
 namespace Result
+
+def openAux (result : Result) (type : Expr) : Expr :=
+  type.instantiateRev result.params
 
 def getNestedIfAuxCtor (r : Result) (env' : Environment) (c : Name) : Option (Expr × Name) := do
   let .ctorInfo { induct, .. } ← env'.find? c | none
@@ -699,7 +703,7 @@ def run (fuel nparams : Nat) (types : List InductiveType) : M Result := do
       loop (i+1) fuel
     else
       let aux2nested := s.nestedAux.foldl (fun m (e, n) => m.insert n (e.abstract params)) {}
-      return { s with nparams := params.size, lctx, aux2nested, types := s.newTypes.toList }
+      return { s with nparams := params.size, lctx, params, aux2nested, types := s.newTypes.toList }
   loop 0 fuel
 end ElimNestedInductive
 
@@ -767,4 +771,4 @@ def Environment.addInductive (env : Environment) (lparams : List Name) (nparams 
   recNames'.forM processRec
   TypeChecker.M.run (← get) (safety := safety) (lctx := res.lctx)
       (lparams := lparams) (fuel := fuel) do
-    res.aux2nested.forM fun _ e => do _ ← TypeChecker.checkType e
+    res.aux2nested.forM fun _ e => do _ ← TypeChecker.checkType (res.openAux e)
