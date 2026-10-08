@@ -9,6 +9,10 @@ def TrConstructor (env : VEnv) (lparams : List Name)
   ctor.name = vctor.name ∧ lparams.length = vctor.uvars ∧
     TrExprS env lparams [] ctor.type vctor.type
 
+theorem TrConstructor.mono (htr : TrConstructor env lparams ctor vctor) (hle : env ≤ env') :
+    TrConstructor env' lparams ctor vctor :=
+  ⟨htr.1, htr.2.1, htr.2.2.mono hle⟩
+
 def TrInductiveType (headerEnv ctorEnv : VEnv) (lparams : List Name)
     (type : InductiveType) (vtype : VInductiveType) : Prop :=
   type.name = vtype.name ∧ lparams.length = vtype.uvars ∧

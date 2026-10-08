@@ -70,6 +70,16 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   not derived from the concrete check in this theorem. This is partial
   correctness of the checked-header prefix, not full inductive frontend
   correctness, constructor installation, positivity, or recursor soundness.
+- `VEnv.addConstructorHeaders` installs constructor signatures as fresh ordinary
+  typed constants. Its append, extension, installed-lookup, equation-preservation,
+  and orderedness properties are proved. `AddInductive.declareConstructors.refines`
+  follows both executable registration folds and preserves `Aligned`, given
+  translated constructor types and an admitting safety filter. The `ordered`
+  corollary additionally assumes abstract constructor-type well-formedness.
+  This stage does not justify constructor arities, parent/index metadata,
+  parameter-count assertions, positivity, projection/injectivity behavior,
+  recursor generation, or inductive reduction equations. It does not extend the
+  full `TrEnv` relation or discharge `AddInduct`.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -400,6 +410,7 @@ lake env lean tests/Environment.lean
 lake env lean tests/PrimitiveInductive.lean
 lake env lean tests/InductiveHeaders.lean
 lake env lean tests/InductiveStats.lean
+lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/Primitive.lean
 lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
@@ -415,6 +426,8 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Theory.InductiveHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Inductive
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveStats
+lake env .lake/build/bin/lean4lean Lean4Lean.Theory.ConstructorHeaders
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorHeaders
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -472,7 +485,7 @@ API (`TrExprS` includes the admitted `TrProj` specification).
 assumptions of the validator classification. No new axiom or admitted proof
 is added, and these bridges do not claim unconditional inductive soundness.
 Focused executable replay checks 21 declarations in `Theory.InductiveHeaders`
-and eight in `Verify.Inductive`, assuming their imported dependencies are correct.
+and nine in `Verify.Inductive`, assuming their imported dependencies are correct.
 
 The header-extraction lemma inherits the structural-translation API's
 `sorryAx` and standard logical axioms. The executable `refines` and `ordered`
@@ -513,6 +526,29 @@ full environment equality; the runtime lookup checks are regressions, not its
 proof.
 Focused executable replay checks 46 declarations in `Verify.InductiveStats`,
 assuming its imported dependencies are correct.
+
+`tests/ConstructorHeaders.lean` contains fourteen proof regressions and eight
+axiom audits. The five abstract constructor-header theorem audits exclude
+`sorryAx` and interface axioms, using only `propext` and `Quot.sound`.
+`TrConstructor.mono` inherits the structural-translation API's `sorryAx` and
+standard logical axioms; executable registration additionally inherits the same
+three persistent-map interface assumptions as datatype-header refinement. No
+new axiom, admitted proof body, or full-environment translation constructor is
+introduced. The existing single-constant equation-preservation lemma is now
+public so both abstract staging modules can reuse it.
+Eighteen executable outcomes include checked staging of `Bool`/`Nat`, mutual
+ordinary datatypes, empty batches, and a polymorphic parameterized `Box` in safe
+and unsafe modes. They check constructor types, parents, per-parent indices,
+parameter/field counts, universe parameters, safety, existing-name rejection,
+and absence of recursors. Further cases reject wrong return datatypes,
+within-parent and cross-parent duplicates, and safe nonpositive occurrences;
+the corresponding unsafe declaration is accepted as intended. These preceding
+constructor-checking and numeric-metadata checks are runtime evidence, not their
+semantic verification. The refinement concerns constant-map type entries only;
+it does not prove the field-count assertion unreachable for malformed inputs.
+Focused executable replay checks fourteen declarations in `Theory.ConstructorHeaders`
+and twenty-four in `Verify.ConstructorHeaders`, assuming their imported dependencies
+are correct.
 
 The reflection regressions accept both supported reflection encodings and reject
 swapped proof converters. They also check selectors that ignore their Boolean
