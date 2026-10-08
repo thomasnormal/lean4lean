@@ -684,6 +684,36 @@ theorem abstractFVarIndex_lt {id : FVarId} (hindex : abstractFVarIndex id ids = 
       · simp only [htail, if_neg hmatch] at hindex
         cases hindex
 
+theorem abstractFVars_looseBVarRange (type : Expr) (ids : List FVarId) (depth : Nat) :
+    (type.abstractFVars ids depth).looseBVarRange' ≤
+      max type.looseBVarRange' (depth + ids.length) := by
+  induction type generalizing depth with
+  | fvar fvar =>
+    cases hindex : abstractFVarIndex fvar ids with
+    | none => simp [abstractFVars, hindex, looseBVarRange']
+    | some index =>
+      have hbound := abstractFVarIndex_lt hindex
+      simp only [abstractFVars, hindex, looseBVarRange']
+      omega
+  | app fn arg ihFn ihArg =>
+    have hfn := ihFn depth
+    have harg := ihArg depth
+    simp only [abstractFVars, looseBVarRange'] at *
+    omega
+  | lam name domain body bi ihDomain ihBody
+  | forallE name domain body bi ihDomain ihBody =>
+    have hdomain := ihDomain depth
+    have hbody := ihBody (depth + 1)
+    simp only [abstractFVars, looseBVarRange'] at *
+    omega
+  | letE name domain value body nondep ihDomain ihValue ihBody =>
+    have hdomain := ihDomain depth
+    have hvalue := ihValue depth
+    have hbody := ihBody (depth + 1)
+    simp only [abstractFVars, looseBVarRange'] at *
+    omega
+  | _ => simp_all [abstractFVars, looseBVarRange'] <;> omega
+
 theorem abstractFVars_nil (body : Expr) (depth : Nat) : body.abstractFVars [] depth = body := by
   induction body generalizing depth <;> simp_all [abstractFVars, abstractFVarIndex]
 

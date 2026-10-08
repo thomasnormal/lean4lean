@@ -261,3 +261,35 @@ acceptance and restored-type comparisons. Fixtures cover zero through four
 parameters, dependent parameter domains, concrete/polymorphic universes,
 `List`, `Option`, and composed nesting, both safety modes, and both check settings.
 Out-of-range auxiliary variables still retain loose-variable metadata.
+
+### Nested parameter rebinding scope bridge (2026-10-08)
+
+`Verify.InductiveNestedRebinding` now derives the auxiliary-range bound for the
+actual `replaceParams`/final-abstraction/opening chain, provided its original
+nested parameter prefix has range zero and its source/target parameter arrays
+come from equal-sized structural parameter contexts. Native abstraction is
+bounded by the maximum of the original range and parameter count. Rebinding
+then leaves range zero and preserves the preprocessing state; final abstraction
+has range at most the parameter count, and `Result.openAux` discharges the actual
+loose-variable flag. This chain no longer assumes scope of its rewritten output.
+
+The general raw abstraction bound also holds under arbitrary binder depths,
+duplicate identifiers, and initially loose source expressions. It introduces no
+new admission or implementation axiom. Eight axiom audits exclude `sorryAx`;
+only the existing logical, abstraction/instantiation, and range-metadata
+interfaces are inherited. No executable checker change is required.
+
+Run `lake env lean tests/InductiveNestedRebinding.lean` for 216 scoped
+rebinding/auxiliary comparisons using actual parameter extraction/preprocessing,
+300 structural/native abstraction comparisons, and two necessary-premise
+boundaries. Fixtures cover zero through 65 parameters, dependent domains,
+different generators, all expression constructors, duplicate identifiers,
+existing loose variables, and four binder depths.
+
+The negative helper fixtures deliberately bypass the nested-app guard: a loose
+source bound variable can become a target free variable during rebinding, while
+a target containing a bound variable can introduce a scope error. These do not
+exhibit newly accepted invalid frontend declarations or a kernel bug. Proving
+the actual nested-app guard's parameter-prefix scope and propagating it through
+the complete traversal/auxiliary map remain next steps; semantic typing,
+positivity, recursors, and full inductive soundness remain separate.

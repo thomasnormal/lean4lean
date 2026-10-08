@@ -444,6 +444,33 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   errors, without weakening its unconditional successful-result arity bound.
   Bound-variable source scope, transformed-body scope, semantic typing, positivity,
   recursors, and full inductive soundness remain separate obligations.
+- `Verify.InductiveNestedScope` proves that successful nested preprocessing
+  retains its actual chronological parameter array with its local-context
+  validity. The executable final auxiliary check now opens that array before
+  checking each expression, resolving the parameterized nested rejection
+  documented in `divergences.md`. The scope/metadata contracts require an explicit
+  auxiliary range bound, not semantic typing or full rewriting correctness.
+- `Verify.InductiveNestedRebinding` derives that range bound for the concrete
+  parameter-rebinding/final-abstraction chain. The raw structural theorem
+  `Expr.abstractFVars_looseBVarRange` bounds abstraction by the maximum of the
+  original range and binder depth plus identifier count, including duplicate
+  identifiers and initially loose expressions; it uses no implementation bridge.
+  `ParamContext.params_eq_fvars` connects actual chronological arrays to the
+  native abstraction specification. `.abstract_range` and `.abstract_scopedRange`
+  establish the native bounds, and `replaceParams.eq_ok` proves the size-matched
+  helper preserves its preprocessing state. `.noLooseBVars` proves rebinding a
+  scoped source between equal-sized parameter contexts remains scoped;
+  `.auxRange` derives the final abstraction bound, and `.finalAux_scope` carries
+  it through the actual `Result.openAux` metadata check. No output-range premise
+  is assumed for this chain. All eight audits exclude `sorryAx`; three use only
+  logical axioms, and the rest use the existing abstraction/instantiation bridge
+  and, for the flag corollary, the range-metadata bridge.
+  This does not yet prove the nested-app guard's parameter-prefix source scope,
+  preservation of that invariant across the complete rewrite traversal/map,
+  auxiliary semantic typing, positivity, recursors, or full inductive soundness.
+  Tests deliberately bypass the nested-app guard to demonstrate why source scope
+  and a free-variable target context are necessary; these helper boundaries are
+  not newly accepted invalid frontend declarations. The checker is unchanged.
 - `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
   preserving existing bound variables and unmatched metavariables and choosing
   the last duplicate identifier at the appropriate binder depth. The existing
@@ -794,6 +821,8 @@ lake env lean tests/InductiveParamValidity.lean
 lake env lean tests/InductiveParamIndices.lean
 lake env lean tests/InductiveParamBinding.lean
 lake env lean tests/InductiveParamScope.lean
+lake env lean tests/InductiveNestedScope.lean
+lake env lean tests/InductiveNestedRebinding.lean
 lake env lean tests/NestedInductiveParams.lean
 lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
@@ -827,6 +856,8 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParams
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParamValidity
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParamBinding
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParamScope
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveNestedScope
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveNestedRebinding
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
