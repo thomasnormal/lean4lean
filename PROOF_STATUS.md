@@ -94,10 +94,26 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   supplies the substitution premise through `checkInductiveTypes.parameterArity`.
   The specification-level substitution proof uses only `propext`; its bridge to
   `Expr.instantiate1` additionally uses the existing `Lean.Expr.instantiate1_eq`
-  interface axiom, without `sorryAx`. These are arity prerequisites, not a proof
-  that `checkConstructors` consumes all parameters: closed source types and
-  parameter occurrence/distinctness still need to be connected to its return-type
-  check before justifying `arity ≥ stats.params.size` or field-count metadata.
+  interface axiom, without `sorryAx`. These arity prerequisites feed the
+  conditional constructor parameter-consumption proof below; deriving parameter
+  distinctness and composing the full constructor batch remain open.
+- `Verify.ConstructorParams` proves that the executable return-application check
+  requires a matching argument at every parameter position. For free-variable
+  parameters, arbitrary `FVarsIn` predicates on the return expression therefore
+  hold on each parameter. `InductiveStats.RemainingParamsAbsent` tracks exclusion
+  of unconsumed parameters; it starts from a source with no free/metavariables
+  and survives consuming a distinct stored parameter. A valid terminal return
+  forces all parameters to have been consumed. `checkConstructors.loop_arity`
+  follows the actual fuel-recursive inner checker and derives the raw arity
+  lower bound from that invariant, free-variable parameters, and an explicit
+  `stats.params.toList.Nodup` premise. Field traversal needs no additional local
+  freshness premise: its branch already has no parameters left to consume.
+  `loop_arity_of_noFVars` specializes this to closed source types, while
+  `checked_loop_arity` supplies closedness from the real no-metavariable/free-variable
+  guard. The latter concerns the guard followed by the inner loop, not the
+  complete nested constructor batch. Parameter distinctness is not yet derived
+  from `checkInductiveTypes`, and neither field-count registration composition
+  nor full positivity/inductive soundness follows from this theorem.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -430,6 +446,7 @@ lake env lean tests/InductiveHeaders.lean
 lake env lean tests/InductiveStats.lean
 lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
+lake env lean tests/ConstructorParams.lean
 lake env lean tests/Primitive.lean
 lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
@@ -448,6 +465,7 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveStats
 lake env .lake/build/bin/lean4lean Lean4Lean.Theory.ConstructorHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorArity
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorParams
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -583,6 +601,24 @@ annotations or reduce let expressions. The existing statistics fixtures now
 check the free-variable invariant, including repeated parameter pushes in
 dependent and universe-polymorphic mutual declarations. Focused replay checks
 22 declarations in `Verify.ConstructorArity`, assuming imports are correct.
+
+`tests/ConstructorParams.lean` contains six proof regressions and twelve axiom
+audits, all excluding `sorryAx`. The core constructor-loop arity proof uses
+standard logical axioms and the existing `Lean.Expr.eqv_eq` and
+`Lean.Expr.instantiate1_eq` interface axioms. The guarded bridge additionally
+uses the existing expression free/metavariable-flag interfaces and
+`Lean.Level.hasMVar_eq`. No new axiom, admitted proof, executable checker path,
+or cache is introduced. Eleven return-application fixtures check missing,
+misordered, repeated, and bound-variable parameters, including index arguments.
+Twenty-four inner-loop outcomes exercise zero/one/two parameters, dependent
+fields, safe/unsafe checking, missing parameters, and fuel exhaustion.
+Two further duplicate-parameter arity checks and one source-free-variable guard
+check show why distinctness and source closedness are required: bypassing those
+premises can make the inner loop accept a signature with too few raw binders.
+These are deliberate helper-boundary fixtures, not evidence of full-declaration
+acceptance; they never invoke constructor registration on malformed metadata.
+Focused executable replay checks 53 declarations in `Verify.ConstructorParams`,
+assuming its imported dependencies are correct.
 
 The reflection regressions accept both supported reflection encodings and reject
 swapped proof converters. They also check selectors that ignore their Boolean
