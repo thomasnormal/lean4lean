@@ -511,6 +511,9 @@ instance [MonadStateOf NameGenerator m] : MonadNameGenerator m where
 
 namespace Result
 
+def openAux (result : Result) (type : Expr) : Expr :=
+  type.instantiateRev result.params
+
 def getNestedIfAuxCtor (r : Result) (env' : Environment) (c : Name) : Option (Expr × Name) := do
   let .ctorInfo { induct, .. } ← env'.find? c | none
   return (← r.aux2nested.find? induct, induct)
@@ -773,4 +776,4 @@ def Environment.addInductive (env : Environment) (lparams : List Name) (nparams 
   recNames'.forM processRec
   TypeChecker.M.run (← get) (safety := safety) (lctx := res.lctx)
       (lparams := lparams) (fuel := fuel) do
-    res.aux2nested.forM fun _ e => do _ ← TypeChecker.checkType e
+    res.aux2nested.forM fun _ e => do _ ← TypeChecker.checkType (res.openAux e)

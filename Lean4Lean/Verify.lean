@@ -14,3 +14,4 @@ import Lean4Lean.Verify.InductiveParamBinding
 import Lean4Lean.Verify.InductiveParamScope
 import Lean4Lean.Verify.InductiveParamReconstruction
 import Lean4Lean.Verify.InductiveSourceChecks
+import Lean4Lean.Verify.InductiveNestedScope
