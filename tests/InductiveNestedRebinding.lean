@@ -192,7 +192,11 @@ run_meta do
   audit ``replaceParams.pushNestedAuxScoped interfaces
   audit ``replaceIfNested.scope [``Expr.looseBVarRange_eq, ``Expr.abstract_eq, ``Expr.instantiate_eq,
     ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def]
+  audit ``replaceIfNested.range [``Expr.looseBVarRange_eq, ``Expr.abstract_eq, ``Expr.instantiate_eq,
+    ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def]
   audit ``replaceAllNested.scope [``Expr.looseBVarRange_eq, ``Expr.abstract_eq, ``Expr.instantiate_eq,
+    ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def]
+  audit ``replaceAllNested.range [``Expr.looseBVarRange_eq, ``Expr.abstract_eq, ``Expr.instantiate_eq,
     ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def]
   audit ``mkAppN_range []
   audit ``mkAppRange_tail_range [``Lean.Expr.mkAppRangeAux.eq_def]
@@ -215,6 +219,6 @@ run_meta do
       for type in cases do
         checkRawAbstraction ids depth type
   checkPremiseBoundaries env
-  logInfo "checked twenty-one proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
+  logInfo "checked twenty-three proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
 
 end InductiveNestedRebindingTest
