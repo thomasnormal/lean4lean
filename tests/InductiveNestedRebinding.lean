@@ -35,6 +35,13 @@ example (env : Kernel.Environment) (hclosure : Lean4Lean.Environment.InductiveDe
     (ctorInfo.type.instantiateLevelParams ctorInfo.levelParams levels).looseBVarRange' = 0 :=
   Lean4Lean.Environment.InductiveDeclRange.constructorType hclosure hget ctorName hctor ctorInfo hctorGet
 
+example (env : Kernel.Environment) (hclosure : Lean4Lean.Environment.InductiveDeclRange env)
+    (name : Name) (info : InductiveVal)
+    (hget : env.get name = .ok (.inductInfo info))
+    (ctorName : Name) (hctor : ctorName ∈ info.ctors) :
+    ∃ ctorInfo, env.get ctorName = .ok (.ctorInfo ctorInfo) :=
+  Lean4Lean.Environment.InductiveDeclRange.constructorInfo hclosure hget ctorName hctor
+
 example (numParams : Nat) (source target : LocalContext) (sourceParams params : Array Expr)
     (type : Expr) (env : Kernel.Environment) (state : State)
     (hsource : ParamContext numParams source sourceParams)
@@ -212,6 +219,12 @@ run_meta do
     ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def]
   audit ``replaceIfNested.range [``Expr.looseBVarRange_eq, ``Expr.abstract_eq, ``Expr.instantiate_eq,
     ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def]
+  audit ``replaceIfNested.rangeWithNewTypes [``Expr.looseBVarRange_eq, ``Expr.abstract_eq,
+    ``Expr.instantiate_eq, ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def,
+    ``Lean.Expr.replace_eq, ``Lean.Level.hasParam_eq, ``Lean.Expr.hasLevelParam_eq,
+    ``Expr.instantiateRevRange_eq, ``Lean.PersistentArray.toList'_push,
+    ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
+    ``Expr.abstractRange_eq]
   audit ``replaceAllNested.scope [``Expr.looseBVarRange_eq, ``Expr.abstract_eq, ``Expr.instantiate_eq,
     ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def]
   audit ``replaceAllNested.range [``Expr.looseBVarRange_eq, ``Expr.abstract_eq, ``Expr.instantiate_eq,
@@ -221,7 +234,8 @@ run_meta do
   audit ``Lean.Expr.instantiateLevelParams_looseBVarRange [``Lean.Expr.replace_eq,
     ``Lean.Level.hasParam_eq, ``Lean.Expr.hasLevelParam_eq]
   for theoremName in [``Lean4Lean.Environment.InductiveDeclRange.inductiveType,
-      ``Lean4Lean.Environment.InductiveDeclRange.constructorType] do
+      ``Lean4Lean.Environment.InductiveDeclRange.constructorType,
+      ``Lean4Lean.Environment.InductiveDeclRange.constructorInfo] do
     audit theoremName [``Lean.Expr.replace_eq, ``Lean.Level.hasParam_eq,
       ``Lean.Expr.hasLevelParam_eq]
   audit ``Expr.instantiateRevRange_looseBVarRange [``Expr.instantiateRevRange_eq,
@@ -254,6 +268,6 @@ run_meta do
       for type in cases do
         checkRawAbstraction ids depth type
   checkPremiseBoundaries env
-  logInfo "checked thirty-one proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
+  logInfo "checked thirty-three proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
 
 end InductiveNestedRebindingTest

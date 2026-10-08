@@ -525,17 +525,22 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   contracts prove bounded reverse substitution after leading-binder stripping;
   `Lean.Expr.instantiateLevelParams_looseBVarRange` proves that universe-level
   substitution preserves expression bound-variable range. The explicit
-  `Lean4Lean.Environment.InductiveDeclRange` predicate requires range-zero
-  inductive and successful constructor declarations, and its two transport lemmas
-  establish the same bound after level substitution. Generated-state preservation
-  remains an explicit premise. `State.NewTypesRange` and
+  `Lean4Lean.Environment.InductiveDeclRange` predicate now also requires every
+  listed constructor to resolve as a constructor declaration; its closure
+  theorem and two range-transport lemmas establish the same bound after level
+  substitution.
+  `replaceIfNested.rangeWithNewTypes` uses that closure together with the bounded
+  forall-parameter contract to discharge each generated auxiliary constructor and
+  `newTypes` range. Generated-state preservation remains an explicit premise for
+  `replaceAllNested.rangeWithNewTypes`. `State.NewTypesRange` and
   `run.loop.newTypesRange` then propagate preexisting and generated ranges through
   constructor `mapM`, bounded re-abstraction, and the executable `set!` update into
-  both the final state and result types. Thirty-one focused audits exclude
+  both the final state and result types. Thirty-three focused audits exclude
   `sorryAx` and use only the existing logical, metadata, application-building,
   abstraction, instantiation, and array interfaces. These are explicit range
   contracts; they do not prove environment declaration closure, auxiliary
-  semantic typing, positivity, recursors, or full inductive soundness.
+  environment declaration translation, auxiliary semantic typing, positivity,
+  recursors, or full inductive soundness.
 - `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
   preserving existing bound variables and unmatched metavariables and choosing
   the last duplicate identifier at the appropriate binder depth. The existing
