@@ -238,9 +238,31 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   through the full checked prefix, preserving the older metadata APIs as
   projections. The arity contracts are audited separately in
   `tests/InductiveArity.lean`; no semantic typing or inductive soundness claim is
-  added. That test and the minimal `tests/InductiveHiddenParameter.lean` document
-  a staged hidden-parameter acceptance mismatch with Lean 4.29.0 in
-  `divergences.md`, not a demonstrated full-checker or kernel soundness bug.
+  added. That test and the minimal `tests/InductiveHiddenParameter.lean` demonstrate
+  why an isolated-prefix comparison must retain the earlier preprocessing guard:
+  full frontend rejection agrees with Lean 4.29.0 on hidden declared parameters.
+  The boundary is resolved and documented in `divergences.md`.
+- `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
+  `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
+  size, free-variable shape, and source raw arity as extracted parameters plus
+  residual raw arity. `withParams.prefix` supplies this contract to arbitrary
+  continuations in any environment/preprocessing state, and `getPrefix` returns
+  it with the extraction result. `paramArity` exposes the necessary raw binder
+  lower bound for any successful extraction, without a typing or WHNF premise.
+  `withParams.reject_of_arity_lt` proves the exact parameter-count diagnostic when
+  too few syntactic binders exist, including hidden parameters behind reductions.
+  The rejection propagates through `ElimNestedInductive.run` and
+  `Environment.addInductive`. `addDecl.inductiveParamArity` proves every successful
+  nonempty inductive call has enough raw parameter binders in its first source
+  datatype; `reject_inductive_of_paramArity` rules out successful full frontend
+  registration otherwise. These contracts quantify over both safety/checking
+  flags, all fuel configurations, and arbitrary environments/states.
+  They do not assert header/constructor semantic typing, complete preprocessing
+  soundness, recursor correctness, or general inductive declaration soundness.
+  The proofs use only standard logical axioms and the existing
+  `Lean.Expr.instantiate1_eq` interface, without new axioms or `sorryAx`.
+  Executable behavior is unchanged: the full frontend already enforces the guard
+  before the isolated numeric checking/registration prefix.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -573,6 +595,7 @@ lake env lean tests/InductiveHeaders.lean
 lake env lean tests/InductiveStats.lean
 lake env lean tests/InductiveArity.lean
 lake env lean tests/InductiveHiddenParameter.lean
+lake env lean tests/InductiveParams.lean
 lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
 lake env lean tests/ConstructorParams.lean
@@ -601,6 +624,7 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorArity.Basic
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorParams
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorMetadata
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveMetadata
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveParams
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -751,18 +775,37 @@ statistics, proof-only empty batches, exact header metadata, and the complete
 registered prefix. All audits exclude `sorryAx`; raw-arity substitution uses only
 the existing `Lean.Expr.instantiate1_eq` bridge beyond standard logical axioms,
 and registration additionally inherits the existing map/guarded-arity interfaces.
-Twenty-four safe/unsafe normalized-prefix outcomes cover explicit telescopes,
+Twenty-six safe/unsafe normalized-prefix outcomes cover explicit telescopes,
 delta aliases, dependent hidden tails, annotations, beta reduction, let reduction,
 and mutual types. Sixteen fixtures agree with the native kernel's accepted
-parameter/index counts; eight prefixes hiding declared parameters succeed while
+parameter/index counts; ten prefixes hiding declared parameters succeed while
 the native kernel rejects the identical declarations with its parameter-count
 diagnostic. Native checking is enabled. The minimal safe-mode reproducer is
-`tests/InductiveHiddenParameter.lean`. These tests do not run elimination/recursor
-construction in lean4lean or claim full `AddInductive.run` acceptance.
+`tests/InductiveHiddenParameter.lean`. Each fixture now additionally runs the full
+lean4lean `addDecl` frontend: it agrees with native acceptance/rejection, and the
+sixteen accepted cases check final header counts and generated recursor presence.
+This is runtime evidence of the complete path, not a recursor soundness theorem.
 Existing statistics and registration fixtures also check the new raw-arity
 lower bounds. No executable checker behavior changes. Focused replay additionally
 checks 114 declarations in `Verify.InductiveStats` and 16 in
 `Verify.InductiveMetadata`, assuming imports are correct.
+
+`tests/InductiveParams.lean` contains ten proof regressions and eight axiom audits
+for arbitrary extraction continuations, returned counts/free-variable arrays,
+raw/residual arity, exact guard rejection, preprocessing, environment registration,
+and the full inductive frontend. The audits exclude `sorryAx` and all interface
+axioms except the existing executable instantiation bridge.
+Thirty-two extraction outcomes cover zero/one/two dependent parameters, too few
+syntactic binders, parameters hidden after an explicit binder, constant/annotation/
+beta/let heads, and default or seeded preprocessing states. Accepted cases check
+local-count growth, exact fresh-variable names/order, and unrelated state fields;
+these state checks are regressions, not extra premises of the numeric proof.
+Sixteen full frontend rejections cover safe/unsafe declarations, both checking
+flags, and ordinary or zero inductive fuel. Hidden parameters fail before later
+checking/recursor stages. Normalized indices remain accepted in the separate full
+frontend fixtures. No executable guards, caches, or special paths are added.
+Focused executable replay checks 38 declarations in `Verify.InductiveParams`,
+assuming its imported dependencies are correct.
 
 `tests/ConstructorParams.lean` contains seven proof regressions and thirteen axiom
 audits, all excluding `sorryAx`. The core constructor-loop arity proof uses

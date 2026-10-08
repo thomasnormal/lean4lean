@@ -20,7 +20,7 @@ This is a list of places where lean4lean deliberately has different behavior fro
 * [`Lean4Lean.addDefinition`](Lean4Lean/Environment.lean) (`unsafe` branch), [`addMutual`](Lean4Lean/Environment.lean): an `unsafe`/`partial` definition may be recursive, so its body is checked in an environment that already contains the declaration. The C++ kernel adds `constant_info(d)` there -- the full definition, value included -- so the body can delta-unfold the very constant being defined. Lean4lean adds it as an axiom of the same type instead: the body may still *refer* to the block's constants, but cannot unfold them. So for example `unsafe def foo : Nat := (fun (_ : foo = 1) => 1) rfl` is accepted by the C++ kernel, but rejected by L4L: checking the argument requires `foo =?= 1`, which succeeds by unfolding `foo` to its own body and reducing. Read literally, that rule makes a typing fact about the constant available while establishing it, and implementing this in `IsDefEq` directly degenerates completely, allowing even things like `unsafe def bar : Nat := "hi"` by using the typing judgment to justify itself. The gap is confined to `unsafe`/`partial` code, which carries no logical content.
 * [`Lean4Lean.addMutual`](Lean4Lean/Environment.lean): lean4lean requires the declarations of a mutual block to carry the same universe parameters and to have distinct names. Both checks are in kernel PRs that are not yet released ([leanprover/lean4#14608](https://github.com/leanprover/lean4/pull/14608), [#14632](https://github.com/leanprover/lean4/pull/14632)); the released kernel checks only that the safety annotations agree. Lean4lean needs them rather than merely matching them: the block is checked under a single `M.run`, whose level parameters are fixed for the whole run, and the model adds the block's constants one at a time with `VEnv.addConsts`, which fails on a repeated name.
 
-## Unresolved staged header-normalization mismatch (2026-10-08)
+## Header parameter-normalization boundary (resolved 2026-10-08)
 
 `AddInductive.checkInductiveTypes` weak-head normalizes a datatype's source type
 before consuming declared parameters. Lean 4.29.0's native kernel requires those
@@ -32,14 +32,31 @@ constructor registration prefix. Native `Environment.addDeclCore`, with checking
 enabled, rejects the same declaration with
 `invalid inductive datatype declaration, incorrect number of parameters`.
 
-Run the minimal reproducer with `lake env lean tests/InductiveHiddenParameter.lean`.
-`tests/InductiveArity.lean` also covers annotation, beta, and let wrappers hiding
-parameters, in safe and unsafe modes. This is **not an intentional divergence**;
-only the staged prefix is compared here. Later elimination/recursor construction
-and full `AddInductive.run` acceptance are not established or executed by these
-regressions, and no kernel soundness bug is claimed.
+This is **not a public frontend divergence or a kernel soundness bug**.
+`Environment.addInductive` first calls `ElimNestedInductive.run`, whose
+`withParams` operation consumes the first datatype's declared parameters without
+normalizing. It already rejects this input with the same parameter-count
+diagnostic, before the more permissive isolated prefix is reached. The staged
+comparison omitted that earlier preprocessing guard; no executable fix is needed.
+
+`Verify.InductiveParams` proves the exact rejection whenever the first source
+datatype's raw leading binder count is below the declared parameter count, and
+propagates it through preprocessing and `Environment.addInductive`.
+`addDecl.inductiveParamArity` proves every successful nonempty inductive frontend
+call satisfies that first-header bound, for either safety or checking flag and
+any fuel configuration. It does not prove semantic inductive soundness.
+
+Run the minimal boundary regression with
+`lake env lean tests/InductiveHiddenParameter.lean`.
+`tests/InductiveArity.lean` compares the isolated prefix, full lean4lean frontend,
+and native kernel on 26 safe/unsafe inputs, including parameters hidden after an
+explicit binder and behind annotation, beta, or let wrappers. The full frontends
+agree: sixteen accept and ten reject; accepted cases check final header counts
+and lean4lean's generated recursor. `tests/InductiveParams.lean` additionally
+checks both frontend checking flags and zero inductive fuel. Recursor semantics
+and unrestricted inductive soundness remain unverified.
 
 Separately, aliases hiding only indices are accepted by both kernels and show
 why checked parameter-plus-index counts need not equal raw syntactic binder
-arity. The verified general contract is a lower bound, not equality. Correcting
-the hidden-parameter acceptance boundary remains separate from that proof.
+arity. The verified general header contract remains a lower bound, not equality;
+the syntactic parameter guard must not reject legitimate normalized indices.
