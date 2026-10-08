@@ -466,8 +466,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   logical axioms, and the rest use the existing abstraction/instantiation bridge
   and, for the flag corollary, the range-metadata bridge.
   The nested-app guard's parameter-prefix source scope is now supplied by
-  `Verify.InductiveNestedGuard`; preservation across the complete rewrite traversal/map,
-  auxiliary semantic typing, positivity, recursors, or full inductive soundness.
+  `Verify.InductiveNestedGuard`; preservation across the complete rewrite traversal/map
+  is supplied by `Verify.InductiveNestedRewrite` at the state-only level. Auxiliary
+  semantic typing, positivity, recursors, and full inductive soundness remain open.
   Tests deliberately bypass the nested-app guard to demonstrate why source scope
   and a free-variable target context are necessary; these helper boundaries are
   not newly accepted invalid frontend declarations. The checker is unchanged.
@@ -490,16 +491,17 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   may also contain loose variables and still classify as `none`; unchanged
   parameter-count/error priority is regression-tested. Fixtures use native-checked
   container declarations but test local classifier/rebinding expressions, not
-  full declaration typing or frontend acceptance. Auxiliary-map/traversal scope,
-  semantic typing, positivity, recursors, and full inductive soundness remain open.
+  full declaration typing or frontend acceptance. Semantic typing, positivity,
+  recursors, and full inductive soundness remain open.
 - `Verify.InductiveNestedRewrite` introduces the `State.NestedAuxScoped` invariant
-  for the auxiliary map. It proves that a scoped result of `replaceParams` can be
-  pushed into `nestedAux` while preserving the invariant, and supplies generic
-  `forIn`/`mapM` state-preservation lemmas for the upcoming rewrite traversal.
-  The classifier's constant-prefix range is also transferred to arbitrary mutual
-  family names. This is a structural state-scope result, not yet a proof of the
-  complete `replaceIfNested` loop, auxiliary typing, positivity, recursors, or
-  full inductive soundness.
+  for the auxiliary map. It proves `replaceIfNested.scope`: a scoped result of
+  `replaceParams` can be pushed into `nestedAux`, and the invariant survives the
+  complete mutual-family `forIn` traversal, constructor `mapM`, and final
+  `newTypes` update. The classifier's constant-prefix range is transferred to
+  arbitrary mutual family names. The exported contract is state-only; auxiliary
+  semantic typing, positivity, recursors, and full inductive soundness remain open.
+  Fifteen focused audits exclude `sorryAx` and use only the existing logical,
+  metadata, application-building, abstraction, and instantiation interfaces.
 - `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
   preserving existing bound variables and unmatched metavariables and choosing
   the last duplicate identifier at the appropriate binder depth. The existing
