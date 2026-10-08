@@ -19,3 +19,27 @@ This is a list of places where lean4lean deliberately has different behavior fro
 * [`Lean4Lean.FuelConfig`](Lean4Lean/FuelConfig.lean): since [leanprover/lean4#13956](https://github.com/leanprover/lean4/pull/13956), the native kernel bounds mutually recursive checking through the `maxRecDepth` option. Lean4lean exposes several independent fuel counters instead, because its Lean definitions also need explicit termination witnesses. Replay comparison therefore uses each implementation's default bound unless an explicit lean4lean fuel configuration is supplied.
 * [`Lean4Lean.addDefinition`](Lean4Lean/Environment.lean) (`unsafe` branch), [`addMutual`](Lean4Lean/Environment.lean): an `unsafe`/`partial` definition may be recursive, so its body is checked in an environment that already contains the declaration. The C++ kernel adds `constant_info(d)` there -- the full definition, value included -- so the body can delta-unfold the very constant being defined. Lean4lean adds it as an axiom of the same type instead: the body may still *refer* to the block's constants, but cannot unfold them. So for example `unsafe def foo : Nat := (fun (_ : foo = 1) => 1) rfl` is accepted by the C++ kernel, but rejected by L4L: checking the argument requires `foo =?= 1`, which succeeds by unfolding `foo` to its own body and reducing. Read literally, that rule makes a typing fact about the constant available while establishing it, and implementing this in `IsDefEq` directly degenerates completely, allowing even things like `unsafe def bar : Nat := "hi"` by using the typing judgment to justify itself. The gap is confined to `unsafe`/`partial` code, which carries no logical content.
 * [`Lean4Lean.addMutual`](Lean4Lean/Environment.lean): lean4lean requires the declarations of a mutual block to carry the same universe parameters and to have distinct names. Both checks are in kernel PRs that are not yet released ([leanprover/lean4#14608](https://github.com/leanprover/lean4/pull/14608), [#14632](https://github.com/leanprover/lean4/pull/14632)); the released kernel checks only that the safety annotations agree. Lean4lean needs them rather than merely matching them: the block is checked under a single `M.run`, whose level parameters are fixed for the whole run, and the model adds the block's constants one at a time with `VEnv.addConsts`, which fails on a repeated name.
+
+## Unresolved staged header-normalization mismatch (2026-10-08)
+
+`AddInductive.checkInductiveTypes` weak-head normalizes a datatype's source type
+before consuming declared parameters. Lean 4.29.0's native kernel requires those
+parameter binders to be explicit in the input expression. With
+`abbrev HiddenParameterAlias := Type → Type`, a datatype whose source type is
+`.const ``HiddenParameterAlias []`, whose declared parameter count is one, and
+whose constructor list is empty succeeds through lean4lean's checked-type/header/
+constructor registration prefix. Native `Environment.addDeclCore`, with checking
+enabled, rejects the same declaration with
+`invalid inductive datatype declaration, incorrect number of parameters`.
+
+Run the minimal reproducer with `lake env lean tests/InductiveHiddenParameter.lean`.
+`tests/InductiveArity.lean` also covers annotation, beta, and let wrappers hiding
+parameters, in safe and unsafe modes. This is **not an intentional divergence**;
+only the staged prefix is compared here. Later elimination/recursor construction
+and full `AddInductive.run` acceptance are not established or executed by these
+regressions, and no kernel soundness bug is claimed.
+
+Separately, aliases hiding only indices are accepted by both kernels and show
+why checked parameter-plus-index counts need not equal raw syntactic binder
+arity. The verified general contract is a lower bound, not equality. Correcting
+the hidden-parameter acceptance boundary remains separate from that proof.

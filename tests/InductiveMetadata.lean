@@ -183,6 +183,8 @@ private def checkHeader (stats : InductiveStats) (ctx : Context) (env : Kernel.E
       actual.isRec == expected.isRec && actual.isReflexive == expected.isReflexive &&
       actual.isUnsafe == expected.isUnsafe do
     throwError "incorrect final header metadata for {type.name}"
+  unless declareConstructors.arity 0 actual.type ≤ actual.numParams + actual.numIndices do
+    throwError "registered header counts are below raw type arity"
 
 private def checkCtor (stats : InductiveStats) (ctx : Context) (env : Kernel.Environment)
     (numParams : Nat) (isUnsafe : Bool) (type : InductiveType) (index : Nat)

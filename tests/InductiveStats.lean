@@ -177,6 +177,9 @@ private def checkStats (ctx : Context) (nparams : Nat) (types : Array InductiveT
       stats.levels == ctx.lparams.map Level.param &&
       stats.indConsts == types.map (fun type => Expr.const type.name stats.levels) do
     throwError "incorrect inductive statistics"
+  for index in [:types.size] do
+    unless declareConstructors.arity 0 types[index]!.type ≤ nparams + stats.nindices[index]! do
+      throwError "checked header counts are below raw source arity"
   let expectedParams := (List.range nparams).map fun index =>
     Expr.fvar ⟨.num ctx.ngen.namePrefix (ctx.ngen.idx + index)⟩
   unless stats.params.toList == expectedParams do
