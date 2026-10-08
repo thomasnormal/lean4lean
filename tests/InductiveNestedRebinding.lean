@@ -57,6 +57,15 @@ example (numParams : Nat) (source lctx : LocalContext) (sourceParams As : Array 
       returned.2.NestedAuxScoped :=
   replaceIfNested.scope numParams source lctx sourceParams As type env state hsource htarget hstate
 
+example (numParams : Nat) (source lctx : LocalContext) (sourceParams As : Array Expr)
+    (type : Expr) (env : Kernel.Environment) (state : State)
+    (hsource : ParamContext numParams lctx As)
+    (htarget : ParamContext numParams source sourceParams)
+    (hstate : state.NestedAuxScoped) :
+    (replaceAllNested lctx sourceParams As type env state).WF fun returned =>
+      returned.2.NestedAuxScoped :=
+  replaceAllNested.scope numParams source lctx sourceParams As type env state hsource htarget hstate
+
 private def parameterType (numParams : Nat) (dependent : Bool) : Expr :=
   if dependent then
     .forallE `A (.sort (.succ (.param `u)))
@@ -183,6 +192,8 @@ run_meta do
   audit ``replaceParams.pushNestedAuxScoped interfaces
   audit ``replaceIfNested.scope [``Expr.looseBVarRange_eq, ``Expr.abstract_eq, ``Expr.instantiate_eq,
     ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def]
+  audit ``replaceAllNested.scope [``Expr.looseBVarRange_eq, ``Expr.abstract_eq, ``Expr.instantiate_eq,
+    ``Expr.instantiateRev_eq, `Lean.Expr.mkAppRangeAux.eq_def]
   let env := (← Lean.getEnv).toKernelEnv
   for generator in [NameGenerator.mk `_nested_fresh 0, { namePrefix := `SourceSeed, idx := 17 }] do
     for numParams in [0, 1, 2, 3, 31, 32, 33, 65] do
@@ -197,6 +208,6 @@ run_meta do
       for type in cases do
         checkRawAbstraction ids depth type
   checkPremiseBoundaries env
-  logInfo "checked fifteen proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
+  logInfo "checked sixteen proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
 
 end InductiveNestedRebindingTest

@@ -497,11 +497,14 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   for the auxiliary map. It proves `replaceIfNested.scope`: a scoped result of
   `replaceParams` can be pushed into `nestedAux`, and the invariant survives the
   complete mutual-family `forIn` traversal, constructor `mapM`, and final
-  `newTypes` update. The classifier's constant-prefix range is transferred to
-  arbitrary mutual family names. The exported contract is state-only; auxiliary
-  semantic typing, positivity, recursors, and full inductive soundness remain open.
-  Fifteen focused audits exclude `sorryAx` and use only the existing logical,
-  metadata, application-building, abstraction, and instantiation interfaces.
+  `newTypes` update. A structural `Expr.replaceM` induction composes that
+  callback contract into `replaceAllNested.scope`, covering every expression
+  constructor and preserving state scope across the full rewrite traversal. The
+  classifier's constant-prefix range is transferred to arbitrary mutual family
+  names. The exported contracts are state-only; auxiliary semantic typing,
+  positivity, recursors, and full inductive soundness remain open. Sixteen
+  focused audits exclude `sorryAx` and use only the existing logical, metadata,
+  application-building, abstraction, and instantiation interfaces.
 - `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
   preserving existing bound variables and unmatched metavariables and choosing
   the last duplicate identifier at the appropriate binder depth. The existing

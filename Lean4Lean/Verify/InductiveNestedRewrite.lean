@@ -65,6 +65,115 @@ private theorem bind_eq (action : M α) (next : α → M β) (env : Environment)
   · simp [h]
   · simp [h]
 
+private theorem replace_step_scope (action : M (Option Expr)) (next : Option Expr → M Expr)
+    (env : Environment) (state : State)
+    (haction : (action env state).WF fun returned => returned.2.NestedAuxScoped)
+    (hnext : ∀ result state', state'.NestedAuxScoped →
+      (next result env state').WF fun returned => returned.2.NestedAuxScoped) :
+    ((action >>= next) env state).WF fun returned => returned.2.NestedAuxScoped := by
+  exact haction.bind fun result hscope => hnext result.1 result.2 hscope
+
+private theorem replaceM_scope (f? : Expr → M (Option Expr))
+    (hstep : ∀ e env state, state.NestedAuxScoped →
+      (f? e env state).WF fun returned => returned.2.NestedAuxScoped)
+    (e : Expr) (env : Environment) (state : State) (hstate : state.NestedAuxScoped) :
+    (e.replaceM f? env state).WF fun returned => returned.2.NestedAuxScoped := by
+  unfold Expr.replaceM
+  induction e generalizing state with
+  | bvar =>
+    unfold Expr.replaceNoCacheT
+    apply replace_step_scope
+    · exact hstep _ _ _ hstate
+    · intro result state' hresult
+      cases result <;> exact .pure hresult
+  | const =>
+    unfold Expr.replaceNoCacheT
+    apply replace_step_scope
+    · exact hstep _ _ _ hstate
+    · intro result state' hresult
+      cases result <;> exact .pure hresult
+  | sort =>
+    unfold Expr.replaceNoCacheT
+    apply replace_step_scope
+    · exact hstep _ _ _ hstate
+    · intro result state' hresult
+      cases result <;> exact .pure hresult
+  | fvar =>
+    unfold Expr.replaceNoCacheT
+    apply replace_step_scope
+    · exact hstep _ _ _ hstate
+    · intro result state' hresult
+      cases result <;> exact .pure hresult
+  | mvar =>
+    unfold Expr.replaceNoCacheT
+    apply replace_step_scope
+    · exact hstep _ _ _ hstate
+    · intro result state' hresult
+      cases result <;> exact .pure hresult
+  | lit =>
+    unfold Expr.replaceNoCacheT
+    apply replace_step_scope
+    · exact hstep _ _ _ hstate
+    · intro result state' hresult
+      cases result <;> exact .pure hresult
+  | mdata data e ih =>
+    unfold Expr.replaceNoCacheT
+    apply replace_step_scope
+    · exact hstep _ _ _ hstate
+    · intro result state' hresult
+      cases result with
+      | some eNew => exact .pure hresult
+      | none => exact (ih state' hresult).bind fun _ hscope => .pure hscope
+  | proj typeName idx e ih =>
+    unfold Expr.replaceNoCacheT
+    apply replace_step_scope
+    · exact hstep _ _ _ hstate
+    · intro result state' hresult
+      cases result with
+      | some eNew => exact .pure hresult
+      | none => exact (ih state' hresult).bind fun _ hscope => .pure hscope
+  | app f a ihf iha =>
+    unfold Expr.replaceNoCacheT
+    apply replace_step_scope
+    · exact hstep _ _ _ hstate
+    · intro result state' hresult
+      cases result with
+      | some eNew => exact .pure hresult
+      | none =>
+        exact (ihf state' hresult).bind fun _ hscope =>
+          (iha _ hscope).bind fun _ hscope => .pure hscope
+  | lam name type body bi iht ihb =>
+    unfold Expr.replaceNoCacheT
+    apply replace_step_scope
+    · exact hstep _ _ _ hstate
+    · intro result state' hresult
+      cases result with
+      | some eNew => exact .pure hresult
+      | none =>
+        exact (iht state' hresult).bind fun _ hscope =>
+          (ihb _ hscope).bind fun _ hscope => .pure hscope
+  | forallE name type body bi iht ihb =>
+    unfold Expr.replaceNoCacheT
+    apply replace_step_scope
+    · exact hstep _ _ _ hstate
+    · intro result state' hresult
+      cases result with
+      | some eNew => exact .pure hresult
+      | none =>
+        exact (iht state' hresult).bind fun _ hscope =>
+          (ihb _ hscope).bind fun _ hscope => .pure hscope
+  | letE name type value body nondep iht ihv ihb =>
+    unfold Expr.replaceNoCacheT
+    apply replace_step_scope
+    · exact hstep _ _ _ hstate
+    · intro result state' hresult
+      cases result with
+      | some eNew => exact .pure hresult
+      | none =>
+        exact (iht state' hresult).bind fun _ hscope =>
+          (ihv _ hscope).bind fun _ hscope =>
+            (ihb _ hscope).bind fun _ hscope => .pure hscope
+
 private theorem forIn_scope (items : List α) (initial : β)
     (step : α → β → M (ForInStep β)) (env : Environment) (state : State)
     (hstate : state.NestedAuxScoped)
@@ -285,5 +394,19 @@ theorem replaceIfNested.scope (numParams : Nat) (source : LocalContext)
         split
         · exact .pure hresult
         · exact .pure hresult
+
+theorem replaceAllNested.scope (numParams : Nat) (source : LocalContext)
+    (lctx : LocalContext) (sourceParams As : Array Expr) (e : Expr)
+    (env : Environment) (state : State)
+    (hsource : ParamContext numParams lctx As)
+    (htarget : ParamContext numParams source sourceParams)
+    (hstate : state.NestedAuxScoped) :
+    (replaceAllNested lctx sourceParams As e env state).WF
+      fun returned => returned.2.NestedAuxScoped := by
+  exact replaceM_scope (fun expression => replaceIfNested lctx sourceParams As expression)
+    (fun expression env state hstate =>
+      replaceIfNested.scope numParams source lctx sourceParams As expression env state
+        hsource htarget hstate)
+    e env state hstate
 
 end Lean4Lean.ElimNestedInductive
