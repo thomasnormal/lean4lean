@@ -507,11 +507,13 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   contract proves every folded auxiliary expression has bound-variable range at
   most the retained parameter count, using the existing scoped abstraction
   contract and the standard `NameMap` insertion equation. The classifier's
-  constant-prefix range is transferred to arbitrary mutual family names. The
+  constant-prefix range is transferred to arbitrary mutual family names.
+  `mkAppN_range` and `mkAppRange_tail_range` provide the structural range
+  bounds needed for generated applications. The
   exported contracts still do not prove constructor-expression range before
-  abstraction, auxiliary semantic typing, positivity, recursors, or full
-  inductive soundness. Nineteen focused audits exclude `sorryAx` and use only
-  the existing logical, metadata, application-building, abstraction,
+  the callback is applied, auxiliary semantic typing, positivity, recursors,
+  or full inductive soundness. Twenty-one focused audits exclude `sorryAx` and
+  use only the existing logical, metadata, application-building, abstraction,
   instantiation, and array interfaces.
 - `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
   preserving existing bound variables and unmatched metavariables and choosing
