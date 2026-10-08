@@ -59,9 +59,10 @@ Lean kernel soundness bug or different public frontend acceptance. For any free
 variable identifier `fvar`, evaluating `(Expr.bvar 0).abstract #[.fvar fvar]` with
 Lean 4.29.0 returns `.bvar 0`. The structural model
 `(Expr.bvar 0).abstractList [fvar]` returns `.bvar 1`: `Expr.abstract1` lifts existing
-loose variables when introducing a binder. The unconditional `Expr.abstract_eq`
-axiom in `Verify.Axioms` equates these expressions, so its full stated scope does
-not match executable abstraction on bodies containing loose variables.
+loose variables when introducing a binder. The former unconditional
+`Expr.abstract_eq` axiom in `Verify.Axioms` equated these expressions, so its full
+stated scope did not match executable abstraction on bodies containing loose
+variables. The corrected specification described below replaces that equation.
 
 A range-zero body alone is insufficient. Duplicate identifiers expose another
 minimal mismatch, without any loose variables in the input:
@@ -97,10 +98,10 @@ they do not exercise public declaration acceptance.
 executable full-array/body and indexed-prefix/domain abstraction, rather than an
 unrestricted iterated `abstract1` model. Its exact-equation audit uses no expression
 interface axioms and the regression includes loose bodies and domains. Its raw
-arity projection still inherits the existing `Expr.abstract_eq` interface, whose
-scope issue remains unresolved. Restricting/replacing that interface and auditing
-its callers, or establishing the appropriate well-scopedness premises, is separate
-work; no new axiom or executable workaround is introduced here.
+arity projection now uses leading-binder preservation of the corrected raw
+abstraction model. It still inherits the existing implementation-interface axiom,
+but no longer equates native abstraction with unrestricted iterated `abstract1`.
+Its arbitrary-body public contract is unchanged.
 
 `Verify.InductiveParamScope` now proves a prerequisite for correctly scoped use:
 parameter extraction from a source with structural `looseBVarRange' = 0` produces
@@ -108,11 +109,10 @@ range-zero local declaration domains and a range-zero remainder. It exposes actu
 indexed getter domains and executable flag projections, and preserves the local
 domain property through the preprocessing context frame. The proofs use no
 expression-abstraction interfaces. This does not establish scope for opaque
-rewritten bodies, source free-variable freshness, or the full caller audit needed
-to restrict `Expr.abstract_eq`. Range zero also allows metavariables and therefore
-is not the stronger existing `Expr.Closed` predicate. Run
+rewritten bodies or source free-variable freshness. Range zero also allows
+metavariables and therefore is not the stronger existing `Expr.Closed` predicate. Run
 `lake env lean tests/InductiveParamScope.lean` for the premise, metadata, and
-ill-scoped/source-capture helper boundaries. The interface issue remains open.
+ill-scoped/source-capture helper boundaries.
 
 The direct whole-expression reconstruction contracts are now scoped:
 `LocalContext.mkBinding_eq` requires a range-zero body, `LocalContext.BindingScope`
@@ -128,14 +128,38 @@ cheap-beta-reduced type's translation and the context's no-bound-variable fact.
 The new regression reproduces both executable-to-structural and
 executable-to-`MLCtx` failures for loose bodies, and indexed-domain/value failures.
 
-This is an API-premise correction and caller audit, **not a replacement or repair
-of the global `Expr.abstract_eq` axiom**. The binding proof still inherits that
-unconditional axiom. Its only other explicit verification consumer is
-`ParamValidity.mkForall_arity` in `Verify.InductiveParamBinding`; that scalar
-leading-binder-count contract is not contradicted by these whole-expression
-counterexamples, including on arbitrary bodies. It retains its existing public
-signature and audited trust dependency. Replacing its use with a
-constructor-preservation property, or correcting the raw abstraction model,
-remains necessary before restricting the global bridge. No new axiom or
-executable checker change is introduced, and no public frontend acceptance or
-kernel soundness discrepancy is demonstrated here.
+### Corrected verification specification (2026-10-08)
+
+`Expr.abstractFVars` is the raw structural model for a free-variable-only array:
+it preserves existing bound variables and unmatched metavariables, searches
+identifiers from the array's end, and adds the traversal depth to the selected
+de Bruijn index. Binder domains and let values retain the current depth; binder
+bodies increase it. This follows `lean_expr_abstract_core` in the pinned
+Lean 4.29.0 `src/kernel/abstract.cpp`, without reproducing native caches or fast
+paths. The existing `Expr.abstract_eq` axiom now relates native abstraction to
+this model, not `abstractList`. No additional axiom is declared; this is a
+correction of an existing trusted implementation specification, not a formal
+proof of the C++ routine or a model for arrays containing metavariable entries.
+
+`abstractFVars_eq_abstractList` proves the sequential model agrees under
+structural range/depth scope and distinct identifiers. `abstract_eq_of_scope`
+specializes that proof to native abstraction and a range-zero body.
+`LocalContext.mkBinding_eq` now actually uses its body/context scope and
+distinctness premises for the body and each declaration's indexed prefix.
+`arity_abstractFVars` proves raw leading-binder preservation with no implementation
+axiom; `arity_abstract` transfers it through the corrected native bridge. Thus
+`ParamValidity.mkForall_arity` keeps its arbitrary-body statement without relying
+on the incorrect whole-expression sequential equation.
+
+Run `lake env lean tests/NativeAbstraction.lean`: fourteen proof regressions and
+fifteen axiom audits accompany 912 raw native/model comparisons, 2736 native arity
+checks, and 396 scoped/distinct sequential comparisons. Empty/single/multiple/wide
+arrays, duplicate IDs in different positions, all expression constructors,
+loose/bound variables, unmatched metavariables with matching free-variable names,
+dependent domains/let values, both nondependent-let flags, and depths 0/1/2/33
+are covered. The historical loose-variable and duplicate counterexamples remain
+regressions against the old sequential specification, not counterexamples to
+the corrected raw model. All new audits exclude `sorryAx`; native comparison
+theorems inherit only the corrected `Expr.abstract_eq` beyond logical axioms.
+No executable checker change, public frontend acceptance mismatch, or kernel
+soundness bug is demonstrated. The native implementation bridge remains trusted.

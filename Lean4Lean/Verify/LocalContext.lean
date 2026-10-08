@@ -41,18 +41,42 @@ where
   | [], b => b
   | x :: xs, b => go xs (mkBindingList1 isLambda lctx xs.reverse x b)
 
-theorem mkBinding_eq (_hbody : b.looseBVarRange' = 0)
-    (_hscope : BindingScope lctx) (_hnodup : xs.Nodup) :
+theorem mkBinding_eq (hbody : b.looseBVarRange' = 0)
+    (hscope : BindingScope lctx) (hnodup : xs.Nodup) :
     mkBinding isLambda lctx ⟨xs.map .fvar⟩ b = mkBindingList isLambda lctx xs b := by
   simp only [mkBinding, List.getElem_toArray, Expr.abstractRange_eq, Expr.hasLooseBVar_eq,
     Expr.abstract_eq, ← Array.take_eq_extract, List.take_toArray, Bool.and_false,
     ← List.map_take, List.getElem_map, Expr.lowerLooseBVars_eq]
   dsimp only [Array.size]
   simp only [List.getElem_eq_getElem?_get, Option.get_eq_getD (fallback := default)]
+  rw [Expr.abstractFVars_eq_abstractList (body := b) (by omega) hnodup, List.length_map]
+  refine Eq.trans (b := xs.length.foldRev (fun index _ body =>
+    mkBindingList1 isLambda lctx (xs.take index) (xs[index]?.getD default) body)
+      (b.abstractList xs)) ?_ ?_
+  · congr 1
+    funext index hindex body
+    cases hlookup : lctx.find? (xs[index]?.getD default) with
+    | none => simp [mkBindingList1, findFVar?, Expr.fvarId!, hlookup]
+    | some decl =>
+      have hdecl := hscope _ decl hlookup
+      have hprefix := (List.take_sublist index xs).nodup hnodup
+      cases decl with
+      | cdecl declIndex id name domain bi kind =>
+        have hdomain : domain.looseBVarRange' = 0 := hdecl.1
+        simp only [mkBindingList1, findFVar?, Expr.fvarId!, hlookup]
+        rw [Expr.abstractFVars_eq_abstractList (body := domain) (depth := 0) (by omega) hprefix]
+        rfl
+      | ldecl declIndex id name domain value nondep kind =>
+        have hdomain : domain.looseBVarRange' = 0 := hdecl.1
+        have hvalue := hdecl.2 value (by cases nondep <;> rfl)
+        simp only [mkBindingList1, findFVar?, Expr.fvarId!, hlookup]
+        rw [Expr.abstractFVars_eq_abstractList (body := domain) (depth := 0) (by omega) hprefix,
+          Expr.abstractFVars_eq_abstractList (body := value) (depth := 0) (by omega) hprefix]
+        rfl
+  clear hbody hscope hnodup
   change Nat.foldRev _ (fun i x =>
     mkBindingList1 isLambda lctx (xs.take i) (xs[i]?.getD default)) .. = mkBindingList.go ..
-  clear _hbody _hscope _hnodup
-  rw [List.length_map]; generalize eq : xs.length = n
+  generalize eq : xs.length = n
   generalize b.abstractList xs = b
   induction n generalizing xs b with
   | zero => let [] := xs; simp [mkBindingList.go]

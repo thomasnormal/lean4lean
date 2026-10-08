@@ -17,14 +17,21 @@ theorem arity_abstract1 (type : Expr) (fvar : FVarId) (index depth : Nat) :
   | forallE name domain body bi ihDomain ihBody => exact ihBody (index + 1) (depth + 1)
   | _ => rfl
 
-private theorem arity_abstractList (type : Expr) (ids : List FVarId) :
-    AddInductive.declareConstructors.arity 0 (type.abstractList ids) =
-      AddInductive.declareConstructors.arity 0 type := by
-  induction ids generalizing type with
-  | nil => rfl
-  | cons fvar ids ih =>
-    change AddInductive.declareConstructors.arity 0 ((type.abstract1 fvar).abstractList ids) = _
-    rw [ih, arity_abstract1]
+theorem arity_abstractFVars (type : Expr) (ids : List FVarId) (index depth : Nat) :
+    AddInductive.declareConstructors.arity index (type.abstractFVars ids depth) =
+      AddInductive.declareConstructors.arity index type := by
+  induction type generalizing index depth with
+  | fvar id =>
+    simp only [Expr.abstractFVars]
+    cases Expr.abstractFVarIndex id ids <;> rfl
+  | forallE name domain body bi ihDomain ihBody => exact ihBody (index + 1) (depth + 1)
+  | _ => rfl
+
+theorem arity_abstract (type : Expr) (ids : List FVarId) (index : Nat) :
+    AddInductive.declareConstructors.arity index (type.abstract (ids.map Expr.fvar).toArray) =
+      AddInductive.declareConstructors.arity index type := by
+  rw [Expr.abstract_eq]
+  exact arity_abstractFVars type ids index 0
 
 theorem paramForall.arity (decls : List LocalDecl) (params : Array Expr) (body : Expr) :
     AddInductive.declareConstructors.arity 0 (paramForall decls params body) =
@@ -84,7 +91,7 @@ theorem ParamValidity.mkForall_arity {numParams : Nat} {lctx : LocalContext} {pa
     rw [List.map_map]
     change params = (lctx.toList.reverse.map LocalDecl.toExpr).toArray
     rw [hvars, Array.toArray_toList]
-  rw [hparams, Expr.abstract_eq, arity_abstractList]
+  rw [hparams, arity_abstract]
 
 theorem ParamValidity.mkForall_arity_ge {numParams : Nat} {lctx : LocalContext}
     {params : Array Expr} (hvalid : ParamValidity numParams lctx params) (body : Expr) :

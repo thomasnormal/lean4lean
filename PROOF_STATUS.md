@@ -351,9 +351,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   successful transformed-body action, including the actual constructor callback.
   These are syntactic contracts, not binder typing, nested rewriting correctness,
   original-expression reconstruction, or unrestricted inductive soundness.
-  The new loose-variable regression exposes an existing abstraction-interface
-  scope mismatch documented in `divergences.md`; the exact fold deliberately
-  avoids that interface, while its arity projection retains the audited assumption.
+  The loose-variable regression exposed an abstraction-interface scope mismatch
+  documented in `divergences.md`; the exact fold avoids that interface, while
+  its arity projection now uses leading-binder preservation of the corrected raw
+  abstraction specification through the existing audited implementation bridge.
 - `Verify.InductiveParamScope` verifies the no-loose-bound-variable extraction
   invariant. Given a source with structural `looseBVarRange' = 0`, every extracted
   parameter domain and the remaining expression also have range zero.
@@ -372,7 +373,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   getter/validity projections also use existing map bridges, and flag projections
   use `Expr.looseBVarRange_eq`. Range zero permits metavariables and arbitrary free
   variables: it is not semantic typing, `Expr.Closed`, or source-ID freshness.
-  The unconditional abstraction-interface mismatch remains unresolved.
+  The former unconditional sequential-abstraction specification is now corrected
+  using the raw model and scope/distinctness proof described below.
 - The direct binding reconstruction interfaces now expose their missing scope
   premises. `LocalContext.BindingScope` records range-zero declaration types and
   let values, including nondependent lets; `LocalContext.mkBinding_eq` requires
@@ -381,16 +383,29 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   lookup. The partial/full `MLCtx.WF.mkForall` and full `mkLambda` reconstruction
   equalities require body scope and derive distinctness from context validity.
   Both actual `InferType` callers discharge scope using their cheap-beta-reduced
-  type translations. New runtime counterexamples show duplicate identifiers also
-  invalidate the unconditional abstraction bridge on a range-zero body; scope
-  alone cannot repair that interface. The existing binding proof still inherits
-  `Expr.abstract_eq`, so this does not eliminate the global trusted-interface
-  mismatch. Its remaining explicit scalar-arity consumer retains its valid
-  arbitrary-body contract; replacing that dependency is separate work.
+  type translations. Runtime counterexamples show duplicate identifiers also
+  invalidate the former sequential abstraction bridge on a range-zero body.
+  The binding proof now uses its scope/distinctness premises to pass from the
+  corrected raw model to the sequential fold, including each declaration's
+  indexed domain/value prefix. It still inherits `Expr.abstract_eq` as a trusted
+  implementation bridge. The scalar-arity consumer instead uses raw constructor
+  preservation and retains its arbitrary-body public contract.
   Typed scope/reconstruction audits inherit the existing translation stack's
   `sorryAx`; no new admission, axiom, dependency, or executable checker change is
   introduced. The raw scoped binding equality and empty-context scope audits
   exclude `sorryAx`.
+- `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
+  preserving existing bound variables and unmatched metavariables and choosing
+  the last duplicate identifier at the appropriate binder depth. The existing
+  `Expr.abstract_eq` axiom now targets this raw model rather than the incorrect
+  unrestricted sequential `abstractList` equation; no axiom is added.
+  `abstractFVars_eq_abstractList` proves their agreement under structural scope
+  and identifier distinctness, and `abstract_eq_of_scope` transfers it to native
+  abstraction. `arity_abstractFVars` proves raw leading-binder-count preservation
+  for arbitrary bodies, identifiers, starting counts, and depths, using no
+  implementation interface. `arity_abstract` transfers that property through
+  the corrected bridge. This fixes the demonstrated verification specification,
+  not the executable checker; the native C++ implementation remains trusted.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -1021,8 +1036,8 @@ axiom audits for the chronological binding fold, exact arity, arbitrary successf
 body transformations, extraction, and both preprocessing projections. Empty/single
 parameters, annotation-hidden binders, and the exact constructor callback including
 its count assertion are covered. The exact fold's audit excludes every expression
-interface; arity adds only `Expr.abstract_eq`, and source-arity restoration also
-adds `Expr.instantiate1_eq`. All audits exclude `sorryAx`.
+interface; arity adds only the corrected raw-model `Expr.abstract_eq`, and
+source-arity restoration also adds `Expr.instantiate1_eq`. All audits exclude `sorryAx`.
 Forty-eight closed-source round trips cover two initial states, 0/1/2/3/31/32/33/65
 dependent parameters, and zero/one/two residual binders. They also check 576 body
 replacements spanning all expression constructors, including loose variables,
@@ -1034,7 +1049,7 @@ permit let-bound parameters. A minimal loose-variable abstraction observation
 reproduces the existing trusted-interface scope mismatch in `divergences.md`.
 No checker change, dependency, new axiom, or admitted proof is introduced.
 
-Focused executable replay checks 37 declarations in `Verify.InductiveParamBinding`,
+Focused executable replay checks 41 declarations in `Verify.InductiveParamBinding`,
 assuming imported dependencies and the explicitly audited interfaces are correct.
 
 `tests/InductiveParamScope.lean` contains eighteen proof regressions and thirteen
@@ -1076,11 +1091,27 @@ Ten negative runtime fixtures isolate four loose-body failures, two loose-domain
 failures, two loose-let-value failures, and two duplicate-ID failures. The latter
 also check the minimal native `.bvar 0` versus sequential `.bvar 1` observation
 with a range-zero free-variable body. Run `lake env lean tests/BindingScope.lean`.
-The global abstraction-interface issue remains unresolved; see `divergences.md`.
+The former sequential-abstraction interface is corrected by the raw specification
+and scoped/distinct proof; the native implementation bridge remains trusted.
+See `divergences.md`.
 
-Focused executable replays check 133 declarations in `Verify.LocalContext`,
+`tests/NativeAbstraction.lean` contains fourteen proof regressions and fifteen
+axiom audits for selected-index bounds, empty/cons raw abstraction, scoped/distinct
+sequential agreement, and raw/native arity preservation. Ten audits use only
+logical axioms; five additionally use the corrected existing `Expr.abstract_eq`.
+All exclude `sorryAx`. Nine hundred twelve raw native/model fixtures cover twelve
+empty/single/multiple/wide ID arrays, including duplicates in different positions,
+nineteen expression forms, and 0/1/2/33 surrounding binders. They include existing
+loose/bound variables, unmatched metavariables sharing a free-variable name,
+dependent domains/let values, both nondependent-let flags, and all constructors.
+Every case also checks native leading-binder preservation at starting counts
+0/1/7 (2736 checks); 396 scope/distinctness cases additionally compare the
+sequential model. Run `lake env lean tests/NativeAbstraction.lean`.
+
+Focused executable replays check 168 declarations in `Verify.Axioms`,
+817 in `Verify.Expr`, 144 in `Verify.LocalContext`,
 440 in `Verify.TypeChecker.Basic`, 210 in `Verify.TypeChecker.InferType`,
-37 in `Verify.InductiveParamBinding`, and 17 in `Verify.InductiveParamScope`,
+41 in `Verify.InductiveParamBinding`, and 17 in `Verify.InductiveParamScope`,
 assuming imported dependencies and the explicitly audited interfaces are correct.
 
 `tests/ConstructorParams.lean` contains seven proof regressions and thirteen axiom

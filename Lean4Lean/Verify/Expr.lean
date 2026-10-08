@@ -664,6 +664,78 @@ theorem abstract1_abstractList' {e : Expr} {as : List FVarId} {k} (H : (a :: as)
     simp at *; simp [H] at ih
     rw [← ih H.2.1, ← Nat.add_assoc, ← abstract1_comm (.symm H.1.1), ih H.1.2, ih H.2.1]
 
+theorem abstractFVarIndex_lt {id : FVarId} (hindex : abstractFVarIndex id ids = some index) :
+    index < ids.length := by
+  induction ids with
+  | nil => cases hindex
+  | cons head tail ih =>
+    simp only [abstractFVarIndex] at hindex
+    cases htail : abstractFVarIndex id tail with
+    | some found =>
+      rw [htail] at hindex
+      cases hindex
+      exact Nat.lt_trans (ih htail) (Nat.lt_succ_self _)
+    | none =>
+      by_cases hmatch : (head == id) = true
+      · simp only [htail, if_pos hmatch] at hindex
+        have heq := Option.some.inj hindex
+        simp only [List.length_cons]
+        omega
+      · simp only [htail, if_neg hmatch] at hindex
+        cases hindex
+
+theorem abstractFVars_nil (body : Expr) (depth : Nat) : body.abstractFVars [] depth = body := by
+  induction body generalizing depth <;> simp_all [abstractFVars, abstractFVarIndex]
+
+theorem abstractFVars_cons {expr : Expr} (hscope : expr.looseBVarRange' ≤ depth) :
+    expr.abstractFVars (head :: tail) depth =
+      abstract1 head (expr.abstractFVars tail depth) (depth + tail.length) := by
+  induction expr generalizing depth with
+  | bvar index =>
+    simp only [looseBVarRange'] at hscope
+    simp [abstractFVars, abstract1, show index < depth + tail.length by omega]
+  | fvar id =>
+    cases hindex : abstractFVarIndex id tail with
+    | none =>
+      by_cases hmatch : (head == id) = true <;>
+        simp [abstractFVars, abstractFVarIndex, hindex, abstract1, hmatch]
+    | some index =>
+      have hbound := abstractFVarIndex_lt hindex
+      simp [abstractFVars, abstractFVarIndex, hindex, abstract1,
+        show depth + index < depth + tail.length by omega]
+  | app fn arg ihFn ihArg =>
+    simp only [looseBVarRange', Nat.max_le] at hscope
+    simp [abstractFVars, abstract1, ihFn hscope.1, ihArg hscope.2]
+  | lam name domain body bi ihDomain ihBody
+  | forallE name domain body bi ihDomain ihBody =>
+    simp only [looseBVarRange', Nat.max_le] at hscope
+    have hbody : body.looseBVarRange' ≤ depth + 1 := by omega
+    simp [abstractFVars, abstract1, ihDomain hscope.1, ihBody hbody,
+      Nat.add_right_comm]
+  | letE name domain value body nondep ihDomain ihValue ihBody =>
+    simp only [looseBVarRange', Nat.max_le] at hscope
+    have hbody : body.looseBVarRange' ≤ depth + 1 := by omega
+    simp [abstractFVars, abstract1, ihDomain hscope.1.1, ihValue hscope.1.2,
+      ihBody hbody, Nat.add_right_comm]
+  | mdata data body ih | proj name index body ih =>
+    exact congrArg _ (ih hscope)
+  | sort | const | mvar | lit => rfl
+
+theorem abstractFVars_eq_abstractList {body : Expr} {ids : List FVarId}
+    (hscope : body.looseBVarRange' ≤ depth) (hnodup : ids.Nodup) :
+    body.abstractFVars ids depth = body.abstractList ids depth := by
+  induction ids with
+  | nil => exact abstractFVars_nil body depth
+  | cons head tail ih =>
+    rw [abstractFVars_cons hscope, ih hnodup.tail]
+    exact abstract1_abstractList' hnodup
+
+theorem abstract_eq_of_scope {body : Expr} {ids : List FVarId}
+    (hscope : body.looseBVarRange' = 0) (hnodup : ids.Nodup) :
+    body.abstract ⟨ids.map .fvar⟩ = body.abstractList ids := by
+  rw [abstract_eq]
+  exact abstractFVars_eq_abstractList (by omega) hnodup
+
 theorem abstract1_hasLooseBVar (a e k i) :
     (abstract1 a e k).hasLooseBVar' (if i < k then i else i+1) = e.hasLooseBVar' i := by
   have (i) k : (if i < k then i else i + 1) + 1 = if i + 1 < k + 1 then i + 1 else i + 1 + 1 := by

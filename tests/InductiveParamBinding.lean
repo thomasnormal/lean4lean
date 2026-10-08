@@ -76,7 +76,7 @@ example (lctx : LocalContext) (params : Array Expr)
   rw [hvalid.mkForall_eq, hnil]
   have hparams : params = #[] := Array.eq_empty_of_size_eq_zero hvalid.context.size
   simp only [List.reverse_nil, paramForall, List.foldr_nil, hparams]
-  exact Expr.abstract_eq body []
+  exact (Expr.abstract_eq body []).trans (Expr.abstractFVars_nil body 0)
 
 example (ngen : NameGenerator) (name : Name) (domain body : Expr) (bi : BinderInfo) :
     (({} : LocalContext).mkLocalDecl ⟨ngen.curr⟩ name domain bi).mkForall

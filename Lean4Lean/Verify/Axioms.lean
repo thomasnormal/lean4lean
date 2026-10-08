@@ -394,9 +394,37 @@ def abstract1 (v : FVarId) : Expr → (k :_:= 0) → Expr
   | e, [], _ => e
   | e, a :: as, k => abstractList (abstract1 a e k) as k
 
+def abstractFVarIndex (fvar : FVarId) : List FVarId → Option Nat
+  | [] => none
+  | head :: tail =>
+    match abstractFVarIndex fvar tail with
+    | some index => some index
+    | none => if head == fvar then some tail.length else none
+
+def abstractFVars : Expr → List FVarId → (depth : Nat := 0) → Expr
+  | expr@(.fvar id), ids, depth =>
+    match abstractFVarIndex id ids with
+    | some index => .bvar (depth + index)
+    | none => expr
+  | .mdata data body, ids, depth => .mdata data (abstractFVars body ids depth)
+  | .proj name index body, ids, depth => .proj name index (abstractFVars body ids depth)
+  | .app fn arg, ids, depth => .app (abstractFVars fn ids depth) (abstractFVars arg ids depth)
+  | .lam name domain body bi, ids, depth =>
+    .lam name (abstractFVars domain ids depth) (abstractFVars body ids (depth + 1)) bi
+  | .forallE name domain body bi, ids, depth =>
+    .forallE name (abstractFVars domain ids depth) (abstractFVars body ids (depth + 1)) bi
+  | .letE name domain value body nondep, ids, depth =>
+    .letE name (abstractFVars domain ids depth) (abstractFVars value ids depth)
+      (abstractFVars body ids (depth + 1)) nondep
+  | expr@(.bvar _), _, _
+  | expr@(.const ..), _, _
+  | expr@(.sort _), _, _
+  | expr@(.mvar _), _, _
+  | expr@(.lit _), _, _ => expr
+
 /-- This could be an `@[implemented_by]` -/
 @[simp] axiom abstract_eq (e : Expr) (xs : List FVarId) :
-    e.abstract ⟨xs.map .fvar⟩ = e.abstractList xs
+    e.abstract ⟨xs.map .fvar⟩ = e.abstractFVars xs
 
 /-- This could be an `@[implemented_by]` -/
 @[simp] axiom abstractRange_eq (e : Expr) (n : Nat) (xs : Array Expr) :
