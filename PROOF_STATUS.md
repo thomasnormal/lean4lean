@@ -80,6 +80,24 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   parameter-count assertions, positivity, projection/injectivity behavior,
   recursor generation, or inductive reduction equations. It does not extend the
   full `TrEnv` relation or discharge `AddInduct`.
+- `AddInductive.checkInductiveTypes.frameHeaderSizesParamsFVars` additionally
+  proves that every checked parameter is syntactically a free variable, while
+  retaining the size and frame invariants and their existing APIs. `paramsFVars`
+  supplies that invariant to arbitrary continuations, and `getParamsFVars`
+  specializes it to returned statistics. No starting-environment or
+  type-checker soundness premise is needed. The invariant does not establish
+  parameter typing, freshness, or distinctness.
+- `Verify.ConstructorArity` proves offset additivity for the actual executable
+  constructor binder counter and that substituting a free variable preserves
+  its raw leading-forall spine. Consuming one forall binder therefore preserves
+  the total when the counter advances by one. The checked parameter invariant
+  supplies the substitution premise through `checkInductiveTypes.parameterArity`.
+  The specification-level substitution proof uses only `propext`; its bridge to
+  `Expr.instantiate1` additionally uses the existing `Lean.Expr.instantiate1_eq`
+  interface axiom, without `sorryAx`. These are arity prerequisites, not a proof
+  that `checkConstructors` consumes all parameters: closed source types and
+  parameter occurrence/distinctness still need to be connected to its return-type
+  check before justifying `arity ≥ stats.params.size` or field-count metadata.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -411,6 +429,7 @@ lake env lean tests/PrimitiveInductive.lean
 lake env lean tests/InductiveHeaders.lean
 lake env lean tests/InductiveStats.lean
 lake env lean tests/ConstructorHeaders.lean
+lake env lean tests/ConstructorArity.lean
 lake env lean tests/Primitive.lean
 lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
@@ -428,6 +447,7 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.InductiveStats
 lake env .lake/build/bin/lean4lean Lean4Lean.Theory.ConstructorHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorHeaders
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorArity
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -524,7 +544,7 @@ name-generator prefix, enabled primitive authorization, universe parameters,
 and nondefault values for every fuel field. The environment frame theorem proves
 full environment equality; the runtime lookup checks are regressions, not its
 proof.
-Focused executable replay checks 46 declarations in `Verify.InductiveStats`,
+Focused executable replay checks 53 declarations in `Verify.InductiveStats`,
 assuming its imported dependencies are correct.
 
 `tests/ConstructorHeaders.lean` contains fourteen proof regressions and eight
@@ -549,6 +569,20 @@ it does not prove the field-count assertion unreachable for malformed inputs.
 Focused executable replay checks fourteen declarations in `Theory.ConstructorHeaders`
 and twenty-four in `Verify.ConstructorHeaders`, assuming their imported dependencies
 are correct.
+
+`tests/ConstructorArity.lean` contains four proof regressions and twelve axiom
+audits, all excluding `sorryAx`. The checked-parameter invariants use only the
+standard logical axioms. The specification-level arity substitution proof uses
+only `propext`; executable instantiation additionally relies on the existing
+`Lean.Expr.instantiate1_eq` interface axiom. There are no new axioms or admitted
+proofs. The 192 expression/offset/depth fixtures cover every expression form,
+bound-variable substitution boundaries, dependent telescopes, and accumulated
+binder counts. Two further boundary checks demonstrate why the theorem needs
+free-variable substitutions and why raw metadata counting does not strip
+annotations or reduce let expressions. The existing statistics fixtures now
+check the free-variable invariant, including repeated parameter pushes in
+dependent and universe-polymorphic mutual declarations. Focused replay checks
+22 declarations in `Verify.ConstructorArity`, assuming imports are correct.
 
 The reflection regressions accept both supported reflection encodings and reject
 swapped proof converters. They also check selectors that ignore their Boolean

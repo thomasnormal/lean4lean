@@ -113,6 +113,7 @@ private def checkStats (ctx : Context) (nparams : Nat) (types : Array InductiveT
     | throwError "rejected statistics fixture with {types.size} types and {nparams} parameters"
   unless stats.nindices == indices && stats.nindices.size == types.size &&
       stats.indConsts.size == types.size && stats.params.size == nparams &&
+      stats.params.all Expr.isFVar &&
       stats.levels == ctx.lparams.map Level.param &&
       stats.indConsts == types.map (fun type => Expr.const type.name stats.levels) do
     throwError "incorrect inductive statistics"
@@ -148,6 +149,7 @@ run_meta
     checkStats ctx 1 #[datatype `First parameterType, datatype `Second parameterType] #[0, 0]
     checkStats ctx 0 #[datatype `First (indexedType 1), datatype `Second (indexedType 2)] #[1, 2]
     checkStats ctx 1 #[datatype `First dependentType, datatype `Second dependentType] #[1, 1]
+    checkStats ctx 2 #[datatype `First dependentType, datatype `Second dependentType] #[0, 0]
   let polyCtx := { ctx with lparams := [`u] }
   checkStats polyCtx 0 #[] #[]
   checkStats polyCtx 0 #[datatype `Poly (.sort (.param `u))] #[0]
@@ -162,6 +164,8 @@ run_meta
     (.forallE `value (.bvar 0) (.sort (.param `u)) .default) .default
   checkStats seededCtx 1 #[datatype `FramedFirst polyDependent,
     datatype `FramedSecond polyDependent] #[1, 1]
+  checkStats seededCtx 2 #[datatype `FramedFirst polyDependent,
+    datatype `FramedSecond polyDependent] #[0, 0]
   rejectStats ctx 1 #[datatype `MissingParameter]
   rejectStats ctx 1 #[datatype `First parameterType,
     datatype `Second (parameterType (.sort .zero))]
