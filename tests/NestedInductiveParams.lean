@@ -91,10 +91,11 @@ private def checkResultContext (env : Kernel.Environment) (state : State)
   unless actual.length == params.size && expected.length == params.size &&
       actual.map fields == expected.map fields do
     throwError "preprocessing changed the original extracted parameter declarations"
-  for decl in actual do
+  for (decl, index) in actual.zipIdx do
     let some found := result.lctx.find? decl.fvarId
       | throwError "result parameter declaration missing from concrete lookup"
-    unless fields found == fields decl do
+    unless fields found == fields decl && decl.index == index &&
+        decl.toExpr == params[index]! && (result.lctx.getFVar! params[index]!).index == index do
       throwError "result parameter lookup disagrees with its declaration"
 
 private def checkPreprocessing (env : Kernel.Environment) (state : State)
