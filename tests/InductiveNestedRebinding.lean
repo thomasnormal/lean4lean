@@ -201,6 +201,7 @@ run_meta do
   audit ``mkAppN_range []
   audit ``mkAppRange_tail_range [``Lean.Expr.mkAppRangeAux.eq_def]
   audit ``withParams.contextScope [``Lean.PersistentArray.toList'_push]
+  audit ``withParams.contextRange [``Lean.PersistentArray.toList'_push, ``Expr.instantiate1_eq]
   for theoremName in [``run.loop.nestedAuxScoped, ``run.nestedAuxScoped] do
     audit theoremName [``Lean.PersistentArray.toList'_push, ``Expr.looseBVarRange_eq,
       ``Expr.abstract_eq, ``Expr.instantiate_eq, ``Expr.instantiateRev_eq,
@@ -219,6 +220,6 @@ run_meta do
       for type in cases do
         checkRawAbstraction ids depth type
   checkPremiseBoundaries env
-  logInfo "checked twenty-three proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
+  logInfo "checked twenty-four proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
 
 end InductiveNestedRebindingTest

@@ -761,6 +761,51 @@ theorem withParams.contextScope (type : Expr) (numParams : Nat)
     ParamContext.empty hstate (fun lctx remainder params state' hcontext' hstate' =>
       hnext lctx remainder params state' (by simpa using hcontext') hstate')
 
+private theorem withParams_loop_context_range (remaining : Nat) (type : Expr)
+    (lctx : LocalContext) (params : Array Expr)
+    (next : LocalContext → Expr → Array Expr → M α)
+    (env : Environment) (state : State) (post : α × State → Prop)
+    (hcontext : ParamContext params.size lctx params)
+    (htype : type.looseBVarRange' = 0) (hstate : state.NestedAuxScoped)
+    (hnext : ∀ lctx' remainder params' state',
+      ParamContext (params.size + remaining) lctx' params' →
+      state'.NestedAuxScoped → remainder.looseBVarRange' = 0 →
+      (next lctx' remainder params' env state').WF post) :
+    (withParams.loop next lctx type params remaining env state).WF post := by
+  induction remaining generalizing type lctx params state with
+  | zero => exact hnext lctx type params state (by simpa using hcontext) hstate htype
+  | succ remaining ih =>
+    cases type with
+    | forallE name domain body bi =>
+      have hparts : domain.looseBVarRange' = 0 ∧ body.looseBVarRange' ≤ 1 := by
+        change max domain.looseBVarRange' (body.looseBVarRange' - 1) = 0 at htype
+        omega
+      change (withParams.loop next
+        (lctx.mkLocalDecl ⟨state.ngen.curr⟩ name domain bi)
+        (body.instantiate1 (.fvar ⟨state.ngen.curr⟩))
+        (params.push (.fvar ⟨state.ngen.curr⟩)) remaining env
+        { state with ngen := state.ngen.next }).WF post
+      exact ih _ _ _ _ (by simpa using hcontext.push ⟨state.ngen.curr⟩ name domain bi)
+        (instantiate1_fvar_noLooseBVars body _ hparts.2)
+        (by simpa [State.NestedAuxScoped] using hstate)
+        (fun lctx' remainder params' state' hcontext' hstate' htype' =>
+          hnext lctx' remainder params' state'
+            (by simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hcontext')
+            hstate' htype')
+    | _ => exact Except.WF.throw
+
+theorem withParams.contextRange (type : Expr) (numParams : Nat)
+    (next : LocalContext → Expr → Array Expr → M α)
+    (env : Environment) (state : State) (htype : type.looseBVarRange' = 0)
+    (hstate : state.NestedAuxScoped) (post : α × State → Prop)
+    (hnext : ∀ lctx remainder params state', ParamContext numParams lctx params →
+      state'.NestedAuxScoped → remainder.looseBVarRange' = 0 →
+      (next lctx remainder params env state').WF post) :
+    (withParams type numParams next env state).WF post := by
+  exact withParams_loop_context_range numParams type {} #[] next env state post
+    ParamContext.empty htype hstate (fun lctx remainder params state' hcontext' hstate' htype' =>
+      hnext lctx remainder params state' (by simpa using hcontext') hstate' htype')
+
 private theorem bindWF_nestedAuxScoped (action : M α) (next : α → M β)
     (env : Environment) (state : State) (post : β × State → Prop)
     (hnext : ∀ value state', (next value env state').WF post) :
