@@ -76,7 +76,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   follows both executable registration folds and preserves `Aligned`, given
   translated constructor types and an admitting safety filter. The `ordered`
   corollary additionally assumes abstract constructor-type well-formedness.
-  This stage does not justify constructor arities, parent/index metadata,
+  This standalone structural refinement does not justify constructor arities,
+  parent/index metadata,
   parameter-count assertions, positivity, projection/injectivity behavior,
   recursor generation, or inductive reduction equations. It does not extend the
   full `TrEnv` relation or discharge `AddInduct`.
@@ -139,9 +140,33 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   The standalone batch theorem also applies after replacing the context's
   environment with registered datatype headers. These are arity contracts,
   not semantic constructor-typing or positivity proofs. Datatype-header
-  registration is not part of the checked-type/batch composition; connecting
-  the lower bound through constructor registration and its numeric field-count
-  metadata remains open, as do recursors and full inductive soundness.
+  registration is not part of the checked-type/batch composition. The numeric
+  constructor-registration composition is proved separately below; recursors
+  and full inductive soundness remain open.
+- `Verify.ConstructorMetadata` specifies the exact concrete constructor records
+  installed by registration. `declareConstructors.metadataVal` contains the
+  source name/type, universe parameters, parent, per-parent constructor index,
+  safety flag, actual parameter-array size, and raw arity minus that size.
+  `InductiveStats.ConstructorMetadata` additionally requires each installed
+  record's parameter and field counts to sum to the raw executable arity.
+  `declareConstructors.metadata` follows both registration folds, proves every
+  indexed lookup, preserves all old constant entries, and preserves concrete
+  constant-map validity. It assumes that validity initially and the raw arity
+  lower bound for every source constructor. Fresh-name guards prevent later
+  registrations from overwriting earlier records; constructor indices restart
+  at zero for each parent.
+  `checkConstructors.declareMetadata` supplies the arity guard from successful
+  full batch checking. `checkInductiveTypes.checkedConstructorMetadata`
+  additionally supplies free-variable and distinct-parameter invariants and
+  carries the unchanged context frame into checking/registration. Its only
+  initial invariant premise is concrete constant-map validity, not semantic
+  environment well-formedness. These numeric contracts refer to the actual
+  `stats.params.size`; they do not prove it equals the original declared
+  parameter count in every exceptional empty-header case. The checked-type
+  composition does not register datatype headers. Semantic constructor typing,
+  positivity, recursors, full `TrEnv` extension, and inductive soundness remain
+  separate. All three theorem audits exclude `sorryAx`, with no new axioms,
+  admitted proofs, executable checker paths, or caches.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -476,6 +501,7 @@ lake env lean tests/ConstructorHeaders.lean
 lake env lean tests/ConstructorArity.lean
 lake env lean tests/ConstructorParams.lean
 lake env lean tests/ConstructorBatchArity.lean
+lake env lean tests/ConstructorMetadata.lean
 lake env lean tests/Primitive.lean
 lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
@@ -495,6 +521,7 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Theory.ConstructorHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorHeaders
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorArity
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorParams
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.ConstructorMetadata
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -616,7 +643,8 @@ within-parent and cross-parent duplicates, and safe nonpositive occurrences;
 the corresponding unsafe declaration is accepted as intended. These preceding
 constructor-checking and numeric-metadata checks are runtime evidence, not their
 semantic verification. The refinement concerns constant-map type entries only;
-it does not prove the field-count assertion unreachable for malformed inputs.
+the separate numeric registration theorem below supplies the arity assertion's
+precondition from checked parameter arrays and successful full batch checking.
 Focused executable replay checks fourteen declarations in `Theory.ConstructorHeaders`
 and twenty-four in `Verify.ConstructorHeaders`, assuming their imported dependencies
 are correct.
@@ -674,6 +702,29 @@ against imported `Nat`/`Bool` headers and a universe-polymorphic `List`, includi
 duplicate-name rejection. This is runtime evidence against the imported prelude,
 not its semantic environment translation.
 Focused executable replay checks 58 declarations in `Verify.ConstructorParams`,
+assuming its imported dependencies are correct.
+
+`tests/ConstructorMetadata.lean` contains six proof regressions and three axiom
+audits for standalone registration, checked-batch/register composition, the
+checked-type continuation, preservation of arbitrary old entries, exact records,
+and nontruncating field counts. Standalone registration uses only standard logical
+axioms and the three existing persistent-map interfaces. Both compositions
+additionally use the guarded arity theorem's equality, instantiation, and
+free/metavariable-flag interfaces. All three audits exclude `sorryAx`.
+Twenty-six executable staged outcomes cover empty batches, zero/one/two
+parameters, dependent fields, indexed results, universe parameters, mixed binder
+annotations, and per-parent counter resets through a mutual batch with an empty
+middle parent. Every successful case checks all constructor metadata, the field
+sum, and preservation of datatype headers and sampled imported constants.
+Rejections cover within-parent duplicates, cross-parent collisions that reach
+registration, existing imported-name collisions, and insufficient parameters.
+Safe nonpositive occurrences are rejected and their unsafe versions register as
+intended. Six further outcomes exercise the exact checked-type/check/register
+composition against imported `Nat` and polymorphic `List` headers, including
+duplicate rejection. No malformed constructor field-count assertion is executed,
+and no kernel discrepancy is reported. Header registration in the staged runtime
+fixtures does not establish that step's semantic translation prerequisites.
+Focused executable replay checks 29 declarations in `Verify.ConstructorMetadata`,
 assuming its imported dependencies are correct.
 
 The reflection regressions accept both supported reflection encodings and reject
