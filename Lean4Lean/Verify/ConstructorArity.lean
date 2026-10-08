@@ -3,40 +3,6 @@ import Lean4Lean.Verify.InductiveStats
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
 
-theorem declareConstructors.arity_eq_add (type : Expr) (index : Nat) :
-    arity index type = index + arity 0 type := by
-  induction type generalizing index with
-  | forallE name domain body bi ihDomain ihBody =>
-    change arity (index + 1) body = index + arity 1 body
-    rw [ihBody (index + 1), ihBody 1]
-    omega
-  | _ => simp [arity]
-
-theorem declareConstructors.arity_instantiate1'_fvar
-    (type : Expr) (fvar : FVarId) (index depth : Nat) :
-    arity index (type.instantiate1' (.fvar fvar) depth) = arity index type := by
-  induction type generalizing index depth with
-  | bvar offset =>
-    simp only [Expr.instantiate1']
-    split
-    · rfl
-    · split <;> rfl
-  | forallE name domain body bi ihDomain ihBody =>
-    exact ihBody (index + 1) (depth + 1)
-  | _ => rfl
-
-theorem declareConstructors.arity_instantiate1_fvar
-    (type : Expr) (fvar : FVarId) (index : Nat) :
-    arity index (type.instantiate1 (.fvar fvar)) = arity index type := by
-  rw [Expr.instantiate1_eq]
-  exact arity_instantiate1'_fvar type fvar index 0
-
-theorem declareConstructors.arity_instantiate1_of_isFVar
-    (type param : Expr) (index : Nat) (hparam : param.isFVar = true) :
-    arity index (type.instantiate1 param) = arity index type := by
-  cases param <;> simp [Expr.isFVar] at hparam
-  exact arity_instantiate1_fvar type _ index
-
 theorem InductiveStats.ParamsAreFVars.arity_instantiate1
     {stats : InductiveStats} (hstats : stats.ParamsAreFVars)
     {param : Expr} (hparam : param ∈ stats.params) (type : Expr) (index : Nat) :
