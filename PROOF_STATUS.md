@@ -421,6 +421,29 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   consequences of the inductive frontend. These syntactic round trips do not
   establish semantic typing, rewritten-body scope, nested rewriting correctness,
   positivity, recursors, or full inductive soundness.
+- `Verify.InductiveSourceChecks` verifies the uniform original-source preflight
+  now executed by `Environment.addInductive` before parameter extraction/nested
+  rewriting. `InductiveSourcesNoMVarNoFVar` records the structural no-expression-
+  metavariable, no-level-metavariable, and no-free-variable contract for every
+  header and constructor type. `checkInductiveSources.WF` proves complete list
+  coverage; `.eq_pure` proves the guard is a no-op on valid sources. Header and
+  constructor projections discharge `SourceReserved` for arbitrary generators.
+  `addInductive.sources`, `.constructorReserved`, and `addDecl.inductiveSources`
+  establish the original-source contract from actual successful frontend calls,
+  including both safety modes and the existing inductive `check`-flag behavior.
+  All eight new audits exclude `sorryAx`, abstraction/instantiation interfaces,
+  and map/array interfaces; three need only logical axioms and the others inherit
+  the existing variable-metadata bridges from `checkNoMVarNoFVar`.
+  This resolves an observed source-capture validation bug, reproduced separately
+  against native Lean 4.29.0: the native kernel accepts an undeclared constructor
+  free variable `_nested_fresh.1` and stores it as a bound parameter. The old
+  unguarded lean4lean pipeline captures `_nested_fresh.2`. The new frontend rejects
+  both, deliberately diverging on those invalid sources; see `bugs-found.md` and
+  `divergences.md`. It does not establish logical unsoundness of the native kernel.
+  Frontend parameter-shortage rejection now first propagates source-preflight
+  errors, without weakening its unconditional successful-result arity bound.
+  Bound-variable source scope, transformed-body scope, semantic typing, positivity,
+  recursors, and full inductive soundness remain separate obligations.
 - `Expr.abstractFVars` models native abstraction over free-variable-only arrays,
   preserving existing bound variables and unmatched metavariables and choosing
   the last duplicate identifier at the appropriate binder depth. The existing
@@ -1151,6 +1174,23 @@ cases distinguish native reconstruction failure from valid sequential inversion;
 three parameter-shortage cases retain the exact diagnostic. These are helper
 boundaries, not accepted ill-typed frontend declarations. Run
 `lake env lean tests/InductiveParamReconstruction.lean`.
+
+`tests/InductiveSourceChecks.lean` contains eight proof regressions and eight
+axiom audits for the preflight, clean-source no-op, original-source frontend
+contracts, and generator-independent freshness. Twenty clean source batches
+cover empty/single/multiple/wide datatype and constructor lists; 168 invalid
+batches place fourteen free-variable/expression-metavariable/level-metavariable
+forms in first, middle, and last headers/constructors. Every rejection retains
+the exact original name/expression, including metavariable-first diagnostics.
+Sixteen source-capture frontend rejections cover four generator-ID choices,
+both safety modes, and both check-flag settings. Twenty-four clean plain/nested
+inputs all pass native validation across 0/1/2 parameters and both safety/check
+settings. Sixteen also pass the lean4lean frontend; eight parameterized nested
+cases record its existing loose-bound-variable rejection, not repaired here.
+An explicitly unguarded old preprocessing/checking pipeline still
+demonstrates its source capture. Run `lake env lean tests/InductiveSourceChecks.lean`.
+The minimal native-only reproducer is `tests/NativeInductiveSourceCapture.lean`;
+it asserts acceptance and exact constructor-type mutation on pinned Lean 4.29.0.
 
 Focused executable replays check 168 declarations in `Verify.Axioms`,
 817 in `Verify.Expr`, 144 in `Verify.LocalContext`,
