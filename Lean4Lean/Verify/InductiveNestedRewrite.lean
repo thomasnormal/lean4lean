@@ -409,4 +409,147 @@ theorem replaceAllNested.scope (numParams : Nat) (source : LocalContext)
         hsource htarget hstate)
     e env state hstate
 
+private theorem withParams_loop_context_scope (remaining : Nat) (type : Expr)
+    (lctx : LocalContext) (params : Array Expr)
+    (next : LocalContext → Expr → Array Expr → M α)
+    (env : Environment) (state : State) (post : α × State → Prop)
+    (hcontext : ParamContext params.size lctx params)
+    (hstate : state.NestedAuxScoped)
+    (hnext : ∀ lctx' remainder params' state',
+      ParamContext (params.size + remaining) lctx' params' →
+      state'.NestedAuxScoped →
+      (next lctx' remainder params' env state').WF post) :
+    (withParams.loop next lctx type params remaining env state).WF post := by
+  induction remaining generalizing type lctx params state with
+  | zero =>
+    exact hnext lctx type params state (by simpa using hcontext) hstate
+  | succ remaining ih =>
+    cases type with
+    | forallE name domain body bi =>
+      change (withParams.loop next
+        (lctx.mkLocalDecl ⟨state.ngen.curr⟩ name domain bi)
+        (body.instantiate1 (.fvar ⟨state.ngen.curr⟩))
+        (params.push (.fvar ⟨state.ngen.curr⟩)) remaining env
+        { state with ngen := state.ngen.next }).WF post
+      apply ih
+      · simpa using hcontext.push ⟨state.ngen.curr⟩ name domain bi
+      · simpa [State.NestedAuxScoped] using hstate
+      · intro lctx' remainder params' state' hcontext' hstate'
+        apply hnext lctx' remainder params' state'
+        · simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hcontext'
+        · exact hstate'
+    | _ => exact Except.WF.throw
+
+theorem withParams.contextScope (type : Expr) (numParams : Nat)
+    (next : LocalContext → Expr → Array Expr → M α)
+    (env : Environment) (state : State) (hstate : state.NestedAuxScoped)
+    (post : α × State → Prop)
+    (hnext : ∀ lctx remainder params state', ParamContext numParams lctx params →
+      state'.NestedAuxScoped → (next lctx remainder params env state').WF post) :
+    (withParams type numParams next env state).WF post := by
+  exact withParams_loop_context_scope numParams type {} #[] next env state post
+    ParamContext.empty hstate (fun lctx remainder params state' hcontext' hstate' =>
+      hnext lctx remainder params state' (by simpa using hcontext') hstate')
+
+private theorem bindWF_nestedAuxScoped (action : M α) (next : α → M β)
+    (env : Environment) (state : State) (post : β × State → Prop)
+    (hnext : ∀ value state', (next value env state').WF post) :
+    ((action >>= next) env state).WF post :=
+  (show (action env state).WF fun _ => True from fun _ _ => trivial).bind
+    (fun result _ => hnext result.1 result.2)
+
+def Result.Aux2NestedScoped (numParams : Nat) (result : Result) : Prop :=
+  ∀ name type, result.aux2nested.find? name = some type → type.looseBVarRange' ≤ numParams
+
+private def MapAux2NestedScoped (numParams : Nat) (map : NameMap Expr) : Prop :=
+  ∀ name type, map.find? name = some type → type.looseBVarRange' ≤ numParams
+
+private theorem foldAux2NestedScoped (numParams : Nat) (params : Array Expr)
+    (entries : List (Expr × Name)) (map : NameMap Expr)
+    (hcontext : ParamContext numParams lctx params)
+    (hscope : MapAux2NestedScoped numParams map)
+    (hentries : ∀ entry ∈ entries, entry.1.looseBVarRange' = 0) :
+    MapAux2NestedScoped numParams
+        (entries.foldl (fun map (entry : Expr × Name) =>
+          map.insert entry.2 (entry.1.abstract params)) map) := by
+  induction entries generalizing map with
+  | nil => exact hscope
+  | cons entry entries ih =>
+    have hentry : entry.1.looseBVarRange' = 0 := hentries entry (by simp)
+    have htail : ∀ item ∈ entries, item.1.looseBVarRange' = 0 := by
+      intro item hitem
+      exact hentries item (by simp [hitem])
+    have hinsertScope : MapAux2NestedScoped numParams
+        (map.insert entry.2 (entry.1.abstract params)) := by
+      intro name type hfind
+      change (Std.TreeMap.insert map entry.2 (entry.1.abstract params))[name]? = some type at hfind
+      rw [Std.TreeMap.getElem?_insert] at hfind
+      split at hfind
+      · injection hfind with htype
+        subst type
+        exact hcontext.abstract_scopedRange entry.1 hentry
+      · exact hscope name type hfind
+    exact ih (map.insert entry.2 (entry.1.abstract params)) hinsertScope htail
+
+private theorem stateAux2NestedScoped (numParams : Nat) (params : Array Expr)
+    (state : State) (lctx : LocalContext) (hcontext : ParamContext numParams lctx params)
+    (hstate : state.NestedAuxScoped) :
+    MapAux2NestedScoped numParams
+      (state.nestedAux.foldl (fun map (entry : Expr × Name) =>
+        map.insert entry.2 (entry.1.abstract params)) {}) := by
+  have hentries : ∀ entry ∈ state.nestedAux.toList, entry.1.looseBVarRange' = 0 := by
+    intro entry hentry
+    apply hstate entry
+    simpa using hentry
+  have hfold := foldAux2NestedScoped numParams params state.nestedAux.toList {} hcontext
+    (by
+      intro name type hfind
+      change Std.TreeMap.get? ({} : Std.TreeMap Name Expr Name.quickCmp) name = some type at hfind
+      rw [Std.TreeMap.get?_eq_getElem?, Std.TreeMap.getElem?_emptyc] at hfind
+      simp at hfind) hentries
+  simpa [Array.foldl_toList] using hfold
+
+theorem run.loop.nestedAuxScoped (numParams : Nat) (lctx : LocalContext)
+    (params : Array Expr) (index fuel : Nat) (env : Environment) (state : State)
+    (hcontext : ParamContext numParams lctx params) (hstate : state.NestedAuxScoped) :
+    (run.loop numParams lctx params index fuel env state).WF
+      fun result => result.2.NestedAuxScoped ∧ Result.Aux2NestedScoped numParams result.1 := by
+  induction fuel generalizing index state with
+  | zero => exact Except.WF.throw
+  | succ fuel ih =>
+    rw [run.loop.eq_def]
+    dsimp only
+    rw [get_bind]
+    split
+    · simp only [withParams.assert_size]
+      refine (mapM_scope _ _ env state hstate ?_).bind ?_
+      · intro ctor state' hctor
+        refine withParams.contextScope ctor.type numParams _ env state' hctor _ ?_
+        intro ctorLctx ctorType As state'' hctorContext hstate'
+        refine (replaceAllNested.scope numParams lctx ctorLctx params As ctorType env state''
+          hctorContext hcontext hstate').bind ?_
+        rintro ⟨_, state'''⟩ hstate''
+        exact .pure hstate''
+      · rintro ⟨ctors, state'⟩ hctors
+        simp only
+        rw [modify_bind]
+        exact ih (index + 1) { state' with
+          newTypes := state'.newTypes.set! index {
+            name := state.newTypes[index].name
+            type := state.newTypes[index].type
+            ctors } } hctors
+    · exact .pure ⟨hstate, stateAux2NestedScoped numParams params state lctx hcontext hstate⟩
+
+theorem run.nestedAuxScoped (fuel numParams : Nat) (types : List InductiveType)
+    (env : Environment) (state : State) (hstate : state.NestedAuxScoped) :
+    (run fuel numParams types env state).WF fun result =>
+      result.2.NestedAuxScoped ∧ Result.Aux2NestedScoped numParams result.1 := by
+  cases types with
+  | nil => exact Except.WF.throw
+  | cons type types =>
+    unfold run
+    refine withParams.contextScope type.type numParams _ env state hstate _ ?_
+    intro lctx remainder params state' hcontext hstate'
+    exact run.loop.nestedAuxScoped numParams lctx params 0 fuel env state' hcontext hstate'
+
 end Lean4Lean.ElimNestedInductive
