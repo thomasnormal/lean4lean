@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.Inductive
+import Lean4Lean.Verify.InductiveHeaders
 import Lean4Lean.Inductive.Add
 import Lean.Util.CollectAxioms
 
@@ -57,6 +58,43 @@ example : ((VEnv.empty.addInductHeaders [polymorphicHeader]).getD VEnv.empty).Or
   subst header
   exact ⟨_, .sort (by decide)⟩
 
+example {env ctorEnv : VEnv} {lparams : List Name} {types : List InductiveType}
+    {headers : List VInductiveType}
+    (htr : List.Forall₂ (TrInductiveType env ctorEnv lparams) types headers) :
+    List.Forall₂ (TrInductiveHeader env lparams) types headers :=
+  htr.imp fun _ _ htype => htype.header
+
+private def ordinaryType (name : Name) : InductiveType := {
+  name, type := .sort (.succ .zero), ctors := [] }
+
+private def ordinaryHeader (name : Name) : VInductiveType := {
+  name, uvars := 0, type := .sort (.succ .zero), ctors := [] }
+
+private def ordinaryTypes : Array InductiveType := #[ordinaryType `First, ordinaryType `Second]
+
+private def ordinaryHeaders : List VInductiveType := [ordinaryHeader `First, ordinaryHeader `Second]
+
+private def ordinaryStats : AddInductive.InductiveStats := {
+  levels := [], resultLevel := .succ .zero, nindices := #[0, 0],
+  indConsts := #[.const `First [], .const `Second []], params := #[], isNotZero := true }
+
+private def ordinaryContext (isUnsafe : Bool) : AddInductive.Context := {
+  env := Kernel.Environment.empty `InductiveHeadersTest,
+  lparams := [], safety := if isUnsafe then .unsafe else .safe, allowPrimitive := false }
+
+example (isUnsafe : Bool) :
+    (AddInductive.declareInductiveTypes ordinaryStats 0 ordinaryTypes 0 isUnsafe
+      (ordinaryContext isUnsafe)).WF fun env' =>
+        ∃ venv', VEnv.empty.addInductHeaders ordinaryHeaders = some venv' ∧
+          Aligned (if isUnsafe then .unsafe else .safe) env'.constants venv' ∧ venv'.Ordered := by
+  apply AddInductive.declareInductiveTypes.ordered (ordinaryContext isUnsafe)
+    ordinaryStats 0 ordinaryTypes 0 isUnsafe Aligned.empty VEnv.Ordered.empty
+    DefinitionSafety.le_rfl rfl ?_ ?_
+  · exact .cons ⟨rfl, rfl, .sort rfl⟩ (.cons ⟨rfl, rfl, .sort rfl⟩ .nil)
+  · intro header hmem
+    simp [ordinaryHeaders] at hmem
+    rcases hmem with rfl | rfl <;> exact ⟨_, .sort trivial⟩
+
 private def audit (theoremName : Name) (allowed : List Name) : MetaM Unit := do
   let axioms ← collectAxioms theoremName
   logInfo m!"{theoremName}: axioms = {repr axioms}"
@@ -89,6 +127,26 @@ private def checkExecutableHeader (imported : Kernel.Environment) (typeName : Na
   if (action { ctx with allowPrimitive := false }).isOk then
     throwError "accepted {typeName} without primitive authorization"
 
+private def checkMutualHeaders (isUnsafe : Bool) : MetaM Unit := do
+  let ctx := ordinaryContext isUnsafe
+  let action := AddInductive.declareInductiveTypes ordinaryStats 0 ordinaryTypes 0 isUnsafe
+  let .ok result := action ctx | throwError "failed to stage mutual headers"
+  for type in ordinaryTypes do
+    let some (.inductInfo info) := result.find? type.name | throwError "missing {type.name}"
+    unless info.name == type.name && info.type == type.type && info.isUnsafe == isUnsafe &&
+        info.levelParams.isEmpty && info.numParams == 0 && info.numIndices == 0 &&
+        info.all == [`First, `Second] && info.ctors.isEmpty do
+      throwError "incorrect mutual header metadata for {type.name}"
+  if (action { ctx with env := result }).isOk then throwError "accepted a mutual-header collision"
+  let duplicate := AddInductive.declareInductiveTypes ordinaryStats 0
+    #[ordinaryType `First, ordinaryType `First] 0 isUnsafe
+  if (duplicate ctx).isOk then throwError "accepted duplicate names in a mutual declaration"
+  let shortStats := { ordinaryStats with nindices := #[0] }
+  let .ok truncated := AddInductive.declareInductiveTypes shortStats 0 ordinaryTypes 0 isUnsafe ctx
+    | throwError "unexpected rejection by the unchecked header prefix"
+  unless truncated.contains `First && !truncated.contains `Second do
+    throwError "statistics-length boundary changed; revisit the refinement precondition"
+
 run_meta
   let standard := [``propext, ``Classical.choice, ``Quot.sound]
   for theoremName in [``VEnv.addInductHeaders.le, ``VEnv.addInductHeaders.constants,
@@ -99,8 +157,16 @@ run_meta
   let translation := standard ++ [``sorryAx, ``Lean.Expr.eqv_eq,
     ``Lean.Level.instLawfulBEqLevel, ``Lean.Syntax.structEq_eq]
   audit ``Environment.checkPrimitiveInductive.toVDecl translation
+  audit ``TrInductiveType.header (standard ++ [``sorryAx])
+  let registration := standard ++ [``sorryAx,
+    ``Lean.PersistentHashMap.findAux_isSome,
+    ``Lean.PersistentHashMap.WF.toList'_insert, ``Lean.PersistentHashMap.WF.find?_eq]
+  audit ``AddInductive.declareInductiveTypes.refines registration
+  audit ``AddInductive.declareInductiveTypes.ordered registration
   let imported := (← Lean.getEnv).toKernelEnv
   for typeName in [``Bool, ``Nat] do
     checkExecutableHeader imported typeName
+  for isUnsafe in [false, true] do
+    checkMutualHeaders isUnsafe
 
 end InductiveHeadersTest
