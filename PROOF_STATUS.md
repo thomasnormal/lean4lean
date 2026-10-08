@@ -373,6 +373,24 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   use `Expr.looseBVarRange_eq`. Range zero permits metavariables and arbitrary free
   variables: it is not semantic typing, `Expr.Closed`, or source-ID freshness.
   The unconditional abstraction-interface mismatch remains unresolved.
+- The direct binding reconstruction interfaces now expose their missing scope
+  premises. `LocalContext.BindingScope` records range-zero declaration types and
+  let values, including nondependent lets; `LocalContext.mkBinding_eq` requires
+  that predicate, a range-zero body, and distinct identifiers. `MLCtx.WF.bindingScope`
+  derives context scope from translated domains/values and exact declaration
+  lookup. The partial/full `MLCtx.WF.mkForall` and full `mkLambda` reconstruction
+  equalities require body scope and derive distinctness from context validity.
+  Both actual `InferType` callers discharge scope using their cheap-beta-reduced
+  type translations. New runtime counterexamples show duplicate identifiers also
+  invalidate the unconditional abstraction bridge on a range-zero body; scope
+  alone cannot repair that interface. The existing binding proof still inherits
+  `Expr.abstract_eq`, so this does not eliminate the global trusted-interface
+  mismatch. Its remaining explicit scalar-arity consumer retains its valid
+  arbitrary-body contract; replacing that dependency is separate work.
+  Typed scope/reconstruction audits inherit the existing translation stack's
+  `sorryAx`; no new admission, axiom, dependency, or executable checker change is
+  introduced. The raw scoped binding equality and empty-context scope audits
+  exclude `sorryAx`.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -1038,6 +1056,31 @@ bound-variable scope does not imply free-variable freshness or source round trip
 No checker change, dependency, new axiom, or admitted proof is introduced.
 
 Focused executable replay checks 17 declarations in `Verify.InductiveParamScope`,
+assuming imported dependencies and the explicitly audited interfaces are correct.
+
+`tests/BindingScope.lean` contains thirteen proof regressions and thirteen axiom
+audits for context scope, declaration types/let values, the scoped generic binding
+bridge, partial/full forall reconstruction, lambda reconstruction, and empty
+contexts. Negative proof boundaries cover loose bodies/domains/values and repeated
+identifiers. The audits separate existing array/map bridges from abstraction,
+loose-variable metadata, and lowering interfaces; typed statements inherit
+`sorryAx` from the existing translation stack, while the raw binding and empty
+scope statements do not.
+Three hundred twenty syntactically scoped forall/lambda fixtures compare the
+executable binding against both the sequential binding fold and `MLCtx`
+reconstruction (640 equalities). They cover 0/1/2/3/31/32/33/65 binders,
+dependent domains, used/unused lets, repeated/anonymous user names, all binder-info
+forms, and ten expression forms including metavariables/external free variables.
+These are structural scope fixtures, not semantic well-formedness witnesses.
+Ten negative runtime fixtures isolate four loose-body failures, two loose-domain
+failures, two loose-let-value failures, and two duplicate-ID failures. The latter
+also check the minimal native `.bvar 0` versus sequential `.bvar 1` observation
+with a range-zero free-variable body. Run `lake env lean tests/BindingScope.lean`.
+The global abstraction-interface issue remains unresolved; see `divergences.md`.
+
+Focused executable replays check 133 declarations in `Verify.LocalContext`,
+440 in `Verify.TypeChecker.Basic`, 210 in `Verify.TypeChecker.InferType`,
+37 in `Verify.InductiveParamBinding`, and 17 in `Verify.InductiveParamScope`,
 assuming imported dependencies and the explicitly audited interfaces are correct.
 
 `tests/ConstructorParams.lean` contains seven proof regressions and thirteen axiom
