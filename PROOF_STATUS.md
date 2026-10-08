@@ -22,6 +22,19 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   establish the correctness of inductive elaboration or its generated recursors.
   Their axiom audits contain no `sorryAx`, but do include the existing expression,
   level, and syntax equality interface assumptions listed below.
+- `VEnv.addInductHeaders` models fresh registration of arbitrary inductive
+  headers. Successful registration extends the existing constants, installs
+  every header, preserves the definitional equations, and preserves `Ordered`
+  when the header types are well-formed. `VInductDecl.HeadersWF` checks uniform
+  universe-parameter counts and well-formed header types. Canonical `Bool`/`Nat`
+  declarations satisfy this header-only specification in any starting environment.
+- `PrimitiveInductiveDecl.toVDecl` and `checkPrimitiveInductive.toVDecl` connect
+  the recognized primitive shapes to those canonical declarations. Their
+  `TrInductDecl` translations check datatype headers in the old environment and
+  constructor types in the successfully registered header environment, where
+  recursive datatype references are available. This is a staging/specification
+  bridge, not a proof about the executable `declareInductiveTypes` or the full
+  inductive frontend; no recursor or reduction equation is installed at this stage.
 - The replacement level normalizer preserves evaluation. The comparison core
   agrees with upstream `geq.go`, and the public comparison/equivalence tests are
   sound. Exact syntactic agreement of the entire normalizer with upstream is
@@ -250,6 +263,9 @@ Main review entry points: `Lean4Lean/Verify/Environment.lean`,
   inductives. Arithmetic results are conditional on an appropriate starting
   environment translation; runtime tests against the imported prelude do not
   construct that translation.
+  The new abstract header-registration and primitive-translation bridges do not
+  discharge this obligation; their concrete executable-header checks are runtime
+  regressions, not a refinement proof.
 - Native `Nat.gcd`, `Nat.land`, `Nat.lor`, and `Nat.xor` reductions
   remain disabled.
   Restoring them with their primitive-extension proofs is unfinished work, not
@@ -345,6 +361,7 @@ lake clean lean4lean
 lake build Lean4Lean.Theory Lean4Lean.Verify lean4lean
 lake env lean tests/Environment.lean
 lake env lean tests/PrimitiveInductive.lean
+lake env lean tests/InductiveHeaders.lean
 lake env lean tests/Primitive.lean
 lake env lean tests/Reflection.lean
 lake env lean tests/Division.lean
@@ -356,6 +373,8 @@ lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Primitive
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Environment
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Level
 lake env .lake/build/bin/lean4lean Lean4Lean.Verify.PrimitiveInductive
+lake env .lake/build/bin/lean4lean Lean4Lean.Theory.InductiveHeaders
+lake env .lake/build/bin/lean4lean Lean4Lean.Verify.Inductive
 ```
 
 The tests cover acceptance/rejection from an empty environment, rejection of
@@ -383,6 +402,24 @@ axiom, including `sorryAx`, fails the regression. These interface assumptions
 are already present in `Verify.Axioms`; no new assumption is introduced here.
 Focused executable replay of `Lean4Lean.Verify.PrimitiveInductive` checks 43
 declarations successfully; as above, imported dependencies are assumed correct.
+
+`tests/InductiveHeaders.lean` checks successful registration, registered type
+lookups, duplicate/collision rejection, empty batches, polymorphic headers, and
+orderedness. It confirms that the header stage does not install constructors.
+Runtime checks exercise the executable `declareInductiveTypes` for `Bool` and
+`Nat`, including duplicate-name and primitive-authorization rejection. Seven
+abstract header-theorem audits exclude `sorryAx` and implementation-interface
+axioms; two translation-bridge audits track their inherited assumptions.
+The abstract extension, lookup, equation-preservation, and orderedness proofs
+use only `propext` and `Quot.sound`; the header-well-formedness proofs use only
+`propext`. `PrimitiveInductiveDecl.toVDecl` additionally inherits
+`Classical.choice` and `sorryAx` through the existing structural-translation
+API (`TrExprS` includes the admitted `TrProj` specification).
+`checkPrimitiveInductive.toVDecl` also inherits the three equality interface
+assumptions of the validator classification. No new axiom or admitted proof
+is added, and these bridges do not claim unconditional inductive soundness.
+Focused executable replay checks 21 declarations in `Theory.InductiveHeaders`
+and eight in `Verify.Inductive`, assuming their imported dependencies are correct.
 
 The reflection regressions accept both supported reflection encodings and reject
 swapped proof converters. They also check selectors that ignore their Boolean
