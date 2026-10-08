@@ -7,6 +7,9 @@ open Lean hiding Environment Exception
 def InductiveStats.HeaderSizes (stats : InductiveStats) (numTypes : Nat) : Prop :=
   stats.nindices.size = numTypes ∧ stats.indConsts.size = numTypes
 
+def InductiveStats.ParamsCount (stats : InductiveStats) (numParams numTypes : Nat) : Prop :=
+  stats.params.size = if numTypes = 0 then 0 else numParams
+
 def InductiveStats.ParamsAreFVars (stats : InductiveStats) : Prop :=
   ∀ param ∈ stats.params, param.isFVar = true
 
@@ -167,7 +170,8 @@ private theorem loopInd_headerSizes (nparams : Nat) (indTypes : Array InductiveT
     (ctx : Context) (post : α → Prop) (hbound : processed ≤ indTypes.size)
     (hstats : PrefixSizes stats processed (if processed = 0 then 0 else nparams)
       ctx.lparams.length ctx.ngen)
-    (hnext : ∀ stats ctx', stats.HeaderSizes indTypes.size → stats.ParamsAreFVars →
+    (hnext : ∀ stats ctx', stats.HeaderSizes indTypes.size →
+      stats.ParamsCount nparams indTypes.size → stats.ParamsAreFVars →
       stats.params.toList.Nodup →
       ctx.HeaderFrame ctx' → (next stats ctx').WF post) :
     (checkInductiveTypes.loopInd nparams indTypes next processed stats ctx).WF post := by
@@ -196,8 +200,8 @@ private theorem loopInd_headerSizes (nparams : Nat) (indTypes : Array InductiveT
           by simpa using hsizes.indConsts,
           hsizes.levels, by simpa using hsizes.params, hsizes.paramsAreFVars,
           hsizes.paramsNodup, hsizes.paramsReserved⟩
-      · intro stats ctx'' hsizes hfvars hnodup hframe'
-        exact hnext stats ctx'' hsizes hfvars hnodup (hframe.trans hframe')
+      · intro stats ctx'' hsizes hparams hfvars hnodup hframe'
+        exact hnext stats ctx'' hsizes hparams hfvars hnodup (hframe.trans hframe')
     · split
       · exact Except.WF.throw
       · apply bindWF
@@ -208,11 +212,11 @@ private theorem loopInd_headerSizes (nparams : Nat) (indTypes : Array InductiveT
             by simpa using hsizes.indConsts,
             hsizes.levels, by simpa using hsizes.params, hsizes.paramsAreFVars,
             hsizes.paramsNodup, hsizes.paramsReserved⟩
-        · intro stats ctx'' hsizes hfvars hnodup hframe'
-          exact hnext stats ctx'' hsizes hfvars hnodup (hframe.trans hframe')
+        · intro stats ctx'' hsizes hparams hfvars hnodup hframe'
+          exact hnext stats ctx'' hsizes hparams hfvars hnodup (hframe.trans hframe')
   · apply readWF
     have hcount : processed = indTypes.size := by omega
-    refine hnext _ ctx ?_ ?_ ?_ (.refl ctx)
+    refine hnext _ ctx ?_ ?_ ?_ ?_ (.refl ctx)
     · simp only [InductiveStats.HeaderSizes, hstats.levels, hstats.nindices,
         hstats.indConsts, hcount, beq_self_eq_true, ite_true]
       split
@@ -224,6 +228,17 @@ private theorem loopInd_headerSizes (nparams : Nat) (indTypes : Array InductiveT
           simp [hparams] at ‹¬(stats.params.size == nparams) = true›
         simp [panicWithPosWithDecl, panic, panicCore, hzero]
         exact ⟨rfl, rfl⟩
+    · simp only [InductiveStats.ParamsCount, hstats.levels, hstats.nindices,
+        hstats.indConsts, hcount, beq_self_eq_true, ite_true]
+      split
+      · simpa only [hcount] using hstats.params
+      · have hzero : indTypes.size = 0 := by
+          by_contra hnonzero
+          have hparams : stats.params.size = nparams := by
+            simpa [hcount, hnonzero] using hstats.params
+          simp [hparams] at ‹¬(stats.params.size == nparams) = true›
+        simp [panicWithPosWithDecl, panic, panicCore, hzero]
+        rfl
     · simp only [hstats.levels, hstats.nindices, hstats.indConsts, hcount,
         beq_self_eq_true, ite_true]
       split
@@ -241,10 +256,11 @@ private theorem loopInd_headerSizes (nparams : Nat) (indTypes : Array InductiveT
 termination_by indTypes.size - processed
 decreasing_by all_goals simp_wf; omega
 
-theorem checkInductiveTypes.frameHeaderSizesParamsDistinct
+theorem checkInductiveTypes.frameHeaderSizesParamsCountDistinct
     (nparams : Nat) (indTypes : Array InductiveType)
     (next : InductiveStats → M α) (ctx : Context) (post : α → Prop)
-    (hnext : ∀ stats ctx', stats.HeaderSizes indTypes.size → stats.ParamsAreFVars →
+    (hnext : ∀ stats ctx', stats.HeaderSizes indTypes.size →
+      stats.ParamsCount nparams indTypes.size → stats.ParamsAreFVars →
       stats.params.toList.Nodup →
       ctx.HeaderFrame ctx' → (next stats ctx').WF post) :
     (checkInductiveTypes nparams indTypes next ctx).WF post := by
@@ -260,6 +276,36 @@ theorem checkInductiveTypes.frameHeaderSizesParamsDistinct
       change Expr.fvar fvar ∈ (#[] : Array Expr) at hmem
       simp at hmem
   · exact hnext
+
+theorem checkInductiveTypes.frameHeaderSizesParamsDistinct
+    (nparams : Nat) (indTypes : Array InductiveType)
+    (next : InductiveStats → M α) (ctx : Context) (post : α → Prop)
+    (hnext : ∀ stats ctx', stats.HeaderSizes indTypes.size → stats.ParamsAreFVars →
+      stats.params.toList.Nodup →
+      ctx.HeaderFrame ctx' → (next stats ctx').WF post) :
+    (checkInductiveTypes nparams indTypes next ctx).WF post :=
+  checkInductiveTypes.frameHeaderSizesParamsCountDistinct nparams indTypes next ctx post
+    fun stats ctx' hsizes _ hfvars hnodup hframe => hnext stats ctx' hsizes hfvars hnodup hframe
+
+theorem checkInductiveTypes.paramsCount (nparams : Nat) (indTypes : Array InductiveType)
+    (next : InductiveStats → M α) (ctx : Context) (post : α → Prop)
+    (hnext : ∀ stats ctx', stats.ParamsCount nparams indTypes.size →
+      (next stats ctx').WF post) :
+    (checkInductiveTypes nparams indTypes next ctx).WF post :=
+  checkInductiveTypes.frameHeaderSizesParamsCountDistinct nparams indTypes next ctx post
+    fun stats ctx' _ hcount _ _ _ => hnext stats ctx' hcount
+
+theorem checkInductiveTypes.getParamsCount (nparams : Nat) (indTypes : Array InductiveType)
+    (ctx : Context) :
+    (checkInductiveTypes nparams indTypes pure ctx).WF fun stats =>
+      stats.ParamsCount nparams indTypes.size :=
+  checkInductiveTypes.paramsCount nparams indTypes pure ctx _ fun _ _ hcount => .pure hcount
+
+theorem checkInductiveTypes.getParamsCount_of_nonempty (nparams : Nat)
+    (indTypes : Array InductiveType) (ctx : Context) (hnonempty : indTypes.size ≠ 0) :
+    (checkInductiveTypes nparams indTypes pure ctx).WF fun stats => stats.params.size = nparams :=
+  (checkInductiveTypes.getParamsCount nparams indTypes ctx).mono fun _ hcount =>
+    by simpa only [InductiveStats.ParamsCount, if_neg hnonempty] using hcount
 
 theorem checkInductiveTypes.frameHeaderSizesParamsFVars
     (nparams : Nat) (indTypes : Array InductiveType)

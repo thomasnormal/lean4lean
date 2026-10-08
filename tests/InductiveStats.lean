@@ -7,6 +7,41 @@ open Lean Lean4Lean Lean4Lean.AddInductive
 namespace InductiveStatsTest
 
 example (ctx : Context) (nparams : Nat) (types : Array InductiveType) :
+    (checkInductiveTypes nparams types pure ctx).WF fun stats =>
+      stats.ParamsCount nparams types.size :=
+  checkInductiveTypes.getParamsCount nparams types ctx
+
+example (ctx : Context) (nparams : Nat) (types : Array InductiveType)
+    (hnonempty : types.size ≠ 0) :
+    (checkInductiveTypes nparams types pure ctx).WF fun stats => stats.params.size = nparams :=
+  checkInductiveTypes.getParamsCount_of_nonempty nparams types ctx hnonempty
+
+example (ctx : Context) (nparams : Nat) (types : Array InductiveType)
+    (hnonempty : types.size ≠ 0) (stats : InductiveStats)
+    (hcheck : checkInductiveTypes nparams types pure ctx = .ok stats) :
+    stats.params.size = nparams :=
+  checkInductiveTypes.getParamsCount_of_nonempty nparams types ctx hnonempty stats hcheck
+
+example (ctx : Context) (nparams : Nat) :
+    (checkInductiveTypes nparams #[] pure ctx).WF fun stats => stats.params.size = 0 :=
+  (checkInductiveTypes.getParamsCount nparams #[] ctx).mono fun _ hcount =>
+    by simpa only [InductiveStats.ParamsCount, Array.size_empty, ite_true] using hcount
+
+example (ctx : Context) (nparams : Nat) (types : Array InductiveType)
+    (next : InductiveStats → M α) (post : α → Prop)
+    (hnext : ∀ stats ctx', stats.ParamsCount nparams types.size → (next stats ctx').WF post) :
+    (checkInductiveTypes nparams types next ctx).WF post :=
+  checkInductiveTypes.paramsCount nparams types next ctx post hnext
+
+example (ctx : Context) (nparams : Nat) (types : Array InductiveType)
+    (next : InductiveStats → M α) (post : α → Prop)
+    (hnext : ∀ stats ctx', stats.HeaderSizes types.size →
+      stats.ParamsCount nparams types.size → stats.ParamsAreFVars →
+      stats.params.toList.Nodup → ctx.HeaderFrame ctx' → (next stats ctx').WF post) :
+    (checkInductiveTypes nparams types next ctx).WF post :=
+  checkInductiveTypes.frameHeaderSizesParamsCountDistinct nparams types next ctx post hnext
+
+example (ctx : Context) (nparams : Nat) (types : Array InductiveType) :
     (checkInductiveTypes nparams types pure ctx).WF fun stats => stats.params.toList.Nodup :=
   checkInductiveTypes.getParamsNodup nparams types ctx
 
@@ -135,7 +170,8 @@ private def checkStats (ctx : Context) (nparams : Nat) (types : Array InductiveT
       checkInductiveTypes nparams types (fun stats => do return (stats, ← read)) ctx
     | throwError "rejected statistics fixture with {types.size} types and {nparams} parameters"
   unless stats.nindices == indices && stats.nindices.size == types.size &&
-      stats.indConsts.size == types.size && stats.params.size == nparams &&
+      stats.indConsts.size == types.size &&
+      stats.params.size == (if types.isEmpty then 0 else nparams) &&
       stats.params.all Expr.isFVar &&
       stats.params.toList.eraseDups.length == stats.params.size &&
       stats.levels == ctx.lparams.map Level.param &&
@@ -162,6 +198,10 @@ private def audit (theoremName : Name) : MetaM Unit := do
 run_meta
   audit ``Context.HeaderFrame.refl
   audit ``Context.HeaderFrame.trans
+  audit ``checkInductiveTypes.frameHeaderSizesParamsCountDistinct
+  audit ``checkInductiveTypes.paramsCount
+  audit ``checkInductiveTypes.getParamsCount
+  audit ``checkInductiveTypes.getParamsCount_of_nonempty
   audit ``checkInductiveTypes.frameHeaderSizesParamsDistinct
   audit ``checkInductiveTypes.paramsNodup
   audit ``checkInductiveTypes.getParamsNodup
