@@ -107,6 +107,10 @@ private def checkFixture (env : Lean.Environment) (numParams : Nat)
   logInfo m!"normalization fixture {types.map (·.name)}: parameters = {numParams}, indices = {indices}"
   let native := env.addDeclCore 0
     (.inductDecl [] numParams types.toList isUnsafe) none
+  let complete := Lean4Lean.addDecl env.toKernelEnv
+    (.inductDecl [] numParams types.toList isUnsafe)
+  unless complete.isOk == nativeAccepted do
+    throwError "full frontend disagrees with native parameter-prefix acceptance"
   match native with
   | .ok _ =>
     unless nativeAccepted do throwError "native kernel accepted a hidden-parameter fixture"
@@ -129,6 +133,12 @@ private def checkFixture (env : Lean.Environment) (numParams : Nat)
         | throwError "missing native normalized header"
       unless actual.numParams == reference.numParams && actual.numIndices == reference.numIndices do
         throwError "normalized header counts disagree with native kernel"
+    if let .ok complete := complete then
+      let some (.inductInfo installed) := complete.find? type.name
+        | throwError "missing full-frontend normalized header"
+      unless installed.numParams == actual.numParams && installed.numIndices == actual.numIndices &&
+          complete.contains (type.name ++ `rec) do
+        throwError "incorrect full-frontend normalized header or missing recursor"
 
 private def audit (theoremName : Name) (interfaces : List Name := []) : MetaM Unit := do
   let axioms ← collectAxioms theoremName
@@ -163,6 +173,7 @@ run_meta
     checkFixture env 0 #[header `ArityParameterIndex (.const ``HiddenParameter [])] #[1] #[0] isUnsafe
     checkFixture env 1 #[header `ArityParameter (.const ``HiddenParameter [])] #[0] #[0] isUnsafe false
     checkFixture env 1 #[header `ArityTail hiddenTail] #[1] #[1] isUnsafe
+    checkFixture env 2 #[header `ArityTailParameter hiddenTail] #[0] #[1] isUnsafe false
     checkFixture env 0 #[header `ArityAnnotatedIndices (.mdata {} explicit)] #[2] #[0] isUnsafe
     checkFixture env 0 #[header `ArityBetaIndices beta] #[2] #[0] isUnsafe
     checkFixture env 0 #[header `ArityLetIndices letType] #[2] #[0] isUnsafe

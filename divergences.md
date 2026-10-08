@@ -11,7 +11,7 @@ This is a list of places where lean4lean deliberately has different behavior fro
 * [`Lean4Lean.TypeChecker.Inner.inferLambda`](Lean4Lean/TypeChecker.lean), `inferLet`: lean4lean does the `ensureSort` call before extending the context, while [`infer_lambda`](https://github.com/leanprover/lean4/blob/v4.26.0/src/kernel/type_checker.cpp#L124-L126) does it afterward. It's not clear whether this is actually unsound but it would require some very weird invariants to justify having unchecked things in the local context and hoping that they won't be used in the typing proof of that same expression.
 * [`Lean4Lean.checkConstantVal`](Lean4Lean/Environment.lean): The original implementation would call `check` which sets the level params and then unsets them afterward, and then `ensure_sort` would run in a context without any level params. In lean4lean the monad is parameterized over level params, so they remain the same across the two calls.
 
-## Unresolved staged header-normalization mismatch (2026-10-08)
+## Header parameter-normalization boundary (resolved 2026-10-08)
 
 `AddInductive.checkInductiveTypes` weak-head normalizes a datatype's source type
 before consuming declared parameters. Lean 4.29.0's native kernel requires those
@@ -23,14 +23,31 @@ constructor registration prefix. Native `Environment.addDeclCore`, with checking
 enabled, rejects the same declaration with
 `invalid inductive datatype declaration, incorrect number of parameters`.
 
-Run the minimal reproducer with `lake env lean tests/InductiveHiddenParameter.lean`.
-`tests/InductiveArity.lean` also covers annotation, beta, and let wrappers hiding
-parameters, in safe and unsafe modes. This is **not an intentional divergence**;
-only the staged prefix is compared here. Later elimination/recursor construction
-and full `AddInductive.run` acceptance are not established or executed by these
-regressions, and no kernel soundness bug is claimed.
+This is **not a public frontend divergence or a kernel soundness bug**.
+`Environment.addInductive` first calls `ElimNestedInductive.run`, whose
+`withParams` operation consumes the first datatype's declared parameters without
+normalizing. It already rejects this input with the same parameter-count
+diagnostic, before the more permissive isolated prefix is reached. The staged
+comparison omitted that earlier preprocessing guard; no executable fix is needed.
+
+`Verify.InductiveParams` proves the exact rejection whenever the first source
+datatype's raw leading binder count is below the declared parameter count, and
+propagates it through preprocessing and `Environment.addInductive`.
+`addDecl.inductiveParamArity` proves every successful nonempty inductive frontend
+call satisfies that first-header bound, for either safety or checking flag and
+any fuel configuration. It does not prove semantic inductive soundness.
+
+Run the minimal boundary regression with
+`lake env lean tests/InductiveHiddenParameter.lean`.
+`tests/InductiveArity.lean` compares the isolated prefix, full lean4lean frontend,
+and native kernel on 26 safe/unsafe inputs, including parameters hidden after an
+explicit binder and behind annotation, beta, or let wrappers. The full frontends
+agree: sixteen accept and ten reject; accepted cases check final header counts
+and lean4lean's generated recursor. `tests/InductiveParams.lean` additionally
+checks both frontend checking flags and zero inductive fuel. Recursor semantics
+and unrestricted inductive soundness remain unverified.
 
 Separately, aliases hiding only indices are accepted by both kernels and show
 why checked parameter-plus-index counts need not equal raw syntactic binder
-arity. The verified general contract is a lower bound, not equality. Correcting
-the hidden-parameter acceptance boundary remains separate from that proof.
+arity. The verified general header contract remains a lower bound, not equality;
+the syntactic parameter guard must not reject legitimate normalized indices.
