@@ -242,4 +242,90 @@ theorem checkInductiveTypes.checkedConstructorArity (nparams : Nat)
   exact (checkConstructors.checked_loop_arity stats isUnsafe parent ctor type
     current.fuel.inductiveFuel current hfvars hnodup).bind fun _ hbound => .pure hbound
 
+private theorem forIn'_all (items : List α) (initial : β) (ctx : Context)
+    (step : (item : α) → item ∈ items → β → M (ForInStep β)) (property : α → Prop)
+    (hstep : ∀ item hmem state, (step item hmem state ctx).WF fun result =>
+      ∃ next, result = .yield next ∧ property item) :
+    (forIn' items initial step ctx).WF fun _ => ∀ item ∈ items, property item := by
+  induction items generalizing initial with
+  | nil => exact .pure (by simp)
+  | cons item items ih =>
+    rw [List.forIn'_cons]
+    refine (hstep item (by simp) initial).bind ?_
+    rintro _ ⟨next, rfl, hitem⟩
+    refine (ih next (fun entry hmem state => step entry (by simp [hmem]) state)
+      (fun entry hmem state => hstep entry (by simp [hmem]) state)).mono ?_
+    intro _ hrest entry hmem
+    rcases List.mem_cons.mp hmem with rfl | hmem
+    · exact hitem
+    · exact hrest entry hmem
+
+private theorem bindInvariantWF {ctx : Context} {action : M α} {next : α → M β}
+    {invariant : α → Prop} {post : β → Prop} (haction : (action ctx).WF invariant)
+    (hnext : ∀ result, invariant result → (next result ctx).WF post) :
+    ((action >>= next) ctx).WF post :=
+  haction.bind hnext
+
+theorem checkConstructors.arity (indTypes : Array InductiveType) (stats : InductiveStats)
+    (isUnsafe : Bool) (ctx : Context) (hfvars : stats.ParamsAreFVars)
+    (hnodup : stats.params.toList.Nodup) :
+    (checkConstructors indTypes stats isUnsafe ctx).WF fun _ =>
+      ∀ indType ∈ indTypes, ∀ ctor ∈ indType.ctors,
+        stats.params.size ≤ declareConstructors.arity 0 ctor.type := by
+  unfold checkConstructors
+  dsimp only
+  apply Lean4Lean.AddInductive.bindWF
+  intro env
+  refine bindInvariantWF (ctx := ctx)
+    (post := fun _ => ∀ indType ∈ indTypes, ∀ ctor ∈ indType.ctors,
+      stats.params.size ≤ declareConstructors.arity 0 ctor.type)
+    (invariant := fun _ =>
+      ∀ index ∈ List.range' 0 indTypes.size, ∀ hindex : index < indTypes.size,
+        ∀ ctor ∈ indTypes[index].ctors,
+          stats.params.size ≤ declareConstructors.arity 0 ctor.type) ?_ ?_
+  · simp only [Std.Legacy.Range.forIn'_eq_forIn'_range', Std.Legacy.Range.size,
+      Nat.sub_zero, Nat.add_sub_cancel, Nat.div_one]
+    apply forIn'_all
+    intro index hindex state
+    have hbound : index < indTypes.size := by simpa using hindex
+    refine bindInvariantWF (ctx := ctx)
+      (post := fun (result : ForInStep Unit) => ∃ next, result = .yield next ∧
+        ∀ hindex : index < indTypes.size, ∀ ctor ∈ indTypes[index].ctors,
+          stats.params.size ≤ declareConstructors.arity 0 ctor.type)
+      (invariant := fun _ =>
+        ∀ ctor ∈ indTypes[index].ctors,
+          stats.params.size ≤ declareConstructors.arity 0 ctor.type) ?_ ?_
+    · change (forIn' (m := M) _ _ _ ctx).WF _
+      apply forIn'_all
+      intro ctor _ found
+      dsimp only
+      split
+      · exact Except.WF.throw
+      · simp only [pure_bind]
+        refine (Lean4Lean.checkNoMVarNoFVar.WF env ctor.name ctor.type).bind ?_
+        intro _ hclosed
+        apply Lean4Lean.AddInductive.bindWF
+        intro checkedType
+        exact (checkConstructors.loop_arity_of_noFVars stats isUnsafe index ctor.name
+          ctor.type ctx.fuel.inductiveFuel ctx hfvars hnodup hclosed).bind fun _ hbound =>
+            .pure ⟨_, rfl, hbound⟩
+    · intro _ hctors
+      exact .pure ⟨_, rfl, fun _ => hctors⟩
+  · intro _ hall
+    refine .pure ?_
+    intro indType htype ctor hctor
+    obtain ⟨index, hindex, rfl⟩ := Array.mem_iff_getElem.mp htype
+    exact hall index (by simp; omega) hindex ctor hctor
+
+theorem checkInductiveTypes.checkedConstructorsArity (nparams : Nat)
+    (indTypes : Array InductiveType) (isUnsafe : Bool) (ctx : Context) :
+    (checkInductiveTypes nparams indTypes (fun stats =>
+      checkConstructors indTypes stats isUnsafe >>= fun _ => pure stats) ctx).WF fun stats =>
+        ∀ indType ∈ indTypes, ∀ ctor ∈ indType.ctors,
+          stats.params.size ≤ declareConstructors.arity 0 ctor.type := by
+  apply checkInductiveTypes.frameHeaderSizesParamsDistinct
+  intro stats current _ hfvars hnodup _
+  exact (checkConstructors.arity indTypes stats isUnsafe current hfvars hnodup).bind
+    fun _ hbound => .pure hbound
+
 end Lean4Lean.AddInductive
