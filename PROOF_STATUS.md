@@ -1178,6 +1178,32 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   in the kernel. Reused parameters, native defining-equation availability,
   semantic typing and full inductive soundness remain separate. No executable
   checker path, cache, new axiom or admission is added.
+- `Verify.InductiveAnnotationOpeningShape` proves that actual FVar binder
+  instantiation preserves exact constant-head arities. It cannot create a
+  constant or an application from another constructor, so the original unary
+  and binary annotation heads are recovered from their opened shapes. A
+  counterexample proves why unrestricted replacement is excluded: replacing
+  a function-position BVar by an annotation constant can create a new head
+  that the model then peels. No freshness, scope or global ID separation
+  premise is required for the FVar shape theorem.
+- `Verify.InductiveAnnotationModelOpening` proves total-model peeling commutes
+  with FVar `instantiate1'` at every depth, including loose bound variables.
+  Its `instantiate1` projection uses the existing native instantiation equation,
+  not a native annotation-consumption equation. The replacement may coincide
+  with an existing FVar; arbitrary expression replacement is not claimed.
+- `Verify.InductiveAnnotationBinderOpening` transforms each syntactic telescope
+  domain using the total model and proves that the same actual FVar opening
+  history opens the transformed telescope. Binder values, parameter/index
+  vectors, roles, names and binder information remain unchanged; the final
+  sort remains the same. Actual parameter shapes and native index declarations
+  discharge the FVar-value premises. The same deterministic incoming pair
+  correspondence and chronological raw-domain support project to model-domain
+  histories. These histories are model receipts, not assertions that native
+  stored declaration types equal the model without explicit compatibility.
+  Native consumption/opening commutation remains conditional on pointwise
+  model equations for both the original and the opened raw expression. No
+  automatic native-equation transport, unrestricted substitution theorem,
+  checker-path change, new axiom or admission is introduced.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled

@@ -65,6 +65,9 @@ import Lean4Lean.Verify.InductiveAnnotationModel
 import Lean4Lean.Verify.InductiveAnnotationModelScope
 import Lean4Lean.Verify.InductiveAnnotationModelRenaming
 import Lean4Lean.Verify.InductiveAnnotationNativeScope
+import Lean4Lean.Verify.InductiveAnnotationOpeningShape
+import Lean4Lean.Verify.InductiveAnnotationModelOpening
+import Lean4Lean.Verify.InductiveAnnotationBinderOpening
 import Lean4Lean.Verify.InductiveCPS
 import Lean4Lean.Verify.InductiveRunScope
 import Lean4Lean.Verify.InductiveFrontendScope
