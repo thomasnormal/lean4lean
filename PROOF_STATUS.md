@@ -1186,6 +1186,23 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   binary defaults cannot introduce FVars into stored types. Reused parameters
   retain only their original `isDefEq` checks. No semantic typing, unrestricted
   normalization or full inductive-soundness claim is introduced.
+- `Verify.InductiveBinderStoredTypeAlignment` bundles those unconditional
+  stored-type facts into the same parent witnesses as the complete raw-scope
+  receipt. Normalized source/opening histories, shared parameters, role
+  prefixes, declaration lookups, binder metadata, allocation positions,
+  full index-ID zip and exact strictly-prior maps remain coupled. Both
+  histories retain stored-domain support and current/future index exclusion;
+  each actual index declaration retains deterministic stored-type
+  correspondence. Projection recovers the previous raw-scope contract.
+  Source bridges, arbitrary CPS continuations, getters, recursor registration
+  and safe normalized/wrapped prefixes deliver the stronger receipt for the
+  same successful result, not independently selected existential histories.
+  Normalized headers still require explicit source support; supported wrappers
+  discharge it through the existing checked source guards. No external
+  native/model compatibility premise, reused-parameter syntactic type equality,
+  semantic local typing or full inductive soundness is asserted. These are
+  proof-only result contracts; no checker path, cache, new axiom or admission
+  is added.
 - `Verify.InductiveAnnotationNativeScope` provides explicitly conditional
   bridges. `NativeAnnotationModelAt` is a pointwise equation between one raw
   expression's native consumed output and the total model; it is a premise,
@@ -3176,6 +3193,23 @@ the six allocation/domain/lookup fixtures use the actual total consumer in
 their proof receipts. These checks establish syntactic storage properties,
 not semantic local typing or full inductive soundness. Run
 `lake env lean tests/InductiveTotalAnnotationConsumer.lean`.
+
+`tests/InductiveBinderStoredTypes.lean` adds twenty-three proof regressions
+and thirty-seven axiom audits, including all fourteen declarations in the
+stored-type alignment module. CPS/getter/general registration consumers and
+safe normalized/metadata/let/beta-wrapped prefixes compile without native
+model premises. Same-witness projections retain raw/stored scope and exclusion,
+actual declaration lookup/value/type/name/binder-information/index anchors,
+strictly-prior maps and the full index-ID zip. Thirty-nine registrations cover
+fifty-four parent pairs, 246 paired binder domains and 144 paired index
+declarations across three readers, including empty, mutual, all-parameter,
+dependent annotated and discarded-default cases. Generic low-level registration
+proofs retain both K/safety metadata flags; independent-reader controls permit
+identity/overlapping IDs, and reused parameter types retain checked `isDefEq`
+without literal equality. Audits allow only logical and existing storage,
+instantiation/source-guard interfaces, rejecting `sorryAx`. No semantic typing
+or general normalization integrity theorem is inferred. Run
+`lake env lean tests/InductiveBinderStoredTypes.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
