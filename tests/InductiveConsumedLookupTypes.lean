@@ -86,8 +86,8 @@ private theorem futurePairIsNotIncoming (first second targetFirst targetSecond :
 
 private theorem fakeStoredTypeRejected {ctx : Context} {value rawDomain : Expr} {name : Name}
     {bi : BinderInfo} {decl : LocalDecl}
-    (declared : BinderDeclaredAt ctx value name rawDomain.consumeTypeAnnotations bi)
-    (lookup : ctx.lctx.find? value.fvarId! = some decl) (fake : decl.type ≠ rawDomain.consumeTypeAnnotations) : False := by
+    (declared : BinderDeclaredAt ctx value name (peelTypeAnnotations rawDomain) bi)
+    (lookup : ctx.lctx.find? value.fvarId! = some decl) (fake : decl.type ≠ peelTypeAnnotations rawDomain) : False := by
   obtain ⟨actual, hlookup, _, htype, _, _⟩ := declared
   rw [lookup] at hlookup
   obtain rfl := Option.some.inj hlookup
@@ -95,34 +95,34 @@ private theorem fakeStoredTypeRejected {ctx : Context} {value rawDomain : Expr} 
 
 private theorem consumedFromRaw {pairs : List (FVarId × FVarId)} {left right : Expr}
     (raw : IndexLookupRenaming pairs left right) :
-    ConsumedIndexLookupRenaming pairs left.consumeTypeAnnotations right.consumeTypeAnnotations := .ofRaw raw
+    ConsumedIndexLookupRenaming pairs (peelTypeAnnotations left) (peelTypeAnnotations right) := .ofRaw raw
 
 private theorem literalProvenanceWitnesses {pairs : List (FVarId × FVarId)} {left right : Expr}
     (provenance : ConsumedIndexLookupRenaming pairs left right) :
     ∃ rawLeft rawRight, IndexLookupRenaming pairs rawLeft rawRight ∧
-      rawLeft.consumeTypeAnnotations = left ∧ rawRight.consumeTypeAnnotations = right := provenance
+      peelTypeAnnotations rawLeft = left ∧ peelTypeAnnotations rawRight = right := provenance
 
 private theorem consumedRetainsOldProvenance {pairs : List (FVarId × FVarId)} {left right : Expr}
     (provenance : ConsumedIndexLookupRenaming pairs left right) : ConsumedIndexRenaming pairs left right :=
   provenance.toConsumedIndexRenaming
 
 private theorem concreteMappedProvenance (pairs : List (FVarId × FVarId)) (domain : Expr) :
-    ConsumedIndexLookupRenaming pairs domain.consumeTypeAnnotations
-      (indexRenameExpr pairs domain).consumeTypeAnnotations := .ofRaw rfl
+    ConsumedIndexLookupRenaming pairs (peelTypeAnnotations domain)
+      (peelTypeAnnotations (indexRenameExpr pairs domain)) := .ofRaw rfl
 
 private def outParamDomain (domain : Expr) : Expr := mkApp (.const ``outParam [.succ .zero]) domain
 
 private theorem annotatedIndexDomainProvenance (source target : FVarId) :
-    ConsumedIndexLookupRenaming [(source, target)] (outParamDomain (.fvar source)).consumeTypeAnnotations
-      (outParamDomain (.fvar target)).consumeTypeAnnotations := by
+    ConsumedIndexLookupRenaming [(source, target)] (peelTypeAnnotations (outParamDomain (.fvar source)))
+      (peelTypeAnnotations (outParamDomain (.fvar target))) := by
   apply ConsumedIndexLookupRenaming.ofRaw
   simp [IndexLookupRenaming, outParamDomain, indexRenameExpr, indexLookup]
 
 private theorem actualDeclaredProvenance {pairs : List (FVarId × FVarId)}
     {checkedCtx generatedCtx : Context} {checkedValue generatedValue checkedRaw generatedRaw : Expr}
     {name : Name} {bi : BinderInfo}
-    (checkedDeclared : BinderDeclaredAt checkedCtx checkedValue name checkedRaw.consumeTypeAnnotations bi)
-    (generatedDeclared : BinderDeclaredAt generatedCtx generatedValue name generatedRaw.consumeTypeAnnotations bi)
+    (checkedDeclared : BinderDeclaredAt checkedCtx checkedValue name (peelTypeAnnotations checkedRaw) bi)
+    (generatedDeclared : BinderDeclaredAt generatedCtx generatedValue name (peelTypeAnnotations generatedRaw) bi)
     (raw : IndexLookupRenaming pairs checkedRaw generatedRaw) :
     ∃ checkedDecl generatedDecl,
       checkedCtx.lctx.find? checkedValue.fvarId! = some checkedDecl ∧
@@ -222,8 +222,8 @@ private theorem nativeProvenanceKeepsRawAnchors {pairs : List (FVarId × FVarId)
         ((BinderStep.indexValues (generated.take position)).map Expr.fvarId!) ∧
       checkedCtx.lctx.find? checkedStep.value.fvarId! = some checkedDecl ∧
       generatedCtx.lctx.find? generatedStep.value.fvarId! = some generatedDecl ∧
-      checkedDecl.type = checkedStep.domain.consumeTypeAnnotations ∧
-      generatedDecl.type = generatedStep.domain.consumeTypeAnnotations ∧
+      checkedDecl.type = peelTypeAnnotations checkedStep.domain ∧
+      generatedDecl.type = peelTypeAnnotations generatedStep.domain ∧
       IndexLookupRenaming priorPairs checkedStep.domain generatedStep.domain ∧
       ConsumedIndexLookupRenaming priorPairs checkedDecl.type generatedDecl.type := by
   obtain ⟨checkedStep, generatedStep, checkedDecl, generatedDecl, priorPairs, hchecked, hgenerated,
@@ -329,7 +329,7 @@ private def nativeType (ctx : Context) (value : Expr) (name : Name) (rawDomain :
   let some decl := ctx.lctx.find? value.fvarId!
     | throwError "consumed-lookup exact source opening refers to an undeclared actual local"
   unless decl.toExpr == value && decl.userName == name && decl.binderInfo == bi &&
-      decl.type == rawDomain.consumeTypeAnnotations && decl.index == position do
+      decl.type == peelTypeAnnotations rawDomain && decl.index == position do
     throwError "consumed-lookup exact own-plan native declaration receipt changed"
   unless decl.type != .lit (.natVal 66) do
     throwError "consumed-lookup accepted a fake native declaration type"
@@ -349,8 +349,8 @@ private def checkIndexTypes (checkedCtx generatedCtx : Context) (checkedStart ge
     (incoming : List (FVarId × FVarId)) : MetaM Unit := do
   let checkedType ← nativeType checkedCtx leftValue name leftRaw bi (checkedStart + ordinal)
   let generatedType ← nativeType generatedCtx rightValue name rightRaw bi (generatedStart + ordinal)
-  unless indexRenameExpr incoming leftRaw == rightRaw && checkedType == leftRaw.consumeTypeAnnotations &&
-      generatedType == rightRaw.consumeTypeAnnotations do
+  unless indexRenameExpr incoming leftRaw == rightRaw && checkedType == peelTypeAnnotations leftRaw &&
+      generatedType == peelTypeAnnotations rightRaw do
     throwError "consumed-lookup native types lost deterministic raw provenance or literal consumption equations"
   let extended := incoming ++ [(leftValue.fvarId!, rightValue.fvarId!)]
   unless incoming.length + 1 == extended.length && incoming != extended do
@@ -485,6 +485,9 @@ private def annotationBoundaries (ctx : Context) : MetaM Unit := do
   let rawOut := outParamDomain carrier
   let nested := Expr.forallE `inside carrier rawOut .default
   let metadata := Expr.mdata tagged rawOut
+  unless rawOut != carrier && peelTypeAnnotations rawOut == carrier &&
+      peelTypeAnnotations nested == nested && peelTypeAnnotations metadata == metadata do
+    throwError "consumed-lookup executable annotation stripping was incorrectly generalized to nested domains or metadata"
   unless rawOut != carrier && rawOut.consumeTypeAnnotations == carrier &&
       nested.consumeTypeAnnotations == nested && metadata.consumeTypeAnnotations == metadata do
     throwError "consumed-lookup annotation stripping was incorrectly generalized to nested domains or metadata"
@@ -498,9 +501,10 @@ private def annotationBoundaries (ctx : Context) : MetaM Unit := do
       | throwError "consumed-lookup generated annotation declaration missing"
     let .forallE _ rawDomain _ _ := annotationHeaders[parent]!.type
       | throwError "consumed-lookup annotated index-domain setup changed"
-    unless checkedDecl.type == carrier && generatedDecl.type == carrier && rawDomain != checkedDecl.type do
-      throwError "consumed-lookup native annotated index-domain type failed to differ from raw syntax"
-  logInfo "four native outParam/semiOutParam/optParam/autoParam index domains strip to Nat; nested and metadata-wrapped annotations remain empirically unchanged"
+    unless checkedDecl.type == peelTypeAnnotations rawDomain && generatedDecl.type == peelTypeAnnotations rawDomain &&
+        checkedDecl.type == carrier && generatedDecl.type == carrier && rawDomain != checkedDecl.type do
+      throwError "consumed-lookup total-consumer annotated index-domain type failed to differ from raw syntax"
+  logInfo "four executable outParam/semiOutParam/optParam/autoParam index domains strip to Nat; native comparison is empirical and nested/metadata barriers remain unchanged"
 
 private def reusedParameterBoundary (ctx : Context) : MetaM Unit := do
   let first := family (.const ``CarrierAlias []) `first false
@@ -510,7 +514,7 @@ private def reusedParameterBoundary (ctx : Context) : MetaM Unit := do
     | throwError "consumed-lookup reused parameter setup failed"
   let some declaration := checked.lctx.find? stats.params[0]!.fvarId!
     | throwError "consumed-lookup reused shared parameter disappeared"
-  let raw := sortType.consumeTypeAnnotations
+  let raw := peelTypeAnnotations sortType
   let .ok equivalent := ((monadLift (TypeChecker.isDefEq declaration.type raw) : M Bool) checked)
     | throwError "consumed-lookup reused parameter definitional equality failed"
   unless equivalent && declaration.type != raw && declaration.userName != `changedCarrier &&

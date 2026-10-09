@@ -32,12 +32,12 @@ theorem BinderValuesBefore.push {ctx : Context} {values : Array Expr} {name : Na
     {domain : Expr} {bi : BinderInfo}
     (support : BinderValuesBefore ctx ctx.lctx.decls.size values.toList)
     (hwf : ctx.lctx.WF) (hreserved : ContextReserved ctx.lctx ctx.ngen) :
-    BinderValuesBefore (recursorIndexContext ctx name bi domain.consumeTypeAnnotations)
-      (recursorIndexContext ctx name bi domain.consumeTypeAnnotations).lctx.decls.size
+    BinderValuesBefore (recursorIndexContext ctx name bi (peelTypeAnnotations domain))
+      (recursorIndexContext ctx name bi (peelTypeAnnotations domain)).lctx.decls.size
       (values.push (.fvar ⟨ctx.ngen.curr⟩)).toList := by
   intro value hvalue
   rw [Array.toList_push, List.mem_append, List.mem_singleton] at hvalue
-  have frame := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+  have frame := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
   obtain hvalue | rfl := hvalue
   · exact (support.mono hwf frame).weaken (by rw [recursorIndexSize]; omega) value hvalue
   · obtain ⟨decl, hlookup, hexpr, _, _, _, hindex⟩ :=
@@ -110,9 +110,9 @@ theorem CheckedHeaderTrace.paramsBefore {nparams : Nat} {stats finalStats : Indu
   | @freshParameter stats name domain body bi index nindices ctx normalized terminal finalStats finalIndices finalCtx
       hparam hfirst hnormalized tail ih =>
     intro hwf hreserved support
-    have frame := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+    have frame := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
     have hsupported := ih frame.wf frame.reserved (support.push hwf hreserved)
-    have hstart : (recursorIndexContext ctx name bi domain.consumeTypeAnnotations).lctx.decls.size +
+    have hstart : (recursorIndexContext ctx name bi (peelTypeAnnotations domain)).lctx.decls.size +
         (if stats.indConsts.isEmpty then nparams - (index + 1) else 0) =
         ctx.lctx.decls.size + (if stats.indConsts.isEmpty then nparams - index else 0) := by
       rw [recursorIndexSize]
@@ -125,7 +125,7 @@ theorem CheckedHeaderTrace.paramsBefore {nparams : Nat} {stats finalStats : Indu
   | @index stats name domain body bi index nindices ctx normalized terminal finalStats finalIndices finalCtx
       hparam hnormalized tail ih =>
     intro hwf hreserved support
-    have frame := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+    have frame := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
     have hcomplete : nparams ≤ index := Nat.le_of_not_gt hparam
     have hunchanged := tail.paramsUnchanged_of_complete hcomplete
     have hsupported := support.mono hwf (frame.trans (tail.scope frame.wf frame.reserved))

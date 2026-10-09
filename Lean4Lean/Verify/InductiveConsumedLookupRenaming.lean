@@ -1,16 +1,24 @@
 import Lean4Lean.Verify.InductiveBinderLookupCorrespondence
+import Lean4Lean.Verify.InductiveAnnotationModelRenaming
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
 
 def ConsumedIndexLookupRenaming (pairs : List (FVarId × FVarId)) (left right : Expr) : Prop :=
   ∃ rawLeft rawRight, IndexLookupRenaming pairs rawLeft rawRight ∧
-    rawLeft.consumeTypeAnnotations = left ∧ rawRight.consumeTypeAnnotations = right
+    peelTypeAnnotations rawLeft = left ∧ peelTypeAnnotations rawRight = right
 
 theorem ConsumedIndexLookupRenaming.ofRaw {pairs : List (FVarId × FVarId)} {left right : Expr}
     (related : IndexLookupRenaming pairs left right) :
-    ConsumedIndexLookupRenaming pairs left.consumeTypeAnnotations right.consumeTypeAnnotations :=
+    ConsumedIndexLookupRenaming pairs (peelTypeAnnotations left) (peelTypeAnnotations right) :=
   ⟨left, right, related, rfl, rfl⟩
+
+theorem ConsumedIndexLookupRenaming.toIndexLookupRenaming {pairs : List (FVarId × FVarId)}
+    {left right : Expr} (related : ConsumedIndexLookupRenaming pairs left right) :
+    IndexLookupRenaming pairs left right := by
+  obtain ⟨rawLeft, rawRight, hraw, hleft, hright⟩ := related
+  rw [← hleft, ← hright]
+  exact hraw.peelTypeAnnotations
 
 theorem ConsumedIndexLookupRenaming.toConsumedIndexRenaming {pairs : List (FVarId × FVarId)}
     {left right : Expr} (related : ConsumedIndexLookupRenaming pairs left right) :
@@ -21,8 +29,8 @@ theorem ConsumedIndexLookupRenaming.toConsumedIndexRenaming {pairs : List (FVarI
 theorem BinderDeclaredAt.lookupRenamingTypes {pairs : List (FVarId × FVarId)}
     {checkedRoot current : Context} {checkedValue generatedValue checkedDomain generatedDomain : Expr}
     {name : Name} {bi : BinderInfo}
-    (checkedDeclared : BinderDeclaredAt checkedRoot checkedValue name checkedDomain.consumeTypeAnnotations bi)
-    (generatedDeclared : BinderDeclaredAt current generatedValue name generatedDomain.consumeTypeAnnotations bi)
+    (checkedDeclared : BinderDeclaredAt checkedRoot checkedValue name (peelTypeAnnotations checkedDomain) bi)
+    (generatedDeclared : BinderDeclaredAt current generatedValue name (peelTypeAnnotations generatedDomain) bi)
     (hdomains : IndexLookupRenaming pairs checkedDomain generatedDomain) :
     ∃ checkedDecl generatedDecl,
       checkedRoot.lctx.find? checkedValue.fvarId! = some checkedDecl ∧

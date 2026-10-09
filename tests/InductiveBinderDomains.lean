@@ -74,7 +74,7 @@ private theorem dependentDomainsDifferent (carrier first second firstWitness sec
   have hdomain := (List.cons.inj (List.cons.inj (List.cons.inj hequal).2).2).1
   exact hdifferent (Expr.fvar.inj (Expr.app.inj hdomain).2)
 
-example (step : BinderStep) : step.localDomain = step.domain.consumeTypeAnnotations := rfl
+example (step : BinderStep) : step.localDomain = peelTypeAnnotations step.domain := rfl
 
 private def wrappedDependent (data : MData) : Expr :=
   .mdata data (.letE `unused (.const ``Nat []) (.lit (.natVal 0)) dependent true)

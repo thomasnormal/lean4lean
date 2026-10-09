@@ -208,8 +208,8 @@ private theorem richLooseInstantiated (data : MData) :
   (IndexRenaming.refl _ (richDomain data (.bvar 0))).instantiate1 (.bvar 7)
 
 private theorem richConsumed (left right : FVarId) (data : MData) :
-    ConsumedIndexRenaming [(left, right)] (richDomain data (.fvar left)).consumeTypeAnnotations
-      (richDomain data (.fvar right)).consumeTypeAnnotations :=
+    ConsumedIndexRenaming [(left, right)] (peelTypeAnnotations (richDomain data (.fvar left)))
+      (peelTypeAnnotations (richDomain data (.fvar right))) :=
   ConsumedIndexRenaming.ofRaw (richDomainRelated data (.fvar (.inr (by simp))))
 
 private def wrappedDeep (data : MData) : Expr :=
@@ -254,8 +254,8 @@ private theorem provedRegisteredRenaming (data : MData) (ctx : Context) (hwf : c
 private theorem nativeDeclarationTypes {pairs : List (FVarId × FVarId)}
     {checkedRoot current : Context} {checkedValue generatedValue checkedDomain generatedDomain : Expr}
     {name : Name} {bi : BinderInfo}
-    (checkedDeclared : BinderDeclaredAt checkedRoot checkedValue name checkedDomain.consumeTypeAnnotations bi)
-    (generatedDeclared : BinderDeclaredAt current generatedValue name generatedDomain.consumeTypeAnnotations bi)
+    (checkedDeclared : BinderDeclaredAt checkedRoot checkedValue name (peelTypeAnnotations checkedDomain) bi)
+    (generatedDeclared : BinderDeclaredAt current generatedValue name (peelTypeAnnotations generatedDomain) bi)
     (domains : IndexRenaming pairs checkedDomain generatedDomain) :
     ∃ checkedDecl generatedDecl,
       checkedRoot.lctx.find? checkedValue.fvarId! = some checkedDecl ∧

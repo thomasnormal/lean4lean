@@ -28,9 +28,9 @@ inductive RecursorIndexTrace (stats : InductiveStats) :
       {ctx : Context} {normalized terminal : Expr} {finalIndex : Nat} {finalIndices : Array Expr} {finalCtx : Context}
       (hparam : ¬ index < stats.params.size)
       (hnormalized : ((monadLift (TypeChecker.whnf (body.instantiate1 (.fvar ⟨ctx.ngen.curr⟩))) : M Expr)
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations)) = .ok normalized)
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain))) = .ok normalized)
       (tail : RecursorIndexTrace stats normalized index (indices.push (.fvar ⟨ctx.ngen.curr⟩))
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations) terminal finalIndex finalIndices finalCtx) :
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain)) terminal finalIndex finalIndices finalCtx) :
       RecursorIndexTrace stats (.forallE name domain body bi) index indices ctx terminal finalIndex finalIndices finalCtx
 
 private theorem bindResultWF {action : M α} {next : α → M β} {ctx : Context} {post : β → Prop}
@@ -67,7 +67,7 @@ theorem mkRecInfos.loopArgs1.scopedTrace (stats : InductiveStats) (type : Expr) 
         exact hnext terminal finalIndex finalIndices current (.parameter hparam hnormalized htrace) hframe
       · rename_i hparam
         apply withIndexDeclWF
-        have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+        have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
         apply bindResultWF
         intro normalized hnormalized
         apply ih
@@ -126,7 +126,7 @@ theorem RecursorIndexTrace.rawArity {stats : InductiveStats} {type terminal : Ex
   | @index name domain body bi index indices ctx normalized terminal finalIndex finalIndices finalCtx
       hparam hnormalized tail ih =>
     have hbound := whnf_instantiate_arity name domain body bi (.fvar ⟨ctx.ngen.curr⟩)
-      (recursorIndexContext ctx name bi domain.consumeTypeAnnotations) rfl normalized hnormalized
+      (recursorIndexContext ctx name bi (peelTypeAnnotations domain)) rfl normalized hnormalized
     simp only [Array.size_push] at ih
     omega
 
@@ -141,7 +141,7 @@ theorem RecursorIndexTrace.scope {stats : InductiveStats} {type terminal : Expr}
   | @index name domain body bi index indices ctx normalized terminal finalIndex finalIndices finalCtx
       hparam hnormalized tail ih =>
     intro hwf hreserved
-    have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+    have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
     exact hpush.trans (ih hpush.wf hpush.reserved)
 
 theorem RecursorIndexTrace.declared {stats : InductiveStats} {type terminal : Expr} {index finalIndex : Nat}
@@ -155,13 +155,13 @@ theorem RecursorIndexTrace.declared {stats : InductiveStats} {type terminal : Ex
   | @index name domain body bi index indices ctx normalized terminal finalIndex finalIndices finalCtx
       hparam hnormalized tail ih =>
     intro hdeclared
-    exact ih (hdeclared.push ⟨ctx.ngen.curr⟩ name domain.consumeTypeAnnotations bi)
+    exact ih (hdeclared.push ⟨ctx.ngen.curr⟩ name (peelTypeAnnotations domain) bi)
 
 def recursorMajorDomain (stats : InductiveStats) (parent : Nat) (indices : Array Expr) : Expr :=
-  (mkAppN (mkAppN stats.indConsts[parent]! stats.params) indices).consumeTypeAnnotations
+  peelTypeAnnotations (mkAppN (mkAppN stats.indConsts[parent]! stats.params) indices)
 
 def recursorMotiveDomain (elimLevel : Level) (indices : Array Expr) (major : Expr) (ctx : Context) : Expr :=
-  (ctx.lctx.mkForall indices (ctx.lctx.mkForall #[major] (.sort elimLevel))).consumeTypeAnnotations
+  peelTypeAnnotations (ctx.lctx.mkForall indices (ctx.lctx.mkForall #[major] (.sort elimLevel)))
 
 def recursorMotiveName (types : Array InductiveType) (parent : Nat) : Name :=
   if types.size > 1 then (`motive).appendIndexAfter (parent + 1) else `motive
