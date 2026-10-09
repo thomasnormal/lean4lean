@@ -1510,7 +1510,7 @@ private theorem state_newTypesRange_set (numParams index : Nat) (state : State)
 
 private theorem withParams_loop_context_range_newTypes (remaining : Nat) (type : Expr)
     (lctx : LocalContext) (params : Array Expr)
-    (next : LocalContext → Expr → Array Expr → M α) (bound : Nat)
+    (next : LocalContext → Expr → Array Expr → M α) (bound index : Nat)
     (env : Environment) (state : State) (post : α × State → Prop)
     (hvalid : ParamValidity params.size lctx params)
     (hreserved : ContextReserved lctx state.ngen)
@@ -1518,12 +1518,13 @@ private theorem withParams_loop_context_range_newTypes (remaining : Nat) (type :
     (htype : type.looseBVarRange' ≤ params.size + remaining)
     (hstate : state.NestedAuxScoped)
     (hrange : State.NewTypesRange bound state)
+    (hindex : index < state.newTypes.size)
     (hnext : ∀ lctx' remainder params' state',
       ParamValidity (params.size + remaining) lctx' params' →
       ContextReserved lctx' state'.ngen →
       (∀ decl ∈ lctx'.toList, decl.type.looseBVarRange' ≤ params.size + remaining) →
       state'.NestedAuxScoped → remainder.looseBVarRange' ≤ params.size + remaining →
-      State.NewTypesRange bound state' →
+      State.NewTypesRange bound state' → index < state'.newTypes.size →
       (next lctx' remainder params' env state').WF post) :
     (withParams.loop next lctx type params remaining env state).WF post := by
   induction remaining generalizing type lctx params state with
@@ -1535,6 +1536,7 @@ private theorem withParams_loop_context_range_newTypes (remaining : Nat) (type :
     · exact hstate
     · exact htype
     · exact hrange
+    · exact hindex
   | succ remaining ih =>
     cases type with
     | forallE name domain body bi =>
@@ -1563,40 +1565,42 @@ private theorem withParams_loop_context_range_newTypes (remaining : Nat) (type :
             (Expr.instantiate1'_looseBVarRange (n := params.size + remaining + 1) (k := 0)
               (by simpa [Nat.add_assoc] using hparts.2) (by simp [Expr.looseBVarRange'])))
         (by simpa [State.NestedAuxScoped] using hstate)
-        hrange
-        (fun lctx' remainder params' state' hvalid' hreserved' hscope' hstate' htype' hrange' =>
+        hrange hindex
+        (fun lctx' remainder params' state' hvalid' hreserved' hscope' hstate' htype' hrange' hindex' =>
           hnext lctx' remainder params' state'
             (by simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hvalid')
             hreserved'
             (by simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hscope')
             hstate'
             (by simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using htype')
-            hrange')
+            hrange' hindex')
     | _ => exact Except.WF.throw
 
-theorem withParams.contextRangeNewTypes (type : Expr) (numParams : Nat)
+theorem withParams.contextRangeNewTypes (type : Expr) (numParams index : Nat)
     (next : LocalContext → Expr → Array Expr → M α)
     (env : Environment) (state : State) (htype : type.looseBVarRange' ≤ numParams)
     (hstate : state.NestedAuxScoped) (hrange : State.NewTypesRange numParams state)
+    (hindex : index < state.newTypes.size)
     (post : α × State → Prop)
     (hnext : ∀ lctx remainder params state', ParamValidity numParams lctx params →
       ContextReserved lctx state'.ngen →
       (∀ decl ∈ lctx.toList, decl.type.looseBVarRange' ≤ numParams) →
       state'.NestedAuxScoped → remainder.looseBVarRange' ≤ numParams →
       State.NewTypesRange numParams state' →
+      index < state'.newTypes.size →
       (next lctx remainder params env state').WF post) :
     (withParams type numParams next env state).WF post := by
-  exact withParams_loop_context_range_newTypes numParams type {} #[] next numParams env state post
+  exact withParams_loop_context_range_newTypes numParams type {} #[] next numParams index env state post
     ParamValidity.empty (ContextReserved.empty state.ngen)
     (by
       intro decl hdecl
       have hzero := ContextNoLooseBVars.empty decl hdecl
       omega)
-    (by simpa [Nat.zero_add] using htype) hstate hrange
-    (fun lctx remainder params state' hvalid' hreserved' hscope' hstate' htype' hrange' =>
+    (by simpa [Nat.zero_add] using htype) hstate hrange hindex
+    (fun lctx remainder params state' hvalid' hreserved' hscope' hstate' htype' hrange' hindex' =>
       hnext lctx remainder params state' (by simpa using hvalid') hreserved'
         (by simpa [Nat.add_zero] using hscope') hstate'
-        (by simpa [Nat.add_zero] using htype') (by simpa using hrange'))
+        (by simpa [Nat.add_zero] using htype') (by simpa using hrange') (by simpa using hindex'))
 
 private theorem mapM_newTypesRange (numParams index : Nat) (items : List α)
     (step : α → M β) (pred : β → Prop) (env : Environment) (state : State)
@@ -1753,10 +1757,7 @@ theorem run.loop.newTypesRange (numParams : Nat) (lctx : LocalContext)
     (params : Array Expr) (index fuel : Nat) (env : Environment) (state : State)
     (hcontext : ParamContext numParams lctx params) (hstate : state.NestedAuxScoped)
     (hrange : State.NewTypesRange numParams state)
-    (hgenerated : ∀ (loopIndex : Nat) (ctorLctx : LocalContext) (ctorType : Expr) (As : Array Expr)
-      (stepState : State), stepState.NestedAuxScoped →
-      (replaceAllNested ctorLctx params As ctorType env stepState).WF fun returned =>
-        State.NewTypesRange numParams returned.2 ∧ loopIndex < returned.2.newTypes.size) :
+    (hclosure : Lean4Lean.Environment.InductiveDeclRange env) :
     (run.loop numParams lctx params index fuel env state).WF fun result =>
       State.NewTypesRange numParams result.2 ∧ Result.TypesRange numParams result.1 := by
   induction fuel generalizing index state with
@@ -1776,11 +1777,11 @@ theorem run.loop.newTypesRange (numParams : Nat) (lctx : LocalContext)
       · intro ctor stepState hstep hstepRange hstepIndex hctorMem
         have hctorRange : ConstructorRange numParams ctor :=
           hindType.2 ctor hctorMem
-        refine withParams.contextRange ctor.type numParams _ env stepState hctorRange hstep _ ?_
-        intro ctorLctx ctorType As state' hvalid hreserved hscope hstate' htype'
-        refine (replaceAllNested.rangeWithNewTypes numParams lctx ctorLctx params As ctorType env
-          state' numParams index hvalid.context hcontext hstate'
-          (hgenerated index ctorLctx ctorType As state' hstate') htype').bind ?_
+        refine withParams.contextRangeNewTypes ctor.type numParams index _ env stepState hctorRange hstep
+          hstepRange hstepIndex _ ?_
+        intro ctorLctx ctorType As state' hvalid hreserved hscope hstate' htype' hrange' hindex'
+        refine (replaceAllNested.rangeWithNewTypesStructural numParams lctx ctorLctx params As ctorType env
+          state' numParams index hvalid hcontext hscope hstate' hrange' hindex' hclosure htype').bind ?_
         rintro ⟨newType, state''⟩ hnewType
         have hctor : ConstructorRange numParams { ctor with
           type := ctorLctx.mkForall As newType } :=
