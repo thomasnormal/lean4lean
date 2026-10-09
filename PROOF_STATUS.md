@@ -738,10 +738,12 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   validity, old lookups, exact offset metadata and local RHS scope receipts.
   Sixteen axiom audits exclude `sorryAx`, tracking existing binding/map/list-push
   interfaces; no executable kernel change, axiom or admission is added.
-  This does not yet prove equality between generated index counts and checked
-  `stats.nindices`: normalization transport between checked-header and recursor
-  readers/environments is separate. Raw source arity is only a lower bound on
-  normalized binder counts, and unchecked helper statistics need not be correct.
+  This module alone does not prove equality between generated index counts and
+  checked `stats.nindices`; `InductiveIndexAlignment` proves it for explicit
+  sort-telescope headers. General normalization transport between checked-header
+  and recursor readers/environments remains separate. Raw source arity is only a
+  lower bound on normalized binder counts, and unchecked helper statistics need
+  not be correct.
   Terminal helpers can succeed before consuming all parameters, and structural
   receipts do not establish header/source typing, terminal-sort validity, motive
   typing, RHS reduction or full inductive soundness.
@@ -764,12 +766,39 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   Fourteen axiom audits exclude `sorryAx` and use only existing logical/map/list
   interfaces. No executable kernel change, axiom or admission is added.
   Checked-header counts and recursor-generated index vectors now both have
-  actual traversal receipts, but their equality still requires WHNF transport
-  between different readers/environments. Action-result equalities are not
-  semantic typing/reduction theorems; direct unchecked helpers can start with
+  actual traversal receipts. General equality still requires WHNF transport
+  between different readers/environments; the explicit sort-telescope fragment
+  is now discharged by `InductiveIndexAlignment`. Action-result equalities are
+  not semantic typing/reduction theorems; direct unchecked helpers can start with
   inconsistent statistics or terminate at a non-sort. Complete inductive
   soundness, source typing, nested correctness and generated binder alignment
   remain separate obligations.
+- `Verify.InductiveIndexAlignment` proves checked/generated index-count equality
+  for explicit sort telescopes: zero or more `forallE` binders ending in `sort`,
+  with arbitrary domains, binder information and universe levels. Substitution
+  by any expression preserves the telescope and its raw binder count; successful
+  WHNF fixes its outer view independently of the environment, local reader,
+  fresh-name generator or successful normalization fuel. The actual checked
+  trace consumes exactly its parameter/index binder count. The actual recursor
+  trace consumes the minimum of available binders and remaining parameters,
+  allocates exactly the remaining index binders, and retains both exact counts.
+  Combining the same successful checked-header and recursor source receipts
+  proves `info.indices.size = stats.nindices[parent]!` for every parent, without
+  equating fresh variable names or assuming WHNF transport or count equality.
+  `scopedAlignedIndices` passes these counts and source/scope receipts through
+  arbitrary continuations; `getAlignedIndices` and `registeredAlignedIndices`
+  preserve the same-success count, allocation, map, lookup, metadata and local
+  RHS-scope certificates. `safeRegisteredIndexCounts` lifts the equality through
+  the actual safe checked-header/constructor/generation/registration prefix,
+  including both real declaration-environment extensions.
+  Sixteen axiom audits exclude `sorryAx`, using only existing logical/binding/
+  map/list interfaces. No executable kernel change, axiom or admission is added.
+  This is a structural count theorem, not source/RHS typing, reduction soundness,
+  correspondence of individual binder domains, K-target correctness or full
+  inductive soundness. Aliases/annotations/let/beta forms in the binder spine
+  remain outside this explicit fragment; aliases in binder domains are allowed.
+  General normalized-spine transport and nested/preprocessing correctness remain
+  separate, and bare helper statistics do not gain a validity certificate.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2531,6 +2560,23 @@ initial statistic validity and terminal-sort checking from the structural
 trace's complete parameter-consumption guarantee. These runtime checks do not
 prove WHNF transport or checked/generated index equality.
 Run `lake env lean tests/InductiveHeaderTraces.lean`.
+
+`tests/InductiveIndexAlignment.lean` exercises explicit telescope stability under
+arbitrary substitution and different normalization readers, exact checked and
+generated binder counts, complete parameter consumption when enough binders
+exist, source-receipt count alignment, arbitrary CPS callbacks, registration and
+the actual safe declaration prefix. Sixteen axiom audits exclude `sorryAx`.
+Twenty-two native safe prefixes cover empty/mutual/dependent/polymorphic
+headers, differing index counts, alias domains and binder information, exact
+sufficient fuel, seeded fresh-name/local readers, both K metadata flags and
+recursive constructor minors. They check equality of checked, generated and
+registered index counts and retained local declarations. Four direct-helper/
+fuel controls retain inconsistent stored-count, incomplete-parameter and
+partial traversal behavior. A hidden-header alias still succeeds with a strict
+raw/normalized arity gap but is deliberately excluded by the theorem's explicit
+fragment premise. Proof-only controls reject incorrect counts and non-telescope
+spines. General alias transport and semantic binder typing remain separate.
+Run `lake env lean tests/InductiveIndexAlignment.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
