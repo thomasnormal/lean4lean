@@ -3540,6 +3540,63 @@ inherited foundations and four existing native interfaces. Runtime helper
 audits reject admissions; all three context modules replay through lean4lean.
 Run `lake env lean tests/InductiveIndexContextTranslation.lean`.
 
+`Verify.InductiveIndexTraceTranslation` carries the peeled-domain opening
+receipt through the same actual `RecursorIndexTrace`, restricted to
+`stats.params.size ≤ index`. This excludes reused-parameter steps; index steps
+leave that counter unchanged. Each translated node keeps its actual native
+reader, pushed virtual context, chosen peeled-domain witness, successful WHNF
+result, normalized strong translation and definitional equality to the old
+opened-body semantics, together with the translated original tail. It does
+not select an independent allocation or semantic history.
+
+Annotation and normalization support are indexed by the supplied actual trace.
+Each annotation node requires a compatible existing domain sort witness and
+literal universe uniformity, not a supplied typed annotation spine. This is
+node-local: distinct valid annotations need not share one semantic universe.
+Each normalization node requires structural translation of its exact recorded
+WHNF result and definitional equality to the previously opened semantic body.
+General WHNF soundness alone is not claimed to recover that strong translation,
+nor to make the converted semantic expressions literally equal.
+
+`Verify.InductiveIndexTraceTranslationFacts` derives final native/virtual
+correspondence, terminal strong translation, the unchanged index counter and
+composed native reader scope from that semantic history. Its allocation suffix
+is constructed in the same history induction and retains the initial index
+array prefix and every actual final native declaration position. For literal
+`SortTelescope` sources, the actual successful WHNF leaves the opened body
+unchanged; this discharges normalization support by source equality and
+unpacking `TrExpr`. Annotation support remains explicit. Generic reducing
+traces are not asserted to form literal `OpenedTelescope` histories.
+
+`Verify.InductiveIndexTraceTranslationCPS` applies transport to the trace
+observed by the actual `mkRecInfos.loopArgs1.scopedTrace` continuation, passing
+that same history, final correspondence, terminal translation and reader scope
+to its caller. The literal-telescope variant discharges only normalization
+support. A getter returns the actual index array and observed native reader
+with that same receipt. These are index-only partial-correctness bridges, not
+reused-parameter semantic correspondence, generic strong-normalization
+soundness, source-header acceptance or complete inductive verification.
+
+Whole-module audits retain the inherited structural/projection/context
+conversion foundations and existing native instantiation/storage interfaces;
+literal-telescope normalization additionally uses the existing instantiation
+interface. No new axiom, admission, oracle, global loose-bound-variable-range
+dependency, runtime checker path or allocation behavior is introduced.
+`tests/InductiveIndexTraceTranslation.lean` checks same-trace projections,
+prefix allocations, mixed annotation universes, explicit normalization and
+parameter boundaries, native dependencies, actual continuations and module
+axiom provenance. Runtime allocation experiments do not establish semantic
+header acceptance. A concrete two-index plain-Nat getter instead constructs
+the source strong translation and local annotation support from the actual
+Nat type lookup, discharging normalization from the literal source telescope.
+The fixture covers twenty-seven proof controls, 162 audits and six axiom-print
+checks, plus thirty-six actual suffix callbacks with ninety dependent
+allocations and a reused-parameter boundary control. The clean annotation-core
+census stays seventy-three declarations / thirty-eight theorems; all three
+trace modules cover fifty-four / fifteen, including private/generated helpers.
+All three trace modules replay through lean4lean. Run
+`lake env lean tests/InductiveIndexTraceTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field

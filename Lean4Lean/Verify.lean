@@ -88,6 +88,9 @@ import Lean4Lean.Verify.InductiveTelescopeTranslation
 import Lean4Lean.Verify.InductiveBinderTranslation
 import Lean4Lean.Verify.InductiveIndexContextTranslation
 import Lean4Lean.Verify.InductiveIndexOpeningTranslation
+import Lean4Lean.Verify.InductiveIndexTraceTranslation
+import Lean4Lean.Verify.InductiveIndexTraceTranslationFacts
+import Lean4Lean.Verify.InductiveIndexTraceTranslationCPS
 import Lean4Lean.Verify.InductiveAnnotationNativeScope
 import Lean4Lean.Verify.InductiveAnnotationOpeningShape
 import Lean4Lean.Verify.InductiveAnnotationModelOpening
