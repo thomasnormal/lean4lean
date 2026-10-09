@@ -206,6 +206,66 @@ inductive ConstructorSpine : Expr → Expr → Prop where
       (h : ConstructorSpine (body.instantiate1 arg) terminal) :
       ConstructorSpine (.forallE name domain body bi) terminal
 
+inductive PositiveConstructorSpine (stats : InductiveStats) : Expr → Expr → Prop where
+  | refl (type : Expr) : PositiveConstructorSpine stats type type
+  | parameter (name : Name) (domain body : Expr) (bi : BinderInfo)
+      (param terminal : Expr)
+      (h : PositiveConstructorSpine stats (body.instantiate1 param) terminal) :
+      PositiveConstructorSpine stats (.forallE name domain body bi) terminal
+  | field (name : Name) (domain body : Expr) (bi : BinderInfo)
+      (arg terminal : Expr) (hdom : hasIndOcc stats.indConsts domain = false)
+      (h : PositiveConstructorSpine stats (body.instantiate1 arg) terminal) :
+      PositiveConstructorSpine stats (.forallE name domain body bi) terminal
+
+theorem checkConstructors.loop_positive_spine (stats : InductiveStats)
+    (parent : Nat) (ctor : Name) (type : Expr) (index fuel : Nat) (ctx : Context)
+    (hpositive : ∀ domain index ctx,
+      (checkPositivity stats domain ctor index ctx).WF fun _ =>
+        hasIndOcc stats.indConsts domain = false) :
+    (checkConstructors.loop stats false parent ctor type index fuel ctx).WF fun _ =>
+      ∃ terminal, PositiveConstructorSpine stats type terminal ∧
+        isValidIndAppIdx stats terminal parent = true := by
+  induction fuel generalizing type index ctx with
+  | zero => exact Except.WF.throw
+  | succ fuel ih =>
+    cases type with
+    | forallE name domain body bi =>
+      rw [checkConstructors.loop.eq_def]
+      dsimp only
+      cases hparam : stats.params[index]? with
+      | some param =>
+        apply Lean4Lean.AddInductive.bindWF
+        intro paramType
+        apply Lean4Lean.AddInductive.bindWF
+        intro equal
+        split
+        · apply Lean4Lean.AddInductive.bindWF
+          intro _
+          refine (ih (body.instantiate1 param) (index + 1) ctx).mono ?_
+          rintro _ ⟨terminal, hspine, hvalid⟩
+          exact ⟨terminal, .parameter name domain body bi param terminal hspine, hvalid⟩
+        · exact Except.WF.throw
+      | none =>
+        apply Lean4Lean.AddInductive.bindWF
+        intro sort
+        split
+        · refine (hpositive domain index ctx).bind ?_
+          intro _ hdom
+          apply Lean4Lean.AddInductive.withLocalDeclWF
+          intro arg ctx' hfvar harg hgen hframe
+          refine (ih (body.instantiate1 arg) (index + 1) ctx').mono ?_
+          rintro _ ⟨terminal, hspine, hvalid⟩
+          exact ⟨terminal, .field name domain body bi arg terminal hdom hspine, hvalid⟩
+        · exact Except.WF.throw
+    | _ =>
+      rw [checkConstructors.loop.eq_def]
+      dsimp only
+      split
+      · exact Except.WF.throw
+      · rename_i hvalid
+        intro _ _
+        exact ⟨_, .refl _, by simpa using hvalid⟩
+
 theorem checkConstructors.loop_spine (stats : InductiveStats) (isUnsafe : Bool)
     (parent : Nat) (ctor : Name) (type : Expr) (index fuel : Nat) (ctx : Context) :
     (checkConstructors.loop stats isUnsafe parent ctor type index fuel ctx).WF fun _ =>
