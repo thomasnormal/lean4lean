@@ -3257,6 +3257,46 @@ and existing storage/instantiation/source-guard interfaces. These checks do not
 establish loose-BVar closure or semantic typing. Run
 `lake env lean tests/InductiveBinderIntegrity.lean`.
 
+The depth-indexed closure extension proves `Expr.Closed` preservation for the
+actual total annotation consumer, structurally modeled substitution at any
+valid binder offset, and native `instantiate1` via its existing interface.
+Closed replacements do not acquire loose variables when lifted under binders.
+Supported metadata/let/beta normalization and actual FVar telescope opening
+retain closure, with explicit source/normalized closure premises. The stronger
+parent and recursor receipts keep closure on the same checked/generated
+histories as the existing forty integrity facts, including actual stored index
+declaration types recovered by native lookup uniqueness. They project back to
+the existing integrity contracts rather than extracting unrelated witnesses.
+Closure does not imply semantic local typing or exclude universe metavariables;
+the separate `FVarsIn` receipts retain that universe-integrity obligation.
+Conversely, `FVarsIn` alone does not imply closure, and peeling or supported
+normalization may discard loose variables without establishing source closure.
+
+`Verify.InductiveHeaderClosureGuard` proves that successful type checking rejects
+native loose-bound-variable metadata before either inference cache is consulted,
+even for arbitrary methods and cache states. This operational proof bypasses
+the admitted semantic checker stack. Structural range bounds together with
+`FVarsIn` imply depth-indexed closure, but converting the native guard to source
+closure retains an explicit native/structural range bridge. The extension does
+not silently use the existing unbounded `Expr.looseBVarRange_eq` interface:
+native metadata has a twenty-bit range, and Lean 4.29.0 accepts BVar index
+1,048,574 but panics when constructing index 1,048,575. This is a constructor
+domain boundary, not silent range saturation or a newly found kernel bug.
+
+`tests/InductiveBinderClosure.lean` adds thirty-eight proof regressions and
+eighty-one strict axiom audits, including explicit rejection of the unbounded
+range interface. Twenty-seven registrations span forty-five parent pairs,
+141 paired raw domains and ninety paired actual index declarations across
+three readers. Four successful sources and two clean cache hits contrast with
+twelve checked-source rejections and forty-eight polluted-cache/uncached
+infer/check rejections, including the maximum supported native BVar index.
+Two unchecked-helper controls distinguish persistent loose domains from clean
+stored output after discarded defaults. An independent guard audit compares
+seventeen native cases and checks 104 spoofed-cache rejections. Whole-module
+audits include generated/private declarations and reject `sorryAx`; all four
+new modules also replay successfully through lean4lean. Run
+`lake env lean tests/InductiveBinderClosure.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
