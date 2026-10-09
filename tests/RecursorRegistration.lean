@@ -229,6 +229,8 @@ private def checkedHeader (name : Name) (nparams : Nat) (ctors : List Constructo
 private def checkChecked (ctx : Context) (nparams : Nat) (types : Array InductiveType) : MetaM Unit := do
   let .ok (stats, elimLevel, infos, lctx, isK, isUnsafe, source, env) := checkedStage nparams types ctx
     | throwError "checked recursor fixture unexpectedly failed"
+  let .ok full := AddInductive.run nparams types.toList 0 ctx
+    | throwError "complete recursor fixture unexpectedly failed"
   let expectedParams := if types.isEmpty then 0 else nparams
   unless stats.params.size == expectedParams && infos.size == types.size &&
       (infos.flatMap (·.minors)).size == (types.toList.flatMap (·.ctors)).length do
@@ -237,8 +239,13 @@ private def checkChecked (ctx : Context) (nparams : Nat) (types : Array Inductiv
   for index in [:types.size] do
     unless infos[index]!.indices.size == stats.nindices[index]! do
       throwError "checked fixture does not align recursor and datatype indices"
-    minorIndex ← checkExact source stats types elimLevel infos source.lparams lctx isK isUnsafe env index minorIndex
-  for name in [``Nat, ``Nat.rec, ``List, ``List.rec] do checkPreserved source.env env name
+    let nextIndex ← checkExact source stats types elimLevel infos source.lparams lctx isK isUnsafe env index minorIndex
+    let fullNextIndex ← checkExact source stats types elimLevel infos source.lparams lctx isK isUnsafe full index minorIndex
+    unless nextIndex == fullNextIndex do throwError "complete run changed rule-state advancement"
+    minorIndex := nextIndex
+  for name in [``Nat, ``Nat.rec, ``List, ``List.rec] do
+    checkPreserved source.env env name
+    checkPreserved source.env full name
 
 private def audit (theoremName : Name) (mapInterfaces := true) : MetaM Unit := do
   let axioms ← collectAxioms theoremName
@@ -312,6 +319,9 @@ run_meta
     checkedHeader `CheckedMetaOther 1 [otherBase]]
   checkChecked ctx 0 #[]
   checkChecked ctx 0 #[checkedHeader `CheckedMetaZero 0 []]
+  checkChecked ctx 0 #[{
+    name := `CheckedMetaProp, type := .sort .zero,
+    ctors := [{ name := `CheckedMetaProp.intro, type := .const `CheckedMetaProp [] }] }]
   checkChecked ctx 0 #[checkedHeader `CheckedMetaZero 0 [base, recursive, higher]]
   checkChecked ctx 1 #[checkedHeader `CheckedMetaOne 1 [parameterOnly, parameterField, parameterRecursive]]
   checkChecked ctx 2 #[checkedHeader `CheckedMetaTwo 2 [twoBase]]
@@ -344,6 +354,6 @@ run_meta
   checkChecked { ctx with allowPrimitive := true } 1 mutualTypes
   checkChecked { ctx with fuel := { ctx.fuel with inductiveFuel := 3 } }
     1 #[checkedHeader `CheckedMetaOne 1 [parameterOnly, parameterRecursive]]
-  logInfo "12 checked recursor fixtures passed exact records, rule receipts, index/parameter/motive/minor counts"
+  logInfo "13 checked and complete recursor fixtures passed exact records, rule receipts, index/parameter/motive/minor counts"
 
 end RecursorRegistrationTest
