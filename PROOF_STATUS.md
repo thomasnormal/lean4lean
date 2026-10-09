@@ -745,6 +745,31 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   Terminal helpers can succeed before consuming all parameters, and structural
   receipts do not establish header/source typing, terminal-sort validity, motive
   typing, RHS reduction or full inductive soundness.
+- `Verify.InductiveHeaderTraces` retains the actual checked-header normalization
+  and binder-consumption traversal. Its traces distinguish first-header shared
+  parameter allocation, subsequent parameter reuse with the actual successful
+  domain-type lookup and `isDefEq` check, and every fresh index allocation.
+  Each body instantiation keeps its actual WHNF result and reader. Successful
+  terminal traces require complete parameter consumption and a non-forall
+  expression, preserve header arrays/levels and old parameters, and establish
+  index-count growth, shared-parameter counts and structural scope extension.
+  Per-parent source receipts retain the actual source-variable guard, original
+  type-check result, initial WHNF, prefix statistics, traversal, final shared
+  parameter vector, and terminal `ensureSort` result. The growing parent fold
+  couples each trace's index count to the corresponding final `stats.nindices`
+  entry and preserves exactly the same shared parameter vector through every
+  later header. `scopedHeaderTraces` passes these receipts to arbitrary callbacks;
+  `getHeaderTraces` couples them with scope, parameter counts, atom shape and
+  distinctness on the same successful statistics/reader pair.
+  Fourteen axiom audits exclude `sorryAx` and use only existing logical/map/list
+  interfaces. No executable kernel change, axiom or admission is added.
+  Checked-header counts and recursor-generated index vectors now both have
+  actual traversal receipts, but their equality still requires WHNF transport
+  between different readers/environments. Action-result equalities are not
+  semantic typing/reduction theorems; direct unchecked helpers can start with
+  inconsistent statistics or terminate at a non-sort. Complete inductive
+  soundness, source typing, nested correctness and generated binder alignment
+  remain separate obligations.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2491,6 +2516,21 @@ terminal helper with unconsumed parameters, zero/partial fuel, unchecked stored
 index counts and an untyped free-variable header. No panic default is executed,
 and helper fixtures do not claim full frontend acceptance or semantic typing.
 Run `lake env lean tests/RecursorInfoIndices.lean`.
+
+`tests/InductiveHeaderTraces.lean` adds fifteen proof regressions, six proof-only
+failure controls and fourteen axiom audits for checked-header traces, terminal
+parameter consumption, index-count bounds, preserved header arrays/shared
+parameters and same-success checked-header source receipts. Fifteen native
+fixtures cover empty and mutual headers, fresh/reused/dependent parameters,
+heterogeneous index counts, initial/tail/domain aliases, annotated/let/beta
+headers, polymorphic and seeded readers, and exact sufficient traversal fuel.
+Six fixtures expose strictly larger normalized binder counts than raw source
+arity. Ten failure fixtures retain source-variable/type, parameter, universe,
+fuel and continuation rejection; three direct-helper controls distinguish
+initial statistic validity and terminal-sort checking from the structural
+trace's complete parameter-consumption guarantee. These runtime checks do not
+prove WHNF transport or checked/generated index equality.
+Run `lake env lean tests/InductiveHeaderTraces.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
