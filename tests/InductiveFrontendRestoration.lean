@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveRestorationArity
+import Lean4Lean.Verify.InductiveRestorationRules
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -491,6 +491,25 @@ private def checkSourceConstructors (nparams : Nat) (lparams : List Name) (types
         { info with type := preprocessing.restoreNested staged info.type }
       checkLookup result (.ctorInfo expected)
 
+private def checkSourceRecursorRules (nparams : Nat) (types : List InductiveType)
+    (preprocessing : ElimNestedInductive.Result) (staged result : Kernel.Environment) : MetaM Unit := do
+  for (sourceType, index) in types.zipIdx do
+    let name := mkRecName sourceType.name
+    let some (.recInfo recursor) := staged.find? name | throwError "missing source-indexed staged recursor"
+    unless recursor.name == name && recursor.rules.map (fun rule => (rule.ctor, rule.nfields)) ==
+        sourceType.ctors.map (fun ctor => (ctor.name, declareConstructors.arity 0 ctor.type - nparams)) do
+      throwError "staged recursor lost original constructor positions or field counts"
+    unless recursorMinorOffset preprocessing.types.toArray index == recursorMinorOffset types.toArray index &&
+        recursorMinorOffset preprocessing.types.toArray (index + 1) == recursorMinorOffset types.toArray (index + 1) do
+      throwError "preprocessing changed original constructor minor offsets"
+    for (sourceCtor, rule) in sourceType.ctors.zip recursor.rules do
+      let some (.ctorInfo info) := staged.find? sourceCtor.name | throwError "rule lacks its checked source constructor"
+      unless rule.ctor == info.name && rule.nfields == info.numFields do
+        throwError "recursor rule disagrees with checked source constructor metadata"
+    let expected := if preprocessing.aux2nested.size = 0 then recursor else
+      restoredRecursorVal preprocessing staged (types.map (·.name)) (mkAuxRecNameMap staged types).2 name recursor
+    checkLookup result (.recInfo expected)
+
 private def checkFrontend (env : Kernel.Environment) (nparams : Nat) (types : List InductiveType)
     (nested : Bool) (lparams : List Name := []) : MetaM Unit := do
   unless ((← Lean.getEnv).addDeclCore 0 (.inductDecl lparams nparams types false) none).isOk do
@@ -515,6 +534,7 @@ private def checkFrontend (env : Kernel.Environment) (nparams : Nat) (types : Li
     let .ok added := Lean4Lean.addDecl env (.inductDecl lparams nparams types false) check
       | throwError "public restoration failed with check={check}"
     checkSourceConstructors nparams lparams types preprocessing staged added
+    checkSourceRecursorRules nparams types preprocessing staged added
     if nested then
       checkRestoredRecords env staged added preprocessing types
       checkRestoredRecords env staged expected preprocessing types
@@ -527,6 +547,7 @@ private def checkFrontend (env : Kernel.Environment) (nparams : Nat) (types : Li
   let .ok publicResult := Lean4Lean.Environment.addInductive env lparams nparams types false allowPrimitive
     | throwError "public safe restoration failed"
   checkSourceConstructors nparams lparams types preprocessing staged publicResult
+  checkSourceRecursorRules nparams types preprocessing staged publicResult
   if nested then checkRestoredRecords env staged publicResult preprocessing types
   else checkOld env publicResult
 
@@ -571,7 +592,11 @@ private def fixtures (env : Kernel.Environment) : MetaM Unit := do
   checkFrontend env 2 [multiConstructorType `RestoredDirectEnum 2 false] false
   checkFrontend env 0 [multiConstructorType `RestoredMutualEnum 0, multiConstructorType `RestoredMutualEnumRight 0,
     { name := `RestoredMutualEnumEmpty, type := sortType, ctors := [] }] true
-  logInfo "22 frontend fixtures passed source signatures/arities/field counts, original constructor order/indices, exact direct/nested records, both flags and auxiliary-rec suffixes"
+  checkFrontend env 0 [{ name := `RestoredEmptyHead, type := sortType, ctors := [] },
+    multiConstructorType `RestoredAfterEmptyHead 0] true
+  checkFrontend env 0 [{ name := `RestoredDirectEmptyHead, type := sortType, ctors := [] },
+    multiConstructorType `RestoredDirectAfterEmptyHead 0 false] false
+  logInfo "24 frontend fixtures passed source signatures/arities/field counts, indexed recursor rules/minor offsets, exact direct/nested records, both flags and auxiliary-rec suffixes"
 
 private def failures (env : Kernel.Environment) : MetaM Unit := do
   let types := [nestedType `RestoredNested 0 1]
