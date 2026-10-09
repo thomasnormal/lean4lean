@@ -3659,6 +3659,67 @@ registration's existing `PersistentHashMap.findAux_isSome` foundation and reject
 runtime-helper admissions. Run
 `lake env lean tests/InductiveRecursorIndexTranslation.lean`.
 
+`Verify.InductiveIndexApplicationTranslation` carries an actual accumulated
+head application through the supplied translated index history. The initial
+strong application translation and its typing at the same initial header are
+explicit; final application typing is derived, not assumed. Each fresh index
+weakens the previous semantic application, translates the actual native FVar
+as `bvar 0`, and converts its type using that opening's same raw-to-peeled
+domain equality. Lifting the Pi body and substituting that variable recovers
+the old body semantics. The recorded node's normalization equality then
+converts application typing to its exact normalized semantic type. The final
+native expression is `mkAppN head finalIndices`, retaining any initial prefix,
+with no independently selected history or literal semantic-body equality.
+
+`Verify.InductiveMajorContextTranslation` specializes this transport to the
+actual parameter-free recursor major application. The same source/history
+guards supply starting datatype-head translation/typing, exact terminal-sort
+equality and universe uniformity for this actual raw major expression. Those
+are conditional support obligations, not assumptions of final application
+typing or an already typed major reader. Canonical annotation constants and
+definitions recover the raw major's typed annotation spine and its peeled
+semantic domain. One witness retains raw/peeled translations, same-sort
+equality, both typings, exact native dependency lists, positioned declaration
+and semantic correspondence at the actual pushed major reader. Recognized
+annotation heads are handled by the existing generic consumer, not a special
+datatype-name path or a claim that peeling always leaves the major unchanged.
+
+`Verify.InductiveMajorContextTranslationCPS` derives constant-head translation
+and initial typing from the actual lookup, mapped universe arguments and
+arity, retaining explicit definitional alignment of the stored constant type
+with the same normalized header. Its constant-application bridge derives the
+final application from those facts and the same history. The actual
+`withLocalDecl` continuation receives exact pushed-major correspondence;
+batch getter/CPS receipts retain the same per-parent histories and require
+support only on successful actual observed-reader captures. Empty parameters,
+terminal-sort equality, raw-major annotation uniformity and recorded
+normalization remain explicit. This is not semantic correspondence at the
+motive/current reader, motive or minor typing, source-checker acceptance,
+registered-recursion soundness or complete inductive verification.
+
+The application proofs retain inherited projection-weakening and typing
+uniqueness/conversion foundations. Native major pushes retain existing
+persistent-container interfaces; annotation recovery also retains the prior
+structural/context foundations. Audits keep those dependencies separate from
+the logical-only annotation core. No new admission, axiom, oracle, checker
+path, allocation behavior, cache or fast path is introduced.
+
+`tests/InductiveMajorContextTranslation.lean` adds thirty-four proof controls,
+150 audits and nine axiom-print checks. It checks exact prefix application,
+semantic lifting, same recorded normalization, constant/header alignment,
+local major annotation uniformity, successful-result-only support and the
+actual pushed-major correspondence. Eighteen allocation-only opening callbacks
+and three actual parent callbacks cover dependent/metadata/nonuniform domains,
+annotation-name heads, stored dependency/value retention and separation of
+major readers from motive/current readers. Nonempty-parameter runtime controls
+do not claim semantic major support. The new census is twenty-six declarations /
+sixteen theorems, including private/generated helpers; the old clean core stays
+seventy-three / thirty-eight. Audits pin projection weakening and typing
+conversion provenance, reject runtime admissions and forbidden global-range
+dependencies, and keep native-interface boundaries separate. All three modules
+replay through lean4lean. Run
+`lake env lean tests/InductiveMajorContextTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
