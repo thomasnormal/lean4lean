@@ -446,9 +446,33 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   Both certificate projections use only standard logical axioms. All audits
   exclude `sorryAx`; no new axioms or executable kernel changes are introduced.
   Positivity traces retain the original header root. Semantic recursor typing,
-  index-binder alignment, rule constructor/order correspondence, reduction
+  index-binder alignment, reduction
   soundness, WHNF transport, earlier preprocessing, and general inductive
-  frontend soundness remain separate obligations.
+  frontend soundness remain separate obligations. The rule-shape module below
+  now proves per-parent constructor/order correspondence and rule counts.
+- `Verify.RecursorRuleShape` proves `mkRecRules.shape` for the actual rule
+  generator. Every successful result has exactly the input parent's constructor
+  name sequence, in the same order, and advances the minor state by that parent's
+  constructor count. `RecursorRuleShape.count` derives rule-list length from the
+  sequence equality. The proof follows the real constructor and recursive-field
+  loops and the array-backed `forIn` traversal; inference/normalization results,
+  field arrays, and RHS construction remain opaque operational values. It needs
+  no environment validity, safety, input-array alignment, or name-uniqueness
+  premise. Reordered and repeated constructor names are retained as sequences,
+  without assuming that a later declaration-registration stage accepts them.
+  Failed actions satisfy only the successful-result contract vacuously.
+  `InductiveStats.RecursorMetadata.ruleShape` derives the local shape/state
+  certificate from stored-rule source receipts, and `orderedRules` exposes
+  installed names and counts through `OrderedRecursorRules`. The corresponding
+  `SafeRunMetadata.orderedRules` projection and `run.safeOrderedRules` theorem
+  carry those facts into complete safe runs while retaining final map validity
+  and original-entry preservation. All five shape/count/certificate audits use
+  only standard logical axioms; the complete-run audit adds exactly the existing
+  three map and six guarded-arity interfaces. All exclude `sorryAx`; executable
+  kernel code and axioms are unchanged. This proves local minor-state advancement,
+  not the global starting-index prefix-sum formula, field-count alignment,
+  semantic rule typing, reduction soundness, index-binder alignment, or WHNF
+  transport.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -1614,11 +1638,12 @@ boundary keeps the header root distinct from the constructor environment and
 retains later index locals absent from `stats.lctx`. The fixtures stop before
 elimination/recursor generation and do not claim full declaration acceptance.
 
-`tests/InductiveRunRegistration.lean` adds fourteen proof regressions and six axiom
+`tests/InductiveRunRegistration.lean` adds eighteen proof regressions and eight axiom
 audits for the complete runner's intermediate registration witness, successful
 result extraction, safe-root positivity traces, intermediate metadata/map
 validity, indexed spine projection, final exact recursor metadata, generated
-counter alignment, rule-source context preservation, and the combined declared
+counter alignment, rule-source context preservation, installed rule name/order/
+count correspondence, and the combined declared
 metadata contract. Thirty-two full-run outcomes cover
 empty input, recursive and higher-order fields, one/two parameters, mutual and
 indexed types, seeded contexts, universe parameters, rejection paths, and fuel.
@@ -1635,18 +1660,26 @@ field control remains outside the theorem's explicit safe-context scope.
 The stronger metadata certificate preserves the distinct intermediate
 constructor environment and original positivity root while identifying installed
 records in the actual final environment. It does not transport WHNF or cover
-earlier declaration preprocessing guards. Both metadata runner audits use only
-the existing map and guarded-arity interfaces; both new projections use only
+earlier declaration preprocessing guards. All three metadata/order runner audits use only
+the existing map and guarded-arity interfaces; all three new projections use only
 standard logical axioms. All audits exclude `sorryAx`.
 Empty batches with a nonzero declared parameter count remain proof-only
 boundaries: the known terminal assertion does not justify runtime acceptance.
 
-`tests/RecursorRegistration.lean` contains ten proof regressions and four axiom
+`tests/RecursorRegistration.lean` contains sixteen proof regressions and eight axiom
 audits for suffix map validity, successful-result extraction, exact old lookup
 preservation, preservation of a constructor-registration certificate's
 header/constructor metadata, complete recursor records, source rule receipts,
-and conditional declared counters. An empty-array proof makes the vacuous
+conditional declared counters, successful rule-source name/order/count/state
+shape, and installed rule-shape projections. An empty-array proof makes the vacuous
 counter boundary explicit even with a nonzero declared parameter count.
+Eight direct source-shape fixtures exercise zero and shifted initial minor
+indices, a zero-fuel empty parent with zero/nonzero state, reversed constructor
+order, and repeated constructor names. They check exact name sequences, rule
+counts, and state advancement without assuming semantic typing or registration
+acceptance of the low-level inputs. The four new shape/count/source-projection
+audits use only standard logical axioms, excluding `sorryAx` and all expression,
+map, or guarded-arity interfaces.
 Twenty-six successful low-level traversals cover
 empty input, an empty datatype, multi-datatype batches with an empty middle
 parent, both K/safety flags and primitive-name policies, elimination levels,

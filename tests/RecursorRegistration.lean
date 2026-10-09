@@ -1,5 +1,4 @@
-import Lean4Lean.Verify.RecursorMetadata
-import Lean4Lean.Verify.InductiveRegistration
+import Lean4Lean.Verify.RecursorRuleShape
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -113,6 +112,51 @@ example (stats : InductiveStats) (env : Kernel.Environment) :
     stats.DeclaredRecursorCounts 17 #[] env := by
   simp [InductiveStats.DeclaredRecursorCounts]
 
+example (types : Array InductiveType) (elimLevel : Level) (stats : InductiveStats)
+    (index : Nat) (motives minors : Array Expr) (initial : Nat) (ctx : Context) :
+    (mkRecRules types elimLevel stats index motives minors initial ctx).WF fun result =>
+      RecursorRuleShape types[index]!.ctors result.1 initial result.2 :=
+  mkRecRules.shape types elimLevel stats index motives minors initial ctx
+
+example (types : Array InductiveType) (elimLevel : Level) (stats : InductiveStats)
+    (index : Nat) (motives minors : Array Expr) (initial final : Nat) (ctx : Context)
+    (rules : List RecursorRule)
+    (hresult : mkRecRules types elimLevel stats index motives minors initial ctx = .ok (rules, final)) :
+    rules.map (·.ctor) = types[index]!.ctors.map (·.name) ∧
+      rules.length = types[index]!.ctors.length ∧ final = initial + types[index]!.ctors.length := by
+  have hshape := mkRecRules.shape types elimLevel stats index motives minors initial ctx _ hresult
+  exact ⟨hshape.names, hshape.count, hshape.stateAdvance⟩
+
+example (ctors : List Constructor) (rules : List RecursorRule) (initial final : Nat)
+    (hshape : RecursorRuleShape ctors rules initial final) : rules.length = ctors.length :=
+  hshape.count
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (infos : Array RecInfo) (lparams : List Name) (lctx : LocalContext)
+    (isK isUnsafe : Bool) (ctx : Context) (env : Kernel.Environment)
+    (hmetadata : stats.RecursorMetadata types elimLevel infos lparams lctx isK isUnsafe ctx env) :
+    ∀ index, index < types.size → ∃ (info : RecursorVal) (initial final : Nat),
+      env.find? (mkRecName types[index]!.name) = some (.recInfo info) ∧
+      RecursorRuleShape types[index]!.ctors info.rules initial final :=
+  hmetadata.ruleShape
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (infos : Array RecInfo) (lparams : List Name) (lctx : LocalContext)
+    (isK isUnsafe : Bool) (ctx : Context) (env : Kernel.Environment)
+    (hmetadata : stats.RecursorMetadata types elimLevel infos lparams lctx isK isUnsafe ctx env) :
+    OrderedRecursorRules types env :=
+  hmetadata.orderedRules
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (infos : Array RecInfo) (lparams : List Name) (lctx : LocalContext)
+    (isK isUnsafe : Bool) (ctx : Context) (env : Kernel.Environment)
+    (hmetadata : stats.RecursorMetadata types elimLevel infos lparams lctx isK isUnsafe ctx env)
+    (index : Nat) (hindex : index < types.size) :
+    ∃ info : RecursorVal, env.find? (mkRecName types[index]!.name) = some (.recInfo info) ∧
+      info.rules.map (·.ctor) = types[index]!.ctors.map (·.name) ∧
+      info.rules.length = types[index]!.ctors.length :=
+  hmetadata.orderedRules index hindex
+
 private def statsFor (types : Array InductiveType) : InductiveStats := {
   levels := [], resultLevel := .succ .zero, params := #[], isNotZero := true,
   indConsts := types.map fun type => .const type.name [], nindices := types.map fun _ => 0 }
@@ -131,6 +175,15 @@ private def localsFor (infos : Array RecInfo) : LocalContext := Id.run do
     for binder in #[info.motive, info.major] ++ info.minors do
       lctx := lctx.mkLocalDecl binder.fvarId! binder.fvarId!.name (.const ``Nat [])
   return lctx
+
+private def checkRuleSourceShape (ctx : Context) (types : Array InductiveType)
+    (infos : Array RecInfo) (index initial : Nat) : MetaM Unit := do
+  let .ok (rules, final) := mkRecRules types .zero (statsFor types) index
+      (infos.map (·.motive)) (infos.flatMap (·.minors)) initial { ctx with lctx := localsFor infos }
+    | throwError "rule-source shape fixture unexpectedly failed"
+  unless rules.map (·.ctor) == types[index]!.ctors.map (·.name) &&
+      rules.length == types[index]!.ctors.length && final == initial + types[index]!.ctors.length do
+    throwError "incorrect rule-source names, count, or state advancement"
 
 private def checkPreserved (original env : Kernel.Environment) (name : Name) : MetaM Unit := do
   let some old := original.find? name | throwError "missing old-entry fixture {name}"
@@ -261,6 +314,10 @@ run_meta
   audit ``declareRecursors.metadata
   audit ``InductiveStats.RecursorMetadata.sourceRules false
   audit ``InductiveStats.RecursorMetadata.declaredCounts false
+  audit ``RecursorRuleShape.count false
+  audit ``mkRecRules.shape false
+  audit ``InductiveStats.RecursorMetadata.ruleShape false
+  audit ``InductiveStats.RecursorMetadata.orderedRules false
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let first := typeFor `RecursorPreservedFirst [`RecursorPreservedFirst.left, `RecursorPreservedFirst.right]
@@ -271,6 +328,18 @@ run_meta
   let emptyInfo := infoFor empty.name #[]
   let lastInfo := infoFor last.name #[`minorLast]
   let infos := #[firstInfo, emptyInfo, lastInfo]
+  checkRuleSourceShape ctx types infos 0 0
+  checkRuleSourceShape ctx types infos 0 1
+  checkRuleSourceShape ctx types infos 2 0
+  checkRuleSourceShape ctx types infos 2 2
+  let zeroFuel := { ctx with fuel := { ctx.fuel with inductiveFuel := 0 } }
+  checkRuleSourceShape zeroFuel types infos 1 0
+  checkRuleSourceShape zeroFuel types infos 1 17
+  let reversed := typeFor first.name [`RecursorPreservedFirst.right, `RecursorPreservedFirst.left]
+  checkRuleSourceShape ctx #[reversed, empty, last] infos 0 0
+  let repeated := typeFor first.name [`RecursorPreservedFirst.left, `RecursorPreservedFirst.left]
+  checkRuleSourceShape ctx #[repeated, empty, last] infos 0 0
+  logInfo "eight direct rule-source name/order/count/state fixtures passed"
   for allowPrimitive in [false, true] do
     for isK in [false, true] do
       for isUnsafe in [false, true] do

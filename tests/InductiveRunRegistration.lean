@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveRunMetadata
+import Lean4Lean.Verify.RecursorRuleShape
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -138,6 +138,35 @@ example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
   exact ⟨stats, root, constructors, elimLevel, infos, source, isK,
     hmetadata.toSafeRunRegistration, hframe, hcounts, hrecursors⟩
 
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF) :
+    (AddInductive.run nparams types numNested ctx).WF fun env =>
+      env.constants.WF ∧
+      (∀ name info, ctx.env.find? name = some info → env.find? name = some info) ∧
+      OrderedRecursorRules types.toArray env :=
+  AddInductive.run.safeOrderedRules nparams types numNested ctx hsafety hwf
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env) :
+    OrderedRecursorRules types.toArray env :=
+  (AddInductive.run.safeOrderedRules nparams types numNested ctx hsafety hwf env hresult).2.2
+
+example (stats : InductiveStats) (nparams numNested : Nat) (types : Array InductiveType)
+    (original root : Context) (constructors env : Kernel.Environment)
+    (hmetadata : stats.SafeRunMetadata nparams types numNested original root constructors env) :
+    OrderedRecursorRules types env :=
+  hmetadata.orderedRules
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env)
+    (index : Nat) (hindex : index < types.toArray.size) :
+    ∃ info : RecursorVal, env.find? (mkRecName types.toArray[index]!.name) = some (.recInfo info) ∧
+      info.rules.map (·.ctor) = types.toArray[index]!.ctors.map (·.name) ∧
+      info.rules.length = types.toArray[index]!.ctors.length :=
+  (AddInductive.run.safeOrderedRules nparams types numNested ctx hsafety hwf env hresult).2.2 index hindex
+
 private def sortType : Expr := .sort (.succ .zero)
 
 private def closeParams (nparams : Nat) (body : Expr) : Expr :=
@@ -220,6 +249,8 @@ run_meta
   audit ``AddInductive.run.safeDeclaredMetadata
   audit ``InductiveStats.SafeRunMetadata.declaredRecursors false
   audit ``InductiveStats.SafeRunMetadata.sourceRules false
+  audit ``InductiveStats.SafeRunMetadata.orderedRules false
+  audit ``AddInductive.run.safeOrderedRules
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let natType := Expr.const ``Nat []
