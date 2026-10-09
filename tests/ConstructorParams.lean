@@ -37,6 +37,16 @@ example (stats : InductiveStats) (isUnsafe : Bool) (parent : Nat) (ctor : Name)
         isValidIndAppIdx stats terminal parent = true :=
   checkConstructors.loop_spine stats isUnsafe parent ctor type index fuel ctx
 
+example (stats : InductiveStats) (parent : Nat) (ctor : Name) (type : Expr)
+    (index fuel : Nat) (ctx : Context)
+    (hpositive : ∀ domain index ctx,
+      (checkPositivity stats domain ctor index ctx).WF fun _ =>
+        hasIndOcc stats.indConsts domain = false) :
+    (checkConstructors.loop stats false parent ctor type index fuel ctx).WF fun _ =>
+      ∃ terminal, PositiveConstructorSpine stats type terminal ∧
+        isValidIndAppIdx stats terminal parent = true :=
+  checkConstructors.loop_positive_spine stats parent ctor type index fuel ctx hpositive
+
 example (indTypes : Array InductiveType) (stats : InductiveStats) (isUnsafe : Bool)
     (ctx : Context) :
     (checkConstructors indTypes stats isUnsafe ctx).WF fun _ =>
@@ -152,6 +162,7 @@ run_meta
   audit ``InductiveStats.RemainingParamsAbsent.validIndAppIdx [``Expr.eqv_eq]
   audit ``checkConstructors.loop_arity [``Expr.eqv_eq, ``Expr.instantiate1_eq]
   audit ``checkConstructors.loop_spine [``Expr.eqv_eq, ``Expr.instantiate1_eq]
+  audit ``checkConstructors.loop_positive_spine [``Expr.instantiate1_eq]
   audit ``checkConstructors.spine
     [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
       ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
