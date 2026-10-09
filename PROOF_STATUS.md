@@ -869,8 +869,38 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   and local RHS-scope certificates. `safeRegisteredWrappedIndexCounts` passes
   it through actual safe checking, both datatype/constructor environment
   extensions, generation and registration. No new executable path, cache,
-  axiom or admission is added. Pointwise binder correspondence, source/RHS
+  axiom or admission is added. Domain alpha-correspondence, source/RHS
   typing, nested preprocessing and full inductive soundness remain separate.
+- `Verify.InductiveBinderDomains` retains each actual telescope-opening step:
+  parameter/index role, source name, raw domain, binder information and chosen
+  substitution expression. `OpenedTelescope` follows `body.instantiate1` at
+  every step, avoiding a batch-substitution or closed-argument assumption.
+  The checked extractor jointly proves that parameter values are the actual
+  final/shared parameter array, counts index values, and retains exact index
+  declaration lookup/type/name/binder-info equations in the successful reader.
+  The generated extractor retains the actual `info.indices` array and the
+  precise consumed parameter prefix. The consumed local domain is the actual
+  `rawDomain.consumeTypeAnnotations` used by allocation. Reused parameters
+  remain pure source-opening steps: their existing declaration type is checked
+  by `isDefEq`, not asserted equal to that consumed raw domain.
+- `Verify.InductiveBinderAlignment` pairs checked/generated openings of the
+  same canonical normalized source. The successful checked count proves
+  complete generated parameter consumption, so both opening histories use the
+  same actual shared parameter array. Index values and reader contexts remain
+  separate. `ParentBinderDomainAlignment` retains exact separately opened
+  domains, index counts/values and native declaration lookup receipts; it also
+  proves identical ordered binder names and binder information. Its CPS/getter
+  bridges preserve count/source/scope certificates; registration additionally
+  retains map/old-lookup, offset metadata and local RHS-scope certificates from
+  the same success.
+  The normalized/wrapped safe-prefix theorems retain the actual checked-header
+  reader/source witness through both real declaration-environment extensions,
+  constructor checking, generation and registration. Concrete finite wrapper
+  witnesses supply canonical normalization rather than assuming an oracle.
+  This is paired domain provenance, not equality of domains containing
+  different fresh IDs, alpha-correspondence, semantic binder/source/RHS typing
+  or full inductive/nested soundness. No executable kernel path, cache, new
+  axiom or admission is added.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2692,6 +2722,23 @@ logical axioms and the three existing expression-substitution interfaces.
 Scope/registration bridges inherit the existing map/list interfaces; every
 audit rejects `sorryAx`. No executable checker path or cache is added. Run
 `lake env lean tests/InductiveWrappedSpines.lean`.
+
+`tests/InductiveBinderDomains.lean` adds seventeen proof regressions and
+twenty-four axiom audits for actual telescope openings, shared parameter
+histories, native index-domain lookups, paired signatures and safe registration.
+Its concrete finite-wrapper safe prefix retains checked source receipts and
+domain alignment without a normalization oracle. Across four readers, 44
+registration fixtures cover 56 parents and 112 separately checked/generated
+opening plans, including dependent `Eq` domains, annotations, binder metadata,
+domain aliases and mutual reused parameters. Each plan matches its own actual
+local declarations; corresponding fresh IDs and dependent domains deliberately
+differ. An axiom-free counterexample shows that equal ordered signatures and
+shared parameters do not imply equal domain expressions. Controls retain
+different reused-parameter source syntax, raw-arity gaps, arbitrary/undeclared
+parameter substitutions, unchecked stored counts and unconsumed extra helper
+parameters. All audits reject `sorryAx` and use only existing logical,
+substitution and scope/map/list interfaces. Run
+`lake env lean tests/InductiveBinderDomains.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
