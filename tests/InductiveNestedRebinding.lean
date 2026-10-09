@@ -254,12 +254,16 @@ run_meta do
   audit ``withParams.contextRange [``Lean.PersistentArray.toList'_push,
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
     ``Expr.instantiate1_eq]
+  audit ``withParams.contextRangeNewTypes [``Lean.PersistentArray.toList'_push,
+    ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
+    ``Expr.instantiate1_eq]
   for theoremName in [``run.loop.nestedAuxScoped, ``run.loop.newTypesRange, ``run.nestedAuxScoped] do
     audit theoremName [``Lean.PersistentArray.toList'_push, ``Expr.looseBVarRange_eq,
       ``Expr.abstract_eq, ``Expr.instantiate_eq, ``Expr.instantiateRev_eq,
       ``Expr.abstractRange_eq, ``Lean.PersistentHashMap.WF.find?_eq,
       ``Lean.PersistentHashMap.WF.toList'_insert, ``Expr.instantiate1_eq,
-      `Lean.Expr.mkAppRangeAux.eq_def]
+      `Lean.Expr.mkAppRangeAux.eq_def, ``Lean.Expr.replace_eq, ``Lean.Level.hasParam_eq,
+      ``Lean.Expr.hasLevelParam_eq, ``Expr.instantiateRevRange_eq]
   let env := (← Lean.getEnv).toKernelEnv
   for generator in [NameGenerator.mk `_nested_fresh 0, { namePrefix := `SourceSeed, idx := 17 }] do
     for numParams in [0, 1, 2, 3, 31, 32, 33, 65] do
@@ -274,6 +278,6 @@ run_meta do
       for type in cases do
         checkRawAbstraction ids depth type
   checkPremiseBoundaries env
-  logInfo "checked thirty-four proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
+  logInfo "checked thirty-five proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
 
 end InductiveNestedRebindingTest
