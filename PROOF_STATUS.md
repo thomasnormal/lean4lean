@@ -3435,6 +3435,59 @@ fixtures retain an explicit ordered-environment premise; the tests do not
 claim to construct that premise. All three new modules replay through
 lean4lean. Run `lake env lean tests/InductiveAnnotationTyping.lean`.
 
+`Verify.InductiveTelescopeTranslation` derives raw-domain structural
+translations and semantic sort typing from an actual translated `forallE`
+header, following the same supplied `OpenedTelescope` history. Each opening
+uses its actual fresh FVar and constructs the evolving virtual context with
+empty dependency lists. Virtual context well-formedness, initial context
+identity and per-position domain translations share the same chosen witness.
+Freshness relative to the starting virtual context and earlier values remains
+explicit: values already present in that virtual context and arbitrary untyped
+opening values are outside this bounded theorem. Native allocation freshness
+is not asserted; a native reused parameter can still be a newly represented
+virtual binder when it is absent from the starting virtual context. The virtual
+context stores raw semantic domains; it is not identified with the native
+reader storing peeled domains.
+
+`Verify.InductiveAnnotationTranslation` recovers typed annotation spines from
+actual `TrExprS` domain translations and raw-domain sort typing. Exact canonical
+constant types, abstract environment well-formedness and semantic context
+typing remain explicit. A syntax-only uniform-universe premise follows just
+the actual erased annotation chain. It is needed because the clean spine
+relation records one literal semantic level: distinct but equivalent universe
+expressions cannot silently be replaced by that literal level. Constant type
+uniqueness and Pi-domain injectivity recover carrier and binary payload typing;
+the desired typed spine is not supplied as a premise.
+
+`Verify.InductiveBinderTranslation` composes these bridges with the existing
+raw/peeled/actual stored index typing transport. The uniformity obligation stays
+inside the same existential context/level schedule extracted from the actual
+header. These are conditional structural-translation theorems, not semantic
+soundness of successful source checking, general WHNF normalization, reused
+parameter opening or full inductive declarations.
+
+All new structural-translation bridges inherit the existing `TrProj`
+admission; annotation argument recovery also inherits the existing typing
+uniqueness and Pi-injectivity foundations. These dependencies are audited
+separately from the logical-only semantic annotation core. No new admission,
+module-owned axiom, native oracle or runtime path is introduced. Native FVar
+opening retains the existing `Expr.instantiate1_eq` implementation interface.
+
+`tests/InductiveAnnotationTranslation.lean` adds fifty-three proof controls,
+207 audits and five axiom-print checks. Actual optional/auto translations,
+nested annotations, metadata barriers, and distinct-but-equivalent universe
+expressions exercise extraction without supplying a typed spine. A concrete
+plain-Nat header discharges uniformity for its extracted schedule and reaches
+raw/peeled/actual stored index typing on the same history; annotated header
+receipts retain their uniformity implication. Virtual-name freshness controls
+exclude existing and repeated names without claiming native allocation
+freshness. Clean-core census remains seventy-three declarations / thirty-eight
+theorems with logical-only dependencies; separate bridge census covers
+seventy-seven / thirty-four, including private/generated helpers, with pinned
+inherited foundation roots and native-instantiation provenance. All three
+bridge modules replay through lean4lean. Run
+`lake env lean tests/InductiveAnnotationTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
