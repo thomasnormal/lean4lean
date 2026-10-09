@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.RecursorRuleRhsCounts
+import Lean4Lean.Verify.RecursorRuleRhsFVars
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -389,6 +389,67 @@ example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Leve
 example (stats : InductiveStats) (motives minors : Array Expr) (ctx : Context) (initial : Nat) :
     RecursorRuleRhsCounts stats motives minors ctx [] [] initial := .nil
 
+example (fields : Array Expr) (hfields : RecursorFieldsAreFVars fields)
+    (field : Expr) (hfield : field.isFVar = true) : RecursorFieldsAreFVars (fields.push field) :=
+  hfields.push hfield
+
+example (fields selected : Array Expr) (hfields : RecursorFieldsAreFVars fields)
+    (hselected : selected.toList.Sublist fields.toList) : RecursorFieldsAreFVars selected :=
+  hfields.sublist hselected
+
+example (stats : InductiveStats) (type : Expr)
+    (next : Expr → Array Expr → Array Expr → M α) (ctx : Context) (post : α → Prop)
+    (hnext : ∀ result fields recursiveFields current, ctx.HeaderFrame current →
+      RecursorFieldsAreFVars fields → recursiveFields.toList.Sublist fields.toList →
+      (next result fields recursiveFields current).WF post) :
+    (mkRecInfos.loopCtorArgs stats type next ctx).WF post :=
+  mkRecInfos.loopCtorArgs.fvars stats type next ctx post hnext
+
+example (stats : InductiveStats) (motives minors : Array Expr) (ctx : Context)
+    (ctor : Constructor) (minor : Expr) (rule : RecursorRule)
+    (hvars : RecursorRuleRhsFVarReceipt stats motives minors ctx ctor minor rule) :
+    RecursorRuleRhsCountReceipt stats motives minors ctx ctor minor rule := hvars.counts
+
+example (stats : InductiveStats) (motives minors : Array Expr) (ctx : Context)
+    (ctor : Constructor) (minor : Expr) (rule : RecursorRule)
+    (hvars : RecursorRuleRhsFVarReceipt stats motives minors ctx ctor minor rule) :
+    ∃ (fields recursiveFields values : Array Expr) (current : Context), ctx.HeaderFrame current ∧
+      RecursorFieldsAreFVars fields ∧ RecursorFieldsAreFVars recursiveFields ∧
+      recursiveFields.toList.Sublist fields.toList ∧ values.size = recursiveFields.size ∧
+      rule.ctor = ctor.name ∧ rule.nfields = fields.size ∧ values.size ≤ rule.nfields ∧
+      rule.rhs = recursorRuleRhs stats motives minors fields values current.lctx minor :=
+  hvars.shapes
+
+example (stats : InductiveStats) (motives minors : Array Expr) (ctx : Context)
+    (ctors : List Constructor) (rules : List RecursorRule) (initial : Nat)
+    (hvars : RecursorRuleRhsFVars stats motives minors ctx ctors rules initial) :
+    RecursorRuleRhsCounts stats motives minors ctx ctors rules initial := hvars.counts
+
+example (stats : InductiveStats) (motives minors : Array Expr) (ctx : Context)
+    (ctors : List Constructor) (rules : List RecursorRule) (initial index : Nat)
+    (hvars : RecursorRuleRhsFVars stats motives minors ctx ctors rules initial)
+    (ctor : Constructor) (hctor : ctors[index]? = some ctor) :
+    ∃ rule, rules[index]? = some rule ∧
+      RecursorRuleRhsFVarReceipt stats motives minors ctx ctor minors[initial + index]! rule :=
+  hvars.at index ctor hctor
+
+example (types : Array InductiveType) (elimLevel : Level) (stats : InductiveStats)
+    (parent : Nat) (motives minors : Array Expr) (initial : Nat) (ctx : Context) :
+    (mkRecRules types elimLevel stats parent motives minors initial ctx).WF fun result =>
+      RecursorRuleRhsFVars stats motives minors ctx types[parent]!.ctors result.1 initial ∧
+      result.2 = initial + types[parent]!.ctors.length :=
+  mkRecRules.rhsFVars types elimLevel stats parent motives minors initial ctx
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (infos : Array RecInfo) (lparams : List Name) (lctx : LocalContext) (isK isUnsafe : Bool)
+    (ctx : Context) (env : Kernel.Environment)
+    (hmetadata : stats.RecursorOffsetMetadata types elimLevel infos lparams lctx isK isUnsafe ctx env)
+    (hcounts : RecursorInfoCounts types infos) : LocalRecursorRuleRhsFVars stats types infos ctx env :=
+  hmetadata.localRuleRhsFVars hcounts
+
+example (stats : InductiveStats) (motives minors : Array Expr) (ctx : Context) (initial : Nat) :
+    RecursorRuleRhsFVars stats motives minors ctx [] [] initial := .nil
+
 private def fieldStage (params : Array Expr) (type : Expr) : M Nat :=
   mkRecInfos.loopCtorArgs { (default : InductiveStats) with params } type fun _ fields _ =>
     pure fields.size
@@ -410,9 +471,64 @@ private def infoFor (name : Name) (minorNames : Array Name) : RecInfo := {
   motive := .fvar ⟨name ++ `motive⟩, major := .fvar ⟨name ++ `major⟩, indices := #[],
   minors := minorNames.map fun minor => .fvar ⟨minor⟩ }
 
+private def fieldShapeStage (stats : InductiveStats) (type : Expr) : M (Array Expr × Array Expr) :=
+  mkRecInfos.loopCtorArgs stats type fun _ fields recursiveFields => pure (fields, recursiveFields)
+
+private def checkFieldShape (ctx : Context) (stats : InductiveStats) (type : Expr)
+    (fieldCount recursiveCount : Nat) : MetaM Unit := do
+  let .ok (fields, recursiveFields) := fieldShapeStage stats type ctx | throwError "field-shape fixture failed"
+  unless fields.size == fieldCount && recursiveFields.size == recursiveCount &&
+      fields.all (·.isFVar) && recursiveFields.all (·.isFVar) &&
+      recursiveFields.toList.isSublist fields.toList do
+    throwError "incorrect free-variable field/selection shape"
+
+private def recursiveValueShapeStage (stats : InductiveStats) (types : Array InductiveType)
+    (type : Expr) : M (RecursorRule × Nat) :=
+  mkRecInfos.loopCtorArgs stats type fun _ _ recursiveFields =>
+    mkRecRules.loopU types stats #[] #[] [] recursiveFields 0 #[] fun values =>
+      pure ((default : RecursorRule), if values.all (·.isFVar) then 1 else 0)
+
+private def checkFieldShapeFixtures (ctx : Context) : MetaM Unit := do
+  let natType := Expr.const ``Nat []
+  let boolType := Expr.const ``Bool []
+  let types := #[typeFor ``Nat []]
+  let stats := statsFor types
+  let one := Expr.forallE `field natType natType .default
+  let higher := Expr.forallE `argument natType natType .default
+  let mixed := Expr.forallE `field natType (.forallE `field boolType
+    (.forallE `field higher natType .strictImplicit) .instImplicit) .implicit
+  checkFieldShape ctx stats natType 0 0
+  checkFieldShape ctx stats one 1 1
+  checkFieldShape ctx stats mixed 3 2
+  let parameterStats := { (default : InductiveStats) with params := #[.fvar ⟨`ShapeParameter⟩] }
+  let withParameter := Expr.forallE `parameter (.sort (.succ .zero)) one .default
+  checkFieldShape ctx parameterStats withParameter 1 0
+  let dependent := Expr.forallE `parameter (.sort (.succ .zero))
+    (.forallE `field (.bvar 0) (.bvar 1) .default) .default
+  checkFieldShape ctx { parameterStats with params := #[natType] } dependent 1 0
+  let expands := Expr.forallE `parameter (.sort (.succ .zero)) (.bvar 0) .default
+  checkFieldShape ctx { parameterStats with params := #[one] } expands 1 0
+  let repeated := Expr.forallE `field natType (Expr.forallE `field natType one .default) .default
+  checkFieldShape ctx stats repeated 3 3
+  let many := (List.range 33).foldr (fun _ body => .forallE `field natType body .implicit) natType
+  checkFieldShape { ctx with ngen := { namePrefix := `ShapeSeed, idx := 17 } } stats many 33 33
+  let .ok (fields, _) := fieldShapeStage stats one ctx | throwError "escaping-field control failed"
+  let inferField : M Expr := do return (← TypeChecker.inferType fields[0]!)
+  let .error (.other _) := inferField ctx
+    | throwError "free-variable shape must not assert declaration membership in the original reader context"
+  let .ok (_, isFVar) := recursiveValueShapeStage stats types one ctx
+    | throwError "recursive-value shape control failed"
+  unless isFVar == 0 do throwError "generated recursive values need not be free variables"
+  let .error .deepRecursion := fieldShapeStage stats natType
+      { ctx with fuel := { ctx.fuel with inductiveFuel := 0 } }
+    | throwError "field-shape traversal must propagate zero-fuel failure"
+  logInfo "eight field-shape fixtures, two scope/value-shape controls, and one fuel failure passed"
+
 private def argumentCountStage (stats : InductiveStats) (types : Array InductiveType) (type : Expr)
     (index : Nat) (initial : Array Expr) : M (RecursorRule × Nat) :=
   mkRecInfos.loopCtorArgs stats type fun _ fields recursiveFields => do
+    unless fields.all (·.isFVar) && recursiveFields.all (·.isFVar) do
+      throw (.other "incorrect argument free-variable shape")
     unless recursiveFields.toList.isSublist fields.toList do throw (.other "incorrect recursive-field selection")
     mkRecRules.loopU types stats #[] #[] [] recursiveFields index initial fun values => do
       unless values.size == initial.size + (recursiveFields.size - index) do
@@ -504,6 +620,8 @@ private def rulesMatch (before after : List RecursorRule) : Bool :=
 private def rhsReceiptStage (types : Array InductiveType) (elimLevel : Level) (stats : InductiveStats)
     (infos : Array RecInfo) (ctor : Constructor) (minor : Expr) : M (RecursorRule × Nat) :=
   mkRecInfos.loopCtorArgs stats ctor.type fun _ fields recursiveFields => do
+    unless fields.all (·.isFVar) && recursiveFields.all (·.isFVar) do
+      throw (.other "incorrect receipt free-variable field shape")
     unless recursiveFields.toList.isSublist fields.toList do throw (.other "incorrect receipt recursive-field selection")
     mkRecRules.loopU types stats (infos.map (·.motive)) (infos.flatMap (·.minors))
       (getRecLevels elimLevel stats.levels) recursiveFields 0 #[] fun values => do
@@ -680,7 +798,7 @@ private def audit (theoremName : Name) (mapInterfaces := true) (instantiation :=
   for axiomName in axioms do
     unless allowed.contains axiomName do throwError "unexpected axiom {axiomName} in {theoremName}"
 
-run_meta
+private def auditTheorems : MetaM Unit := do
   audit ``declareRecursors.preserves
   audit ``declareRecursors.metadata
   audit ``InductiveStats.RecursorMetadata.sourceRules false
@@ -715,9 +833,22 @@ run_meta
   audit ``RecursorRuleRhsCounts.at false
   audit ``mkRecRules.rhsCounts false
   audit ``InductiveStats.RecursorOffsetMetadata.localRuleRhsCounts false
+  audit ``RecursorFieldsAreFVars.push false
+  audit ``RecursorFieldsAreFVars.sublist false
+  audit ``mkRecInfos.loopCtorArgs.fvars false
+  audit ``RecursorRuleRhsFVarReceipt.counts false
+  audit ``RecursorRuleRhsFVarReceipt.shapes false
+  audit ``RecursorRuleRhsFVars.counts false
+  audit ``RecursorRuleRhsFVars.at false
+  audit ``mkRecRules.rhsFVars false
+  audit ``InductiveStats.RecursorOffsetMetadata.localRuleRhsFVars false
+
+run_meta
+  auditTheorems
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   checkArgumentCountFixtures ctx
+  checkFieldShapeFixtures ctx
   let natType := Expr.const ``Nat []
   let sortType := Expr.sort (.succ .zero)
   let parameter := Expr.fvar ⟨`FieldParameter⟩
@@ -896,6 +1027,6 @@ run_meta
   checkChecked { ctx with allowPrimitive := true } 1 mutualTypes
   checkChecked { ctx with fuel := { ctx.fuel with inductiveFuel := 3 } }
     1 #[checkedHeader `CheckedMetaOne 1 [parameterOnly, parameterRecursive]]
-  logInfo "16 checked and complete recursor fixtures passed exact records, counted positional RHS receipts, prefix offsets, minor indexing, and registered constructor field counts"
+  logInfo "16 checked and complete recursor fixtures passed exact records, counted free-variable RHS receipts, prefix offsets, minor indexing, and registered constructor field counts"
 
 end RecursorRegistrationTest
