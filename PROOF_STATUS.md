@@ -1030,6 +1030,37 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   boundary; the actual safe-prefix bridge derives both from the successful
   checked-header traversal. It never merges independent opening witnesses or
   assumes equality of reused declaration types with raw/consumed domains.
+- `Verify.InductiveIndexLookupSubstitution` proves deterministic renaming
+  commutes with structural loose-variable lifting and single substitution at
+  arbitrary depths, including replacements containing loose bound variables.
+  Native `instantiate1` uses only the existing structural-instantiation
+  interface. The functional relation inherits these operations and preserves
+  binder signatures. No pair injection or support premise is needed for
+  commutation under the same finite lookup.
+- `Verify.InductiveIndexLookupSupport` gives explicit structural free-variable
+  containment/exclusion and bridges them to the existing pure `fvarsList`
+  traversal. Appending one fresh source key maps that key to its listed target
+  and leaves every other lookup unchanged; a source body excluding that key
+  therefore retains its previous structural renaming. Arbitrary old duplicate
+  keys are permitted in the stability theorem. Expressions supported solely
+  by the excluded shared-parameter IDs remain entirely fixed.
+- `Verify.InductiveIndexLookupOpening` combines those facts into fresh-index,
+  already-mapped-index and fixed-parameter opening rules. Native current-index
+  opening requires declaration lookups for incoming source keys and explicit
+  `SourceReserved` for the incoming body; context reservation alone does not
+  reserve arbitrary body FVars, and scope frames do not imply generator
+  monotonicity or transport reservation through normalization. Pair injection
+  survives extension when both projected IDs are fresh; parameter support
+  survives when the new source is outside the parameter IDs. Actual native
+  parameter-declaration receipts discharge that last freshness condition.
+  `ParentBinderSupportAlignment.openingLookup` retains the same actual full
+  index zip, count, projections and parameter-support receipts, adding the
+  conditional opening operations for deterministically related input bodies.
+  It does not assert that the actual later raw domains already satisfy that
+  stronger relation or that annotation consumption preserves it. Semantic
+  typing, normalization support, hidden aliases/tails, nested preprocessing
+  and full inductive soundness remain separate. No executable checker path,
+  cache, new axiom or admission is added.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2935,6 +2966,19 @@ a future shared-parameter ID with an allocated index, demonstrating why
 ordinary helper success alone does not establish parameter support. This is
 a missing-premise boundary, not an accepted invalid complete declaration or
 kernel discrepancy. Run `lake env lean tests/InductiveIndexLookup.lean`.
+
+`tests/InductiveIndexLookupOpening.lean` adds forty-five proof regressions
+and seventy-five axiom audits, all rejecting `sorryAx`. It compares 1,440
+single substitutions and 864 loose-variable lifts across all twelve expression
+constructors, six finite pair lists, nonzero depths and loose replacement
+variables. Forty native registrations cover forty-four parent pairs and 156
+matched binder steps across four dense readers. Eight boundary-control groups
+cover overlapping/identity pairs, duplicate source keys, missing source-body
+support, reused targets and shared-parameter/source collisions. Regressions
+retain injection/support extension premises, native freshness, contextual
+opening and safe wrapped-registration operation receipts. No consumed-output
+compatibility, normalization reservation or global source/target disjointness
+is assumed. Run `lake env lean tests/InductiveIndexLookupOpening.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
