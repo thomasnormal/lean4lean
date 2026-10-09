@@ -978,6 +978,30 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   This extends the earlier signature-only contract with source field counts;
   semantic source/restored typing and reduction, nested correctness, binder/index
   alignment, WHNF transport, auxiliary typing and inductive soundness remain open.
+- `Verify.InductiveRestorationRules` transports checked recursor-rule recipes to
+  original datatype/constructor positions. Signature retention preserves every
+  original minor offset, including the boundary after the final original parent;
+  source-indexed minor lookups refer to the same actual local/flattened generated
+  minor vectors. Arity retention also preserves ordered constructor-name/field-count
+  pairs. `SafeRunScope.sourceRuleSources` retains the same elimination level,
+  recursor-info array, structurally valid/reserved source reader and local rule
+  distinctness certificate while rewriting both recipe offsets to source offsets.
+  Every staged source rule has the source constructor's name, position and raw
+  field count, with a checked constructor lookup and its complete source metadata.
+  `sourceRecursorRuleStages` couples those recipes, the complete checked scope,
+  preprocessing prefix and exact final direct/nested recursor records. `finalRecursor`
+  exposes final rule counts/field vectors, including empty parents; `finalRule`
+  additionally ties each final indexed field count to its checked constructor and
+  original raw arity. Both public frontends need only initial map validity.
+  Nested restoration retains rule positions and field counts and uses the literal
+  mapped recursor name/constructor-label recipe. Rename-map identity is not assumed:
+  original constructor labels are retained when the recursor's mapped name is
+  unchanged, and otherwise the exact `restoreCtorName` recipe is exposed. Eighteen
+  added audits exclude `sorryAx`, explicitly tracking existing arity, binding and
+  public frontend interfaces. No executable kernel change or new axiom/admission.
+  Original-name rename-map nonoverlap, source/restored semantic typing, RHS reduction,
+  nested correctness, binder/index alignment, WHNF transport and inductive soundness
+  remain separate; generated auxiliary contributions to total minors are retained.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -2286,10 +2310,26 @@ counts, coupled source/final metadata and both public frontends. Four proof-only
 failure controls reject changed arity vectors, wrong field counts, insufficient
 raw arity and missing final source constructors; a metadata-wrapped forall control
 keeps raw arity distinct from WHNF arity. All audits exclude `sorryAx`, with explicit
-existing interface allowances. The twenty-two native-accepted restoration fixtures
+existing interface allowances. The native-accepted restoration fixtures
 also compare every original/staged raw constructor arity and check both field-count
 equations, retaining exact final record checks for both flags and the direct public
 frontend. Run `lake env lean tests/InductiveSourceArity.lean` and
+`lake env lean tests/InductiveFrontendRestoration.lean`.
+
+`tests/InductiveSourceRules.lean` adds thirty proof regressions and eighteen axiom
+audits for source minor offsets/flattened lookups, ordered source rule pairs,
+checked constructor consistency, same-source exact rule-generator receipts,
+coupled complete stages, final rule counts/indexed field metadata and both public
+frontends. Six proof-only failure controls reject changed rule counts/labels,
+missing rules, wrong field counts, changed prefix minor offsets and absent final
+recursors. Empty source lists, empty parents and both literal rename-map branches
+are covered without executing panic defaults. The restoration test now checks
+staged source rule pairs/minor offsets, rule-to-constructor field consistency and
+exact final recursor recipes for twenty-four native-accepted fixtures, both flags
+and the direct public frontend. Two added fixtures put an empty original datatype
+before a three-constructor parent, on direct and nested branches, exercising zero
+minor offsets and retained empty recursors. Run
+`lake env lean tests/InductiveSourceRules.lean` and
 `lake env lean tests/InductiveFrontendRestoration.lean`.
 
 `tests/InductiveHeaderScope.lean` adds nine proof regressions and seven axiom
