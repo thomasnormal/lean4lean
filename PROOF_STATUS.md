@@ -999,9 +999,29 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   unchanged, and otherwise the exact `restoreCtorName` recipe is exposed. Eighteen
   added audits exclude `sorryAx`, explicitly tracking existing arity, binding and
   public frontend interfaces. No executable kernel change or new axiom/admission.
-  Original-name rename-map nonoverlap, source/restored semantic typing, RHS reduction,
-  nested correctness, binder/index alignment, WHNF transport and inductive soundness
+  Source/restored semantic typing, RHS reduction, nested correctness,
+  binder/index alignment, WHNF transport and inductive soundness
   remain separate; generated auxiliary contributions to total minors are retained.
+- `Verify.InductiveRecursorNames` derives datatype-name uniqueness from the actual
+  successful fresh header-registration fold, with exact header-array alignment,
+  and from the full runner for either safety using only initial map validity.
+  Prefix retention and rewritten-name uniqueness exclude original datatype names
+  from the auxiliary suffix. The literal auxiliary-map loop preserves lookups
+  outside its enumerated keys, proving absence and fallback identity, including
+  logical empty/missing/non-inductive-header and failed-length defaults.
+- `Verify.InductiveRestorationRuleNames` discharges original recursor rename-map
+  nonoverlap on the same successful preprocessing/runner/root/source witnesses.
+  It derives original-key absence/identity rather than accepting a caller identity
+  premise. Final recursors are installed under their original names and retain
+  original ordered constructor labels, counts and field vectors, including empty
+  parents; indexed rules retain their checked staged constructor and original raw
+  arity equation. Exact direct/nested record recipes, elimination level/info array,
+  minor indexing and local-distinctness receipts remain coupled. Both public
+  frontends require only initial map validity. Axiom audits track existing map,
+  binding and frontend interfaces and exclude `sorryAx`; no executable kernel
+  change or new axiom/admission. These are structural name/rule receipts, not
+  source/restored semantic typing, RHS reduction, nested correctness, binder/index
+  alignment, WHNF transport, auxiliary typing or inductive soundness.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -2330,6 +2350,21 @@ and the direct public frontend. Two added fixtures put an empty original datatyp
 before a three-constructor parent, on direct and nested branches, exercising zero
 minor offsets and retained empty recursors. Run
 `lake env lean tests/InductiveSourceRules.lean` and
+`lake env lean tests/InductiveFrontendRestoration.lean`.
+
+`tests/InductiveOriginalRecursorNames.lean` adds thirty-three proof regressions and
+fifteen axiom audits for actual header/runner name uniqueness, prefix/suffix
+nonoverlap, recursor-name injectivity, literal map-key support, derived original
+recursor identity, final original labels/counts/fields, indexed checked constructor
+metadata and both public frontends. Proof-only controls cover duplicate datatype
+names, overlapping suffixes/rename keys, changed map values, missing final
+recursors and a malformed header whose auxiliary suffix aliases an original name.
+Logical empty/missing/non-inductive-header and short-header defaults are proved
+without executing panic fixtures. Empty source/constructor lists and both exact
+restoration branches are covered. All twenty-four native-accepted restoration
+fixtures now check final original-name lookups and original constructor-label/field
+pairs; nested fixtures also check actual rename-map absence and fallback identity.
+Run `lake env lean tests/InductiveOriginalRecursorNames.lean` and
 `lake env lean tests/InductiveFrontendRestoration.lean`.
 
 `tests/InductiveHeaderScope.lean` adds nine proof regressions and seven axiom
