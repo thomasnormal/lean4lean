@@ -319,11 +319,22 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   environment. `preservesOriginal` and `declaredParameters` expose old-entry
   preservation and declared parent/constructor parameter alignment.
   The only initial invariant premise is concrete map validity, not semantic
-  environment well-formedness. All four audits exclude `sorryAx`; the two
-  registration proofs use only the existing map and guarded-arity interfaces,
+  environment well-formedness. All six audits exclude `sorryAx`;
+  registration/run proofs use only the existing map and guarded-arity interfaces,
   while the projections need no such interfaces. These are safe-mode
   operational/numeric contracts, not semantic positivity, constructor typing,
   elimination/recursor verification, or complete `AddInductive.run` soundness.
+  `AddInductive.run.safeConstructorRegistration` now exposes that intermediate
+  registration witness from any successful complete run, under an explicit
+  `.safe` context premise and initial map validity. It follows the earlier
+  universe-name guard and applies the continuation bridge to the actual
+  elimination/recursor suffix, without assuming that suffix's semantic
+  correctness. The existential header root and constructor environment remain
+  distinct from the returned recursor environment; no final-environment map
+  validity, metadata preservation, or WHNF transport is inferred.
+  `run.safeConstructorTraces` projects the indexed traces and proves that their
+  original root has safe context safety. Both are operational acceptance
+  certificates, not unrestricted inductive frontend or environment soundness.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -1488,6 +1499,21 @@ imported entries, even where checker-only acceptance is possible. An indexed
 boundary keeps the header root distinct from the constructor environment and
 retains later index locals absent from `stats.lctx`. The fixtures stop before
 elimination/recursor generation and do not claim full declaration acceptance.
+
+`tests/InductiveRunRegistration.lean` adds six proof regressions and two axiom
+audits for the complete runner's intermediate registration witness, successful
+result extraction, safe-root positivity traces, intermediate metadata/map
+validity, and indexed spine projection. Twenty-five full-run outcomes cover
+empty input, recursive and higher-order fields, one/two parameters, mutual and
+indexed types, seeded contexts, universe parameters, rejection paths, and fuel.
+Successful fixtures inspect installed headers, constructors, recursors, and
+rules, including closure and numeric/name metadata as runtime smoke checks;
+these are not semantic recursor proofs. Early and late boundaries distinguish
+constructor-prefix acceptance from duplicate-universe rejection and a recursor
+name collision after successful constructor registration. An unsafe negative
+field control remains outside the theorem's explicit safe-context scope.
+The theorem does not identify its intermediate environment with the complete
+runner's result or cover the earlier declaration preprocessing/frontend guards.
 
 `tests/ConstructorBatchArity.lean` adds four proof regressions and two axiom
 audits for full-batch checking, successful-result projection, arbitrary
