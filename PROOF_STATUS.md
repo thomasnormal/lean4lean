@@ -1120,6 +1120,37 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   compatibility, semantic typing, arbitrary normalization support and full
   inductive soundness remain separate. No checker path, cache, new axiom or
   admission is added.
+- `Verify.InductiveBinderRawScope` proves chronological FVar support for the
+  actual raw domains in an opened telescope. Each domain is supported by the
+  initial parameter IDs plus the IDs of index binders strictly before its
+  position. Parameter substitutions stay in that initial support; index
+  substitutions extend it only after their own domain has been checked.
+  Parameter FVar shapes and native index declaration receipts discharge the
+  substitution premises. Arbitrarily interspersed roles and overlapping IDs
+  are permitted by this generic support theorem; no freshness or global
+  separation premise is needed. This is FVar support, not a proof of loose
+  bound-variable closure, metavariable absence or semantic typing.
+- `Verify.InductiveBinderRawScopeExclusion` combines that incoming support
+  with one history's full index-ID distinctness and parameter/index
+  disjointness to exclude every current or later index ID from a raw domain.
+  Full checked/generated distinctness is recovered from the same deterministic
+  correspondence and injected final pair list, without cross-history ID
+  separation or an arbitrary-map-extension assumption.
+- `Verify.InductiveBinderRawScopeAlignment` retains both histories' raw-domain
+  support and current/future-index exclusions inside the same native-type
+  witnesses, preserving all previous openings, lookups, allocation bases,
+  exact pair maps and consumed raw-provenance receipts. Normalized source
+  support remains explicit; supported wrappers discharge it through the
+  actual source guards. CPS/getter, registration and safe-prefix bridges
+  preserve the stronger receipt on the same successful result. Native stored
+  types still have exact consumption equations only: no consumption-support
+  theorem, consumed structural correspondence or semantic local typing is
+  inferred from raw support. In pinned Lean 4.29.0, the native
+  `Expr.consumeTypeAnnotations` declaration is opaque and exposes no imported
+  safe defining-equation interface; runtime stripping controls are not a
+  theorem bridging it to a total model. Reused parameter types retain their
+  original definitional-equality checks. No checker path, cache, new axiom or admission
+  is added; full inductive soundness remains separate.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
