@@ -3,6 +3,8 @@ import Lean4Lean.Verify.ConstructorParams
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
 open private Lean4Lean.AddInductive.bindWF from Lean4Lean.Verify.InductiveStats
+open private Lean4Lean.AddInductive.forIn'_all Lean4Lean.AddInductive.bindInvariantWF
+  from Lean4Lean.Verify.ConstructorParams
 
 private theorem scanSome_eq (items : List Nat) (valid : Nat → Bool) :
     (forIn (m := Option) items (⟨none, PUnit.unit⟩ : MProd (Option Nat) PUnit)
@@ -210,6 +212,79 @@ theorem checkConstructors.loop.safeTrace (stats : InductiveStats) (parent : Nat)
     (checkConstructors.loop stats false parent ctor type index fuel ctx).WF
       fun _ => ∃ terminal, SafeConstructorTrace stats PositivityWHNF parent ctx index type terminal :=
   checkConstructors.loop.safeTrace_of_whnf stats PositivityWHNF parent ctor type index fuel ctx
+    fun _ _ _ hresult => hresult
+
+def InductiveStats.SafeConstructorTraces (stats : InductiveStats)
+    (indTypes : Array InductiveType) (normalizes : Context → Expr → Expr → Prop)
+    (ctx : Context) : Prop :=
+  ∀ parent, ∀ hparent : parent < indTypes.size, ∀ ctor ∈ indTypes[parent].ctors,
+    ∃ terminal, SafeConstructorTrace stats normalizes parent ctx 0 ctor.type terminal
+
+theorem InductiveStats.SafeConstructorTraces.spine {stats : InductiveStats}
+    {indTypes : Array InductiveType} {normalizes : Context → Expr → Expr → Prop}
+    {ctx : Context} (htraces : stats.SafeConstructorTraces indTypes normalizes ctx) :
+    ∀ parent, ∀ hparent : parent < indTypes.size, ∀ ctor ∈ indTypes[parent].ctors,
+      ∃ terminal, ConstructorSpine ctor.type terminal ∧
+        isValidIndAppIdx stats terminal parent = true := by
+  intro parent hparent ctor hctor
+  obtain ⟨terminal, htrace⟩ := htraces parent hparent ctor hctor
+  exact ⟨terminal, htrace.spine⟩
+
+theorem checkConstructors.safeTraces_of_whnf (indTypes : Array InductiveType)
+    (stats : InductiveStats) (normalizes : Context → Expr → Expr → Prop) (ctx : Context)
+    (hwhnf : ∀ current source,
+      ((monadLift (TypeChecker.whnf source) : M Expr) current).WF
+        (normalizes current source)) :
+    (checkConstructors indTypes stats false ctx).WF fun _ =>
+      stats.SafeConstructorTraces indTypes normalizes ctx := by
+  unfold checkConstructors
+  dsimp only
+  apply Lean4Lean.AddInductive.bindWF
+  intro env
+  refine Lean4Lean.AddInductive.bindInvariantWF (ctx := ctx)
+    (post := fun _ => stats.SafeConstructorTraces indTypes normalizes ctx)
+    (invariant := fun _ =>
+      ∀ parent ∈ List.range' 0 indTypes.size, ∀ hparent : parent < indTypes.size,
+        ∀ ctor ∈ indTypes[parent].ctors,
+          ∃ terminal, SafeConstructorTrace stats normalizes parent ctx 0 ctor.type terminal)
+    ?_ ?_
+  · simp only [Std.Legacy.Range.forIn'_eq_forIn'_range', Std.Legacy.Range.size,
+      Nat.sub_zero, Nat.add_sub_cancel, Nat.div_one]
+    apply Lean4Lean.AddInductive.forIn'_all
+    intro parent hparent state
+    have hbound : parent < indTypes.size := by simpa using hparent
+    refine Lean4Lean.AddInductive.bindInvariantWF (ctx := ctx)
+      (post := fun (result : ForInStep Unit) => ∃ next, result = .yield next ∧
+        ∀ hparent : parent < indTypes.size, ∀ ctor ∈ indTypes[parent].ctors,
+          ∃ terminal, SafeConstructorTrace stats normalizes parent ctx 0 ctor.type terminal)
+      (invariant := fun _ => ∀ ctor ∈ indTypes[parent].ctors,
+        ∃ terminal, SafeConstructorTrace stats normalizes parent ctx 0 ctor.type terminal)
+      ?_ ?_
+    · change (forIn' (m := M) _ _ _ ctx).WF _
+      apply Lean4Lean.AddInductive.forIn'_all
+      intro ctor _ found
+      dsimp only
+      split
+      · exact Except.WF.throw
+      · simp only [pure_bind]
+        apply Lean4Lean.AddInductive.bindWF
+        intro _
+        apply Lean4Lean.AddInductive.bindWF
+        intro checkedType
+        exact (checkConstructors.loop.safeTrace_of_whnf stats normalizes parent ctor.name
+          ctor.type 0 ctx.fuel.inductiveFuel ctx hwhnf).bind fun _ htrace =>
+            .pure ⟨_, rfl, htrace⟩
+    · intro _ hctors
+      exact .pure ⟨_, rfl, fun _ => hctors⟩
+  · intro _ hall
+    exact .pure fun parent hparent ctor hctor =>
+      hall parent (by simp; omega) hparent ctor hctor
+
+theorem checkConstructors.safeTraces (indTypes : Array InductiveType)
+    (stats : InductiveStats) (ctx : Context) :
+    (checkConstructors indTypes stats false ctx).WF fun _ =>
+      stats.SafeConstructorTraces indTypes PositivityWHNF ctx :=
+  checkConstructors.safeTraces_of_whnf indTypes stats PositivityWHNF ctx
     fun _ _ _ hresult => hresult
 
 end Lean4Lean.AddInductive
