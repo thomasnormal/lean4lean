@@ -166,6 +166,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   an early loop exit cannot bypass remaining constructors.
   `checkInductiveTypes.checkedConstructorsArity` supplies both parameter
   invariants from checked types and composes them with full batch checking.
+  `isValidIndAppIdx.indexNoIndOcc` additionally proves the positivity-relevant
+  return invariant that every index argument after the parameters contains no
+  occurrence of a datatype under construction. This remains a syntactic
+  classifier contract; it does not yet prove the recursive positivity traversal.
   The standalone batch theorem also applies after replacing the context's
   environment with registered datatype headers. These are arity contracts,
   not semantic constructor-typing or positivity proofs. Datatype-header

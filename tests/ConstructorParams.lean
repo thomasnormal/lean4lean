@@ -24,6 +24,12 @@ example (stats : InductiveStats) (type : Expr) (parent index : Nat)
     (stats.params[index]! == type.getAppArgs[index]!) = true :=
   (isValidIndAppIdx.parameterMatches stats type parent hvalid).2 index hindex
 
+example (stats : InductiveStats) (type : Expr) (parent : Nat)
+    (hvalid : isValidIndAppIdx stats type parent = true) :
+    ∀ index, stats.params.size ≤ index → index < type.getAppArgs.size →
+      hasIndOcc stats.indConsts type.getAppArgs[index]! = false :=
+  isValidIndAppIdx.indexNoIndOcc stats type parent hvalid
+
 example (stats : InductiveStats) (type : Expr) (index parent : Nat)
     (hfvars : stats.ParamsAreFVars) (habsent : stats.RemainingParamsAbsent index type)
     (hvalid : isValidIndAppIdx stats type parent = true) : stats.params.size ≤ index :=
@@ -105,6 +111,7 @@ private def audit (theoremName : Name) (interfaces : List Name := []) : MetaM Un
 
 run_meta
   audit ``isValidIndAppIdx.parameterMatches
+  audit ``isValidIndAppIdx.indexNoIndOcc
   audit ``isValidIndAppIdx.parameterFVar [``Expr.eqv_eq]
   audit ``isValidIndAppIdx.parameterFVarsIn [``Expr.eqv_eq]
   audit ``InductiveStats.RemainingParamsAbsent.of_noFVars
