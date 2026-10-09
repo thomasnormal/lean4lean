@@ -3488,6 +3488,58 @@ inherited foundation roots and native-instantiation provenance. All three
 bridge modules replay through lean4lean. Run
 `lake env lean tests/InductiveAnnotationTranslation.lean`.
 
+`Verify.InductiveAnnotationContext` converts an actual anonymous body
+translation from the raw annotation-domain binder to a definitionally equal
+peeled-domain binder, retaining the same peeled witness. The old semantic body
+is preserved through `TrExpr`; structural conversion may instead return a new
+semantic expression related by definitional equality. A generic fresh-FVar
+opening theorem preserves that semantic translation and its supplied
+dependency list, without requiring native allocation interfaces.
+
+`Verify.InductiveIndexContextTranslation` connects this conversion to the
+actual native index push. Starting `TrLCtx` correspondence and native generator
+reservation supply well-formedness and freshness. The next virtual context
+uses the exact stored peeled type's `fvarsList`, as required by `TrLCtx`; the
+old fresh-only histories' empty dependency lists are not silently reused.
+One peeled witness carries the translated stored domain, same-sort semantic
+equality, exact pushed native/virtual correspondence, semantically preserved
+opened body, declaration position/lookup/name/binder-info/value and operational
+reader frame. No literal equality between raw and peeled semantic domains or
+between converted structural bodies is asserted.
+
+`Verify.InductiveIndexOpeningTranslation` derives that receipt from an actual
+translated `forallE` header rather than a supplied annotation spine. Canonical
+constant types and definition equations, the chosen domain sort typing and
+syntax-only universe uniformity remain explicit. The `ofIsType` bridge instead
+extracts the sort witness from the actual header and retains uniformity as an
+implication on that same witness. The actual `withLocalDecl` continuation
+receives the receipt for its exact native FVar and pushed reader. This is a
+one-step partial-correctness bridge, not repeated telescope transport,
+structural translation of arbitrary WHNF results, reuse of existing semantic
+binders, or full inductive soundness.
+
+The new context bridges inherit the existing structural translation,
+projection and context-conversion foundations. Native push/lookup also retains
+the existing instantiation and persistent map/array interfaces. Whole-module
+audits keep these dependencies separate from the logical-only annotation core;
+no new admission, axiom, oracle, checker path or allocation behavior is added.
+
+`tests/InductiveIndexContextTranslation.lean` adds twenty-five proof controls,
+117 audits, six axiom-print checks and sixteen actual allocation callbacks.
+Optional FVar domains retain the concrete nonempty carrier dependency while
+discarded defaults disappear; metadata barriers retain both original
+dependencies. Tests distinguish definitional body preservation from literal
+structural equality, and a concrete callback returns the same peeled receipt
+with its actual value, reader and opened body. Runtime checks cover four binder
+infos, opt/auto/nested/barrier domains, prior local declarations and prior let
+values; these allocation experiments do not claim semantic header acceptance.
+The clean-core census stays seventy-three declarations / thirty-eight
+theorems with logical-only dependencies. The new context census covers
+thirteen / ten, including private/generated helpers, with separately pinned
+inherited foundations and four existing native interfaces. Runtime helper
+audits reject admissions; all three context modules replay through lean4lean.
+Run `lake env lean tests/InductiveIndexContextTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
