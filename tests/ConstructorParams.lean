@@ -38,14 +38,14 @@ example (stats : InductiveStats) (isUnsafe : Bool) (parent : Nat) (ctor : Name)
   checkConstructors.loop_spine stats isUnsafe parent ctor type index fuel ctx
 
 example (stats : InductiveStats) (parent : Nat) (ctor : Name) (type : Expr)
-    (index fuel : Nat) (ctx : Context)
+    (whnf : Expr → Expr → Prop) (index fuel : Nat) (ctx : Context)
     (hpositive : ∀ domain index ctx,
       (checkPositivity stats domain ctor index ctx).WF fun _ =>
-        hasIndOcc stats.indConsts domain = false) :
+        ∃ normal, whnf domain normal ∧ hasIndOcc stats.indConsts normal = false) :
     (checkConstructors.loop stats false parent ctor type index fuel ctx).WF fun _ =>
-      ∃ terminal, PositiveConstructorSpine stats type terminal ∧
+      ∃ terminal, PositiveConstructorSpine stats whnf type terminal ∧
         isValidIndAppIdx stats terminal parent = true :=
-  checkConstructors.loop_positive_spine stats parent ctor type index fuel ctx hpositive
+  checkConstructors.loop_positive_spine stats whnf parent ctor type index fuel ctx hpositive
 
 example (indTypes : Array InductiveType) (stats : InductiveStats) (isUnsafe : Bool)
     (ctx : Context) :
@@ -162,7 +162,7 @@ run_meta
   audit ``InductiveStats.RemainingParamsAbsent.validIndAppIdx [``Expr.eqv_eq]
   audit ``checkConstructors.loop_arity [``Expr.eqv_eq, ``Expr.instantiate1_eq]
   audit ``checkConstructors.loop_spine [``Expr.eqv_eq, ``Expr.instantiate1_eq]
-  audit ``checkConstructors.loop_positive_spine [``Expr.instantiate1_eq]
+  audit ``checkConstructors.loop_positive_spine
   audit ``checkConstructors.spine
     [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
       ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
