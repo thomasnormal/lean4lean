@@ -37,6 +37,15 @@ example (stats : InductiveStats) (isUnsafe : Bool) (parent : Nat) (ctor : Name)
         isValidIndAppIdx stats terminal parent = true :=
   checkConstructors.loop_spine stats isUnsafe parent ctor type index fuel ctx
 
+example (indTypes : Array InductiveType) (stats : InductiveStats) (isUnsafe : Bool)
+    (ctx : Context) :
+    (checkConstructors indTypes stats isUnsafe ctx).WF fun _ =>
+      ∀ indType ∈ indTypes, ∀ ctor ∈ indType.ctors,
+        ∃ index, ∃ hindex : index < indTypes.size, indTypes[index] = indType ∧
+          ∃ terminal, ConstructorSpine ctor.type terminal ∧
+            isValidIndAppIdx stats terminal index = true :=
+  checkConstructors.spine indTypes stats isUnsafe ctx
+
 example (stats : InductiveStats) (type : Expr) (index parent : Nat)
     (hfvars : stats.ParamsAreFVars) (habsent : stats.RemainingParamsAbsent index type)
     (hvalid : isValidIndAppIdx stats type parent = true) : stats.params.size ≤ index :=
@@ -129,6 +138,9 @@ run_meta
   audit ``InductiveStats.RemainingParamsAbsent.validIndAppIdx [``Expr.eqv_eq]
   audit ``checkConstructors.loop_arity [``Expr.eqv_eq, ``Expr.instantiate1_eq]
   audit ``checkConstructors.loop_spine [``Expr.eqv_eq, ``Expr.instantiate1_eq]
+  audit ``checkConstructors.spine
+    [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
+      ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
   audit ``checkConstructors.loop_arity_of_noFVars [``Expr.eqv_eq, ``Expr.instantiate1_eq]
   audit ``checkConstructors.checked_loop_arity
     [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,

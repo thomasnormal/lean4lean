@@ -374,6 +374,63 @@ private theorem bindInvariantWF {ctx : Context} {action : M α} {next : α → M
     ((action >>= next) ctx).WF post :=
   haction.bind hnext
 
+theorem checkConstructors.spine (indTypes : Array InductiveType) (stats : InductiveStats)
+    (isUnsafe : Bool) (ctx : Context) :
+    (checkConstructors indTypes stats isUnsafe ctx).WF fun _ =>
+      ∀ indType ∈ indTypes, ∀ ctor ∈ indType.ctors,
+        ∃ index, ∃ hindex : index < indTypes.size, indTypes[index] = indType ∧
+          ∃ terminal, ConstructorSpine ctor.type terminal ∧
+            isValidIndAppIdx stats terminal index = true := by
+  unfold checkConstructors
+  dsimp only
+  apply Lean4Lean.AddInductive.bindWF
+  intro env
+  refine bindInvariantWF (ctx := ctx)
+    (post := fun _ => ∀ indType ∈ indTypes, ∀ ctor ∈ indType.ctors,
+      ∃ index, ∃ hindex : index < indTypes.size, indTypes[index] = indType ∧
+        ∃ terminal, ConstructorSpine ctor.type terminal ∧
+          isValidIndAppIdx stats terminal index = true)
+    (invariant := fun _ =>
+      ∀ index ∈ List.range' 0 indTypes.size, ∀ hindex : index < indTypes.size,
+        ∀ ctor ∈ indTypes[index].ctors,
+          ∃ terminal, ConstructorSpine ctor.type terminal ∧
+            isValidIndAppIdx stats terminal index = true) ?_ ?_
+  · simp only [Std.Legacy.Range.forIn'_eq_forIn'_range', Std.Legacy.Range.size,
+      Nat.sub_zero, Nat.add_sub_cancel, Nat.div_one]
+    apply forIn'_all
+    intro index hindex state
+    have hbound : index < indTypes.size := by simpa using hindex
+    refine bindInvariantWF (ctx := ctx)
+      (post := fun (result : ForInStep Unit) => ∃ next, result = .yield next ∧
+        ∀ hindex : index < indTypes.size, ∀ ctor ∈ indTypes[index].ctors,
+          ∃ terminal, ConstructorSpine ctor.type terminal ∧
+            isValidIndAppIdx stats terminal index = true)
+      (invariant := fun _ =>
+        ∀ ctor ∈ indTypes[index].ctors,
+          ∃ terminal, ConstructorSpine ctor.type terminal ∧
+            isValidIndAppIdx stats terminal index = true) ?_ ?_
+    · change (forIn' (m := M) _ _ _ ctx).WF _
+      apply forIn'_all
+      intro ctor _ found
+      dsimp only
+      split
+      · exact Except.WF.throw
+      · simp only [pure_bind]
+        refine (Lean4Lean.checkNoMVarNoFVar.WF env ctor.name ctor.type).bind ?_
+        intro _ hclosed
+        apply Lean4Lean.AddInductive.bindWF
+        intro checkedType
+        exact (checkConstructors.loop_spine stats isUnsafe index ctor.name ctor.type 0
+          ctx.fuel.inductiveFuel ctx).bind fun _ hspine =>
+            .pure ⟨_, rfl, hspine⟩
+    · intro _ hctors
+      exact .pure ⟨_, rfl, fun _ => hctors⟩
+  · intro _ hall
+    refine .pure ?_
+    intro indType htype ctor hctor
+    obtain ⟨index, hindex, rfl⟩ := Array.mem_iff_getElem.mp htype
+    exact ⟨index, hindex, rfl, hall index (by simp; omega) hindex ctor hctor⟩
+
 theorem checkConstructors.arity (indTypes : Array InductiveType) (stats : InductiveStats)
     (isUnsafe : Bool) (ctx : Context) (hfvars : stats.ParamsAreFVars)
     (hnodup : stats.params.toList.Nodup) :
