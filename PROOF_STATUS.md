@@ -531,11 +531,15 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   substitution.
   `replaceIfNested.rangeWithNewTypes` uses that closure together with the bounded
   forall-parameter contract to discharge each generated auxiliary constructor and
-  `newTypes` range. Generated-state preservation remains an explicit premise for
-  `replaceAllNested.rangeWithNewTypes`. `State.NewTypesRange` and
+  `newTypes` range. `replaceAllNested.rangeWithNewTypesStructural` lifts that
+  callback contract through the complete expression traversal and proves both
+  generated-state range and retained-index preservation. The older
+  `replaceAllNested.rangeWithNewTypes` theorem remains an explicit-premise
+  compatibility contract; the loop-level generated callback is still explicit.
+  `State.NewTypesRange` and
   `run.loop.newTypesRange` then propagate preexisting and generated ranges through
   constructor `mapM`, bounded re-abstraction, and the executable `set!` update into
-  both the final state and result types. Thirty-three focused audits exclude
+  both the final state and result types. Thirty-four focused audits exclude
   `sorryAx` and use only the existing logical, metadata, application-building,
   abstraction, instantiation, and array interfaces. These are explicit range
   contracts; they do not prove environment declaration closure, auxiliary
