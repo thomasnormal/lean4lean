@@ -949,6 +949,35 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   signature does not assert their equality, semantic typing/reduction, original
   field-count preservation, generated binder/index alignment, WHNF transport,
   auxiliary typing, nested restoration correctness, or inductive soundness.
+- `Verify.InductiveNestedArity` proves raw outer-forall arity preservation by
+  the actual nested-expression replacement. Both cached and newly generated
+  auxiliary replacements are constant-headed applications, with raw arity zero;
+  the expression traversal retains every outer forall. A general `withParams.bind`
+  equation couples parameter-prefix and structural-context receipts to the same
+  successful extraction. Re-abstraction after replacement therefore recovers the
+  source arity, and the actual constructor callback preserves its name, raw arity
+  and exact old datatype-entry prefix. No source typing or scope assumption is
+  needed for these syntactic receipts. Arity means the raw `declareConstructors.arity`
+  count, not WHNF arity; annotations, lets and lambdas are not extra outer foralls.
+  The application-range proof uses the existing `Expr.mkAppRangeAux.eq_def`
+  interface. Re-abstraction additionally inherits the existing array/map,
+  `Expr.instantiate1_eq` and `Expr.abstract_eq` interfaces, without `sorryAx`.
+- `Verify.InductiveRestorationArity` extends the signature prefix with exact
+  ordered source-constructor arities. The actual growing preprocessing loop
+  preserves the stronger prefix at every original datatype/constructor position,
+  including empty constructor lists and appended auxiliaries. Checked staged
+  metadata then establishes `numFields = sourceArity - nparams` and
+  `nparams + numFields = sourceArity`. `constructorFieldStages` couples these
+  receipts to the same successful preprocessing/runner/root/source witnesses
+  and the exact direct/nested final constructor recipes. `finalFields` exposes
+  actual final records with the original parent, position, parameters, levels,
+  safety and field count. Both public frontends require only initial map validity.
+  Twenty-four added audits exclude `sorryAx` and explicitly track the existing
+  application-range, binding and public frontend interfaces. No executable kernel
+  change, new axiom/admission/cache/fast path or assertion-unreachability premise.
+  This extends the earlier signature-only contract with source field counts;
+  semantic source/restored typing and reduction, nested correctness, binder/index
+  alignment, WHNF transport, auxiliary typing and inductive soundness remain open.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -2248,6 +2277,20 @@ headers, altered constructor order/counts and missing staged source constructors
 under a checked signature certificate. No panic fixture is executed; all audits
 exclude `sorryAx`. Constructor type equality and semantic soundness are not
 assumed. Run `lake env lean tests/InductiveSourceConstructors.lean`.
+
+`tests/InductiveSourceArity.lean` adds thirty-two proof regressions and twenty-four
+axiom audits for constant-headed applications, optional/nested replacement,
+same-success parameter extraction, re-abstraction, the actual constructor callback,
+compositional arity prefixes, the growing preprocessing loop, checked staged field
+counts, coupled source/final metadata and both public frontends. Four proof-only
+failure controls reject changed arity vectors, wrong field counts, insufficient
+raw arity and missing final source constructors; a metadata-wrapped forall control
+keeps raw arity distinct from WHNF arity. All audits exclude `sorryAx`, with explicit
+existing interface allowances. The twenty-two native-accepted restoration fixtures
+also compare every original/staged raw constructor arity and check both field-count
+equations, retaining exact final record checks for both flags and the direct public
+frontend. Run `lake env lean tests/InductiveSourceArity.lean` and
+`lake env lean tests/InductiveFrontendRestoration.lean`.
 
 `tests/InductiveHeaderScope.lean` adds nine proof regressions and seven axiom
 audits for arbitrary checked-header continuations, coupled scope/statistics,
