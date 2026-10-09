@@ -97,6 +97,9 @@ import Lean4Lean.Verify.InductiveRecursorIndexTranslationCPS
 import Lean4Lean.Verify.InductiveIndexApplicationTranslation
 import Lean4Lean.Verify.InductiveMajorContextTranslation
 import Lean4Lean.Verify.InductiveMajorContextTranslationCPS
+import Lean4Lean.Verify.InductiveMotiveBindingFacts
+import Lean4Lean.Verify.InductiveMotiveContextTranslation
+import Lean4Lean.Verify.InductiveMotiveContextTranslationCPS
 import Lean4Lean.Verify.InductiveAnnotationNativeScope
 import Lean4Lean.Verify.InductiveAnnotationOpeningShape
 import Lean4Lean.Verify.InductiveAnnotationModelOpening
