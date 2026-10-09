@@ -914,10 +914,41 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   metadata projections use only standard logical axioms, while the public
   constructors inherit the existing map/list-push/checker interfaces. Logical
   panic defaults remain explicit, not asserted unreachable. Executable kernel
-  code is unchanged. Exact original constructor-name/order retention, semantic
-  source/restored typing or reduction, nested transformation/restoration
-  correctness, generated binder/index alignment, WHNF transport, auxiliary
-  expression typing, and inductive soundness remain separate obligations.
+  code is unchanged. The following module strengthens retention to source
+  constructor names/order and raw header types. Semantic source/restored typing
+  or reduction, nested transformation/restoration correctness, generated
+  binder/index alignment, WHNF transport, auxiliary expression typing, and
+  inductive soundness remain separate obligations.
+- `Verify.InductiveRestorationConstructors` proves positional source-signature
+  retention and source-indexed final constructor metadata. The shared nested
+  replacement proofs now establish `ElimNestedInductive.TypePrefix`: every old
+  datatype entry remains exactly unchanged while new auxiliaries are appended.
+  Existing names-only APIs remain projections of the stronger frame, avoiding
+  duplicated nested traversal proofs. `withParams.newTypesFrame` supplies the
+  unchanged datatype array to arbitrary parameter-extraction continuations.
+  `InductiveSignaturePrefix` records original datatype names, raw header types,
+  and exact ordered constructor-name lists at their original positions. The
+  actual growing preprocessing loop preserves this signature through every
+  constructor rewrite; count and per-position name projections expose the
+  original constructor indexing, including empty lists and multiple parents.
+  `SafeRunScope.sourceConstructor` joins that prefix with checked metadata to
+  provide the actual staged constructor under each original source name, with
+  its original parent/position, declared parameter count, level parameters and
+  safe flag, plus the staged header's exact source type and constructor names.
+  `SourceConstructorLookups` retains that same staged value and provides exact
+  final lookups on both branches: unchanged staged records for direct runs,
+  literal restored-type updates for nested runs. `constructorStages` couples
+  these receipts with the same successful preprocessing/runner equations,
+  complete checked root/constructor/source certificate, signature prefix and
+  branch trace. Both actual public frontends construct these source-indexed
+  receipts from only initial map validity, with no caller retention/coverage
+  premise. Twenty-four added audits exclude `sorryAx`; only the public
+  constructors inherit existing map/list-push/checker interfaces. No executable
+  kernel change, new axiom/admission/cache/fast path, or assertion-unreachability
+  assumption. Constructor types may change under nested rewriting; the source
+  signature does not assert their equality, semantic typing/reduction, original
+  field-count preservation, generated binder/index alignment, WHNF transport,
+  auxiliary typing, nested restoration correctness, or inductive soundness.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -2165,7 +2196,7 @@ soundness claim is made. Run `lake env lean tests/InductiveFrontendScope.lean`.
 `tests/InductiveFrontendRestoration.lean` contains fifty-four proof regressions
 and forty-nine axiom audits for fresh trace composition, preservation/final lookup
 classification, individual/batch restoration receipts, both public frontend
-branches, and actual declaration dispatch. Eighteen native-accepted safe fixtures
+branches, and actual declaration dispatch. Twenty-two native-accepted safe fixtures
 cover direct and nested inputs with zero/one/two parameters, repeated nested
 fields/auxiliary reuse, a mutual batch with an empty original datatype, closed
 recursive index arguments, and polymorphic universes. Both declaration check
@@ -2197,7 +2228,26 @@ enumeration. Three new native-accepted fixtures cover direct and nested
 three-original batches, distinct nested auxiliary groups, and deeply nested
 `List (List I)` occurrences. Complete nested installation no longer needs caller
 coverage, but does not establish semantic preprocessing/restoration correctness.
+The constructor-signature extension checks exact raw header types and ordered
+source constructor names/counts through preprocessing, then verifies every
+source constructor's staged/final parent, position, parameter count, universes,
+safe flag and exact direct/restored record under its original name. Four new
+native-accepted fixtures have three constructors with zero/one/three fields,
+cover nested zero/one-parameter and direct two-parameter families, and a mutual
+batch with two multi-constructor parents and an empty original datatype. Both
+declaration flags and the direct public frontend retain these checks.
 Run `lake env lean tests/InductiveFrontendRestoration.lean`.
+
+`tests/InductiveSourceConstructors.lean` adds twenty-five proof regressions and
+twenty-four axiom audits for exact nested datatype-array frames, compositional
+signature prefixes, header/constructor-list retention, constructor counts and
+positions, actual preprocessing, source-indexed checked metadata, coupled
+successful stages and both public frontends. Direct/nested final projections
+retain the same staged constructor. Four proof-only controls reject altered
+headers, altered constructor order/counts and missing staged source constructors
+under a checked signature certificate. No panic fixture is executed; all audits
+exclude `sorryAx`. Constructor type equality and semantic soundness are not
+assumed. Run `lake env lean tests/InductiveSourceConstructors.lean`.
 
 `tests/InductiveHeaderScope.lean` adds nine proof regressions and seven axiom
 audits for arbitrary checked-header continuations, coupled scope/statistics,
