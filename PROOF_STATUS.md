@@ -3597,6 +3597,68 @@ trace modules cover fifty-four / fifteen, including private/generated helpers.
 All three trace modules replay through lean4lean. Run
 `lake env lean tests/InductiveIndexTraceTranslation.lean`.
 
+`Verify.InductiveRecursorIndexTranslation` lifts those index-only receipts into
+the actual per-parent `RecursorInfoIndexSource`. The source's index traversal
+always starts at counter zero, so this bridge explicitly requires an empty
+parameter array. It does not silently replace that operational counter with
+the parameter count. The receipt retains the same entry reader, exact initial
+header WHNF result, supplied index trace, chosen semantic/virtual witnesses,
+actual index array, major/motive allocation equations and final native reader
+scope. Transport destructures the operational source and translates its own
+trace, rather than combining independently chosen semantic and allocation
+histories.
+
+Starting correspondence and structural translation of that exact normalized
+header remain guarded support premises, together with the actual trace's local
+annotation and normalization support. Each callback is fixed to the observed
+recursor info and continuation reader, and guarded by the complete same source
+witness, including major/motive equations and the final native frame. It does
+not require correspondence for arbitrary native scope extensions, which can
+contain untyped declarations. Nor does it assume the terminal history, terminal
+typing or typed annotation spines. Compatible existential source witnesses can
+still remain; the callback is conditional starting support, not a proved phase
+invariant or uniqueness theorem. Pointwise batch receipts preserve parent
+bounds and actual recursor-info array size; native scope extension and minor
+updates retain the chosen history.
+
+`Verify.InductiveRecursorIndexTranslationFacts` recovers terminal strong
+translation and native/virtual correspondence at the index reader. It derives
+the exact index allocation suffix from that same semantic history and retains
+its actual declarations and positions through major/motive pushes and the
+observed continuation reader. The major domain and native lookup come from the
+same per-parent source.
+
+`Verify.InductiveRecursorIndexTranslationCPS` passes these pointwise receipts
+through the actual batch continuation, observed-reader getter and registration
+wrapper while retaining their operational scope and existing metadata. The
+support premise holds only at successful results of the actual observed-reader
+capture; the generic continuation is connected to that capture by the existing
+`mkRecInfos.morphism`. No uniform semantic-typing premise over arbitrary native
+reader extensions is used. The
+semantic correspondence is deliberately at each index reader, not asserted at
+the final continuation reader: native scope extension alone does not supply
+semantic typing for added major, motive or minor declarations. Parameter reuse,
+typed correspondence for those additions, generic strong normalization
+recovery, source-checker acceptance and full inductive soundness remain open.
+No runtime checker behavior or new axiom, admission or oracle is introduced.
+
+`tests/InductiveRecursorIndexTranslation.lean` adds twenty-six proof controls,
+142 declaration audits and seven axiom-print checks. A native scope-preserving
+metavariable-domain declaration explicitly has no possible `TrLCtx`; this
+demonstrates why uniform correspondence over arbitrary native scopes is not a
+valid support default. Fixed-source support requires the actual major/motive
+and reader guards, and captured support requires actual successful execution.
+Eight native callbacks/registrations cover ten parents and eleven indices,
+dependent annotation domains, constructor/minor extensions and nonliteral
+initial header normalization; these runtime tests do not establish semantic
+header acceptance. The old clean annotation core remains seventy-three
+declarations / thirty-eight theorems; the three new modules cover thirty-one /
+twenty-three, including private/generated helpers, and replay through lean4lean.
+Audits pin the four inherited trace-native interfaces separately from
+registration's existing `PersistentHashMap.findAux_isSome` foundation and reject
+runtime-helper admissions. Run
+`lake env lean tests/InductiveRecursorIndexTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
