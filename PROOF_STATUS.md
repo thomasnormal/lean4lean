@@ -368,9 +368,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   operational provenance. `DeclaredRecursorCounts` and `declaredCounts` relate
   installed counters to declared parameters, datatype count, and total
   constructor count under explicit parameter/motive/minor alignment premises;
-  the parameter premise comes from the existing checked prefix. Proving the
-  generation action supplies the two remaining alignment premises is a separate
-  obligation. The suffix does not validate arbitrary recursor inputs, prove
+  the parameter premise comes from the existing checked prefix, and the
+  `RecursorInfoCounts` module below now proves the generation action supplies
+  the two remaining alignment premises. The suffix does not validate arbitrary
+  recursor inputs, prove
   index-binder alignment, or establish semantic recursor typing/reduction or
   a formula for starting minor indices. Both registration audits use only the
   existing three map interfaces; the two metadata projections use only standard
@@ -387,6 +388,24 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   and uses only standard logical axioms, without checker-correctness or
   expression-interface assumptions. WHNF/inference/classification results are
   opaque operational values; the proof does not assert their semantic validity.
+- `Verify.RecursorInfoCounts` proves `mkRecInfos.frameCounts` for arbitrary
+  continuations, retaining the same immutable frame alongside generated-array
+  alignment. `RecursorInfoCounts` records exactly one recursor-information
+  entry per datatype and exactly one minor per constructor in each entry.
+  `motiveTotal` and `minorTotal` recover the mapped motive count and flattened
+  minor count; `getCounts` exposes the generated array and context with both
+  certificates. The first generation phase preserves empty minor arrays while
+  pushing entries; the second preserves array size and other entries while
+  adding one minor per constructor. `mkRecInfos.registerCounts` composes actual
+  generation with the verified registration suffix, proving final concrete
+  map validity, preservation of old entries, and `DeclaredRecursorCounts` from
+  initial map validity and the checked parameter-count premise alone. No
+  caller-supplied motive/minor alignment premises remain. Count/frame/getter
+  audits use only standard logical axioms; the registration audit additionally
+  uses the existing three map interfaces. All exclude `sorryAx` and expression
+  or guarded-arity interfaces. Executable kernel code is unchanged; semantic
+  recursor typing, index-binder alignment, reduction soundness, WHNF transport,
+  and lifting the stronger receipts through complete safe runs remain separate.
 - `Verify.InductiveRunPreservation` connects successful safe complete runs to
   their actual final environment. `InductiveStats.SafeRunRegistration` retains
   the original rooted constructor-registration certificate and its intermediate
@@ -1612,25 +1631,35 @@ they cover empty inputs/constructors, recursive/higher-order fields, one/two
 parameters, mutual/indexed types, seeded contexts, universes, unsafe generation,
 primitive policies, and a tight fuel bound. Every installed record is compared
 field-for-field with its specification, including exact rule constructor/field/
-RHS data and replayed minor advancement. The generated parameter/motive/minor/
-index alignments are runtime regressions, not discharge of the conditional
-count theorem's premises. Both suffix audits use the existing three map
+RHS data and replayed minor advancement. These generated parameter/motive/minor/
+index alignments are runtime regressions; the separate count-generation proofs
+below now discharge the conditional theorem's motive/minor premises, while
+index-binder alignment remains unproved. Both suffix audits use the existing
+three map
 interfaces; both metadata projections use only standard logical axioms, and all
 audits exclude `sorryAx`.
 
-`tests/InductiveRunPreservation.lean` adds eight proof regressions and seven
+`tests/InductiveRunPreservation.lean` adds sixteen proof regressions and twelve
 axiom audits for arbitrary recursor-information continuations, returned frames,
 complete-run registration, final map validity and old lookups, final exact
 header/constructor metadata, parameter alignment, and preservation from the
-unchanged positivity root. Thirty-one successful information-generation frames
+unchanged positivity root, plus generated per-datatype and aggregate motive/minor
+counts and composition with actual recursor registration. Thirty-six successful
+information-generation count/frame fixtures
 cover empty input, no constructors, recursive/higher-order fields, one/two
 parameters, mutual/indexed types, default/seeded local contexts, both primitive
 policies, universe parameters, nested-header metadata, and unsafe generation.
+Five new fixtures add an empty middle datatype, a reordered mutual batch,
+thirty-three constructors, empty input with zero fuel, and an empty constructor
+list with one unit of fuel.
 They inspect all five immutable frame fields, imported/datatype/constructor
 lookups, quotient state, local-context/fresh-name growth, exact index/minor
-counts, and availability of all generated local binders. Two boundaries check
+counts, aggregate minor count, and availability of all generated local binders.
+Two boundaries check
 zero-fuel rejection and propagation of an arbitrary continuation failure. The
-frame's audit and all certificate projections use only standard logical axioms;
+frame/count/getter audits and all certificate projections use only standard
+logical axioms;
+the generation/registration count audit uses the existing three map interfaces;
 the two runner audits use the existing three map and six guarded-arity
 interfaces. Every audit excludes `sorryAx`. Adjacent complete-run fixtures
 remain the executable smoke checks for the final installed recursors and rules;
