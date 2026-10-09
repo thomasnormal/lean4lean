@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.RecursorRuleRhsCounts
+import Lean4Lean.Verify.RecursorRuleRhsFVars
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -391,6 +391,45 @@ example (stats : InductiveStats) (nparams numNested : Nat) (types : Array Induct
   exact ⟨infos, source, recursor, rule, minor, info, fields, values, current,
     hfind, hrule, hminor, hfindCtor, hframe, hfields ▸ hbound, hrecipe⟩
 
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF) :
+    (AddInductive.run nparams types numNested ctx).WF fun env =>
+      ∃ (stats : InductiveStats) (root : Context) (constructors : Kernel.Environment),
+        stats.SafeRunMinorOffsets nparams types.toArray numNested ctx root constructors env ∧
+        ∃ (infos : Array RecInfo) (source : Context),
+          ({ root with env := constructors } : Context).HeaderFrame source ∧
+          RecursorInfoCounts types.toArray infos ∧ LocalRecursorRuleRhsFVars stats types.toArray infos source env :=
+  AddInductive.run.safeRuleRhsFVars nparams types numNested ctx hsafety hwf
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env) :
+    ∃ (stats : InductiveStats) (infos : Array RecInfo) (source : Context),
+      RecursorInfoCounts types.toArray infos ∧ LocalRecursorRuleRhsFVars stats types.toArray infos source env := by
+  obtain ⟨stats, _, _, _, infos, source, _, hcounts, hrhs⟩ :=
+    AddInductive.run.safeRuleRhsFVars nparams types numNested ctx hsafety hwf env hresult
+  exact ⟨stats, infos, source, hcounts, hrhs⟩
+
+example (stats : InductiveStats) (nparams numNested : Nat) (types : Array InductiveType)
+    (original root : Context) (constructors env : Kernel.Environment)
+    (hoffsets : stats.SafeRunMinorOffsets nparams types numNested original root constructors env)
+    (parent index : Nat) (hparent : parent < types.size) (ctor : Constructor)
+    (hctor : types[parent]!.ctors[index]? = some ctor) :
+    ∃ (infos : Array RecInfo) (source : Context) (rule : RecursorRule) (minor : Expr)
+      (fields recursiveFields values : Array Expr) (current : Context),
+      infos[parent]!.minors[index]? = some minor ∧ source.HeaderFrame current ∧
+      RecursorFieldsAreFVars fields ∧ RecursorFieldsAreFVars recursiveFields ∧
+      recursiveFields.toList.Sublist fields.toList ∧ values.size = recursiveFields.size ∧
+      rule.ctor = ctor.name ∧ rule.nfields = fields.size ∧ values.size ≤ rule.nfields ∧
+      rule.rhs = recursorRuleRhs stats (infos.map (·.motive)) (infos.flatMap (·.minors)) fields values current.lctx minor := by
+  obtain ⟨infos, source, _, _, hrhs⟩ := hoffsets.localRuleRhsFVars
+  obtain ⟨_, _, hreceipts⟩ := hrhs parent hparent
+  obtain ⟨rule, minor, _, hminor, hreceipt⟩ := hreceipts index ctor hctor
+  obtain ⟨fields, recursiveFields, values, current, hframe, hfvars, hselectedVars,
+    hselected, hvalues, hname, hfields, hbound, hrecipe⟩ := hreceipt.shapes
+  exact ⟨infos, source, rule, minor, fields, recursiveFields, values, current,
+    hminor, hframe, hfvars, hselectedVars, hselected, hvalues, hname, hfields, hbound, hrecipe⟩
+
 private def sortType : Expr := .sort (.succ .zero)
 
 private def closeParams (nparams : Nat) (body : Expr) : Expr :=
@@ -488,6 +527,8 @@ run_meta
   audit ``AddInductive.run.safeRuleRhs
   audit ``InductiveStats.SafeRunMinorOffsets.localRuleRhsCounts false
   audit ``AddInductive.run.safeRuleRhsCounts
+  audit ``InductiveStats.SafeRunMinorOffsets.localRuleRhsFVars false
+  audit ``AddInductive.run.safeRuleRhsFVars
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let natType := Expr.const ``Nat []
