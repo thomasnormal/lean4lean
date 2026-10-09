@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.RecursorMinorOffsets
+import Lean4Lean.Verify.RecursorRuleFields
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -227,6 +227,45 @@ example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
   exact ⟨stats, root, constructors, elimLevel, infos, source, isK,
     hoffsets.toSafeRunRegistration, hframe, hcounts, hrecursors⟩
 
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF) :
+    (AddInductive.run nparams types numNested ctx).WF fun env =>
+      env.constants.WF ∧
+      (∀ name info, ctx.env.find? name = some info → env.find? name = some info) ∧
+      RuleConstructorFieldMetadata types.toArray env :=
+  AddInductive.run.safeRuleConstructorFields nparams types numNested ctx hsafety hwf
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env) :
+    RuleConstructorFieldMetadata types.toArray env :=
+  (AddInductive.run.safeRuleConstructorFields nparams types numNested ctx hsafety hwf env hresult).2.2
+
+example (stats : InductiveStats) (nparams numNested : Nat) (types : Array InductiveType)
+    (original root : Context) (constructors env : Kernel.Environment)
+    (hmetadata : stats.SafeRunMetadata nparams types numNested original root constructors env) :
+    RuleConstructorFieldMetadata types env :=
+  hmetadata.ruleConstructorFields
+
+example (stats : InductiveStats) (nparams numNested : Nat) (types : Array InductiveType)
+    (original root : Context) (constructors env : Kernel.Environment)
+    (hoffsets : stats.SafeRunMinorOffsets nparams types numNested original root constructors env) :
+    RuleConstructorFieldMetadata types env :=
+  hoffsets.ruleConstructorFields
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env)
+    (parent : Nat) (hparent : parent < types.toArray.size) :
+    ∃ recursor : RecursorVal,
+      env.find? (mkRecName types.toArray[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types.toArray[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (info : ConstructorVal),
+          recursor.rules[index]? = some rule ∧ env.find? ctor.name = some (.ctorInfo info) ∧
+          rule.ctor = info.name ∧ rule.nfields = info.numFields :=
+  (AddInductive.run.safeRuleConstructorFields nparams types numNested ctx hsafety hwf env hresult).2.2
+    parent hparent
+
 private def sortType : Expr := .sort (.succ .zero)
 
 private def closeParams (nparams : Nat) (body : Expr) : Expr :=
@@ -291,7 +330,7 @@ private def constructorPrefix (nparams : Nat) (types : List InductiveType) : M K
       checkConstructors types.toArray stats false
       declareConstructors stats types.toArray false
 
-private def audit (theoremName : Name) (interfaces := true) : MetaM Unit := do
+private def audit (theoremName : Name) (interfaces := true) (instantiation := false) : MetaM Unit := do
   let axioms ← collectAxioms theoremName
   logInfo m!"{theoremName}: axioms = {repr axioms}"
   let logical := [``propext, ``Classical.choice, ``Quot.sound]
@@ -299,6 +338,7 @@ private def audit (theoremName : Name) (interfaces := true) : MetaM Unit := do
     ``Lean.PersistentHashMap.findAux_isSome, ``Lean.PersistentHashMap.WF.find?_eq,
     ``Lean.PersistentHashMap.WF.toList'_insert, ``Expr.eqv_eq, ``Expr.instantiate1_eq,
     ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq] else []
+  let allowed := allowed ++ if instantiation then [``Expr.instantiate1_eq] else []
   for axiomName in axioms do
     unless allowed.contains axiomName do throwError "unexpected axiom {axiomName} in {theoremName}"
 
@@ -314,6 +354,9 @@ run_meta
   audit ``InductiveStats.SafeRunMinorOffsets.metadata false
   audit ``InductiveStats.SafeRunMinorOffsets.sourceRules false
   audit ``AddInductive.run.safeMinorOffsets
+  audit ``InductiveStats.SafeRunMetadata.ruleConstructorFields false true
+  audit ``InductiveStats.SafeRunMinorOffsets.ruleConstructorFields false true
+  audit ``AddInductive.run.safeRuleConstructorFields
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let natType := Expr.const ``Nat []

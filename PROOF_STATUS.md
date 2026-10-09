@@ -472,8 +472,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   three map and six guarded-arity interfaces. All exclude `sorryAx`; executable
   kernel code and axioms are unchanged. This module proves local minor-state
   advancement; the next module now proves the global starting-index prefix-sum
-  formula. Field-count alignment, semantic rule typing, reduction soundness,
-  index-binder alignment, and WHNF transport remain separate.
+  formula. The field module below now proves raw and registered field-count
+  alignment; semantic rule typing, reduction soundness, index-binder alignment,
+  and WHNF transport remain separate.
 - `Verify.RecursorMinorOffsets` defines `recursorMinorOffset` as the number of
   constructors in the datatype-array prefix before an index, proving its zero,
   successor, and total-count equations. `declareRecursors.offsetMetadata`
@@ -496,8 +497,36 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   logical axioms; the suffix audit adds the existing three map interfaces, and
   the complete-run audit also uses the existing six guarded-arity interfaces.
   All exclude `sorryAx`. Executable kernel code and existing contracts remain
-  unchanged. Field-count alignment, semantic RHS typing/reduction, index-binder
+  unchanged. The next module now derives field-count alignment from the checked
+  free-variable parameter invariant. Semantic RHS typing/reduction, index-binder
   alignment, WHNF transport, and earlier preprocessing remain unproved.
+- `Verify.RecursorRuleFields` proves `mkRecInfos.loopCtorArgs.fields` for arbitrary
+  continuations, preserving the immutable reader frame and counting generated
+  fields as the raw constructor forall arity minus the parameter-array size.
+  Its loop invariant accounts for already collected fields and parameters still
+  to consume; substitution by free variables preserves raw arity. The theorem
+  requires `InductiveStats.ParamsAreFVars`, which the actual checked prefix
+  supplies, but no parameter-count lower bound or uniqueness premise. Truncated
+  subtraction is intentional for isolated inputs with too few binders; this is
+  not a claim that declaration registration accepts those inputs.
+  `RecursorRuleFields` records the exact ordered constructor-name/field-count
+  pairs. `mkRecRules.fieldCounts` proves this for the real rule generator, and
+  `at` supplies the corresponding rule at a concrete constructor-list position.
+  `RecursorMetadata.ruleFields` transfers the result through stored-rule receipts.
+  Both `SafeRunMetadata.ruleConstructorFields` and the stronger offset-certificate
+  projection join those rules to actual registered constructor records in the
+  final environment: matching names have `rule.nfields = info.numFields`.
+  `run.safeRuleConstructorFields` exposes this alongside final map validity and
+  preservation of old entries, needing only explicit safe input and initial
+  concrete-map validity. Original positivity roots and rule reader contexts are
+  unchanged. Five new traversal/generator/certificate audits use only standard
+  logical axioms and the existing `Expr.instantiate1_eq` interface; the positional
+  projection uses only logical axioms. The complete-run audit uses exactly the
+  existing three map and six guarded-arity interfaces. All exclude `sorryAx`;
+  no new axiom, admission, or executable kernel change is introduced. Counts are
+  raw syntactic forall counts, not a semantic typing or normalization theorem.
+  RHS typing/reduction, generated index-binder alignment, WHNF transport, and
+  earlier preprocessing remain separate.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -1663,13 +1692,14 @@ boundary keeps the header root distinct from the constructor environment and
 retains later index locals absent from `stats.lctx`. The fixtures stop before
 elimination/recursor generation and do not claim full declaration acceptance.
 
-`tests/InductiveRunRegistration.lean` adds twenty-four proof regressions and eleven axiom
+`tests/InductiveRunRegistration.lean` adds twenty-nine proof regressions and fourteen axiom
 audits for the complete runner's intermediate registration witness, successful
 result extraction, safe-root positivity traces, intermediate metadata/map
 validity, indexed spine projection, final exact recursor metadata, generated
 counter alignment, rule-source context preservation, installed rule name/order/
 count correspondence, exact starting/ending minor-prefix receipts, stronger
-certificate compatibility, and the combined declared
+certificate compatibility, positional rule/registered-constructor field-count
+alignment, and the combined declared
 metadata contract. Thirty-two full-run outcomes cover
 empty input, recursive and higher-order fields, one/two parameters, mutual and
 indexed types, seeded contexts, universe parameters, rejection paths, and fuel.
@@ -1686,21 +1716,32 @@ field control remains outside the theorem's explicit safe-context scope.
 The stronger metadata certificate preserves the distinct intermediate
 constructor environment and original positivity root while identifying installed
 records in the actual final environment. It does not transport WHNF or cover
-earlier declaration preprocessing guards. All four metadata/order/offset runner
-audits use only the existing map and guarded-arity interfaces; all five certificate
-projections use only
-standard logical axioms. All audits exclude `sorryAx`.
+earlier declaration preprocessing guards. All five metadata/order/offset/field
+runner audits use only the existing map and guarded-arity interfaces; five
+compatibility/source/count projections use only standard logical axioms, while
+the two field projections additionally use the existing `Expr.instantiate1_eq`
+interface. All audits exclude `sorryAx`.
 Empty batches with a nonzero declared parameter count remain proof-only
 boundaries: the known terminal assertion does not justify runtime acceptance.
 
-`tests/RecursorRegistration.lean` contains twenty-two proof regressions and fourteen axiom
+`tests/RecursorRegistration.lean` contains twenty-seven proof regressions and eighteen axiom
 audits for suffix map validity, successful-result extraction, exact old lookup
 preservation, preservation of a constructor-registration certificate's
 header/constructor metadata, complete recursor records, source rule receipts,
 conditional declared counters, successful rule-source name/order/count/state
 shape, installed rule-shape projections, datatype-prefix equations, exact offset
-receipts, and compatibility with the prior metadata contract. An empty-array proof makes the vacuous
+receipts, compatibility with the prior metadata contract, arbitrary field-count
+continuations, and positional raw/registered field counts. An empty-array proof makes the vacuous
 counter boundary explicit even with a nonzero declared parameter count.
+Seven direct raw-field fixtures cover zero/one/two parameters, truncated short
+inputs, mixed binder visibility, and thirty-three fields, with a zero-fuel
+failure boundary. A non-free-variable parameter control demonstrates why the
+explicit premise is necessary: substituting a forall expression into the terminal
+parameter variable exposes one field, although raw arity minus parameter count
+is zero. This unchecked internal statistics input is outside the theorem's
+scope, not a public frontend divergence. The three new traversal/generator/
+source audits use only the existing `Expr.instantiate1_eq` interface beyond
+standard logical axioms; the positional projection uses only logical axioms.
 Eight direct source-shape fixtures exercise zero and shifted initial minor
 indices, a zero-fuel empty parent with zero/nonzero state, reversed constructor
 order, and repeated constructor names. They check exact name sequences, rule
@@ -1729,15 +1770,17 @@ semantic typing or complete declaration acceptance. Existing full-run fixtures
 exercise the extracted suffix through the actual checking/generation path.
 Every successful low-level record now also checks its full specification,
 including the exact abstracted/inferred type, and replays the rule source with
-the threaded minor index. Thirteen additional fixtures execute the actual checked
+the threaded minor index. Fourteen additional fixtures execute the actual checked
 header/constructor prefix, information generation, and registration suffix;
 they cover empty inputs/constructors, recursive/higher-order fields, one/two
 parameters, mutual/indexed types, seeded contexts, universes, unsafe generation,
-primitive policies, a tight fuel bound, and a propositional singleton.
+primitive policies, a tight fuel bound, a propositional singleton, and a
+one-parameter constructor with thirty-three mixed-visibility fields.
 Each fixture also executes the complete runner from the same original context.
 Every installed record from both executions is compared
 field-for-field with its specification, including exact rule constructor/field/
-RHS data and replayed minor advancement, and both outputs preserve constructor-stage
+RHS data and replayed minor advancement, plus ordered raw field counts and
+actual constructor-record field counts. Both outputs preserve constructor-stage
 lookups. These generated parameter/motive/minor/
 index alignments are runtime regressions; the separate count-generation proofs
 below now discharge the conditional theorem's motive/minor premises, while
