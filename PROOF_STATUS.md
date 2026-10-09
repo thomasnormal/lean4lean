@@ -190,7 +190,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   incorrectly requiring every normalized field to have no occurrence.
   These are operational/syntactic traces, not semantic WHNF translation,
   constructor typing, or full inductive soundness proofs. No new axiom or
-  admitted proof is used; all seven theorem audits use only standard logical
+  admitted proof is used; all ten theorem audits use only standard logical
   axioms.
   `SafeConstructorTrace` now carries the actual positivity trace of each fresh
   field through the safe constructor loop. Its parameter and field constructors
@@ -203,8 +203,20 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   normalization premise, while `checkConstructors.loop.safeTrace` specializes
   to actual WHNF results with no external positivity premise. This includes
   recursive fields that the older normalized-absence-only conditional contract
-  cannot cover. The theorem concerns the safe inner loop, not the complete
-  constructor batch or semantic constructor typing.
+  cannot cover. These inner-loop theorems do not assert semantic constructor
+  typing.
+  `InductiveStats.SafeConstructorTraces` records a trace for every constructor
+  at its concrete datatype-array index, starting from the original batch
+  context and binder counter zero. `checkConstructors.safeTraces_of_whnf`
+  lifts safe traces through both actual batch traversals, including duplicate
+  rejection, the source guard, and constructor type checking.
+  `checkConstructors.safeTraces` specializes to actual WHNF results without
+  an external positivity premise. Successful traversal steps must yield, so
+  an early exit cannot bypass later constructors or datatypes. The indexed
+  `SafeConstructorTraces.spine` projection retains the concrete parent rather
+  than replacing it with an existential matching datatype. These are full
+  safe-batch operational contracts, not header registration, constructor
+  registration, semantic typing, or full inductive soundness.
 - `Verify.ConstructorMetadata` specifies the exact concrete constructor records
   installed by registration. `declareConstructors.metadataVal` contains the
   source name/type, universe parameters, parent, per-parent constructor index,
@@ -1397,6 +1409,19 @@ accepted recursive-field occurrence demonstrates why normalized absence alone
 is insufficient. These remain helper-boundary tests: an open return can still
 be accepted without consuming its stored parameter when the source guard is
 bypassed.
+
+`tests/ConstructorBatchPositivity.lean` adds six proof regressions and three
+standard-logical-only axiom audits for the full safe-batch trace contract,
+indexed extraction, spine projection, and exact root context under `withEnv`.
+Thirty batch outcomes cover empty arrays and constructor lists, recursive and
+higher-order fields, mutual parent indices, repeated names across distinct
+parents, later duplicate/positivity/source/type failures, dependent indices,
+parameter consumption, seeded fresh names, and independent per-constructor
+fuel. An unsafe control confirms that negative fields are outside the safe
+theorem's scope. The source guard rejects an open parameter return that the
+inner loop alone can accept. These fixtures check the actual full constructor
+batch in an imported environment with explicit statistics; they do not check
+the datatype headers or claim complete declaration acceptance.
 
 `tests/ConstructorBatchArity.lean` adds four proof regressions and two axiom
 audits for full-batch checking, successful-result projection, arbitrary
