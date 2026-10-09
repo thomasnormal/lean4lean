@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.RecursorRuleRhs
+import Lean4Lean.Verify.RecursorRuleRhsCounts
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -333,6 +333,64 @@ example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
   obtain ⟨rule, minor, hrule, hminor, hreceipt⟩ := hreceipts index ctor hctor
   exact ⟨stats, infos, source, recursor, rule, minor, hfind, hrule, hminor, hreceipt⟩
 
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF) :
+    (AddInductive.run nparams types numNested ctx).WF fun env =>
+      ∃ (stats : InductiveStats) (root : Context) (constructors : Kernel.Environment),
+        stats.SafeRunMinorOffsets nparams types.toArray numNested ctx root constructors env ∧
+        ∃ (infos : Array RecInfo) (source : Context),
+          ({ root with env := constructors } : Context).HeaderFrame source ∧
+          RecursorInfoCounts types.toArray infos ∧ LocalRecursorRuleRhsCounts stats types.toArray infos source env :=
+  AddInductive.run.safeRuleRhsCounts nparams types numNested ctx hsafety hwf
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env) :
+    ∃ (stats : InductiveStats) (infos : Array RecInfo) (source : Context),
+      RecursorInfoCounts types.toArray infos ∧ LocalRecursorRuleRhsCounts stats types.toArray infos source env := by
+  obtain ⟨stats, _, _, _, infos, source, _, hcounts, hrhs⟩ :=
+    AddInductive.run.safeRuleRhsCounts nparams types numNested ctx hsafety hwf env hresult
+  exact ⟨stats, infos, source, hcounts, hrhs⟩
+
+example (stats : InductiveStats) (nparams numNested : Nat) (types : Array InductiveType)
+    (original root : Context) (constructors env : Kernel.Environment)
+    (hoffsets : stats.SafeRunMinorOffsets nparams types numNested original root constructors env)
+    (parent index : Nat) (hparent : parent < types.size) (ctor : Constructor)
+    (hctor : types[parent]!.ctors[index]? = some ctor) :
+    ∃ (infos : Array RecInfo) (source : Context) (rule : RecursorRule) (minor : Expr),
+      infos[parent]!.minors[index]? = some minor ∧
+      RecursorRuleRhsCountReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors)) source ctor minor rule := by
+  obtain ⟨infos, source, _, _, hrhs⟩ := hoffsets.localRuleRhsCounts
+  obtain ⟨_, _, hreceipts⟩ := hrhs parent hparent
+  obtain ⟨rule, minor, _, hminor, hreceipt⟩ := hreceipts index ctor hctor
+  exact ⟨infos, source, rule, minor, hminor, hreceipt⟩
+
+example (stats : InductiveStats) (nparams numNested : Nat) (types : Array InductiveType)
+    (original root : Context) (constructors env : Kernel.Environment)
+    (hoffsets : stats.SafeRunMinorOffsets nparams types numNested original root constructors env)
+    (parent index : Nat) (hparent : parent < types.size) (ctor : Constructor)
+    (hctor : types[parent]!.ctors[index]? = some ctor) :
+    ∃ (infos : Array RecInfo) (source : Context) (recursor : RecursorVal) (rule : RecursorRule)
+      (minor : Expr) (info : ConstructorVal) (fields values : Array Expr) (current : Context),
+      env.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      recursor.rules[index]? = some rule ∧ infos[parent]!.minors[index]? = some minor ∧
+      env.find? ctor.name = some (.ctorInfo info) ∧ source.HeaderFrame current ∧
+      values.size ≤ info.numFields ∧
+      rule.rhs = recursorRuleRhs stats (infos.map (·.motive)) (infos.flatMap (·.minors)) fields values current.lctx minor := by
+  obtain ⟨infos, source, _, _, hrhs⟩ := hoffsets.localRuleRhsCounts
+  obtain ⟨recursor, hfind, hreceipts⟩ := hrhs parent hparent
+  obtain ⟨rule, minor, hrule, hminor, hreceipt⟩ := hreceipts index ctor hctor
+  obtain ⟨fields, values, current, hframe, _, _, hbound, hrecipe⟩ := hreceipt.argumentBound
+  obtain ⟨otherRecursor, hotherFind, hconstructors⟩ := hoffsets.ruleConstructorFields parent hparent
+  have hsameRecursor : otherRecursor = recursor := by
+    simpa only [Option.some.injEq, ConstantInfo.recInfo.injEq] using hotherFind.symm.trans hfind
+  subst otherRecursor
+  obtain ⟨otherRule, info, hotherRule, hfindCtor, _, hfields⟩ := hconstructors index ctor hctor
+  have hsameRule : otherRule = rule := Option.some.inj (hotherRule.symm.trans hrule)
+  subst otherRule
+  exact ⟨infos, source, recursor, rule, minor, info, fields, values, current,
+    hfind, hrule, hminor, hfindCtor, hframe, hfields ▸ hbound, hrecipe⟩
+
 private def sortType : Expr := .sort (.succ .zero)
 
 private def closeParams (nparams : Nat) (body : Expr) : Expr :=
@@ -428,6 +486,8 @@ run_meta
   audit ``AddInductive.run.safeMinorIndexing
   audit ``InductiveStats.SafeRunMinorOffsets.localRuleRhs false
   audit ``AddInductive.run.safeRuleRhs
+  audit ``InductiveStats.SafeRunMinorOffsets.localRuleRhsCounts false
+  audit ``AddInductive.run.safeRuleRhsCounts
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let natType := Expr.const ``Nat []
