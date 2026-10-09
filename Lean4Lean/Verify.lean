@@ -11,6 +11,8 @@ import Lean4Lean.Verify.ConstructorMetadata
 import Lean4Lean.Verify.InductiveMetadata
 import Lean4Lean.Verify.InductiveRegistration
 import Lean4Lean.Verify.RecursorRegistration
+import Lean4Lean.Verify.RecursorInfoFrame
+import Lean4Lean.Verify.InductiveRunPreservation
 import Lean4Lean.Verify.InductiveParams
 import Lean4Lean.Verify.InductiveParamValidity
 import Lean4Lean.Verify.InductiveParamBinding
