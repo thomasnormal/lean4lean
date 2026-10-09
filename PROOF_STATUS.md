@@ -331,10 +331,29 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   elimination/recursor suffix, without assuming that suffix's semantic
   correctness. The existential header root and constructor environment remain
   distinct from the returned recursor environment; no final-environment map
-  validity, metadata preservation, or WHNF transport is inferred.
+  validity, metadata preservation, or WHNF transport is inferred by these
+  runner theorems.
   `run.safeConstructorTraces` projects the indexed traces and proves that their
   original root has safe context safety. Both are operational acceptance
   certificates, not unrestricted inductive frontend or environment soundness.
+- `Verify.RecursorRegistration` proves concrete map validity and exact old-entry
+  preservation for the actual recursor registration suffix. The executable
+  suffix is extracted into `AddInductive.declareRecursors`, called by the
+  unchanged runner sequence after recursor information, local context, and
+  safety/K flags are obtained. The original zero-initialized minor-index state,
+  dependent datatype traversal, rule generation, name checks, and metadata
+  payload remain unchanged. `declareRecursors.preserves` needs only validity
+  of the initial concrete constant map; every successful result has a valid map
+  and retains every previous constant lookup. It covers arbitrary safety flags,
+  recursor inputs, and rule-generation outcomes without claiming typing of
+  generated metadata or rules. Its audit uses only the three existing map
+  interfaces and standard logical axioms, excluding `sorryAx` and expression
+  or guarded-arity interfaces. A proof regression composes preservation with
+  the constructor-registration certificate, retaining original constants and
+  exact header/constructor records in the recursor environment. Connecting the
+  suffix through the earlier `mkRecInfos` continuation to the complete runner
+  remains separate, as do semantic recursor correctness, WHNF transport, and
+  unrestricted inductive soundness.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -1514,6 +1533,22 @@ name collision after successful constructor registration. An unsafe negative
 field control remains outside the theorem's explicit safe-context scope.
 The theorem does not identify its intermediate environment with the complete
 runner's result or cover the earlier declaration preprocessing/frontend guards.
+
+`tests/RecursorRegistration.lean` adds four proof regressions and one axiom audit
+for suffix map validity, successful-result extraction, exact old lookup
+preservation, and preservation of a constructor-registration certificate's
+header/constructor metadata. Twenty-six successful low-level traversals cover
+empty input, an empty datatype, multi-datatype batches with an empty middle
+parent, both K/safety flags and primitive-name policies, elimination levels,
+and zero fuel with no rules. They check generated record fields, closure,
+exact minor selection across datatype boundaries, imported constants including
+existing recursors, and unchanged quotient state. An unsafe-context/safe-record
+control confirms that suffix record safety uses its explicit argument. Three
+freshness rejections cover an imported recursor name, a late imported collision,
+and repeated datatype names; one rule-generation fuel failure propagates before
+insertion. The low-level fixtures supply explicit local binders and do not claim
+semantic typing or complete declaration acceptance. Existing full-run fixtures
+exercise the extracted suffix through the actual checking/generation path.
 
 `tests/ConstructorBatchArity.lean` adds four proof regressions and two axiom
 audits for full-batch checking, successful-result projection, arbitrary
