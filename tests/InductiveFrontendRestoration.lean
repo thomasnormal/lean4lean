@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveRestorationConstructors
+import Lean4Lean.Verify.InductiveRestorationArity
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -468,6 +468,9 @@ private def checkSourceSignature (types : List InductiveType) (preprocessing : E
     unless sourceType.type == rewrittenType.type &&
         sourceType.ctors.map (·.name) == rewrittenType.ctors.map (·.name) do
       throwError "preprocessing changed an original header type or constructor-name order"
+    unless sourceType.ctors.map (fun ctor => declareConstructors.arity 0 ctor.type) ==
+        rewrittenType.ctors.map (fun ctor => declareConstructors.arity 0 ctor.type) do
+      throwError "preprocessing changed an original raw constructor arity"
 
 private def checkSourceConstructors (nparams : Nat) (lparams : List Name) (types : List InductiveType)
     (preprocessing : ElimNestedInductive.Result) (staged result : Kernel.Environment) : MetaM Unit := do
@@ -480,6 +483,10 @@ private def checkSourceConstructors (nparams : Nat) (lparams : List Name) (types
       unless info.name == sourceCtor.name && info.induct == sourceType.name && info.cidx == index &&
           info.numParams == nparams && info.levelParams == lparams && info.isUnsafe == false do
         throwError "staged constructor lost source name/parent/position/parameters/levels/safety"
+      let sourceArity := declareConstructors.arity 0 sourceCtor.type
+      unless declareConstructors.arity 0 info.type == sourceArity &&
+          info.numFields == sourceArity - nparams && nparams + info.numFields == sourceArity do
+        throwError "staged constructor lost source raw arity or field count"
       let expected := if preprocessing.aux2nested.size = 0 then info else
         { info with type := preprocessing.restoreNested staged info.type }
       checkLookup result (.ctorInfo expected)
@@ -564,7 +571,7 @@ private def fixtures (env : Kernel.Environment) : MetaM Unit := do
   checkFrontend env 2 [multiConstructorType `RestoredDirectEnum 2 false] false
   checkFrontend env 0 [multiConstructorType `RestoredMutualEnum 0, multiConstructorType `RestoredMutualEnumRight 0,
     { name := `RestoredMutualEnumEmpty, type := sortType, ctors := [] }] true
-  logInfo "22 frontend fixtures passed source header/constructor signatures, original constructor counts/order/indices, exact direct/nested source-indexed records, both flags and auxiliary-rec suffixes"
+  logInfo "22 frontend fixtures passed source signatures/arities/field counts, original constructor order/indices, exact direct/nested records, both flags and auxiliary-rec suffixes"
 
 private def failures (env : Kernel.Environment) : MetaM Unit := do
   let types := [nestedType `RestoredNested 0 1]
