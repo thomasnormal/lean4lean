@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveFrontendRestoration
+import Lean4Lean.Verify.InductiveRestorationMetadata
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -86,6 +86,176 @@ example (env : Kernel.Environment) (lparams : List Name) (nparams : Nat)
       result.constants.WF ∧ (∀ name info, env.find? name = some info → result.find? name = some info) :=
   Lean4Lean.addDecl.safeInductivePreserves env lparams nparams types check fuel hmap
 
+example {records : List ConstantInfo} {env result : Kernel.Environment}
+    (installed : RestoredRecordsInstalled records env)
+    (preserves : ∀ name info, env.find? name = some info → result.find? name = some info) :
+    RestoredRecordsInstalled records result := installed.mono preserves
+
+example (env : Kernel.Environment) (hwf : env.constants.WF) : RestoredRegistrationReceipt env [] env :=
+  .empty env hwf
+
+example {original current result : Kernel.Environment} {first second : List ConstantInfo}
+    (left : RestoredRegistrationReceipt original first current)
+    (right : RestoredRegistrationReceipt current second result) :
+    RestoredRegistrationReceipt original (first ++ second) result := left.trans right
+
+example (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+    (allIndNames : List Name) (recNameMap : NameMap Name) (allowPrimitive : Bool)
+    (name : Name) (info : RecursorVal) (hlookup : staged.find? name = some (.recInfo info))
+    (env : Kernel.Environment) (hwf : env.constants.WF) :
+    (restoreInductiveRecursor preprocessing staged allIndNames recNameMap allowPrimitive name env).WF fun result =>
+      RestoredRegistrationReceipt env
+        (restoredRecursorRecords preprocessing staged allIndNames recNameMap name) result.2 :=
+  restoreInductiveRecursor.installed preprocessing staged allIndNames recNameMap allowPrimitive name info hlookup env hwf
+
+example (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+    (allowPrimitive : Bool) (name : Name) (info : ConstructorVal)
+    (hlookup : staged.find? name = some (.ctorInfo info)) (env : Kernel.Environment) (hwf : env.constants.WF) :
+    (restoreInductiveConstructor preprocessing staged allowPrimitive name env).WF fun result =>
+      result.1 = .yield PUnit.unit ∧ RestoredRegistrationReceipt env
+        (restoredConstructorRecords preprocessing staged name) result.2 :=
+  restoreInductiveConstructor.installed preprocessing staged allowPrimitive name info hlookup env hwf
+
+example (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+    (allIndNames : List Name) (recNameMap : NameMap Name) (allowPrimitive : Bool)
+    (indType : InductiveType) (hsources : RestorationDatatypeSources staged indType)
+    (env : Kernel.Environment) (hwf : env.constants.WF) :
+    (restoreInductiveDatatype preprocessing staged allIndNames recNameMap allowPrimitive indType env).WF fun result =>
+      result.1 = .yield PUnit.unit ∧ RestoredRegistrationReceipt env
+        (restoredDatatypeRecords preprocessing staged allIndNames recNameMap indType) result.2 :=
+  restoreInductiveDatatype.installed preprocessing staged allIndNames recNameMap allowPrimitive indType hsources env hwf
+
+example (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+    (types : List InductiveType) (lparams : List Name) (allowPrimitive : Bool) (fuel : FuelConfig)
+    (hsources : RestorationSources staged types) (env : Kernel.Environment) (hwf : env.constants.WF) :
+    (restoreInductiveEnvironment preprocessing staged types lparams allowPrimitive fuel env).WF fun result =>
+      RestoredRegistrationReceipt env (restoredEnvironmentRecords preprocessing staged types) result.2 :=
+  restoreInductiveEnvironment.installed preprocessing staged types lparams allowPrimitive fuel hsources env hwf
+
+example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}
+    {types : List InductiveType}
+    (receipt : RestoredRegistrationReceipt original (restoredEnvironmentRecords preprocessing staged types) result)
+    (indType : InductiveType) (hmem : indType ∈ types) (info : InductiveVal)
+    (hlookup : staged.find? indType.name = some (.inductInfo info)) :
+    result.find? info.name = some (.inductInfo { info with all := types.map (·.name) }) :=
+  receipt.header indType hmem info hlookup
+
+example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}
+    {types : List InductiveType}
+    (receipt : RestoredRegistrationReceipt original (restoredEnvironmentRecords preprocessing staged types) result)
+    (indType : InductiveType) (hmem : indType ∈ types) (info : InductiveVal)
+    (hheader : staged.find? indType.name = some (.inductInfo info))
+    (name : Name) (hctorMem : name ∈ info.ctors) (ctor : ConstructorVal)
+    (hlookup : staged.find? name = some (.ctorInfo ctor)) :
+    result.find? ctor.name = some (.ctorInfo { ctor with type := preprocessing.restoreNested staged ctor.type }) :=
+  receipt.constructor indType hmem info hheader name hctorMem ctor hlookup
+
+example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}
+    {types : List InductiveType}
+    (receipt : RestoredRegistrationReceipt original (restoredEnvironmentRecords preprocessing staged types) result)
+    (indType : InductiveType) (hmem : indType ∈ types) (info : InductiveVal)
+    (hheader : staged.find? indType.name = some (.inductInfo info)) (recursor : RecursorVal)
+    (hlookup : staged.find? (mkRecName indType.name) = some (.recInfo recursor)) :
+    let restored := restoredRecursorVal preprocessing staged (types.map (·.name))
+      (mkAuxRecNameMap staged types).2 (mkRecName indType.name) recursor
+    result.find? restored.name = some (.recInfo restored) := receipt.mainRecursor indType hmem info hheader recursor hlookup
+
+example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}
+    {types : List InductiveType}
+    (receipt : RestoredRegistrationReceipt original (restoredEnvironmentRecords preprocessing staged types) result)
+    (name : Name) (hmem : name ∈ (mkAuxRecNameMap staged types).1) (info : RecursorVal)
+    (hlookup : staged.find? name = some (.recInfo info)) :
+    let restored := restoredRecursorVal preprocessing staged (types.map (·.name))
+      (mkAuxRecNameMap staged types).2 name info
+    result.find? restored.name = some (.recInfo restored) := receipt.auxiliaryRecursor name hmem info hlookup
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result) :
+    SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result := metadata.toFrontendScope
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    (coverage : InductiveRestorationSourceCoverage env lparams nparams types allowPrimitive fuel) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      (preprocessing.aux2nested.size ≠ 0 →
+        RestoredRegistrationReceipt env (restoredEnvironmentRecords preprocessing staged types) result) :=
+  metadata.installed coverage
+
+example (env : Kernel.Environment) (lparams : List Name) (nparams : Nat)
+    (types : List InductiveType) (allowPrimitive : Bool) (fuel : FuelConfig) (hmap : env.constants.WF) :
+    (Lean4Lean.Environment.addInductive env lparams nparams types false allowPrimitive fuel).WF fun result =>
+      SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result :=
+  Lean4Lean.Environment.addInductive.safeRestorationStages env lparams nparams types allowPrimitive fuel hmap
+
+example (env : Kernel.Environment) (lparams : List Name) (nparams : Nat)
+    (types : List InductiveType) (check : Bool) (fuel : FuelConfig) (hmap : env.constants.WF) :
+    (Lean4Lean.addDecl env (.inductDecl lparams nparams types false) check fuel).WF fun result =>
+      ∃ allowPrimitive, SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result :=
+  Lean4Lean.addDecl.safeInductiveRestorationStages env lparams nparams types check fuel hmap
+
+example (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+    (name : Name) (hmissing : staged.find? name = none) :
+    restoredConstructorRecords preprocessing staged name = [] := by
+  simp only [restoredConstructorRecords, hmissing]
+
+example (staged : Kernel.Environment) (indType : InductiveType) (hmissing : staged.find? indType.name = none) :
+    ¬ RestorationDatatypeSources staged indType := by
+  rintro ⟨info, hlookup, _⟩
+  rw [hmissing] at hlookup
+  cases hlookup
+
+example {stats : InductiveStats} {nparams numNested : Nat} {rewritten : Array InductiveType}
+    {original root : Context} {constructors staged : Kernel.Environment} {types : List InductiveType}
+    (scope : stats.SafeRunScope nparams rewritten numNested original root constructors staged)
+    (coverage : RestorationNameCoverage rewritten staged types) : RestorationSources staged types :=
+  scope.restorationSources coverage
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    (coverage : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 → RestorationNameCoverage preprocessing.types.toArray staged types) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      (preprocessing.aux2nested.size ≠ 0 →
+        RestoredRegistrationReceipt env (restoredEnvironmentRecords preprocessing staged types) result) :=
+  metadata.installedFromNames coverage
+
+example (staged : Kernel.Environment) (indType : InductiveType) (info : InductiveVal)
+    (hheader : staged.find? indType.name = some (.inductInfo info)) (name : Name)
+    (hmem : name ∈ info.ctors) (hmissing : staged.find? name = none) :
+    ¬ RestorationDatatypeSources staged indType := by
+  rintro ⟨other, hother, hctors, _⟩
+  have heq : info = other := ConstantInfo.inductInfo.inj (Option.some.inj (hheader.symm.trans hother))
+  subst other
+  obtain ⟨ctor, hlookup⟩ := hctors name hmem
+  rw [hmissing] at hlookup
+  cases hlookup
+
+example (staged : Kernel.Environment) (indType : InductiveType)
+    (hmissing : staged.find? (mkRecName indType.name) = none) : ¬ RestorationDatatypeSources staged indType := by
+  rintro ⟨_, _, _, info, hlookup⟩
+  rw [hmissing] at hlookup
+  cases hlookup
+
+example (staged : Kernel.Environment) (types : List InductiveType) (name : Name)
+    (hmem : name ∈ (mkAuxRecNameMap staged types).1) (hmissing : staged.find? name = none) :
+    ¬ RestorationSources staged types := by
+  intro sources
+  obtain ⟨info, hlookup⟩ := sources.auxiliaries name hmem
+  rw [hmissing] at hlookup
+  cases hlookup
+
 private def sortType : Expr := .sort (.succ .zero)
 
 private def closeParams (count : Nat) (body : Expr) : Expr :=
@@ -143,19 +313,32 @@ private def checkRestoredRecords (original staged result : Kernel.Environment)
     (preprocessing : ElimNestedInductive.Result) (types : List InductiveType) : MetaM Unit := do
   let (recNames, recNameMap) := mkAuxRecNameMap staged types
   let allIndNames := types.map (·.name)
+  let mut constructorCount := 0
   for indType in types do
     let some (.inductInfo info) := staged.find? indType.name | throwError "missing staged nested header"
+    unless preprocessing.types.any (fun rewritten => rewritten.name == indType.name) do
+      throwError "original datatype is outside rewritten name coverage"
+    constructorCount := constructorCount + info.ctors.length
     checkLookup result (.inductInfo { info with all := allIndNames })
     for ctorName in info.ctors do
       let some (.ctorInfo ctor) := staged.find? ctorName | throwError "missing staged nested constructor"
       checkLookup result (.ctorInfo { ctor with type := preprocessing.restoreNested staged ctor.type })
   for name in types.map (mkRecName ∘ (·.name)) ++ recNames do
+    unless preprocessing.types.any (fun rewritten => mkRecName rewritten.name == name) do
+      throwError "restoration recursor is outside rewritten name coverage"
     let some (.recInfo info) := staged.find? name | throwError "missing staged nested recursor"
     checkLookup result (.recInfo (restoredRecursorVal preprocessing staged allIndNames recNameMap name info))
   for indType in preprocessing.types.drop types.length do
     unless (result.find? indType.name).isNone do throwError "staged auxiliary header leaked into public result"
     for ctor in indType.ctors do
       unless (result.find? ctor.name).isNone do throwError "staged auxiliary constructor leaked into public result"
+  let records := restoredEnvironmentRecords preprocessing staged types
+  unless records.length == 2 * types.length + constructorCount + recNames.length do
+    throwError "complete restoration recipe omitted an expected staged source record"
+  unless (records.map (·.name)).eraseDups.length == records.length do
+    throwError "complete restoration receipt contains colliding output names"
+  for record in records do
+    checkLookup result record
   checkOld original result
 
 private def checkFrontend (env : Kernel.Environment) (nparams : Nat) (types : List InductiveType)
@@ -263,6 +446,23 @@ private def audit (theoremName : Name) (maps := false) (full := false) : MetaM U
     unless allowed.contains axiomName do throwError "unexpected axiom {axiomName} in {theoremName}"
 
 run_meta
+  audit ``RestoredRecordsInstalled.mono
+  audit ``RestoredRegistrationReceipt.empty
+  audit ``RestoredRegistrationReceipt.trans
+  audit ``restoreInductiveRecursor.installed true
+  audit ``restoreInductiveConstructor.installed true
+  audit ``restoreInductiveDatatype.installed true
+  audit ``restoreInductiveEnvironment.installed true
+  audit ``RestoredRegistrationReceipt.header
+  audit ``RestoredRegistrationReceipt.constructor
+  audit ``RestoredRegistrationReceipt.mainRecursor
+  audit ``RestoredRegistrationReceipt.auxiliaryRecursor
+  audit ``SafeInductiveRestorationMetadata.toFrontendScope
+  audit ``SafeInductiveRestorationMetadata.installed
+  audit ``InductiveStats.SafeRunScope.restorationSources
+  audit ``SafeInductiveRestorationMetadata.installedFromNames
+  audit ``Lean4Lean.Environment.addInductive.safeRestorationStages true true
+  audit ``Lean4Lean.addDecl.safeInductiveRestorationStages true true
   audit ``AddInductive.restorationAddFresh true
   audit ``FreshRegistrationTrace.trans
   audit ``FreshRegistrationTrace.preserves true
