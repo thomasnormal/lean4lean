@@ -489,9 +489,25 @@ def run (nparams : Nat) (types : List InductiveType) (numNested : Nat) : M Envir
       type := ty.inferImplicit 1000 false -- note: flag has reversed polarity from C++
       numParams := stats.params.size
       numIndices := stats.nindices[dIdx]!
-      name, all, numMotives, numMinors, rules, k, isUnsafe
+      name, all, numMotives, numMinors, rules, k := isK, isUnsafe
     }
   pure env
+
+def run (nparams : Nat) (types : List InductiveType) (numNested : Nat) : M Environment := do
+  let isUnsafe := (← read).safety != .safe
+  let indTypes := types.toArray
+  let {lparams, ..} ← read
+  Environment.checkDuplicatedUnivParams lparams
+  checkInductiveTypes nparams indTypes fun stats => do
+  withEnv (← declareInductiveTypes stats nparams indTypes numNested isUnsafe) do
+  checkConstructors indTypes stats isUnsafe
+  withEnv (← declareConstructors stats indTypes isUnsafe) do
+  let elimLevel ← getElimLevel stats indTypes
+  mkRecInfos stats indTypes elimLevel fun recInfos => do
+  let lctx ← getLCtx
+  let k ← isKTarget stats indTypes
+  let isUnsafe := (← read).safety != .safe
+  declareRecursors stats indTypes elimLevel recInfos lparams lctx k isUnsafe
 
 end AddInductive
 
