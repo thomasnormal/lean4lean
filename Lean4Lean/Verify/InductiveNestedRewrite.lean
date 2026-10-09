@@ -343,57 +343,62 @@ private theorem NestedAppScope.prefixArgsRange {type : Expr} {info : InductiveVa
   exact hscope.argRange index hindex'
 
 private theorem forIn_scope_newTypesRange (items : List α) (initial : Option Expr)
-    (step : α → Option Expr → M (ForInStep (Option Expr))) (rangeBound optionBound : Nat)
+    (step : α → Option Expr → M (ForInStep (Option Expr))) (rangeBound optionBound index : Nat)
     (env : Environment) (state : State) (hstate : state.NestedAuxScoped)
-    (hrange : State.NewTypesRange rangeBound state) (hinitial : OptionExprRange optionBound initial)
+    (hrange : State.NewTypesRange rangeBound state) (hindex : index < state.newTypes.size)
+    (hinitial : OptionExprRange optionBound initial)
     (hstep : ∀ item acc state', state'.NestedAuxScoped →
-      State.NewTypesRange rangeBound state' → OptionExprRange optionBound acc →
+      State.NewTypesRange rangeBound state' → index < state'.newTypes.size →
+      OptionExprRange optionBound acc →
       item ∈ items →
       (step item acc env state').WF fun returned =>
         returned.2.NestedAuxScoped ∧ State.NewTypesRange rangeBound returned.2 ∧
-          ForInStepOptionRange optionBound returned.1) :
+          index < returned.2.newTypes.size ∧ ForInStepOptionRange optionBound returned.1) :
     (forIn items initial step env state).WF fun returned =>
       returned.2.NestedAuxScoped ∧ State.NewTypesRange rangeBound returned.2 ∧
-        OptionExprRange optionBound returned.1 := by
+        index < returned.2.newTypes.size ∧ OptionExprRange optionBound returned.1 := by
   induction items generalizing initial state with
-  | nil => exact .pure ⟨hstate, hrange, hinitial⟩
+  | nil => exact .pure ⟨hstate, hrange, hindex, hinitial⟩
   | cons item items ih =>
     rw [List.forIn_cons]
-    refine (hstep item initial state hstate hrange hinitial (by simp)).bind ?_
+    refine (hstep item initial state hstate hrange hindex hinitial (by simp)).bind ?_
     rintro ⟨next, state'⟩ hnext
     cases next with
-    | done acc => exact .pure ⟨hnext.1, hnext.2.1, hnext.2.2⟩
+    | done acc => exact .pure ⟨hnext.1, hnext.2.1, hnext.2.2.1, hnext.2.2.2⟩
     | yield acc =>
-      exact ih acc state' hnext.1 hnext.2.1 hnext.2.2 (by
-        intro other otherAcc otherState otherScope otherRange otherOption otherMem
-        exact hstep other otherAcc otherState otherScope otherRange otherOption
+      exact ih acc state' hnext.1 hnext.2.1 hnext.2.2.1 hnext.2.2.2 (by
+        intro other otherAcc otherState otherScope otherRange otherIndex otherOption otherMem
+        exact hstep other otherAcc otherState otherScope otherRange otherIndex otherOption
           (by simp [otherMem]))
 
 private theorem mapM_scope_newTypesRange (items : List α) (step : α → M β)
-    (pred : β → Prop) (bound : Nat) (env : Environment) (state : State)
+    (pred : β → Prop) (bound index : Nat) (env : Environment) (state : State)
     (hstate : state.NestedAuxScoped) (hrange : State.NewTypesRange bound state)
+    (hindex : index < state.newTypes.size)
     (hstep : ∀ item state', state'.NestedAuxScoped → State.NewTypesRange bound state' →
+      index < state'.newTypes.size →
       item ∈ items →
       (step item env state').WF fun returned =>
-        returned.2.NestedAuxScoped ∧ State.NewTypesRange bound returned.2 ∧ pred returned.1) :
+        returned.2.NestedAuxScoped ∧ State.NewTypesRange bound returned.2 ∧
+          index < returned.2.newTypes.size ∧ pred returned.1) :
     (items.mapM step env state).WF fun returned =>
       returned.2.NestedAuxScoped ∧ State.NewTypesRange bound returned.2 ∧
-        ∀ value ∈ returned.1, pred value := by
+        index < returned.2.newTypes.size ∧ ∀ value ∈ returned.1, pred value := by
   induction items generalizing state with
-  | nil => exact .pure ⟨hstate, hrange, by simp⟩
+  | nil => exact .pure ⟨hstate, hrange, hindex, by simp⟩
   | cons item items ih =>
     rw [List.mapM_cons]
-    refine (hstep item state hstate hrange (by simp)).bind ?_
+    refine (hstep item state hstate hrange hindex (by simp)).bind ?_
     rintro ⟨value, state'⟩ hnext
-    refine (ih state' hnext.1 hnext.2.1 (by
-      intro other otherState otherScope otherRange otherMem
-      exact hstep other otherState otherScope otherRange (by simp [otherMem]))).bind ?_
+    refine (ih state' hnext.1 hnext.2.1 hnext.2.2.1 (by
+      intro other otherState otherScope otherRange otherIndex otherMem
+      exact hstep other otherState otherScope otherRange otherIndex (by simp [otherMem]))).bind ?_
     intro returned hrest
-    exact .pure ⟨hrest.1, hrest.2.1, by
+    exact .pure ⟨hrest.1, hrest.2.1, hrest.2.2.1, by
       intro other hother
       rcases List.mem_cons.mp hother with rfl | hother
-      · exact hnext.2.2
-      · exact hrest.2.2 other hother⟩
+      · exact hnext.2.2.2
+      · exact hrest.2.2.2 other hother⟩
 
 private theorem mkAppList_scope (fn : Expr) (args : List Expr)
     (hfn : fn.looseBVarRange' = 0) (hargs : ∀ arg ∈ args, arg.looseBVarRange' = 0) :
@@ -832,23 +837,24 @@ theorem instantiateForallParams.range (e : Expr) (hi : Nat) (params : Array Expr
 
 theorem replaceIfNested.rangeWithNewTypes (numParams : Nat) (source : LocalContext)
     (lctx : LocalContext) (sourceParams As : Array Expr) (e : Expr)
-    (env : Environment) (state : State) (bound : Nat)
+    (env : Environment) (state : State) (bound index : Nat)
     (hsource : ParamValidity numParams lctx As)
     (htarget : ParamContext numParams source sourceParams)
     (hlocalScope : ∀ decl ∈ lctx.toList, decl.type.looseBVarRange' ≤ numParams)
     (hstate : state.NestedAuxScoped) (hrange : State.NewTypesRange numParams state)
+    (hindex : index < state.newTypes.size)
     (hclosure : Lean4Lean.Environment.InductiveDeclRange env)
     (he : e.looseBVarRange' ≤ bound) :
     (replaceIfNested lctx sourceParams As e env state).WF fun returned =>
       returned.2.NestedAuxScoped ∧ State.NewTypesRange numParams returned.2 ∧
-        OptionExprRange bound returned.1 := by
+        index < returned.2.newTypes.size ∧ OptionExprRange bound returned.1 := by
   unfold replaceIfNested
   refine (isNestedInductiveApp?.scope e env state).bind ?_
   rintro ⟨selected, state'⟩ ⟨hframe, hselected⟩
   dsimp only at hframe hselected
   subst state'
   cases selected with
-  | none => exact .pure ⟨hstate, hrange, trivial⟩
+  | none => exact .pure ⟨hstate, hrange, hindex, trivial⟩
   | some info =>
     dsimp only
     rw [Expr.withApp_eq]
@@ -870,14 +876,15 @@ theorem replaceIfNested.rangeWithNewTypes (numParams : Nat) (source : LocalConte
     generalize hfound : Array.findSome? _ state.nestedAux = found
     cases found with
     | some auxI_name =>
-      exact .pure ⟨hstate, hrange, nestedApp_range auxI_name state.lvls As e info.numParams bound
+      exact .pure ⟨hstate, hrange, hindex, nestedApp_range auxI_name state.lvls As e info.numParams bound
         hscope.2.1 hsource.context.params_noLooseBVars he⟩
     | none =>
       simp only
       simp only [pure_bind]
       rw [read_bind]
-      refine (forIn_scope_newTypesRange info.all none _ numParams bound env state hstate hrange trivial ?_).bind ?_
-      · intro J_name result state' hloop hloopRange hacc hJmem
+      refine (forIn_scope_newTypesRange info.all none _ numParams bound index env state hstate hrange
+        hindex trivial ?_).bind ?_
+      · intro J_name result state' hloop hloopRange hloopIndex hacc hJmem
         generalize hget : env.get J_name = found
         cases found with
         | error exception => exact .throw
@@ -910,6 +917,9 @@ theorem replaceIfNested.rangeWithNewTypes (numParams : Nat) (source : LocalConte
                 apply hloopRange indType
                 rw [← hnamed'.2.1]
                 exact hmem
+              have hindex' : index < state''.newTypes.size := by
+                rw [hnamed'.2.1]
+                exact hloopIndex
               simp only
               refine (lift_wf
                 (instantiateForallParams
@@ -943,9 +953,9 @@ theorem replaceIfNested.rangeWithNewTypes (numParams : Nat) (source : LocalConte
               split
               · rw [get_bind]
                 refine (mapM_scope_newTypesRange J_info.ctors _
-                  (pred := fun ctor => ConstructorRange numParams ctor) numParams env _ hpush
-                  hpushRange ?_).bind ?_
-                · intro J_ctor_name state''' hctorScope hctorRange hctorMem
+                  (pred := fun ctor => ConstructorRange numParams ctor) numParams index env _ hpush
+                  hpushRange hindex' ?_).bind ?_
+                · intro J_ctor_name state''' hctorScope hctorRange hctorIndex hctorMem
                   generalize hctor : env.get J_ctor_name = found
                   cases found with
                   | error exception => exact .throw
@@ -975,24 +985,30 @@ theorem replaceIfNested.rangeWithNewTypes (numParams : Nat) (source : LocalConte
                       simpa using hauxJ_ctor_type
                     have hauxJ_ctor_type' : auxJ_ctor_type.looseBVarRange' ≤ numParams :=
                       Nat.le_trans hauxJ_ctor_type'' (Nat.zero_le _)
-                    exact .pure ⟨hctorScope, hctorRange,
+                    exact .pure ⟨hctorScope, hctorRange, hctorIndex,
                       hsource.mkForall_range hlocalScope auxJ_ctor_type hauxJ_ctor_type'⟩
                 · rintro ⟨auxJ_ctors, state''''⟩ hctors
                   have hnewType : InductiveTypeRange numParams {
                       name := auxJ_name, type := lctx.mkForall As auxJ_type, ctors := auxJ_ctors } :=
-                    ⟨hnewTypeType, hctors.2.2⟩
+                    ⟨hnewTypeType, hctors.2.2.2⟩
                   dsimp
                   rw [modify_bind]
                   have hrangeNew := State.NewTypesRange.push hctors.2.1
                     { name := auxJ_name, type := lctx.mkForall As auxJ_type, ctors := auxJ_ctors } hnewType
-                  exact .pure ⟨hctors.1, hrangeNew, by
+                  have hindexNew : index < (state''''.newTypes.push {
+                      name := auxJ_name, type := lctx.mkForall As auxJ_type, ctors := auxJ_ctors }).size := by
+                    have hindexBefore : index < state''''.newTypes.size := by
+                      simpa using hctors.2.2.1
+                    simp [Array.size_push]
+                    omega
+                  exact .pure ⟨hctors.1, hrangeNew, hindexNew, by
                     simp [ForInStepOptionRange, OptionExprRange]
                     exact nestedApp_range auxJ_name state''.lvls As e info.numParams bound
                       hscope.2.1 hsource.context.params_noLooseBVars he⟩
               · refine (mapM_scope_newTypesRange J_info.ctors _
-                  (pred := fun ctor => ConstructorRange numParams ctor) numParams env _ hpush
-                  hpushRange ?_).bind ?_
-                · intro J_ctor_name state''' hctorScope hctorRange hctorMem
+                  (pred := fun ctor => ConstructorRange numParams ctor) numParams index env _ hpush
+                  hpushRange hindex' ?_).bind ?_
+                · intro J_ctor_name state''' hctorScope hctorRange hctorIndex hctorMem
                   generalize hctor : env.get J_ctor_name = found
                   cases found with
                   | error exception => exact .throw
@@ -1022,25 +1038,31 @@ theorem replaceIfNested.rangeWithNewTypes (numParams : Nat) (source : LocalConte
                       simpa using hauxJ_ctor_type
                     have hauxJ_ctor_type' : auxJ_ctor_type.looseBVarRange' ≤ numParams :=
                       Nat.le_trans hauxJ_ctor_type'' (Nat.zero_le _)
-                    exact .pure ⟨hctorScope, hctorRange,
+                    exact .pure ⟨hctorScope, hctorRange, hctorIndex,
                       hsource.mkForall_range hlocalScope auxJ_ctor_type hauxJ_ctor_type'⟩
                 · rintro ⟨auxJ_ctors, state''''⟩ hctors
                   have hnewType : InductiveTypeRange numParams {
                       name := auxJ_name, type := lctx.mkForall As auxJ_type, ctors := auxJ_ctors } :=
-                    ⟨hnewTypeType, hctors.2.2⟩
+                    ⟨hnewTypeType, hctors.2.2.2⟩
                   dsimp
                   rw [modify_bind]
                   have hrangeNew := State.NewTypesRange.push hctors.2.1
                     { name := auxJ_name, type := lctx.mkForall As auxJ_type, ctors := auxJ_ctors } hnewType
-                  exact .pure ⟨hctors.1, hrangeNew, by
+                  have hindexNew : index < (state''''.newTypes.push {
+                      name := auxJ_name, type := lctx.mkForall As auxJ_type, ctors := auxJ_ctors }).size := by
+                    have hindexBefore : index < state''''.newTypes.size := by
+                      simpa using hctors.2.2.1
+                    simp [Array.size_push]
+                    omega
+                  exact .pure ⟨hctors.1, hrangeNew, hindexNew, by
                     simpa [ForInStepOptionRange, OptionExprRange] using hacc⟩
-          | _ => exact .pure ⟨hloop, hloopRange, hacc⟩
+          | _ => exact .pure ⟨hloop, hloopRange, hloopIndex, hacc⟩
       · rintro ⟨result, state'⟩ hresult
         cases result with
-        | none => exact .pure ⟨hresult.1, hresult.2.1, trivial⟩
+        | none => exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2.1, trivial⟩
         | some result =>
           dsimp
-          exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+          exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2.1, hresult.2.2.2⟩
 
 theorem replaceIfNested.scope (numParams : Nat) (source : LocalContext)
     (lctx : LocalContext) (sourceParams As : Array Expr) (e : Expr)
@@ -1207,6 +1229,121 @@ theorem replaceAllNested.range (numParams : Nat) (source : LocalContext)
       replaceIfNested.range numParams source lctx sourceParams As expression env state
         expression.looseBVarRange' hsource htarget hstate (Nat.le_refl _))
     e env state hstate
+
+private theorem replaceM_newTypesRange (numParams index : Nat) (f? : Expr → M (Option Expr))
+    (env : Environment)
+    (hstep : ∀ e state, state.NestedAuxScoped → State.NewTypesRange numParams state →
+      index < state.newTypes.size →
+      (f? e env state).WF fun returned =>
+        returned.2.NestedAuxScoped ∧ State.NewTypesRange numParams returned.2 ∧
+          index < returned.2.newTypes.size)
+    (e : Expr) (state : State) (hstate : state.NestedAuxScoped)
+    (hrange : State.NewTypesRange numParams state) (hindex : index < state.newTypes.size) :
+    (e.replaceM f? env state).WF fun returned =>
+      returned.2.NestedAuxScoped ∧ State.NewTypesRange numParams returned.2 ∧
+        index < returned.2.newTypes.size := by
+  unfold Expr.replaceM
+  induction e generalizing state with
+  | bvar =>
+    unfold Expr.replaceNoCacheT
+    refine (hstep _ state hstate hrange hindex).bind ?_
+    rintro ⟨result, state'⟩ hresult
+    cases result <;> exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+  | const =>
+    unfold Expr.replaceNoCacheT
+    refine (hstep _ state hstate hrange hindex).bind ?_
+    rintro ⟨result, state'⟩ hresult
+    cases result <;> exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+  | sort =>
+    unfold Expr.replaceNoCacheT
+    refine (hstep _ state hstate hrange hindex).bind ?_
+    rintro ⟨result, state'⟩ hresult
+    cases result <;> exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+  | fvar =>
+    unfold Expr.replaceNoCacheT
+    refine (hstep _ state hstate hrange hindex).bind ?_
+    rintro ⟨result, state'⟩ hresult
+    cases result <;> exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+  | mvar =>
+    unfold Expr.replaceNoCacheT
+    refine (hstep _ state hstate hrange hindex).bind ?_
+    rintro ⟨result, state'⟩ hresult
+    cases result <;> exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+  | lit =>
+    unfold Expr.replaceNoCacheT
+    refine (hstep _ state hstate hrange hindex).bind ?_
+    rintro ⟨result, state'⟩ hresult
+    cases result <;> exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+  | mdata data e ih =>
+    unfold Expr.replaceNoCacheT
+    refine (hstep _ state hstate hrange hindex).bind ?_
+    rintro ⟨result, state'⟩ hresult
+    cases result with
+    | some eNew => exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+    | none =>
+      refine (ih state' hresult.1 hresult.2.1 hresult.2.2).bind ?_
+      rintro ⟨eNew, state''⟩ hnew
+      exact .pure ⟨hnew.1, hnew.2.1, hnew.2.2⟩
+  | proj typeName idx e ih =>
+    unfold Expr.replaceNoCacheT
+    refine (hstep _ state hstate hrange hindex).bind ?_
+    rintro ⟨result, state'⟩ hresult
+    cases result with
+    | some eNew => exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+    | none =>
+      refine (ih state' hresult.1 hresult.2.1 hresult.2.2).bind ?_
+      rintro ⟨eNew, state''⟩ hnew
+      exact .pure ⟨hnew.1, hnew.2.1, hnew.2.2⟩
+  | app f a ihf iha =>
+    unfold Expr.replaceNoCacheT
+    refine (hstep _ state hstate hrange hindex).bind ?_
+    rintro ⟨result, state'⟩ hresult
+    cases result with
+    | some eNew => exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+    | none =>
+      refine (ihf state' hresult.1 hresult.2.1 hresult.2.2).bind ?_
+      rintro ⟨fNew, state''⟩ hfunction
+      refine (iha state'' hfunction.1 hfunction.2.1 hfunction.2.2).bind ?_
+      rintro ⟨aNew, state'''⟩ hargument
+      exact .pure ⟨hargument.1, hargument.2.1, hargument.2.2⟩
+  | lam name type body bi iht ihb =>
+    unfold Expr.replaceNoCacheT
+    refine (hstep _ state hstate hrange hindex).bind ?_
+    rintro ⟨result, state'⟩ hresult
+    cases result with
+    | some eNew => exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+    | none =>
+      refine (iht state' hresult.1 hresult.2.1 hresult.2.2).bind ?_
+      rintro ⟨typeNew, state''⟩ htype
+      refine (ihb state'' htype.1 htype.2.1 htype.2.2).bind ?_
+      rintro ⟨bodyNew, state'''⟩ hbody
+      exact .pure ⟨hbody.1, hbody.2.1, hbody.2.2⟩
+  | forallE name type body bi iht ihb =>
+    unfold Expr.replaceNoCacheT
+    refine (hstep _ state hstate hrange hindex).bind ?_
+    rintro ⟨result, state'⟩ hresult
+    cases result with
+    | some eNew => exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+    | none =>
+      refine (iht state' hresult.1 hresult.2.1 hresult.2.2).bind ?_
+      rintro ⟨typeNew, state''⟩ htype
+      refine (ihb state'' htype.1 htype.2.1 htype.2.2).bind ?_
+      rintro ⟨bodyNew, state'''⟩ hbody
+      exact .pure ⟨hbody.1, hbody.2.1, hbody.2.2⟩
+  | letE name type value body nondep iht ihv ihb =>
+    unfold Expr.replaceNoCacheT
+    refine (hstep _ state hstate hrange hindex).bind ?_
+    rintro ⟨result, state'⟩ hresult
+    cases result with
+    | some eNew => exact .pure ⟨hresult.1, hresult.2.1, hresult.2.2⟩
+    | none =>
+      refine (iht state' hresult.1 hresult.2.1 hresult.2.2).bind ?_
+      rintro ⟨typeNew, state''⟩ htype
+      refine (ihv state'' htype.1 htype.2.1 htype.2.2).bind ?_
+      rintro ⟨valueNew, state'''⟩ hvalue
+      refine (ihb state''' hvalue.1 hvalue.2.1 hvalue.2.2).bind ?_
+      rintro ⟨bodyNew, state''''⟩ hbody
+      exact .pure ⟨hbody.1, hbody.2.1, hbody.2.2⟩
 
 theorem replaceAllNested.scope (numParams : Nat) (source : LocalContext)
     (lctx : LocalContext) (sourceParams As : Array Expr) (e : Expr)
@@ -1507,6 +1644,31 @@ theorem replaceAllNested.rangeWithNewTypes (numParams : Nat) (source : LocalCont
     hsource htarget hstate result hresult
   have hnew := hgenerated result hresult
   exact ⟨hrange.1, hnew.1, hnew.2, Nat.le_trans hrange.2 he⟩
+
+theorem replaceAllNested.rangeWithNewTypesStructural (numParams : Nat) (source : LocalContext)
+    (lctx : LocalContext) (sourceParams As : Array Expr) (e : Expr)
+    (env : Environment) (state : State) (bound index : Nat)
+    (hsource : ParamValidity numParams lctx As)
+    (htarget : ParamContext numParams source sourceParams)
+    (hlocalScope : ∀ decl ∈ lctx.toList, decl.type.looseBVarRange' ≤ numParams)
+    (hstate : state.NestedAuxScoped) (hrange : State.NewTypesRange numParams state)
+    (hindex : index < state.newTypes.size)
+    (hclosure : Lean4Lean.Environment.InductiveDeclRange env)
+    (he : e.looseBVarRange' ≤ bound) :
+    (replaceAllNested lctx sourceParams As e env state).WF fun returned =>
+      returned.2.NestedAuxScoped ∧ State.NewTypesRange numParams returned.2 ∧
+        index < returned.2.newTypes.size ∧ returned.1.looseBVarRange' ≤ bound := by
+  intro result hresult
+  have hnew := replaceM_newTypesRange numParams index
+    (fun expression => replaceIfNested lctx sourceParams As expression)
+    env (fun expression state hstate hrange hindex =>
+      (replaceIfNested.rangeWithNewTypes numParams source lctx sourceParams As expression env state
+        expression.looseBVarRange' index hsource htarget hlocalScope hstate hrange hindex hclosure
+        (Nat.le_refl _)).mono fun _ hstep => ⟨hstep.1, hstep.2.1, hstep.2.2.1⟩)
+    e state hstate hrange hindex result hresult
+  have hrange := replaceAllNested.range numParams source lctx sourceParams As e env state
+    hsource.context htarget hstate result hresult
+  exact ⟨hnew.1, hnew.2.1, hnew.2.2, Nat.le_trans hrange.2 he⟩
 
 private def MapAux2NestedScoped (numParams : Nat) (map : NameMap Expr) : Prop :=
   ∀ name type, map.find? name = some type → type.looseBVarRange' ≤ numParams
