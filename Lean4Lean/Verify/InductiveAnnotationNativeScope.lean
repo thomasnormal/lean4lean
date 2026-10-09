@@ -14,7 +14,8 @@ def BinderNativeAnnotationModels (steps : List BinderStep) : Prop :=
 
 def BinderConsumedIndexDomainScope (params : List FVarId) (steps : List BinderStep) : Prop :=
   ∀ (position : Nat) (step : BinderStep), steps[position]? = some step → step.role = .index →
-    IndexFVarsWithin (params ++ (BinderStep.indexValues (steps.take position)).map Expr.fvarId!) step.localDomain
+    IndexFVarsWithin (params ++ (BinderStep.indexValues (steps.take position)).map Expr.fvarId!)
+      step.domain.consumeTypeAnnotations
 
 theorem IndexFVarsWithin.consumeTypeAnnotations_of_model {ids : List FVarId} {value : Expr}
     (within : IndexFVarsWithin ids value) (model : NativeAnnotationModelAt value) :
@@ -73,19 +74,23 @@ theorem NativeIndexTypeAt.typeScopes_of_models
       checkedDecl.type = checkedStep.localDomain ∧ generatedDecl.type = generatedStep.localDomain ∧
       IndexFVarsWithin (params ++ (BinderStep.indexValues (checked.take position)).map Expr.fvarId!) checkedDecl.type ∧
       IndexFVarsWithin (params ++ (BinderStep.indexValues (generated.take position)).map Expr.fvarId!) generatedDecl.type ∧
-      IndexLookupRenaming priorPairs checkedDecl.type generatedDecl.type := by
+      IndexLookupRenaming priorPairs checkedDecl.type generatedDecl.type ∧
+      checkedDecl.type = checkedStep.domain.consumeTypeAnnotations ∧
+      generatedDecl.type = generatedStep.domain.consumeTypeAnnotations := by
   obtain ⟨checkedStep, generatedStep, checkedDecl, generatedDecl, priorPairs, hchecked, hgenerated,
     hcheckedIndex, hgeneratedIndex, _, hprior, hcheckedLookup, hgeneratedLookup, _, _, hcheckedType,
     hgeneratedType, _, _, _, _, _, _, hdomains, _⟩ := receipt
   have hcheckedModel := checkedModels position checkedStep hchecked hcheckedIndex
   have hgeneratedModel := generatedModels position generatedStep hgenerated hgeneratedIndex
   refine ⟨checkedStep, generatedStep, checkedDecl, generatedDecl, priorPairs, hchecked, hgenerated,
-    hprior, hcheckedLookup, hgeneratedLookup, hcheckedType, hgeneratedType, ?_, ?_, ?_⟩
+    hprior, hcheckedLookup, hgeneratedLookup, hcheckedType, hgeneratedType, ?_, ?_, ?_, ?_, ?_⟩
   · rw [hcheckedType]
-    exact (checkedScope position checkedStep hchecked).consumeTypeAnnotations_of_model hcheckedModel
+    exact (checkedScope position checkedStep hchecked).peelTypeAnnotations
   · rw [hgeneratedType]
-    exact (generatedScope position generatedStep hgenerated).consumeTypeAnnotations_of_model hgeneratedModel
+    exact (generatedScope position generatedStep hgenerated).peelTypeAnnotations
   · rw [hcheckedType, hgeneratedType]
-    exact hdomains.consumeTypeAnnotations_of_models hcheckedModel hgeneratedModel
+    exact hdomains.peelTypeAnnotations
+  · exact hcheckedType.trans hcheckedModel.symm
+  · exact hgeneratedType.trans hgeneratedModel.symm
 
 end Lean4Lean.AddInductive

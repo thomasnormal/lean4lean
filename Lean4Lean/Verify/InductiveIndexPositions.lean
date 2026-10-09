@@ -37,12 +37,12 @@ theorem BinderPositionedAt.index_eq_of_id_eq {ctx : Context} {left right leftDom
 
 theorem newlyAllocatedBinderPositioned (ctx : Context) (name : Name) (domain : Expr)
     (bi : BinderInfo) (hwf : ctx.lctx.WF) (hreserved : ContextReserved ctx.lctx ctx.ngen) :
-    BinderPositionedAt (recursorIndexContext ctx name bi domain.consumeTypeAnnotations)
-      (.fvar ⟨ctx.ngen.curr⟩) name domain.consumeTypeAnnotations bi ctx.lctx.decls.size := by
-  have hframe := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+    BinderPositionedAt (recursorIndexContext ctx name bi (peelTypeAnnotations domain))
+      (.fvar ⟨ctx.ngen.curr⟩) name (peelTypeAnnotations domain) bi ctx.lctx.decls.size := by
+  have hframe := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
   let decl := LocalDecl.cdecl ctx.lctx.decls.size ⟨ctx.ngen.curr⟩ name
-    domain.consumeTypeAnnotations bi .default
-  have hmem : decl ∈ (recursorIndexContext ctx name bi domain.consumeTypeAnnotations).lctx.toList := by
+    (peelTypeAnnotations domain) bi .default
+  have hmem : decl ∈ (recursorIndexContext ctx name bi (peelTypeAnnotations domain)).lctx.toList := by
     simp only [recursorIndexContext, LocalContext.mkLocalDecl_toList, List.mem_cons]
     exact .inl rfl
   exact ⟨decl, hframe.wf.find?_of_mem hmem, rfl, rfl, rfl, rfl, rfl⟩

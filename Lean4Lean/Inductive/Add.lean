@@ -1,6 +1,7 @@
 import Batteries.Data.List.Basic
 import Lean4Lean.Environment.Basic
 import Lean4Lean.TypeChecker
+import Lean4Lean.Inductive.Annotation
 
 namespace Lean4Lean
 open Lean hiding Environment Exception
@@ -73,7 +74,7 @@ def checkInductiveTypes
         if let .forallE name dom body bi := type then
           if i < nparams then
             if stats.indConsts.isEmpty then
-              withLocalDecl name bi dom.consumeTypeAnnotations fun param => do
+              withLocalDecl name bi (peelTypeAnnotations dom) fun param => do
                 let stats := { stats with params := stats.params.push param }
                 let type := body.instantiate1 param
                 loop stats (← whnf type) (i + 1) nindices fuel k
@@ -84,7 +85,7 @@ def checkInductiveTypes
               let type := body.instantiate1 param
               loop stats (← whnf type) (i + 1) nindices fuel k
           else
-            withLocalDecl name bi dom.consumeTypeAnnotations fun arg => do
+            withLocalDecl name bi (peelTypeAnnotations dom) fun arg => do
               let type := body.instantiate1 arg
               loop stats (← whnf type) i (nindices + 1) fuel k
         else
@@ -178,7 +179,7 @@ where
   | fuel+1 => do
     let t ← whnf t
     let .forallE name dom body bi := t | return isValidIndApp? stats t
-    withLocalDecl name bi dom.consumeTypeAnnotations fun arg => do
+    withLocalDecl name bi (peelTypeAnnotations dom) fun arg => do
     loop (body.instantiate1 arg) fuel
 
 def checkPositivity (stats : InductiveStats) (t : Expr) (ctor : Name) (idx : Nat) :
@@ -192,7 +193,7 @@ def checkPositivity (stats : InductiveStats) (t : Expr) (ctor : Name) (idx : Nat
       if hasIndOcc stats.indConsts dom then
         throw <| .other s!"arg #{idx + 1} of '{ctor}' \
           has a non positive occurrence of the datatypes being declared"
-      withLocalDecl name bi dom.consumeTypeAnnotations fun arg => do
+      withLocalDecl name bi (peelTypeAnnotations dom) fun arg => do
       loop (body.instantiate1 arg) fuel
     else if let none := isValidIndApp? stats t then
       throw <| .other s!"arg #{idx + 1} of '{ctor}' \
@@ -228,7 +229,7 @@ def checkConstructors (indTypes : Array InductiveType)
                 is too big for the corresponding inductive datatype"
             if !isUnsafe then
               checkPositivity stats dom n i
-            withLocalDecl name bi dom.consumeTypeAnnotations fun arg => do
+            withLocalDecl name bi (peelTypeAnnotations dom) fun arg => do
               loop (body.instantiate1 arg) (i + 1) fuel
         else if !isValidIndAppIdx stats t idx then
           throw <| .other s!"invalid return type for '{n}'"
@@ -265,7 +266,7 @@ def isLargeEliminator (stats : InductiveStats) (indTypes : Array InductiveType) 
     | 0 => throw .deepRecursion
     | fuel+1 => do
       if let .forallE name dom body bi := type then
-        withLocalDecl name bi dom.consumeTypeAnnotations fun arg => do
+        withLocalDecl name bi (peelTypeAnnotations dom) fun arg => do
           let mut toCheck := toCheck
           if i ≥ stats.params.size then
             if !(← ensureType dom).sortLevel!.isZero then
@@ -310,7 +311,7 @@ def loopArgs1 (stats : InductiveStats) (type : Expr) (i : Nat) (indices : Array 
       if i < stats.params.size then
         loopArgs1 stats (← whnf <| body.instantiate1 stats.params[i]!) (i + 1) indices fuel k
       else
-        withLocalDecl name bi dom.consumeTypeAnnotations fun arg => do
+        withLocalDecl name bi (peelTypeAnnotations dom) fun arg => do
         loopArgs1 stats (← whnf <| body.instantiate1 arg) i (indices.push arg) fuel k
     else
       k indices
@@ -321,11 +322,11 @@ def loopInd1 (dIdx : Nat) (recInfos : Array RecInfo) (k : Array RecInfo → M α
     let ctx ← readThe Context
     loopArgs1 stats (← whnf indTypes[dIdx].type) 0 #[] ctx.fuel.inductiveFuel fun indices =>
     let tTy := mkAppN (mkAppN stats.indConsts[dIdx]! stats.params) indices
-    withLocalDecl `t .default tTy.consumeTypeAnnotations fun major => do
+    withLocalDecl `t .default (peelTypeAnnotations tTy) fun major => do
     let lctx ← getLCtx
     let motiveTy := lctx.mkForall indices <| lctx.mkForall #[major] <| .sort elimLevel
     let name := if indTypes.size > 1 then (`motive).appendIndexAfter (dIdx+1) else `motive
-    withLocalDecl name .default motiveTy.consumeTypeAnnotations fun motive => do
+    withLocalDecl name .default (peelTypeAnnotations motiveTy) fun motive => do
     loopInd1 (dIdx + 1) (recInfos.push { motive, minors := #[], indices, major }) k
   else
     k recInfos
@@ -342,7 +343,7 @@ where
       if let some param := stats.params[i]? then
         loop (body.instantiate1 param) (i + 1) bu u fuel
       else
-        withLocalDecl name bi dom.consumeTypeAnnotations fun arg => do
+        withLocalDecl name bi (peelTypeAnnotations dom) fun arg => do
         let bu := bu.push arg
         let u := if (← isRecArg stats dom).isSome then u.push arg else u
         loop (body.instantiate1 arg) (i + 1) bu u fuel
@@ -355,7 +356,7 @@ where
   | 0 => throw .deepRecursion
   | fuel+1 => do
     if let .forallE name dom body bi := uiTy then
-      withLocalDecl name bi dom.consumeTypeAnnotations fun arg => do
+      withLocalDecl name bi (peelTypeAnnotations dom) fun arg => do
       loop (← whnf <| body.instantiate1 arg) (xs.push arg) fuel
     else
       k uiTy xs
@@ -369,7 +370,7 @@ def loopU (i : Nat) (v : Array Expr) (k : Array Expr → M α) : M α := do
       return (← getLCtx).mkForall xs <|
         .app (mkAppN recInfos[itIdx]!.motive itIndices) (mkAppN ui xs)
     let vName := ((← getLCtx).get! ui.fvarId!).userName.appendAfter "_ih"
-    withLocalDecl vName .default viTy.consumeTypeAnnotations fun vi => do
+    withLocalDecl vName .default (peelTypeAnnotations viTy) fun vi => do
     loopU (i + 1) (v.push vi) k
   else
     k v
@@ -387,7 +388,7 @@ def loopCtors (recInfos : Array RecInfo)
     let lctx ← getLCtx
     let minorTy := lctx.mkForall bu <| lctx.mkForall v motiveApp
     let minorName := ctor.name.replacePrefix indTypeName .anonymous
-    withLocalDecl minorName .default minorTy.consumeTypeAnnotations fun minor => do
+    withLocalDecl minorName .default (peelTypeAnnotations minorTy) fun minor => do
     let recInfos := recInfos.modify dIdx fun s => { s with minors := s.minors.push minor }
     loopCtors recInfos ctors k
   | [] => k recInfos

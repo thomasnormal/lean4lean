@@ -218,7 +218,9 @@ private theorem actualNativeTypesRetainBothHistoriesConditionally
       checkedDecl.type = checkedStep.localDomain ∧ generatedDecl.type = generatedStep.localDomain ∧
       IndexFVarsWithin (params ++ (BinderStep.indexValues (checked.take position)).map Expr.fvarId!) checkedDecl.type ∧
       IndexFVarsWithin (params ++ (BinderStep.indexValues (generated.take position)).map Expr.fvarId!) generatedDecl.type ∧
-      IndexLookupRenaming priorPairs checkedDecl.type generatedDecl.type :=
+      IndexLookupRenaming priorPairs checkedDecl.type generatedDecl.type ∧
+      checkedDecl.type = checkedStep.domain.consumeTypeAnnotations ∧
+      generatedDecl.type = generatedStep.domain.consumeTypeAnnotations :=
   receipt.typeScopes_of_models checkedScope generatedScope checkedModels generatedModels
 
 private def ordinaryConstructors (source : FVarId) (carrier extra : Expr) : Array Expr := #[

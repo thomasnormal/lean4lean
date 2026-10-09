@@ -309,7 +309,7 @@ private def checkDeclaration (ctx : Context) (value : Expr) (name : Name) (rawDo
   let some decl := ctx.lctx.find? value.fvarId!
     | throwError "binder-lookup opening refers to an undeclared actual local"
   unless decl.toExpr == value && decl.userName == name && decl.binderInfo == bi &&
-      decl.type == rawDomain.consumeTypeAnnotations do
+      decl.type == peelTypeAnnotations rawDomain do
     throwError "binder-lookup actual own-plan consumed declaration anchor changed"
 
 private def addIndexPair (pairs : List (FVarId × FVarId)) (leftBody leftValue rightValue : Expr) :

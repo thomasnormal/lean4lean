@@ -109,10 +109,10 @@ private theorem chronologicalPosition {ctx : Context} {start ordinal : Nat}
   allocated.positioned atOrdinal
 
 private def firstReader (ctx : Context) : Context :=
-  recursorIndexContext ctx `first .default (Expr.const ``Nat []).consumeTypeAnnotations
+  recursorIndexContext ctx `first .default (peelTypeAnnotations (.const ``Nat []))
 
 private def secondReader (ctx : Context) : Context :=
-  recursorIndexContext (firstReader ctx) `second .default (Expr.const ``Nat []).consumeTypeAnnotations
+  recursorIndexContext (firstReader ctx) `second .default (peelTypeAnnotations (.const ``Nat []))
 
 private def nativeSteps (ctx : Context) : List BinderStep := [
   indexStep `first (.const ``Nat []) (.fvar ⟨ctx.ngen.curr⟩),
@@ -122,16 +122,16 @@ private theorem nativeTwoIndexAllocations (ctx : Context) (hwf : ctx.lctx.WF)
     (hreserved : ContextReserved ctx.lctx ctx.ngen) :
     BinderIndexAllocations (secondReader ctx) ctx.lctx.decls.size (nativeSteps ctx) := by
   let firstFrame := Context.RecursorScopeFrame.push ctx hwf hreserved `first .default
-    (Expr.const ``Nat []).consumeTypeAnnotations
+    (peelTypeAnnotations (.const ``Nat []))
   let secondFrame := Context.RecursorScopeFrame.push (firstReader ctx) firstFrame.wf firstFrame.reserved
-    `second .default (Expr.const ``Nat []).consumeTypeAnnotations
+    `second .default (peelTypeAnnotations (.const ``Nat []))
   have firstPosition := newlyAllocatedBinderPositioned ctx `first (.const ``Nat []) .default hwf hreserved
   have secondPosition := newlyAllocatedBinderPositioned (firstReader ctx) `second (.const ``Nat [])
     .default firstFrame.wf firstFrame.reserved
   change BinderPositionedAt (secondReader ctx) (.fvar ⟨ctx.ngen.curr⟩) `first
-      (Expr.const ``Nat []).consumeTypeAnnotations .default ctx.lctx.decls.size ∧
+      (peelTypeAnnotations (.const ``Nat [])) .default ctx.lctx.decls.size ∧
     BinderPositionedAt (secondReader ctx) (.fvar ⟨(firstReader ctx).ngen.curr⟩) `second
-      (Expr.const ``Nat []).consumeTypeAnnotations .default (ctx.lctx.decls.size + 1) ∧ True
+      (peelTypeAnnotations (.const ``Nat [])) .default (ctx.lctx.decls.size + 1) ∧ True
   refine ⟨firstPosition.mono firstFrame.wf secondFrame, ?_, trivial⟩
   simpa only [firstReader, Lean4Lean.AddInductive.recursorIndexSize] using secondPosition
 

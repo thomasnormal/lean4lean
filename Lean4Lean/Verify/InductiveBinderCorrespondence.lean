@@ -15,7 +15,7 @@ inductive BinderIndexCorrespondence :
   | parameter {pairs finalPairs : List (FVarId × FVarId)} {left right : List BinderStep}
       (name : Name) (bi : BinderInfo) (leftDomain rightDomain value : Expr)
       (rawDomain : IndexRenaming pairs leftDomain rightDomain)
-      (localDomain : ConsumedIndexRenaming pairs leftDomain.consumeTypeAnnotations rightDomain.consumeTypeAnnotations)
+      (localDomain : ConsumedIndexRenaming pairs (peelTypeAnnotations leftDomain) (peelTypeAnnotations rightDomain))
       (tail : BinderIndexCorrespondence pairs left right finalPairs) :
       BinderIndexCorrespondence pairs
         ({ role := .parameter, name, domain := leftDomain, bi, value } :: left)
@@ -23,7 +23,7 @@ inductive BinderIndexCorrespondence :
   | index {pairs finalPairs : List (FVarId × FVarId)} {left right : List BinderStep}
       (name : Name) (bi : BinderInfo) (leftDomain rightDomain : Expr) (leftId rightId : FVarId)
       (rawDomain : IndexRenaming pairs leftDomain rightDomain)
-      (localDomain : ConsumedIndexRenaming pairs leftDomain.consumeTypeAnnotations rightDomain.consumeTypeAnnotations)
+      (localDomain : ConsumedIndexRenaming pairs (peelTypeAnnotations leftDomain) (peelTypeAnnotations rightDomain))
       (tail : BinderIndexCorrespondence (pairs ++ [(leftId, rightId)]) left right finalPairs) :
       BinderIndexCorrespondence pairs
         ({ role := .index, name, domain := leftDomain, bi, value := .fvar leftId } :: left)

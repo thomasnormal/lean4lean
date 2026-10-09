@@ -139,11 +139,11 @@ theorem IndexRenaming.sort_iff {pairs : List (FVarId × FVarId)} {left right : L
 
 def ConsumedIndexRenaming (pairs : List (FVarId × FVarId)) (left right : Expr) : Prop :=
   ∃ rawLeft rawRight, IndexRenaming pairs rawLeft rawRight ∧
-    rawLeft.consumeTypeAnnotations = left ∧ rawRight.consumeTypeAnnotations = right
+    peelTypeAnnotations rawLeft = left ∧ peelTypeAnnotations rawRight = right
 
 theorem ConsumedIndexRenaming.ofRaw {pairs : List (FVarId × FVarId)} {left right : Expr}
     (related : IndexRenaming pairs left right) :
-    ConsumedIndexRenaming pairs left.consumeTypeAnnotations right.consumeTypeAnnotations :=
+    ConsumedIndexRenaming pairs (peelTypeAnnotations left) (peelTypeAnnotations right) :=
   ⟨left, right, related, rfl, rfl⟩
 
 theorem ConsumedIndexRenaming.mono {pairs extended : List (FVarId × FVarId)} {left right : Expr}

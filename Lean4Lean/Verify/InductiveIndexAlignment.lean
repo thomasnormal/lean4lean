@@ -87,7 +87,7 @@ theorem CheckedHeaderTrace.telescopeCount {nparams : Nat} {stats finalStats : In
     cases htype with
     | forallE _ _ _ hbody =>
       obtain ⟨hnext, hstep⟩ := hbody.whnfStep name domain bi (.fvar ⟨ctx.ngen.curr⟩)
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations) normalized hnormalized
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain)) normalized hnormalized
       have hcount := ih hnext
       omega
   | @reusedParameter stats name domain body bi index nindices ctx paramType normalized terminal finalStats finalIndices finalCtx
@@ -102,7 +102,7 @@ theorem CheckedHeaderTrace.telescopeCount {nparams : Nat} {stats finalStats : In
     cases htype with
     | forallE _ _ _ hbody =>
       obtain ⟨hnext, hstep⟩ := hbody.whnfStep name domain bi (.fvar ⟨ctx.ngen.curr⟩)
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations) normalized hnormalized
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain)) normalized hnormalized
       have hcount := ih hnext
       omega
 
@@ -128,7 +128,7 @@ theorem RecursorIndexTrace.telescopeCounts {stats : InductiveStats} {type termin
     cases htype with
     | forallE _ _ _ hbody =>
       obtain ⟨hnext, hstep⟩ := hbody.whnfStep name domain bi (.fvar ⟨ctx.ngen.curr⟩)
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations) normalized hnormalized
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain)) normalized hnormalized
       obtain ⟨hposition, hcount⟩ := ih hnext hindex
       simp only [Array.size_push] at hcount
       constructor <;> omega
