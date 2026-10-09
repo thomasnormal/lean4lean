@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveRestorationRules
+import Lean4Lean.Verify.InductiveRestorationRuleNames
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -508,6 +508,14 @@ private def checkSourceRecursorRules (nparams : Nat) (types : List InductiveType
         throwError "recursor rule disagrees with checked source constructor metadata"
     let expected := if preprocessing.aux2nested.size = 0 then recursor else
       restoredRecursorVal preprocessing staged (types.map (·.name)) (mkAuxRecNameMap staged types).2 name recursor
+    if preprocessing.aux2nested.size ≠ 0 then
+      let (auxNames, nameMap) := mkAuxRecNameMap staged types
+      unless !auxNames.contains name && (nameMap.find? name).isNone && nameMap.getD name name == name do
+        throwError "original recursor overlaps auxiliary rename-map keys"
+    let some (.recInfo final) := result.find? name | throwError "missing final original-name recursor"
+    unless final.name == name && final.rules.map (fun rule => (rule.ctor, rule.nfields)) ==
+        sourceType.ctors.map (fun ctor => (ctor.name, declareConstructors.arity 0 ctor.type - nparams)) do
+      throwError "final recursor lost original constructor labels or field counts"
     checkLookup result (.recInfo expected)
 
 private def checkFrontend (env : Kernel.Environment) (nparams : Nat) (types : List InductiveType)
@@ -596,7 +604,7 @@ private def fixtures (env : Kernel.Environment) : MetaM Unit := do
     multiConstructorType `RestoredAfterEmptyHead 0] true
   checkFrontend env 0 [{ name := `RestoredDirectEmptyHead, type := sortType, ctors := [] },
     multiConstructorType `RestoredDirectAfterEmptyHead 0 false] false
-  logInfo "24 frontend fixtures passed source signatures/arities/field counts, indexed recursor rules/minor offsets, exact direct/nested records, both flags and auxiliary-rec suffixes"
+  logInfo "24 frontend fixtures passed source signatures/arities/field counts, original recursor names/constructor labels, auxiliary-map identity, indexed rules/minor offsets, exact direct/nested records and both flags"
 
 private def failures (env : Kernel.Environment) : MetaM Unit := do
   let types := [nestedType `RestoredNested 0 1]
