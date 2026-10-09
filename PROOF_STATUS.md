@@ -3297,6 +3297,44 @@ audits include generated/private declarations and reject `sorryAx`; all four
 new modules also replay successfully through lean4lean. Run
 `lake env lean tests/InductiveBinderClosure.lean`.
 
+`Verify.ExprBoundedRange` packages the native constructor-domain premise as
+`BVarRangeFits`: every raw BVar index plus one fits the twenty-bit metadata
+field. This is stronger than a bound on the final loose-variable range, since
+binders can hide large raw indices. Under that explicit syntactic premise,
+constructor-data proofs establish native/structural range accuracy without
+the unbounded `Expr.looseBVarRange_eq` axiom. They reuse the existing data-layout
+interfaces and three existing bit-storage proof axioms from `Verify.Expr`;
+no new axiom or native bit-proof oracle is introduced.
+
+`Verify.InductiveBoundedHeaderClosure` combines this bound with the actual
+successful type-checker guard and checked-source metavariable guard to discharge
+source closure. General cache-state bridges retain separate `FVarsIn` premises:
+numeric fit and a successful loose-variable guard alone do not rule out
+metavariables returned by an arbitrary polluted inference cache. Supported
+wrapped headers then normalize closed without an additional source-closure
+or arbitrary range-accuracy hypothesis. `Verify.InductiveBinderBoundedClosure`
+threads the bound-only source premise through source, CPS/getter/registration
+and safe wrapped contracts, reusing the exact existing eight histories and
+forty-nine facts. The numeric constructor bound remains explicit; it is not
+inferred from native metadata, closure or source acceptance. No semantic typing
+or full inductive soundness claim is added.
+
+`tests/InductiveBoundedClosure.lean` adds thirty-three proof regressions and
+155 strict audits, including all 122 declarations / 113 theorems in the three
+new modules. Provenance checks pin the existing data interfaces and bit-proof
+axioms, and reject module-owned axioms, `sorryAx` and the unbounded range
+interface. Precise `simp only` lists prevent range/guard simplification from
+silently importing that interface. Pure tall/high-index controls distinguish
+constructor fit from closure without evaluating invalid native constructors.
+Twenty-seven registrations cover forty-five parent pairs, 141 paired domains
+and ninety paired index declarations across three readers. Twelve bounded loose
+sources and forty-eight poisoned-cache/uncached checks reject, four bounded
+meta sources fail the source guard, and two cache-accepted-meta controls preserve
+the independent integrity premise. Source, normalized, CPS/getter/registration
+and safe wrapped consumers compile using only the numeric bound instead of
+explicit source-closure or range-equality premises. Run
+`lake env lean tests/InductiveBoundedClosure.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
