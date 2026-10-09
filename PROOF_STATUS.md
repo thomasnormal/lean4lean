@@ -1151,6 +1151,33 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   theorem bridging it to a total model. Reused parameter types retain their
   original definitional-equality checks. No checker path, cache, new axiom or admission
   is added; full inductive soundness remains separate.
+- `Verify.InductiveAnnotationModel` defines a total structural model of leading
+  type-annotation peeling. Exactly unary `outParam`/`semiOutParam` applications
+  and binary `optParam`/`autoParam` applications peel to their carrier, repeating
+  along that leading carrier chain only. Binary defaults/tactics are discarded;
+  universe arguments do not affect recognition. Wrong arities, metadata and
+  annotations inside ordinary nested expressions remain unchanged. Its safe
+  defining equations describe the model, not the opaque native consumer.
+- `Verify.InductiveAnnotationModelScope` proves model output FVars are a subset
+  of input FVars, preserves syntactic support and avoidance, and proves model
+  idempotence. `Verify.InductiveAnnotationModelRenaming` proves the model
+  commutes with deterministic FVar renaming for arbitrary pair lists, including
+  duplicate keys, identity pairs and overlapping supports. Exact constant-head
+  arity tests are also preserved. No injection or separation premise is needed
+  for these model theorems, and no native consumption interface is assumed.
+- `Verify.InductiveAnnotationNativeScope` provides explicitly conditional
+  bridges. `NativeAnnotationModelAt` is a pointwise equation between one raw
+  expression's native consumed output and the total model; it is a premise,
+  not an axiom or a universal compatibility theorem. Raw support/avoidance
+  transfers to native consumption only with that expression's model premise;
+  deterministic consumed renaming requires premises for both actual raw
+  domains. Binder model receipts cover actual index domains only. A native
+  type projection retains the same declaration lookups and exact incoming
+  map while deriving stored-type scope and deterministic correspondence from
+  those explicit premises. Runtime comparison controls do not discharge them
+  in the kernel. Reused parameters, native defining-equation availability,
+  semantic typing and full inductive soundness remain separate. No executable
+  checker path, cache, new axiom or admission is added.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled

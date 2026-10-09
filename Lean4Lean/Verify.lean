@@ -61,6 +61,10 @@ import Lean4Lean.Verify.InductiveBinderLookupTypes
 import Lean4Lean.Verify.InductiveBinderRawScope
 import Lean4Lean.Verify.InductiveBinderRawScopeExclusion
 import Lean4Lean.Verify.InductiveBinderRawScopeAlignment
+import Lean4Lean.Verify.InductiveAnnotationModel
+import Lean4Lean.Verify.InductiveAnnotationModelScope
+import Lean4Lean.Verify.InductiveAnnotationModelRenaming
+import Lean4Lean.Verify.InductiveAnnotationNativeScope
 import Lean4Lean.Verify.InductiveCPS
 import Lean4Lean.Verify.InductiveRunScope
 import Lean4Lean.Verify.InductiveFrontendScope
