@@ -1809,6 +1809,21 @@ theorem run.loop.newTypesRange (numParams : Nat) (lctx : LocalContext)
         intro indType hmem
         exact hrange indType (by simpa using hmem)⟩
 
+theorem run.newTypesRange (fuel numParams : Nat) (first : InductiveType)
+    (rest : List InductiveType) (env : Environment) (state : State)
+    (hfirst : first.type.looseBVarRange' ≤ numParams)
+    (hstate : state.NestedAuxScoped) (hrange : State.NewTypesRange numParams state)
+    (hindex : 0 < state.newTypes.size)
+    (hclosure : Lean4Lean.Environment.InductiveDeclRange env) :
+    (run fuel numParams (first :: rest) env state).WF fun result =>
+      State.NewTypesRange numParams result.2 ∧ Result.TypesRange numParams result.1 := by
+  unfold run
+  refine withParams.contextRangeNewTypes first.type numParams 0 _ env state hfirst hstate hrange
+    hindex _ ?_
+  intro lctx remainder params state' hvalid hreserved hscope hstate' htype' hrange' hindex'
+  exact run.loop.newTypesRange numParams lctx params 0 fuel env state' hvalid.context hstate'
+    hrange' hclosure
+
 theorem run.nestedAuxScoped (fuel numParams : Nat) (types : List InductiveType)
     (env : Environment) (state : State) (hstate : state.NestedAuxScoped) :
     (run fuel numParams types env state).WF fun result =>
