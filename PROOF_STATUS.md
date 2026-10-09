@@ -928,6 +928,43 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   IDs; general index renaming, semantic typing, hidden aliases/tails, nested
   preprocessing and full inductive soundness remain separate. No executable
   checker path, cache, new axiom or admission is added.
+- `Verify.InductiveIndexRenaming` defines finite structural correspondence:
+  a free variable keeps its ID or follows an explicitly listed pair; all
+  other constructors, constants/levels, literals, metavariable IDs, binder
+  metadata and projection metadata remain exact. Reflexivity, pair-list
+  monotonicity, loose-variable lifting and sequential instantiation are proved
+  for arbitrary substitution expressions. This is an identity-or-paired
+  relation, not a deterministic substitution map, bijection, typing theorem
+  or semantic equivalence. Structural proofs are axiom-free except the
+  signature proof (`propext`) and actual instantiation bridge (the existing
+  `Expr.instantiate1_eq` interface).
+  `Expr.consumeTypeAnnotations` is opaque and has no equation interface here.
+  `ConsumedIndexRenaming` therefore retains related raw expressions and the
+  exact two annotation-consumption equations; it does not claim structural
+  correspondence of opaque consumed outputs. No new equation axiom is added.
+- `Verify.InductiveBinderCorrespondence` couples the actual two telescope
+  openings. Parameter values remain identical; each index value is proved
+  to be a native declaration's actual free variable before its IDs are paired.
+  Each raw domain is structurally related using only preceding index pairs;
+  the current pair is appended for the following body substitution. Consumed
+  local domains retain exact raw-domain provenance. `finalPairs` proves the
+  final chronological list is precisely the zip of actual index-value IDs;
+  `pairedIndices` also retains terminal correspondence. No independent
+  existential histories are combined.
+- `Verify.InductiveBinderRenamingAlignment` strengthens each existing joint
+  prefix witness with that sequential correspondence and its actual final
+  index-pair zip. `indexHeadTypes` projects a residual index node to the two
+  natively found declaration types and consumed provenance under exactly its
+  incoming prior pairs. `renamingTypes` similarly lifts explicit declaration
+  anchors and raw correspondence. Normalized/wrapped source, CPS/getter,
+  registration and safe-prefix bridges retain the stronger same-reader
+  receipts; projections recover previous prefix/domain contracts. Shared
+  parameter-step equality and first-index exact type agreement still hold;
+  later dependent domains and fresh IDs remain concretely unequal. Distinct
+  or injective pairs, global alpha-renaming, annotation-reduction semantics,
+  semantic typing, hidden aliases/tails, nested preprocessing and full
+  inductive soundness remain separate. No executable kernel path, cache,
+  new axiom or admission is added.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2781,6 +2818,24 @@ prefix/opening and first-declaration comparison lemmas use only `propext`;
 all audits reject `sorryAx` and use only existing logical, substitution and
 scope/map/list interfaces. Run
 `lake env lean tests/InductiveBinderPrefixes.lean`.
+
+`tests/InductiveBinderRenaming.lean` adds twenty-seven proof regressions and
+fifty-six axiom audits for structural correspondence, arbitrary sequential
+substitutions, exact chronological index histories, consumed provenance and
+both native declaration projections. Concrete wrapped mutual registration
+supplies normalization rather than assuming an oracle. Across five readers,
+160 full registration fixtures cover 175 parent pairs, 350 opening plans,
+715 paired domain steps (raw and consumed), 245 shared parameter records and
+470 differing fresh-index pairs. Five additional registration runs retain
+ten concretely unequal later-domain type comparisons. Fixtures include deep
+dependencies, multiple parameters, metadata and let/app/forall/lam/proj
+domains. Negative proofs and controls reject unpaired, reversed, future-only
+and own-step pairs, changed constants/levels/metadata, and reversed
+dependencies. Structural checks of consumed outputs are empirical fixture
+measurements only; general consumed-output structural compatibility is not
+proved. All audits reject `sorryAx` and use only existing logical,
+substitution and scope/map/list interfaces. Run
+`lake env lean tests/InductiveBinderRenaming.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
