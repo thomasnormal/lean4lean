@@ -169,13 +169,29 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `isValidIndAppIdx.indexNoIndOcc` additionally proves the positivity-relevant
   return invariant that every index argument after the parameters contains no
   occurrence of a datatype under construction. This remains a syntactic
-  classifier contract; it does not yet prove the recursive positivity traversal.
+  classifier contract, not a semantic positivity theorem.
   The standalone batch theorem also applies after replacing the context's
   environment with registered datatype headers. These are arity contracts,
   not semantic constructor-typing or positivity proofs. Datatype-header
   registration is not part of the checked-type/batch composition. The numeric
   constructor-registration composition is proved separately below; recursors
   and full inductive soundness remain open.
+- `Verify.InductivePositivity` proves a normalized acceptance trace for the
+  actual recursive `checkPositivity` checker. `isValidIndApp?.valid` proves that
+  its successful first-match classifier returns an in-range datatype index
+  accepted by `isValidIndAppIdx`. `PositivityTrace` distinguishes normalized
+  absence, a valid recursive inductive application, and a forall with no
+  datatype occurrence in its domain. Forall recursion records the exact
+  annotation-consumed local declaration, fresh-name advance, and instantiated
+  body. `checkPositivity.loop.trace_of_whnf` and `checkPositivity.trace_of_whnf`
+  expose an explicit context-sensitive WHNF-result contract;
+  `checkPositivity.trace` specializes it to actual successful WHNF calls without
+  additional premises. Legitimate recursive fields are included rather than
+  incorrectly requiring every normalized field to have no occurrence.
+  These are operational/syntactic traces, not semantic WHNF translation,
+  constructor typing, or full inductive soundness proofs. No new axiom or
+  admitted proof is used; all four theorem audits use only standard logical
+  axioms.
 - `Verify.ConstructorMetadata` specifies the exact concrete constructor records
   installed by registration. `declareConstructors.metadataVal` contains the
   source name/type, universe parameters, parent, per-parent constructor index,
@@ -1349,6 +1365,17 @@ generated parameters, dependent fields, safe/unsafe contexts, missing/swapped
 parameters, open source expressions, and fuel exhaustion. The checked-parameter
 arity theorem adds no interface assumptions beyond the existing guarded-loop
 bridge and excludes `sorryAx`.
+`tests/InductivePositivity.lean` adds seven proof regressions and four axiom
+audits, excluding both `sorryAx` and expression interface axioms. Twelve
+classifier fixtures cover empty, mutual, duplicate, parameterized, and indexed
+datatype arrays. Twenty-eight positivity outcomes cover nonrecursive and
+recursive fields, higher-order positive and negative domains, dependent index
+instantiation, invalid recursive indices, annotation/let/beta normalization,
+seeded fresh names, and independent constructor/WHNF fuel exhaustion. A beta
+erasure boundary checks that an accepted normalized expression can lack an
+occurrence present in the raw source. These are helper-boundary fixtures, not
+full declaration acceptance or semantic positivity evidence.
+
 `tests/ConstructorBatchArity.lean` adds four proof regressions and two axiom
 audits for full-batch checking, successful-result projection, arbitrary
 environment replacement, and checked-type/batch composition. Both audits
