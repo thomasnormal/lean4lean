@@ -715,9 +715,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   source context validity/reservation from the generated scope frame, rather
   than requiring additional source-reader premises. Initial root context
   validity/reservation and environment-map validity remain explicit.
-  `InductiveHeaderScope` now supplies the checked-header/root allocation bridge;
-  coupling that prefix to the complete runner's suffix remains needed before a
-  complete runner theorem. The eight audits exclude `sorryAx` and expression or
+  `InductiveHeaderScope` supplies the checked-header/root allocation bridge;
+  `InductiveRunScope` now couples that prefix to the complete runner's suffix.
+  The eight audits exclude `sorryAx` and expression or
   guarded-arity interfaces, using only existing logical/map/list-push interfaces.
   No axiom, admission, executable kernel change, cache, or fast path is added.
   These are structural source-reader and generated-field declaration guarantees,
@@ -745,7 +745,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   the seventh additionally inherits the existing third map and six constructor
   metadata/arity interfaces. All exclude `sorryAx`; no new axiom, admission,
   executable kernel change, cache, or fast path is added.
-  Complete safe-run composition remains separate. Context consistency and
+  `InductiveRunScope` now composes this prefix into complete safe runs.
+  Context consistency and
   declared-field presence are not semantic typing of declaration domains or
   recursive values, source reconstruction, generated index alignment, RHS
   typing/reduction, normalization transport, or preprocessing soundness.
@@ -753,6 +754,43 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   terminal-assertion boundaries, not runtime acceptance claims. An unreserved
   helper context can overwrite an old native lookup; this is an explicit premise
   boundary, not a frontend/kernel discrepancy.
+- `Verify.InductiveCPS` proves uniform continuation morphism equations for
+  checked headers and recursor-info generation. Capturing the actual result and
+  reader before binding an arbitrary callback equals running that callback in
+  the original CPS traversal, including prefix failures and callback errors.
+  Every fuelled binder loop and finite parent/constructor traversal is covered;
+  temporary hypothesis-type computations remain encapsulated rather than
+  replaced by a fabricated reader. These equations use only standard logical
+  axioms. `checkInductiveTypes.scopedStats` and `mkRecInfos.scopedCounts` derive
+  arbitrary-continuation contracts from the existing coupled collectors, so
+  structural scope and statistics/counts refer to the same captured witnesses.
+  Their audits inherit only existing logical/map/list-push interfaces.
+- `Verify.InductiveRunScope` removes additional root/source-context premises
+  from the complete safe-run RHS scope/distinctness contract. Initial safety,
+  constant-map validity, `LocalContext.WF`, and generator reservation are the
+  only caller premises. `safeScopedConstructorRegistration` combines checked
+  statistics, structural root scope, actual positivity traces, and installed
+  header/constructor metadata in one continuation. `InductiveStats.SafeRunScope`
+  extends the earlier complete registration certificate with the exact header/
+  positivity root frame and coupled elimination level, infos, source reader,
+  K flag, source scope/counts, exact offset metadata, and local-minor distinct
+  RHS receipts. The intermediate constructor environment remains distinct from
+  both that original positivity root and the final environment.
+  `run.safeScope` proves this certificate for the actual complete runner.
+  `run.safeRhsDistinct` retains final map validity and all original constant
+  lookups alongside its coupled certificate/source/rule witnesses. Compatibility
+  recovers the previous minor-offset certificate; local and original-reader
+  projections preserve actual source frames and distinct receipts. The
+  original-reader projection composes structural rebasing/extension only,
+  without assuming typing or normalization transport between environments.
+  All ten axiom audits exclude `sorryAx`. Composition uses only existing
+  logical, persistent-array list-push, three map, and six constructor metadata/
+  arity interfaces. No new axiom, admission, executable change, cache, or fast
+  path is added. This is structural/operational verification, not semantic
+  inductive or public frontend soundness. Semantic declaration-domain/value
+  typing, generated binder/index alignment, RHS typing/reduction, WHNF transport,
+  and nested preprocessing correctness remain separate. Empty batches with
+  nonzero parameter assertions remain proof-only boundaries.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -1953,6 +1991,29 @@ interface. The indexed-source and local-RHS/count/shape projections use only sta
 All audits exclude `sorryAx`.
 Empty batches with a nonzero declared parameter count remain proof-only
 boundaries: the known terminal assertion does not justify runtime acceptance.
+
+`tests/InductiveRunScope.lean` adds ten proof regressions and ten axiom audits for
+continuation morphism equations, coupled recursor continuations, actual complete
+safe-run scope certificates, minor-offset compatibility, original-reader/source
+projections, root validity/reservation, old constant lookups, and installed
+distinct RHS receipts. Sixteen complete safe runs cover empty and constructorless
+batches, recursive/higher-order fields, repeated thirty-three-field labels,
+shared parameters, mutual parents with an empty middle datatype, dependent
+indices, default/seeded contexts with old declarations/lets, nested-count
+metadata, and zero-fuel empty batches. Instrumented actual readers retain exact
+root/constructor/source boundaries and native lookups; direct complete runs
+agree on installed recursor metadata and every literal RHS recipe. Replays use
+the actual elimination universes and local minor entry, preserve distinct
+ordered field selections, and check exact offsets. Five early/late failures
+cover fuel, parameter shortage, duplicate constructors, imported-header and
+late-recursor collisions. Five continuation fixtures compare captured callbacks
+with direct CPS traversal on successful and rejected prefixes. All ten audits
+exclude `sorryAx`; morphism/compatibility equations use only standard logical
+axioms, structural continuations add existing map/list-push interfaces, and full
+registration adds existing constructor metadata/arity interfaces.
+Run `lake env lean tests/InductiveRunScope.lean`. No semantic domain/value typing,
+normalization transport, public frontend acceptance, or inductive soundness is
+claimed by these structural receipts.
 
 `tests/InductiveHeaderScope.lean` adds nine proof regressions and seven axiom
 audits for arbitrary checked-header continuations, coupled scope/statistics,
