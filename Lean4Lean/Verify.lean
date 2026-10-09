@@ -23,6 +23,7 @@ import Lean4Lean.Verify.RecursorMinorIndexing
 import Lean4Lean.Verify.RecursorRuleRhs
 import Lean4Lean.Verify.RecursorRuleRhsCounts
 import Lean4Lean.Verify.RecursorRuleRhsFVars
+import Lean4Lean.Verify.RecursorFieldScope
 import Lean4Lean.Verify.InductiveParams
 import Lean4Lean.Verify.InductiveParamValidity
 import Lean4Lean.Verify.InductiveParamBinding

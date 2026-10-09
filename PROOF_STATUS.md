@@ -629,6 +629,42 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   need not themselves be free-variable atoms. Those scope/typing boundaries,
   RHS reduction, generated index-binder alignment, WHNF transport, and earlier
   preprocessing remain separate.
+- `Verify.RecursorFieldScope` proves concrete declaration membership for generated
+  fields in the retained RHS reader, under explicit initial `LocalContext.WF`
+  and `ElimNestedInductive.ContextReserved` premises. These are structural
+  context consistency and generator-freshness conditions, not semantic typing.
+  `Context.RecursorScopeFrame` strengthens the immutable reader frame with final
+  context validity/reservation and an ordered extension of the original local
+  declaration list; its `oldLookup` projection preserves every previous
+  successful native lookup. `LocalContext.WF.find?_of_mem` turns declaration-list
+  membership into an exact concrete map lookup.
+  `RecursorFieldsDeclared` records actual declarations, their field expressions,
+  absent let-values, and default local-declaration kind. It has push, atom-shape,
+  ordered-sublist, and native-lookup projections. `mkRecInfos.loopCtorArgs.scope`
+  supplies valid/reserved extensions, declared fields, and ordered recursive
+  selections to arbitrary continuations, without parameter atom, source typing,
+  or positivity premises. Freshness is maintained through each actual allocation;
+  skipped parameters allocate no declarations.
+  `RecursorRuleRhsScopeReceipt` retains the same field/selection/value/context
+  witnesses, counts, and literal RHS recipe while strengthening the retained
+  reader and field membership. Its `fvars` compatibility projection recovers the
+  earlier receipt, and `lookups` gives declared fields and selected fields in
+  that same reader. Sequence compatibility/position projections and
+  `mkRecRules.rhsScope` lift the contract through rule generation.
+  `RecursorOffsetMetadata.localRuleRhsScope` joins stored rule traces to present
+  parent-local minors, but keeps the actual source reader's validity/reservation
+  premises explicit; local receipt compatibility also recovers the earlier atom
+  contract without changing witnesses. This item does not establish those premises
+  for the full runner's generated motive/minor source context. Seventeen audits
+  use only standard logical axioms and, where needed, the existing persistent-array list-push and
+  two map interfaces, excluding `sorryAx` and all expression/guarded-arity
+  interfaces. No axiom, admission, or executable kernel change is added.
+  Declaration presence does not establish freshness/uniqueness of the whole field
+  vector, scope or semantic typing of declaration domains/recursive values,
+  semantic RHS typing/reduction, index-binder alignment, WHNF transport, or
+  preprocessing soundness. A helper context that violates reservation can
+  overwrite an old native lookup; this is an explicit premise boundary, not a
+  frontend divergence or kernel discrepancy.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -1829,6 +1865,27 @@ interface. The indexed-source and local-RHS/count/shape projections use only sta
 All audits exclude `sorryAx`.
 Empty batches with a nonzero declared parameter count remain proof-only
 boundaries: the known terminal assertion does not justify runtime acceptance.
+
+`tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
+axiom audits for structural context validity/reservation, ordered declaration
+extensions, old native lookup preservation, actual field and selected-field
+declarations, traversal continuations, coupled RHS scope receipts, sequence
+compatibility/position projections, and conditional parent-local receipt
+composition. Eight direct helper fixtures cover empty/recursive fields, mixed
+visibility and higher-order selection, dependent domains, skipped parameters,
+unchecked forall-valued parameter substitution, repeated binder names, and
+thirty-three fields under a seeded generator. The seeded reader retains both a
+previous local declaration and an unrelated let declaration. Every fixture checks
+native declaration shape, ordered recursive selection, and exact context/generator
+advancement. Ten rule replays cover empty, recursive, mixed higher-order,
+dependent, and thirty-three-field constructors at zero/shifted minor offsets;
+they check native field/selection declarations, count bounds, exact RHS recipes,
+and rule/minor advancement. Two helper-boundary controls distinguish the retained
+reader from the original reader and show native overwrite when reservation is
+absent. Zero-fuel and partially allocated traversal failures propagate. These
+unchecked helper fixtures do not claim full frontend acceptance or semantic
+typing. Audits admit only the existing persistent-array list-push and two map
+interfaces where required; all exclude `sorryAx` and expression interfaces.
 
 `tests/RecursorRegistration.lean` contains fifty-nine proof regressions and forty-three axiom
 audits for suffix map validity, successful-result extraction, exact old lookup
