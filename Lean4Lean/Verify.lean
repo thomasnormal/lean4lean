@@ -45,6 +45,10 @@ import Lean4Lean.Verify.InductiveBinderRenamingAlignment
 import Lean4Lean.Verify.InductiveIndexPositions
 import Lean4Lean.Verify.InductiveBinderAllocations
 import Lean4Lean.Verify.InductiveBinderAllocationAlignment
+import Lean4Lean.Verify.InductiveIndexLookup
+import Lean4Lean.Verify.InductiveBinderSupport
+import Lean4Lean.Verify.InductiveHeaderParameterSupport
+import Lean4Lean.Verify.InductiveBinderSupportAlignment
 import Lean4Lean.Verify.InductiveCPS
 import Lean4Lean.Verify.InductiveRunScope
 import Lean4Lean.Verify.InductiveFrontendScope

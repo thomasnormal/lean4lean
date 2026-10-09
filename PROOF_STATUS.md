@@ -994,11 +994,42 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   erased/hole-containing readers are outside it. Stored declaration-index
   receipts are not an arbitrary physical `getAt?`-slot theorem. Pair zip
   injectivity does not imply disjoint source/target IDs or functionality of
-  the identity-or-listed-pair expression relation. Global deterministic
-  renaming, structural annotation-consumption compatibility, semantic typing,
+  the identity-or-listed-pair expression relation. Structural
+  annotation-consumption compatibility, semantic typing,
   hidden aliases/tails, nested preprocessing and full inductive soundness
   remain separate. No executable kernel path, cache, new axiom or admission
   is added.
+- `Verify.InductiveIndexLookup` supplies deterministic finite index lookup:
+  native listed lookup takes precedence over identity, which applies outside
+  the source projection. Injective pair receipts prove exact lookup of every
+  listed pair. `IndexParameterSupport` explicitly excludes shared parameter
+  IDs from that source projection and proves they are fixed. The structural
+  `indexRenameExpr` and functional `IndexLookupRenaming` imply the existing
+  identity-or-listed-pair relation, not conversely. Even an injective pair
+  list need not give a globally injective identity-defaulting function.
+- `Verify.InductiveBinderSupport` and
+  `Verify.InductiveBinderSupportAlignment` retain shared-parameter/index ID
+  separation in the same checked/generated histories as native allocation,
+  declaration lookup and sequential raw-domain correspondence. Their exact
+  index zip supports deterministic lookup and excludes shared parameters
+  from both projections. Normalized/wrapped source, CPS/getter, registration
+  and safe-prefix bridges retain those stronger receipts and project previous
+  allocation contracts. This is a finite-support boundary, not a claim that
+  source and target IDs are disjoint across readers, that every related raw
+  domain equals the deterministic structural result, or that annotation
+  consumption respects structural renaming. Semantic typing, hidden
+  aliases/tails, nested preprocessing and full inductive soundness remain
+  separate. No executable checker path, cache, new axiom or admission is added.
+- `Verify.InductiveHeaderParameterSupport` strengthens actual checked-header
+  source extraction with the parameter declaration boundary at each source's
+  entry reader and at the final header reader. Ordinary independent source
+  predicates do not imply this boundary: checked reuse performs `getType`
+  through a defaulting lookup, while recursor opening reuses parameter values
+  without a declaration check. The low-level support bridges therefore use
+  supported checked sources and an explicit generated-root declaration
+  boundary; the actual safe-prefix bridge derives both from the successful
+  checked-header traversal. It never merges independent opening witnesses or
+  assumes equality of reused declaration types with raw/consumed domains.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2888,6 +2919,22 @@ readers and nondeterministic identity-or-listed-pair correspondence. All
 audits reject `sorryAx` and use only existing logical, substitution and
 scope/map/list interfaces. Run
 `lake env lean tests/InductiveBinderAllocations.lean`.
+
+`tests/InductiveIndexLookup.lean` adds thirty-nine proof regressions and
+seventy-six axiom audits for deterministic listed lookup, fixed shared
+parameters, same-witness native allocation/support receipts and the actual
+supported-header extraction. All audits reject `sorryAx`. Across five dense
+readers, 100 full registrations cover 125 parent pairs; four additional
+hole-reader registrations remain unchecked controls outside `LocalContext.WF`.
+Eight generic lookup control groups cover overlapping and identity pairs,
+duplicate-key precedence, a sufficient-but-not-necessary parameter boundary,
+target overlap, every expression constructor and global noninjectivity.
+Independent-reader helpers preserve identical IDs without assuming global
+source/target separation. A successful unchecked helper deliberately aliases
+a future shared-parameter ID with an allocated index, demonstrating why
+ordinary helper success alone does not establish parameter support. This is
+a missing-premise boundary, not an accepted invalid complete declaration or
+kernel discrepancy. Run `lake env lean tests/InductiveIndexLookup.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
