@@ -665,6 +665,35 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   preprocessing soundness. A helper context that violates reservation can
   overwrite an old native lookup; this is an explicit premise boundary, not a
   frontend divergence or kernel discrepancy.
+- `Verify.RecursorFieldDistinct` strengthens the retained-reader field receipts
+  with distinct expression identities. `RecursorFieldsDeclared.fresh` derives
+  absence of the next generator identity from concrete declaration lookup and
+  the explicit context validity/reservation premises; `nodup_push` preserves
+  an existing distinct field vector when that fresh field is appended.
+  `mkRecInfos.loopCtorArgs.distinct` carries declaration membership, distinctness,
+  the scope frame, and ordered recursive-field selection through the same
+  actual traversal witnesses. Selected recursive fields are distinct as a
+  sublist, even when all source binder labels are identical. No parameter atom,
+  semantic source typing, or positivity premise is added.
+  `RecursorRuleRhsDistinctReceipt` keeps those same distinct field vectors,
+  selected fields, recursive values, retained reader, counts, and exact RHS
+  recipe coupled. Its scope compatibility and selected-distinctness projections
+  do not replace the witnesses. Positional sequence projections and
+  `mkRecRules.rhsDistinct` lift the receipt through actual rule generation.
+  `RecursorOffsetMetadata.localRuleRhsDistinct` identifies stored rules and
+  their actual parent-local minors using the existing flattened-minor indexing
+  certificate. `mkRecInfos.registeredDistinct` strengthens the generation/
+  registration suffix's coupled source/count/map/offset certificate with these
+  installed rule receipts, discharging generated-reader validity/reservation
+  from its existing source frame. Initial root context and map premises remain
+  explicit; this is not a complete safe-run or frontend soundness theorem.
+  Eleven axiom audits exclude `sorryAx` and expression/guarded-arity interfaces.
+  Only existing logical, persistent-array list-push, and map interfaces are used;
+  no axiom, admission, executable kernel change, cache, or fast path is added.
+  Field distinctness does not prove semantic typing or scope of declaration
+  domains/recursive values, RHS reduction, index-binder alignment, WHNF transport,
+  or preprocessing soundness. Declaration membership alone permits duplicate
+  vector entries; that unchecked control is not a kernel discrepancy.
 - `Verify.RecursorInfoScope` propagates the actual structural local-context
   validity and name-generator reservation through `mkRecInfos`. Fuelled header
   index traversal, motive/major allocation, recursive-hypothesis allocation,
@@ -1893,6 +1922,24 @@ interface. The indexed-source and local-RHS/count/shape projections use only sta
 All audits exclude `sorryAx`.
 Empty batches with a nonzero declared parameter count remain proof-only
 boundaries: the known terminal assertion does not justify runtime acceptance.
+
+`tests/RecursorFieldDistinct.lean` adds twelve proof regressions and eleven axiom
+audits for fresh-identity exclusion, distinct-vector growth, arbitrary traversal
+continuations, selected-field distinctness, coupled RHS receipts, positional
+sequence projections, stored-rule/local-minor composition, and the complete
+generation/registration suffix certificate. Twelve helper fixtures cover empty,
+recursive, mixed-visibility/higher-order, dependent-domain, and thirty-three-field
+telescopes under default/seeded generators, skipped parameters, and unchecked
+forall-valued parameter substitution. All generated binders share the `field`
+label; identities are checked against chronological generator allocation, not
+labels. Eight exact RHS replays cover zero/shifted offsets and zero/one/two/
+thirty-three fields, preserving distinct selected vectors, count bounds, and
+literal recipes. A declared-duplicate vector control distinguishes membership
+from distinctness; zero-fuel and partial-allocation failures still propagate.
+Audits use only existing logical/map/list-push interfaces, with the third map
+interface needed only for actual registration, and exclude `sorryAx`.
+Run `lake env lean tests/RecursorFieldDistinct.lean`. These helper controls do
+not claim full frontend acceptance or semantic typing.
 
 `tests/RecursorInfoScope.lean` adds six proof regressions and eight axiom audits
 for actual source-reader validity/reservation, old native lookup preservation,
