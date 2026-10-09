@@ -57,6 +57,54 @@ example (stats : InductiveStats) (ctx : Context) (type : Expr) (name : Name)
     PositivityTrace stats PositivityWHNF ctx type :=
   .forallE hwhnf hocc hdom hbody
 
+example (stats : InductiveStats) (normalizes : Context → Expr → Expr → Prop)
+    (parent : Nat) (ctor : Name) (type : Expr) (index fuel : Nat) (ctx : Context)
+    (hwhnf : ∀ current source,
+      ((monadLift (TypeChecker.whnf source) : M Expr) current).WF
+        (normalizes current source)) :
+    (checkConstructors.loop stats false parent ctor type index fuel ctx).WF
+      fun _ => ∃ terminal, SafeConstructorTrace stats normalizes parent ctx index type terminal :=
+  checkConstructors.loop.safeTrace_of_whnf stats normalizes parent ctor type index fuel ctx hwhnf
+
+example (stats : InductiveStats) (parent : Nat) (ctor : Name) (type : Expr)
+    (index fuel : Nat) (ctx : Context)
+    (hchecked : checkConstructors.loop stats false parent ctor type index fuel ctx = .ok ()) :
+    ∃ terminal, SafeConstructorTrace stats PositivityWHNF parent ctx index type terminal :=
+  checkConstructors.loop.safeTrace stats parent ctor type index fuel ctx _ hchecked
+
+example (stats : InductiveStats) (normalizes : Context → Expr → Expr → Prop)
+    (parent index : Nat) (ctx : Context) (type terminal : Expr)
+    (htrace : SafeConstructorTrace stats normalizes parent ctx index type terminal) :
+    ConstructorSpine type terminal ∧ isValidIndAppIdx stats terminal parent = true :=
+  htrace.spine
+
+example (stats : InductiveStats) (normalizes : Context → Expr → Expr → Prop)
+    (parent index : Nat) (ctx : Context) (name : Name) (domain body : Expr)
+    (bi : BinderInfo) (param terminal : Expr) (hparam : stats.params[index]? = some param)
+    (hbody : SafeConstructorTrace stats normalizes parent ctx (index + 1)
+      (body.instantiate1 param) terminal) :
+    SafeConstructorTrace stats normalizes parent ctx index
+      (.forallE name domain body bi) terminal :=
+  .parameter hparam hbody
+
+example (stats : InductiveStats) (normalizes : Context → Expr → Expr → Prop)
+    (parent index : Nat) (ctx : Context) (name : Name) (domain body : Expr)
+    (bi : BinderInfo) (terminal : Expr) (hparam : stats.params[index]? = none)
+    (hpositive : PositivityTrace stats normalizes ctx domain)
+    (hbody : SafeConstructorTrace stats normalizes parent
+      (ctx.withPositivityArg name domain bi) (index + 1)
+      (body.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)) terminal) :
+    SafeConstructorTrace stats normalizes parent ctx index
+      (.forallE name domain body bi) terminal :=
+  .field hparam hpositive hbody
+
+example (stats : InductiveStats) (normalizes : Context → Expr → Expr → Prop)
+    (parent index : Nat) (ctx : Context) (type terminal : Expr)
+    (htrace : SafeConstructorTrace stats normalizes parent ctx index type terminal) :
+    ∀ argIndex, stats.params.size ≤ argIndex → argIndex < terminal.getAppArgs.size →
+      hasIndOcc stats.indConsts terminal.getAppArgs[argIndex]! = false :=
+  isValidIndAppIdx.indexNoIndOcc stats terminal parent htrace.spine.2
+
 private def stats (heads : Array Expr) (params : Array Expr := #[])
     (indices : Array Nat := #[0]) : InductiveStats := {
   levels := [], resultLevel := .succ .zero, indConsts := heads, params,
@@ -72,6 +120,16 @@ private def checkPositive (ctx : Context) (stats : InductiveStats) (type : Expr)
   let ctx := { ctx with fuel := { ctx.fuel with inductiveFuel := fuel } }
   unless (checkPositivity stats type `PositiveFixture 0 ctx).isOk == expected do
     throwError "incorrect positivity outcome for {type} with fuel {fuel}"
+
+private def checkSafeConstructor (ctx : Context) (stats : InductiveStats) (type : Expr)
+    (expected : Bool) (fuel : Nat := 16) : MetaM Unit := do
+  let result := checkConstructors.loop stats false 0 `SafeFixture type 0 fuel ctx
+  unless result.isOk == expected do
+    match result with
+    | .error error =>
+      throwError "incorrect safe constructor outcome for {type} with fuel {fuel}: \
+        {error.toMessageData (← getOptions)}"
+    | .ok _ => throwError "unexpected safe constructor success for {type} with fuel {fuel}"
 
 private def audit (theoremName : Name) : MetaM Unit := do
   let axioms ← collectAxioms theoremName
@@ -159,5 +217,76 @@ run_meta
   checkPositive ctx finStats (.forallE `index natType
     (.app finType (.app finType (.bvar 0))) .default) false
   logInfo "12 classifier fixtures, 28 positivity outcomes, and normalized-erasure boundary passed"
+
+run_meta
+  audit ``SafeConstructorTrace.spine
+  audit ``checkConstructors.loop.safeTrace_of_whnf
+  audit ``checkConstructors.loop.safeTrace
+  let imported := (← Lean.getEnv).toKernelEnv
+  let natType := Expr.const ``Nat []
+  let boolType := Expr.const ``Bool []
+  let sortType := Expr.sort (.succ .zero)
+  let natStats := stats #[natType]
+  let ctx : Context := {
+    env := imported, lparams := [], safety := .safe, allowPrimitive := false }
+  let recursiveField := Expr.forallE `recursive natType natType .default
+  let nonrecursiveField := Expr.forallE `value boolType natType .default
+  let positiveFunction := Expr.forallE `value boolType natType .default
+  let negativeFunction := Expr.forallE `recursive natType boolType .default
+  let higherPositive := Expr.forallE `function positiveFunction natType .implicit
+  let higherNegative := Expr.forallE `function negativeFunction natType .default
+  let twoFields := Expr.forallE `value boolType recursiveField .strictImplicit
+  checkSafeConstructor ctx natStats natType true
+  checkSafeConstructor ctx natStats nonrecursiveField true
+  checkSafeConstructor ctx natStats recursiveField true
+  checkSafeConstructor ctx natStats higherPositive true
+  checkSafeConstructor ctx natStats higherNegative false
+  checkSafeConstructor ctx natStats (.forallE `function recursiveField natType .default) false
+  checkSafeConstructor ctx natStats (.forallE `value boolType boolType .default) false
+  checkSafeConstructor ctx natStats (.forallE `recursive (.mdata {} natType) natType .default) true
+  checkSafeConstructor ctx natStats natType false 0
+  checkSafeConstructor ctx natStats recursiveField false 1
+  checkSafeConstructor ctx natStats recursiveField true 2
+  checkSafeConstructor ctx natStats twoFields false 2
+  checkSafeConstructor ctx natStats twoFields true 3
+  checkSafeConstructor { ctx with ngen := { namePrefix := `SafeSeed, idx := 12 } }
+    natStats twoFields true
+  unless (checkConstructors.loop natStats true 0 `UnsafeFixture higherNegative 0 16 ctx).isOk do
+    throwError "unsafe control must bypass field positivity"
+  unless hasIndOcc natStats.indConsts natType do
+    throwError "accepted recursive field must demonstrate the absence-only premise is insufficient"
+  let first := Expr.fvar ⟨`FirstParameter⟩
+  let second := Expr.fvar ⟨`SecondParameter⟩
+  let listType := Expr.const ``List [.zero]
+  let listStats := stats #[listType] #[first]
+  let lctx := ctx.lctx.mkLocalDecl ⟨`FirstParameter⟩ `A sortType
+    |>.mkLocalDecl ⟨`SecondParameter⟩ `B sortType
+  let ctx := { ctx with lctx }
+  let parameterOnly := Expr.forallE `A sortType (.app listType (.bvar 0)) .default
+  let parameterAndRecursive := Expr.forallE `A sortType
+    (.forallE `tail (.app listType (.bvar 0)) (.app listType (.bvar 1)) .default) .default
+  let parameterAndValue := Expr.forallE `A sortType
+    (.forallE `value (.bvar 0) (.app listType (.bvar 1)) .default) .default
+  let parameterAndFunction := Expr.forallE `A sortType
+    (.forallE `function (.forallE `value (.bvar 0) (.app listType (.bvar 1)) .default)
+      (.app listType (.bvar 1)) .default) .default
+  let parameterAndNegative := Expr.forallE `A sortType
+    (.forallE `function (.forallE `tail (.app listType (.bvar 0)) (.bvar 1) .default)
+      (.app listType (.bvar 1)) .default) .default
+  checkSafeConstructor ctx listStats parameterOnly true
+  checkSafeConstructor ctx listStats parameterAndRecursive true
+  checkSafeConstructor ctx listStats parameterAndValue true
+  checkSafeConstructor ctx listStats parameterAndFunction true
+  checkSafeConstructor ctx listStats parameterAndNegative false
+  checkSafeConstructor ctx listStats (.forallE `A natType (.app listType (.bvar 0)) .default) false
+  checkSafeConstructor ctx listStats (.app listType first) true
+  checkSafeConstructor ctx listStats (.app listType second) false
+  checkSafeConstructor ctx listStats parameterAndRecursive false 2
+  let finType := Expr.const ``Fin []
+  let finStats := stats #[finType] #[] #[1]
+  checkSafeConstructor ctx finStats (.forallE `index natType (.app finType (.bvar 0)) .default) true
+  checkSafeConstructor ctx finStats (.forallE `index natType
+    (.app finType (.app finType (.bvar 0))) .default) false
+  logInfo "25 safe constructor outcomes, unsafe control, and recursive-field occurrence boundary passed"
 
 end InductivePositivityTest

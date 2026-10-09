@@ -190,8 +190,21 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   incorrectly requiring every normalized field to have no occurrence.
   These are operational/syntactic traces, not semantic WHNF translation,
   constructor typing, or full inductive soundness proofs. No new axiom or
-  admitted proof is used; all four theorem audits use only standard logical
+  admitted proof is used; all seven theorem audits use only standard logical
   axioms.
+  `SafeConstructorTrace` now carries the actual positivity trace of each fresh
+  field through the safe constructor loop. Its parameter and field constructors
+  retain the real `stats.params[index]?` branch witness, so parameter domains
+  that bypass positivity cannot be relabeled as checked fields. Fresh fields record the exact
+  local context and instantiated continuation; terminal returns carry their
+  accepted inductive application. `SafeConstructorTrace.spine` recovers the
+  earlier structural spine and valid return witness.
+  `checkConstructors.loop.safeTrace_of_whnf` exposes the context-sensitive
+  normalization premise, while `checkConstructors.loop.safeTrace` specializes
+  to actual WHNF results with no external positivity premise. This includes
+  recursive fields that the older normalized-absence-only conditional contract
+  cannot cover. The theorem concerns the safe inner loop, not the complete
+  constructor batch or semantic constructor typing.
 - `Verify.ConstructorMetadata` specifies the exact concrete constructor records
   installed by registration. `declareConstructors.metadataVal` contains the
   source name/type, universe parameters, parent, per-parent constructor index,
@@ -1365,7 +1378,7 @@ generated parameters, dependent fields, safe/unsafe contexts, missing/swapped
 parameters, open source expressions, and fuel exhaustion. The checked-parameter
 arity theorem adds no interface assumptions beyond the existing guarded-loop
 bridge and excludes `sorryAx`.
-`tests/InductivePositivity.lean` adds seven proof regressions and four axiom
+`tests/InductivePositivity.lean` adds thirteen proof regressions and seven axiom
 audits, excluding both `sorryAx` and expression interface axioms. Twelve
 classifier fixtures cover empty, mutual, duplicate, parameterized, and indexed
 datatype arrays. Twenty-eight positivity outcomes cover nonrecursive and
@@ -1375,6 +1388,15 @@ seeded fresh names, and independent constructor/WHNF fuel exhaustion. A beta
 erasure boundary checks that an accepted normalized expression can lack an
 occurrence present in the raw source. These are helper-boundary fixtures, not
 full declaration acceptance or semantic positivity evidence.
+Twenty-five further safe constructor-loop outcomes cover stored parameters,
+fresh nonrecursive/recursive fields, higher-order positive and negative fields,
+dependent return indices, annotation consumption, seeded fresh names, wrong
+parameter domains/returns, and fuel exhaustion. An unsafe control confirms the
+positivity check is bypassed only outside the theorem's safe-mode scope, and an
+accepted recursive-field occurrence demonstrates why normalized absence alone
+is insufficient. These remain helper-boundary tests: an open return can still
+be accepted without consuming its stored parameter when the source guard is
+bypassed.
 
 `tests/ConstructorBatchArity.lean` adds four proof regressions and two axiom
 audits for full-batch checking, successful-result projection, arbitrary
