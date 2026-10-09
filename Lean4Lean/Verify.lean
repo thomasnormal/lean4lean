@@ -30,6 +30,7 @@ import Lean4Lean.Verify.InductiveHeaderScope
 import Lean4Lean.Verify.InductiveCPS
 import Lean4Lean.Verify.InductiveRunScope
 import Lean4Lean.Verify.InductiveFrontendScope
+import Lean4Lean.Verify.InductiveFrontendRestoration
 import Lean4Lean.Verify.InductiveParams
 import Lean4Lean.Verify.InductiveParamValidity
 import Lean4Lean.Verify.InductiveParamBinding
