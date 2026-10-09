@@ -3848,6 +3848,66 @@ module-owned axioms, runtime admissions and the global native bound-variable
 range axiom. All three modules replay through lean4lean. Run
 `lake env lean tests/InductiveParentContextTranslation.lean`.
 
+`Verify.InductiveCtorFieldTrace` records the actual `mkRecInfos.loopCtorArgs`
+constructor-field traversal. Parameter nodes retain the actual array lookup;
+field nodes retain the fresh declaration, its peeled stored domain, and the
+actual `isRecArg` result obtained in that pushed reader. Tails instantiate the
+raw constructor body without adding normalization. Trace receipts derive the
+exact allocation order and field suffix, native scope and declarations, the
+ordered recursive-field subsequence, and a syntactically non-forall terminal.
+The getter and CPS morphism refer to the actual computation, not a separately
+modeled or replayed traversal. Recursive selection is an operational receipt,
+not a proof of semantic recursive-argument classification.
+
+`Verify.InductiveCtorFieldTranslation` opens those same fields semantically.
+Domain annotation support remains explicit. Peeling converts the anonymous
+body context, retaining a strong translation of the converted body and its
+definitional equality to the original; fresh-variable instantiation then
+opens that body without a normalization premise. The translated history
+constructs the exact mixed-context suffix from one initial WF model, including
+the stored native dependency lists, and preserves its actual selected order.
+Parameter reuse is represented natively but remains excluded from this typed
+transport. Constructor-header translation and phase invariants remain premises.
+
+The shared mixed-context extension also abstracts an arbitrary translated,
+typed body using the exact native field selection. Its semantic abstraction
+first lives in the initial context; transport back to the field reader uses
+the same extension and the required semantic lifting. Body typing is not
+inferred from native scope or operational recursive classification.
+
+`Verify.InductiveCtorFieldTranslationCPS` packages the same native history,
+semantic history and derived final model in one endpoint receipt. Getter
+annotation support is consumed only at successful actual captures. Its scoped
+callback receives that exact field reader, not an assumed independently
+chosen later model. Endpoint projections derive final reader correspondence,
+terminal translation and typed native field abstraction. An initial WF
+mixed-context representation is supplied once; a final one is constructed.
+These APIs can consume the previously typed parent reader but do not yet
+verify `loopUArgs`, recursive-hypothesis domains, motive/constructor application
+alignment, minor-domain opening, or correspondence at the eventual minor/current
+reader. Those intervening obligations remain explicit. No new admission,
+axiom, oracle, runtime checker change, cache or fast path is introduced; the
+transport inherits the existing abstraction/context foundations and native
+container/expression interfaces, separate from the clean logical-only core.
+
+`tests/InductiveCtorFieldTranslation.lean` adds twenty-seven proof controls,
+214 axiom audits and ten axiom prints. Fifteen successful native captures cover
+dependent, nonrecursive, recursive and higher-order fields, two datatype heads,
+annotations and metadata, parameter reuse, raw alias/metadata/let terminals,
+retained declarations, and exact identifiers, domains, dependencies and order.
+Five failure controls cover constructor/classifier fuel exhaustion, actual
+WHNF failure and callback error propagation. A concrete initial-local semantic
+reference shows why transport back across the field suffix is not identity
+weakening. Runtime captures check operational allocation/selection behavior,
+not semantic recursive classification or minor-domain correctness.
+The new whole-module census is ninety-four declarations / forty-four theorems,
+including private/generated helpers (trace 36/18, translation 51/20, CPS 7/6).
+The old clean logical core remains seventy-three / thirty-eight. Audits pin
+inherited admissions and native interfaces separately, reject new module-owned
+axioms and runtime admissions, and forbid the global native bound-variable
+range axiom. All three new modules replay through lean4lean. Run
+`lake env lean tests/InductiveCtorFieldTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
