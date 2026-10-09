@@ -39,6 +39,7 @@ import Lean4Lean.Verify.InductiveRestorationArity
 import Lean4Lean.Verify.InductiveRestorationRules
 import Lean4Lean.Verify.InductiveRecursorNames
 import Lean4Lean.Verify.InductiveRestorationRuleNames
+import Lean4Lean.Verify.InductiveRestorationRecursors
 import Lean4Lean.Verify.InductiveParams
 import Lean4Lean.Verify.InductiveParamValidity
 import Lean4Lean.Verify.InductiveParamBinding

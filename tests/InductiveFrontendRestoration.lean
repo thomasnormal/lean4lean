@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveRestorationRuleNames
+import Lean4Lean.Verify.InductiveRestorationRecursors
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -491,6 +491,30 @@ private def checkSourceConstructors (nparams : Nat) (lparams : List Name) (types
         { info with type := preprocessing.restoreNested staged info.type }
       checkLookup result (.ctorInfo expected)
 
+private def checkSourceRecursorHeader (nparams : Nat) (types : List InductiveType)
+    (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+    (sourceType : InductiveType) (before after : RecursorVal) : MetaM Unit := do
+  let some (.inductInfo header) := staged.find? sourceType.name | throwError "recursor lacks its checked source header"
+  unless before.numParams == nparams && before.numIndices == header.numIndices &&
+      before.numMotives == preprocessing.types.length &&
+      before.numMinors == (preprocessing.types.flatMap (·.ctors)).length &&
+      before.all == preprocessing.types.map (·.name) && before.isUnsafe == false do
+    throwError "source recursor lost checked header/count metadata"
+  unless after.levelParams == before.levelParams && after.numParams == before.numParams &&
+      after.numIndices == before.numIndices && after.numMotives == before.numMotives &&
+      after.numMinors == before.numMinors && after.k == before.k && after.isUnsafe == before.isUnsafe do
+    throwError "restoration changed retained recursor header metadata"
+  let expectedType := if preprocessing.aux2nested.size = 0 then before.type else
+    preprocessing.restoreNested staged before.type (mkAuxRecNameMap staged types).2
+  let expectedAll := if preprocessing.aux2nested.size = 0 then before.all else types.map (·.name)
+  unless after.type == expectedType && after.all == expectedAll && after.rules.length == before.rules.length do
+    throwError "recursor lost exact source type/all/rule-count restoration"
+  for (sourceRule, finalRule) in before.rules.zip after.rules do
+    let expectedRhs := if preprocessing.aux2nested.size = 0 then sourceRule.rhs else
+      preprocessing.restoreNested staged sourceRule.rhs (mkAuxRecNameMap staged types).2
+    unless finalRule.ctor == sourceRule.ctor && finalRule.nfields == sourceRule.nfields && finalRule.rhs == expectedRhs do
+      throwError "recursor lost indexed source rule/RHS restoration"
+
 private def checkSourceRecursorRules (nparams : Nat) (types : List InductiveType)
     (preprocessing : ElimNestedInductive.Result) (staged result : Kernel.Environment) : MetaM Unit := do
   for (sourceType, index) in types.zipIdx do
@@ -513,6 +537,7 @@ private def checkSourceRecursorRules (nparams : Nat) (types : List InductiveType
       unless !auxNames.contains name && (nameMap.find? name).isNone && nameMap.getD name name == name do
         throwError "original recursor overlaps auxiliary rename-map keys"
     let some (.recInfo final) := result.find? name | throwError "missing final original-name recursor"
+    checkSourceRecursorHeader nparams types preprocessing staged sourceType recursor final
     unless final.name == name && final.rules.map (fun rule => (rule.ctor, rule.nfields)) ==
         sourceType.ctors.map (fun ctor => (ctor.name, declareConstructors.arity 0 ctor.type - nparams)) do
       throwError "final recursor lost original constructor labels or field counts"
@@ -604,7 +629,7 @@ private def fixtures (env : Kernel.Environment) : MetaM Unit := do
     multiConstructorType `RestoredAfterEmptyHead 0] true
   checkFrontend env 0 [{ name := `RestoredDirectEmptyHead, type := sortType, ctors := [] },
     multiConstructorType `RestoredDirectAfterEmptyHead 0 false] false
-  logInfo "24 frontend fixtures passed source signatures/arities/field counts, original recursor names/constructor labels, auxiliary-map identity, indexed rules/minor offsets, exact direct/nested records and both flags"
+  logInfo "24 frontend fixtures passed source signatures/arities/field counts, original recursor headers/names/constructor labels, auxiliary-map identity, indexed RHS restoration/minor offsets, exact direct/nested records and both flags"
 
 private def failures (env : Kernel.Environment) : MetaM Unit := do
   let types := [nestedType `RestoredNested 0 1]

@@ -1022,6 +1022,26 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   change or new axiom/admission. These are structural name/rule receipts, not
   source/restored semantic typing, RHS reduction, nested correctness, binder/index
   alignment, WHNF transport, auxiliary typing or inductive soundness.
+- `Verify.InductiveRestorationRecursors` couples original source recursors to
+  their exact `declareRecursors.metadataVal` records and actual indexed rule
+  recipes, retaining the same elimination level, info array, local source context
+  and K flag from the successful runner. Original-name final header projections
+  retain level parameters, parameter/index counts, motive/minor totals, K flag
+  and safety. Motive/minor totals include generated auxiliary datatypes/minors,
+  rather than incorrectly counting only the original prefix. Exact generated
+  source types and final `all` lists are projected through literal direct/nested
+  restoration. Indexed final rules keep source constructor labels/field counts
+  and expose the exact `restoreNested` expression for each source RHS, with the
+  actual auxiliary-rec-name map. Checked source constructor metadata and raw
+  arity equations remain attached to the same indexed rules. Successful
+  preprocessing/full-run/root/constructor/source witnesses, minor indexing,
+  local RHS distinctness and original rename-map identity remain coupled; both
+  public frontends require only initial map validity. Sixteen axiom audits exclude
+  `sorryAx` and track existing binding/map/frontend interfaces. No executable
+  kernel change or new axiom/admission. These are structural record and literal
+  expression equations, not semantic source/restored typing, reduction,
+  correctness of nested elimination, K-target semantics, binder/index alignment,
+  WHNF transport, auxiliary typing or inductive soundness.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -2365,6 +2385,21 @@ restoration branches are covered. All twenty-four native-accepted restoration
 fixtures now check final original-name lookups and original constructor-label/field
 pairs; nested fixtures also check actual rename-map absence and fallback identity.
 Run `lake env lean tests/InductiveOriginalRecursorNames.lean` and
+`lake env lean tests/InductiveFrontendRestoration.lean`.
+
+`tests/InductiveSourceRecursorRecords.lean` adds thirty-seven proof regressions
+and sixteen axiom audits for same-source exact generated records/rule recipes,
+retained recursor headers, original-name final lookups, exact type/`all`/indexed
+RHS restoration, checked constructor fields and both public frontends. Empty
+source lists and both literal restoration branches are covered without requiring
+nonempty helper inputs or executing panic defaults. Twelve proof-only failure
+controls reject wrong indices/motive/minor counts, changed K/level/safety fields,
+wrong direct/nested final types, wrong restored `all`, changed RHS expressions,
+missing indexed rules and missing final recursors. All twenty-four native-accepted
+restoration fixtures now check staged header/count metadata, retained final
+levels/counts/K/safety and exact indexed source-to-final RHS expressions, both
+flags and the direct public frontend. No semantic typing/reduction claim is
+added. Run `lake env lean tests/InductiveSourceRecursorRecords.lean` and
 `lake env lean tests/InductiveFrontendRestoration.lean`.
 
 `tests/InductiveHeaderScope.lean` adds nine proof regressions and seven axiom
