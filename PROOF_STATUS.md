@@ -1061,6 +1061,37 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   typing, normalization support, hidden aliases/tails, nested preprocessing
   and full inductive soundness remain separate. No executable checker path,
   cache, new axiom or admission is added.
+- `Verify.InductiveNormalizedFreeVars` proves structural free-variable support
+  survives loose-variable lifting and single substitution. The explicit
+  wrapped-telescope normalization trace yields a free-variable subset of its
+  original source, including beta and let substitution. Actual checked-source
+  guard correctness then proves wrapped normalized headers contain no free
+  variables. If another normalized witness is selected, equality follows from
+  the successful normalization receipt inside the same source record; no
+  general normalization-scope theorem or metadata axiom is invented.
+- `Verify.InductiveBinderLookupCorrespondence` strengthens sequential raw
+  domains to the deterministic lookup relation at exactly the incoming pair
+  list. Parameter nodes retain that list; index nodes append their actual
+  checked/generated IDs. Its exact final zip and terminal correspondence are
+  proved for the same opening histories. Explicit initial source support,
+  parameter FVar shapes, shared-parameter exclusion and full finite-pair
+  injection provide fresh-body/key support at each step. Generic incoming
+  pairs are permitted; overlapping source/target IDs do not require global
+  separation. Projection recovers the old structural relation and consumed
+  raw-domain provenance, not structural correspondence of consumed outputs.
+- `Verify.InductiveBinderLookupAlignment` retains those deterministic domain
+  receipts in the same actual parameter/index histories, allocation positions,
+  native declaration lookups and pair zip as the supported-source alignment.
+  The normalized bridge states source support explicitly; the wrapped bridge
+  discharges it through checked guards and proved wrapper scope. CPS/getter,
+  registration and safe-prefix contracts retain the stronger receipts and
+  project the previous support contracts. Reused parameter declaration types
+  still have only their actual definitional-equality checks; the new raw-domain
+  theorem does not turn those checks into raw/consumed type equality. General
+  normalization support, structural annotation-consumption compatibility,
+  semantic typing, hidden aliases/tails, nested preprocessing and full
+  inductive soundness remain separate. No executable checker path, cache,
+  new axiom or admission is added.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2979,6 +3010,20 @@ retain injection/support extension premises, native freshness, contextual
 opening and safe wrapped-registration operation receipts. No consumed-output
 compatibility, normalization reservation or global source/target disjointness
 is assumed. Run `lake env lean tests/InductiveIndexLookupOpening.lean`.
+
+`tests/InductiveBinderLookup.lean` adds thirty-two proof regressions and
+sixty-three axiom audits, all rejecting `sorryAx`. Eighty full registrations
+cover 100 parent pairs and 388 binder steps across four readers; each actual
+raw domain agrees with the deterministic lookup at its incoming chronological
+index zip. Fixtures include dependent/multiple parameters and indices, mutual
+reuse, metadata, let/beta wrappers, projections, literals and nested-let
+domains. Sixty pure constructor checks and 180 substitutions span every
+expression constructor and five generic pair lists. Independent-reader
+controls permit identity and overlapping source/target IDs. An unchecked
+successful helper retains the necessary parameter/index support boundary;
+wrapper normalization is also shown not to reflect source closedness.
+Consumed types remain exact native consumption receipts, not a new structural
+consumption theorem. Run `lake env lean tests/InductiveBinderLookup.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
