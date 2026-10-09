@@ -36,6 +36,9 @@ import Lean4Lean.Verify.InductiveWrappedSpines
 import Lean4Lean.Verify.InductiveWrappedHeaders
 import Lean4Lean.Verify.InductiveBinderDomains
 import Lean4Lean.Verify.InductiveBinderAlignment
+import Lean4Lean.Verify.InductiveBinderPrefixes
+import Lean4Lean.Verify.InductiveBinderOpening
+import Lean4Lean.Verify.InductiveBinderPrefixAlignment
 import Lean4Lean.Verify.InductiveCPS
 import Lean4Lean.Verify.InductiveRunScope
 import Lean4Lean.Verify.InductiveFrontendScope
