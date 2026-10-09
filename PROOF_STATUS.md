@@ -302,6 +302,28 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   why an isolated-prefix comparison must retain the earlier preprocessing guard:
   full frontend rejection agrees with Lean 4.29.0 on hidden declared parameters.
   The boundary is resolved and documented in `divergences.md`.
+- `Verify.InductiveRegistration` combines the safe positivity traces with the
+  checked-type/header/constructor registration prefix.
+  `InductiveStats.SafeConstructorRegistration` retains the actual header-stage
+  root separately from the later constructor environment. Its traces keep
+  using WHNF in that original root; no unproved normalization transport to the
+  extended environment is assumed. Both environments have valid concrete
+  constant maps, all original/header entries are preserved, and exact header
+  metadata is retained before and after constructor registration alongside the
+  final constructor records and nontruncating parameter/field counts.
+  `checkInductiveTypes.safeConstructorRegistration` supplies the contract to an
+  arbitrary continuation running in the constructor environment while passing
+  the unchanged trace root explicitly. The checking action is executed once:
+  its successful result supplies both the safe trace and existing arity guard.
+  `getSafeConstructorRegistration` returns statistics, the root, and the later
+  environment. `preservesOriginal` and `declaredParameters` expose old-entry
+  preservation and declared parent/constructor parameter alignment.
+  The only initial invariant premise is concrete map validity, not semantic
+  environment well-formedness. All four audits exclude `sorryAx`; the two
+  registration proofs use only the existing map and guarded-arity interfaces,
+  while the projections need no such interfaces. These are safe-mode
+  operational/numeric contracts, not semantic positivity, constructor typing,
+  elimination/recursor verification, or complete `AddInductive.run` soundness.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -1450,6 +1472,22 @@ imported constants, and absence of constructor registration. An indexed mutual
 boundary confirms that later index locals occur in the trace root but not in
 `stats.lctx`. These fixtures exercise the actual registered-header prefix, not
 constructor/recursor registration or complete declaration acceptance.
+
+`tests/SafeConstructorRegistration.lean` adds eight proof regressions and four
+axiom audits for the combined registration contract, arbitrary continuations,
+successful-result extraction, root-indexed traces, exact constructor records,
+old-entry preservation, declared parameter alignment, and both map-validity
+witnesses. Twenty-six executable prefix outcomes cover recursive and
+higher-order fields, one/two parameters, mutual and indexed batches, universe
+parameters, seeded contexts, nested metadata, later failures, and fuel.
+Successful fixtures inspect exact headers in both environments, exact
+constructor records only in the final environment, parameter/field totals,
+per-parent constructor indices, and preserved imported constants. Registration
+rejects constructor names shared across parents or colliding with headers or
+imported entries, even where checker-only acceptance is possible. An indexed
+boundary keeps the header root distinct from the constructor environment and
+retains later index locals absent from `stats.lctx`. The fixtures stop before
+elimination/recursor generation and do not claim full declaration acceptance.
 
 `tests/ConstructorBatchArity.lean` adds four proof regressions and two axiom
 audits for full-batch checking, successful-result projection, arbitrary
