@@ -1203,6 +1203,34 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   semantic local typing or full inductive soundness is asserted. These are
   proof-only result contracts; no checker path, cache, new axiom or admission
   is added.
+- `Verify.InductiveAnnotationModelFVarsIn` proves total peeling preserves
+  `Expr.FVarsIn` for arbitrary FVar predicates. Unlike FVar-only support, this
+  predicate also excludes expression and universe metavariables. Its native
+  `hasMVar = false` projection uses the existing expression/level interfaces,
+  not a native annotation-consumption equation. Preservation is not reflection:
+  discarded binary defaults and annotation-head universe arguments may contain
+  metavariables that disappear from the peeled result.
+- `Verify.InductiveBinderFVarsIn` preserves this integrity through native
+  single substitution and explicit metadata/let/beta normalization traces.
+  Successful checked-source guards supply source integrity; the normalized
+  projection uses the same successful normalization witness, not an unrelated
+  existential telescope. FVar binder opening gives every raw domain exactly
+  the initial parameter IDs plus strictly-prior index IDs, excluding expression
+  and universe metavariables at the same time. General normalized headers
+  retain an explicit `NormalizedHeaderFVarsIn` premise; no generic WHNF
+  integrity theorem is assumed. Projection recovers the old FVar-only scope.
+- `Verify.InductiveBinderIntegrity` retains the full previous raw/stored
+  parent contract and appends both histories' raw-domain, peeled index-domain
+  and actual native-declaration-type integrity on those same witnesses. Native
+  lookup uniqueness ties each type fact to the declaration already selected by
+  its own allocation receipt. Normalized/wrapped source and successful result
+  contracts carry these facts without native/model compatibility premises;
+  supported wrappers discharge integrity through the checked source guards.
+  This remains syntactic FVar membership and metavariable absence: `FVarsIn`
+  permits loose BVars and does not establish semantic typing. Reused parameter
+  declaration types keep their original `isDefEq` checks, not a new literal
+  type-equality claim. No runtime checker change, cache, new axiom or admission
+  is introduced; full inductive soundness remains separate.
 - `Verify.InductiveAnnotationNativeScope` provides explicitly conditional
   bridges. `NativeAnnotationModelAt` is a pointwise equation between one raw
   expression's native consumed output and the total model; it is a premise,
@@ -3210,6 +3238,24 @@ without literal equality. Audits allow only logical and existing storage,
 instantiation/source-guard interfaces, rejecting `sorryAx`. No semantic typing
 or general normalization integrity theorem is inferred. Run
 `lake env lean tests/InductiveBinderStoredTypes.lean`.
+
+`tests/InductiveBinderIntegrity.lean` adds forty proof regressions and
+seventy-one axiom audits, covering all thirty-one public declarations in the
+three integrity modules; a separate whole-module census includes the private
+opening helper. FVar-only support is shown to admit expression/level
+metavariables, while `FVarsIn` rejects them but still permits loose BVars.
+Discarded defaults, gadget universe arguments and explicit normalization
+controls demonstrate preservation without reflection. Compiled consumers keep
+the same raw/stored/native witnesses through normalized/wrapped sources,
+CPS/getter/registration and safe prefixes. Thirty registrations cover
+forty-eight parent pairs, 153 paired binder domains and 96 paired index
+declarations across three readers; actual stored types are checked for
+`hasMVar = false` and chronological FVar support. Five checked-source meta
+rejections and two unchecked-helper controls keep clean stored output distinct
+from guarded source acceptance. Audits reject `sorryAx` and allow only logical
+and existing storage/instantiation/source-guard interfaces. These checks do not
+establish loose-BVar closure or semantic typing. Run
+`lake env lean tests/InductiveBinderIntegrity.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
