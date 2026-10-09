@@ -190,7 +190,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   incorrectly requiring every normalized field to have no occurrence.
   These are operational/syntactic traces, not semantic WHNF translation,
   constructor typing, or full inductive soundness proofs. No new axiom or
-  admitted proof is used; all ten theorem audits use only standard logical
+  admitted proof is used; all twelve theorem audits use only standard logical
   axioms.
   `SafeConstructorTrace` now carries the actual positivity trace of each fresh
   field through the safe constructor loop. Its parameter and field constructors
@@ -217,6 +217,21 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   than replacing it with an existential matching datatype. These are full
   safe-batch operational contracts, not header registration, constructor
   registration, semantic typing, or full inductive soundness.
+  `checkInductiveTypes.registeredSafeConstructors` now composes the real
+  checked-type continuation, datatype-header registration, and safe constructor
+  batch, supplying traces to an arbitrary continuation in the actual installed
+  header environment. Checked header sizes, parameter counts, free-variable
+  shape, distinctness, and the original context frame are supplied internally.
+  `getRegisteredSafeConstructorTraces` returns the checked statistics and actual
+  root `Context`; `InductiveStats.RegisteredSafeConstructorTraces` retains those
+  invariants, the fixed context fields after restoring the original environment,
+  and every indexed trace rooted in the returned context. Neither its local
+  context nor its fresh-name generator is reconstructed from `stats.lctx`:
+  later datatype indices can extend the real root beyond that stored snapshot.
+  The returned environment contains the newly installed datatype headers, not
+  registered constructors. Both checks explicitly use the safe-mode flag
+  `false`; they do not infer semantic safety from the incoming context or prove
+  constructor typing, recursor registration, or complete inductive soundness.
 - `Verify.ConstructorMetadata` specifies the exact concrete constructor records
   installed by registration. `declareConstructors.metadataVal` contains the
   source name/type, universe parameters, parent, per-parent constructor index,
@@ -1422,6 +1437,19 @@ theorem's scope. The source guard rejects an open parameter return that the
 inner loop alone can accept. These fixtures check the actual full constructor
 batch in an imported environment with explicit statistics; they do not check
 the datatype headers or claim complete declaration acceptance.
+
+`tests/RegisteredConstructorPositivity.lean` adds six proof regressions and two
+standard-logical-only axiom audits for the checked-type/header/safe-batch
+composition, successful-result extraction, indexed traces, fixed frame fields,
+and the declared parameter count for nonempty inputs. Twenty-six prefix
+outcomes cover empty input, recursive and higher-order fields, one/two
+parameters, mutual and indexed datatypes, seeded local contexts, universe
+parameters, nested-header metadata, header freshness, later failures, and fuel.
+Successful fixtures inspect the returned root, installed headers, preserved
+imported constants, and absence of constructor registration. An indexed mutual
+boundary confirms that later index locals occur in the trace root but not in
+`stats.lctx`. These fixtures exercise the actual registered-header prefix, not
+constructor/recursor registration or complete declaration acceptance.
 
 `tests/ConstructorBatchArity.lean` adds four proof regressions and two axiom
 audits for full-batch checking, successful-result projection, arbitrary

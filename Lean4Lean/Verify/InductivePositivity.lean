@@ -287,4 +287,44 @@ theorem checkConstructors.safeTraces (indTypes : Array InductiveType)
   checkConstructors.safeTraces_of_whnf indTypes stats PositivityWHNF ctx
     fun _ _ _ hresult => hresult
 
+def InductiveStats.RegisteredSafeConstructorTraces (stats : InductiveStats)
+    (nparams : Nat) (indTypes : Array InductiveType) (original root : Context) : Prop :=
+  stats.HeaderSizes indTypes.size ∧ stats.ParamsCount nparams indTypes.size ∧
+    stats.ParamsAreFVars ∧ stats.params.toList.Nodup ∧
+    original.HeaderFrame { root with env := original.env } ∧
+    stats.SafeConstructorTraces indTypes PositivityWHNF root
+
+theorem checkInductiveTypes.registeredSafeConstructors (nparams : Nat)
+    (indTypes : Array InductiveType) (numNested : Nat) (next : InductiveStats → M α)
+    (ctx : Context) (post : α → Prop)
+    (hnext : ∀ (stats : InductiveStats) (current : Context) (headers : Kernel.Environment),
+      stats.HeaderSizes indTypes.size → stats.ParamsCount nparams indTypes.size →
+      stats.ParamsAreFVars → stats.params.toList.Nodup → ctx.HeaderFrame current →
+      stats.SafeConstructorTraces indTypes PositivityWHNF { current with env := headers } →
+      (next stats { current with env := headers }).WF post) :
+    (checkInductiveTypes nparams indTypes (fun stats => do
+      withEnv (← declareInductiveTypes stats nparams indTypes numNested false) do
+        checkConstructors indTypes stats false
+        next stats) ctx).WF post := by
+  apply checkInductiveTypes.frameHeaderSizesParamsCountDistinct
+  intro stats current hsizes hcount hfvars hnodup hframe
+  dsimp only
+  apply Lean4Lean.AddInductive.bindWF
+  intro headers
+  refine (checkConstructors.safeTraces indTypes stats { current with env := headers }).bind ?_
+  intro _ htraces
+  exact hnext stats current headers hsizes hcount hfvars hnodup hframe htraces
+
+theorem checkInductiveTypes.getRegisteredSafeConstructorTraces (nparams : Nat)
+    (indTypes : Array InductiveType) (numNested : Nat) (ctx : Context) :
+    (checkInductiveTypes nparams indTypes (fun stats => do
+      withEnv (← declareInductiveTypes stats nparams indTypes numNested false) do
+        checkConstructors indTypes stats false
+        return (stats, ← readThe Context)) ctx).WF fun result =>
+      result.1.RegisteredSafeConstructorTraces nparams indTypes ctx result.2 := by
+  apply checkInductiveTypes.registeredSafeConstructors
+  intro stats current headers hsizes hcount hfvars hnodup hframe htraces
+  exact .pure ⟨hsizes, hcount, hfvars, hnodup,
+    ⟨rfl, hframe.lparams, hframe.safety, hframe.allowPrimitive, hframe.fuel⟩, htraces⟩
+
 end Lean4Lean.AddInductive
