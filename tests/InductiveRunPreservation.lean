@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.InductiveRunPreservation
+import Lean4Lean.Verify.RecursorInfoCounts
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -75,6 +76,64 @@ example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
     AddInductive.run.safeRegistration nparams types numNested ctx hsafety hwf env hresult
   exact ⟨stats, hregistration.constructorMetadata⟩
 
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (next : Array RecInfo → M α) (ctx : Context) (post : α → Prop)
+    (hnext : ∀ infos current, ctx.HeaderFrame current → RecursorInfoCounts types infos →
+      (next infos current).WF post) :
+    (mkRecInfos stats types elimLevel next ctx).WF post :=
+  mkRecInfos.frameCounts stats types elimLevel next ctx post hnext
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (ctx : Context) :
+    (mkRecInfos stats types elimLevel (fun infos => do
+      return (infos, ← readThe Context)) ctx).WF fun result =>
+        ctx.HeaderFrame result.2 ∧ RecursorInfoCounts types result.1 :=
+  mkRecInfos.getCounts stats types elimLevel ctx
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (ctx : Context)
+    (infos : Array RecInfo) (current : Context)
+    (hresult : mkRecInfos stats types elimLevel (fun infos => do
+      return (infos, ← readThe Context)) ctx = .ok (infos, current)) :
+    ctx.HeaderFrame current ∧ RecursorInfoCounts types infos :=
+  mkRecInfos.getCounts stats types elimLevel ctx _ hresult
+
+example (types : Array InductiveType) (infos : Array RecInfo) (hcounts : RecursorInfoCounts types infos) :
+    (infos.map (·.motive)).size = types.size :=
+  hcounts.motiveTotal
+
+example (types : Array InductiveType) (infos : Array RecInfo) (hcounts : RecursorInfoCounts types infos) :
+    (infos.flatMap (·.minors)).size = (types.toList.flatMap (·.ctors)).length :=
+  hcounts.minorTotal
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (lparams : List Name) (isK isUnsafe : Bool) (nparams : Nat) (ctx : Context)
+    (hwf : ctx.env.constants.WF) (hparams : stats.ParamsCount nparams types.size) :
+    (mkRecInfos stats types elimLevel (fun infos => do
+      let lctx ← getLCtx
+      declareRecursors stats types elimLevel infos lparams lctx isK isUnsafe) ctx).WF fun env =>
+        env.constants.WF ∧
+        (∀ name info, ctx.env.find? name = some info → env.find? name = some info) ∧
+        stats.DeclaredRecursorCounts nparams types env :=
+  mkRecInfos.registerCounts stats types elimLevel lparams isK isUnsafe nparams ctx hwf hparams
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (lparams : List Name) (isK isUnsafe : Bool) (nparams : Nat) (ctx : Context)
+    (hwf : ctx.env.constants.WF) (hparams : stats.ParamsCount nparams types.size)
+    (env : Kernel.Environment) (hresult : mkRecInfos stats types elimLevel (fun infos => do
+      let lctx ← getLCtx
+      declareRecursors stats types elimLevel infos lparams lctx isK isUnsafe) ctx = .ok env) :
+    stats.DeclaredRecursorCounts nparams types env :=
+  (mkRecInfos.registerCounts stats types elimLevel lparams isK isUnsafe nparams ctx hwf hparams
+    env hresult).2.2
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (ctx : Context)
+    (infos : Array RecInfo) (current : Context)
+    (hresult : mkRecInfos stats types elimLevel (fun infos => do
+      return (infos, ← readThe Context)) ctx = .ok (infos, current)) :
+    infos.size = types.size ∧ ∀ index, index < types.size →
+      infos[index]!.minors.size = types[index]!.ctors.length := by
+  have hcounts := (mkRecInfos.getCounts stats types elimLevel ctx _ hresult).2
+  exact ⟨hcounts.size, hcounts.minors⟩
+
 private def sortType : Expr := .sort (.succ .zero)
 
 private def closeParams (nparams : Nat) (body : Expr) : Expr :=
@@ -107,7 +166,9 @@ private def checkPreserved (initial current : Kernel.Environment) (name : Name) 
 
 private def checkLocals (types : Array InductiveType) (stats : InductiveStats)
     (infos : Array RecInfo) (initial current : Context) : MetaM Unit := do
-  unless infos.size == types.size && initial.lctx.decls.size ≤ current.lctx.decls.size &&
+  unless infos.size == types.size &&
+      (infos.flatMap (·.minors)).size == (types.toList.flatMap (·.ctors)).length &&
+      initial.lctx.decls.size ≤ current.lctx.decls.size &&
       initial.ngen.namePrefix == current.ngen.namePrefix do
     throwError "incorrect recursor local-context growth"
   if !types.isEmpty && current.ngen.idx ≤ initial.ngen.idx then
@@ -155,6 +216,12 @@ run_meta
   audit ``InductiveStats.SafeRunRegistration.headerMetadata logical
   audit ``InductiveStats.SafeRunRegistration.constructorMetadata logical
   audit ``InductiveStats.SafeRunRegistration.declaredParameters logical
+  audit ``RecursorInfoCounts.motiveTotal logical
+  audit ``RecursorInfoCounts.minorTotal logical
+  audit ``mkRecInfos.frameCounts logical
+  audit ``mkRecInfos.getCounts logical
+  audit ``mkRecInfos.registerCounts (logical ++ [``Lean.PersistentHashMap.findAux_isSome,
+    ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert])
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let natType := Expr.const ``Nat []
@@ -216,6 +283,15 @@ run_meta
     name := `FrameZero.negative
     type := .forallE `function (.forallE `value zero natType .default) zero .default }
   checkStage { ctx with safety := .unsafe } 0 #[header `FrameZero 0 [negative]]
+  checkStage ctx 1 #[header `FrameOne 1 [parameterOnly, mutualCtor],
+    header `FrameMiddle 1 [], header `FrameOther 1 [otherBase]]
+  checkStage ctx 1 #[header `FrameOther 1 [otherBase], header `FrameMiddle 1 [],
+    header `FrameOne 1 [parameterOnly, mutualCtor]]
+  let numbered : List Constructor := (List.range 33).map fun ordinal => {
+    name := (`FrameZero.numbered).appendIndexAfter ordinal, type := zero }
+  checkStage ctx 0 #[header `FrameZero 0 numbered]
+  checkStage { ctx with fuel := { ctx.fuel with inductiveFuel := 0 } } 0 #[]
+  checkStage { ctx with fuel := { ctx.fuel with inductiveFuel := 1 } } 0 #[header `FrameZero 0 []]
   let .ok (stats, initial, _, _) := infoStage 0 #[header `FrameZero 0 [base, recursive]] 0 ctx
     | throwError "missing failure-boundary preparation"
   let .error .deepRecursion := mkRecInfos stats #[header `FrameZero 0 [base, recursive]] .zero
@@ -225,6 +301,6 @@ run_meta
       (fun _ => (throw (.other "frame continuation sentinel") : M Unit)) initial
     | throwError "recursor information must propagate continuation failure"
   unless message == "frame continuation sentinel" do throwError "incorrect continuation error"
-  logInfo "31 successful recursor-information frames and two failure boundaries passed"
+  logInfo "36 successful recursor-information count/frame fixtures and two failure boundaries passed"
 
 end InductiveRunPreservationTest
