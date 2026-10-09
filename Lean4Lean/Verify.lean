@@ -26,6 +26,7 @@ import Lean4Lean.Verify.RecursorRuleRhsFVars
 import Lean4Lean.Verify.RecursorFieldScope
 import Lean4Lean.Verify.RecursorFieldDistinct
 import Lean4Lean.Verify.RecursorInfoScope
+import Lean4Lean.Verify.InductiveHeaderScope
 import Lean4Lean.Verify.InductiveParams
 import Lean4Lean.Verify.InductiveParamValidity
 import Lean4Lean.Verify.InductiveParamBinding
