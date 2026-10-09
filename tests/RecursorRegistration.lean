@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.RecursorMinorOffsets
+import Lean4Lean.Verify.RecursorRuleFields
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -205,6 +205,58 @@ example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Leve
     stats.RecursorMetadata types elimLevel infos lparams lctx isK isUnsafe ctx env :=
   hmetadata.metadata
 
+example (stats : InductiveStats) (type : Expr)
+    (next : Expr → Array Expr → Array Expr → M α) (ctx : Context) (post : α → Prop)
+    (hfvars : stats.ParamsAreFVars)
+    (hnext : ∀ result fields recursiveFields current, ctx.HeaderFrame current →
+      fields.size = declareConstructors.arity 0 type - stats.params.size →
+      (next result fields recursiveFields current).WF post) :
+    (mkRecInfos.loopCtorArgs stats type next ctx).WF post :=
+  mkRecInfos.loopCtorArgs.fields stats type next ctx post hfvars hnext
+
+example (types : Array InductiveType) (elimLevel : Level) (stats : InductiveStats)
+    (index : Nat) (motives minors : Array Expr) (state : Nat) (ctx : Context)
+    (hfvars : stats.ParamsAreFVars) :
+    (mkRecRules types elimLevel stats index motives minors state ctx).WF fun result =>
+      RecursorRuleFields stats types[index]!.ctors result.1 :=
+  mkRecRules.fieldCounts types elimLevel stats index motives minors state ctx hfvars
+
+example (types : Array InductiveType) (elimLevel : Level) (stats : InductiveStats)
+    (parent : Nat) (motives minors : Array Expr) (initial final : Nat) (ctx : Context)
+    (hfvars : stats.ParamsAreFVars) (rules : List RecursorRule)
+    (hresult : mkRecRules types elimLevel stats parent motives minors initial ctx = .ok (rules, final))
+    (index : Nat) (ctor : Constructor) (hctor : types[parent]!.ctors[index]? = some ctor) :
+    ∃ rule, rules[index]? = some rule ∧ rule.ctor = ctor.name ∧
+      rule.nfields = declareConstructors.arity 0 ctor.type - stats.params.size :=
+  (mkRecRules.fieldCounts types elimLevel stats parent motives minors initial ctx hfvars _ hresult).at
+    index ctor hctor
+
+example (stats : InductiveStats) (ctors : List Constructor) (rules : List RecursorRule)
+    (hfields : RecursorRuleFields stats ctors rules) (index : Nat) (ctor : Constructor)
+    (hctor : ctors[index]? = some ctor) :
+    ∃ rule, rules[index]? = some rule ∧ rule.ctor = ctor.name ∧
+      rule.nfields = declareConstructors.arity 0 ctor.type - stats.params.size :=
+  hfields.at index ctor hctor
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (infos : Array RecInfo) (lparams : List Name) (lctx : LocalContext)
+    (isK isUnsafe : Bool) (ctx : Context) (env : Kernel.Environment)
+    (hmetadata : stats.RecursorMetadata types elimLevel infos lparams lctx isK isUnsafe ctx env)
+    (hfvars : stats.ParamsAreFVars) :
+    ∀ index, index < types.size → ∃ info : RecursorVal,
+      env.find? (mkRecName types[index]!.name) = some (.recInfo info) ∧
+      RecursorRuleFields stats types[index]!.ctors info.rules :=
+  hmetadata.ruleFields hfvars
+
+private def fieldStage (params : Array Expr) (type : Expr) : M Nat :=
+  mkRecInfos.loopCtorArgs { (default : InductiveStats) with params } type fun _ fields _ =>
+    pure fields.size
+
+private def checkRawFields (ctx : Context) (params : Array Expr) (type : Expr)
+    (expected : Nat) : MetaM Unit := do
+  let .ok fields := fieldStage params type ctx | throwError "raw field-count fixture failed"
+  unless fields == expected do throwError "incorrect raw field count"
+
 private def statsFor (types : Array InductiveType) : InductiveStats := {
   levels := [], resultLevel := .succ .zero, params := #[], isNotZero := true,
   indConsts := types.map fun type => .const type.name [], nindices := types.map fun _ => 0 }
@@ -261,6 +313,12 @@ private def checkExact (ctx : Context) (stats : InductiveStats) (types : Array I
   unless minorIndex == recursorMinorOffset types index &&
       nextIndex == recursorMinorOffset types (index + 1) do
     throwError "incorrect replayed starting/ending minor prefix offsets"
+  for ruleIndex in [:types[index]!.ctors.length] do
+    let ctor := types[index]!.ctors[ruleIndex]!
+    let rule := actual.rules[ruleIndex]!
+    unless rule.ctor == ctor.name &&
+        rule.nfields == declareConstructors.arity 0 ctor.type - stats.params.size do
+      throwError "incorrect ordered raw rule field count"
   return nextIndex
 
 private def checkRecursor (ctx : Context) (types : Array InductiveType) (infos : Array RecInfo)
@@ -331,6 +389,18 @@ private def closeParams (nparams : Nat) (body : Expr) : Expr :=
 private def checkedHeader (name : Name) (nparams : Nat) (ctors : List Constructor) : InductiveType := {
   name, type := closeParams nparams (.sort (.succ .zero)), ctors }
 
+private def checkRuleConstructors (types : Array InductiveType) (env : Kernel.Environment) : MetaM Unit := do
+  for type in types do
+    let some (.recInfo recursor) := env.find? (mkRecName type.name)
+      | throwError "missing field-alignment recursor"
+    unless recursor.rules.length == type.ctors.length do throwError "incorrect field-alignment rule count"
+    for index in [:type.ctors.length] do
+      let ctor := type.ctors[index]!
+      let rule := recursor.rules[index]!
+      let some (.ctorInfo info) := env.find? ctor.name | throwError "missing field-alignment constructor"
+      unless rule.ctor == info.name && rule.nfields == info.numFields do
+        throwError "rule field count differs from the registered constructor"
+
 private def checkChecked (ctx : Context) (nparams : Nat) (types : Array InductiveType) : MetaM Unit := do
   let .ok (stats, elimLevel, infos, lctx, isK, isUnsafe, source, env) := checkedStage nparams types ctx
     | throwError "checked recursor fixture unexpectedly failed"
@@ -351,13 +421,16 @@ private def checkChecked (ctx : Context) (nparams : Nat) (types : Array Inductiv
   for name in [``Nat, ``Nat.rec, ``List, ``List.rec] do
     checkPreserved source.env env name
     checkPreserved source.env full name
+  checkRuleConstructors types env
+  checkRuleConstructors types full
 
-private def audit (theoremName : Name) (mapInterfaces := true) : MetaM Unit := do
+private def audit (theoremName : Name) (mapInterfaces := true) (instantiation := false) : MetaM Unit := do
   let axioms ← collectAxioms theoremName
   logInfo m!"{theoremName}: axioms = {repr axioms}"
   let allowed := [``propext, ``Classical.choice, ``Quot.sound] ++ if mapInterfaces then [
     ``Lean.PersistentHashMap.findAux_isSome, ``Lean.PersistentHashMap.WF.find?_eq,
     ``Lean.PersistentHashMap.WF.toList'_insert] else []
+  let allowed := allowed ++ if instantiation then [``Expr.instantiate1_eq] else []
   for axiomName in axioms do
     unless allowed.contains axiomName do throwError "unexpected axiom {axiomName} in {theoremName}"
 
@@ -376,8 +449,40 @@ run_meta
   audit ``InductiveStats.RecursorOffsetMetadata.metadata false
   audit ``InductiveStats.RecursorOffsetMetadata.sourceRules false
   audit ``declareRecursors.offsetMetadata
+  audit ``mkRecInfos.loopCtorArgs.fields false true
+  audit ``RecursorRuleFields.at false
+  audit ``mkRecRules.fieldCounts false true
+  audit ``InductiveStats.RecursorMetadata.ruleFields false true
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
+  let natType := Expr.const ``Nat []
+  let sortType := Expr.sort (.succ .zero)
+  let parameter := Expr.fvar ⟨`FieldParameter⟩
+  let otherParameter := Expr.fvar ⟨`OtherFieldParameter⟩
+  let oneField := Expr.forallE `value natType natType .default
+  let withParameter := Expr.forallE `parameter sortType oneField .default
+  checkRawFields ctx #[] natType 0
+  checkRawFields ctx #[] oneField 1
+  checkRawFields ctx #[parameter] withParameter 1
+  checkRawFields ctx #[parameter, otherParameter] withParameter 0
+  checkRawFields ctx #[parameter, otherParameter] oneField 0
+  let mixed := Expr.forallE `first natType (.forallE `second natType
+    (.forallE `third natType natType .strictImplicit) .instImplicit) .implicit
+  checkRawFields ctx #[] mixed 3
+  let manyFields := (List.range 33).foldr
+    (fun ordinal body => .forallE ((`field).appendIndexAfter ordinal) natType body .default) natType
+  checkRawFields ctx #[] manyFields 33
+  let .error .deepRecursion := fieldStage #[] natType
+      { ctx with fuel := { ctx.fuel with inductiveFuel := 0 } }
+    | throwError "field-count traversal must propagate zero-fuel rejection"
+  let expands := Expr.forallE `parameter sortType (.bvar 0) .default
+  let invalidParams := #[oneField]
+  let .ok expandedFields := fieldStage invalidParams expands ctx
+    | throwError "non-free-variable parameter control failed"
+  unless expandedFields == 1 &&
+      expandedFields != declareConstructors.arity 0 expands - invalidParams.size do
+    throwError "field-count theorem must retain its free-variable parameter premise"
+  logInfo "seven raw field-count fixtures, one fuel boundary, and a non-free-variable parameter control passed"
   let first := typeFor `RecursorPreservedFirst [`RecursorPreservedFirst.left, `RecursorPreservedFirst.right]
   let empty := typeFor `RecursorPreservedEmpty []
   let last := typeFor `RecursorPreservedLast [`RecursorPreservedLast.last]
@@ -467,6 +572,11 @@ run_meta
   checkChecked ctx 0 #[checkedHeader `CheckedMetaZero 0 [base, recursive, higher]]
   checkChecked ctx 1 #[checkedHeader `CheckedMetaOne 1 [parameterOnly, parameterField, parameterRecursive]]
   checkChecked ctx 2 #[checkedHeader `CheckedMetaTwo 2 [twoBase]]
+  let parameterFields := (List.range 33).foldr
+    (fun ordinal body => .forallE ((`field).appendIndexAfter ordinal) natType body
+      (if ordinal % 2 == 0 then .implicit else .default)) (.app one (.bvar 33))
+  checkChecked ctx 1 #[checkedHeader `CheckedMetaOne 1 [{
+    name := `CheckedMetaOne.manyFields, type := closeParams 1 parameterFields }]]
   checkChecked ctx 1 mutualTypes
   let indexed := Expr.const `CheckedMetaIndexed []
   checkChecked ctx 1 #[{
@@ -496,6 +606,6 @@ run_meta
   checkChecked { ctx with allowPrimitive := true } 1 mutualTypes
   checkChecked { ctx with fuel := { ctx.fuel with inductiveFuel := 3 } }
     1 #[checkedHeader `CheckedMetaOne 1 [parameterOnly, parameterRecursive]]
-  logInfo "13 checked and complete recursor fixtures passed exact records, rule receipts, index/parameter/motive/minor counts"
+  logInfo "14 checked and complete recursor fixtures passed exact records, rule receipts, prefix offsets, and registered constructor field counts"
 
 end RecursorRegistrationTest
