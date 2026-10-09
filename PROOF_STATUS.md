@@ -714,14 +714,45 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   parent-local RHS scope receipts together. Its RHS receipts discharge their
   source context validity/reservation from the generated scope frame, rather
   than requiring additional source-reader premises. Initial root context
-  validity/reservation and environment-map validity remain explicit; deriving
-  the root context premises through checked headers is still needed before a
+  validity/reservation and environment-map validity remain explicit.
+  `InductiveHeaderScope` now supplies the checked-header/root allocation bridge;
+  coupling that prefix to the complete runner's suffix remains needed before a
   complete runner theorem. The eight audits exclude `sorryAx` and expression or
   guarded-arity interfaces, using only existing logical/map/list-push interfaces.
   No axiom, admission, executable kernel change, cache, or fast path is added.
   These are structural source-reader and generated-field declaration guarantees,
   not semantic typing, recursive-value scope, generated index-binder alignment,
   WHNF transport, RHS reduction, or preprocessing soundness.
+- `Verify.InductiveHeaderScope` proves structural context validity, generator
+  reservation, and ordered declaration extension through `checkInductiveTypes`.
+  Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
+  binder traversal distinguishes first-header shared parameter allocation,
+  subsequent-header parameter reuse, and every datatype's fresh index allocation.
+  Normalization, source/type guards, mutual parameter/universe checks, and
+  arbitrary continuation failures retain their existing behavior. The complete
+  parent traversal supplies `Context.RecursorScopeFrame` to arbitrary callbacks.
+  `getScopeStats` couples the frame with header sizes, parameter counts, atom
+  shape, and parameter distinctness using the same successful statistics/reader
+  pair, not independent existential witnesses.
+  `Context.RecursorScopeFrame.withEnv` uniformly rebases both ends of a structural
+  frame without claiming semantic typing or WHNF transport. It permits
+  `constructorRootScope` to retain the actual header/positivity reader across
+  constructor registration, for either low-level safety flag.
+  `getScopedConstructorRegistration` couples that exact root with its existing
+  safe constructor-registration certificate and distinct installed-constructor
+  environment. It does not replace the original positivity root by the final
+  environment. Six structural audits use only logical/map/list-push interfaces;
+  the seventh additionally inherits the existing third map and six constructor
+  metadata/arity interfaces. All exclude `sorryAx`; no new axiom, admission,
+  executable kernel change, cache, or fast path is added.
+  Complete safe-run composition remains separate. Context consistency and
+  declared-field presence are not semantic typing of declaration domains or
+  recursive values, source reconstruction, generated index alignment, RHS
+  typing/reduction, normalization transport, or preprocessing soundness.
+  Empty batches with nonzero declared parameter counts remain proof-only
+  terminal-assertion boundaries, not runtime acceptance claims. An unreserved
+  helper context can overwrite an old native lookup; this is an explicit premise
+  boundary, not a frontend/kernel discrepancy.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -1922,6 +1953,24 @@ interface. The indexed-source and local-RHS/count/shape projections use only sta
 All audits exclude `sorryAx`.
 Empty batches with a nonzero declared parameter count remain proof-only
 boundaries: the known terminal assertion does not justify runtime acceptance.
+
+`tests/InductiveHeaderScope.lean` adds nine proof regressions and seven axiom
+audits for arbitrary checked-header continuations, coupled scope/statistics,
+root validity/reservation, declaration extension, old native lookups, environment
+rebasing, constructor-root continuations, and coupled safe registration.
+Thirty-six header fixtures cover safe/unsafe and default/seeded contexts, shared
+and dependent parameters, differently indexed mutual parents, normalized aliases,
+polymorphic sorts, thirty-three fresh indices, and the zero-fuel empty batch.
+Native iteration checks declaration indices, distinct identifiers, lookup/list
+agreement, reservation, immutable readers, and exact allocation counts; seeded
+contexts retain both an old declaration and a let. Six constructor prefixes
+retain actual positivity roots and separate header/constructor environments.
+Six failure fixtures retain exact fuel, parameter, universe, and continuation
+diagnostics. An unreserved helper demonstrates native overwrite outside the
+theorem's premises. All seven audits exclude `sorryAx`; only the coupled
+registration audit adds the existing constructor metadata/arity interfaces.
+Run `lake env lean tests/InductiveHeaderScope.lean`. These guarantees are
+structural, not semantic typing or full inductive soundness.
 
 `tests/RecursorFieldDistinct.lean` adds twelve proof regressions and eleven axiom
 audits for fresh-identity exclusion, distinct-vector growth, arbitrary traversal
