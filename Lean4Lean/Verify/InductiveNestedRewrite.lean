@@ -1824,6 +1824,17 @@ theorem run.newTypesRange (fuel numParams : Nat) (first : InductiveType)
   exact run.loop.newTypesRange numParams lctx params 0 fuel env state' hvalid.context hstate'
     hrange' hclosure
 
+theorem run.newTypesRange_run' (fuel numParams : Nat) (first : InductiveType)
+    (rest : List InductiveType) (env : Environment) (state : State)
+    (hfirst : first.type.looseBVarRange' ≤ numParams)
+    (hstate : state.NestedAuxScoped) (hrange : State.NewTypesRange numParams state)
+    (hindex : 0 < state.newTypes.size)
+    (hclosure : Lean4Lean.Environment.InductiveDeclRange env) :
+    (StateT.run' (run fuel numParams (first :: rest) env) state).WF fun result =>
+      Result.TypesRange numParams result :=
+  (run.newTypesRange fuel numParams first rest env state hfirst hstate hrange hindex hclosure).map
+    fun _ hresult => hresult.2
+
 theorem run.nestedAuxScoped (fuel numParams : Nat) (types : List InductiveType)
     (env : Environment) (state : State) (hstate : state.NestedAuxScoped) :
     (run fuel numParams types env state).WF fun result =>
