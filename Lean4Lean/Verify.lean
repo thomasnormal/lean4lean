@@ -71,8 +71,11 @@ import Lean4Lean.Verify.InductiveBinderStoredTypeAlignment
 import Lean4Lean.Verify.InductiveBinderFVarsIn
 import Lean4Lean.Verify.InductiveBinderIntegrity
 import Lean4Lean.Verify.InductiveHeaderClosureGuard
+import Lean4Lean.Verify.ExprBoundedRange
+import Lean4Lean.Verify.InductiveBoundedHeaderClosure
 import Lean4Lean.Verify.InductiveBinderClosed
 import Lean4Lean.Verify.InductiveBinderClosure
+import Lean4Lean.Verify.InductiveBinderBoundedClosure
 import Lean4Lean.Verify.InductiveAnnotationNativeScope
 import Lean4Lean.Verify.InductiveAnnotationOpeningShape
 import Lean4Lean.Verify.InductiveAnnotationModelOpening
