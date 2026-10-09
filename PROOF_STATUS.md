@@ -3335,6 +3335,49 @@ and safe wrapped consumers compile using only the numeric bound instead of
 explicit source-closure or range-equality premises. Run
 `lake env lean tests/InductiveBoundedClosure.lean`.
 
+`Verify.InductiveAnnotationModelRangeFits` preserves the constructor bound
+through the actual total annotation consumer and substitution at arbitrary
+binder offsets. Replacement closure and constructor fit are independent
+premises: lifting an open but bounded replacement can exceed the native
+constructor limit. The native `instantiate1` bridge retains its existing
+interface, without an unbounded range-equality premise.
+
+`Verify.InductiveBinderRangeFits` transports that bound through supported
+metadata/let/beta normalization and actual FVar opening. Checked source guards
+discharge the closure needed for supported substitution; general normalized
+closure and fit remain explicit. Raw domains, peeled index domains and actual
+stored index declaration types retain constructor fit. Native lookup uniqueness
+ties those stored types to the same actual declarations. The opened terminal's
+sort shape independently establishes its constructor fit.
+
+`Verify.InductiveBinderMetadata` retains the exact eight histories and all
+forty-nine existing closure/integrity facts, appending nine constructor-fit and
+nine native-closure facts: sixty-seven facts on the same witnesses. Native
+closure materializes cached loose-variable range zero and expression-meta flag
+false for normalized types, raw/peeled/stored domains and both terminals. It
+does not assert universe-meta absence from `Closed`; the separate existing
+`FVarsIn` domain/type receipts retain that integrity boundary. Actual stored
+type facts remain index-role only, not literal equality for reused parameters.
+Projection and promotion reuse the old closure/integrity receipts. Source,
+CPS/getter/registration and safe contracts retain these same histories, with
+wrapped contracts requiring only the explicit source constructor bound. No
+general WHNF closure, semantic typing or full inductive soundness is inferred;
+no runtime allocation, cache or checker path changes.
+
+`tests/InductiveBinderMetadata.lean` adds thirty-four proof regressions,
+ninety-nine strict audits and six axiom-print checks. Whole-module census covers
+sixty-five declarations / fifty-two theorems, including private/generated
+helpers, and pins the inherited native bit-proof provenance. Pure overflow and
+annotation controls retain closed-replacement and constructor-bound premises;
+metadata alone is not a semantic typing or universe-integrity theorem. The
+same-witness projection exposes all nine fit and nine native-closure facts.
+Twenty-seven registrations cover forty-five parent pairs, 141 paired domains
+and ninety paired index declarations across three readers. Runtime checks
+compare native and structural ranges on raw/peeled/actual stored types, with
+declaration assertions restricted to index roles. All new modules replay
+through lean4lean; audits reject `sorryAx`, module-owned axioms and the unbounded
+range interface. Run `lake env lean tests/InductiveBinderMetadata.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
