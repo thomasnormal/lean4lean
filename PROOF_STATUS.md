@@ -1314,7 +1314,7 @@ Focused executable replays check 168 declarations in `Verify.Axioms`,
 41 in `Verify.InductiveParamBinding`, and 17 in `Verify.InductiveParamScope`,
 assuming imported dependencies and the explicitly audited interfaces are correct.
 
-`tests/ConstructorParams.lean` contains eight proof regressions and fourteen axiom
+`tests/ConstructorParams.lean` contains nine proof regressions and fifteen axiom
 audits, all excluding `sorryAx`. The core constructor-loop arity proof uses
 standard logical axioms and the existing `Lean.Expr.eqv_eq` and
 `Lean.Expr.instantiate1_eq` interface axioms. The guarded bridge additionally
@@ -1323,6 +1323,9 @@ uses the existing expression free/metavariable-flag interfaces and
 or cache is introduced. The constructor-loop spine proof additionally exposes
 the successful traversal's terminal return expression and its syntactic
 `isValidIndAppIdx` witness; it uses only the same expression interfaces.
+`checkConstructors.spine` lifts that witness through the complete nested
+datatype/constructor batch and retains the concrete datatype index so duplicate
+array entries do not introduce an unjustified `idxOf` uniqueness premise.
 Eleven return-application fixtures check missing,
 misordered, repeated, and bound-variable parameters, including index arguments.
 Twenty-four inner-loop outcomes exercise zero/one/two parameters, dependent
