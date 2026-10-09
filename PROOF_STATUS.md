@@ -886,12 +886,38 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   preservation certificate is recovered by projection. All seventeen added
   audits exclude `sorryAx`; only existing logical/map/list-push and constructor
   metadata/arity interfaces are inherited. No executable kernel change or new
-  axiom/admission/cache/fast path. Complete installation remains conditional on
-  staged coverage: original-name retention through actual preprocessing and
-  exact auxiliary-rec name-list coverage are not proved here. Semantic source
+  axiom/admission/cache/fast path. This module's low-level installation receipts
+  remain conditional on staged coverage; the following module derives it from
+  actual preprocessing and checked rewritten metadata. Semantic source
   or restored typing/reduction, nested transformation/restoration correctness,
   generated binder/index alignment, WHNF transport, auxiliary expression typing,
   and inductive soundness remain separate obligations.
+- `Verify.InductiveRestorationNames` discharges that coverage obligation without
+  a caller-supplied source/name premise. `InductiveNamePrefix` records size
+  monotonicity and every original datatype name at its original position, not
+  just membership. Compositional proofs cover parameter extraction, nested
+  replacement, all expression-traversal branches, auxiliary pushes, and
+  constructor rewriting in the growing preprocessing loop. Successful
+  `inductivePreprocessing` preserves this prefix. `mkAuxRecNameMap.names` proves
+  the exact ordered recursor-name enumeration of the staged header's datatype
+  suffix, retaining the empty logical default when its length assertion fails.
+  `SafeRunScope.restorationNameCoverage` joins the positional prefix with exact
+  checked header metadata to establish every original/auxiliary name lookup.
+  `SafeInductiveRestorationMetadata.completeStages` retains the same successful
+  preprocessing/runner equations, checked root/constructor/source certificate,
+  direct/nested branch trace, positional prefix, derived name and typed source
+  coverage, and complete final nested installed-record receipt.
+  `installedComplete`, `Environment.addInductive.safeInstalledMetadata`, and
+  actual `addDecl.safeInductiveInstalledMetadata` project complete nested
+  installation with only initial map validity, no user coverage assumption.
+  All eighteen added audits exclude `sorryAx`; prefix/enumeration/coverage and
+  metadata projections use only standard logical axioms, while the public
+  constructors inherit the existing map/list-push/checker interfaces. Logical
+  panic defaults remain explicit, not asserted unreachable. Executable kernel
+  code is unchanged. Exact original constructor-name/order retention, semantic
+  source/restored typing or reduction, nested transformation/restoration
+  correctness, generated binder/index alignment, WHNF transport, auxiliary
+  expression typing, and inductive soundness remain separate obligations.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -2136,10 +2162,10 @@ auxiliaries and is explicitly outside the no-auxiliary certificate. All eight
 audits exclude `sorryAx`; no semantic preprocessing/restoration or inductive
 soundness claim is made. Run `lake env lean tests/InductiveFrontendScope.lean`.
 
-`tests/InductiveFrontendRestoration.lean` contains thirty-five proof regressions
-and thirty-one axiom audits for fresh trace composition, preservation/final lookup
+`tests/InductiveFrontendRestoration.lean` contains fifty-four proof regressions
+and forty-nine axiom audits for fresh trace composition, preservation/final lookup
 classification, individual/batch restoration receipts, both public frontend
-branches, and actual declaration dispatch. Fifteen native-accepted safe fixtures
+branches, and actual declaration dispatch. Eighteen native-accepted safe fixtures
 cover direct and nested inputs with zero/one/two parameters, repeated nested
 fields/auxiliary reuse, a mutual batch with an empty original datatype, closed
 recursive index arguments, and polymorphic universes. Both declaration check
@@ -2149,7 +2175,7 @@ metadata, every restored rule name/RHS, auxiliary header/constructor non-leakage
 and old `Nat`/`List`/`Bool` lookups. Helper controls reject colliding installed
 headers, constructors, and main/auxiliary recursors; frontend controls retain
 source/preprocessing failures, and a final auxiliary check rejects zero
-recursion-depth fuel after restoration registration. All thirty-one audits
+recursion-depth fuel after restoration registration. All forty-nine audits
 exclude `sorryAx`; no semantic restoration or inductive soundness is claimed.
 The metadata extension adds twenty-two proof regressions and seventeen audits
 for receipt composition, complete individual/batch installation, final exact
@@ -2159,8 +2185,18 @@ and both public dispatches. Five proof-only controls expose omitted recipe
 entries and missing header/constructor/main/auxiliary sources; no panic branch
 is executed to manufacture an installation guarantee. Existing nested fixtures
 also verify pure rewritten-name/auxiliary-rec coverage, the complete expected
-record count, distinct output names, and every final recipe lookup. Complete
-installation is conditional on coverage, not a preprocessing correctness proof.
+record count, distinct output names, and every final recipe lookup. The name
+extension adds nineteen proof regressions and eighteen audits for positional
+prefix composition, preprocessing retention, exact auxiliary-name enumeration,
+derived staged coverage, coupled complete stages, and both public installation
+projections without a coverage premise. Five added proof-only controls reject
+shortened/reordered prefixes and retain empty/missing-header/short-suffix name-map
+defaults; no panic is executed as a test fixture. All successful inputs check
+the exact original-name prefix; nested fixtures check exact auxiliary-rec suffix
+enumeration. Three new native-accepted fixtures cover direct and nested
+three-original batches, distinct nested auxiliary groups, and deeply nested
+`List (List I)` occurrences. Complete nested installation no longer needs caller
+coverage, but does not establish semantic preprocessing/restoration correctness.
 Run `lake env lean tests/InductiveFrontendRestoration.lean`.
 
 `tests/InductiveHeaderScope.lean` adds nine proof regressions and seven axiom
