@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveRestorationMetadata
+import Lean4Lean.Verify.InductiveRestorationNames
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -256,6 +256,121 @@ example (staged : Kernel.Environment) (types : List InductiveType) (name : Name)
   rw [hmissing] at hlookup
   cases hlookup
 
+example (types : Array InductiveType) : InductiveNamePrefix types types := .refl types
+
+example {first second third : Array InductiveType} (hfirst : InductiveNamePrefix first second)
+    (hsecond : InductiveNamePrefix second third) : InductiveNamePrefix first third := hfirst.trans hsecond
+
+example (types : Array InductiveType) (type : InductiveType) : InductiveNamePrefix types (types.push type) :=
+  .push types type
+
+example {original rewritten : Array InductiveType} (hprefix : InductiveNamePrefix original rewritten)
+    (index : Nat) (hindex : index < original.size) (type : InductiveType)
+    (hname : type.name = original[index]!.name) : InductiveNamePrefix original (rewritten.set! index type) :=
+  hprefix.set index hindex type hname
+
+example (lctx : LocalContext) (params sourceParams : Array Expr) (type : Expr)
+    (env : Kernel.Environment) (state : ElimNestedInductive.State) :
+    (ElimNestedInductive.replaceIfNested lctx params sourceParams type env state).WF fun result =>
+      InductiveNamePrefix state.newTypes result.2.newTypes :=
+  ElimNestedInductive.replaceIfNested.names lctx params sourceParams type env state
+
+example (lctx : LocalContext) (params sourceParams : Array Expr) (type : Expr)
+    (env : Kernel.Environment) (state : ElimNestedInductive.State) :
+    (ElimNestedInductive.replaceAllNested lctx params sourceParams type env state).WF fun result =>
+      InductiveNamePrefix state.newTypes result.2.newTypes :=
+  ElimNestedInductive.replaceAllNested.names lctx params sourceParams type env state
+
+example (fuel nparams : Nat) (types : List InductiveType)
+    (env : Kernel.Environment) (state : ElimNestedInductive.State) :
+    (StateT.run' (ElimNestedInductive.run fuel nparams types env) state).WF fun result =>
+      InductiveNamePrefix state.newTypes result.types.toArray :=
+  ElimNestedInductive.run.names_run' fuel nparams types env state
+
+example (env : Kernel.Environment) (lparams : List Name) (nparams : Nat) (types : List InductiveType)
+    (fuel : FuelConfig) (preprocessing : ElimNestedInductive.Result)
+    (hpre : inductivePreprocessing env lparams nparams types fuel = .ok preprocessing) :
+    InductiveNamePrefix types.toArray preprocessing.types.toArray :=
+  inductivePreprocessing.names env lparams nparams types fuel preprocessing hpre
+
+example (env : Kernel.Environment) (type : InductiveType) (types : List InductiveType) (info : InductiveVal)
+    (hlookup : env.find? type.name = some (.inductInfo info)) :
+    (mkAuxRecNameMap env (type :: types)).1 =
+      if (type :: types).length < info.all.length then
+        (info.all.drop (type :: types).length).map mkRecName else [] :=
+  mkAuxRecNameMap.names env type types info hlookup
+
+example (env : Kernel.Environment) (type : InductiveType) (types : List InductiveType) (info : InductiveVal)
+    (hlookup : env.find? type.name = some (.inductInfo info))
+    (hlength : info.all.length ≤ (type :: types).length) : (mkAuxRecNameMap env (type :: types)).1 = [] := by
+  rw [mkAuxRecNameMap.names env type types info hlookup, if_neg (Nat.not_lt.mpr hlength)]
+
+example (env : Kernel.Environment) : (mkAuxRecNameMap env []).1 = [] := rfl
+
+example (env : Kernel.Environment) (type : InductiveType) (types : List InductiveType)
+    (hmissing : env.find? type.name = none) : (mkAuxRecNameMap env (type :: types)).1 = [] := by
+  simp only [mkAuxRecNameMap, hmissing]
+  rfl
+
+example {original rewritten : Array InductiveType} (hsize : rewritten.size < original.size) :
+    ¬ InductiveNamePrefix original rewritten := fun hprefix => Nat.not_le.mpr hsize hprefix.size
+
+example {original rewritten : Array InductiveType} (index : Nat) (hindex : index < original.size)
+    (hname : rewritten[index]!.name ≠ original[index]!.name) : ¬ InductiveNamePrefix original rewritten :=
+  fun hprefix => hname (hprefix.names index hindex)
+
+example {stats : InductiveStats} {nparams numNested : Nat} {rewritten : Array InductiveType}
+    {original root : AddInductive.Context} {constructors staged : Kernel.Environment} {types : List InductiveType}
+    (scope : stats.SafeRunScope nparams rewritten numNested original root constructors staged)
+    (hprefix : InductiveNamePrefix types.toArray rewritten) : RestorationNameCoverage rewritten staged types :=
+  scope.restorationNameCoverage hprefix
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      InductiveNamePrefix types.toArray preprocessing.types.toArray ∧
+      RestorationNameCoverage preprocessing.types.toArray staged types ∧
+      RestorationSources staged types := by
+  obtain ⟨preprocessing, staged, _, _, _, hpre, hrun, _, hprefix, hcoverage, hsources, _, _⟩ := metadata.completeStages
+  exact ⟨preprocessing, staged, hpre, hrun, hprefix, hcoverage, hsources⟩
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      (preprocessing.aux2nested.size ≠ 0 →
+        RestoredRegistrationReceipt env (restoredEnvironmentRecords preprocessing staged types) result) :=
+  metadata.installedComplete
+
+example (env : Kernel.Environment) (lparams : List Name) (nparams : Nat) (types : List InductiveType)
+    (allowPrimitive : Bool) (fuel : FuelConfig) (hmap : env.constants.WF) :
+    (Lean4Lean.Environment.addInductive env lparams nparams types false allowPrimitive fuel).WF fun result =>
+      ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment),
+        inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+        AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+          (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+        (preprocessing.aux2nested.size ≠ 0 →
+          RestoredRegistrationReceipt env (restoredEnvironmentRecords preprocessing staged types) result) :=
+  Lean4Lean.Environment.addInductive.safeInstalledMetadata env lparams nparams types allowPrimitive fuel hmap
+
+example (env : Kernel.Environment) (lparams : List Name) (nparams : Nat) (types : List InductiveType)
+    (check : Bool) (fuel : FuelConfig) (hmap : env.constants.WF) :
+    (Lean4Lean.addDecl env (.inductDecl lparams nparams types false) check fuel).WF fun result =>
+      ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment),
+        inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+        AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+          (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+        (preprocessing.aux2nested.size ≠ 0 →
+          RestoredRegistrationReceipt env (restoredEnvironmentRecords preprocessing staged types) result) :=
+  Lean4Lean.addDecl.safeInductiveInstalledMetadata env lparams nparams types check fuel hmap
+
 private def sortType : Expr := .sort (.succ .zero)
 
 private def closeParams (count : Nat) (body : Expr) : Expr :=
@@ -312,6 +427,8 @@ private def checkOld (original result : Kernel.Environment) : MetaM Unit := do
 private def checkRestoredRecords (original staged result : Kernel.Environment)
     (preprocessing : ElimNestedInductive.Result) (types : List InductiveType) : MetaM Unit := do
   let (recNames, recNameMap) := mkAuxRecNameMap staged types
+  unless recNames == (preprocessing.types.drop types.length).map (mkRecName ∘ (·.name)) do
+    throwError "auxiliary recursor names do not enumerate the exact rewritten suffix"
   let allIndNames := types.map (·.name)
   let mut constructorCount := 0
   for indType in types do
@@ -348,6 +465,8 @@ private def checkFrontend (env : Kernel.Environment) (nparams : Nat) (types : Li
   let preprocessing ← match inductivePreprocessing env lparams nparams types {} with
     | .ok result => pure result
     | .error exception => throwError "restoration preprocessing failed for {types.map (·.name)}: {exception.toMessageData {}}"
+  unless (preprocessing.types.take types.length).map (·.name) == types.map (·.name) do
+    throwError "preprocessing did not retain the original names at their original positions"
   unless (preprocessing.aux2nested.size > 0) == nested do throwError "fixture has wrong restoration branch"
   let .ok allowPrimitive := Lean4Lean.Environment.checkPrimitiveInductive env lparams nparams types false
     | throwError "restoration primitive dispatch failed"
@@ -401,7 +520,17 @@ private def fixtures (env : Kernel.Environment) : MetaM Unit := do
         (.forallE `field (.app (.const ``List [.param `u]) (.app (.const `RestoredPoly [.param `u]) (.bvar 0)))
           (.app (.const `RestoredPoly [.param `u]) (.bvar 1)) .default) .default }] }
   checkFrontend env 1 [poly] true [`u]
-  logInfo "15 frontend fixtures passed direct/nested branches, both check flags, exact restored headers/constructors/recursors/rules, auxiliary non-leakage and old lookups"
+  checkFrontend env 0 [nestedType `RestoredLeft 0 2, nestedType `RestoredRight 0 1,
+    { name := `RestoredThird, type := sortType, ctors := [] }] true
+  checkFrontend env 0 [nestedType `RestoredDirectLeft 0 1 false, nestedType `RestoredDirectRight 0 2 false,
+    { name := `RestoredDirectThird, type := sortType, ctors := [] }] false
+  let deep : InductiveType := {
+    name := `RestoredDeep, type := sortType, ctors := [{
+      name := `RestoredDeep.mk
+      type := .forallE `field (.app (.const ``List [.zero])
+        (.app (.const ``List [.zero]) (.const `RestoredDeep []))) (.const `RestoredDeep []) .default }] }
+  checkFrontend env 0 [deep] true
+  logInfo "18 frontend fixtures passed positional original-name retention, exact auxiliary-rec suffix enumeration, direct/nested branches, both flags and complete restored records"
 
 private def failures (env : Kernel.Environment) : MetaM Unit := do
   let types := [nestedType `RestoredNested 0 1]
@@ -446,6 +575,24 @@ private def audit (theoremName : Name) (maps := false) (full := false) : MetaM U
     unless allowed.contains axiomName do throwError "unexpected axiom {axiomName} in {theoremName}"
 
 run_meta
+  audit ``InductiveNamePrefix.refl
+  audit ``InductiveNamePrefix.trans
+  audit ``InductiveNamePrefix.push
+  audit ``InductiveNamePrefix.set
+  audit ``ElimNestedInductive.withParams.names
+  audit ``ElimNestedInductive.replaceParams.names
+  audit ``ElimNestedInductive.replaceIfNested.names
+  audit ``ElimNestedInductive.replaceAllNested.names
+  audit ``ElimNestedInductive.run.loop.names
+  audit ``ElimNestedInductive.run.names
+  audit ``ElimNestedInductive.run.names_run'
+  audit ``inductivePreprocessing.names
+  audit ``mkAuxRecNameMap.names
+  audit ``InductiveStats.SafeRunScope.restorationNameCoverage
+  audit ``SafeInductiveRestorationMetadata.completeStages
+  audit ``SafeInductiveRestorationMetadata.installedComplete
+  audit ``Lean4Lean.Environment.addInductive.safeInstalledMetadata true true
+  audit ``Lean4Lean.addDecl.safeInductiveInstalledMetadata true true
   audit ``RestoredRecordsInstalled.mono
   audit ``RestoredRegistrationReceipt.empty
   audit ``RestoredRegistrationReceipt.trans
