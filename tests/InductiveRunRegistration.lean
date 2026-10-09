@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveRegistration
+import Lean4Lean.Verify.InductiveRunMetadata
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -54,6 +54,89 @@ example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
   obtain ⟨stats, root, hsafe, htraces⟩ :=
     AddInductive.run.safeConstructorTraces nparams types numNested ctx hsafety hwf _ hresult
   exact ⟨stats, root, hsafe, htraces.spine⟩
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF) :
+    (AddInductive.run nparams types numNested ctx).WF fun env =>
+      ∃ (stats : InductiveStats) (root : Context) (constructors : Kernel.Environment),
+        stats.SafeRunMetadata nparams types.toArray numNested ctx root constructors env :=
+  AddInductive.run.safeMetadata nparams types numNested ctx hsafety hwf
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env) :
+    ∃ (stats : InductiveStats) (root : Context) (constructors : Kernel.Environment),
+      stats.SafeRunMetadata nparams types.toArray numNested ctx root constructors env :=
+  AddInductive.run.safeMetadata nparams types numNested ctx hsafety hwf env hresult
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF) :
+    (AddInductive.run nparams types numNested ctx).WF fun env =>
+      env.constants.WF ∧
+      (∀ name info, ctx.env.find? name = some info → env.find? name = some info) ∧
+      ∃ stats : InductiveStats,
+        stats.HeaderMetadata nparams types.toArray numNested false ctx.lparams env ∧
+        stats.ConstructorMetadata ctx.lparams types.toArray false env ∧
+        DeclaredParameterMetadata nparams types.toArray env ∧
+        stats.DeclaredRecursorCounts nparams types.toArray env :=
+  AddInductive.run.safeDeclaredMetadata nparams types numNested ctx hsafety hwf
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env) :
+    env.constants.WF ∧ ∃ stats : InductiveStats,
+      stats.HeaderMetadata nparams types.toArray numNested false ctx.lparams env ∧
+      stats.ConstructorMetadata ctx.lparams types.toArray false env ∧
+      DeclaredParameterMetadata nparams types.toArray env ∧
+      stats.DeclaredRecursorCounts nparams types.toArray env := by
+  obtain ⟨hwf, _, stats, hheaders, hctors, hparams, hrecursors⟩ :=
+    AddInductive.run.safeDeclaredMetadata nparams types numNested ctx hsafety hwf env hresult
+  exact ⟨hwf, stats, hheaders, hctors, hparams, hrecursors⟩
+
+example (stats : InductiveStats) (nparams numNested : Nat) (types : Array InductiveType)
+    (original root : Context) (constructors env : Kernel.Environment)
+    (hmetadata : stats.SafeRunMetadata nparams types numNested original root constructors env) :
+    stats.DeclaredRecursorCounts nparams types env :=
+  hmetadata.declaredRecursors
+
+example (stats : InductiveStats) (nparams numNested : Nat) (types : Array InductiveType)
+    (original root : Context) (constructors env : Kernel.Environment)
+    (hmetadata : stats.SafeRunMetadata nparams types numNested original root constructors env) :
+    ∃ (elimLevel : Level) (infos : Array RecInfo) (source : Context),
+      ({ root with env := constructors } : Context).HeaderFrame source ∧
+      RecursorInfoCounts types infos ∧
+      ∀ index, index < types.size → ∃ (info : RecursorVal) (minorIndex nextIndex : Nat),
+        env.find? (mkRecName types[index]!.name) = some (.recInfo info) ∧
+        mkRecRules types elimLevel stats index (infos.map (·.motive)) (infos.flatMap (·.minors))
+          minorIndex source = .ok (info.rules, nextIndex) :=
+  hmetadata.sourceRules
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env) :
+    ∃ (stats : InductiveStats) (root : Context), root.safety = .safe ∧
+      stats.SafeConstructorTraces types.toArray PositivityWHNF root ∧
+      ∀ name info, root.env.find? name = some info → env.find? name = some info := by
+  obtain ⟨stats, root, constructors, hmetadata⟩ :=
+    AddInductive.run.safeMetadata nparams types numNested ctx hsafety hwf env hresult
+  obtain ⟨_, _, _, _, hframe, htraces⟩ := hmetadata.registration.traces
+  exact ⟨stats, root, hframe.safety.trans hsafety, htraces, fun name info hold =>
+    hmetadata.fromConstructors name info (hmetadata.registration.fromHeaders name info hold)⟩
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env) :
+    ∃ (stats : InductiveStats) (root : Context) (constructors : Kernel.Environment)
+      (elimLevel : Level) (infos : Array RecInfo) (source : Context) (isK : Bool),
+      stats.SafeRunRegistration nparams types.toArray numNested ctx root constructors env ∧
+      ({ root with env := constructors } : Context).HeaderFrame source ∧
+      RecursorInfoCounts types.toArray infos ∧
+      stats.RecursorMetadata types.toArray elimLevel infos ctx.lparams source.lctx isK false source env := by
+  obtain ⟨stats, root, constructors, hmetadata⟩ :=
+    AddInductive.run.safeMetadata nparams types numNested ctx hsafety hwf env hresult
+  obtain ⟨elimLevel, infos, source, isK, hframe, hcounts, hrecursors⟩ := hmetadata.recursors
+  exact ⟨stats, root, constructors, elimLevel, infos, source, isK,
+    hmetadata.toSafeRunRegistration, hframe, hcounts, hrecursors⟩
 
 private def sortType : Expr := .sort (.succ .zero)
 
@@ -119,19 +202,24 @@ private def constructorPrefix (nparams : Nat) (types : List InductiveType) : M K
       checkConstructors types.toArray stats false
       declareConstructors stats types.toArray false
 
-private def audit (theoremName : Name) : MetaM Unit := do
+private def audit (theoremName : Name) (interfaces := true) : MetaM Unit := do
   let axioms ← collectAxioms theoremName
   logInfo m!"{theoremName}: axioms = {repr axioms}"
-  let allowed := [``propext, ``Classical.choice, ``Quot.sound,
+  let logical := [``propext, ``Classical.choice, ``Quot.sound]
+  let allowed := logical ++ if interfaces then [
     ``Lean.PersistentHashMap.findAux_isSome, ``Lean.PersistentHashMap.WF.find?_eq,
     ``Lean.PersistentHashMap.WF.toList'_insert, ``Expr.eqv_eq, ``Expr.instantiate1_eq,
-    ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
+    ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq] else []
   for axiomName in axioms do
     unless allowed.contains axiomName do throwError "unexpected axiom {axiomName} in {theoremName}"
 
 run_meta
   audit ``AddInductive.run.safeConstructorRegistration
   audit ``AddInductive.run.safeConstructorTraces
+  audit ``AddInductive.run.safeMetadata
+  audit ``AddInductive.run.safeDeclaredMetadata
+  audit ``InductiveStats.SafeRunMetadata.declaredRecursors false
+  audit ``InductiveStats.SafeRunMetadata.sourceRules false
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let natType := Expr.const ``Nat []
@@ -175,6 +263,18 @@ run_meta
   checkRun ctx 2 [header `RunWitnessTwo 2 [twoCtor]] true
   checkRun ctx 1 [header `RunWitnessOne 1 [parameterOnly, mutualCtor],
     header `RunWitnessOther 1 [otherCtor]] true
+  checkRun ctx 0 [] true 7
+  checkRun ctx 1 [header `RunWitnessOne 1 [parameterOnly, mutualCtor],
+    header `RunWitnessMiddle 1 [], header `RunWitnessOther 1 [otherCtor]] true
+  checkRun ctx 1 [header `RunWitnessOther 1 [otherCtor], header `RunWitnessMiddle 1 [],
+    header `RunWitnessOne 1 [parameterOnly, mutualCtor]] true
+  let numbered : List Constructor := (List.range 33).map fun ordinal => {
+    name := (`RunWitnessZero.numbered).appendIndexAfter ordinal, type := zero }
+  checkRun ctx 0 [header `RunWitnessZero 0 numbered] true
+  checkRun { ctx with fuel := { ctx.fuel with inductiveFuel := 0 } } 0 [] true
+  checkRun { ctx with fuel := { ctx.fuel with inductiveFuel := 1 } }
+    0 [header `RunWitnessZero 0 []] true
+  checkRun ctx 0 [header `RunWitnessZero 0 [base, recursive]] true 3
   let indexed := Expr.const `RunWitnessIndexed []
   let indexedType : InductiveType := {
     name := `RunWitnessIndexed
@@ -228,6 +328,6 @@ run_meta
   unless name == mkRecName collisionType.name do throwError "incorrect late collision name"
   unless (constructorPrefix 0 [] { ctx with lparams := [`u, `u] }).isOk do
     throwError "constructor prefix must not include the earlier universe-name guard"
-  logInfo "25 full-run outcomes, early/late boundaries, and unsafe control passed"
+  logInfo "32 full-run outcomes, early/late boundaries, and unsafe control passed"
 
 end InductiveRunRegistrationTest

@@ -377,8 +377,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   existing three map interfaces; the two metadata projections use only standard
   logical axioms. All exclude `sorryAx` and expression/guarded-arity interfaces.
   Executable kernel code and the original `inferImplicit 1000 false` behavior
-  are unchanged. Lifting these stronger receipts to the full runner remains
-  separate from its already-proved preservation contract.
+  are unchanged. The `InductiveRunMetadata` module below now lifts these stronger
+  receipts through the complete safe runner.
 - `Verify.RecursorInfoFrame` proves `mkRecInfos.frame` for arbitrary generation
   continuations. The actual motive, major-premise, index, constructor-field,
   recursive-hypothesis, and minor-premise loops preserve `Context.HeaderFrame`:
@@ -404,8 +404,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   audits use only standard logical axioms; the registration audit additionally
   uses the existing three map interfaces. All exclude `sorryAx` and expression
   or guarded-arity interfaces. Executable kernel code is unchanged; semantic
-  recursor typing, index-binder alignment, reduction soundness, WHNF transport,
-  and lifting the stronger receipts through complete safe runs remain separate.
+  recursor typing, index-binder alignment, reduction soundness, and WHNF transport
+  remain separate. The complete safe-run metadata module below now retains the
+  generated count certificates alongside exact installed recursor records.
 - `Verify.InductiveRunPreservation` connects successful safe complete runs to
   their actual final environment. `InductiveStats.SafeRunRegistration` retains
   the original rooted constructor-registration certificate and its intermediate
@@ -425,6 +426,29 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   code is unchanged. Generated recursor typing, reduction equations, semantic
   `TrEnv` extension, earlier declaration preprocessing, and unrestricted
   inductive frontend soundness remain unproved.
+- `Verify.InductiveRunMetadata` proves `run.safeMetadata`, strengthening the
+  complete safe-run certificate with exact installed recursor records and
+  generated count alignment. `InductiveStats.SafeRunMetadata` extends the
+  existing rooted registration certificate and retains existential elimination
+  level, generated information array, K flag, and actual rule-generation reader
+  context. Its immutable frame anchors that context to the intermediate
+  constructor environment, not the final recursor environment; local contexts
+  and fresh-name generators may grow. Exact record types use that reader's actual
+  local context, the original universe parameters, and the safe record flag
+  derived through the preserved safety fields. `declaredRecursors` discharges
+  parameter/motive/minor count alignment from the checked prefix and generated
+  count certificate. `sourceRules` projects successful stored-rule receipts in
+  their original source context. `run.safeDeclaredMetadata` exposes final map
+  validity, old-entry preservation, exact header/constructor metadata, declared
+  parameter metadata, and declared recursor counters together. Both runner
+  theorems need only explicit safe input and initial concrete-map validity; their
+  audits use exactly the existing three map and six guarded-arity interfaces.
+  Both certificate projections use only standard logical axioms. All audits
+  exclude `sorryAx`; no new axioms or executable kernel changes are introduced.
+  Positivity traces retain the original header root. Semantic recursor typing,
+  index-binder alignment, rule constructor/order correspondence, reduction
+  soundness, WHNF transport, earlier preprocessing, and general inductive
+  frontend soundness remain separate obligations.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -1590,20 +1614,32 @@ boundary keeps the header root distinct from the constructor environment and
 retains later index locals absent from `stats.lctx`. The fixtures stop before
 elimination/recursor generation and do not claim full declaration acceptance.
 
-`tests/InductiveRunRegistration.lean` adds six proof regressions and two axiom
+`tests/InductiveRunRegistration.lean` adds fourteen proof regressions and six axiom
 audits for the complete runner's intermediate registration witness, successful
 result extraction, safe-root positivity traces, intermediate metadata/map
-validity, and indexed spine projection. Twenty-five full-run outcomes cover
+validity, indexed spine projection, final exact recursor metadata, generated
+counter alignment, rule-source context preservation, and the combined declared
+metadata contract. Thirty-two full-run outcomes cover
 empty input, recursive and higher-order fields, one/two parameters, mutual and
 indexed types, seeded contexts, universe parameters, rejection paths, and fuel.
+Seven added fixtures cover empty input with nested metadata, an empty middle
+datatype, reordered mutual declarations, thirty-three constructors, empty input
+with zero fuel, an empty constructor list with one fuel, and nonempty nested
+metadata.
 Successful fixtures inspect installed headers, constructors, recursors, and
 rules, including closure and numeric/name metadata as runtime smoke checks;
 these are not semantic recursor proofs. Early and late boundaries distinguish
 constructor-prefix acceptance from duplicate-universe rejection and a recursor
 name collision after successful constructor registration. An unsafe negative
 field control remains outside the theorem's explicit safe-context scope.
-These witness-only theorems do not identify their intermediate environment with
-the complete runner's result or cover earlier declaration preprocessing guards.
+The stronger metadata certificate preserves the distinct intermediate
+constructor environment and original positivity root while identifying installed
+records in the actual final environment. It does not transport WHNF or cover
+earlier declaration preprocessing guards. Both metadata runner audits use only
+the existing map and guarded-arity interfaces; both new projections use only
+standard logical axioms. All audits exclude `sorryAx`.
+Empty batches with a nonzero declared parameter count remain proof-only
+boundaries: the known terminal assertion does not justify runtime acceptance.
 
 `tests/RecursorRegistration.lean` contains ten proof regressions and four axiom
 audits for suffix map validity, successful-result extraction, exact old lookup
@@ -1625,18 +1661,20 @@ semantic typing or complete declaration acceptance. Existing full-run fixtures
 exercise the extracted suffix through the actual checking/generation path.
 Every successful low-level record now also checks its full specification,
 including the exact abstracted/inferred type, and replays the rule source with
-the threaded minor index. Twelve additional fixtures execute the actual checked
+the threaded minor index. Thirteen additional fixtures execute the actual checked
 header/constructor prefix, information generation, and registration suffix;
 they cover empty inputs/constructors, recursive/higher-order fields, one/two
 parameters, mutual/indexed types, seeded contexts, universes, unsafe generation,
-primitive policies, and a tight fuel bound. Every installed record is compared
+primitive policies, a tight fuel bound, and a propositional singleton.
+Each fixture also executes the complete runner from the same original context.
+Every installed record from both executions is compared
 field-for-field with its specification, including exact rule constructor/field/
-RHS data and replayed minor advancement. These generated parameter/motive/minor/
+RHS data and replayed minor advancement, and both outputs preserve constructor-stage
+lookups. These generated parameter/motive/minor/
 index alignments are runtime regressions; the separate count-generation proofs
 below now discharge the conditional theorem's motive/minor premises, while
 index-binder alignment remains unproved. Both suffix audits use the existing
-three map
-interfaces; both metadata projections use only standard logical axioms, and all
+three map interfaces; both metadata projections use only standard logical axioms, and all
 audits exclude `sorryAx`.
 
 `tests/InductiveRunPreservation.lean` adds sixteen proof regressions and twelve
