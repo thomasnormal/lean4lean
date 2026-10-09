@@ -3720,6 +3720,69 @@ dependencies, and keep native-interface boundaries separate. All three modules
 replay through lean4lean. Run
 `lake env lean tests/InductiveMajorContextTranslation.lean`.
 
+`Verify.InductiveMotiveBindingFacts` extends an explicitly supplied initial
+mixed context along the same translated index history. Every appended model
+declaration retains the actual fresh FVar, binder metadata, peeled native type
+and its exact semantic domain. The receipt records the selected identifiers,
+their reverse abstraction order, the dropped initial context and the same
+suffix weakening. The major extension uses that history's existing typed
+major opening. Its native binding equation proves that the actual nested
+`mkForall indices (mkForall #[major] (.sort elimLevel))`, including native
+annotation peeling, is precisely the combined index-plus-major model
+abstraction. Lookup congruence handles the major declaration left in the
+reader while indices are selected; no independently chosen telescope or
+assumed native/model abstraction equality is supplied.
+
+`Verify.InductiveMotiveContextTranslation` types that exact motive domain.
+The elimination level must map under the actual universe-name list. Generic
+mixed-context abstraction first translates and types the domain at the
+initial context, then weakens both back across the very same index-plus-major
+suffix. The semantic result includes that lift; simply reusing the initial
+semantic expression at the major reader would be incorrect. Final motive
+typing is derived, not a support premise.
+
+`Verify.InductiveMotiveContextTranslationCPS` opens this typed domain at the
+actual pushed-major reader. It preserves the motive declaration's exact
+native `fvarsList` dependencies, fresh identifier, binder position, semantic
+domain and pushed-reader `TrLCtx`. Per-parent and batch receipts retain all
+prior header, normalization, index-history and typed-major witnesses, and
+project back to the original major sources. Getter support is required only
+at successful actual observed-reader capture results; the generic CPS bridge
+resumes through the existing morphism. Its new support obligation supplies
+only a well-formed initial mixed context with exact native/virtual alignment,
+under the complete same-source guards. Representability of arbitrary initial
+native contexts is not silently assumed or asserted as a phase invariant.
+
+The empty-parameter parent boundary and prior constant/header alignment,
+terminal-sort, normalization and actual-major annotation obligations remain
+explicit. Motive-reader correspondence is proved, but correspondence at a
+later parent/minor/current continuation reader is not. Discharging actual
+phase support, parameter reuse, minor typing, general strong normalization
+and full inductive verification remain separate. This transport inherits the
+existing mixed-context abstraction/context foundations and native expression
+abstraction and persistent-container interfaces; audits keep these separate
+from the clean logical-only annotation core. No new admission, axiom, oracle,
+runtime checker change, allocation behavior, cache or fast path is introduced.
+
+`tests/InductiveMotiveContextTranslation.lean` adds thirty-one proof controls,
+181 axiom audits and eleven axiom prints. The tests cover exact native/model
+abstraction, mapped elimination levels, same-history typing, exact stored
+motive dependencies and reader position, successful-result-local model
+support, getter/CPS transport and source projections. A metavariable-domain
+countercontrol shows why arbitrary native scope cannot supply a typed initial
+mixed context. Fifteen allocation-only motive callbacks and three actual
+parent cross-checks cover selected binder order and prefixes, dependent and
+metadata/nonuniform domains, external base dependencies, retained declaration
+values, major/motive reader separation and used/unused native-let boundaries.
+They do not claim semantic header acceptance. The new whole-module census is
+fifty-seven declarations / thirty-two theorems, including private/generated
+helpers (binding facts 34/21, domain translation 3/2, CPS 20/9). The old clean
+logical core stays seventy-three / thirty-eight. Audits pin inherited
+abstraction/context foundations and eight existing native interfaces, reject
+module-owned axioms and runtime admissions, and forbid the global native
+loose-bound-variable-range axiom. All three modules replay through lean4lean.
+Run `lake env lean tests/InductiveMotiveContextTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
