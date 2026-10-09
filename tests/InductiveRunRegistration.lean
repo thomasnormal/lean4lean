@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.RecursorRuleShape
+import Lean4Lean.Verify.RecursorMinorOffsets
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -167,6 +167,66 @@ example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
       info.rules.length = types.toArray[index]!.ctors.length :=
   (AddInductive.run.safeOrderedRules nparams types numNested ctx hsafety hwf env hresult).2.2 index hindex
 
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF) :
+    (AddInductive.run nparams types numNested ctx).WF fun env =>
+      ∃ (stats : InductiveStats) (root : Context) (constructors : Kernel.Environment),
+        stats.SafeRunMinorOffsets nparams types.toArray numNested ctx root constructors env :=
+  AddInductive.run.safeMinorOffsets nparams types numNested ctx hsafety hwf
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env) :
+    ∃ (stats : InductiveStats) (root : Context) (constructors : Kernel.Environment),
+      stats.SafeRunMinorOffsets nparams types.toArray numNested ctx root constructors env :=
+  AddInductive.run.safeMinorOffsets nparams types numNested ctx hsafety hwf env hresult
+
+example (stats : InductiveStats) (nparams numNested : Nat) (types : Array InductiveType)
+    (original root : Context) (constructors env : Kernel.Environment)
+    (hoffsets : stats.SafeRunMinorOffsets nparams types numNested original root constructors env) :
+    stats.SafeRunMetadata nparams types numNested original root constructors env :=
+  hoffsets.metadata
+
+example (stats : InductiveStats) (nparams numNested : Nat) (types : Array InductiveType)
+    (original root : Context) (constructors env : Kernel.Environment)
+    (hoffsets : stats.SafeRunMinorOffsets nparams types numNested original root constructors env) :
+    ∃ (elimLevel : Level) (infos : Array RecInfo) (source : Context),
+      ({ root with env := constructors } : Context).HeaderFrame source ∧
+      RecursorInfoCounts types infos ∧
+      ∀ index, index < types.size → ∃ info : RecursorVal,
+        env.find? (mkRecName types[index]!.name) = some (.recInfo info) ∧
+        mkRecRules types elimLevel stats index (infos.map (·.motive)) (infos.flatMap (·.minors))
+          (recursorMinorOffset types index) source =
+            .ok (info.rules, recursorMinorOffset types (index + 1)) :=
+  hoffsets.sourceRules
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env) :
+    env.constants.WF ∧
+      (∀ name info, ctx.env.find? name = some info → env.find? name = some info) ∧
+      ∃ stats : InductiveStats, stats.DeclaredRecursorCounts nparams types.toArray env ∧
+        OrderedRecursorRules types.toArray env := by
+  obtain ⟨stats, root, constructors, hoffsets⟩ :=
+    AddInductive.run.safeMinorOffsets nparams types numNested ctx hsafety hwf env hresult
+  exact ⟨hoffsets.resultWF, hoffsets.metadata.toSafeRunRegistration.preservesOriginal,
+    stats, hoffsets.metadata.declaredRecursors, hoffsets.metadata.orderedRules⟩
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (ctx : Context) (hsafety : ctx.safety = .safe) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment) (hresult : AddInductive.run nparams types numNested ctx = .ok env) :
+    ∃ (stats : InductiveStats) (root : Context) (constructors : Kernel.Environment)
+      (elimLevel : Level) (infos : Array RecInfo) (source : Context) (isK : Bool),
+      stats.SafeRunRegistration nparams types.toArray numNested ctx root constructors env ∧
+      ({ root with env := constructors } : Context).HeaderFrame source ∧
+      RecursorInfoCounts types.toArray infos ∧
+      stats.RecursorOffsetMetadata types.toArray elimLevel infos ctx.lparams source.lctx isK false source env := by
+  obtain ⟨stats, root, constructors, hoffsets⟩ :=
+    AddInductive.run.safeMinorOffsets nparams types numNested ctx hsafety hwf env hresult
+  obtain ⟨elimLevel, infos, source, isK, hframe, hcounts, hrecursors⟩ := hoffsets.recursors
+  exact ⟨stats, root, constructors, elimLevel, infos, source, isK,
+    hoffsets.toSafeRunRegistration, hframe, hcounts, hrecursors⟩
+
 private def sortType : Expr := .sort (.succ .zero)
 
 private def closeParams (nparams : Nat) (body : Expr) : Expr :=
@@ -251,6 +311,9 @@ run_meta
   audit ``InductiveStats.SafeRunMetadata.sourceRules false
   audit ``InductiveStats.SafeRunMetadata.orderedRules false
   audit ``AddInductive.run.safeOrderedRules
+  audit ``InductiveStats.SafeRunMinorOffsets.metadata false
+  audit ``InductiveStats.SafeRunMinorOffsets.sourceRules false
+  audit ``AddInductive.run.safeMinorOffsets
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let natType := Expr.const ``Nat []

@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.RecursorRuleShape
+import Lean4Lean.Verify.RecursorMinorOffsets
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -157,6 +157,54 @@ example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Leve
       info.rules.length = types[index]!.ctors.length :=
   hmetadata.orderedRules index hindex
 
+example (types : Array InductiveType) (index : Nat) (hindex : index < types.size) :
+    recursorMinorOffset types (index + 1) = recursorMinorOffset types index + types[index]!.ctors.length :=
+  recursorMinorOffset.succ types index hindex
+
+example (types : Array InductiveType) :
+    recursorMinorOffset types types.size = (types.toList.flatMap (·.ctors)).length :=
+  recursorMinorOffset.total types
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (infos : Array RecInfo) (lparams : List Name) (lctx : LocalContext)
+    (isK isUnsafe : Bool) (ctx : Context) (hwf : ctx.env.constants.WF) :
+    (declareRecursors stats types elimLevel infos lparams lctx isK isUnsafe ctx).WF fun env =>
+      env.constants.WF ∧
+      (∀ name info, ctx.env.find? name = some info → env.find? name = some info) ∧
+      stats.RecursorOffsetMetadata types elimLevel infos lparams lctx isK isUnsafe ctx env :=
+  declareRecursors.offsetMetadata stats types elimLevel infos lparams lctx isK isUnsafe ctx hwf
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (infos : Array RecInfo) (lparams : List Name) (lctx : LocalContext)
+    (isK isUnsafe : Bool) (ctx : Context) (hwf : ctx.env.constants.WF)
+    (env : Kernel.Environment)
+    (hresult : declareRecursors stats types elimLevel infos lparams lctx isK isUnsafe ctx = .ok env)
+    (index : Nat) (hindex : index < types.size) :
+    ∃ rules,
+      mkRecRules types elimLevel stats index (infos.map (·.motive)) (infos.flatMap (·.minors))
+        (recursorMinorOffset types index) ctx = .ok (rules, recursorMinorOffset types (index + 1)) ∧
+      env.find? (mkRecName types[index]!.name) = some (.recInfo
+        (declareRecursors.metadataVal stats types elimLevel infos lparams lctx isK isUnsafe index rules)) :=
+  (declareRecursors.offsetMetadata stats types elimLevel infos lparams lctx isK isUnsafe ctx hwf
+    env hresult).2.2 index hindex
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (infos : Array RecInfo) (lparams : List Name) (lctx : LocalContext)
+    (isK isUnsafe : Bool) (ctx : Context) (env : Kernel.Environment)
+    (hmetadata : stats.RecursorOffsetMetadata types elimLevel infos lparams lctx isK isUnsafe ctx env) :
+    ∀ index, index < types.size → ∃ info : RecursorVal,
+      env.find? (mkRecName types[index]!.name) = some (.recInfo info) ∧
+      mkRecRules types elimLevel stats index (infos.map (·.motive)) (infos.flatMap (·.minors))
+        (recursorMinorOffset types index) ctx = .ok (info.rules, recursorMinorOffset types (index + 1)) :=
+  hmetadata.sourceRules
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (infos : Array RecInfo) (lparams : List Name) (lctx : LocalContext)
+    (isK isUnsafe : Bool) (ctx : Context) (env : Kernel.Environment)
+    (hmetadata : stats.RecursorOffsetMetadata types elimLevel infos lparams lctx isK isUnsafe ctx env) :
+    stats.RecursorMetadata types elimLevel infos lparams lctx isK isUnsafe ctx env :=
+  hmetadata.metadata
+
 private def statsFor (types : Array InductiveType) : InductiveStats := {
   levels := [], resultLevel := .succ .zero, params := #[], isNotZero := true,
   indConsts := types.map fun type => .const type.name [], nindices := types.map fun _ => 0 }
@@ -210,8 +258,9 @@ private def checkExact (ctx : Context) (stats : InductiveStats) (types : Array I
       actual.numMotives == expected.numMotives && actual.numMinors == expected.numMinors &&
       actual.k == expected.k && actual.isUnsafe == expected.isUnsafe && rulesMatch actual.rules rules do
     throwError "installed recursor differs from the complete metadata specification"
-  unless nextIndex == minorIndex + types[index]!.ctors.length do
-    throwError "incorrect replayed minor-index advancement"
+  unless minorIndex == recursorMinorOffset types index &&
+      nextIndex == recursorMinorOffset types (index + 1) do
+    throwError "incorrect replayed starting/ending minor prefix offsets"
   return nextIndex
 
 private def checkRecursor (ctx : Context) (types : Array InductiveType) (infos : Array RecInfo)
@@ -246,6 +295,9 @@ private def checkSuccess (ctx : Context) (types : Array InductiveType) (infos : 
   for index in [:types.size] do
     checkRecursor { ctx with lctx } types infos lparams elimLevel lctx env index offset isK isUnsafe
     offset := offset + types[index]!.ctors.length
+  unless offset == recursorMinorOffset types types.size &&
+      offset == (types.toList.flatMap (·.ctors)).length do
+    throwError "incorrect total minor prefix offset"
   for name in [``Nat, ``Nat.zero, ``Nat.succ, ``Nat.rec, ``List, ``List.rec] do
     checkPreserved ctx.env env name
   unless env.quotInit == ctx.env.quotInit do throwError "recursor registration changed quotient state"
@@ -318,6 +370,12 @@ run_meta
   audit ``mkRecRules.shape false
   audit ``InductiveStats.RecursorMetadata.ruleShape false
   audit ``InductiveStats.RecursorMetadata.orderedRules false
+  audit ``recursorMinorOffset.zero false
+  audit ``recursorMinorOffset.succ false
+  audit ``recursorMinorOffset.total false
+  audit ``InductiveStats.RecursorOffsetMetadata.metadata false
+  audit ``InductiveStats.RecursorOffsetMetadata.sourceRules false
+  audit ``declareRecursors.offsetMetadata
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let first := typeFor `RecursorPreservedFirst [`RecursorPreservedFirst.left, `RecursorPreservedFirst.right]
@@ -340,6 +398,21 @@ run_meta
   let repeated := typeFor first.name [`RecursorPreservedFirst.left, `RecursorPreservedFirst.left]
   checkRuleSourceShape ctx #[repeated, empty, last] infos 0 0
   logInfo "eight direct rule-source name/order/count/state fixtures passed"
+  let emptyFirst := typeFor `OffsetEmptyFirst []
+  let emptyLast := typeFor `OffsetEmptyLast []
+  let emptyFirstInfo := infoFor emptyFirst.name #[]
+  let emptyLastInfo := infoFor emptyLast.name #[]
+  checkSuccess ctx #[emptyFirst, last, empty, first, emptyLast]
+    #[emptyFirstInfo, lastInfo, emptyInfo, firstInfo, emptyLastInfo] [] .zero false false
+  checkSuccess ctx #[last, empty, first] #[lastInfo, emptyInfo, firstInfo] [] .zero false false
+  checkSuccess ctx #[first, empty, emptyFirst, last]
+    #[firstInfo, emptyInfo, emptyFirstInfo, lastInfo] [] .zero false false
+  checkSuccess zeroFuel #[emptyFirst, emptyLast] #[emptyFirstInfo, emptyLastInfo] [] .zero false false
+  let numbered := typeFor `OffsetNumbered ((List.range 33).map fun ordinal =>
+    (`OffsetNumbered.ctor).appendIndexAfter ordinal)
+  let numberedInfo := infoFor numbered.name ((List.range 33).map fun ordinal =>
+    (`offsetMinor).appendIndexAfter ordinal).toArray
+  checkSuccess ctx #[numbered] #[numberedInfo] [] .zero false false
   for allowPrimitive in [false, true] do
     for isK in [false, true] do
       for isUnsafe in [false, true] do
@@ -357,7 +430,7 @@ run_meta
     | throwError "rule-generation failure must propagate before registration"
   checkSuccess { ctx with fuel := { ctx.fuel with inductiveFuel := 0 } }
     #[empty] #[emptyInfo] [] .zero false false
-  logInfo "26 successful recursor traversals, three freshness rejections, and one rule-generation failure passed"
+  logInfo "31 successful recursor traversals with exact prefix offsets, three freshness rejections, and one rule-generation failure passed"
   let natType := Expr.const ``Nat []
   let zero := Expr.const `CheckedMetaZero []
   let one := Expr.const `CheckedMetaOne []
