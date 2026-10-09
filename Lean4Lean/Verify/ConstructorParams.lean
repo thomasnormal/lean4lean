@@ -431,6 +431,29 @@ theorem checkConstructors.spine (indTypes : Array InductiveType) (stats : Induct
     obtain ⟨index, hindex, rfl⟩ := Array.mem_iff_getElem.mp htype
     exact ⟨index, hindex, rfl, hall index (by simp; omega) hindex ctor hctor⟩
 
+theorem checkInductiveTypes.registeredConstructorSpine (nparams : Nat)
+    (indTypes : Array InductiveType) (numNested : Nat) (isUnsafe : Bool) (ctx : Context) :
+    (checkInductiveTypes nparams indTypes (fun stats => do
+      let headers ← declareInductiveTypes stats nparams indTypes numNested isUnsafe
+      withEnv headers do
+        checkConstructors indTypes stats isUnsafe
+        let env ← declareConstructors stats indTypes isUnsafe
+        pure (stats, env)) ctx).WF fun result =>
+      ∀ indType ∈ indTypes, ∀ ctor ∈ indType.ctors,
+        ∃ index, ∃ hindex : index < indTypes.size, indTypes[index] = indType ∧
+          ∃ terminal, ConstructorSpine ctor.type terminal ∧
+            isValidIndAppIdx result.1 terminal index = true := by
+  apply checkInductiveTypes.frameHeaderSizesParamsDistinct
+  intro stats current hsizes hfvars hnodup hframe
+  dsimp only
+  apply Lean4Lean.AddInductive.bindWF
+  intro headers
+  refine (checkConstructors.spine indTypes stats isUnsafe { current with env := headers }).bind ?_
+  intro _ hspine
+  apply Lean4Lean.AddInductive.bindWF
+  intro env
+  exact .pure hspine
+
 theorem checkConstructors.arity (indTypes : Array InductiveType) (stats : InductiveStats)
     (isUnsafe : Bool) (ctx : Context) (hfvars : stats.ParamsAreFVars)
     (hnodup : stats.params.toList.Nodup) :
