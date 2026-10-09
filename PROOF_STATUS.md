@@ -665,6 +665,34 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   preprocessing soundness. A helper context that violates reservation can
   overwrite an old native lookup; this is an explicit premise boundary, not a
   frontend divergence or kernel discrepancy.
+- `Verify.RecursorInfoScope` propagates the actual structural local-context
+  validity and name-generator reservation through `mkRecInfos`. Fuelled header
+  index traversal, motive/major allocation, recursive-hypothesis allocation,
+  constructor minors, and both parent traversals retain ordered local-declaration
+  extensions and the immutable reader frame. Temporary readers used to compute
+  normalized types or higher-order hypothesis types do not escape their binding
+  continuations; persistent hypotheses/minors extend the actual source reader.
+  `mkRecInfos.scope` supplies `Context.RecursorScopeFrame` to arbitrary
+  continuations, given explicit root context validity/reservation. No source
+  typing, parameter atom, or positivity premise is needed for this structural
+  preservation theorem. `getScopeCounts` combines the scope frame with the
+  existing count certificate using the same successful `(infos, current)`
+  result, not separate existential witnesses.
+  `mkRecInfos.scopeRegistration` is a verification-side wrapper retaining the
+  actual recursor-info generation/registration suffix's environment, infos, and
+  reader. `registeredScope` proves source scope/counts, final constant-map
+  validity, all original environment lookups, exact offset metadata, and
+  parent-local RHS scope receipts together. Its RHS receipts discharge their
+  source context validity/reservation from the generated scope frame, rather
+  than requiring additional source-reader premises. Initial root context
+  validity/reservation and environment-map validity remain explicit; deriving
+  the root context premises through checked headers is still needed before a
+  complete runner theorem. The eight audits exclude `sorryAx` and expression or
+  guarded-arity interfaces, using only existing logical/map/list-push interfaces.
+  No axiom, admission, executable kernel change, cache, or fast path is added.
+  These are structural source-reader and generated-field declaration guarantees,
+  not semantic typing, recursive-value scope, generated index-binder alignment,
+  WHNF transport, RHS reduction, or preprocessing soundness.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -1865,6 +1893,21 @@ interface. The indexed-source and local-RHS/count/shape projections use only sta
 All audits exclude `sorryAx`.
 Empty batches with a nonzero declared parameter count remain proof-only
 boundaries: the known terminal assertion does not justify runtime acceptance.
+
+`tests/RecursorInfoScope.lean` adds six proof regressions and eight axiom audits
+for actual source-reader validity/reservation, old native lookup preservation,
+coupled count witnesses, and scope-certified generation/registration. Nine
+direct generation fixtures and their registrations exercise empty input,
+constructorless parents, nullary/ordinary recursive constructors, higher-order
+recursion, indexed headers, mutual recursion with an empty middle parent, and
+parameterized constructors under a seeded generator and existing declaration,
+and thirty-three recursive fields/hypotheses with repeated binder names.
+Native source declaration-list/map agreement, old lookups, next-name freshness,
+exact context/generator advancement, actual index/major/motive/minor declarations,
+and recursor/rule counts are checked. Zero-fuel and partially allocated traversal
+failures propagate. An unchecked free-variable header control shows that structural
+context validity is not a header-typing theorem. These unchecked helper fixtures do not claim complete frontend
+acceptance or semantic typing.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
