@@ -527,6 +527,28 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   raw syntactic forall counts, not a semantic typing or normalization theorem.
   RHS typing/reduction, generated index-binder alignment, WHNF transport, and
   earlier preprocessing remain separate.
+- `Verify.RecursorMinorIndexing` proves `RecursorInfoCounts.minorPrefix`: the
+  generated minor-array prefix has exactly the corresponding constructor-prefix
+  length, including saturated prefixes beyond the parent-array size.
+  `minorIndexing` proves both local and flattened bounds for every constructor
+  position and identifies the flattened optional lookup at its parent's prefix
+  offset plus its local index with the parent's own minor entry.
+  `RecursorMinorIndexing.at` exposes the same present expression in both arrays;
+  `getElem!` gives the equality for the defaulting accessor used by `mkRecRules`,
+  justified by proved bounds rather than fallback behavior. No minor uniqueness,
+  expression shape, parameter, typing, or normalization premise is needed beyond
+  the generated count certificate. Empty parents contribute no entries and
+  naturally leave offsets unchanged. `SafeRunMinorOffsets.indexedSourceRules`
+  retains the actual generated arrays, immutable reader frame, and successful
+  installed-rule receipts alongside their indexing proof.
+  `run.safeMinorIndexing` supplies this stronger source contract and the original
+  safe-run offset certificate from explicit safe input and initial map validity.
+  Five new prefix/indexing/accessor/certificate audits use only standard logical
+  axioms; the complete-run audit adds only the existing three map and six
+  guarded-arity interfaces. All exclude `sorryAx`, and no new axiom, admission,
+  executable kernel change, cache, or fast path is introduced. This establishes
+  vector-position alignment, not semantic RHS typing/reduction, generated
+  index-binder alignment, WHNF transport, or preprocessing soundness.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -1692,14 +1714,14 @@ boundary keeps the header root distinct from the constructor environment and
 retains later index locals absent from `stats.lctx`. The fixtures stop before
 elimination/recursor generation and do not claim full declaration acceptance.
 
-`tests/InductiveRunRegistration.lean` adds twenty-nine proof regressions and fourteen axiom
+`tests/InductiveRunRegistration.lean` adds thirty-two proof regressions and sixteen axiom
 audits for the complete runner's intermediate registration witness, successful
 result extraction, safe-root positivity traces, intermediate metadata/map
 validity, indexed spine projection, final exact recursor metadata, generated
 counter alignment, rule-source context preservation, installed rule name/order/
 count correspondence, exact starting/ending minor-prefix receipts, stronger
 certificate compatibility, positional rule/registered-constructor field-count
-alignment, and the combined declared
+alignment, source-array minor indexing and present-entry extraction, and the combined declared
 metadata contract. Thirty-two full-run outcomes cover
 empty input, recursive and higher-order fields, one/two parameters, mutual and
 indexed types, seeded contexts, universe parameters, rejection paths, and fuel.
@@ -1716,22 +1738,25 @@ field control remains outside the theorem's explicit safe-context scope.
 The stronger metadata certificate preserves the distinct intermediate
 constructor environment and original positivity root while identifying installed
 records in the actual final environment. It does not transport WHNF or cover
-earlier declaration preprocessing guards. All five metadata/order/offset/field
+earlier declaration preprocessing guards. All six metadata/order/offset/field/indexing
 runner audits use only the existing map and guarded-arity interfaces; five
 compatibility/source/count projections use only standard logical axioms, while
 the two field projections additionally use the existing `Expr.instantiate1_eq`
-interface. All audits exclude `sorryAx`.
+interface. The indexed-source projection uses only standard logical axioms.
+All audits exclude `sorryAx`.
 Empty batches with a nonzero declared parameter count remain proof-only
 boundaries: the known terminal assertion does not justify runtime acceptance.
 
-`tests/RecursorRegistration.lean` contains twenty-seven proof regressions and eighteen axiom
+`tests/RecursorRegistration.lean` contains thirty-three proof regressions and twenty-two axiom
 audits for suffix map validity, successful-result extraction, exact old lookup
 preservation, preservation of a constructor-registration certificate's
 header/constructor metadata, complete recursor records, source rule receipts,
 conditional declared counters, successful rule-source name/order/count/state
 shape, installed rule-shape projections, datatype-prefix equations, exact offset
 receipts, compatibility with the prior metadata contract, arbitrary field-count
-continuations, and positional raw/registered field counts. An empty-array proof makes the vacuous
+continuations, positional raw/registered field counts, generated minor-prefix
+alignment, local/flattened bounds, and optional/defaulting lookup agreement.
+An empty-array proof makes the vacuous
 counter boundary explicit even with a nonzero declared parameter count.
 Seven direct raw-field fixtures cover zero/one/two parameters, truncated short
 inputs, mixed binder visibility, and thirty-three fields, with a zero-fuel
@@ -1749,6 +1774,17 @@ counts, and state advancement without assuming semantic typing or registration
 acceptance of the low-level inputs. The four new shape/count/source-projection
 audits use only standard logical axioms, excluding `sorryAx` and all expression,
 map, or guarded-arity interfaces.
+Eight direct minor-indexing fixtures cover empty and all-empty batches, reordered
+parents, empty leading/middle/trailing parents, thirty-three constructors,
+nonzero offsets around a large parent, and repeated non-free-variable minor
+expressions. Every fixture checks saturated prefix lengths beyond the array
+size. Two deliberate unchecked controls demonstrate that equal aggregate counts
+cannot replace the per-parent count premise and that an out-of-range local
+position may instead address the next parent's flattened entry. These are
+mathematical contract boundaries, not frontend divergences. Four new indexing
+audits use only standard logical axioms. All successful low-level and checked
+generation fixtures now independently check local bounds, flattened bounds,
+optional presence, and exact expression selection.
 Thirty-one successful low-level traversals cover
 empty input, an empty datatype, multi-datatype batches with an empty middle
 parent, both K/safety flags and primitive-name policies, elimination levels,

@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.RecursorRuleFields
+import Lean4Lean.Verify.RecursorMinorIndexing
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -248,6 +248,43 @@ example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Leve
       RecursorRuleFields stats types[index]!.ctors info.rules :=
   hmetadata.ruleFields hfvars
 
+example (types : Array InductiveType) (infos : Array RecInfo)
+    (hcounts : RecursorInfoCounts types infos) (index : Nat) :
+    ((infos.toList.take index).flatMap (fun info => info.minors.toList)).length =
+      recursorMinorOffset types index :=
+  hcounts.minorPrefix index
+
+example (types : Array InductiveType) (infos : Array RecInfo)
+    (hcounts : RecursorInfoCounts types infos) : RecursorMinorIndexing types infos :=
+  hcounts.minorIndexing
+
+example (types : Array InductiveType) (infos : Array RecInfo)
+    (hcounts : RecursorInfoCounts types infos) (parent index : Nat)
+    (hparent : parent < types.size) (hindex : index < types[parent]!.ctors.length) :
+    index < infos[parent]!.minors.size ∧
+      recursorMinorOffset types parent + index < (infos.flatMap (·.minors)).size ∧
+      (infos.flatMap (·.minors))[recursorMinorOffset types parent + index]? =
+        infos[parent]!.minors[index]? :=
+  hcounts.minorIndexing parent hparent index hindex
+
+example (types : Array InductiveType) (infos : Array RecInfo)
+    (hcounts : RecursorInfoCounts types infos) (parent index : Nat)
+    (hparent : parent < types.size) (hindex : index < types[parent]!.ctors.length) :
+    ∃ minor, infos[parent]!.minors[index]? = some minor ∧
+      (infos.flatMap (·.minors))[recursorMinorOffset types parent + index]? = some minor :=
+  hcounts.minorIndexing.at parent hparent index hindex
+
+example (types : Array InductiveType) (infos : Array RecInfo)
+    (hcounts : RecursorInfoCounts types infos) (parent index : Nat)
+    (hparent : parent < types.size) (hindex : index < types[parent]!.ctors.length) :
+    (infos.flatMap (·.minors))[recursorMinorOffset types parent + index]! =
+      infos[parent]!.minors[index]! :=
+  hcounts.minorIndexing.getElem! parent hparent index hindex
+
+example (infos : Array RecInfo) : RecursorMinorIndexing #[] infos := by
+  intro parent hparent
+  simp at hparent
+
 private def fieldStage (params : Array Expr) (type : Expr) : M Nat :=
   mkRecInfos.loopCtorArgs { (default : InductiveStats) with params } type fun _ fields _ =>
     pure fields.size
@@ -268,6 +305,22 @@ private def typeFor (name : Name) (ctors : List Name) : InductiveType := {
 private def infoFor (name : Name) (minorNames : Array Name) : RecInfo := {
   motive := .fvar ⟨name ++ `motive⟩, major := .fvar ⟨name ++ `major⟩, indices := #[],
   minors := minorNames.map fun minor => .fvar ⟨minor⟩ }
+
+private def checkMinorIndexing (types : Array InductiveType) (infos : Array RecInfo) : MetaM Unit := do
+  unless infos.size == types.size do throwError "incorrect indexing information count"
+  let flattened := infos.flatMap (·.minors)
+  for parent in [:types.size + 3] do
+    let minorPrefixSize := ((infos.toList.take parent).flatMap (fun info => info.minors.toList)).length
+    unless minorPrefixSize == recursorMinorOffset types parent do throwError "incorrect minor-prefix alignment"
+  for parent in [:types.size] do
+    let localMinors := infos[parent]!.minors
+    unless localMinors.size == types[parent]!.ctors.length do throwError "incorrect local minor count"
+    for index in [:types[parent]!.ctors.length] do
+      let offset := recursorMinorOffset types parent + index
+      unless index < localMinors.size && offset < flattened.size do throwError "minor lookup is out of bounds"
+      let some minor := localMinors[index]? | throwError "missing local minor"
+      unless flattened[offset]? == some minor && flattened[offset]! == localMinors[index]! do
+        throwError "flattened minor differs from the corresponding local minor"
 
 private def localsFor (infos : Array RecInfo) : LocalContext := Id.run do
   let mut lctx : LocalContext := {}
@@ -345,6 +398,7 @@ private def checkRecursor (ctx : Context) (types : Array InductiveType) (infos :
 
 private def checkSuccess (ctx : Context) (types : Array InductiveType) (infos : Array RecInfo)
     (lparams : List Name) (elimLevel : Level) (isK isUnsafe : Bool) : MetaM Unit := do
+  checkMinorIndexing types infos
   let lctx := localsFor infos
   let .ok env := declareRecursors (statsFor types) types elimLevel infos lparams lctx isK isUnsafe
       { ctx with lctx }
@@ -410,6 +464,7 @@ private def checkChecked (ctx : Context) (nparams : Nat) (types : Array Inductiv
   unless stats.params.size == expectedParams && infos.size == types.size &&
       (infos.flatMap (·.minors)).size == (types.toList.flatMap (·.ctors)).length do
     throwError "checked fixture does not supply the count-alignment premises"
+  checkMinorIndexing types infos
   let mut minorIndex := 0
   for index in [:types.size] do
     unless infos[index]!.indices.size == stats.nindices[index]! do
@@ -453,6 +508,10 @@ run_meta
   audit ``RecursorRuleFields.at false
   audit ``mkRecRules.fieldCounts false true
   audit ``InductiveStats.RecursorMetadata.ruleFields false true
+  audit ``RecursorInfoCounts.minorPrefix false
+  audit ``RecursorInfoCounts.minorIndexing false
+  audit ``RecursorMinorIndexing.at false
+  audit ``RecursorMinorIndexing.getElem! false
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let natType := Expr.const ``Nat []
@@ -517,6 +576,25 @@ run_meta
     (`OffsetNumbered.ctor).appendIndexAfter ordinal)
   let numberedInfo := infoFor numbered.name ((List.range 33).map fun ordinal =>
     (`offsetMinor).appendIndexAfter ordinal).toArray
+  checkMinorIndexing #[] #[]
+  checkMinorIndexing #[emptyFirst, empty, emptyLast] #[emptyFirstInfo, emptyInfo, emptyLastInfo]
+  checkMinorIndexing types infos
+  checkMinorIndexing #[last, empty, first] #[lastInfo, emptyInfo, firstInfo]
+  checkMinorIndexing #[emptyFirst, last, empty, first, emptyLast]
+    #[emptyFirstInfo, lastInfo, emptyInfo, firstInfo, emptyLastInfo]
+  checkMinorIndexing #[numbered] #[numberedInfo]
+  checkMinorIndexing #[last, emptyFirst, numbered, emptyLast, first]
+    #[lastInfo, emptyFirstInfo, numberedInfo, emptyLastInfo, firstInfo]
+  let repeatedInfo := { firstInfo with minors := #[natType, natType] }
+  checkMinorIndexing #[first, empty, last] #[repeatedInfo, emptyInfo, { lastInfo with minors := #[natType] }]
+  let wrongCounts := #[{ firstInfo with minors := #[natType] },
+    { emptyInfo with minors := #[natType] }, lastInfo]
+  unless (wrongCounts.flatMap (·.minors)).size == (infos.flatMap (·.minors)).size &&
+      (wrongCounts.flatMap (·.minors))[1]? != wrongCounts[0]!.minors[1]? do
+    throwError "aggregate count control must fail local indexing"
+  unless (infos.flatMap (·.minors))[first.ctors.length]? != firstInfo.minors[first.ctors.length]? do
+    throwError "lookup control must retain the constructor-local bound"
+  logInfo "eight minor-indexing fixtures, saturated prefixes, and two invalid-bound/count controls passed"
   checkSuccess ctx #[numbered] #[numberedInfo] [] .zero false false
   for allowPrimitive in [false, true] do
     for isK in [false, true] do
@@ -606,6 +684,6 @@ run_meta
   checkChecked { ctx with allowPrimitive := true } 1 mutualTypes
   checkChecked { ctx with fuel := { ctx.fuel with inductiveFuel := 3 } }
     1 #[checkedHeader `CheckedMetaOne 1 [parameterOnly, parameterRecursive]]
-  logInfo "14 checked and complete recursor fixtures passed exact records, rule receipts, prefix offsets, and registered constructor field counts"
+  logInfo "14 checked and complete recursor fixtures passed exact records, rule receipts, prefix offsets, minor indexing, and registered constructor field counts"
 
 end RecursorRegistrationTest
