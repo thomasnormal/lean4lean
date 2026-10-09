@@ -16,7 +16,7 @@ structure BinderStep where
   bi : BinderInfo
   value : Expr
 
-def BinderStep.localDomain (step : BinderStep) : Expr := step.domain.consumeTypeAnnotations
+def BinderStep.localDomain (step : BinderStep) : Expr := (peelTypeAnnotations step.domain)
 
 def BinderStep.signature (step : BinderStep) : Name × BinderInfo := (step.name, step.bi)
 
@@ -44,12 +44,12 @@ theorem BinderDeclaredAt.mono {original current : Context} {value domain : Expr}
 
 private theorem newlyAllocatedBinderDeclared (ctx : Context) (name : Name) (domain : Expr)
     (bi : BinderInfo) (hwf : ctx.lctx.WF) (hreserved : ContextReserved ctx.lctx ctx.ngen) :
-    BinderDeclaredAt (recursorIndexContext ctx name bi domain.consumeTypeAnnotations)
-      (.fvar ⟨ctx.ngen.curr⟩) name domain.consumeTypeAnnotations bi := by
-  have hframe := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+    BinderDeclaredAt (recursorIndexContext ctx name bi (peelTypeAnnotations domain))
+      (.fvar ⟨ctx.ngen.curr⟩) name (peelTypeAnnotations domain) bi := by
+  have hframe := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
   let decl := LocalDecl.cdecl ctx.lctx.decls.size ⟨ctx.ngen.curr⟩ name
-    domain.consumeTypeAnnotations bi .default
-  have hmem : decl ∈ (recursorIndexContext ctx name bi domain.consumeTypeAnnotations).lctx.toList := by
+    (peelTypeAnnotations domain) bi .default
+  have hmem : decl ∈ (recursorIndexContext ctx name bi (peelTypeAnnotations domain)).lctx.toList := by
     simp only [recursorIndexContext, LocalContext.mkLocalDecl_toList, List.mem_cons]
     exact .inl rfl
   refine ⟨decl, ?_, rfl, rfl, rfl, rfl⟩
@@ -78,7 +78,7 @@ private theorem parameterDeclared {ctx : Context} {steps : List BinderStep}
 private theorem indexDeclared {ctx : Context} {steps : List BinderStep}
     (hdeclared : BinderStep.IndexDomainsDeclared ctx steps)
     (name : Name) (domain : Expr) (bi : BinderInfo) (value : Expr)
-    (hvalue : BinderDeclaredAt ctx value name domain.consumeTypeAnnotations bi) :
+    (hvalue : BinderDeclaredAt ctx value name (peelTypeAnnotations domain) bi) :
     BinderStep.IndexDomainsDeclared ctx ({ role := .index, name, domain, bi, value } :: steps) := by
   intro step hstep hrole
   simp only [List.mem_cons] at hstep
@@ -160,9 +160,9 @@ theorem CheckedHeaderTrace.openedTelescope {nparams : Nat} {stats finalStats : I
     cases htype with
     | forallE _ _ _ hbody =>
       have heq := (hbody.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)).whnf
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations) normalized hnormalized
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain)) normalized hnormalized
       subst normalized
-      have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+      have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
       have hnext : (stats.params.push (.fvar ⟨ctx.ngen.curr⟩)).size =
           if stats.indConsts.isEmpty then index + 1 else nparams := by
         simpa only [hfirst, ↓reduceIte, Array.size_push] using congrArg (· + 1) hsize
@@ -203,9 +203,9 @@ theorem CheckedHeaderTrace.openedTelescope {nparams : Nat} {stats finalStats : I
     cases htype with
     | forallE _ _ _ hbody =>
       have heq := (hbody.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)).whnf
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations) normalized hnormalized
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain)) normalized hnormalized
       subst normalized
-      have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+      have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
       obtain ⟨steps, opened, declared, hcount, hfresh, hreused⟩ := ih
         (hbody.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)) hpush.wf hpush.reserved hsize
       have hvalue := (newlyAllocatedBinderDeclared ctx name domain bi hwf hreserved).mono hpush.wf
@@ -259,9 +259,9 @@ theorem RecursorIndexTrace.openedTelescope {stats : InductiveStats} {type termin
     cases htype with
     | forallE _ _ _ hbody =>
       have heq := (hbody.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)).whnf
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations) normalized hnormalized
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain)) normalized hnormalized
       subst normalized
-      have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+      have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
       obtain ⟨steps, opened, hparams, hindices, declared⟩ := ih
         (hbody.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)) hpush.wf hpush.reserved
       refine ⟨_, .bind .index name domain bi (.fvar ⟨ctx.ngen.curr⟩) opened, ?_, ?_, ?_⟩

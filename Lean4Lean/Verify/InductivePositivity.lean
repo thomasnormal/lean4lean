@@ -38,7 +38,7 @@ def Context.withPositivityArg (ctx : Context) (name : Name) (domain : Expr)
     (bi : BinderInfo) : Context :=
   { ctx with
     ngen := ctx.ngen.next
-    lctx := ctx.lctx.mkLocalDecl ⟨ctx.ngen.curr⟩ name domain.consumeTypeAnnotations bi }
+    lctx := ctx.lctx.mkLocalDecl ⟨ctx.ngen.curr⟩ name (peelTypeAnnotations domain) bi }
 
 inductive PositivityTrace (stats : InductiveStats)
     (normalizes : Context → Expr → Expr → Prop) : Context → Expr → Prop where

@@ -938,10 +938,11 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   or semantic equivalence. Structural proofs are axiom-free except the
   signature proof (`propext`) and actual instantiation bridge (the existing
   `Expr.instantiate1_eq` interface).
-  `Expr.consumeTypeAnnotations` is opaque and has no equation interface here.
-  `ConsumedIndexRenaming` therefore retains related raw expressions and the
-  exact two annotation-consumption equations; it does not claim structural
-  correspondence of opaque consumed outputs. No new equation axiom is added.
+  `ConsumedIndexRenaming` retains related raw expressions and exact equations
+  for their total `peelTypeAnnotations` outputs. Deterministic consumed
+  correspondence is proved separately by `ConsumedIndexLookupRenaming`.
+  The external `Expr.consumeTypeAnnotations` remains opaque and has no safe
+  equation interface here; no universal native-equivalence axiom is added.
 - `Verify.InductiveBinderCorrespondence` couples the actual two telescope
   openings. Parameter values remain identical; each index value is proved
   to be a native declaration's actual free variable before its IDs are paired.
@@ -995,7 +996,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   receipts are not an arbitrary physical `getAt?`-slot theorem. Pair zip
   injectivity does not imply disjoint source/target IDs or functionality of
   the identity-or-listed-pair expression relation. Structural
-  annotation-consumption compatibility, semantic typing,
+  external native annotation-consumption compatibility, semantic typing,
   hidden aliases/tails, nested preprocessing and full inductive soundness
   remain separate. No executable kernel path, cache, new axiom or admission
   is added.
@@ -1016,8 +1017,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   and safe-prefix bridges retain those stronger receipts and project previous
   allocation contracts. This is a finite-support boundary, not a claim that
   source and target IDs are disjoint across readers, that every related raw
-  domain equals the deterministic structural result, or that annotation
-  consumption respects structural renaming. Semantic typing, hidden
+  domain equals the deterministic structural result, or that external native
+  annotation consumption respects structural renaming. Semantic typing, hidden
   aliases/tails, nested preprocessing and full inductive soundness remain
   separate. No executable checker path, cache, new axiom or admission is added.
 - `Verify.InductiveHeaderParameterSupport` strengthens actual checked-header
@@ -1057,7 +1058,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   index zip, count, projections and parameter-support receipts, adding the
   conditional opening operations for deterministically related input bodies.
   It does not assert that the actual later raw domains already satisfy that
-  stronger relation or that annotation consumption preserves it. Semantic
+  stronger relation or that external native annotation consumption preserves it. Semantic
   typing, normalization support, hidden aliases/tails, nested preprocessing
   and full inductive soundness remain separate. No executable checker path,
   cache, new axiom or admission is added.
@@ -1078,7 +1079,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   injection provide fresh-body/key support at each step. Generic incoming
   pairs are permitted; overlapping source/target IDs do not require global
   separation. Projection recovers the old structural relation and consumed
-  raw-domain provenance, not structural correspondence of consumed outputs.
+  raw-domain provenance. Total peeling additionally yields deterministic
+  correspondence of the actual stored types under the same incoming map.
 - `Verify.InductiveBinderLookupAlignment` retains those deterministic domain
   receipts in the same actual parameter/index histories, allocation positions,
   native declaration lookups and pair zip as the supported-source alignment.
@@ -1088,16 +1090,18 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   project the previous support contracts. Reused parameter declaration types
   still have only their actual definitional-equality checks; the new raw-domain
   theorem does not turn those checks into raw/consumed type equality. General
-  normalization support, structural annotation-consumption compatibility,
+  normalization support, external native annotation-consumption compatibility,
   semantic typing, hidden aliases/tails, nested preprocessing and full
   inductive soundness remain separate. No executable checker path, cache,
   new axiom or admission is added.
 - `Verify.InductiveConsumedLookupRenaming` projects deterministic raw-domain
   correspondence onto native index declaration types. Its consumed relation
   retains the actual raw origins, their deterministic lookup equation, and
-  both `consumeTypeAnnotations` equations. It implies the previous structural
-  raw-provenance receipt, not structural renaming or functionality of consumed
-  expressions. Native lookup anchors identify both stored declaration types.
+  both total `peelTypeAnnotations` equations. It implies the previous structural
+  raw-provenance receipt and, through `toIndexLookupRenaming`, deterministic
+  correspondence of the actual consumed outputs for arbitrary pair lists.
+  Native lookup anchors identify both stored declaration types; no external
+  native annotation-consumption equation is required.
 - `Verify.InductiveBinderLookupPositions` projects each binder position onto
   exactly the incoming map: the initial pairs followed by the zip of index IDs
   strictly before that position. The current and future index pairs are absent;
@@ -1116,8 +1120,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   support remains explicit for the normalized bridge and guard-derived for
   supported wrappers. Identity and overlapping index IDs remain allowed.
   Reused parameter declaration types keep only their actual `isDefEq` checks;
-  they are not included in the new native type relation. General consumption
-  compatibility, semantic typing, arbitrary normalization support and full
+  they are not included in the new native type relation. External native
+  consumption compatibility, semantic typing, arbitrary normalization support and full
   inductive soundness remain separate. No checker path, cache, new axiom or
   admission is added.
 - `Verify.InductiveBinderRawScope` proves chronological FVar support for the
@@ -1142,22 +1146,28 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   exact pair maps and consumed raw-provenance receipts. Normalized source
   support remains explicit; supported wrappers discharge it through the
   actual source guards. CPS/getter, registration and safe-prefix bridges
-  preserve the stronger receipt on the same successful result. Native stored
-  types still have exact consumption equations only: no consumption-support
-  theorem, consumed structural correspondence or semantic local typing is
-  inferred from raw support. In pinned Lean 4.29.0, the native
+  preserve the stronger receipt on the same successful result. Actual stored
+  types now use total peeling; `InductiveAnnotationStoredTypes` projects raw
+  support, avoidance and deterministic correspondence to those exact types.
+  No semantic local typing is inferred from syntactic support. In pinned
+  Lean 4.29.0, the external native
   `Expr.consumeTypeAnnotations` declaration is opaque and exposes no imported
   safe defining-equation interface; runtime stripping controls are not a
   theorem bridging it to a total model. Reused parameter types retain their
-  original definitional-equality checks. No checker path, cache, new axiom or admission
+  original definitional-equality checks. No cache, new axiom or admission
   is added; full inductive soundness remains separate.
-- `Verify.InductiveAnnotationModel` defines a total structural model of leading
-  type-annotation peeling. Exactly unary `outParam`/`semiOutParam` applications
+- `Inductive.Annotation` implements total structural leading type-annotation
+  peeling as `Lean4Lean.AddInductive.peelTypeAnnotations`. All thirteen local
+  allocation sites in `Inductive.Add` use this utility instead of the opaque
+  native consumer, and their trace/context/domain receipts use the same
+  executable definition. `Verify.InductiveAnnotationModel` imports that utility
+  and proves its defining equations. Exactly unary `outParam`/`semiOutParam` applications
   and binary `optParam`/`autoParam` applications peel to their carrier, repeating
   along that leading carrier chain only. Binary defaults/tactics are discarded;
   universe arguments do not affect recognition. Wrong arities, metadata and
   annotations inside ordinary nested expressions remain unchanged. Its safe
-  defining equations describe the model, not the opaque native consumer.
+  defining equations describe this checker's actual consumer, not a universal
+  equality to the opaque external native consumer. No cache or fast path is added.
 - `Verify.InductiveAnnotationModelScope` proves model output FVars are a subset
   of input FVars, preserves syntactic support and avoidance, and proves model
   idempotence. `Verify.InductiveAnnotationModelRenaming` proves the model
@@ -1165,6 +1175,17 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   duplicate keys, identity pairs and overlapping supports. Exact constant-head
   arity tests are also preserved. No injection or separation premise is needed
   for these model theorems, and no native consumption interface is assumed.
+- `Verify.InductiveAnnotationStoredTypes` projects chronological raw-domain
+  scope and current/future index exclusion to the actual total-consumer local
+  domains. Native declaration type projections retain the same steps, lookups,
+  names, binder information, allocation positions and exact strictly-prior
+  pair lists while deriving stored-type support and deterministic
+  correspondence. Parent histories keep the same normalized telescope,
+  shared parameters and whole actual index-ID zip. These results require the
+  existing raw receipts but no native/model compatibility premise. Discarded
+  binary defaults cannot introduce FVars into stored types. Reused parameters
+  retain only their original `isDefEq` checks. No semantic typing, unrestricted
+  normalization or full inductive-soundness claim is introduced.
 - `Verify.InductiveAnnotationNativeScope` provides explicitly conditional
   bridges. `NativeAnnotationModelAt` is a pointwise equation between one raw
   expression's native consumed output and the total model; it is a premise,
@@ -1173,11 +1194,12 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   deterministic consumed renaming requires premises for both actual raw
   domains. Binder model receipts cover actual index domains only. A native
   type projection retains the same declaration lookups and exact incoming
-  map while deriving stored-type scope and deterministic correspondence from
-  those explicit premises. Runtime comparison controls do not discharge them
+  map. Actual stored-type scope and deterministic correspondence now follow
+  directly from total peeling; its two final external-native type equalities
+  still require the explicit compatibility premises. Runtime comparison controls do not discharge them
   in the kernel. Reused parameters, native defining-equation availability,
-  semantic typing and full inductive soundness remain separate. No executable
-  checker path, cache, new axiom or admission is added.
+  semantic typing and full inductive soundness remain separate. No cache,
+  new axiom or admission is added.
 - `Verify.InductiveAnnotationOpeningShape` proves that actual FVar binder
   instantiation preserves exact constant-head arities. It cannot create a
   constant or an application from another constructor, so the original unary
@@ -1198,12 +1220,14 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   sort remains the same. Actual parameter shapes and native index declarations
   discharge the FVar-value premises. The same deterministic incoming pair
   correspondence and chronological raw-domain support project to model-domain
-  histories. These histories are model receipts, not assertions that native
-  stored declaration types equal the model without explicit compatibility.
+  histories. Original-history local domains are definitionally total-model
+  outputs; peeling transformed domains again yields the same types by proved
+  idempotence. This does not identify either domain with the external native
+  consumer without compatibility.
   Native consumption/opening commutation remains conditional on pointwise
   model equations for both the original and the opened raw expression. No
   automatic native-equation transport, unrestricted substitution theorem,
-  checker-path change, new axiom or admission is introduced.
+  new axiom or admission is introduced.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -3134,8 +3158,24 @@ expression constructor and five generic pair lists. Independent-reader
 controls permit identity and overlapping source/target IDs. An unchecked
 successful helper retains the necessary parameter/index support boundary;
 wrapper normalization is also shown not to reflect source closedness.
-Consumed types remain exact native consumption receipts, not a new structural
-consumption theorem. Run `lake env lean tests/InductiveBinderLookup.lean`.
+Consumed types now retain exact total-consumer equations and project to proved
+deterministic correspondence. External native comparisons remain empirical
+controls. Run `lake env lean tests/InductiveBinderLookup.lean`.
+
+`tests/InductiveTotalAnnotationConsumer.lean` adds eleven proof regressions
+and twenty-two logical-axiom-only audits for actual stored-type support,
+discarded-default elimination, arbitrary-pair deterministic correspondence,
+chronological scope, current/future exclusion and the same parent histories.
+None assumes an external native/model equation. Three annotated-header
+registrations check stored domains; a recursive registration exercises
+constructor fields, positivity/function binders, recursive helpers and
+recursor construction. Two unchecked index-helper allocations discard
+unsupported default FVars. Existing annotation fixtures retain exact-arity,
+metadata-barrier, carrier-chain, FVar-opening and empirical native controls;
+the six allocation/domain/lookup fixtures use the actual total consumer in
+their proof receipts. These checks establish syntactic storage properties,
+not semantic local typing or full inductive soundness. Run
+`lake env lean tests/InductiveTotalAnnotationConsumer.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration

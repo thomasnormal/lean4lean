@@ -27,9 +27,9 @@ inductive CheckedHeaderTrace (nparams : Nat) :
       {finalStats : InductiveStats} {finalIndices : Nat} {finalCtx : Context}
       (hparam : index < nparams) (hfirst : stats.indConsts.isEmpty = true)
       (hnormalized : ((monadLift (TypeChecker.whnf (body.instantiate1 (.fvar ⟨ctx.ngen.curr⟩))) : M Expr)
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations)) = .ok normalized)
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain))) = .ok normalized)
       (tail : CheckedHeaderTrace nparams { stats with params := stats.params.push (.fvar ⟨ctx.ngen.curr⟩) }
-        normalized (index + 1) nindices (recursorIndexContext ctx name bi domain.consumeTypeAnnotations)
+        normalized (index + 1) nindices (recursorIndexContext ctx name bi (peelTypeAnnotations domain))
         terminal finalStats finalIndices finalCtx) :
       CheckedHeaderTrace nparams stats (.forallE name domain body bi) index nindices ctx
         terminal finalStats finalIndices finalCtx
@@ -49,9 +49,9 @@ inductive CheckedHeaderTrace (nparams : Nat) :
       {finalStats : InductiveStats} {finalIndices : Nat} {finalCtx : Context}
       (hparam : ¬ index < nparams)
       (hnormalized : ((monadLift (TypeChecker.whnf (body.instantiate1 (.fvar ⟨ctx.ngen.curr⟩))) : M Expr)
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations)) = .ok normalized)
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain))) = .ok normalized)
       (tail : CheckedHeaderTrace nparams stats normalized index (nindices + 1)
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations)
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain))
         terminal finalStats finalIndices finalCtx) :
       CheckedHeaderTrace nparams stats (.forallE name domain body bi) index nindices ctx
         terminal finalStats finalIndices finalCtx
@@ -76,7 +76,7 @@ theorem checkInductiveTypes.loopInd.loop.scopedTrace (nparams fuel : Nat) (stats
         split
         · rename_i hfirst
           apply withHeaderDeclWF
-          have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+          have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
           apply bindHeaderResultWF
           intro normalized hnormalized
           apply ih
@@ -106,7 +106,7 @@ theorem checkInductiveTypes.loopInd.loop.scopedTrace (nparams fuel : Nat) (stats
           · exact Except.WF.throw
       · rename_i hparam
         apply withHeaderDeclWF
-        have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+        have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
         apply bindHeaderResultWF
         intro normalized hnormalized
         apply ih
@@ -199,13 +199,13 @@ theorem CheckedHeaderTrace.scope {nparams : Nat} {stats finalStats : InductiveSt
   | @freshParameter stats name domain body bi index nindices ctx normalized terminal finalStats finalIndices finalCtx
       hparam hfirst hnormalized tail ih =>
     intro hwf hreserved
-    have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+    have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
     exact hpush.trans (ih hpush.wf hpush.reserved)
   | reusedParameter _ _ _ _ _ _ ih => exact ih
   | @index stats name domain body bi index nindices ctx normalized terminal finalStats finalIndices finalCtx
       hparam hnormalized tail ih =>
     intro hwf hreserved
-    have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+    have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
     exact hpush.trans (ih hpush.wf hpush.reserved)
 
 def CheckedHeaderSource (nparams : Nat) (types : Array InductiveType) (parent : Nat)

@@ -51,9 +51,9 @@ theorem CheckedHeaderTrace.openedAllocations {nparams : Nat} {stats finalStats :
     cases htype with
     | forallE _ _ _ hbody =>
       have heq := (hbody.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)).whnf
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations) normalized hnormalized
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain)) normalized hnormalized
       subst normalized
-      have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+      have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
       have hnext : (stats.params.push (.fvar ⟨ctx.ngen.curr⟩)).size =
           if stats.indConsts.isEmpty then index + 1 else nparams := by
         simpa only [hfirst, ↓reduceIte, Array.size_push] using congrArg (· + 1) hsize
@@ -69,7 +69,7 @@ theorem CheckedHeaderTrace.openedAllocations {nparams : Nat} {stats finalStats :
         exact False.elim (hnot hfirst)
       · have hsucc : nparams - index = (nparams - (index + 1)) + 1 := by omega
         simp only [List.map_cons, hroles, hsucc, List.replicate_succ, List.cons_append]
-      · have hstart : (recursorIndexContext ctx name bi domain.consumeTypeAnnotations).lctx.decls.size +
+      · have hstart : (recursorIndexContext ctx name bi (peelTypeAnnotations domain)).lctx.decls.size +
             (if stats.indConsts.isEmpty then nparams - (index + 1) else 0) =
             ctx.lctx.decls.size + (if stats.indConsts.isEmpty then nparams - index else 0) := by
           simp only [recursorIndexSize, hfirst, ↓reduceIte]
@@ -105,9 +105,9 @@ theorem CheckedHeaderTrace.openedAllocations {nparams : Nat} {stats finalStats :
     cases htype with
     | forallE _ _ _ hbody =>
       have heq := (hbody.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)).whnf
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations) normalized hnormalized
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain)) normalized hnormalized
       subst normalized
-      have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+      have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
       obtain ⟨steps, opened, declared, hcount, hfresh, hreused, hroles, halloc⟩ := ih
         (hbody.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)) hpush.wf hpush.reserved hsize
       have hvalue := (newlyAllocatedBinderDeclared ctx name domain bi hwf hreserved).mono hpush.wf
@@ -182,9 +182,9 @@ theorem RecursorIndexTrace.openedAllocations {stats : InductiveStats} {type term
     cases htype with
     | forallE _ _ _ hbody =>
       have heq := (hbody.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)).whnf
-        (recursorIndexContext ctx name bi domain.consumeTypeAnnotations) normalized hnormalized
+        (recursorIndexContext ctx name bi (peelTypeAnnotations domain)) normalized hnormalized
       subst normalized
-      have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+      have hpush := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
       obtain ⟨steps, opened, hparams, hindices, declared, hroles, halloc⟩ := ih
         (hbody.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)) hpush.wf hpush.reserved
       refine ⟨_, .bind .index name domain bi (.fvar ⟨ctx.ngen.curr⟩) opened, ?_, ?_, ?_, ?_, ?_⟩

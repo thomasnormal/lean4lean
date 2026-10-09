@@ -115,7 +115,7 @@ theorem CheckedHeaderSources.normalizedBinderAllocations {nparams : Nat} {types 
   have hlocal : ((checked.drop stats.params.size).head?).map BinderStep.localDomain =
       ((generated.drop stats.params.size).head?).map BinderStep.localDomain := by
     simpa only [BinderStep.localDomain, Option.map_map, Function.comp_def] using
-      congrArg (Option.map Expr.consumeTypeAnnotations) hagreement.2
+      congrArg (Option.map peelTypeAnnotations) hagreement.2
   obtain ⟨pairs, hcorrespondence⟩ := hopenChecked.indexCorrespondence hopenGenerated hroles
     (hcheckedParams.trans hgeneratedParams) hcheckedDeclared hgeneratedDeclared
   have hactualPairs : pairs = List.zip ((BinderStep.indexValues checked).map Expr.fvarId!)

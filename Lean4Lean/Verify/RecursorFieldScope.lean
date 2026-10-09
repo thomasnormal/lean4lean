@@ -122,14 +122,14 @@ private theorem loopCtorArgs_loop_scope (stats : InductiveStats) (type : Expr)
     · split
       · exact ih _ _ _ _ ctx hwf hreserved hfields hselected hnext
       · rename_i name domain body bi _ _
-        have hframe := Context.RecursorScopeFrame.push ctx hwf hreserved name bi domain.consumeTypeAnnotations
+        have hframe := Context.RecursorScopeFrame.push ctx hwf hreserved name bi (peelTypeAnnotations domain)
         apply withLocalDeclScopeWF
         apply Lean4Lean.AddInductive.bindWF
         intro recursive
         apply ih
         · exact hframe.wf
         · exact hframe.reserved
-        · exact hfields.push ⟨ctx.ngen.curr⟩ name domain.consumeTypeAnnotations bi
+        · exact hfields.push ⟨ctx.ngen.curr⟩ name (peelTypeAnnotations domain) bi
         · split
           · simpa only [Array.toList_push] using hselected.append (List.Sublist.refl [.fvar ⟨ctx.ngen.curr⟩])
           · simpa only [Array.toList_push] using (List.sublist_append_of_sublist_left hselected (l₂ := [.fvar ⟨ctx.ngen.curr⟩]))

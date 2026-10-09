@@ -38,8 +38,8 @@ def RecursorBinderRenamingAlignment (stats : InductiveStats) (types : Array Indu
 theorem BinderDeclaredAt.renamingTypes {pairs : List (FVarId × FVarId)}
     {checkedRoot current : Context} {checkedValue generatedValue checkedDomain generatedDomain : Expr}
     {name : Name} {bi : BinderInfo}
-    (checkedDeclared : BinderDeclaredAt checkedRoot checkedValue name checkedDomain.consumeTypeAnnotations bi)
-    (generatedDeclared : BinderDeclaredAt current generatedValue name generatedDomain.consumeTypeAnnotations bi)
+    (checkedDeclared : BinderDeclaredAt checkedRoot checkedValue name (peelTypeAnnotations checkedDomain) bi)
+    (generatedDeclared : BinderDeclaredAt current generatedValue name (peelTypeAnnotations generatedDomain) bi)
     (hdomains : IndexRenaming pairs checkedDomain generatedDomain) :
     ∃ checkedDecl generatedDecl,
       checkedRoot.lctx.find? checkedValue.fvarId! = some checkedDecl ∧

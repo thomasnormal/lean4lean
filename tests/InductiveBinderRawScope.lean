@@ -375,7 +375,7 @@ private def checkIndexDeclaration (ctx : Context) (value : Expr) (name : Name)
     (domain : Expr) (bi : BinderInfo) (position : Nat) : MetaM Unit := do
   let some declaration := ctx.lctx.find? value.fvarId!
     | throwError "binder-raw-scope actual index declaration missing"
-  unless declaration.toExpr == value && declaration.type == domain.consumeTypeAnnotations &&
+  unless declaration.toExpr == value && declaration.type == peelTypeAnnotations domain &&
       declaration.userName == name && declaration.binderInfo == bi && declaration.index == position do
     throwError "binder-raw-scope native index declaration anchors changed"
 
@@ -501,7 +501,7 @@ private def reusedParameterBoundary (ctx : Context) : MetaM Unit := do
     | throwError "binder-raw-scope reused parameter setup failed"
   let some declaration := checked.lctx.find? stats.params[0]!.fvarId!
     | throwError "binder-raw-scope reused shared parameter disappeared"
-  let raw := sortType.consumeTypeAnnotations
+  let raw := peelTypeAnnotations sortType
   let .ok equivalent := ((monadLift (TypeChecker.isDefEq declaration.type raw) : M Bool) checked)
     | throwError "binder-raw-scope reused parameter definitional equality failed"
   unless equivalent && declaration.type != raw do
@@ -521,7 +521,7 @@ private def initialSupportBoundary (ctx : Context) : MetaM Unit := do
     | throwError "binder-raw-scope bare generator unexpectedly rejects a declared preexisting source FVar"
   let some declaration := current.lctx.find? infos[0]!.indices[0]!.fvarId!
     | throwError "binder-raw-scope unchecked open-domain index missing"
-  unless declaration.type == (.fvar old : Expr).consumeTypeAnnotations &&
+  unless declaration.type == peelTypeAnnotations (.fvar old) &&
       !(withinIds [] (.fvar old)) && withinIds [old] (.fvar old) do
     throwError "binder-raw-scope an arbitrary initial source FVar incorrectly acquired empty support"
   logInfo "one unchecked helper accepts a declared preexisting raw-domain FVar; its explicit initial support cannot be dropped"
