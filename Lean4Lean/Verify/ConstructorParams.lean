@@ -4,6 +4,7 @@ import Lean4Lean.Verify.Environment
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
 open private Lean4Lean.AddInductive.bindWF from Lean4Lean.Verify.InductiveStats
+open private Lean4Lean.AddInductive.withLocalDeclWF from Lean4Lean.Verify.InductiveStats
 
 private theorem scanFalse_eq (items : List α) (invalid : α → Bool) :
     (forIn (m := Id) items (⟨none, PUnit.unit⟩ : MProd (Option Bool) PUnit) fun item _ =>
@@ -197,6 +198,73 @@ theorem InductiveStats.RemainingParamsAbsent.validIndAppIdx {stats : InductiveSt
   have hfvar := hfvars _ (Array.getElem_mem hindex)
   generalize heq : stats.params[index] = param at hparam hfvar
   cases param <;> simp [Expr.isFVar, FVarsIn, ← heq] at hparam hfvar
+
+inductive ConstructorSpine : Expr → Expr → Prop where
+  | refl (type : Expr) : ConstructorSpine type type
+  | forallE (name : Name) (domain body : Expr) (bi : BinderInfo)
+      (arg terminal : Expr)
+      (h : ConstructorSpine (body.instantiate1 arg) terminal) :
+      ConstructorSpine (.forallE name domain body bi) terminal
+
+theorem checkConstructors.loop_spine (stats : InductiveStats) (isUnsafe : Bool)
+    (parent : Nat) (ctor : Name) (type : Expr) (index fuel : Nat) (ctx : Context) :
+    (checkConstructors.loop stats isUnsafe parent ctor type index fuel ctx).WF fun _ =>
+      ∃ terminal, ConstructorSpine type terminal ∧
+        isValidIndAppIdx stats terminal parent = true := by
+  induction fuel generalizing isUnsafe type index ctx with
+  | zero => exact Except.WF.throw
+  | succ fuel ih =>
+    cases type with
+    | forallE name domain body bi =>
+      rw [checkConstructors.loop.eq_def]
+      dsimp only
+      cases hparam : stats.params[index]? with
+      | some param =>
+        apply Lean4Lean.AddInductive.bindWF
+        intro paramType
+        apply Lean4Lean.AddInductive.bindWF
+        intro equal
+        split
+        · apply Lean4Lean.AddInductive.bindWF
+          intro _
+          refine (ih isUnsafe (body.instantiate1 param) (index + 1) ctx).mono ?_
+          rintro _ ⟨terminal, hspine, hvalid⟩
+          exact ⟨terminal, .forallE name domain body bi param terminal hspine, hvalid⟩
+        · exact Except.WF.throw
+      | none =>
+        apply Lean4Lean.AddInductive.bindWF
+        intro sort
+        split
+        · by_cases hunsafe : isUnsafe
+          · simp [hunsafe]
+            apply Lean4Lean.AddInductive.withLocalDeclWF
+            intro arg ctx' hfvar harg hgen hframe
+            refine (ih true (body.instantiate1' arg) (index + 1) ctx').mono ?_
+            rintro _ ⟨terminal, hspine, hvalid⟩
+            have hspine' : ConstructorSpine (body.instantiate1 arg) terminal := by
+              rw [Expr.instantiate1_eq]
+              exact hspine
+            exact ⟨terminal, .forallE name domain body bi arg terminal hspine', hvalid⟩
+          · simp [hunsafe]
+            apply Lean4Lean.AddInductive.bindWF
+            intro _
+            apply Lean4Lean.AddInductive.withLocalDeclWF
+            intro arg ctx' hfvar harg hgen hframe
+            refine (ih false (body.instantiate1' arg) (index + 1) ctx').mono ?_
+            rintro _ ⟨terminal, hspine, hvalid⟩
+            have hspine' : ConstructorSpine (body.instantiate1 arg) terminal := by
+              rw [Expr.instantiate1_eq]
+              exact hspine
+            exact ⟨terminal, .forallE name domain body bi arg terminal hspine', hvalid⟩
+        · exact Except.WF.throw
+    | _ =>
+      rw [checkConstructors.loop.eq_def]
+      dsimp only
+      split
+      · exact Except.WF.throw
+      · rename_i hvalid
+        intro _ _
+        exact ⟨_, .refl _, by simpa using hvalid⟩
 
 theorem checkConstructors.loop_arity (stats : InductiveStats) (isUnsafe : Bool)
     (parent : Nat) (ctor : Name) (type : Expr) (index fuel : Nat) (ctx : Context)
