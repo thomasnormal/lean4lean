@@ -965,6 +965,40 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   semantic typing, hidden aliases/tails, nested preprocessing and full
   inductive soundness remain separate. No executable kernel path, cache,
   new axiom or admission is added.
+- `Verify.InductiveIndexPositions` retains each native index declaration's
+  exact stored `LocalDecl.index`, in addition to lookup, expression, domain,
+  user name and binder information. `BinderIndexAllocations` skips parameters
+  and advances positions exactly once per index. Its ordinal projection
+  retains the exact declaration position; increasing positions under the
+  same reader's functional lookup prove distinct index IDs.
+  `IndexPairInjection` records duplicate-free source and target projections;
+  `of_zip`, `functional` and `injective` prove uniqueness of listed pairs.
+  Generic zip projections may truncate, while `indexZipExactProjections`
+  explicitly requires equal lengths to retain both whole lists.
+- `Verify.InductiveBinderAllocations` strengthens the original opening
+  extractor with native positions in the same induction/witness as parameter
+  history, ordered roles, index counts/values and declaration lookup evidence.
+  The checked base is entry `decls.size` plus remaining freshly allocated
+  parameters for the first header; reused parameters do not shift it.
+  Generated parameters are all reused, so the generated base is entry
+  `decls.size`. Scope frames preserve exact stored declarations and positions.
+- `Verify.InductiveBinderAllocationAlignment` couples those stronger
+  checked/generated histories, their sequential raw-domain correspondence
+  and the injective actual index-ID zip. `injectiveIndexZip` retains exact
+  checked count and whole source/target projections, not truncated prefixes.
+  Normalized/wrapped source, CPS/getter, registration and safe-prefix bridges
+  retain the stronger same-reader receipts; projections recover previous
+  renaming/prefix/domain contracts. An older existential domain-only witness
+  is not independently merged with a new allocation history.
+  Certified inputs retain the existing dense `LocalContext.WF` premise;
+  erased/hole-containing readers are outside it. Stored declaration-index
+  receipts are not an arbitrary physical `getAt?`-slot theorem. Pair zip
+  injectivity does not imply disjoint source/target IDs or functionality of
+  the identity-or-listed-pair expression relation. Global deterministic
+  renaming, structural annotation-consumption compatibility, semantic typing,
+  hidden aliases/tails, nested preprocessing and full inductive soundness
+  remain separate. No executable kernel path, cache, new axiom or admission
+  is added.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2836,6 +2870,24 @@ measurements only; general consumed-output structural compatibility is not
 proved. All audits reject `sorryAx` and use only existing logical,
 substitution and scope/map/list interfaces. Run
 `lake env lean tests/InductiveBinderRenaming.lean`.
+
+`tests/InductiveBinderAllocations.lean` adds twenty-six proof regressions and
+fifty-three axiom audits for exact native declaration indices, ordinal
+allocation receipts, distinct index IDs, full injective zip projections,
+fake-position rejection and duplicate-ID/pair controls. Concrete wrapped
+registration uses proved normalization traces. Across five dense readers,
+100 registration fixtures cover 125 parent pairs and 250 opening plans,
+275 fresh index pairs and 205 shared parameter records. They check native
+`find?`, physical `getAt?`, stored indices, contiguous per-parent allocations,
+reused parameters and intervening major/motive allocation gaps. Physical slot
+checks are empirical, not a general proved slot contract. Four separate
+unchecked hole registrations cover six additional parent pairs, explicitly
+outside the existing dense `LocalContext.WF` fragment. Counterexamples retain
+overlapping injective pairs, identical IDs across independent different
+readers and nondeterministic identity-or-listed-pair correspondence. All
+audits reject `sorryAx` and use only existing logical, substitution and
+scope/map/list interfaces. Run
+`lake env lean tests/InductiveBinderAllocations.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
