@@ -332,7 +332,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   correctness. The existential header root and constructor environment remain
   distinct from the returned recursor environment; no final-environment map
   validity, metadata preservation, or WHNF transport is inferred by these
-  runner theorems.
+  witness-only runner theorems.
   `run.safeConstructorTraces` projects the indexed traces and proves that their
   original root has safe context safety. Both are operational acceptance
   certificates, not unrestricted inductive frontend or environment soundness.
@@ -350,10 +350,38 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   interfaces and standard logical axioms, excluding `sorryAx` and expression
   or guarded-arity interfaces. A proof regression composes preservation with
   the constructor-registration certificate, retaining original constants and
-  exact header/constructor records in the recursor environment. Connecting the
-  suffix through the earlier `mkRecInfos` continuation to the complete runner
-  remains separate, as do semantic recursor correctness, WHNF transport, and
-  unrestricted inductive soundness.
+  exact header/constructor records in the recursor environment. The separate
+  frame and complete-run preservation modules below now connect this suffix
+  through the earlier `mkRecInfos` continuation. Semantic recursor correctness,
+  WHNF transport, and unrestricted inductive soundness remain separate.
+- `Verify.RecursorInfoFrame` proves `mkRecInfos.frame` for arbitrary generation
+  continuations. The actual motive, major-premise, index, constructor-field,
+  recursive-hypothesis, and minor-premise loops preserve `Context.HeaderFrame`:
+  environment, universe parameters, safety, primitive-name policy, and fuel.
+  Local contexts and fresh-name generators may grow and are not equated with
+  their inputs. The theorem needs no environment-validity or safe-mode premise
+  and uses only standard logical axioms, without checker-correctness or
+  expression-interface assumptions. WHNF/inference/classification results are
+  opaque operational values; the proof does not assert their semantic validity.
+- `Verify.InductiveRunPreservation` connects successful safe complete runs to
+  their actual final environment. `InductiveStats.SafeRunRegistration` retains
+  the original rooted constructor-registration certificate and its intermediate
+  constructor environment, proves final concrete map validity, and preserves
+  every constructor-stage lookup. `run.safeRegistration` composes the existing
+  checked registration prefix, the real recursor-information frame, and the
+  verified registration suffix; it needs only an explicit safe context and
+  initial concrete map validity. `preservesOriginal`, `headerMetadata`,
+  `constructorMetadata`, and `declaredParameters` project exact original-entry,
+  header/constructor-record, and numeric parameter alignment facts in the final
+  environment. `run.safePreserves` exposes final map validity and preservation
+  of all original entries without keeping the existential intermediate data.
+  Safe positivity traces remain indexed by the original header root: no WHNF
+  transport to the final environment is assumed. Both runner audits exclude
+  `sorryAx`, using only the existing map and guarded-arity interfaces; all four
+  certificate projections use only standard logical axioms. Executable kernel
+  code is unchanged. Generated recursor typing, reduction equations, semantic
+  `TrEnv` extension, earlier declaration preprocessing, and unrestricted
+  inductive frontend soundness remain unproved.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -1531,8 +1559,8 @@ these are not semantic recursor proofs. Early and late boundaries distinguish
 constructor-prefix acceptance from duplicate-universe rejection and a recursor
 name collision after successful constructor registration. An unsafe negative
 field control remains outside the theorem's explicit safe-context scope.
-The theorem does not identify its intermediate environment with the complete
-runner's result or cover the earlier declaration preprocessing/frontend guards.
+These witness-only theorems do not identify their intermediate environment with
+the complete runner's result or cover earlier declaration preprocessing guards.
 
 `tests/RecursorRegistration.lean` adds four proof regressions and one axiom audit
 for suffix map validity, successful-result extraction, exact old lookup
@@ -1549,6 +1577,24 @@ and repeated datatype names; one rule-generation fuel failure propagates before
 insertion. The low-level fixtures supply explicit local binders and do not claim
 semantic typing or complete declaration acceptance. Existing full-run fixtures
 exercise the extracted suffix through the actual checking/generation path.
+
+`tests/InductiveRunPreservation.lean` adds eight proof regressions and seven
+axiom audits for arbitrary recursor-information continuations, returned frames,
+complete-run registration, final map validity and old lookups, final exact
+header/constructor metadata, parameter alignment, and preservation from the
+unchanged positivity root. Thirty-one successful information-generation frames
+cover empty input, no constructors, recursive/higher-order fields, one/two
+parameters, mutual/indexed types, default/seeded local contexts, both primitive
+policies, universe parameters, nested-header metadata, and unsafe generation.
+They inspect all five immutable frame fields, imported/datatype/constructor
+lookups, quotient state, local-context/fresh-name growth, exact index/minor
+counts, and availability of all generated local binders. Two boundaries check
+zero-fuel rejection and propagation of an arbitrary continuation failure. The
+frame's audit and all certificate projections use only standard logical axioms;
+the two runner audits use the existing three map and six guarded-arity
+interfaces. Every audit excludes `sorryAx`. Adjacent complete-run fixtures
+remain the executable smoke checks for the final installed recursors and rules;
+no semantic recursor or full frontend soundness claim is added.
 
 `tests/ConstructorBatchArity.lean` adds four proof regressions and two axiom
 audits for full-batch checking, successful-result projection, arbitrary
