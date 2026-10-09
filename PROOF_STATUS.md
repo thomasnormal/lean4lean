@@ -3908,6 +3908,68 @@ axioms and runtime admissions, and forbid the global native bound-variable
 range axiom. All three new modules replay through lean4lean. Run
 `lake env lean tests/InductiveCtorFieldTranslation.lean`.
 
+`Verify.InductiveUArgTrace` captures the actual `mkRecInfos.loopUArgs`
+higher-order recursive-argument opening. Its receipt retains the successful
+inference of the supplied argument, initial WHNF of that inferred type, and
+the exact subsequent telescope opening with per-body WHNF in each pushed
+reader. A parameter-free adapter reuses `RecursorIndexTrace` without changing
+the runtime computation or independently rerunning an index loop. This
+adapter does not restrict the original inductive declaration's parameters:
+`loopUArgs` has no parameter-skipping phase. The getter and scoped CPS expose
+the actual terminal, ordered temporary arguments, reader and scope; the
+morphism preserves inference, normalization and callback error behavior.
+
+`Verify.InductiveUArgTranslation` connects that same receipt to the existing
+normalized telescope translation. Source support explicitly supplies semantic
+correspondence for the actual inferred/normalized type and the initial
+argument, while annotation and body-normalization support remain indexed by
+the exact native trace. The translated history derives reader correspondence
+and the fully applied recursive argument's type along those same openings.
+It constructs the temporary argument model and exact selected identifiers
+from one initial WF/native-aligned mixed model. No independently assumed
+final model or final reader correspondence is supplied.
+
+Arbitrary-body abstraction over those temporary arguments returns its typed
+semantic result to the initial reader, preserving earlier constructor fields
+and parent/motive locals. Transport back to the temporary argument reader
+uses semantic lifting across that same suffix rather than identity weakening.
+This is the boundary needed to return a recursive-hypothesis domain outside
+the scoped temporary arguments; its eventual motive application remains an
+explicit translated/typed-body obligation, not a consequence of native scope.
+
+`Verify.InductiveUArgTranslationCPS` packages the native opening, translated
+history and derived model as one endpoint. Success-local support is consumed
+only at actual `loopUArgs` captures; the callback receives that exact temporary
+reader and may derive a typed native abstraction in the initial model's
+context. Actual inference/WHNF semantic support, motive application,
+`getIIndices` alignment, constructor/head alignment, recursive-hypothesis
+allocation, minor-domain opening and eventual minor/current-reader
+correspondence remain separate obligations. Inherited foundations and native
+interfaces remain explicitly audited. No new admission, axiom, oracle,
+runtime checker change, cache or fast path is introduced.
+
+`tests/InductiveUArgTranslation.lean` adds thirty proof controls, 176 axiom
+audits, ten axiom prints and eight native-interface provenance pins. Sixteen
+successful native captures cover actual inference, initial/body WHNF,
+dependent argument identifiers/domains/dependencies/order, aliases, metadata
+and annotations, retained locals/lets, and discarding temporary arguments on
+return to the base reader. A constructor-parameter reuse case connects actual
+`loopCtorArgs` and `loopUArgs` without imposing an original-parameter bound.
+Eight failure controls cover inference, normalization, fuel and callbacks.
+Formal controls preserve the shared native terminal semantic when typing the
+fully applied argument and conclude body-abstraction typing explicitly in the
+initial model's context. An external-initial-local countercontrol distinguishes
+semantic lifting from identity weakening. Native base-reader inferability and
+scope checks do not establish generated motive/IH/minor correctness.
+The new whole-module census is fifty-one declarations / twenty-nine theorems,
+including private/generated helpers (trace 23/13, semantic transport 21/10,
+CPS 7/6); the old clean logical core stays seventy-three / thirty-eight.
+Audits pin inherited admissions/interfaces separately, reject new module-owned
+axioms and runtime admissions, and explicitly forbid the global native
+bound-variable-range axiom even if accidentally whitelisted. All three
+modules replay through lean4lean. Run
+`lake env lean tests/InductiveUArgTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
