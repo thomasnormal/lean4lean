@@ -809,16 +809,43 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   forms prove checked/generated index-count equality for any source whose
   normalization receipt is retained uniformly across both readers; they do not
   infer that receipt from an unchecked action or equate raw source arity with a
-  normalized count. Ten native fixtures exercise annotated, let, beta and
-  mixed source headers through actual checking, generation and registration,
-  while deliberately leaving proof of those wrapper-specific normalization
-  receipts for the next item. Three boundaries retain inconsistent bare counts
-  and partial checked fuel behavior. Five audits exclude `sorryAx`; existing
-  `Expr.instantiate1_eq` and map/list interfaces are inherited. No executable
+  normalized count. `registeredNormalizedAlignedIndices` preserves the same
+  normalized-count proof through actual registration alongside source/scope,
+  map/old-lookup, offset-metadata and local RHS-scope receipts.
+  `safeRegisteredNormalizedIndexCounts` lifts it through the actual safe
+  checked-header/constructor/generation/registration prefix and both environment
+  extensions. Concrete wrapper normalization receipts are supplied separately
+  by `InductiveNormalizedWrappers`, not assumed by those constructors.
+  Ten native fixtures exercise annotated, let, beta and mixed source headers
+  through actual checking, generation and registration. Three boundaries retain
+  inconsistent bare counts and partial checked fuel behavior. Five original
+  audits exclude `sorryAx`; existing `Expr.instantiate1_eq` and map/list
+  interfaces are inherited. No executable
   kernel change, axiom or admission is added.
   This is a transport-aware structural certificate, not a semantic source/
   binder-domain/RHS typing or reduction theorem, and it does not establish
   nested/preprocessing/full inductive soundness.
+- `Verify.InductiveNormalizedWrappers` constructs concrete canonical receipts,
+  rather than assuming reader-independent normalization for each wrapper.
+  `SortTelescope.normalized` supplies the identity receipt;
+  `NormalizedSortTelescope.mdata` composes arbitrary outer metadata annotations
+  with any existing receipt. `SortTelescope.normalizedLet` handles a direct let
+  whose substituted body is an explicit sort telescope, and
+  `SortTelescope.normalizedBeta` handles a single lambda application with an
+  explicit telescope body. Both return the actual substituted expression,
+  allowing used substitutions in binder domains and arbitrary binder metadata,
+  values and environments. Outer annotation chains compose with both receipts.
+  The proofs follow the actual fresh checker state, core/full WHNF actions and
+  cache-save effects; they do not equate final states with direct telescope
+  normalization. Depth and WHNF-loop exhaustion remain errors: these are
+  successful-result certificates, not termination or typing theorems.
+  Concrete proof fixtures pass the constructed receipts through the safe
+  checked-header/constructor/registration count bridge without an external
+  normalization premise. More deeply mixed let/beta wrappers are native
+  regressions only, not an asserted generic closure theorem. Hidden aliases,
+  wrapped telescope tails, pointwise binder-domain correspondence, semantic
+  source/RHS typing, nested preprocessing and full inductive soundness remain
+  separate. No executable kernel change, new axiom or admission is added.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2605,6 +2632,23 @@ unchecked-count/partial-fuel controls. Runtime fixtures verify actual
 checked/generated/registered counts but intentionally do not turn wrapper
 normalization into an unproved theorem. Run
 `lake env lean tests/InductiveNormalizedHeaders.lean`.
+
+`tests/InductiveNormalizedWrappers.lean` adds sixteen proof regressions and
+thirteen axiom audits for concrete metadata, let and beta receipts, used
+substitutions, actual safe-prefix specializations and the normalized
+registration bridge. Fifty-one native registration prefixes and fifty-one
+successful WHNF observations cover outer annotations,
+mixed wrappers, dependent parameters, substituted index domains, zero indices,
+mutual declarations, polymorphic readers and seeded local/fresh-name contexts;
+they preserve strict raw/normalized arity gaps and registered index metadata.
+Seven fuel, unchecked-statistics and under-binder wrapper controls retain the
+exact proof boundary; direct let/beta normalization succeeds at depth two and
+WHNF-loop fuel one. Axiom audits reject `sorryAx`. Let receipts use only the
+existing `Expr.instantiate1_eq` substitution interface beyond logical axioms;
+beta additionally uses `Expr.instantiateRange_eq` and `Expr.instantiate_eq`.
+Safe/registration bridges inherit only the existing persistent-map/list and
+substitution interfaces. Run
+`lake env lean tests/InductiveNormalizedWrappers.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration

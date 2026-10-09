@@ -3,6 +3,8 @@ import Lean4Lean.Verify.InductiveIndexAlignment
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
 open ElimNestedInductive (ContextReserved)
+open private Lean4Lean.AddInductive.bindWF Lean4Lean.AddInductive.readWF
+  from Lean4Lean.Verify.InductiveStats
 
 def NormalizedSortTelescope (source normalized : Expr) : Prop :=
   SortTelescope normalized ∧
@@ -81,5 +83,63 @@ theorem mkRecInfos.getNormalizedAlignedIndices (nparams : Nat) (stats : Inductiv
   obtain ⟨hframe, hcounts, hsources⟩ :=
     mkRecInfos.getIndexSources stats types elimLevel ctx hwf hreserved result hresult
   exact ⟨hframe, hcounts, hsources, headers.normalizedTelescopeIndexCounts hsources htypes⟩
+
+theorem mkRecInfos.registeredNormalizedAlignedIndices (nparams : Nat) (stats : InductiveStats)
+    (types : Array InductiveType) (elimLevel : Level) (lparams : List Name) (isK isUnsafe : Bool)
+    (original checkedRoot ctx : Context)
+    (headers : CheckedHeaderSources nparams types original stats checkedRoot)
+    (htypes : NormalizedHeaderTelescope types) (hwf : ctx.lctx.WF)
+    (hreserved : ContextReserved ctx.lctx ctx.ngen) (henv : ctx.env.constants.WF) :
+    (mkRecInfos.scopeRegistration stats types elimLevel lparams isK isUnsafe ctx).WF fun result =>
+      ctx.RecursorScopeFrame result.2.2 ∧ RecursorInfoCounts types result.2.1 ∧
+      RecursorInfoIndexSources stats types elimLevel ctx result.2.1 result.2.2 ∧
+      result.1.constants.WF ∧ (∀ name info, ctx.env.find? name = some info → result.1.find? name = some info) ∧
+      stats.RecursorOffsetMetadata types elimLevel result.2.1 lparams result.2.2.lctx
+        isK isUnsafe result.2.2 result.1 ∧ LocalRecursorRuleRhsScope stats types result.2.1 result.2.2 result.1 ∧
+      RecursorIndexCounts stats types result.2.1 := by
+  intro result hresult
+  obtain ⟨hframe, hcounts, hsources, hmap, hkeep, hmetadata, hrhs⟩ :=
+    mkRecInfos.registeredIndexSources stats types elimLevel lparams isK isUnsafe ctx hwf hreserved henv result hresult
+  exact ⟨hframe, hcounts, hsources, hmap, hkeep, hmetadata, hrhs,
+    headers.normalizedTelescopeIndexCounts hsources htypes⟩
+
+theorem checkInductiveTypes.safeRegisteredNormalizedIndexCounts (nparams : Nat) (types : Array InductiveType)
+    (numNested : Nat) (elimLevel : Level) (lparams : List Name) (isK : Bool) (ctx : Context)
+    (htypes : NormalizedHeaderTelescope types) (hwf : ctx.lctx.WF)
+    (hreserved : ContextReserved ctx.lctx ctx.ngen) :
+    (checkInductiveTypes nparams types (fun stats => do
+      withEnv (← declareInductiveTypes stats nparams types numNested false) do
+        checkConstructors types stats false
+        withEnv (← declareConstructors stats types false) do
+          let result ← mkRecInfos.scopeRegistration stats types elimLevel lparams isK false
+          return (stats, result)) ctx).WF fun result => RecursorIndexCounts result.1 types result.2.2.1 := by
+  apply checkInductiveTypes.scopedHeaderTraces
+  · exact hwf
+  · exact hreserved
+  intro stats current headers hframe
+  apply Lean4Lean.AddInductive.bindWF
+  intro headerEnv
+  change ((checkConstructors types stats false >>= fun _ => _) { current with env := headerEnv }).WF _
+  apply Lean4Lean.AddInductive.bindWF
+  intro _
+  apply Lean4Lean.AddInductive.bindWF
+  intro constructorEnv
+  change ((mkRecInfos.scopeRegistration stats types elimLevel lparams isK false
+    { current with env := constructorEnv }).bind fun result => .ok (stats, result)).WF _
+  have hcounts : (mkRecInfos.scopeRegistration stats types elimLevel lparams isK false
+      { current with env := constructorEnv }).WF fun result => RecursorIndexCounts stats types result.2.1 := by
+    unfold mkRecInfos.scopeRegistration
+    apply mkRecInfos.scopedNormalizedAlignedIndices nparams stats types elimLevel _ ctx current
+      { current with env := constructorEnv }
+      (fun (result : Kernel.Environment × Array RecInfo × Context) =>
+        RecursorIndexCounts stats types result.2.1) headers htypes
+    · exact hframe.wf
+    · exact hframe.reserved
+    intro infos source _ _ hcounts
+    apply Lean4Lean.AddInductive.readWF
+    apply Lean4Lean.AddInductive.bindWF
+    intro env
+    exact .pure hcounts
+  exact hcounts.bind fun result hcount => .pure hcount
 
 end Lean4Lean.AddInductive
