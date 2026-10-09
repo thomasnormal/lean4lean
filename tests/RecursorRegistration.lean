@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.RecursorMinorIndexing
+import Lean4Lean.Verify.RecursorRuleRhs
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -285,6 +285,52 @@ example (infos : Array RecInfo) : RecursorMinorIndexing #[] infos := by
   intro parent hparent
   simp at hparent
 
+example (types : Array InductiveType) (elimLevel : Level) (stats : InductiveStats)
+    (parent : Nat) (motives minors : Array Expr) (initial : Nat) (ctx : Context) :
+    (mkRecRules types elimLevel stats parent motives minors initial ctx).WF fun result =>
+      RecursorRuleRhs stats motives minors ctx types[parent]!.ctors result.1 initial ∧
+      result.2 = initial + types[parent]!.ctors.length :=
+  mkRecRules.rhs types elimLevel stats parent motives minors initial ctx
+
+example (types : Array InductiveType) (elimLevel : Level) (stats : InductiveStats)
+    (parent : Nat) (motives minors : Array Expr) (initial final : Nat) (ctx : Context)
+    (rules : List RecursorRule)
+    (hresult : mkRecRules types elimLevel stats parent motives minors initial ctx = .ok (rules, final)) :
+    RecursorRuleRhs stats motives minors ctx types[parent]!.ctors rules initial :=
+  (mkRecRules.rhs types elimLevel stats parent motives minors initial ctx _ hresult).1
+
+example (stats : InductiveStats) (motives minors : Array Expr) (ctx : Context)
+    (ctors : List Constructor) (rules : List RecursorRule) (initial : Nat)
+    (hrhs : RecursorRuleRhs stats motives minors ctx ctors rules initial) :
+    rules.length = ctors.length := hrhs.count
+
+example (stats : InductiveStats) (motives minors : Array Expr) (ctx : Context)
+    (ctors : List Constructor) (rules : List RecursorRule) (initial index : Nat)
+    (hrhs : RecursorRuleRhs stats motives minors ctx ctors rules initial)
+    (ctor : Constructor) (hctor : ctors[index]? = some ctor) :
+    ∃ rule, rules[index]? = some rule ∧
+      RecursorRuleRhsReceipt stats motives minors ctx ctor minors[initial + index]! rule :=
+  hrhs.at index ctor hctor
+
+example (stats : InductiveStats) (motives minors : Array Expr) (ctx : Context)
+    (ctor : Constructor) (minor : Expr) (rule : RecursorRule)
+    (hreceipt : RecursorRuleRhsReceipt stats motives minors ctx ctor minor rule) :
+    ∃ (fields values : Array Expr) (current : Context), ctx.HeaderFrame current ∧
+      rule.ctor = ctor.name ∧ rule.nfields = fields.size ∧
+      rule.rhs = current.lctx.mkLambda stats.params (current.lctx.mkLambda motives
+        (current.lctx.mkLambda minors (current.lctx.mkLambda fields (mkAppN (mkAppN minor fields) values)))) :=
+  hreceipt
+
+example (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (infos : Array RecInfo) (lparams : List Name) (lctx : LocalContext) (isK isUnsafe : Bool)
+    (ctx : Context) (env : Kernel.Environment)
+    (hmetadata : stats.RecursorOffsetMetadata types elimLevel infos lparams lctx isK isUnsafe ctx env)
+    (hcounts : RecursorInfoCounts types infos) : LocalRecursorRuleRhs stats types infos ctx env :=
+  hmetadata.localRuleRhs hcounts
+
+example (stats : InductiveStats) (motives minors : Array Expr) (ctx : Context) (initial : Nat) :
+    RecursorRuleRhs stats motives minors ctx [] [] initial := .nil
+
 private def fieldStage (params : Array Expr) (type : Expr) : M Nat :=
   mkRecInfos.loopCtorArgs { (default : InductiveStats) with params } type fun _ fields _ =>
     pure fields.size
@@ -337,6 +383,10 @@ private def checkRuleSourceShape (ctx : Context) (types : Array InductiveType)
   unless rules.map (·.ctor) == types[index]!.ctors.map (·.name) &&
       rules.length == types[index]!.ctors.length && final == initial + types[index]!.ctors.length do
     throwError "incorrect rule-source names, count, or state advancement"
+  for ruleIndex in [:rules.length] do
+    let expected := recursorRuleRhs (statsFor types) (infos.map (·.motive)) (infos.flatMap (·.minors))
+      #[] #[] (localsFor infos) (infos.flatMap (·.minors))[initial + ruleIndex]!
+    unless rules[ruleIndex]!.rhs == expected do throwError "incorrect shifted zero-field RHS receipt"
 
 private def checkPreserved (original env : Kernel.Environment) (name : Name) : MetaM Unit := do
   let some old := original.find? name | throwError "missing old-entry fixture {name}"
@@ -348,6 +398,40 @@ private def checkPreserved (original env : Kernel.Environment) (name : Name) : M
 private def rulesMatch (before after : List RecursorRule) : Bool :=
   before.length == after.length && (before.zip after).all fun pair =>
     pair.1.ctor == pair.2.ctor && pair.1.nfields == pair.2.nfields && pair.1.rhs == pair.2.rhs
+
+private def rhsReceiptStage (types : Array InductiveType) (elimLevel : Level) (stats : InductiveStats)
+    (infos : Array RecInfo) (ctor : Constructor) (minor : Expr) : M (RecursorRule × Nat) :=
+  mkRecInfos.loopCtorArgs stats ctor.type fun _ fields recursiveFields =>
+    mkRecRules.loopU types stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+      (getRecLevels elimLevel stats.levels) recursiveFields 0 #[] fun values => do
+      let lctx ← getLCtx
+      let rule : RecursorRule := {
+        ctor := ctor.name, nfields := fields.size,
+        rhs := recursorRuleRhs stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          fields values lctx minor }
+      return (rule, 0)
+
+private def checkLocalRhs (ctx : Context) (types : Array InductiveType) (elimLevel : Level)
+    (stats : InductiveStats) (infos : Array RecInfo) (parent index : Nat)
+    (ctor : Constructor) (rule : RecursorRule) : MetaM Unit := do
+  let some minor := infos[parent]!.minors[index]? | throwError "missing RHS receipt's local minor"
+  let .ok (receipt, _) := rhsReceiptStage types elimLevel stats infos ctor minor ctx
+    | throwError "local-minor RHS receipt did not replay"
+  unless rule.ctor == receipt.ctor && rule.nfields == receipt.nfields && rule.rhs == receipt.rhs do
+    throwError "installed RHS differs from its positional local-minor receipt"
+
+private def checkRhsMinorControl (ctx : Context) (types : Array InductiveType) (infos : Array RecInfo)
+    (parent index alternate : Nat) : MetaM Unit := do
+  let current := { ctx with lctx := localsFor infos }
+  let .ok (rules, _) := mkRecRules types .zero (statsFor types) parent
+      (infos.map (·.motive)) (infos.flatMap (·.minors)) (recursorMinorOffset types parent) current
+    | throwError "RHS minor-control generation failed"
+  let some ctor := types[parent]!.ctors[index]? | throwError "missing RHS control constructor"
+  let some rule := rules[index]? | throwError "missing RHS control rule"
+  let some minor := infos[parent]!.minors[alternate]? | throwError "missing alternate RHS control minor"
+  let .ok (receipt, _) := rhsReceiptStage types .zero (statsFor types) infos ctor minor current
+    | throwError "alternate RHS minor-control replay failed"
+  unless rule.rhs != receipt.rhs do throwError "RHS receipt must distinguish different positional minors"
 
 private def checkExact (ctx : Context) (stats : InductiveStats) (types : Array InductiveType)
     (elimLevel : Level) (infos : Array RecInfo) (lparams : List Name) (lctx : LocalContext)
@@ -372,6 +456,7 @@ private def checkExact (ctx : Context) (stats : InductiveStats) (types : Array I
     unless rule.ctor == ctor.name &&
         rule.nfields == declareConstructors.arity 0 ctor.type - stats.params.size do
       throwError "incorrect ordered raw rule field count"
+    checkLocalRhs ctx types elimLevel stats infos index ruleIndex ctor rule
   return nextIndex
 
 private def checkRecursor (ctx : Context) (types : Array InductiveType) (infos : Array RecInfo)
@@ -389,8 +474,8 @@ private def checkRecursor (ctx : Context) (types : Array InductiveType) (infos :
     throwError "incorrect recursor metadata for {type.name}"
   for ruleIndex in [:type.ctors.length] do
     let rule := info.rules[ruleIndex]!
-    let expected := lctx.mkLambda (infos.map (·.motive)) <|
-      lctx.mkLambda minors minors[offset + ruleIndex]!
+    let expected := recursorRuleRhs (statsFor types) (infos.map (·.motive)) minors #[] #[] lctx
+      infos[index]!.minors[ruleIndex]!
     unless rule.ctor == type.ctors[ruleIndex]!.name && rule.nfields == 0 &&
         rule.rhs == expected && !rule.rhs.hasFVar do
       throwError "incorrect threaded minor index for {type.name}, rule {ruleIndex}"
@@ -512,6 +597,10 @@ run_meta
   audit ``RecursorInfoCounts.minorIndexing false
   audit ``RecursorMinorIndexing.at false
   audit ``RecursorMinorIndexing.getElem! false
+  audit ``RecursorRuleRhs.count false
+  audit ``RecursorRuleRhs.at false
+  audit ``mkRecRules.rhs false
+  audit ``InductiveStats.RecursorOffsetMetadata.localRuleRhs false
   let ctx : Context := {
     env := (← Lean.getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let natType := Expr.const ``Nat []
@@ -550,6 +639,8 @@ run_meta
   let emptyInfo := infoFor empty.name #[]
   let lastInfo := infoFor last.name #[`minorLast]
   let infos := #[firstInfo, emptyInfo, lastInfo]
+  checkRhsMinorControl ctx types infos 0 0 1
+  logInfo "positional RHS receipt distinguishes a deliberately swapped local minor"
   checkRuleSourceShape ctx types infos 0 0
   checkRuleSourceShape ctx types infos 0 1
   checkRuleSourceShape ctx types infos 2 0
@@ -684,6 +775,6 @@ run_meta
   checkChecked { ctx with allowPrimitive := true } 1 mutualTypes
   checkChecked { ctx with fuel := { ctx.fuel with inductiveFuel := 3 } }
     1 #[checkedHeader `CheckedMetaOne 1 [parameterOnly, parameterRecursive]]
-  logInfo "14 checked and complete recursor fixtures passed exact records, rule receipts, prefix offsets, minor indexing, and registered constructor field counts"
+  logInfo "14 checked and complete recursor fixtures passed exact records, positional RHS receipts, prefix offsets, minor indexing, and registered constructor field counts"
 
 end RecursorRegistrationTest
