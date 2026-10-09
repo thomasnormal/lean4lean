@@ -3783,6 +3783,71 @@ module-owned axioms and runtime admissions, and forbid the global native
 loose-bound-variable-range axiom. All three modules replay through lean4lean.
 Run `lake env lean tests/InductiveMotiveContextTranslation.lean`.
 
+`Verify.InductiveParentPassTrace` records the actual first recursor parent
+pass, `mkRecInfos.loopInd1`, separately from the later minor pass. Each step
+retains the successful initial header normalization, exact native index
+trace, actual appended `RecInfo` with empty minors, and its exact pushed-motive
+reader. The stop preserves the original prefix/reader. Scope, count and prefix
+receipts preserve old infos and record empty minors only for newly appended
+parents. The getter captures the actual parent-phase endpoint; its morphism
+exposes the existing CPS law, not a modeled or rerun native computation.
+
+`Verify.InductiveParentContextTranslation` extends the mixed context through
+one parent. It extracts the index model from the supplied translated history
+once, derives the actual typed major and motive openings, then builds the
+exact motive model using its stored native domain and dependencies. The
+receipt retains both openings, final model WF/native/virtual alignment and
+one shared extension whose allocated identifiers are precisely the actual
+index suffix, major and motive. A later base model or final motive typing is
+not a premise.
+
+`Verify.InductiveParentContextTranslationCPS` threads that model through the
+entire actual parent-pass trace. The initial WF model/native alignment is
+supplied once; each derived endpoint is the next parent's starting model.
+The typed trace retains the same native pass, normalized index history and
+single-parent receipt at every node. Extension composition follows those
+exact model terms, and the final WF model yields `TrLCtx` at the actual parent
+reader. It discharges the repeated per-parent mixed-context representation
+obligation rather than independently selecting representations or allocation
+histories. Existing normalized-header, index annotation/normalization,
+head/header typing, terminal-sort and raw-major universe support remain
+explicit, conditional on WF models of each actual trace node's fixed native
+reader. These are not claimed as discharged phase invariants.
+
+Getter support is consumed only at successful actual `loopInd1` capture
+results and their exact trace endpoints. The scoped CPS theorem receives the
+typed parent-phase reader. `mkRecInfos.fromTypedParentPass` reconnects this
+receipt to the actual checker: proving the later `loopInd2` minor continuation
+is an explicit remaining obligation. Correspondence at its eventual current
+reader is not claimed. Empty parameters and actual elimination-level mapping
+remain explicit; the initial native context's typed mixed representation,
+general normalization, minor typing, parameter reuse and full inductive
+verification remain separate. The native trace/morphism are logical-only;
+native scope/getter depend on the existing persistent-container interfaces,
+and typed transport retains the previous abstraction/context foundations.
+No new admission, axiom, oracle, runtime checker change, cache or fast path is
+introduced.
+
+`tests/InductiveParentContextTranslation.lean` adds twenty-eight proof
+controls, 192 axiom audits and nine axiom prints. It checks whole-pass trace
+shape, exact model extension and reader correspondence, same-node index
+support, success-local getter/CPS transport and the explicit minor-phase
+obligation. Twelve allocation-only actual `loopInd1` captures cover zero,
+one and multiple parents, retained info prefixes, nonzero starting counters,
+dependent/metadata/alias/base-dependent headers and retained declaration
+values. One checked recursive parent/minor boundary compares the actual
+parent-only capture with full `mkRecInfos` and checks additional native minor
+allocations, without claiming semantic minor correctness. The new census is
+sixty-five declarations / twenty-eight theorems, including private/generated
+helpers (native trace 22/10, parent model 10/8, typed CPS 33/10). The old clean
+logical core stays seventy-three / thirty-eight. Native-module audits allow
+only logical axioms and three existing container interfaces, with trace,
+counts, prefix and morphism pinned logical-only; typed transport keeps its
+inherited abstraction/context boundaries separate. Audits reject new
+module-owned axioms, runtime admissions and the global native bound-variable
+range axiom. All three modules replay through lean4lean. Run
+`lake env lean tests/InductiveParentContextTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
