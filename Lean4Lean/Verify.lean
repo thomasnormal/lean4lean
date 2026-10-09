@@ -32,6 +32,8 @@ import Lean4Lean.Verify.InductiveHeaderTraces
 import Lean4Lean.Verify.InductiveIndexAlignment
 import Lean4Lean.Verify.InductiveNormalizedHeaders
 import Lean4Lean.Verify.InductiveNormalizedWrappers
+import Lean4Lean.Verify.InductiveWrappedSpines
+import Lean4Lean.Verify.InductiveWrappedHeaders
 import Lean4Lean.Verify.InductiveCPS
 import Lean4Lean.Verify.InductiveRunScope
 import Lean4Lean.Verify.InductiveFrontendScope
