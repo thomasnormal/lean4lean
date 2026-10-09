@@ -1092,6 +1092,34 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   semantic typing, hidden aliases/tails, nested preprocessing and full
   inductive soundness remain separate. No executable checker path, cache,
   new axiom or admission is added.
+- `Verify.InductiveConsumedLookupRenaming` projects deterministic raw-domain
+  correspondence onto native index declaration types. Its consumed relation
+  retains the actual raw origins, their deterministic lookup equation, and
+  both `consumeTypeAnnotations` equations. It implies the previous structural
+  raw-provenance receipt, not structural renaming or functionality of consumed
+  expressions. Native lookup anchors identify both stored declaration types.
+- `Verify.InductiveBinderLookupPositions` projects each binder position onto
+  exactly the incoming map: the initial pairs followed by the zip of index IDs
+  strictly before that position. The current and future index pairs are absent;
+  parameter binders neither extend the map nor advance index allocation ordinals.
+  The native allocation projection records each stored `LocalDecl.index` as its
+  history's starting index plus the number of preceding index binders, without
+  asserting physical-slot access or additional declaration-type equalities.
+- `Verify.InductiveBinderLookupTypes` retains these all-index receipts inside
+  the same actual checked/generated opening histories, allocation bases,
+  terminal correspondence and full index zip. Each native declaration lookup
+  has the matching value, name, binder information, exact stored position and
+  consumed local type, with deterministic raw provenance at that position's
+  incoming map. Parent/recursor projections recover the previous alignment;
+  normalized and wrapped source bridges, CPS/getter, registration and safe
+  prefixes preserve the stronger receipt on the same successful result. Source
+  support remains explicit for the normalized bridge and guard-derived for
+  supported wrappers. Identity and overlapping index IDs remain allowed.
+  Reused parameter declaration types keep only their actual `isDefEq` checks;
+  they are not included in the new native type relation. General consumption
+  compatibility, semantic typing, arbitrary normalization support and full
+  inductive soundness remain separate. No checker path, cache, new axiom or
+  admission is added.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
