@@ -841,11 +841,36 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   successful-result certificates, not termination or typing theorems.
   Concrete proof fixtures pass the constructed receipts through the safe
   checked-header/constructor/registration count bridge without an external
-  normalization premise. More deeply mixed let/beta wrappers are native
-  regressions only, not an asserted generic closure theorem. Hidden aliases,
-  wrapped telescope tails, pointwise binder-domain correspondence, semantic
-  source/RHS typing, nested preprocessing and full inductive soundness remain
-  separate. No executable kernel change, new axiom or admission is added.
+  normalization premise. Finite mixed-wrapper receipts are supplied separately
+  by `InductiveWrappedSpines`, not asserted by these direct constructors. Hidden
+  aliases, wrapped telescope tails, pointwise binder-domain correspondence,
+  semantic source/RHS typing, nested preprocessing and full inductive soundness
+  remain separate. No executable kernel change, new axiom or admission is added.
+- `Verify.InductiveWrappedSpines` defines `WrappedSortTelescope`, a finite
+  syntactic reduction witness from a source expression to one explicit sort
+  telescope. Its constructors retain actual metadata elimination and the
+  substituted let/single-argument beta bodies, so mixed wrapper chains are
+  proved recursively rather than assumed to inherit a full-WHNF receipt.
+  Core normalization tracks the actual empty initial core cache, recursive
+  method depth and cache-save effects; successful output states may differ.
+  Lifting the core receipt through full WHNF proves one canonical normalized
+  expression for all readers/environments without a normalization oracle.
+  Substitution values and binder domains need not be closed or well typed for
+  this structural theorem. Fuel exhaustion remains an error, not a successful
+  normalization claim. Hidden aliases, projections, wrapped binder-spine tails,
+  semantic reduction/typing and arbitrary normalization remain outside this
+  finite head-wrapper fragment.
+- `Verify.InductiveWrappedHeaders` lifts those syntactic witnesses to each
+  parent via `WrappedHeaderTelescope`. `normalizedHeaders` constructs the
+  canonical receipts consumed by the existing checked/recursor traces;
+  `wrappedTelescopeIndexCounts` therefore proves actual checked/generated
+  equality, not raw source-arity equality. `registeredWrappedAlignedIndices`
+  retains the count proof alongside source/scope, map/lookup, offset-metadata
+  and local RHS-scope certificates. `safeRegisteredWrappedIndexCounts` passes
+  it through actual safe checking, both datatype/constructor environment
+  extensions, generation and registration. No new executable path, cache,
+  axiom or admission is added. Pointwise binder correspondence, source/RHS
+  typing, nested preprocessing and full inductive soundness remain separate.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2649,6 +2674,24 @@ beta additionally uses `Expr.instantiateRange_eq` and `Expr.instantiate_eq`.
 Safe/registration bridges inherit only the existing persistent-map/list and
 substitution interfaces. Run
 `lake env lean tests/InductiveNormalizedWrappers.lean`.
+
+`tests/InductiveWrappedSpines.lean` adds eighteen proof regressions and seventeen
+axiom audits for finite mixed-wrapper witnesses, canonical normalization and
+safe registered counts. Used let-to-beta and beta-to-let substitutions,
+captured-domain substitution across nested binders, and let exposure of a
+wrapped value all construct actual traces. A five-parent safe mutual prefix
+uses those traces without an external normalization oracle. Across four
+readers, 208 actual registration prefixes and 207 successful WHNF observations
+exercise all wrapper pairs/triples, mixed depth 65, metadata depth 128,
+dependent parameters and seeded locals. Metadata-only normalization succeeds
+at method depth one with zero WHNF-loop fuel; mixed core descent succeeds with
+one outer WHNF iteration. Nine fuel errors, unchecked stored counts and a
+poisoned existing core-cache control retain partiality and the explicit
+empty-core-cache premise. `shape` is axiom-free; core/full receipts use only
+logical axioms and the three existing expression-substitution interfaces.
+Scope/registration bridges inherit the existing map/list interfaces; every
+audit rejects `sorryAx`. No executable checker path or cache is added. Run
+`lake env lean tests/InductiveWrappedSpines.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
