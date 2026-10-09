@@ -16,6 +16,7 @@ import Lean4Lean.Verify.RecursorInfoFrame
 import Lean4Lean.Verify.RecursorInfoCounts
 import Lean4Lean.Verify.InductiveRunPreservation
 import Lean4Lean.Verify.InductiveRunMetadata
+import Lean4Lean.Verify.RecursorRuleShape
 import Lean4Lean.Verify.InductiveParams
 import Lean4Lean.Verify.InductiveParamValidity
 import Lean4Lean.Verify.InductiveParamBinding
