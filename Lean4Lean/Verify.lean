@@ -64,11 +64,15 @@ import Lean4Lean.Verify.InductiveBinderRawScopeAlignment
 import Lean4Lean.Verify.InductiveAnnotationModel
 import Lean4Lean.Verify.InductiveAnnotationModelScope
 import Lean4Lean.Verify.InductiveAnnotationModelFVarsIn
+import Lean4Lean.Verify.InductiveAnnotationModelClosed
 import Lean4Lean.Verify.InductiveAnnotationModelRenaming
 import Lean4Lean.Verify.InductiveAnnotationStoredTypes
 import Lean4Lean.Verify.InductiveBinderStoredTypeAlignment
 import Lean4Lean.Verify.InductiveBinderFVarsIn
 import Lean4Lean.Verify.InductiveBinderIntegrity
+import Lean4Lean.Verify.InductiveHeaderClosureGuard
+import Lean4Lean.Verify.InductiveBinderClosed
+import Lean4Lean.Verify.InductiveBinderClosure
 import Lean4Lean.Verify.InductiveAnnotationNativeScope
 import Lean4Lean.Verify.InductiveAnnotationOpeningShape
 import Lean4Lean.Verify.InductiveAnnotationModelOpening
