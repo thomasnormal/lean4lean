@@ -2,6 +2,7 @@ import Lean4Lean.Verify.ConstructorParams
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
+open private Lean4Lean.AddInductive.bindWF from Lean4Lean.Verify.InductiveStats
 
 private theorem scanSome_eq (items : List Nat) (valid : Nat → Bool) :
     (forIn (m := Option) items (⟨none, PUnit.unit⟩ : MProd (Option Nat) PUnit)
@@ -119,6 +120,96 @@ theorem checkPositivity.trace (stats : InductiveStats) (type : Expr)
     (checkPositivity stats type ctor index ctx).WF
       fun _ => PositivityTrace stats PositivityWHNF ctx type := by
   exact checkPositivity.trace_of_whnf stats PositivityWHNF type ctor index ctx
+    fun _ _ _ hresult => hresult
+
+inductive SafeConstructorTrace (stats : InductiveStats)
+    (normalizes : Context → Expr → Expr → Prop) (parent : Nat) :
+    Context → Nat → Expr → Expr → Prop where
+  | terminal {ctx : Context} {index : Nat} {type : Expr}
+      (hnotForall : type.isForall = false)
+      (hvalid : isValidIndAppIdx stats type parent = true) :
+      SafeConstructorTrace stats normalizes parent ctx index type type
+  | parameter {ctx : Context} {index : Nat} {name : Name} {domain body : Expr}
+      {bi : BinderInfo} {param terminal : Expr}
+      (hparam : stats.params[index]? = some param)
+      (hbody : SafeConstructorTrace stats normalizes parent ctx (index + 1)
+        (body.instantiate1 param) terminal) :
+      SafeConstructorTrace stats normalizes parent ctx index
+        (.forallE name domain body bi) terminal
+  | field {ctx : Context} {index : Nat} {name : Name} {domain body : Expr}
+      {bi : BinderInfo} {terminal : Expr}
+      (hparam : stats.params[index]? = none)
+      (hpositive : PositivityTrace stats normalizes ctx domain)
+      (hbody : SafeConstructorTrace stats normalizes parent
+        (ctx.withPositivityArg name domain bi) (index + 1)
+        (body.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)) terminal) :
+      SafeConstructorTrace stats normalizes parent ctx index
+        (.forallE name domain body bi) terminal
+
+theorem SafeConstructorTrace.spine {stats : InductiveStats}
+    {normalizes : Context → Expr → Expr → Prop} {parent index : Nat}
+    {ctx : Context} {type terminal : Expr}
+    (htrace : SafeConstructorTrace stats normalizes parent ctx index type terminal) :
+    ConstructorSpine type terminal ∧ isValidIndAppIdx stats terminal parent = true := by
+  induction htrace with
+  | terminal hnotForall hvalid => exact ⟨.refl _, hvalid⟩
+  | parameter hparam hbody ih => exact ⟨.forallE _ _ _ _ _ _ ih.1, ih.2⟩
+  | field hparam hpositive hbody ih => exact ⟨.forallE _ _ _ _ _ _ ih.1, ih.2⟩
+
+theorem checkConstructors.loop.safeTrace_of_whnf (stats : InductiveStats)
+    (normalizes : Context → Expr → Expr → Prop) (parent : Nat) (ctor : Name)
+    (type : Expr) (index fuel : Nat) (ctx : Context)
+    (hwhnf : ∀ current source,
+      ((monadLift (TypeChecker.whnf source) : M Expr) current).WF
+        (normalizes current source)) :
+    (checkConstructors.loop stats false parent ctor type index fuel ctx).WF
+      fun _ => ∃ terminal, SafeConstructorTrace stats normalizes parent ctx index type terminal := by
+  induction fuel generalizing type index ctx with
+  | zero => exact Except.WF.throw
+  | succ fuel ih =>
+    cases type with
+    | forallE name domain body bi =>
+      rw [checkConstructors.loop.eq_def]
+      dsimp only
+      cases hparam : stats.params[index]? with
+      | some param =>
+        apply Lean4Lean.AddInductive.bindWF
+        intro paramType
+        apply Lean4Lean.AddInductive.bindWF
+        intro equal
+        split
+        · apply Lean4Lean.AddInductive.bindWF
+          intro _
+          refine (ih (body.instantiate1 param) (index + 1) ctx).mono ?_
+          rintro _ ⟨terminal, htrace⟩
+          exact ⟨terminal, .parameter hparam htrace⟩
+        · exact Except.WF.throw
+      | none =>
+        apply Lean4Lean.AddInductive.bindWF
+        intro sort
+        split
+        · refine (checkPositivity.trace_of_whnf stats normalizes domain ctor index ctx hwhnf).bind ?_
+          intro _ hpositive
+          change (checkConstructors.loop stats false parent ctor
+            (body.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)) (index + 1) fuel
+            (ctx.withPositivityArg name domain bi)).WF _
+          refine (ih _ _ _).mono ?_
+          rintro _ ⟨terminal, htrace⟩
+          exact ⟨terminal, .field hparam hpositive htrace⟩
+        · exact Except.WF.throw
+    | _ =>
+      rw [checkConstructors.loop.eq_def]
+      dsimp only
+      split
+      · exact Except.WF.throw
+      · rename_i hvalid
+        exact .pure ⟨_, .terminal rfl (by simpa using hvalid)⟩
+
+theorem checkConstructors.loop.safeTrace (stats : InductiveStats) (parent : Nat)
+    (ctor : Name) (type : Expr) (index fuel : Nat) (ctx : Context) :
+    (checkConstructors.loop stats false parent ctor type index fuel ctx).WF
+      fun _ => ∃ terminal, SafeConstructorTrace stats PositivityWHNF parent ctx index type terminal :=
+  checkConstructors.loop.safeTrace_of_whnf stats PositivityWHNF parent ctor type index fuel ctx
     fun _ _ _ hresult => hresult
 
 end Lean4Lean.AddInductive
