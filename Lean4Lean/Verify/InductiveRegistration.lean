@@ -3,6 +3,8 @@ import Lean4Lean.Verify.InductiveMetadata
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
+open private Lean4Lean.AddInductive.bindWF Lean4Lean.AddInductive.readWF
+  from Lean4Lean.Verify.InductiveStats
 
 structure InductiveStats.SafeConstructorRegistration (stats : InductiveStats)
     (nparams : Nat) (indTypes : Array InductiveType) (numNested : Nat)
@@ -85,5 +87,34 @@ theorem checkInductiveTypes.getSafeConstructorRegistration (nparams : Nat)
   apply checkInductiveTypes.safeConstructorRegistration nparams indTypes numNested _ ctx hwf
   intro stats root env hregistration
   exact .pure hregistration
+
+theorem run.safeConstructorRegistration (nparams : Nat) (types : List InductiveType)
+    (numNested : Nat) (ctx : Context) (hsafety : ctx.safety = .safe)
+    (hwf : ctx.env.constants.WF) :
+    (run nparams types numNested ctx).WF fun _ =>
+      ∃ (stats : InductiveStats) (root : Context) (env : Kernel.Environment),
+        stats.SafeConstructorRegistration nparams types.toArray numNested ctx root env := by
+  unfold run
+  apply Lean4Lean.AddInductive.readWF
+  dsimp only
+  rw [hsafety]
+  apply Lean4Lean.AddInductive.readWF
+  dsimp only
+  apply Lean4Lean.AddInductive.bindWF
+  intro _
+  apply checkInductiveTypes.safeConstructorRegistration nparams types.toArray numNested _ ctx hwf
+  intro stats root env hregistration
+  exact fun _ _ => ⟨stats, root, env, hregistration⟩
+
+theorem run.safeConstructorTraces (nparams : Nat) (types : List InductiveType)
+    (numNested : Nat) (ctx : Context) (hsafety : ctx.safety = .safe)
+    (hwf : ctx.env.constants.WF) :
+    (run nparams types numNested ctx).WF fun _ =>
+      ∃ (stats : InductiveStats) (root : Context), root.safety = .safe ∧
+        stats.SafeConstructorTraces types.toArray PositivityWHNF root := by
+  refine (run.safeConstructorRegistration nparams types numNested ctx hsafety hwf).mono ?_
+  rintro _ ⟨stats, root, env, hregistration⟩
+  obtain ⟨_, _, _, _, hframe, htraces⟩ := hregistration.traces
+  exact ⟨stats, root, hframe.safety.trans hsafety, htraces⟩
 
 end Lean4Lean.AddInductive
