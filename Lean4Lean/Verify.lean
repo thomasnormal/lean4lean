@@ -106,6 +106,9 @@ import Lean4Lean.Verify.InductiveParentContextTranslationCPS
 import Lean4Lean.Verify.InductiveCtorFieldTrace
 import Lean4Lean.Verify.InductiveCtorFieldTranslation
 import Lean4Lean.Verify.InductiveCtorFieldTranslationCPS
+import Lean4Lean.Verify.InductiveUArgTrace
+import Lean4Lean.Verify.InductiveUArgTranslation
+import Lean4Lean.Verify.InductiveUArgTranslationCPS
 import Lean4Lean.Verify.InductiveAnnotationNativeScope
 import Lean4Lean.Verify.InductiveAnnotationOpeningShape
 import Lean4Lean.Verify.InductiveAnnotationModelOpening
