@@ -39,46 +39,68 @@ theorem InductiveNamePrefix.set {original rewritten : Array InductiveType}
 
 namespace ElimNestedInductive
 
+structure TypePrefix (original rewritten : Array InductiveType) : Prop where
+  size : original.size ≤ rewritten.size
+  types : ∀ index, index < original.size → rewritten[index]! = original[index]!
+
+theorem TypePrefix.refl (types : Array InductiveType) : TypePrefix types types :=
+  ⟨Nat.le_refl _, fun _ _ => rfl⟩
+
+theorem TypePrefix.trans {first second third : Array InductiveType}
+    (hfirst : TypePrefix first second) (hsecond : TypePrefix second third) : TypePrefix first third :=
+  ⟨Nat.le_trans hfirst.size hsecond.size, fun index hindex =>
+    (hsecond.types index (Nat.lt_of_lt_of_le hindex hfirst.size)).trans (hfirst.types index hindex)⟩
+
+theorem TypePrefix.push (types : Array InductiveType) (type : InductiveType) :
+    TypePrefix types (types.push type) := by
+  refine ⟨by simp, ?_⟩
+  intro index hindex
+  simp [getElem!_pos, hindex, Nat.lt_succ_of_lt hindex, Array.getElem_push_lt]
+
+theorem TypePrefix.toNames {original rewritten : Array InductiveType} (hprefix : TypePrefix original rewritten) :
+    InductiveNamePrefix original rewritten :=
+  ⟨hprefix.size, fun index hindex => congrArg InductiveType.name (hprefix.types index hindex)⟩
+
 open private Lean4Lean.ElimNestedInductive.get_bind Lean4Lean.ElimNestedInductive.read_bind
   Lean4Lean.ElimNestedInductive.modify_bind
   Lean4Lean.ElimNestedInductive.liftM_ok_eq from Lean4Lean.Verify.InductiveNestedRewrite
 
-private theorem nameBind {action : M Value} {next : Value → M ResultValue}
+private theorem typePrefixBind {action : M Value} {next : Value → M ResultValue}
     {env : Environment} {state : State}
-    (haction : (action env state).WF fun result => InductiveNamePrefix state.newTypes result.2.newTypes)
+    (haction : (action env state).WF fun result => TypePrefix state.newTypes result.2.newTypes)
     (hnext : ∀ value current, (next value env current).WF fun result =>
-      InductiveNamePrefix current.newTypes result.2.newTypes) :
-    ((action >>= next) env state).WF fun result => InductiveNamePrefix state.newTypes result.2.newTypes :=
+      TypePrefix current.newTypes result.2.newTypes) :
+    ((action >>= next) env state).WF fun result => TypePrefix state.newTypes result.2.newTypes :=
   haction.bind fun current hfirst => (hnext current.1 current.2).mono fun _ hsecond => hfirst.trans hsecond
 
-private theorem liftNames (action : Except Exception Value) (env : Environment) (state : State) :
-    ((liftM action : M Value) env state).WF fun result => InductiveNamePrefix state.newTypes result.2.newTypes := by
+private theorem liftTypePrefix (action : Except Exception Value) (env : Environment) (state : State) :
+    ((liftM action : M Value) env state).WF fun result => TypePrefix state.newTypes result.2.newTypes := by
   cases action with
   | error exception => exact .throw
   | ok value => exact .pure (.refl _)
 
-private theorem mapMNames (items : List Value) (step : Value → M ResultValue) (env : Environment) (state : State)
+private theorem mapMTypePrefix (items : List Value) (step : Value → M ResultValue) (env : Environment) (state : State)
     (hstep : ∀ item current, (step item env current).WF fun result =>
-      InductiveNamePrefix current.newTypes result.2.newTypes) :
-    (items.mapM step env state).WF fun result => InductiveNamePrefix state.newTypes result.2.newTypes := by
+      TypePrefix current.newTypes result.2.newTypes) :
+    (items.mapM step env state).WF fun result => TypePrefix state.newTypes result.2.newTypes := by
   induction items generalizing state with
   | nil => exact .pure (.refl _)
   | cons item items ih =>
     rw [List.mapM_cons]
-    apply nameBind (hstep item state)
+    apply typePrefixBind (hstep item state)
     intro value current
     exact (ih current).bind fun result hresult => .pure hresult
 
-private theorem forInNames (items : List Value) (initial : ResultValue)
+private theorem forInTypePrefix (items : List Value) (initial : ResultValue)
     (step : Value → ResultValue → M (ForInStep ResultValue)) (env : Environment) (state : State)
     (hstep : ∀ item value current, (step item value env current).WF fun result =>
-      InductiveNamePrefix current.newTypes result.2.newTypes) :
-    (forIn items initial step env state).WF fun result => InductiveNamePrefix state.newTypes result.2.newTypes := by
+      TypePrefix current.newTypes result.2.newTypes) :
+    (forIn items initial step env state).WF fun result => TypePrefix state.newTypes result.2.newTypes := by
   induction items generalizing initial state with
   | nil => exact .pure (.refl _)
   | cons item items ih =>
     rw [List.forIn_cons]
-    apply nameBind (hstep item initial state)
+    apply typePrefixBind (hstep item initial state)
     intro next current
     cases next with
     | done value => exact .pure (.refl _)
@@ -100,41 +122,64 @@ private theorem withParamsLoopNamePost (remaining : Nat) (type : Expr) (lctx : L
         (params.push (.fvar ⟨state.ngen.curr⟩)) { state with ngen := state.ngen.next } hnext
     | _ => exact .throw
 
+theorem withParams.newTypesFrame (type : Expr) (numParams : Nat)
+    (next : LocalContext → Expr → Array Expr → M Value) (env : Environment) (state : State)
+    (post : Value × State → Prop)
+    (hnext : ∀ lctx remainder params current, current.newTypes = state.newTypes →
+      (next lctx remainder params env current).WF post) :
+    (withParams type numParams next env state).WF post :=
+  withParamsLoopNamePost numParams type {} #[] next env state post hnext
+
 theorem withParams.names (type : Expr) (numParams : Nat)
     (next : LocalContext → Expr → Array Expr → M Value) (env : Environment) (state : State)
     (hnext : ∀ lctx remainder params current, (next lctx remainder params env current).WF fun result =>
       InductiveNamePrefix current.newTypes result.2.newTypes) :
     (withParams type numParams next env state).WF fun result =>
       InductiveNamePrefix state.newTypes result.2.newTypes := by
-  apply withParamsLoopNamePost numParams type {} #[] next env state
+  apply withParams.newTypesFrame type numParams next env state
   intro lctx remainder params current hframe
   simpa only [hframe] using hnext lctx remainder params current
+
+theorem withParams.typesPrefix (type : Expr) (numParams : Nat)
+    (next : LocalContext → Expr → Array Expr → M Value) (env : Environment) (state : State)
+    (hnext : ∀ lctx remainder params current, (next lctx remainder params env current).WF fun result =>
+      TypePrefix current.newTypes result.2.newTypes) :
+    (withParams type numParams next env state).WF fun result => TypePrefix state.newTypes result.2.newTypes := by
+  apply withParams.newTypesFrame type numParams next env state
+  intro lctx remainder params current hframe
+  simpa only [hframe] using hnext lctx remainder params current
+
+theorem replaceParams.typesPrefix (params : Array Expr) (type : Expr) (sourceParams : Array Expr)
+    (env : Environment) (state : State) :
+    (replaceParams params type sourceParams env state).WF fun result =>
+      TypePrefix state.newTypes result.2.newTypes := by
+  unfold replaceParams
+  split <;> exact .pure (.refl _)
 
 theorem replaceParams.names (params : Array Expr) (type : Expr) (sourceParams : Array Expr)
     (env : Environment) (state : State) :
     (replaceParams params type sourceParams env state).WF fun result =>
-      InductiveNamePrefix state.newTypes result.2.newTypes := by
-  unfold replaceParams
-  split <;> exact .pure (.refl _)
+      InductiveNamePrefix state.newTypes result.2.newTypes :=
+  (replaceParams.typesPrefix params type sourceParams env state).mono fun _ hprefix => hprefix.toNames
 
-private theorem nestedConstructorNames (info : InductiveVal) (parentName : Name) (levels : List Level)
+private theorem nestedConstructorTypePrefix (info : InductiveVal) (parentName : Name) (levels : List Level)
     (numParams : Nat) (args : Array Expr) (lctx : LocalContext) (params : Array Expr)
     (auxName : Name) (env : Environment) (state : State) :
     (info.ctors.mapM (fun name => (do
       let ctor ← env.get name
       let type ← instantiateForallParams (ctor.type.instantiateLevelParams ctor.levelParams levels) numParams args
       pure { name := name.replacePrefix parentName auxName, type := lctx.mkForall params type } : M Constructor))
-      env state).WF fun result => InductiveNamePrefix state.newTypes result.2.newTypes := by
-  apply mapMNames
+      env state).WF fun result => TypePrefix state.newTypes result.2.newTypes := by
+  apply mapMTypePrefix
   intro name current
-  apply nameBind (liftNames (env.get name) env current)
+  apply typePrefixBind (liftTypePrefix (env.get name) env current)
   intro ctor current'
-  apply nameBind (liftNames
+  apply typePrefixBind (liftTypePrefix
     (instantiateForallParams (ctor.type.instantiateLevelParams ctor.levelParams levels) numParams args) env current')
   intro type current''
   exact .pure (.refl _)
 
-private theorem nestedIterationNames (lctx : LocalContext) (params sourceParams : Array Expr)
+private theorem nestedIterationTypePrefix (lctx : LocalContext) (params sourceParams : Array Expr)
     (type : Expr) (info : InductiveVal) (headName : Name) (levels : List Level)
     (name : Name) (result : Option Expr) (env : Environment) (state : State) :
     ((do
@@ -160,7 +205,7 @@ private theorem nestedIterationNames (lctx : LocalContext) (params sourceParams 
       let newType : InductiveType := { name := auxName, type := lctx.mkForall sourceParams auxType, ctors }
       modify fun current => { current with newTypes := current.newTypes.push newType }
       pure (.yield result) : M (ForInStep (Option Expr))) env state).WF fun returned =>
-      InductiveNamePrefix state.newTypes returned.2.newTypes := by
+      TypePrefix state.newTypes returned.2.newTypes := by
   generalize hget : env.get name = found
   cases found with
   | error exception => exact .throw
@@ -169,37 +214,37 @@ private theorem nestedIterationNames (lctx : LocalContext) (params sourceParams 
     | inductInfo nestedInfo =>
       rw [Lean4Lean.ElimNestedInductive.liftM_ok_eq]
       simp only [pure_bind]
-      apply nameBind ((mkUniqueName.frame (`_nested ++ name) env state).mono fun _ hframe =>
-        hframe.2.1 ▸ InductiveNamePrefix.refl _)
+      apply typePrefixBind ((mkUniqueName.frame (`_nested ++ name) env state).mono fun _ hframe =>
+        hframe.2.1 ▸ TypePrefix.refl _)
       intro auxName current
-      apply nameBind (liftNames
+      apply typePrefixBind (liftTypePrefix
         (instantiateForallParams (nestedInfo.type.instantiateLevelParams nestedInfo.levelParams levels)
           info.numParams type.getAppArgs) env current)
       intro auxType current'
-      apply nameBind (replaceParams.names params _ sourceParams env current')
+      apply typePrefixBind (replaceParams.typesPrefix params _ sourceParams env current')
       intro nestedApp current''
       rw [Lean4Lean.ElimNestedInductive.modify_bind]
       split
       · rw [Lean4Lean.ElimNestedInductive.get_bind]
         dsimp only
-        apply nameBind
-        · exact nestedConstructorNames nestedInfo name levels info.numParams type.getAppArgs
+        apply typePrefixBind
+        · exact nestedConstructorTypePrefix nestedInfo name levels info.numParams type.getAppArgs
             lctx sourceParams auxName env _
         · intro ctors next
           rw [Lean4Lean.ElimNestedInductive.modify_bind]
           exact .pure (.push _ _)
-      · apply nameBind
-        · exact nestedConstructorNames nestedInfo name levels info.numParams type.getAppArgs
+      · apply typePrefixBind
+        · exact nestedConstructorTypePrefix nestedInfo name levels info.numParams type.getAppArgs
             lctx sourceParams auxName env _
         · intro ctors next
           rw [Lean4Lean.ElimNestedInductive.modify_bind]
           exact .pure (.push _ _)
     | _ => exact .pure (.refl _)
 
-theorem replaceIfNested.names (lctx : LocalContext) (params sourceParams : Array Expr)
+theorem replaceIfNested.typesPrefix (lctx : LocalContext) (params sourceParams : Array Expr)
     (type : Expr) (env : Environment) (state : State) :
     (replaceIfNested lctx params sourceParams type env state).WF fun result =>
-      InductiveNamePrefix state.newTypes result.2.newTypes := by
+      TypePrefix state.newTypes result.2.newTypes := by
   unfold replaceIfNested
   refine (isNestedInductiveApp?.scope type env state).bind ?_
   rintro ⟨selected, current⟩ ⟨hframe, hselected⟩
@@ -213,7 +258,7 @@ theorem replaceIfNested.names (lctx : LocalContext) (params sourceParams : Array
     obtain ⟨⟨headName, levels, hhead⟩, harity, _⟩ := hselected info rfl
     rw [hhead]
     simp only [if_pos harity]
-    apply nameBind (replaceParams.names params _ sourceParams env state)
+    apply typePrefixBind (replaceParams.typesPrefix params _ sourceParams env state)
     intro replaced current
     rw [Lean4Lean.ElimNestedInductive.get_bind]
     generalize hfound : Array.findSome? _ current.nestedAux = found
@@ -222,33 +267,45 @@ theorem replaceIfNested.names (lctx : LocalContext) (params sourceParams : Array
     | none =>
       simp only [pure_bind]
       rw [Lean4Lean.ElimNestedInductive.read_bind]
-      apply nameBind
-      · apply forInNames
+      apply typePrefixBind
+      · apply forInTypePrefix
         intro name result next
         simpa only [panicWithPosWithDecl, panic, panicCore, pure_bind] using
-          nestedIterationNames lctx params sourceParams type info headName levels name result env next
+          nestedIterationTypePrefix lctx params sourceParams type info headName levels name result env next
       · intro result next
         cases result <;> exact .pure (.refl _)
 
-private theorem replaceMNames (step : Expr → M (Option Expr))
+theorem replaceIfNested.names (lctx : LocalContext) (params sourceParams : Array Expr)
+    (type : Expr) (env : Environment) (state : State) :
+    (replaceIfNested lctx params sourceParams type env state).WF fun result =>
+      InductiveNamePrefix state.newTypes result.2.newTypes :=
+  (replaceIfNested.typesPrefix lctx params sourceParams type env state).mono fun _ hprefix => hprefix.toNames
+
+private theorem replaceMTypePrefix (step : Expr → M (Option Expr))
     (hstep : ∀ type current, (step type env current).WF fun result =>
-      InductiveNamePrefix current.newTypes result.2.newTypes) (type : Expr) (state : State) :
-    (type.replaceM step env state).WF fun result => InductiveNamePrefix state.newTypes result.2.newTypes := by
+      TypePrefix current.newTypes result.2.newTypes) (type : Expr) (state : State) :
+    (type.replaceM step env state).WF fun result => TypePrefix state.newTypes result.2.newTypes := by
   unfold Expr.replaceM
   induction type generalizing state <;> unfold Expr.replaceNoCacheT <;>
-    apply nameBind (hstep _ _) <;> intro selected current <;> cases selected
+    apply typePrefixBind (hstep _ _) <;> intro selected current <;> cases selected
   all_goals
     repeat' first
     | exact .pure (.refl _)
-    | apply nameBind (by solve_by_elim)
+    | apply typePrefixBind (by solve_by_elim)
       intro rewritten next
+
+theorem replaceAllNested.typesPrefix (lctx : LocalContext) (params sourceParams : Array Expr)
+    (type : Expr) (env : Environment) (state : State) :
+    (replaceAllNested lctx params sourceParams type env state).WF fun result =>
+      TypePrefix state.newTypes result.2.newTypes :=
+  replaceMTypePrefix (replaceIfNested lctx params sourceParams)
+    (fun type current => replaceIfNested.typesPrefix lctx params sourceParams type env current) type state
 
 theorem replaceAllNested.names (lctx : LocalContext) (params sourceParams : Array Expr)
     (type : Expr) (env : Environment) (state : State) :
     (replaceAllNested lctx params sourceParams type env state).WF fun result =>
       InductiveNamePrefix state.newTypes result.2.newTypes :=
-  replaceMNames (replaceIfNested lctx params sourceParams)
-    (fun type current => replaceIfNested.names lctx params sourceParams type env current) type state
+  (replaceAllNested.typesPrefix lctx params sourceParams type env state).mono fun _ hprefix => hprefix.toNames
 
 theorem run.loop.names (numParams : Nat) (lctx : LocalContext) (params : Array Expr)
     (index fuel : Nat) (env : Environment) (state : State) :
@@ -263,16 +320,16 @@ theorem run.loop.names (numParams : Nat) (lctx : LocalContext) (params : Array E
     split
     · rename_i hindex
       simp only [withParams.assert_size]
-      refine (mapMNames state.newTypes[index].ctors _ env state ?_).bind ?_
+      refine (mapMTypePrefix state.newTypes[index].ctors _ env state ?_).bind ?_
       · intro ctor current
-        apply withParams.names
+        apply withParams.typesPrefix
         intro ctorContext ctorType sourceParams next
-        exact (replaceAllNested.names ctorContext params sourceParams ctorType env next).bind
+        exact (replaceAllNested.typesPrefix ctorContext params sourceParams ctorType env next).bind
           fun result hresult => .pure hresult
       · rintro ⟨ctors, current⟩ hprefix
         dsimp only
         rw [Lean4Lean.ElimNestedInductive.modify_bind]
-        have hset := hprefix.set index hindex { state.newTypes[index] with ctors }
+        have hset := hprefix.toNames.set index hindex { state.newTypes[index] with ctors }
           (by simp only [getElem!_pos, hindex])
         exact (ih (index + 1) _).mono fun _ hresult => hset.trans hresult
     · exact .pure (by simpa using InductiveNamePrefix.refl state.newTypes)

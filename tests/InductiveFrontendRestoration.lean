@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveRestorationNames
+import Lean4Lean.Verify.InductiveRestorationConstructors
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -385,6 +385,10 @@ private def nestedType (name : Name) (count fields : Nat) (nested := true) : Ind
     .forallE `field (domain.liftLooseBVars 0 index) body .default) (family name count fields)
   { name, type := closeParams count sortType, ctors := [{ name := name ++ `mk, type := closeParams count ctorType }] }
 
+private def multiConstructorType (name : Name) (count : Nat) (nested := true) : InductiveType :=
+  let constructor fields suffix := { (nestedType name count fields nested).ctors.head! with name := name ++ suffix }
+  { (nestedType name count 1 nested) with ctors := [constructor 0 `leaf, constructor 1 `branch, constructor 3 `fork] }
+
 private def compareHeader (first second : InductiveVal) : MetaM Unit := do
   unless first.numParams == second.numParams && first.numIndices == second.numIndices &&
       first.all == second.all && first.ctors == second.ctors && first.numNested == second.numNested &&
@@ -458,6 +462,28 @@ private def checkRestoredRecords (original staged result : Kernel.Environment)
     checkLookup result record
   checkOld original result
 
+private def checkSourceSignature (types : List InductiveType) (preprocessing : ElimNestedInductive.Result) : MetaM Unit := do
+  unless types.length ≤ preprocessing.types.length do throwError "preprocessing shortened the source signature"
+  for (sourceType, rewrittenType) in types.zip preprocessing.types do
+    unless sourceType.type == rewrittenType.type &&
+        sourceType.ctors.map (·.name) == rewrittenType.ctors.map (·.name) do
+      throwError "preprocessing changed an original header type or constructor-name order"
+
+private def checkSourceConstructors (nparams : Nat) (lparams : List Name) (types : List InductiveType)
+    (preprocessing : ElimNestedInductive.Result) (staged result : Kernel.Environment) : MetaM Unit := do
+  for sourceType in types do
+    let some (.inductInfo header) := staged.find? sourceType.name | throwError "missing source-indexed staged header"
+    unless header.type == sourceType.type && header.ctors == sourceType.ctors.map (·.name) do
+      throwError "staged header lost the source signature"
+    for (sourceCtor, index) in sourceType.ctors.zipIdx do
+      let some (.ctorInfo info) := staged.find? sourceCtor.name | throwError "missing source-indexed staged constructor"
+      unless info.name == sourceCtor.name && info.induct == sourceType.name && info.cidx == index &&
+          info.numParams == nparams && info.levelParams == lparams && info.isUnsafe == false do
+        throwError "staged constructor lost source name/parent/position/parameters/levels/safety"
+      let expected := if preprocessing.aux2nested.size = 0 then info else
+        { info with type := preprocessing.restoreNested staged info.type }
+      checkLookup result (.ctorInfo expected)
+
 private def checkFrontend (env : Kernel.Environment) (nparams : Nat) (types : List InductiveType)
     (nested : Bool) (lparams : List Name := []) : MetaM Unit := do
   unless ((← Lean.getEnv).addDeclCore 0 (.inductDecl lparams nparams types false) none).isOk do
@@ -467,6 +493,7 @@ private def checkFrontend (env : Kernel.Environment) (nparams : Nat) (types : Li
     | .error exception => throwError "restoration preprocessing failed for {types.map (·.name)}: {exception.toMessageData {}}"
   unless (preprocessing.types.take types.length).map (·.name) == types.map (·.name) do
     throwError "preprocessing did not retain the original names at their original positions"
+  checkSourceSignature types preprocessing
   unless (preprocessing.aux2nested.size > 0) == nested do throwError "fixture has wrong restoration branch"
   let .ok allowPrimitive := Lean4Lean.Environment.checkPrimitiveInductive env lparams nparams types false
     | throwError "restoration primitive dispatch failed"
@@ -480,6 +507,7 @@ private def checkFrontend (env : Kernel.Environment) (nparams : Nat) (types : Li
   for check in [false, true] do
     let .ok added := Lean4Lean.addDecl env (.inductDecl lparams nparams types false) check
       | throwError "public restoration failed with check={check}"
+    checkSourceConstructors nparams lparams types preprocessing staged added
     if nested then
       checkRestoredRecords env staged added preprocessing types
       checkRestoredRecords env staged expected preprocessing types
@@ -491,6 +519,7 @@ private def checkFrontend (env : Kernel.Environment) (nparams : Nat) (types : Li
       checkOld env added
   let .ok publicResult := Lean4Lean.Environment.addInductive env lparams nparams types false allowPrimitive
     | throwError "public safe restoration failed"
+  checkSourceConstructors nparams lparams types preprocessing staged publicResult
   if nested then checkRestoredRecords env staged publicResult preprocessing types
   else checkOld env publicResult
 
@@ -530,7 +559,12 @@ private def fixtures (env : Kernel.Environment) : MetaM Unit := do
       type := .forallE `field (.app (.const ``List [.zero])
         (.app (.const ``List [.zero]) (.const `RestoredDeep []))) (.const `RestoredDeep []) .default }] }
   checkFrontend env 0 [deep] true
-  logInfo "18 frontend fixtures passed positional original-name retention, exact auxiliary-rec suffix enumeration, direct/nested branches, both flags and complete restored records"
+  checkFrontend env 0 [multiConstructorType `RestoredEnum 0] true
+  checkFrontend env 1 [multiConstructorType `RestoredParamEnum 1] true
+  checkFrontend env 2 [multiConstructorType `RestoredDirectEnum 2 false] false
+  checkFrontend env 0 [multiConstructorType `RestoredMutualEnum 0, multiConstructorType `RestoredMutualEnumRight 0,
+    { name := `RestoredMutualEnumEmpty, type := sortType, ctors := [] }] true
+  logInfo "22 frontend fixtures passed source header/constructor signatures, original constructor counts/order/indices, exact direct/nested source-indexed records, both flags and auxiliary-rec suffixes"
 
 private def failures (env : Kernel.Environment) : MetaM Unit := do
   let types := [nestedType `RestoredNested 0 1]
