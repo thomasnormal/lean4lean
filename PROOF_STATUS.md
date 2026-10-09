@@ -791,6 +791,36 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   typing, generated binder/index alignment, RHS typing/reduction, WHNF transport,
   and nested preprocessing correctness remain separate. Empty batches with
   nonzero parameter assertions remain proof-only boundaries.
+- `Verify.InductiveFrontendScope` lifts the complete safe-run structural
+  certificate through the actual safe public `Environment.addInductive`
+  no-nested-auxiliary branch. `inductivePreprocessing` names the exact existing
+  preprocessing computation, and `inductiveScopeContext` retains the runner's
+  actual empty initial local context. `safeStages` supplies the original-source
+  preflight contract and a successful preprocessing witness for every successful
+  safe public addition; only when that witness has zero nested auxiliaries does
+  it attach the complete `SafeRunScope` certificate to the public final
+  environment. `NonNestedInductivePreprocessing` records this operational
+  branch condition, not a syntactic or semantic classification of source types.
+  `of_result` discharges it from a specific successful preprocessing result and
+  its zero auxiliary count. `safeNonNested` and `safeNonNestedResult` produce
+  `NonNestedInductiveScope`, retaining the exact rewritten `preprocessing.types`,
+  checked header/positivity root, separate constructor environment, actual
+  recursor source reader, counts, offsets, and declared distinct RHS fields.
+  Initial local-context validity and generator reservation are discharged from
+  the empty runner context, leaving original map validity and the operational
+  no-auxiliary premise as caller obligations. `preserves` and `localRules`
+  project map validity, all old constant lookups, and the coupled actual-source
+  rule receipt without replacing the preprocessing witness. The actual
+  `addDecl.safeNonNestedInductive` primitive-dispatch branch works with either
+  `check` flag and retains the runner's selected `allowPrimitive` value;
+  `safeNonNestedPreserves` exports its preservation contract. All eight audits
+  exclude `sorryAx` and inherit only existing logical/map/list-push and
+  constructor metadata/arity interfaces. No executable code changes. These
+  contracts do not prove preprocessing equals the original source, nested
+  transformation/restoration correctness, semantic inductive soundness,
+  declaration-domain/value typing, generated binder/index alignment, RHS typing
+  or reduction, or WHNF transport. The nested branch of `safeStages` deliberately
+  supplies no final-run certificate, and failed preprocessing is not acceptance.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -2014,6 +2044,26 @@ registration adds existing constructor metadata/arity interfaces.
 Run `lake env lean tests/InductiveRunScope.lean`. No semantic domain/value typing,
 normalization transport, public frontend acceptance, or inductive soundness is
 claimed by these structural receipts.
+
+`tests/InductiveFrontendScope.lean` adds eight proof regressions and eight axiom
+audits for the exact public stages, operational no-auxiliary specialization,
+actual primitive-dispatch branch, and preservation/local-rule projections.
+Ten successful fixtures cover constructorless datatypes, recursive/higher-order
+and repeated thirty-three-field constructors, shared parameters, dependent
+indices, mutual parents with an empty middle datatype, unused and polymorphic
+universes, and primitive `Bool`/`Nat` addition in empty environments. Each keeps
+the exact successful preprocessing result and zero auxiliary count, compares
+instrumented/staged/public records and both declaration check flags, retains
+separate header/positivity and constructor environments, checks actual source
+readers and native declared distinct fields, and replays every stored RHS with
+the actual elimination universes, local minor, and exact prefix offsets. Old
+`Nat`/`List` lookups are unchanged where present. Sixteen negative controls cover
+empty batches, original source free variables, preprocessing fuel exhaustion,
+parameter shortage, duplicate constructors/universe parameters, imported names,
+and late recursor collisions. A successful nested `List` control has nonzero
+auxiliaries and is explicitly outside the no-auxiliary certificate. All eight
+audits exclude `sorryAx`; no semantic preprocessing/restoration or inductive
+soundness claim is made. Run `lake env lean tests/InductiveFrontendScope.lean`.
 
 `tests/InductiveHeaderScope.lean` adds nine proof regressions and seven axiom
 audits for arbitrary checked-header continuations, coupled scope/statistics,
