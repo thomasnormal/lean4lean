@@ -354,6 +354,30 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   frame and complete-run preservation modules below now connect this suffix
   through the earlier `mkRecInfos` continuation. Semantic recursor correctness,
   WHNF transport, and unrestricted inductive soundness remain separate.
+- `Verify.RecursorMetadata` specifies the complete executable recursor record
+  with `declareRecursors.metadataVal` and proves `declareRecursors.metadata`
+  for the real suffix traversal. Every successful result has a valid concrete
+  map, preserves all previous lookups, and satisfies
+  `InductiveStats.RecursorMetadata` at every valid datatype index. This retains
+  the exact name, universe parameters, abstracted/inferred type, datatype list,
+  parameter/index/motive/minor counts, rules, and K/safety flags. Each installed
+  rule list also has a successful `mkRecRules` receipt at the actual incoming
+  context, with existential starting/ending minor indices from the traversal.
+  Receipts come from that successful action, not an extra checking pass or
+  unproved rule specification. `sourceRules` projects stored rules and their
+  operational provenance. `DeclaredRecursorCounts` and `declaredCounts` relate
+  installed counters to declared parameters, datatype count, and total
+  constructor count under explicit parameter/motive/minor alignment premises;
+  the parameter premise comes from the existing checked prefix. Proving the
+  generation action supplies the two remaining alignment premises is a separate
+  obligation. The suffix does not validate arbitrary recursor inputs, prove
+  index-binder alignment, or establish semantic recursor typing/reduction or
+  a formula for starting minor indices. Both registration audits use only the
+  existing three map interfaces; the two metadata projections use only standard
+  logical axioms. All exclude `sorryAx` and expression/guarded-arity interfaces.
+  Executable kernel code and the original `inferImplicit 1000 false` behavior
+  are unchanged. Lifting these stronger receipts to the full runner remains
+  separate from its already-proved preservation contract.
 - `Verify.RecursorInfoFrame` proves `mkRecInfos.frame` for arbitrary generation
   continuations. The actual motive, major-premise, index, constructor-field,
   recursive-hypothesis, and minor-premise loops preserve `Context.HeaderFrame`:
@@ -1562,10 +1586,13 @@ field control remains outside the theorem's explicit safe-context scope.
 These witness-only theorems do not identify their intermediate environment with
 the complete runner's result or cover earlier declaration preprocessing guards.
 
-`tests/RecursorRegistration.lean` adds four proof regressions and one axiom audit
-for suffix map validity, successful-result extraction, exact old lookup
-preservation, and preservation of a constructor-registration certificate's
-header/constructor metadata. Twenty-six successful low-level traversals cover
+`tests/RecursorRegistration.lean` contains ten proof regressions and four axiom
+audits for suffix map validity, successful-result extraction, exact old lookup
+preservation, preservation of a constructor-registration certificate's
+header/constructor metadata, complete recursor records, source rule receipts,
+and conditional declared counters. An empty-array proof makes the vacuous
+counter boundary explicit even with a nonzero declared parameter count.
+Twenty-six successful low-level traversals cover
 empty input, an empty datatype, multi-datatype batches with an empty middle
 parent, both K/safety flags and primitive-name policies, elimination levels,
 and zero fuel with no rules. They check generated record fields, closure,
@@ -1577,6 +1604,19 @@ and repeated datatype names; one rule-generation fuel failure propagates before
 insertion. The low-level fixtures supply explicit local binders and do not claim
 semantic typing or complete declaration acceptance. Existing full-run fixtures
 exercise the extracted suffix through the actual checking/generation path.
+Every successful low-level record now also checks its full specification,
+including the exact abstracted/inferred type, and replays the rule source with
+the threaded minor index. Twelve additional fixtures execute the actual checked
+header/constructor prefix, information generation, and registration suffix;
+they cover empty inputs/constructors, recursive/higher-order fields, one/two
+parameters, mutual/indexed types, seeded contexts, universes, unsafe generation,
+primitive policies, and a tight fuel bound. Every installed record is compared
+field-for-field with its specification, including exact rule constructor/field/
+RHS data and replayed minor advancement. The generated parameter/motive/minor/
+index alignments are runtime regressions, not discharge of the conditional
+count theorem's premises. Both suffix audits use the existing three map
+interfaces; both metadata projections use only standard logical axioms, and all
+audits exclude `sorryAx`.
 
 `tests/InductiveRunPreservation.lean` adds eight proof regressions and seven
 axiom audits for arbitrary recursor-information continuations, returned frames,
