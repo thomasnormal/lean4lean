@@ -901,6 +901,33 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   different fresh IDs, alpha-correspondence, semantic binder/source/RHS typing
   or full inductive/nested soundness. No executable kernel path, cache, new
   axiom or admission is added.
+- `Verify.InductiveBinderPrefixes` strengthens the actual checked/generated
+  opening receipts with ordered parameter-then-index roles. The parameter
+  history, role prefix, index values/counts and native declaration lookups
+  belong to the same witness. Checked success supplies the parameter bound
+  needed for complete generated consumption; unchecked helper calls can still
+  leave extra parameters unconsumed.
+- `Verify.InductiveBinderOpening` proves deterministic sequential opening
+  through any equal prefix of substitution values and roles. The complete
+  prefix steps agree, and the immediately following raw and consumed domain
+  agree, including the case where neither opening has another binder. These
+  structural proofs use only `propext`; arbitrary substitution expressions
+  are permitted, without closedness or batch-substitution assumptions.
+- `Verify.InductiveBinderPrefixAlignment` couples those facts to each parent's
+  actual shared parameter array. Checked/generated parameter steps are exactly
+  equal, and their first index domains agree syntactically, before and after
+  annotation consumption. Native index-declaration receipts remain anchored
+  in their separate successful readers; `firstIndexTypeAgreement` proves that
+  the natively found first declarations have exactly equal stored types when
+  both heads exist, without identifying their fresh IDs.
+  CPS/getter/registration and concrete
+  normalized/wrapped safe-prefix bridges retain the stronger alignment;
+  projections recover the previous paired-domain contracts. This compares
+  two openings of the same parent, not different mutual parents' parameter
+  source syntax. Later dependent index domains can still differ with fresh
+  IDs; general index renaming, semantic typing, hidden aliases/tails, nested
+  preprocessing and full inductive soundness remain separate. No executable
+  checker path, cache, new axiom or admission is added.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2739,6 +2766,21 @@ parameter substitutions, unchecked stored counts and unconsumed extra helper
 parameters. All audits reject `sorryAx` and use only existing logical,
 substitution and scope/map/list interfaces. Run
 `lake env lean tests/InductiveBinderDomains.lean`.
+
+`tests/InductiveBinderPrefixes.lean` adds seventeen proof regressions and
+twenty-nine axiom audits for ordered checked/generated roles, deterministic
+shared-parameter opening, complete parameter-step equality, and exact first
+index raw/consumed/native-declaration types. Its concrete wrapped mutual
+safe-prefix proof supplies normalization rather than assuming an oracle.
+Across five readers, 90 registration fixtures cover 100 parent pairs and
+200 opening plans, including zero/multiple/shared parameters, zero/dependent
+indices, annotations, aliases and wrappers. Controls preserve unequal second
+dependent domains, interleaved pure-opening roles, changed arbitrary
+substitutions, unchecked counts and unconsumed extra parameters. Structural
+prefix/opening and first-declaration comparison lemmas use only `propext`;
+all audits reject `sorryAx` and use only existing logical, substitution and
+scope/map/list interfaces. Run
+`lake env lean tests/InductiveBinderPrefixes.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
