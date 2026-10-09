@@ -799,6 +799,26 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   remain outside this explicit fragment; aliases in binder domains are allowed.
   General normalized-spine transport and nested/preprocessing correctness remain
   separate, and bare helper statistics do not gain a validity certificate.
+- `Verify.InductiveNormalizedHeaders` introduces `NormalizedSortTelescope`, an
+  explicit canonical normalized-spine receipt: the normalized expression is an
+  actual `SortTelescope`, and every reader/environment's successful `whnf`
+  action on the source returns that same expression. `CheckedHeaderSource` and
+  `RecursorInfoIndexSource` consume the same receipt to rewrite their actual
+  successful initial WHNF results before applying the explicit-telescope count
+  theorems. Consequently, `normalizedTelescopeIndexCounts` and its CPS/getter
+  forms prove checked/generated index-count equality for any source whose
+  normalization receipt is retained uniformly across both readers; they do not
+  infer that receipt from an unchecked action or equate raw source arity with a
+  normalized count. Ten native fixtures exercise annotated, let, beta and
+  mixed source headers through actual checking, generation and registration,
+  while deliberately leaving proof of those wrapper-specific normalization
+  receipts for the next item. Three boundaries retain inconsistent bare counts
+  and partial checked fuel behavior. Five audits exclude `sorryAx`; existing
+  `Expr.instantiate1_eq` and map/list interfaces are inherited. No executable
+  kernel change, axiom or admission is added.
+  This is a transport-aware structural certificate, not a semantic source/
+  binder-domain/RHS typing or reduction theorem, and it does not establish
+  nested/preprocessing/full inductive soundness.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2577,6 +2597,14 @@ raw/normalized arity gap but is deliberately excluded by the theorem's explicit
 fragment premise. Proof-only controls reject incorrect counts and non-telescope
 spines. General alias transport and semantic binder typing remain separate.
 Run `lake env lean tests/InductiveIndexAlignment.lean`.
+
+`tests/InductiveNormalizedHeaders.lean` adds seven proof regressions for the
+canonical normalized receipt and checked/recursor/source/generator bridges,
+five axiom audits, ten native annotated/let/beta/mixed fixtures and three
+unchecked-count/partial-fuel controls. Runtime fixtures verify actual
+checked/generated/registered counts but intentionally do not turn wrapper
+normalization into an unproved theorem. Run
+`lake env lean tests/InductiveNormalizedHeaders.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
