@@ -723,6 +723,28 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   These are structural source-reader and generated-field declaration guarantees,
   not semantic typing, recursive-value scope, generated index-binder alignment,
   WHNF transport, RHS reduction, or preprocessing soundness.
+- `Verify.RecursorInfoIndices` records the actual successful normalization/index
+  traversal: every reused parameter, freshly allocated index, WHNF result and
+  reader, terminal non-forall and final parameter position. It proves parameter
+  bounds, index-vector growth, declaration/scope retention and a raw outer-forall
+  arity upper bound on consumed parameters plus emitted indices. Parent-local
+  source receipts retain the initial header normalization, exact index vector,
+  major datatype application, motive binding domain and actual allocation readers.
+  The same receipts survive both parent traversals and every minor-array update;
+  indices/major/motive declarations and exact major-type lookups persist in the
+  final source reader. `getIndexSources` couples these receipts to scope/counts
+  on the same successful infos/reader pair. `registeredIndexSources` retains
+  them through the actual generation/registration suffix with constant-map
+  validity, old lookups, exact offset metadata and local RHS scope receipts.
+  Sixteen axiom audits exclude `sorryAx`, tracking existing binding/map/list-push
+  interfaces; no executable kernel change, axiom or admission is added.
+  This does not yet prove equality between generated index counts and checked
+  `stats.nindices`: normalization transport between checked-header and recursor
+  readers/environments is separate. Raw source arity is only a lower bound on
+  normalized binder counts, and unchecked helper statistics need not be correct.
+  Terminal helpers can succeed before consuming all parameters, and structural
+  receipts do not establish header/source typing, terminal-sort validity, motive
+  typing, RHS reduction or full inductive soundness.
 - `Verify.InductiveHeaderScope` proves structural context validity, generator
   reservation, and ordered declaration extension through `checkInductiveTypes`.
   Initial `LocalContext.WF` and `ContextReserved` remain explicit. The fuelled
@@ -2452,6 +2474,23 @@ and recursor/rule counts are checked. Zero-fuel and partially allocated traversa
 failures propagate. An unchecked free-variable header control shows that structural
 context validity is not a header-typing theorem. These unchecked helper fixtures do not claim complete frontend
 acceptance or semantic typing.
+
+`tests/RecursorInfoIndices.lean` adds twenty-six proof regressions and sixteen
+axiom audits for actual scoped normalization traces, terminal/parameter/vector
+bounds, raw arity, generated declarations, exact major domains, preservation
+through minor updates and same-success generation/registration receipts. Six
+proof-only controls reject decreasing parameter positions, shortened vectors,
+forall terminals, wrong info-array sizes, absent majors and altered major types.
+Ten fixtures start from actual checked headers and exercise zero/one/thirty-three
+indices, differently indexed mutual parents, dependent parameters, recursive
+constructor minors, a seeded reader and polymorphic parameters, followed by the
+actual registration suffix. Two alias fixtures show strictly larger normalized
+binder counts than raw source arity; their runtime index/header equality checks
+are not a general normalization-transport theorem. Boundary fixtures cover a
+terminal helper with unconsumed parameters, zero/partial fuel, unchecked stored
+index counts and an untyped free-variable header. No panic default is executed,
+and helper fixtures do not claim full frontend acceptance or semantic typing.
+Run `lake env lean tests/RecursorInfoIndices.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
