@@ -540,7 +540,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   declaration-closure premise. `State.NewTypesRange` and
   `run.loop.newTypesRange` then propagate preexisting and generated ranges through
   constructor `mapM`, bounded re-abstraction, and the executable `set!` update into
-  both the final state and result types. Thirty-five focused audits exclude
+  both the final state and result types. The top-level `run.newTypesRange`
+  contract now carries the initial declaration range, retained-index, and
+  environment closure premises through parameter extraction into the final
+  state and result types. Thirty-six focused audits exclude
   `sorryAx` and use only the existing logical, metadata, application-building,
   abstraction, instantiation, and array interfaces. These are explicit range
   contracts; they do not prove environment declaration closure, auxiliary
