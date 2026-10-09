@@ -49,6 +49,9 @@ import Lean4Lean.Verify.InductiveIndexLookup
 import Lean4Lean.Verify.InductiveBinderSupport
 import Lean4Lean.Verify.InductiveHeaderParameterSupport
 import Lean4Lean.Verify.InductiveBinderSupportAlignment
+import Lean4Lean.Verify.InductiveIndexLookupSubstitution
+import Lean4Lean.Verify.InductiveIndexLookupSupport
+import Lean4Lean.Verify.InductiveIndexLookupOpening
 import Lean4Lean.Verify.InductiveCPS
 import Lean4Lean.Verify.InductiveRunScope
 import Lean4Lean.Verify.InductiveFrontendScope
