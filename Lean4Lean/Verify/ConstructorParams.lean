@@ -47,6 +47,46 @@ theorem isValidIndAppIdx.parameterMatches (stats : InductiveStats) (type : Expr)
       simpa [bne] using hmatch
   · simp at hvalid
 
+theorem isValidIndAppIdx.indexNoIndOcc (stats : InductiveStats) (type : Expr)
+    (parent : Nat) (hvalid : isValidIndAppIdx stats type parent = true) :
+    ∀ index, stats.params.size ≤ index → index < type.getAppArgs.size →
+      hasIndOcc stats.indConsts type.getAppArgs[index]! = false := by
+  simp only [isValidIndAppIdx, Expr.withApp_eq] at hvalid
+  dsimp only [Id.run] at hvalid
+  split at hvalid
+  · rename_i hheader
+    have hguards : (type.getAppFn == stats.indConsts[parent]!) = true ∧
+        type.getAppArgs.size = stats.params.size + stats.nindices[parent]! := by
+      simpa using hheader
+    have hsize := hguards.2
+    simp only [Std.Legacy.Range.forIn_eq_forIn_range', pure_bind,
+      Std.Legacy.Range.size] at hvalid
+    simp only [Nat.sub_zero, Nat.add_sub_cancel, Nat.div_one] at hvalid
+    dsimp only [Bind.bind, Pure.pure, Id.instMonad, Id.hasBind] at hvalid
+    rw [scanFalse_eq (List.range' 0 stats.params.size)
+      (fun index => stats.params[index]! != type.getAppArgs[index]!)] at hvalid
+    dsimp only [MProd.fst] at hvalid
+    by_cases hparams : (List.range' 0 stats.params.size).any
+        (fun index => stats.params[index]! != type.getAppArgs[index]!) = true
+    · simp [hparams] at hvalid
+    · simp [hparams] at hvalid
+      rw [scanFalse_eq (List.range' stats.params.size (type.getAppArgs.size - stats.params.size))
+        (fun index => hasIndOcc stats.indConsts type.getAppArgs[index]!)] at hvalid
+      dsimp only [MProd.fst] at hvalid
+      by_cases hindices : (List.range' stats.params.size
+          (type.getAppArgs.size - stats.params.size)).any
+          (fun index => hasIndOcc stats.indConsts type.getAppArgs[index]!) = true
+      · simp [hindices] at hvalid
+      · simp [hindices] at hvalid
+        intro index hbound hindex
+        have hmem : index ∈ List.range' stats.params.size
+            (type.getAppArgs.size - stats.params.size) := by
+          simp
+          omega
+        have hnot := List.any_eq_false.mp (by simpa using hindices) index hmem
+        simpa using hnot
+  · simp at hvalid
+
 private theorem eq_of_beq_fvar {type : Expr} {fvar : FVarId}
     (hmatch : (Expr.fvar fvar == type) = true) : type = .fvar fvar := by
   cases type with
