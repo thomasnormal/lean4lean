@@ -821,6 +821,40 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   declaration-domain/value typing, generated binder/index alignment, RHS typing
   or reduction, or WHNF transport. The nested branch of `safeStages` deliberately
   supplies no final-run certificate, and failed preprocessing is not acceptance.
+- `Verify.InductiveFrontendRestoration` extends structural map preservation
+  through the actual public safe frontend's nested restoration branch.
+  `FreshRegistrationTrace` records an ordered chain of fresh insertions with an
+  explicit allowed-record predicate; its composition and preservation theorems
+  retain constant-map validity and all old lookups. `lookup`/`newLookup` further
+  show every final record is either an unchanged original or one allowed by the
+  trace. `RestoredInductiveRecord` fixes the exact staged lookup and existing
+  restoration recipe for each emitted header, constructor, and main/renamed
+  auxiliary recursor, including exact restored rule constructor names and RHSs.
+  Proof-facing restoration actions mirror the current datatype/constructor/
+  recursor loops and final auxiliary type-check gate. Their trace theorems
+  compose without semantic premises on restoration or auxiliary checking;
+  checks may still fail, and no postcondition assumes their success in advance.
+  The actions are verification-only: `safeFrontend` unfolds them against the
+  actual existing `Environment.addInductive` path, with no executable kernel
+  change. `SafeInductiveFrontendScope` retains original map validity, source
+  preflight, exact successful preprocessing, the complete scoped rewritten-run
+  certificate, and an explicit direct-versus-nested final branch receipt. A
+  direct result is the staged environment with zero auxiliaries; a nested
+  result is a fresh restoration trace starting from the original environment,
+  not an extension of the staged auxiliary environment. Its preservation
+  projection, `Environment.addInductive.safePreserves`, and both `addDecl`
+  specializations need only original map validity, with no no-auxiliary premise.
+  Actual primitive dispatch and either declaration check flag are covered.
+  All fourteen audits exclude `sorryAx`; trace composition is logical, restoration
+  traces inherit the existing freshness-check map interface, preservation/lookup
+  adds existing map interfaces, and complete frontend composition additionally
+  inherits existing list-push and constructor metadata/arity interfaces.
+  These are exact operational record/freshness receipts, not semantic
+  preprocessing/restoration correctness or inductive soundness. They do not
+  prove all expected restored records are installed, unreachable/assertion
+  branches never occur, auxiliary expression typing, restored RHS typing or
+  reduction, generated binder/index alignment, or WHNF transport. Lean-level
+  panic defaults are handled structurally, not asserted unreachable.
 - `Verify.InductiveParams` verifies the earlier syntactic parameter guard.
   `ElimNestedInductive.ParamPrefix` records the extracted array's exact declared
   size, free-variable shape, and source raw arity as extracted parameters plus
@@ -2064,6 +2098,23 @@ and late recursor collisions. A successful nested `List` control has nonzero
 auxiliaries and is explicitly outside the no-auxiliary certificate. All eight
 audits exclude `sorryAx`; no semantic preprocessing/restoration or inductive
 soundness claim is made. Run `lake env lean tests/InductiveFrontendScope.lean`.
+
+`tests/InductiveFrontendRestoration.lean` adds thirteen proof regressions and
+fourteen axiom audits for fresh trace composition, preservation/final lookup
+classification, individual/batch restoration receipts, both public frontend
+branches, and actual declaration dispatch. Fifteen native-accepted safe fixtures
+cover direct and nested inputs with zero/one/two parameters, repeated nested
+fields/auxiliary reuse, a mutual batch with an empty original datatype, closed
+recursive index arguments, and polymorphic universes. Both declaration check
+flags and the direct public frontend agree with staged/restored records;
+checks include exact headers, constructor types, renamed main/auxiliary recursor
+metadata, every restored rule name/RHS, auxiliary header/constructor non-leakage,
+and old `Nat`/`List`/`Bool` lookups. Helper controls reject colliding installed
+headers, constructors, and main/auxiliary recursors; frontend controls retain
+source/preprocessing failures, and a final auxiliary check rejects zero
+recursion-depth fuel after restoration registration. All fourteen audits
+exclude `sorryAx`; no semantic restoration or inductive soundness is claimed.
+Run `lake env lean tests/InductiveFrontendRestoration.lean`.
 
 `tests/InductiveHeaderScope.lean` adds nine proof regressions and seven axiom
 audits for arbitrary checked-header continuations, coupled scope/statistics,
