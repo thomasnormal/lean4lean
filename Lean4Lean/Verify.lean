@@ -68,6 +68,7 @@ import Lean4Lean.Verify.InductiveAnnotationModelClosed
 import Lean4Lean.Verify.InductiveAnnotationModelRangeFits
 import Lean4Lean.Verify.InductiveAnnotationSemantics
 import Lean4Lean.Verify.InductiveAnnotationTyping
+import Lean4Lean.Verify.InductiveAnnotationTranslation
 import Lean4Lean.Verify.InductiveAnnotationModelRenaming
 import Lean4Lean.Verify.InductiveAnnotationStoredTypes
 import Lean4Lean.Verify.InductiveBinderStoredTypeAlignment
@@ -82,6 +83,8 @@ import Lean4Lean.Verify.InductiveBinderBoundedClosure
 import Lean4Lean.Verify.InductiveBinderRangeFits
 import Lean4Lean.Verify.InductiveBinderMetadata
 import Lean4Lean.Verify.InductiveBinderTyping
+import Lean4Lean.Verify.InductiveTelescopeTranslation
+import Lean4Lean.Verify.InductiveBinderTranslation
 import Lean4Lean.Verify.InductiveAnnotationNativeScope
 import Lean4Lean.Verify.InductiveAnnotationOpeningShape
 import Lean4Lean.Verify.InductiveAnnotationModelOpening
