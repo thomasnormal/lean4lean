@@ -3378,6 +3378,63 @@ declaration assertions restricted to index roles. All new modules replay
 through lean4lean; audits reject `sorryAx`, module-owned axioms and the unbounded
 range interface. Run `lake env lean tests/InductiveBinderMetadata.lean`.
 
+`Verify.InductiveAnnotationSemantics` proves the canonical unary and binary
+annotation applications definitionally equal their carriers at the same sort.
+The abstract environment explicitly contains the four identity definitions
+and the `Lean.Syntax` constant. Binary reduction also uses environment
+orderedness to weaken carrier typing beneath the payload binder. The proofs
+use existing delta, beta, application and same-type equality rules, without
+typing uniqueness, projection translation or a new oracle.
+
+`Verify.InductiveAnnotationTyping` tracks the actual supported annotation
+spine with explicit translation witnesses and local typing premises. Recursive
+peeling preserves translation to a definitionally equal semantic type,
+carrier-sort typing, and typing of existing inhabitants by conversion. Its
+base case requires the actual consumer to leave the native expression
+unchanged: metadata, lets, lambdas, projections and unrecognized heads are
+barriers, not silently traversed semantic annotations. Supported wrappers have
+exactly one source and semantic universe argument; the executable consumer
+remains total on arbitrary malformed universe lists.
+
+`Verify.InductiveBinderTyping` transports these per-position typed spines to
+raw-domain, peeled-index-domain and actual stored-index-type judgments on the
+same binder history. Actual declaration typing uses uniqueness of the same
+native `find?` result, not a separately selected lookup witness. Semantic
+contexts, universe levels and translations are explicit per-position inputs;
+their correspondence with the native reader is not inferred. Stored-type
+claims remain index-role only and do not identify reused parameter types with
+raw source domains. Deriving typed spines from successful source checking,
+general WHNF translation and full inductive soundness remain separate.
+
+The semantic annotation boundary is deliberately stronger than constructor
+fit, native closure or free-variable support. The canonical definitions of
+`outParam`, `semiOutParam`, `optParam` and `autoParam` must be represented by
+explicit equations in the abstract environment. Carrier-sort typing and
+payload typing remain explicit: `optParam` takes a default inhabiting the
+carrier, while `autoParam` takes a `Lean.Syntax` tactic. Successful metadata
+checks do not establish these semantic premises.
+
+The existing `TrExprS` relation itself inherits `sorryAx`, because its
+projection constructor mentions the admitted `TrProj` definition. Avoiding
+its transport lemmas alone does not remove that dependency. The annotation
+semantic core therefore uses primitive `VEnv.IsDefEq` rules, and its source
+spine is parameterized by an explicit translation relation. Instantiating
+that relation with `TrExprS` retains the existing projection admission; this
+boundary is not a new admission or a claim of complete checker soundness.
+
+`tests/InductiveAnnotationTyping.lean` adds thirty-four proof controls,
+107 strict audits and five axiom-print checks. Whole-module census includes
+seventy-three production declarations / thirty-eight theorems, including
+private/generated helpers, and allows only standard logical axioms. A separate
+translation specialization explicitly confirms the inherited `TrExprS`
+admission instead of weakening the clean-core allowlist. Concrete canonical
+definition membership, correctly typed optional/tactic payloads, nested
+spines, consumer barriers, malformed arities/universe lists, same-lookup
+declarations and parameter-role exclusion are covered. Binary and nested
+fixtures retain an explicit ordered-environment premise; the tests do not
+claim to construct that premise. All three new modules replay through
+lean4lean. Run `lake env lean tests/InductiveAnnotationTyping.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
