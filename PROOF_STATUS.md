@@ -543,7 +543,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   both the final state and result types. The top-level `run.newTypesRange`
   contract now carries the initial declaration range, retained-index, and
   environment closure premises through parameter extraction into the final
-  state and result types. Thirty-six focused audits exclude
+  state and result types, with a `StateT.run'` bridge for the frontend caller.
+  Thirty-seven focused audits exclude
   `sorryAx` and use only the existing logical, metadata, application-building,
   abstraction, instantiation, and array interfaces. These are explicit range
   contracts; they do not prove environment declaration closure, auxiliary

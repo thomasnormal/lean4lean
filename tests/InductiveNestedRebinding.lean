@@ -258,7 +258,7 @@ run_meta do
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
     ``Expr.instantiate1_eq]
   for theoremName in [``run.loop.nestedAuxScoped, ``run.loop.newTypesRange, ``run.newTypesRange,
-      ``run.nestedAuxScoped] do
+      ``run.newTypesRange_run', ``run.nestedAuxScoped] do
     audit theoremName [``Lean.PersistentArray.toList'_push, ``Expr.looseBVarRange_eq,
       ``Expr.abstract_eq, ``Expr.instantiate_eq, ``Expr.instantiateRev_eq,
       ``Expr.abstractRange_eq, ``Lean.PersistentHashMap.WF.find?_eq,
@@ -279,6 +279,6 @@ run_meta do
       for type in cases do
         checkRawAbstraction ids depth type
   checkPremiseBoundaries env
-  logInfo "checked thirty-six proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
+  logInfo "checked thirty-seven proof audits, 216 scoped rebinding/auxiliary comparisons, 300 raw abstraction comparisons, and two necessary-premise boundaries"
 
 end InductiveNestedRebindingTest
