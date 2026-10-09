@@ -206,24 +206,27 @@ inductive ConstructorSpine : Expr → Expr → Prop where
       (h : ConstructorSpine (body.instantiate1 arg) terminal) :
       ConstructorSpine (.forallE name domain body bi) terminal
 
-inductive PositiveConstructorSpine (stats : InductiveStats) : Expr → Expr → Prop where
-  | refl (type : Expr) : PositiveConstructorSpine stats type type
+inductive PositiveConstructorSpine (stats : InductiveStats) (whnf : Expr → Expr → Prop) :
+    Expr → Expr → Prop where
+  | refl (type : Expr) : PositiveConstructorSpine stats whnf type type
   | parameter (name : Name) (domain body : Expr) (bi : BinderInfo)
       (param terminal : Expr)
-      (h : PositiveConstructorSpine stats (body.instantiate1 param) terminal) :
-      PositiveConstructorSpine stats (.forallE name domain body bi) terminal
+      (h : PositiveConstructorSpine stats whnf (body.instantiate1 param) terminal) :
+      PositiveConstructorSpine stats whnf (.forallE name domain body bi) terminal
   | field (name : Name) (domain body : Expr) (bi : BinderInfo)
-      (arg terminal : Expr) (hdom : hasIndOcc stats.indConsts domain = false)
-      (h : PositiveConstructorSpine stats (body.instantiate1 arg) terminal) :
-      PositiveConstructorSpine stats (.forallE name domain body bi) terminal
+      (arg normal terminal : Expr) (hwhnf : whnf domain normal)
+      (hdom : hasIndOcc stats.indConsts normal = false)
+      (h : PositiveConstructorSpine stats whnf (body.instantiate1 arg) terminal) :
+      PositiveConstructorSpine stats whnf (.forallE name domain body bi) terminal
 
 theorem checkConstructors.loop_positive_spine (stats : InductiveStats)
-    (parent : Nat) (ctor : Name) (type : Expr) (index fuel : Nat) (ctx : Context)
+    (whnf : Expr → Expr → Prop) (parent : Nat) (ctor : Name) (type : Expr)
+    (index fuel : Nat) (ctx : Context)
     (hpositive : ∀ domain index ctx,
       (checkPositivity stats domain ctor index ctx).WF fun _ =>
-        hasIndOcc stats.indConsts domain = false) :
+        ∃ normal, whnf domain normal ∧ hasIndOcc stats.indConsts normal = false) :
     (checkConstructors.loop stats false parent ctor type index fuel ctx).WF fun _ =>
-      ∃ terminal, PositiveConstructorSpine stats type terminal ∧
+      ∃ terminal, PositiveConstructorSpine stats whnf type terminal ∧
         isValidIndAppIdx stats terminal parent = true := by
   induction fuel generalizing type index ctx with
   | zero => exact Except.WF.throw
@@ -250,12 +253,12 @@ theorem checkConstructors.loop_positive_spine (stats : InductiveStats)
         intro sort
         split
         · refine (hpositive domain index ctx).bind ?_
-          intro _ hdom
+          intro _ ⟨normal, hwhnf, hdom⟩
           apply Lean4Lean.AddInductive.withLocalDeclWF
           intro arg ctx' hfvar harg hgen hframe
           refine (ih (body.instantiate1 arg) (index + 1) ctx').mono ?_
           rintro _ ⟨terminal, hspine, hvalid⟩
-          exact ⟨terminal, .field name domain body bi arg terminal hdom hspine, hvalid⟩
+          exact ⟨terminal, .field name domain body bi arg normal terminal hwhnf hdom hspine, hvalid⟩
         · exact Except.WF.throw
     | _ =>
       rw [checkConstructors.loop.eq_def]
