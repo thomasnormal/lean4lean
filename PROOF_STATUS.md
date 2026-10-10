@@ -4657,6 +4657,41 @@ separate core/native audits cover every module declaration and check the
 structural closure helper's logical-only provenance.
 Run `lake env lean tests/InductiveParameterSubstitutionRebase.lean`.
 
+`Verify.InductiveParameterSubstitutionPair` adds
+`RetainedFVarPrefixAgreement.instantiatePairIsTypeRebasedCore` and
+`.instantiatePairIsTypeRebased`. A body translated and sort-typed under two
+actual anonymous domains must be structurally closed at depth two and have
+reduced-context fvar support. Both arguments are selected by supplied list
+positions with exact original lookups. An explicit typing receipt for the
+raised original inner argument at the actual inner domain is required while
+the outer binder remains; the proof does not infer that domain from the
+original inner lookup's lifted type or reconstruct dependent parameter types.
+The first substitution eliminates the innermost anonymous binder, deriving
+an intermediate translation, sort typing, depth-one closure and support. That
+exact intermediate expression supplies the existing outer substitution/rebase
+helper; final original semantics are
+`(bodySemantic.inst originalInnerArgument.lift).inst originalOuterArgument`.
+The result preserves both reduced argument lookups/translation/typing, the
+inner argument's original-context agreement, all intermediate receipts,
+depth-zero final closure/support and original/reduced/target translations
+and sort typing. Outer-argument congruence and contraction compare against
+one existential reduced final type using the removal lift, independently
+from target insertion. No distinctness of the supplied positions/IDs or header
+validity is asserted. Core dependencies remain inherited logical/typing axioms
+including `sorryAx`; the native wrapper adds only `Expr.instantiate1_eq` for
+both ordered operations. This does not identify the reduced result with
+substitution of both reduced arguments into a separately contracted body,
+prove whole-prefix recursion/native `replaceParams`, reconstruct telescopes,
+prove inserted motive/minor typehood or establish checker/source acceptance.
+The focused fixture has 24 proof controls and 17 runtime checks. A genuine
+two-formal body preserves its nested local binder; swapped substitution order
+and an unraised original inner argument fail their controls. Concrete proofs
+cover distinct one/three lifts, repeated selected positions and an equivalent
+but nonliteral inner domain with explicit raised-argument typing. Closure,
+support and selection negatives and exhaustive core/native module audits
+enforce the premises and dependency boundary.
+Run `lake env lean tests/InductiveParameterSubstitutionPair.lean`.
+
 `TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains` adapts
 that composition to an actual translated index history. It invokes the
 stored-domain contraction bridge, preserves chronological/native/virtual and
