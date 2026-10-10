@@ -4485,6 +4485,46 @@ two-declaration module audit includes generated helpers and enforces the exact
 four-axiom inherited manifest.
 Run `lake env lean tests/InductiveSubstitutionStageRebase.lean`.
 
+`Verify.InductiveSubstitutionStageEndpoint` proves
+`TrExprS.strengthenSubstitutionStageEndpoint`, connecting an original
+instantiated type to the removal-lifted reduced instantiated type. Its explicit
+argument equality compares an arbitrary original semantic argument with the
+plain removal lift of the reduced argument at the actual original domain, in
+the original context. The original argument need not be a literal lift image,
+a free-variable lookup, or the translation of a supplied native argument.
+This accepts semantic argument agreement from actual histories once it has
+been converted to the actual original domain; it does not reconstruct native
+stage preimages.
+The theorem preserves all six body-strengthening receipts and appends reduced
+argument typing, reduced instantiated endpoint typing, and original-to-lifted
+reduced endpoint definitional equality. All nine outputs share one existential
+reduced body; the body and instantiated endpoint receipts preserve the same
+result sort. Reduced argument typing is derived by
+converting the equality's right-hand typing to the lifted reduced domain,
+transporting it to the aligned context, and inverting the actual removal.
+Substitution congruence consumes the body equality and argument equality at the
+actual original domain. Substitution/lift commutation then identifies the
+result with the plain removal lift of the reduced endpoint; only the body lift
+protects the formal binder with `.cons`.
+No direct chronological-to-target weakening is assumed or derived. Independent
+target insertion, whole-chain strengthening, native telescope/`replaceParams`
+reconstruction, inserted motive/minor typehood and checker/source acceptance
+remain outside this bridge. It also does not turn simultaneous body and
+argument agreement into a literal single-body substitution stage. Dependencies
+retain the four inherited logical/typing axioms, without native/container
+interfaces or new admissions.
+The focused fixture has 29 proof controls and 22 runtime checks. It forwards
+all nine receipts, projects original and reduced endpoint typing, and checks
+conversion of a historical equality to the actual original domain. Its genuine
+one-declaration removal preserves a suffix and base under nested body binders.
+The original argument beta-reduces to the lifted reduced argument while its
+erased argument mentions the removed coordinate; a proof shows that no literal
+lifted stage preimage exists. Nonliteral domain and endpoint syntax, support,
+closure, context length, suffix cutoff and plain-versus-protected lift controls
+pin the semantic boundary. An exhaustive one-declaration module audit enforces
+the exact inherited four-axiom manifest.
+Run `lake env lean tests/InductiveSubstitutionStageEndpoint.lean`.
+
 `Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
 chronological selected telescope over a supplied smaller mixed base.
 `SelectedRecursorDomainFVars` constrains only actual full-reader stored cdecl
