@@ -77,7 +77,13 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   and the exact primitive frame for the checked prefix. They require translated,
   well-typed header/constructor signatures, but do not assume registration
   success or primitive-name exclusion in the semantic models. Complete canonical
-  primitive staging composes with ordinary staging. These results do not
+  primitive staging composes with ordinary staging. For a successful checked
+  non-unsafe ordinary definition whose fresh name is not primitive,
+  `addDefinition.nativePrimitiveFrame` gives the same native reserved-name
+  frame, and `addDefinition.refinesPrimitiveFrame` packages it with the
+  existing `VEnvs.WF`/`CheckerEnv` extension and semantic primitive interface.
+  These ordinary-definition bridges keep freshness and primitive-name guards
+  explicit. These results do not
   discharge the remaining inductive metadata/recursor obligations or construct
   full `TrEnv`/`VContext` instances for the staged environment.
 - `TypeChecker.Inner.checkLevel.checker` and `envGet.lookup` prove the leaf
