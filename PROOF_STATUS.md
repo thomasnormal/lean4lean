@@ -5195,18 +5195,71 @@ receipt construction, and those 28 plus the three existing source-guard
 expression axioms for accepted first-domain trace/batch agreement. The missing
 prefix-dependency control has four inherited dependencies. Retaining the raw
 source guard does not enlarge the native batch extractor's three logical
-dependencies. There is no new axiom, admission or runtime change. Later parameter
-checkpoints still require propagating the accepted source translation through
-the actual substitutions and checker-approved domain changes; the first
-checkpoint theorem is not an unconditional complete-prefix provider.
+dependencies. There is no new axiom, admission or runtime change. This module
+alone handles only the first checkpoint; the complete constructor propagation
+is supplied by the following module, rather than by inventing source checks
+for opened tails that the native loop never performs.
+
+`Verify.InductiveConstructorPrefixReceipts` constructs the whole constructor
+parameter receipt chain from the original accepted source check and a canonical
+well-formed parameter history. `ParameterPrefix.uncons` exposes the next actual
+canonical binder; `baseWF` and `retainsLookup` derive its typing and unchanged
+native lookup from the full model. At each native parameter check the proof
+constructs the reduced receipt directly from the current source translation,
+canonical stored-domain typing and the recorded accepted `isDefEq` call.
+`TrExprS.openCanonicalParameter` transports the raw body from its candidate
+binder domain to the checker-approved stored domain, then instantiates the
+actual selected free variable. The recursive proof propagates that strict
+translation to the next dependent domain. It assumes neither a fresh checker
+call on the opened tail nor an independently supplied semantic receipt.
+
+The recursion retains an unprocessed canonical suffix, including its exact
+length relative to the final native binder index. `completeParameters` proves
+that accepted guarded sources consume every parameter: it propagates the
+original source's remaining-parameter absence through actual substitutions
+and uses the validated return application. A raw terminal without that source
+absence cannot obtain this completion theorem. Fields are handled only after
+the parameter array is exhausted; their recorded checks/positivity trace are
+preserved while parameter-domain contexts remain unchanged.
+`AcceptedConstructorTrace.domainReceipts` identifies the final stored context
+with the full canonical checker context and derives aggregate candidate-domain
+agreement and complete parameter growth. `checkConstructors.domainReceipts`
+obtains this for every member of an accepted safe or unsafe batch without a
+receipt-provider callback or an assumed complete-prefix equality judgment.
+
+The constructor prefix fixture derives a genuine checker environment from the
+verified native registration of a safe family axiom, constructs its canonical
+dependent local context and reset-state model, and applies the complete batch
+provider. The family is a typed checker fixture, not a proof of inductive
+family registration. Native controls include both safety flags, a dependent
+second parameter, nonliteral first domains, fields, retained partial loops,
+rejected incompatible domains and raw zero-check terminals excluded by the
+source guard. The semantic opening control changes a candidate beta-equivalent
+binder to its canonical stored domain before checking the dependent tail.
+All 23 production and 17 prefix-fixture declarations are audited, with 25 new
+runtime controls. Exact manifests pin four inherited dependencies for prefix
+well-formedness and the field-only receipt chain, one logical dependency for
+canonical prefix decomposition, seven for native lookup retention and eight
+for semantic binder conversion/opening. Native source-absence completion has
+five dependencies and no inherited admission. The complete native trace
+provider has the existing 28 checker dependencies; accepted batch composition
+and the registered-family model fixture have those 28 plus the three existing
+source-guard expression axioms. There is no new axiom, admission or runtime change.
+The initial reader/checker alignment, semantic environment/local-context model,
+reset-state well-formedness and canonical parameter history remain explicit
+production inputs. Constructing those models from the actual first header,
+semantic generated-family/cache/constructor registration, and the larger
+independent rebinding traversal remain open. This is a complete conditional
+constructor parameter-domain provider, not unconditional frontend soundness.
 
 The original `typedRebinding` literal semantic-domain agreement premise remains
 explicit outside its shared-semantic-input case. The new definitional transport
 is an alternative boundary, not a proof that accepted original headers and
-constructors have literally equal strict translations. Constructing all reduced
-prefix/checker receipt providers from accepted original inputs and integrating
-first-header semantic typing remain open; header and constructor aggregation
-are conditional on those semantic receipts, not unconditional frontend soundness.
+constructors have literally equal strict translations. Constructing first-header
+semantic typing/checker models and the complete header receipt providers from
+accepted original inputs remain open. Constructor receipts are now derived
+from accepted source checks once the canonical checker model is supplied;
+the frontend integration is still conditional, not unconditional soundness.
 Rebinding callbacks below unopened raw binders also need to strengthen the
 selected closed prefix from
 its ambient bound-variable context into the parameter-only source context;
