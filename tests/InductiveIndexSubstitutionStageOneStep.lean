@@ -294,6 +294,216 @@ private theorem genuineOneStepHistoryInvokesTheStageAdapter
   · simpa [bodyIdentity, contextIdentity] using targetTyping
   · simpa [contextIdentity] using endpointEquality
 
+private def pushSortModel (model : MLCtx) (reader : Context) : MLCtx :=
+  .vlam (generated reader) `oneIndex (.sort .zero) (.sort .zero) .default model
+
+private def advanceReaderTwice (reader : Context) : Context :=
+  { reader with ngen := reader.ngen.next.next }
+
+private def removedMixedBase (model : MLCtx) (reader : Context) : MLCtx :=
+  pushSortModel model (advanceReaderTwice reader)
+
+private def originalMixedReader (reader : Context) : Context :=
+  nextReader (advanceReaderTwice reader)
+
+private def insertedMixedBase (model : MLCtx) (reader : Context) : MLCtx :=
+  pushSortModel (pushSortModel model reader) (nextReader reader)
+
+private theorem pushSortModelIsWellFormed
+    {env : VEnv} {universes : List Name} (model : MLCtx) (modelWF : model.WF env universes)
+    (reader : Context) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen) :
+    (pushSortModel model reader).WF env universes ∧
+    (pushSortModel model reader).lctx = (nextReader reader).lctx ∧
+    ContextReserved (nextReader reader).lctx (nextReader reader).ngen := by
+  have correspondence : TrLCtx env universes reader.lctx model.vlctx := by simpa only [native] using modelWF.tr
+  have frame := Context.RecursorScopeFrame.push reader correspondence.1 reserved `oneIndex .default (.sort .zero)
+  refine ⟨⟨modelWF, ?_, .sort (by simp [VLevel.ofLevel]),
+    .succ .zero, .sortDF (by trivial) (by trivial) rfl⟩, ?_, frame.reserved⟩
+  · simpa only [native] using reserved.fresh correspondence.1
+  · simp only [pushSortModel, MLCtx.lctx, nextReader, recursorIndexContext, native, generated]
+
+private theorem constructedMixedBaseWeakenings (model : MLCtx) (reader : Context) :
+    VLCtx.FVLift' model.vlctx (removedMixedBase model reader).vlctx 0 (.skip .refl) 0 ∧
+    VLCtx.FVLift model.vlctx (insertedMixedBase model reader).vlctx 0 2 0 := by
+  have removal : IndexMLCtxExtension model [generated (advanceReaderTwice reader)]
+      (removedMixedBase model reader) :=
+    .push .nil _ `oneIndex (.sort .zero) (.sort .zero) .default
+  have insertion : IndexMLCtxExtension model [generated reader, generated (nextReader reader)]
+      (insertedMixedBase model reader) :=
+    .push (.push .nil _ `oneIndex (.sort .zero) (.sort .zero) .default)
+      _ `oneIndex (.sort .zero) (.sort .zero) .default
+  exact ⟨removal.weakening.toFVLift', insertion.weakening⟩
+
+private theorem constructedMixedBasesHaveExactSupports (model : MLCtx) (reader : Context) :
+    (removedMixedBase model reader).vlctx.fvars = generated (advanceReaderTwice reader) :: model.vlctx.fvars ∧
+    (insertedMixedBase model reader).vlctx.fvars =
+      generated (nextReader reader) :: generated reader :: model.vlctx.fvars := ⟨rfl, rfl⟩
+
+private theorem constructedMixedBasesHaveIndependentWidths (model : MLCtx) (reader : Context) :
+    (removedMixedBase model reader).vlctx.toCtx.length = model.vlctx.toCtx.length + 1 ∧
+    (insertedMixedBase model reader).vlctx.toCtx.length = model.vlctx.toCtx.length + 2 ∧
+    (removedMixedBase model reader).vlctx.toCtx ≠ model.vlctx.toCtx ∧
+    (insertedMixedBase model reader).vlctx.toCtx ≠ (removedMixedBase model reader).vlctx.toCtx := by
+  refine ⟨rfl, rfl, ?_, ?_⟩
+  · intro equality
+    have lengths := congrArg List.length equality
+    change model.vlctx.toCtx.length + 1 = model.vlctx.toCtx.length at lengths
+    omega
+  · intro equality
+    have lengths := congrArg List.length equality
+    change model.vlctx.toCtx.length + 2 = model.vlctx.toCtx.length + 1 at lengths
+    omega
+
+private theorem constructedMixedBasesAreWellFormed
+    {env : VEnv} {universes : List Name} (model : MLCtx) (modelWF : model.WF env universes)
+    (reader : Context) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen) :
+    (removedMixedBase model reader).WF env universes ∧
+    (removedMixedBase model reader).lctx = (originalMixedReader reader).lctx ∧
+    ContextReserved (originalMixedReader reader).lctx (originalMixedReader reader).ngen ∧
+    (insertedMixedBase model reader).WF env universes ∧
+    generated (originalMixedReader reader) ∉ (insertedMixedBase model reader).vlctx.fvars := by
+  have advancedReserved : ContextReserved reader.lctx reader.ngen.next.next := by
+    intro declaration member
+    exact NameGenerator.Reserves.mono (NameGenerator.LE.next.trans NameGenerator.LE.next)
+      (reserved declaration member)
+  have originalReceipts := pushSortModelIsWellFormed model modelWF (advanceReaderTwice reader)
+    native advancedReserved
+  have first := pushSortModelIsWellFormed model modelWF reader native reserved
+  have second := pushSortModelIsWellFormed (pushSortModel model reader) first.1
+    (nextReader reader) first.2.1 first.2.2
+  have insertedReserved : ContextReserved (insertedMixedBase model reader).lctx
+      (originalMixedReader reader).ngen := by
+    intro declaration member
+    apply NameGenerator.Reserves.mono NameGenerator.LE.next
+    apply second.2.2 declaration
+    change declaration ∈ (pushSortModel (pushSortModel model reader) (nextReader reader)).lctx.toList at member
+    simpa only [second.2.1] using member
+  have fresh := second.1.tr.find?_eq_none.mp (insertedReserved.fresh second.1.tr.1)
+  exact ⟨originalReceipts.1, originalReceipts.2.1, originalReceipts.2.2, second.1, fresh⟩
+
+private theorem genuineOneStepHistoryRebasesConstructedMixedBases
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    (parametersEmpty : stats.params.size = 0)
+    (seed : MLCtx) (seedWF : seed.WF env universes) (reader : Context)
+    (native : seed.lctx = reader.lctx) (reserved : ContextReserved reader.lctx reader.ngen)
+    (envWF : env.WF) (depth : Nat) (positive : reader.fuel.recDepth = depth + 1) :
+    let smaller := pushSortModel seed reader
+    let baseReader := nextReader reader
+    let original := removedMixedBase smaller baseReader
+    let larger := insertedMixedBase smaller baseReader
+    let actualReader := originalMixedReader baseReader
+    ∃ (chronological reduced target : MLCtx) (reducedArgument reducedDomain reducedBody : VExpr),
+      chronological.vlctx = nextVirtual original.vlctx actualReader ∧
+      SelectedRecursorTelescope env universes (nextReader actualReader).lctx smaller
+        [generated actualReader] reduced ∧
+      SelectedRecursorTelescope env universes (nextReader actualReader).lctx larger
+        [generated actualReader] target ∧
+      reduced.vlctx.fvars = generated actualReader :: smaller.vlctx.fvars ∧
+      target.vlctx.fvars = generated actualReader :: larger.vlctx.fvars ∧
+      VLCtx.FVLift' reduced.vlctx target.vlctx 0 (.cons (.skip (.skip .refl))) 0 ∧
+      TrExprS env universes ((none, .vlam reducedDomain) :: reduced.vlctx)
+        (nativeStageBody actualReader (generated reader)) reducedBody ∧
+      env.HasType universes.length (reducedDomain :: reduced.vlctx.toCtx) reducedBody (.sort stageLevel) ∧
+      TrExprS env universes reduced.vlctx
+        ((nativeStageBody actualReader (generated reader)).instantiate1 (.fvar (generated reader)))
+        (reducedBody.inst reducedArgument) ∧
+      env.HasType universes.length reduced.vlctx.toCtx (reducedBody.inst reducedArgument) (.sort stageLevel) ∧
+      TrExprS env universes target.vlctx
+        ((nativeStageBody actualReader (generated reader)).instantiate1 (.fvar (generated reader)))
+        ((reducedBody.lift' (Lift.cons (.skip (.skip .refl))).cons).inst
+          (reducedArgument.lift' (.cons (.skip (.skip .refl))))) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        ((reducedBody.lift' (Lift.cons (.skip (.skip .refl))).cons).inst
+          (reducedArgument.lift' (.cons (.skip (.skip .refl))))) (.sort stageLevel) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        ((reducedBody.inst reducedArgument).lift' (.cons (.skip (.skip .refl)))) (.sort stageLevel) ∧
+      env.IsDefEq universes.length chronological.vlctx.toCtx
+        ((stageSemantic (.bvar 1)).inst (.bvar 2))
+        ((reducedBody.inst reducedArgument).lift' (.cons (.skip .refl))) (.sort stageLevel) ∧
+      Closed ((nativeStageBody actualReader (generated reader)).instantiate1 (.fvar (generated reader))) 0 ∧
+      ((nativeStageBody actualReader (generated reader)).instantiate1 (.fvar (generated reader))).FVarsIn
+        (· ∈ reduced.vlctx.fvars) := by
+  let smaller := pushSortModel seed reader
+  let baseReader := nextReader reader
+  let original := removedMixedBase smaller baseReader
+  let larger := insertedMixedBase smaller baseReader
+  let actualReader := originalMixedReader baseReader
+  have retainedReceipts := pushSortModelIsWellFormed seed seedWF reader native reserved
+  have mixed := constructedMixedBasesAreWellFormed smaller retainedReceipts.1 baseReader
+    retainedReceipts.2.1 retainedReceipts.2.2
+  have weakenings := constructedMixedBaseWeakenings smaller baseReader
+  have correspondence : TrLCtx env universes actualReader.lctx original.vlctx := by
+    simpa only [mixed.2.1] using mixed.1.tr
+  have normalized := nativeSortNormalizationWithPositiveDepth actualReader depth positive
+  obtain ⟨trace, history⟩ := constructGenuineOneStepHistory parametersEmpty correspondence mixed.2.2.1 normalized
+  have opening := constructActualIndexOpening correspondence mixed.2.2.1
+  have frame := opening.2.2.2.2.2
+  have nextCorrespondence : TrLCtx env universes (nextReader actualReader).lctx
+      (nextVirtual original.vlctx actualReader) := opening.2.2.1
+  have originalLookup : original.vlctx.find? (.inr (generated reader)) = some (.bvar 1, .sort .zero) := by
+    have fresh := mixed.1.tr.wf.2.1 (generated (advanceReaderTwice baseReader)) [] rfl
+    have different : generated (advanceReaderTwice baseReader) ≠ generated reader := by
+      intro equality
+      apply fresh.1
+      simp [smaller, pushSortModel, MLCtx.vlctx, VLCtx.fvars, ← equality]
+    have selectedLookup : smaller.vlctx.find? (.inr (generated reader)) = some (.bvar 0, .sort .zero) := by
+      simp [smaller, pushSortModel, MLCtx.vlctx, VLCtx.find?, VLCtx.next,
+        VLocalDecl.value, VLocalDecl.type, VExpr.lift, VExpr.liftN]
+    exact selectedLookupSurvivesTheActualIndexPush different selectedLookup
+  have member : generated reader ∈ smaller.vlctx.fvars := by
+    simp [smaller, pushSortModel, MLCtx.vlctx, VLCtx.fvars]
+  have freshOriginal := actualNewIndexIsFreshInTheBase correspondence mixed.2.2.1
+  have different : generated actualReader ≠ generated reader := by
+    intro equality
+    apply freshOriginal
+    change generated actualReader ∈ generated (advanceReaderTwice baseReader) :: smaller.vlctx.fvars
+    exact List.mem_cons_of_mem _ (equality.symm ▸ member)
+  have finalLookup := selectedLookupSurvivesTheActualIndexPush different originalLookup
+  have stageReceipts := translatedStageUsesTheFormalNewIndexAndSelectedParameter envWF mixed.1.tr.wf
+    (generated reader) different originalLookup
+  have closedSupport := actualStageBodyClosedAndSupported actualReader (generated reader) smaller.vlctx.fvars member
+  obtain ⟨chronological, ids, reduced, _, target, reducedArgument, reducedDomain, _, reducedBody,
+    _, _, chronologicalConverted, _, array, reducedTelescope, _, _, _, targetTelescope,
+    _, insertionWeakening, _, _, _, _, _, _, _, _, _, _, reducedBodyTranslation, reducedBodyTyping, _, _,
+    sourceTyping, endpointEquality, _, _, _, targetTyping, substitutedClosed, substitutedSupport,
+    _, sourceTranslation, _, targetTranslation⟩ :=
+    history.selectedTelescopeRebasedSubstitutionStageOfStoredDomains original mixed.1 mixed.2.1 rfl mixed.2.2.1
+      (nextReader actualReader) (.refl _ nextCorrespondence.1 frame.reserved) envWF
+      smaller retainedReceipts.1 (.skip .refl) weakenings.1
+      (oneActualStoredDomainIsSupported correspondence mixed.2.2.1 (generated reader))
+      (by simp [oneStep, BinderStep.indexValues])
+      (by intro candidate selected
+          have equality : candidate = generated reader := by simpa using selected
+          simpa only [equality] using member)
+      (by simp) larger mixed.2.2.2.1 2 weakenings.2
+      (by intro candidate selected
+          have equality : candidate = generated actualReader := by simpa using selected
+          simpa only [equality] using mixed.2.2.2.2)
+      0 (generated reader) rfl finalLookup stageReceipts.1 stageReceipts.2 closedSupport.1
+      (by simpa using closedSupport.2.2)
+  have idsSingleton := exactlyOneIdentifierComesFromTheActualArrayPush array
+  subst ids
+  refine ⟨chronological, reduced, target, reducedArgument, reducedDomain, reducedBody,
+    chronologicalConverted, reducedTelescope, targetTelescope, ?_, ?_, insertionWeakening,
+    reducedBodyTranslation, reducedBodyTyping, sourceTranslation, sourceTyping, targetTranslation,
+    targetTyping, ?_, endpointEquality, substitutedClosed, substitutedSupport⟩
+  · simpa using reducedTelescope.extension.virtualFVars
+  · simpa using targetTelescope.extension.virtualFVars
+  · simpa only [VExpr.lift'_inst_hi] using targetTyping
+
+private theorem constructedSelectedStageHasDistinctSourceOriginalAndTargetCoordinates :
+    stageSemantic (.bvar 0) = .forallE (.bvar 0) (.forallE (.bvar 2) (.bvar 4)) ∧
+    stageSemantic (.bvar 1) = .forallE (.bvar 0) (.forallE (.bvar 2) (.bvar 5)) ∧
+    (stageSemantic (.bvar 0)).lift' (Lift.cons (.skip .refl)).cons = stageSemantic (.bvar 1) ∧
+    (stageSemantic (.bvar 0)).lift' (Lift.cons (.skip (.skip .refl))).cons =
+      .forallE (.bvar 0) (.forallE (.bvar 2) (.bvar 6)) ∧
+    (stageSemantic (.bvar 0)).inst (.bvar 1) = .forallE (.bvar 1) (.forallE (.bvar 1) (.bvar 3)) ∧
+    (stageSemantic (.bvar 1)).inst (.bvar 2) = .forallE (.bvar 2) (.forallE (.bvar 1) (.bvar 4)) ∧
+    ((stageSemantic (.bvar 0)).inst (.bvar 1)).lift' (.cons (.skip (.skip .refl))) =
+      .forallE (.bvar 3) (.forallE (.bvar 1) (.bvar 5)) := ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+
 private theorem theStoredStepAndArrayReallyContainOneFreshIndex (reader : Context) :
     [oneStep reader][0]? = some (oneStep reader) ∧
     [oneStep reader][1]? = none ∧
@@ -311,6 +521,11 @@ private def semanticPosition : VExpr → Nat
   | .bvar position => position
   | _ => 1000
 
+private def semanticShape : VExpr → List Nat
+  | .bvar position => [0, position]
+  | .forallE domain body => 1 :: (semanticShape domain ++ semanticShape body)
+  | _ => [2]
+
 private def runtimeControls : MetaM Unit := do
   let index : FVarId := ⟨`OneStepActualPushIndex⟩
   let parameter : FVarId := ⟨`OneStepRetainedParameter⟩
@@ -321,6 +536,8 @@ private def runtimeControls : MetaM Unit := do
     (.forallE `indexUse (.fvar index) (.fvar parameter) .default) .default
   let expected := Expr.forallE `formalUse (.fvar parameter)
     (.forallE `indexUse (.fvar index) (.fvar parameter) .default) .default
+  let sourceBody := stageSemantic (.bvar 0)
+  let originalBody := stageSemantic (.bvar 1)
   let conditions := [
     (pushed.size == 1 && pushed.toList == [.fvar index], "actual array push contributes exactly one index"),
     (semanticPosition ((VExpr.bvar 0).lift' removal) == 0, "nonzero removal preserves new index slot"),
@@ -335,10 +552,33 @@ private def runtimeControls : MetaM Unit := do
     (semanticPosition ((VExpr.bvar 0).lift' insertion) != semanticPosition ((VExpr.bvar 0).lift' (.skip (.skip .refl))),
       "unprotected insertion is wrong for index slot"),
     (body.instantiate1' (.fvar parameter) == expected, "structural substitution keeps index and selected parameter"),
-    (body.instantiate1 (.fvar parameter) == expected, "native substitution keeps index and selected parameter")]
+    (body.instantiate1 (.fvar parameter) == expected, "native substitution keeps index and selected parameter"),
+    (semanticShape sourceBody == semanticShape (.forallE (.bvar 0) (.forallE (.bvar 2) (.bvar 4))),
+      "retained parameter has reduced body coordinate four"),
+    (semanticShape originalBody == semanticShape (.forallE (.bvar 0) (.forallE (.bvar 2) (.bvar 5))),
+      "removed declaration gives original body coordinate five"),
+    (semanticShape (sourceBody.lift' removal.cons) == semanticShape originalBody,
+      "actual one-declaration removal lift reconstructs original body"),
+    (semanticShape (sourceBody.lift' insertion.cons) ==
+      semanticShape (.forallE (.bvar 0) (.forallE (.bvar 2) (.bvar 6))),
+      "independent two-declaration insertion gives target body coordinate six"),
+    (semanticShape (sourceBody.inst (.bvar 1)) ==
+      semanticShape (.forallE (.bvar 1) (.forallE (.bvar 1) (.bvar 3))),
+      "reduced endpoint separates selected parameter and fresh index"),
+    (semanticShape (originalBody.inst (.bvar 2)) ==
+      semanticShape (.forallE (.bvar 2) (.forallE (.bvar 1) (.bvar 4))),
+      "original endpoint reflects removed declaration"),
+    (semanticShape ((sourceBody.inst (.bvar 1)).lift' insertion) ==
+      semanticShape (.forallE (.bvar 3) (.forallE (.bvar 1) (.bvar 5))),
+      "target endpoint reflects independent inserted declarations"),
+    (semanticShape (sourceBody.lift' insertion.cons) != semanticShape (sourceBody.lift' insertion),
+      "plain context lift does not protect body formal"),
+    (semanticShape ((sourceBody.inst (.bvar 1)).lift' insertion) !=
+      semanticShape ((sourceBody.inst (.bvar 1)).lift' removal),
+      "independent insertion cannot be replaced by original removal")]
   for (condition, label) in conditions do
     unless condition do throwError "one-step-stage runtime failed: {label}"
-  logInfo m!"one-step-stage runtime: {conditions.length} array-push, native/structural substitution and independent nonzero coordinate probes; actual history adapter application uses identity bases"
+  logInfo m!"one-step-stage runtime: {conditions.length} array-push, native/structural substitution and mixed-base coordinate probes; actual history adapter applications cover identity bases and constructed one-removed/two-inserted bases"
 
 private def auditDeclaration (name : Name) (allowed : List Name) : MetaM Unit := do
   let some _ := (← getEnv).find? name | throwError "one-step-stage audited declaration absent: {name}"
@@ -357,20 +597,26 @@ run_meta
     ``PersistentHashMap.WF.find?_eq, ``PersistentHashMap.WF.toList'_insert, ``Expr.instantiate1_eq]
   let actualControls := [``constructActualIndexOpening, ``constructGenuineOneStepHistory,
     ``oneActualStoredDomainIsSupported, ``actualNewIndexIsFreshInTheBase,
-    ``translatedStageUsesTheFormalNewIndexAndSelectedParameter, ``genuineOneStepHistoryInvokesTheStageAdapter]
+    ``translatedStageUsesTheFormalNewIndexAndSelectedParameter, ``genuineOneStepHistoryInvokesTheStageAdapter,
+    ``pushSortModelIsWellFormed, ``constructedMixedBasesAreWellFormed,
+    ``genuineOneStepHistoryRebasesConstructedMixedBases]
   for name in actualControls do auditDeclaration name adapterAllowed
   auditDeclaration ``nativeSortNormalizationWithPositiveDepth (logical ++ [``Expr.instantiate1_eq])
   let structuralControls := [``selectedLookupSurvivesTheActualIndexPush, ``actualStageBodyClosedAndSupported,
     ``exactlyOneIdentifierComesFromTheActualArrayPush, ``theStoredStepAndArrayReallyContainOneFreshIndex,
     ``actualStageSubstitutionKeepsTheNewIndexAndSelectedParameter,
-    ``actualPushReceiptFixesIndependentNonzeroLiftCutoffs, ``missingNewIndexOrSelectedParameterCannotSupplyStageSupport]
+    ``actualPushReceiptFixesIndependentNonzeroLiftCutoffs, ``missingNewIndexOrSelectedParameterCannotSupplyStageSupport,
+    ``constructedMixedBaseWeakenings, ``constructedMixedBasesHaveIndependentWidths,
+    ``constructedMixedBasesHaveExactSupports, ``constructedSelectedStageHasDistinctSourceOriginalAndTargetCoordinates]
   for name in structuralControls do auditDeclaration name logical
   for name in [``generated, ``nextReader, ``nextVirtual, ``normalizationReceipt, ``oneStep,
-      ``nativeStageBody, ``stageSemantic, ``stageLevel, ``semanticPosition, ``runtimeControls,
+      ``nativeStageBody, ``stageSemantic, ``stageLevel, ``semanticPosition, ``semanticShape, ``runtimeControls,
+      ``pushSortModel, ``advanceReaderTwice, ``removedMixedBase, ``originalMixedReader, ``insertedMixedBase,
       ``auditDeclaration, ``auditExactDependencies] do auditDeclaration name logical
   auditExactDependencies ``nativeSortNormalizationWithPositiveDepth (logical ++ [``Expr.instantiate1_eq])
   auditExactDependencies ``genuineOneStepHistoryInvokesTheStageAdapter adapterAllowed
+  auditExactDependencies ``genuineOneStepHistoryRebasesConstructedMixedBases adapterAllowed
   runtimeControls
-  logInfo m!"one-step-stage tests: {actualControls.length + structuralControls.length + 1} proof controls; real index/stop trace and actual array push; real peeled opening and nonvacuous stored declaration; formal/new index/selected parameter body; shared reduced body, suffix support, target native translation/typing and original endpoint agreement; native sort normalization proved at positive depth, identity base application with independent nonzero lift probes tied to pushed suffix receipt"
+  logInfo m!"one-step-stage tests: {actualControls.length + structuralControls.length + 1} proof controls; real index/stop trace and actual array push; real peeled opening and nonvacuous stored declaration; constructed retained parameter, original one-declaration removal and independent two-declaration target insertion; shared reduced body, suffix support, target native translation/typing and original endpoint agreement; native sort normalization proved at positive depth; both identity and mixed-base applications tied to actual pushed suffix receipt"
 
 end InductiveIndexSubstitutionStageOneStepTest
