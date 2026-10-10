@@ -116,6 +116,23 @@ theorem AddInductive.declareInductiveTypes.ordered
     haligned hsafety hsize hheaders).mono fun _ ⟨venv', hadd, haligned'⟩ =>
       ⟨venv', hadd, haligned', VEnv.addInductHeaders.ordered hordered htypes hadd⟩
 
+theorem AddInductive.declareInductiveTypes.refinesWF
+    (ctx : AddInductive.Context) (stats : AddInductive.InductiveStats)
+    (numParams : Nat) (indTypes : Array InductiveType) (numNested : Nat) (isUnsafe : Bool)
+    {safety : DefinitionSafety} {venv : VEnv} {headers : List VInductiveType}
+    (haligned : Aligned safety ctx.env.constants venv)
+    (hvenv : venv.WF)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe)
+    (hsize : stats.nindices.size = indTypes.size)
+    (hheaders : List.Forall₂ (TrInductiveHeader venv ctx.lparams) indTypes.toList headers)
+    (htypes : ∀ header ∈ headers, header.toVConstant.WF venv) :
+    (declareInductiveTypes stats numParams indTypes numNested isUnsafe ctx).WF fun env' =>
+      ∃ venv', venv.addInductHeaders headers = some venv' ∧
+        venv'.WF ∧ Aligned safety env'.constants venv' :=
+  (declareInductiveTypes.refines ctx stats numParams indTypes numNested isUnsafe
+    haligned hsafety hsize hheaders).mono fun _ ⟨venv', hadd, haligned'⟩ =>
+      ⟨venv', hadd, VEnv.addInductHeaders.wf hvenv htypes hadd, haligned'⟩
+
 theorem AddInductive.checkInductiveTypes.refinesHeaders
     (ctx : AddInductive.Context) (numParams : Nat) (indTypes : Array InductiveType)
     (numNested : Nat) (isUnsafe : Bool)
@@ -132,6 +149,25 @@ theorem AddInductive.checkInductiveTypes.refinesHeaders
   apply declareInductiveTypes.refines ctx' stats numParams indTypes numNested isUnsafe
     (by simpa [hframe.env] using haligned) hsafety hsizes.1
     (by simpa [hframe.lparams] using hheaders)
+
+theorem AddInductive.checkInductiveTypes.refinesHeadersWF
+    (ctx : AddInductive.Context) (numParams : Nat) (indTypes : Array InductiveType)
+    (numNested : Nat) (isUnsafe : Bool)
+    {safety : DefinitionSafety} {venv : VEnv} {headers : List VInductiveType}
+    (haligned : Aligned safety ctx.env.constants venv)
+    (hvenv : venv.WF)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe)
+    (hheaders : List.Forall₂ (TrInductiveHeader venv ctx.lparams) indTypes.toList headers)
+    (htypes : ∀ header ∈ headers, header.toVConstant.WF venv) :
+    (checkInductiveTypes numParams indTypes
+      (fun stats => declareInductiveTypes stats numParams indTypes numNested isUnsafe) ctx).WF
+      fun env' => ∃ venv', venv.addInductHeaders headers = some venv' ∧
+        venv'.WF ∧ Aligned safety env'.constants venv' := by
+  apply checkInductiveTypes.frameHeaderSizes
+  intro stats ctx' hsizes hframe
+  apply declareInductiveTypes.refinesWF ctx' stats numParams indTypes numNested isUnsafe
+    (by simpa [hframe.env] using haligned) hvenv hsafety hsizes.1
+    (by simpa [hframe.lparams] using hheaders) htypes
 
 theorem AddInductive.checkInductiveTypes.orderedHeaders
     (ctx : AddInductive.Context) (numParams : Nat) (indTypes : Array InductiveType)

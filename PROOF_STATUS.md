@@ -73,6 +73,15 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   not derived from the concrete check in this theorem. This is partial
   correctness of the checked-header prefix, not full inductive frontend
   correctness, constructor installation, positivity, or recursor soundness.
+- `AddInductive.declareInductiveTypes.refinesWF` and
+  `AddInductive.checkInductiveTypes.refinesHeadersWF` compose the same header
+  refinements with `VEnv.addInductHeaders.wf`. Under an explicit initial
+  semantic `venv.WF` and well-formed translated headers, successful staging now
+  returns a registered header environment that is semantically well-formed and
+  still `Aligned` with the native constants. This is deliberately a semantic
+  header-as-axiom result: it does not manufacture the native `TrEnv` extension
+  required by `VEnvs.WF`, because the general `AddInduct` relation remains
+  unimplemented.
 - `VEnv.addConstructorHeaders` installs constructor signatures as fresh ordinary
   typed constants. Its append, extension, installed-lookup, equation-preservation,
   and orderedness properties are proved. `AddInductive.declareConstructors.refines`
