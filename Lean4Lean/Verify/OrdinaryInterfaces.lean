@@ -89,6 +89,24 @@ theorem addDefinitionHeader.nativePrimitiveFrame (env : Kernel.Environment) (v :
   · simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name] using hfresh
   · simpa only [ConstantInfo.name] using hprimitive
 
+theorem addDefinition.unsafeHeaderResult (env : Kernel.Environment) (v : DefinitionVal)
+    (fuel : FuelConfig) {env' : Kernel.Environment} (hsafety : v.safety = .unsafe)
+    (hresult : addDefinition env v true fuel = .ok env') :
+    ∃ header, addDefinitionHeader env v fuel = .ok header ∧ header = env' := by
+  unfold addDefinition at hresult
+  rw [hsafety] at hresult
+  simp [(· >>= ·), Except.bind] at hresult
+  split at hresult
+  · cases hresult
+  · rename_i header hheader
+    split at hresult
+    · cases hresult
+    · rename_i checked hchecked
+      split at hresult
+      · cases hresult
+      · cases hresult
+        exact ⟨env', hheader, rfl⟩
+
 theorem NativePrimitiveFrame.foldlM {Item State Error : Type}
     (getEnv : State → Kernel.Environment) (step : State → Item → Except Error State)
     (items : List Item) (initial : State) (hmap : (getEnv initial).constants.WF)

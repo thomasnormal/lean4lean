@@ -342,6 +342,14 @@ example :
   · native_decide
   · exact hresult
 
+example :
+    (addDefinition emptyNative unsafeFrameDefinition true).WF fun result =>
+      ∃ header, addDefinitionHeader emptyNative unsafeFrameDefinition {} = .ok header ∧
+        header = result := by
+  intro result hresult
+  exact addDefinition.unsafeHeaderResult emptyNative unsafeFrameDefinition {}
+    rfl hresult
+
 run_meta
   let simple := [``propext, ``Quot.sound]
   let structural := simple ++ [``Classical.choice]
@@ -368,6 +376,7 @@ run_meta
   for theoremName in [``NativePrimitiveFrame.addConst, ``addDefinition.nativePrimitiveFrame,
       ``addAxiom.nativePrimitiveFrame, ``addDefinitionHeader.nativePrimitiveFrame] do
     audit theoremName native
+  audit ``addDefinition.unsafeHeaderResult structural
   audit ``CheckerEnv.of_valueFrame logical
   for theoremName in [``NativeValueFrame.addConst,
       ``AddInductive.declareInductiveTypes.preservesValues,
