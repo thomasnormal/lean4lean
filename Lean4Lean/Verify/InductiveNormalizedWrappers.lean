@@ -33,8 +33,9 @@ theorem NormalizedSortTelescope.mdata {source normalized : Expr}
 
 private theorem singletonRange (body value : Expr) :
     body.instantiateRange 0 1 #[value] = body.instantiate1 value := by
-  simp only [Expr.instantiateRange_eq, Expr.instantiate_eq, Expr.instantiate1_eq]
-  rfl
+  rw [Expr.instantiateRange_eq, Expr.instantiate_eq, Expr.instantiate1_eq]
+  change body.instantiateMany [value] = body.instantiate1' value
+  exact Expr.instantiateMany_singleton body value 0
 
 open private mkAppRevRangeAux from Lean.Expr in
 private theorem emptyRevRange (source : Expr) (args : Array Expr) :

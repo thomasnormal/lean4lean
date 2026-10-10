@@ -15,7 +15,8 @@ theorem replaceParams.singleton_eq (identifier : FVarId) (body replacement : Exp
     simpa only [Expr.abstractList] using
       Expr.abstract_eq_of_scope (ids := [identifier]) scope (by simp)
   rw [abstraction, Expr.instantiateRev_eq, Expr.instantiate_eq, Array.toList_reverse]
-  rfl
+  change Except.ok ((body.abstract1 identifier).instantiateMany [replacement], state) = _
+  rw [Expr.instantiateMany_singleton]
 
 theorem replaceParams.singleton_typed
     {env : VEnv} {universes : List Name} {base : MLCtx}

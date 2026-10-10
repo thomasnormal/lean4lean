@@ -39,7 +39,7 @@ theorem openParams_noLooseBVars (type : Expr) (params : Array Expr)
     (type.instantiateRev params).looseBVarRange' = 0 := by
   rw [Expr.instantiateRev_eq, Expr.instantiate_eq]
   apply Nat.eq_zero_of_le_zero
-  apply Expr.instantiateList_looseBVarRange (n := 0) (k := 0)
+  apply Expr.instantiateMany_looseBVarRange (bound := 0) (depth := 0)
   · simpa using htype
   · intro param hparam
     have hmem : param ∈ params := by simpa using hparam

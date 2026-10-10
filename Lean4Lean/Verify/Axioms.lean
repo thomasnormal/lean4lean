@@ -359,9 +359,28 @@ def instantiate1' (e : Expr) (subst : Expr) (d := 0) : Expr :=
   | e, [], _ => e
   | e, a :: as, k => instantiateList (instantiate1' e a k) as k
 
+def instantiateMany (expression : Expr) (replacements : List Expr) (depth : Nat := 0) : Expr :=
+  match expression with
+  | .bvar index =>
+    if index < depth then expression else
+      match replacements[index - depth]? with
+      | some replacement => replacement.liftLooseBVars' 0 depth
+      | none => .bvar (index - replacements.length)
+  | .mdata metadata body => .mdata metadata (instantiateMany body replacements depth)
+  | .proj name position body => .proj name position (instantiateMany body replacements depth)
+  | .app function argument => .app (instantiateMany function replacements depth) (instantiateMany argument replacements depth)
+  | .lam name domain body binder =>
+    .lam name (instantiateMany domain replacements depth) (instantiateMany body replacements (depth + 1)) binder
+  | .forallE name domain body binder =>
+    .forallE name (instantiateMany domain replacements depth) (instantiateMany body replacements (depth + 1)) binder
+  | .letE name domain value body nondependent =>
+    .letE name (instantiateMany domain replacements depth) (instantiateMany value replacements depth)
+      (instantiateMany body replacements (depth + 1)) nondependent
+  | .const .. | .sort _ | .fvar _ | .mvar _ | .lit _ => expression
+
 /-- This could be an `@[implemented_by]` -/
 @[simp] axiom instantiate_eq (e : Expr) (subst) :
-    e.instantiate subst = e.instantiateList subst.toList
+    e.instantiate subst = e.instantiateMany subst.toList
 
 /-- This could be an `@[implemented_by]` -/
 @[simp] axiom instantiateRev_eq (e : Expr) (subst) :

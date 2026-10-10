@@ -807,7 +807,7 @@ theorem Expr.instantiateRevRange_looseBVarRange (e : Expr) (hi : Nat) (params : 
     (hparams : ∀ param ∈ params.extract 0 hi, param.looseBVarRange' ≤ bound) :
     (e.instantiateRevRange 0 hi params).looseBVarRange' ≤ bound := by
   rw [Expr.instantiateRevRange_eq, Expr.instantiateRev_eq, Expr.instantiate_eq]
-  apply Expr.instantiateList_looseBVarRange (n := bound) (k := 0)
+  apply Expr.instantiateMany_looseBVarRange (bound := bound) (depth := 0)
   · simpa using he
   · intro param hparam
     have hparam' : param ∈ List.take hi params.toList := by simpa using hparam

@@ -4889,18 +4889,44 @@ persistent-container interfaces, raw abstraction, reverse instantiation and
 general instantiation; no global native range axiom or new axiom/admission is
 introduced.
 
-Testing the replacement-scope boundary exposed an existing trusted-interface
-defect: native instantiation is simultaneous whereas unrestricted
-`Expr.instantiate_eq` identifies it with sequential substitution, which is false
-for loose replacement arguments. `tests/NativeInstantiation.lean` reproduces
-three such boundaries and checks 72 closed-argument native/model comparisons.
-`divergences.md` records the minimal counterexample and required model repair.
-The new typed contracts derive closed replacements and exclude these negatives,
-but still inherit that existing trusted interface and typing admissions. This
-is not unconditional kernel soundness, nested frontend acceptance, positivity
-or recursor-reduction correctness. Correcting the instantiation specification,
-then discharging the actual frontend's prefix/argument typing receipts, remain
-open obligations.
+Testing the replacement-scope boundary exposed a defect in the previous
+trusted-interface specification: native instantiation is simultaneous whereas
+the former unrestricted `Expr.instantiate_eq` identified it with sequential
+substitution, which is false for loose replacement arguments. That existing
+axiom now relates native instantiation to `Expr.instantiateMany`, a faithful
+simultaneous structural model. It protects existing binder coordinates, inserts
+each selected argument with the binder-depth lift without subsequently
+substituting through that inserted value, and decrements indices beyond the
+replacement prefix. Domains/let values and binder bodies have their exact
+respective traversal depths. No new axiom is introduced, and the native bridge
+remains trusted rather than formally proving the C++ routine.
+
+Admission-free structural proofs establish empty/scalar instantiation, scope
+cutoff preservation, general range bounds and closed-argument agreement with
+sequential substitution. Native forward/reverse scoped corollaries use only
+the existing corrected general/reverse instantiation interfaces. The native
+push identity now requires the pushed argument to be closed; its earlier array
+entries remain unrestricted. General nested-rewrite range propagation uses the
+simultaneous range theorem, not an incorrect unscoped sequential equation.
+Type-checker inference and comparison clients derive closure from fresh fvars
+or actual translated application arguments. The internal lambda/forall helper
+contracts expose the previously missing closure receipt, discharged by their
+empty/fresh-fvar/default-value callers without changing the public checked
+comparison contract.
+
+`tests/NativeInstantiation.lean` retains the three historical negatives and 72
+closed-argument sequential comparisons, and checks the corrected model on raw
+loose/mixed/wide arrays, large representable indices, every constructor and
+depths 0/1/2/5/33: 2640 raw native/model comparisons and 3960 closed-push
+comparisons with arbitrary earlier arrays. A loose-push negative pins the
+closed-push premise. Nine structural proof controls, the model definition and
+four existing-native bridge controls are audited without `sorryAx`.
+`divergences.md` records the counterexample and completed model repair.
+The typed prefix contracts now inherit the corrected native implementation
+specification, not its false retired sequential formulation. Existing typing
+admissions remain; this is not unconditional kernel soundness, nested frontend
+acceptance, positivity or recursor-reduction correctness. Discharging the actual
+frontend's prefix/argument typing receipts remains an open obligation.
 
 `Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
 chronological selected telescope over a supplied smaller mixed base.

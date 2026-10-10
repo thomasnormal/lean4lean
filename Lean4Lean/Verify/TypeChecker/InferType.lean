@@ -116,7 +116,13 @@ theorem inferLambda.loop.WF {c : VContext} {e₀ : Expr}
       ∃ e' ty', c.TrTyping e₀ ty e' ty' := by
   unfold inferLambda.loop
   generalize eqfvs : (m.fvarRevList n hn).map Expr.fvar = fvs at *
-  simp [harr, -bind_pure_comp]; split
+  have hclosed : ∀ value ∈ fvs, value.looseBVarRange' = 0 := by
+    intro value member
+    rw [← eqfvs] at member
+    obtain ⟨identifier, _, rfl⟩ := List.mem_map.mp member
+    rfl
+  have hmany (expression : Expr) (depth : Nat) := Expr.instantiateMany_eq_instantiateList expression fvs depth hclosed
+  simp [harr, hmany, -bind_pure_comp]; split
   · rename_i name dom body bi
     generalize eqF : withLocalDecl (m := RecM) _ _ _ _ = F
     generalize eqP : (fun ty x => ∃ _, _) = P
@@ -200,7 +206,13 @@ theorem inferForall.loop.WF {c : VContext} {e₀ : Expr}
       ∃ e' u, c.TrTyping e₀ ty e' (.sort u) := by
   unfold inferForall.loop
   generalize eqfvs : (m.fvarRevList n hn).map Expr.fvar = fvs at *
-  simp [harr, -bind_pure_comp]; split
+  have hclosed : ∀ value ∈ fvs, value.looseBVarRange' = 0 := by
+    intro value member
+    rw [← eqfvs] at member
+    obtain ⟨identifier, _, rfl⟩ := List.mem_map.mp member
+    rfl
+  have hmany (expression : Expr) (depth : Nat) := Expr.instantiateMany_eq_instantiateList expression fvs depth hclosed
+  simp [harr, hmany, -bind_pure_comp]; split
   · rename_i name dom body bi
     rw [Expr.instantiateList_forallE] at hei; subst ei
     refine (inferType.WF' ?_ ?_).bind fun uv _ le ⟨dom', uv', _, h1, h2, h3⟩ => ?_
@@ -253,7 +265,10 @@ theorem inferApp.loop.WF {c : VContext} {s : VState}
     RecM.WF c s (inferApp.loop e₀ ⟨args⟩ fType j i) fun ty _ =>
       ∃ e₁' ty', c.TrTyping (e.mkAppRevList lm |>.mkAppList lr) ty e₁' ty' := by
   subst i j; rw [inferApp.loop.eq_def]
-  simp [hargs, Expr.instantiateList_reverse]
+  have hclosed := Expr.mkAppRevList_args_noLooseBVars e lm
+    (c.mlctx.noBV ▸ stk.tr.closed).looseBVarRange_zero
+  have hmany (expression : Expr) (depth : Nat) := Expr.instantiateMany_eq_instantiateList expression lm depth hclosed
+  simp [hargs]
   have henv := c.Ewf; have hΔ := c.Δwf
   cases lr with simp
   | cons a lr =>
@@ -268,7 +283,7 @@ theorem inferApp.loop.WF {c : VContext} {s : VState}
       have ha0 := c.mlctx.noBV ▸ ha.closed
       simp [← Expr.instantiateList_instantiate1_comm ha0.looseBVarRange_zero]
       exact .inst henv hΔ (ha'.defeqU_r henv hΔ ⟨_, uA.symm⟩) ⟨_, hbody, _, uB⟩ (ha.trExpr henv hΔ)
-    · simp [Nat.add_sub_cancel_left, Expr.instantiateRevList_reverse]
+    · simp [Nat.add_sub_cancel_left, hmany]
       refine (ensureForallCore.WF' hfty).bind fun _ _ _ ⟨hb, ⟨_, h2, h3⟩, eq⟩ => ?_
       obtain ⟨name, ty, body, bi, rfl⟩ := eq; simp [Expr.bindingBody!]
       let .forallE _ _ hty hbody := h2
@@ -280,7 +295,8 @@ theorem inferApp.loop.WF {c : VContext} {s : VState}
         exact (hb _ hP <| (hbelow _ hP he).instantiateList hlm).2
       exact .inst henv hΔ (ha'.defeqU_r henv hΔ ⟨_, uA.symm⟩) ⟨_, hbody, _, uB⟩ (ha.trExpr henv hΔ)
   | nil =>
-    rw [← List.length_reverse, List.take_length, Expr.instantiateRevList_reverse]
+    rw [← List.length_reverse, List.take_length]
+    simp only [List.reverse_reverse, hmany]
     have ⟨_, hfty, h2⟩ := hfty
     refine .pure ⟨_, _, fun _ hP he => ?_, stk.tr, hfty, hety.defeqU_r henv hΔ h2.symm⟩
     have ⟨he, hlm⟩ := FVarsIn.appRevList.1 he
@@ -313,7 +329,13 @@ theorem inferLet.loop.WF {c : VContext} {e₀ : Expr}
       ∃ e' ty', c.TrTyping e₀ ty e' ty' := by
   generalize eqfvs : (m.fvarRevList n hn).map Expr.fvar = fvs at *
   unfold inferLet.loop
-  simp [harr, -bind_pure_comp]; split
+  have hclosed : ∀ value ∈ fvs, value.looseBVarRange' = 0 := by
+    intro value member
+    rw [← eqfvs] at member
+    obtain ⟨identifier, _, rfl⟩ := List.mem_map.mp member
+    rfl
+  have hmany (expression : Expr) (depth : Nat) := Expr.instantiateMany_eq_instantiateList expression fvs depth hclosed
+  simp [harr, hmany, -bind_pure_comp]; split
   · rename_i name dom val body nd
     generalize eqF : withLetDecl (m := RecM) _ _ _ _ = F
     generalize eqP : (fun ty x => ∃ _, _) = P

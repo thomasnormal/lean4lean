@@ -326,11 +326,12 @@ positivity, recursors, and full inductive soundness remain separate obligations.
 
 ## Trusted native instantiation specification mismatch (2026-10-10)
 
-The pinned Lean **4.29.0** native substitution is simultaneous, but the existing
-`Verify.Axioms.Expr.instantiate_eq` interface universally identifies it with
-sequential structural `instantiateList`. That unrestricted specification is
-false for replacement arrays containing loose bound variables. For example,
-native `(Expr.bvar 0).instantiateRev #[.sort .zero, .bvar 0]` returns `.bvar 0`.
+The pinned Lean **4.29.0** native substitution is simultaneous, but before the
+repair below the `Verify.Axioms.Expr.instantiate_eq` interface universally
+identified it with sequential structural `instantiateList`. That former
+specification is false for replacement arrays containing loose bound variables.
+For example, native `(Expr.bvar 0).instantiateRev #[.sort .zero, .bvar 0]`
+returns `.bvar 0`.
 The corresponding structural `instantiateRevList` first inserts `.bvar 0`,
 then substitutes through that inserted value and returns `.sort .zero`.
 The same discrepancy occurs for forward instantiation with the reversed array
@@ -338,9 +339,9 @@ and beneath a lambda binder. `Expr.instantiateRev_eq`, which relates the two
 native array orders, is not itself contradicted by these examples.
 
 Run `lake env lean tests/NativeInstantiation.lean`. It reproduces these three
-loose-argument boundaries and checks 72 native/model comparisons for closed
-replacement arrays, including empty/single/multiple arrays, out-of-prefix
-bvars, applications, lambdas, foralls and lets. The counterexamples concern an
+loose-argument boundaries and checks the corrected simultaneous model on raw
+loose/mixed/closed arrays as well as 72 sequential comparisons for closed
+replacement arrays. The counterexamples concern an
 existing trusted verification specification, not a C++ kernel bug or a newly
 accepted invalid declaration. No executable checker change or proof of kernel
 unsoundness is demonstrated.
@@ -351,8 +352,51 @@ Its typed contract derives every replacement's closure from strict translation
 in the remaining mixed base, so these negatives cannot supply its hypotheses.
 It does not assume a latest dependent argument is already typed at an
 unsubstituted source domain: chronological typed application checks each domain
-after earlier arguments have been instantiated. Correcting the existing
-unrestricted instantiation interface to a faithful simultaneous model, and
-revalidating its clients, remains an explicit verification obligation. The
-scoped new proofs still depend on that existing trusted interface and inherited
-typing admissions; they do not establish unconditional kernel soundness.
+after earlier arguments have been instantiated. The correction below replaces
+the false implementation specification; inherited typing admissions and the
+trusted native implementation bridge still preclude an unconditional kernel
+soundness claim.
+
+### Simultaneous model repair (2026-10-10)
+
+`Expr.instantiateMany` now models the pinned native implementation directly:
+protected bvars remain unchanged, array-selected arguments are inserted once
+with the current binder-depth lift, and indices beyond the substitution prefix
+are decremented by its length. Domains and let values use the current depth;
+binder bodies increase it. Inserted replacement expressions are not recursively
+substituted by later array entries. All expression constructors are covered.
+The existing `Expr.instantiate_eq` axiom now relates native instantiation to
+this simultaneous model. No new axiom is declared; this repairs a trusted
+implementation specification, not a formal proof of the C++ routine.
+
+Structural proofs establish empty/scalar instantiation, preservation below a
+scope cutoff, general replacement range bounds, and agreement with sequential
+`instantiateList` when replacements are closed. The corresponding native
+forward/reverse sequential bridges retain that closure premise. The old
+unrestricted `instantiateRev_push` equation also needed repair: the pushed
+argument must be closed, while the earlier array entries may still be loose.
+The historical counterexample remains a regression against the retired
+sequential specification, not a counterexample to the corrected raw model.
+
+Type-checker opening/inference and definitional-equality proofs now discharge
+argument scope from actual fresh fvars or translated application arguments.
+The internal lambda/forall comparison helpers make this formerly missing
+closure receipt explicit; the public checked comparison contract is unchanged.
+The general nested-rewrite range proof uses simultaneous replacement range
+bounds and still allows nonzero-range replacement arguments. Scoped singleton
+and whole-prefix parameter replacement retain their strict typing contracts
+without adding a native interface or admission.
+
+The raw native/model test matrix includes loose/mixed/wide arrays, large
+representable bvar indices, all constructors, both let flags, metadata/projections
+and binder depths 0/1/2/5/33. It passes 2640 raw comparisons and 3960 checks of
+the repaired native push identity for a closed pushed value with arbitrary
+earlier arrays; a separate loose-push negative pins the closure boundary.
+The large-index case uses `2^19`: native expression metadata has a 20-bit
+loose-variable range, so `2^40` is outside its supported representation and
+panics during expression construction, before substitution.
+Structural proof audits exclude `sorryAx` and native interfaces; the native
+bridges admit only the existing
+general/reverse instantiation interfaces. Existing typing admissions, remaining
+native implementation bridges and full inductive frontend correctness remain
+separate obligations.

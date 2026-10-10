@@ -508,6 +508,119 @@ theorem instantiateList'_eq_self (h : e.looseBVarRange' ≤ k) : instantiateList
 theorem instantiateList_eq_self (h : e.looseBVarRange' = 0) : instantiateList e as = e := by
   induction as <;> simp [instantiateList, instantiate1_eq_self, *]
 
+@[simp] theorem instantiateMany_nil (expression : Expr) (depth : Nat) :
+    expression.instantiateMany [] depth = expression := by
+  induction expression generalizing depth <;> simp [instantiateMany, *]
+
+theorem instantiateMany_eq_self (expression : Expr) (replacements : List Expr) (depth : Nat)
+    (scope : expression.looseBVarRange' ≤ depth) : expression.instantiateMany replacements depth = expression := by
+  induction expression generalizing depth <;>
+    simp_all [instantiateMany, looseBVarRange', Nat.max_le]
+  all_goals omega
+
+@[simp] theorem instantiateMany_singleton (expression replacement : Expr) (depth : Nat) :
+    expression.instantiateMany [replacement] depth = expression.instantiate1' replacement depth := by
+  induction expression generalizing depth <;> simp_all [instantiateMany, instantiate1']
+  rename_i index
+  by_cases insideBinder : index < depth
+  · simp [insideBinder]
+  · by_cases selected : index = depth
+    · simp [selected]
+    · have lookup : ([replacement] : List Expr)[index - depth]? = none := by
+        simp only [List.getElem?_eq_none_iff, List.length_singleton]
+        omega
+      simp [insideBinder, selected, lookup]
+
+theorem instantiateMany_cons (expression replacement : Expr) (remaining : List Expr) (depth : Nat)
+    (scope : replacement.looseBVarRange' = 0) :
+    expression.instantiateMany (replacement :: remaining) depth =
+      (expression.instantiate1' replacement depth).instantiateMany remaining depth := by
+  induction expression generalizing depth <;> simp_all only [instantiateMany, instantiate1']
+  rename_i index
+  by_cases insideBinder : index < depth
+  · simp [insideBinder, instantiateMany]
+  · by_cases selected : index = depth
+    · subst index
+      simp only [Nat.lt_irrefl, if_false, Nat.sub_self, List.getElem?_cons_zero, if_true]
+      rw [liftLooseBVars_eq_self (by omega)]
+      exact (instantiateMany_eq_self replacement remaining depth (by omega)).symm
+    · have lower : ¬index - 1 < depth := by omega
+      have offset : index - depth = (index - 1 - depth) + 1 := by omega
+      simp only [insideBinder, if_false, selected, instantiateMany, lower, offset,
+        List.getElem?_cons_succ, List.length_cons]
+      cases remaining[index - 1 - depth]? <;> simp only
+      congr 1
+      omega
+
+theorem instantiateMany_eq_instantiateList (expression : Expr) (replacements : List Expr) (depth : Nat)
+    (scope : ∀ replacement ∈ replacements, replacement.looseBVarRange' = 0) :
+    expression.instantiateMany replacements depth = expression.instantiateList replacements depth := by
+  induction replacements generalizing expression with
+  | nil => simp
+  | cons replacement remaining induction =>
+    rw [instantiateMany_cons expression replacement remaining depth (scope replacement (by simp)), instantiateList]
+    exact induction _ (fun selected member => scope selected (by simp [member]))
+
+@[simp] theorem instantiateMany_fvars (expression : Expr) (identifiers : List FVarId) (depth : Nat) :
+    expression.instantiateMany (identifiers.map Expr.fvar) depth =
+      expression.instantiateList (identifiers.map Expr.fvar) depth := by
+  apply instantiateMany_eq_instantiateList
+  intro replacement member
+  obtain ⟨identifier, _, rfl⟩ := List.mem_map.mp member
+  rfl
+
+theorem mkAppRevList_args_noLooseBVars (expression : Expr) (arguments : List Expr)
+    (scope : (expression.mkAppRevList arguments).looseBVarRange' = 0) :
+    ∀ argument ∈ arguments, argument.looseBVarRange' = 0 := by
+  induction arguments with
+  | nil => simp
+  | cons argument remaining induction =>
+    have bounded := Nat.le_zero.mpr scope
+    simp only [mkAppRevList, looseBVarRange', Nat.max_le] at bounded
+    intro selected member
+    rcases List.mem_cons.mp member with rfl | member
+    · exact Nat.eq_zero_of_le_zero bounded.2
+    · exact induction (Nat.eq_zero_of_le_zero bounded.1) selected member
+
+theorem instantiateMany_looseBVarRange (expression : Expr) (replacements : List Expr) (bound depth : Nat)
+    (scope : expression.looseBVarRange' ≤ bound + depth + replacements.length)
+    (replacementScope : ∀ replacement ∈ replacements, replacement.looseBVarRange' ≤ bound) :
+    (expression.instantiateMany replacements depth).looseBVarRange' ≤ bound + depth := by
+  induction expression generalizing depth with
+  | bvar index =>
+    simp only [looseBVarRange'] at scope
+    by_cases insideBinder : index < depth
+    · simp only [instantiateMany, if_pos insideBinder, looseBVarRange']
+      omega
+    · simp only [instantiateMany, if_neg insideBinder]
+      cases lookup : replacements[index - depth]? with
+      | none =>
+        have outside := List.getElem?_eq_none_iff.mp lookup
+        simp only [looseBVarRange']
+        omega
+      | some replacement =>
+        have replacementBound := replacementScope replacement (List.mem_of_getElem? lookup)
+        have liftedBound := @liftLooseBVars_looseBVarRange replacement 0 depth
+        change (replacement.liftLooseBVars' 0 depth).looseBVarRange' ≤ bound + depth
+        omega
+  | app function argument functionInduction argumentInduction =>
+    simp only [looseBVarRange', Nat.max_le] at scope
+    simp only [instantiateMany, looseBVarRange', Nat.max_le]
+    exact ⟨functionInduction depth scope.1, argumentInduction depth scope.2⟩
+  | lam name domain body binder domainInduction bodyInduction
+  | forallE name domain body binder domainInduction bodyInduction =>
+    simp only [looseBVarRange', Nat.max_le] at scope
+    simp only [instantiateMany, looseBVarRange', Nat.max_le]
+    have bodyBound := bodyInduction (depth := depth + 1) (by omega)
+    exact ⟨domainInduction depth scope.1, by omega⟩
+  | letE name domain value body nondependent domainInduction valueInduction bodyInduction =>
+    simp only [looseBVarRange', Nat.max_le] at scope
+    simp only [instantiateMany, looseBVarRange', Nat.max_le]
+    have bodyBound := bodyInduction (depth := depth + 1) (by omega)
+    exact ⟨⟨domainInduction depth scope.1.1, valueInduction depth scope.1.2⟩, by omega⟩
+  | mdata metadata body induction | proj name position body induction => exact induction depth scope
+  | const | sort | fvar | mvar | lit => simp [instantiateMany, looseBVarRange']
+
 theorem instantiate1'_liftLooseBVars :
     instantiate1' (liftLooseBVars' e s (d + 1)) a (s + d) = e.liftLooseBVars' s d := by
   induction e generalizing s <;>
@@ -577,6 +690,22 @@ theorem instantiateRevList_reverse :
     instantiateRevList e as.reverse k = instantiateList e as k := by
   simp [instantiateList_eq_foldl, instantiateRevList_eq_foldr]
 
+theorem instantiate_eq_of_closed (expression : Expr) (replacements : Array Expr)
+    (scope : ∀ replacement ∈ replacements, replacement.looseBVarRange' = 0) :
+    expression.instantiate replacements = expression.instantiateList replacements.toList := by
+  rw [instantiate_eq]
+  apply instantiateMany_eq_instantiateList
+  intro replacement member
+  exact scope replacement (Array.mem_toList_iff.mp member)
+
+theorem instantiateRev_eq_of_closed (expression : Expr) (replacements : Array Expr)
+    (scope : ∀ replacement ∈ replacements, replacement.looseBVarRange' = 0) :
+    expression.instantiateRev replacements = expression.instantiateRevList replacements.toList := by
+  rw [instantiateRev_eq, instantiate_eq, Array.toList_reverse]
+  rw [instantiateMany_eq_instantiateList _ _ _ ?_, instantiateList_reverse]
+  intro replacement member
+  exact scope replacement (by simpa using member)
+
 @[simp]
 theorem instantiateRevList_lam : instantiateRevList (.lam n ty body bi) as k =
     .lam n (instantiateRevList ty as k) (instantiateRevList body as (k + 1)) bi := by
@@ -615,9 +744,11 @@ theorem instantiateList_instantiate1_comm (h : a.looseBVarRange' = 0) :
   congr 1; refine (instantiate1'_instantiate1' (j := 0) ..).trans ?_
   rw [liftLooseBVars_eq_self (by simp [h])]
 
-theorem instantiateRev_push {e : Expr} {subst a} :
+theorem instantiateRev_push {e : Expr} {subst a} (scope : a.looseBVarRange' = 0) :
     instantiateRev e (subst.push a) = instantiateRev (e.instantiate1' a) subst := by
-  let ⟨subst⟩ := subst; simp [instantiateList]
+  simp only [instantiateRev_eq, instantiate_eq, Array.toList_reverse, Array.toList_push, List.reverse_append,
+    List.reverse_singleton, List.singleton_append]
+  exact instantiateMany_cons _ _ _ _ scope
 
 theorem abstractList_eq_foldl {e : Expr} {as k} :
     abstractList e as k = List.foldl (fun e a => abstract1 a e k) e as := by
