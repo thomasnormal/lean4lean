@@ -3035,6 +3035,43 @@ trace's complete parameter-consumption guarantee. These runtime checks do not
 prove WHNF transport or checked/generated index equality.
 Run `lake env lean tests/InductiveHeaderTraces.lean`.
 
+`Verify.InductiveHeaderModels` builds a canonical checker model directly from
+the accepted first-header source trace. `acceptedHeaderNormalization` transports
+the initial source translation through the recorded WHNF result. The recursive
+`CheckedHeaderTrace.firstModels` provider then follows each actual fresh
+parameter/index allocation and recorded normalization, resetting the semantic
+checker state only after proving a distinct fresh-name prefix, preserving the
+existing context lookups and ambient reader frame. It returns one
+`ParameterPrefix` for the canonical parameters and a second prefix for the
+retained index suffix, rather than identifying the full indexed reader with the
+parameter-only context. `FirstHeaderCheckerModels.selectedParameterDomain`
+recovers each canonical parameter's stored-domain translation, semantic sort,
+and native lookup through that split, including lookups retained by subsequent
+index binders. A public `checkInductiveTypes.firstModels` adapter supplies this
+model from the actual first member of a successful nonempty header batch.
+
+The provider uses the existing unrestricted annotation-domain peeling theorem,
+so accepted annotations may have distinct but definitionally equivalent literal
+universes. It does not invent WHNF or type checks: every normalization and
+source acceptance premise is the corresponding native call recorded by
+`CheckedHeaderTrace`. It remains a conditional model theorem: the semantic
+environment, initial checker correspondence/WF, reset-name separation and
+canonical annotation constants/definitions are explicit. It does not yet prove
+full mutual-family registration, constructor positivity, recursor generation,
+or the final frontend theorem.
+
+`tests/InductiveHeaderModels.lean` adds six proof controls and twenty-eight
+runtime controls. Runtime cases cover zero/one/two parameter/index combinations,
+both safety flags, retained old locals, dependent peeled domains, mixed
+nonuniform annotation universes, mutual later-header index suffixes and rejected
+bad arity/free-variable headers. The fixture explicitly proves that a full
+indexed reader is not a parameter-only prefix, splits the canonical history at
+the parameter boundary, and retains parameter lookups across indices. The new
+production module has nineteen exhaustive declarations; accepted-trace/source
+bridges retain the existing checker dependencies and source-guard expression
+dependencies, with no module-owned axiom or new admission. No kernel
+discrepancy found.
+
 `tests/InductiveIndexAlignment.lean` exercises explicit telescope stability under
 arbitrary substitution and different normalization readers, exact checked and
 generated binder counts, complete parameter consumption when enough binders
