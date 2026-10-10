@@ -1,31 +1,28 @@
 import Lean4Lean.Verify.ConstructorMetadata
+import Lean4Lean.Verify.Environment.Checker
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
-open private Lean4Lean.AddInductive.addFresh from Lean4Lean.Verify.ConstructorMetadata
 
-private theorem forIn'_preserves (items : List α) (initial : Kernel.Environment)
+private theorem forIn'_preservesValues (items : List α) (initial : Kernel.Environment)
     (state : Nat) (ctx : Context)
     (step : (item : α) → item ∈ items → Kernel.Environment → StateT Nat M
       (ForInStep Kernel.Environment))
     (hwf : initial.constants.WF)
     (hstep : ∀ item hmem env state, env.constants.WF →
       (step item hmem env state ctx).WF fun result =>
-        ∃ next, result.1 = .yield next ∧ next.constants.WF ∧
-          ∀ name info, env.find? name = some info → next.find? name = some info) :
+        ∃ next, result.1 = .yield next ∧ NativeValueFrame env next) :
     (forIn' items initial step state ctx).WF fun result =>
-      result.1.constants.WF ∧
-        ∀ name info, initial.find? name = some info → result.1.find? name = some info := by
+      NativeValueFrame initial result.1 := by
   induction items generalizing initial state with
-  | nil => exact .pure ⟨hwf, fun _ _ hold => hold⟩
+  | nil => exact .pure (.refl hwf)
   | cons item items ih =>
     rw [List.forIn'_cons]
     refine (hstep item (by simp) initial state hwf).bind ?_
-    rintro ⟨_, nextState⟩ ⟨next, rfl, hnext, hkeep⟩
+    rintro ⟨_, nextState⟩ ⟨next, rfl, hnext⟩
     refine (ih next nextState (fun entry hmem env => step entry (by simp [hmem]) env)
-      hnext (fun entry hmem env state hwf => hstep entry (by simp [hmem]) env state hwf)).mono ?_
-    rintro result ⟨hfinal, hrest⟩
-    exact ⟨hfinal, fun name info hold => hrest name info (hkeep name info hold)⟩
+      hnext.map_wf (fun entry hmem env state hwf => hstep entry (by simp [hmem]) env state hwf)).mono
+        fun _ hrest => hnext.trans hrest
 
 private theorem stateBindWF {action : StateT Nat M α} {next : α → StateT Nat M β}
     {state : Nat} {ctx : Context} {post : β × Nat → Prop}
@@ -44,19 +41,18 @@ private theorem stateExceptBindWF {action : Except Kernel.Exception α}
     fun result => next result.1 result.2 ctx).WF post
   simpa only [bind_assoc, pure_bind] using haction.bind hnext
 
-theorem declareRecursors.preserves (stats : InductiveStats) (indTypes : Array InductiveType)
+theorem declareRecursors.preservesValues (stats : InductiveStats) (indTypes : Array InductiveType)
     (elimLevel : Level) (recInfos : Array RecInfo) (lparams : List Name)
     (lctx : LocalContext) (isK isUnsafe : Bool) (ctx : Context) (hwf : ctx.env.constants.WF) :
     (declareRecursors stats indTypes elimLevel recInfos lparams lctx isK isUnsafe ctx).WF
-      fun env => env.constants.WF ∧
-        ∀ name info, ctx.env.find? name = some info → env.find? name = some info := by
+      (NativeValueFrame ctx.env) := by
   unfold declareRecursors
   dsimp only
   simp only [pure_bind, bind_pure]
   apply Except.WF.map
   · simp only [Std.Legacy.Range.forIn'_eq_forIn'_range', Std.Legacy.Range.size,
       Nat.sub_zero, Nat.add_sub_cancel, Nat.div_one]
-    apply forIn'_preserves
+    apply forIn'_preservesValues
     · exact hwf
     · intro index hindex env state henv
       have hbound : index < indTypes.size := by simpa using hindex
@@ -65,10 +61,22 @@ theorem declareRecursors.preserves (stats : InductiveStats) (indTypes : Array In
       refine stateExceptBindWF (Lean4Lean.checkName.WF env
         (mkRecName indTypes[index].name) ctx.allowPrimitive) ?_
       rintro _ ⟨hfresh, _⟩
-      refine .pure ⟨_, rfl, ?_, ?_⟩
-      · exact (Lean4Lean.AddInductive.addFresh env _ henv (by exact hfresh)).1
-      · exact (Lean4Lean.AddInductive.addFresh env _ henv (by exact hfresh)).2.2
+      exact .pure ⟨_, rfl, NativeValueFrame.addConst henv hfresh rfl⟩
   · intro result hresult
     exact hresult
+
+theorem declareRecursors.preserves (stats : InductiveStats) (indTypes : Array InductiveType)
+    (elimLevel : Level) (recInfos : Array RecInfo) (lparams : List Name)
+    (lctx : LocalContext) (isK isUnsafe : Bool) (ctx : Context) (hwf : ctx.env.constants.WF) :
+    (declareRecursors stats indTypes elimLevel recInfos lparams lctx isK isUnsafe ctx).WF
+      fun env => env.constants.WF ∧
+        ∀ name info, ctx.env.find? name = some info → env.find? name = some info := by
+  refine (declareRecursors.preservesValues stats indTypes elimLevel recInfos lparams lctx
+    isK isUnsafe ctx hwf).mono ?_
+  intro env hframe
+  refine ⟨hframe.map_wf, ?_⟩
+  intro name info hold
+  simpa only [Kernel.Environment.find?, hframe.map_wf.find?'_eq_find?] using
+    hframe.lookups (by simpa only [Kernel.Environment.find?, hwf.find?'_eq_find?] using hold)
 
 end Lean4Lean.AddInductive
