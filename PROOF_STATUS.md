@@ -4415,6 +4415,43 @@ its typehood at the same sort level. The original semantic domain is
 definitionally equal to the lifted reduced domain, not asserted to be its
 literal syntactic lift image.
 
+The generalized `TrExprS.strengthenIsTypeAt` preserves this receipt under
+anonymous binders, retaining independent native closure depth and protected
+semantic lift depth. An anonymous lambda increases both depths; an anonymous
+let increases only native closure depth. The original `strengthenIsType` API
+remains the zero-depth specialization with the same premises and three outputs.
+
+`Verify.InductiveSubstitutionStageBody` proves
+`TrExprS.strengthenSubstitutionBodyIsType` for a type-valued native body under
+one anonymous formal binder. It requires an explicit definitional equality
+between the original actual domain and the lifted reduced actual domain,
+structural base weakening into an aligned context, original/aligned context
+agreement, original body translation and typing, `Closed body 1`, and body
+free-variable support in the supplied smaller context. That support may include
+both the retained base and chronological suffix; adding an anonymous binder
+does not add a free-variable identifier.
+The helper returns six separate receipts: extended weakening and context
+agreement, actual reduced-domain typing at its specified sort, reduced-body
+translation and typing under that domain, and original/lifted reduced-body
+definitional equality. The body lift is `lift.cons`, protecting its formal
+binder. Domain typing is recovered from the supplied equality and inverse
+weakening, not assumed from an identifier or allocation. All three strengthening
+helpers retain exactly the four inherited logical/typing dependencies
+(`propext`, `Classical.choice`, `Quot.sound`, `sorryAx`), with no native/container
+interfaces or new admissions. This does not provide literal stage preimages,
+argument equality, whole-chain strengthening, native telescope/`replaceParams`
+reconstruction, chronology-to-target weakening, inserted motive/minor typehood
+or checker/source acceptance.
+The focused fixture has 20 proof controls and 24 runtime checks. It forwards
+all six receipts, applies the helper to actual formal/base/suffix and nested
+body translations, consumes a nonliteral actual-domain equality, and exercises
+two protected lambda binders and an anonymous let with distinct native/semantic
+depths. Closure, missing/dropped-fvar support and wrong-lift negatives enforce
+the boundary. Exhaustive audits cover both production modules (two declarations
+each, including generated helpers) and exact dependency manifests for all three
+strengthening theorems.
+Run `lake env lean tests/InductiveSubstitutionStageBody.lean`.
+
 `Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
 chronological selected telescope over a supplied smaller mixed base.
 `SelectedRecursorDomainFVars` constrains only actual full-reader stored cdecl
