@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.PrimitiveInterfaces
+import Lean4Lean.Verify.OrdinaryInterfaces
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.TypeChecker
@@ -520,5 +520,260 @@ run_meta
       unless falseType == .const ``Bool [] do throwError "wrong retained Bool interface"
       pairs := pairs + 1
   logInfo m!"{pairs} Bool/Nat order-composition and primitive-literal interface controls"
+
+private theorem acceptedOrdinaryInterfaces {native : Kernel.Environment} {semantic : VEnv}
+    {safety : DefinitionSafety} (isUnsafe : Bool)
+    (hchecker : CheckerEnv safety native semantic) (hp : semantic.HasPrimitives)
+    (hsafe : NativePrimitiveSafety native)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe) :
+    (checkedConstructorStage #[{ family with ctors := [familyCtor] }] isUnsafe
+      (context native isUnsafe)).WF fun result =>
+      ∃ final, CheckerEnv safety result final ∧ final.HasPrimitives ∧
+        NativePrimitiveSafety result ∧ NativePrimitiveFrame native result := by
+  refine (AddInductive.checkInductiveTypes.refinesOrdinaryInterfaces
+    (context native isUnsafe) 0 #[{ family with ctors := [familyCtor] }] 0 isUnsafe
+    (headers := [header]) (vtypes := [{ header with ctors := [familyCtorHeader] }])
+    hchecker hp hsafe rfl hsafety (.cons ⟨rfl, rfl, .sort rfl⟩ .nil) ?_ ?_ ?_).mono ?_
+  · intro candidate hmem
+    simp only [List.mem_singleton] at hmem
+    subst candidate
+    exact ⟨_, .sort trivial⟩
+  · intro headerEnv hadd
+    have hlookup := VEnv.addInductHeaders.constants hadd (header := header) (by simp)
+    exact .cons (.cons ⟨rfl, rfl, TrExprS.const (ci := header.toVConstant) hlookup rfl rfl⟩ .nil) .nil
+  · intro headerEnv hadd candidate hmem
+    simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.mem_singleton] at hmem
+    subst candidate
+    have hlookup := VEnv.addInductHeaders.constants hadd (header := header) (by simp)
+    exact ⟨_, .const (ci := header.toVConstant) hlookup (by simp) rfl⟩
+  · rintro result ⟨headerEnv, final, _, _, hfinal, hp', hsafe', hframe⟩
+    exact ⟨final, hfinal, hp', hsafe', hframe⟩
+
+example (isUnsafe : Bool) :
+    (checkedConstructorStage #[{ family with ctors := [familyCtor] }] isUnsafe
+      (context seededNative isUnsafe)).WF fun result =>
+      ∃ final, CheckerEnv (if isUnsafe then .unsafe else .safe) result final ∧
+        final.HasPrimitives ∧ NativePrimitiveSafety result ∧ NativePrimitiveFrame seededNative result :=
+  acceptedOrdinaryInterfaces isUnsafe (seededTrEnv _).checkerEnv seededPrimitives
+    seededPrimitiveSafety DefinitionSafety.le_rfl
+
+private def pairThenOrdinary (natFirst isUnsafe : Bool) : AddInductive.M Kernel.Environment :=
+  fun ctx => do
+    let native ← pairStage natFirst (primitiveContext ctx.env)
+    checkedConstructorStage #[{ family with ctors := [familyCtor] }] isUnsafe (context native isUnsafe)
+
+private theorem pairThenOrdinaryInterfaces (natFirst isUnsafe : Bool)
+    {native : Kernel.Environment} {semantic : VEnv} {safety : DefinitionSafety}
+    (hchecker : CheckerEnv safety native semantic) (hp : semantic.HasPrimitives)
+    (hsafe : NativePrimitiveSafety native)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe) :
+    (pairThenOrdinary natFirst isUnsafe (context native isUnsafe)).WF fun result =>
+      ∃ final, CheckerEnv safety result final ∧ final.HasPrimitives ∧ NativePrimitiveSafety result := by
+  refine Except.WF.bind (x := pairStage natFirst (primitiveContext native))
+    (f := fun middle => checkedConstructorStage #[{ family with ctors := [familyCtor] }] isUnsafe
+      (context middle isUnsafe)) (pairInterfaces natFirst hchecker hp hsafe) ?_
+  rintro middle ⟨model, hmiddle, hp', hsafe'⟩
+  exact (acceptedOrdinaryInterfaces isUnsafe hmiddle hp' hsafe' hsafety).mono
+    fun _ ⟨final, hfinal, hp'', hsafe'', _⟩ => ⟨final, hfinal, hp'', hsafe''⟩
+
+example (natFirst isUnsafe : Bool) :
+    (pairThenOrdinary natFirst isUnsafe (context seededNative isUnsafe)).WF fun result =>
+      ∃ final, CheckerEnv (if isUnsafe then .unsafe else .safe) result final ∧
+        final.HasPrimitives ∧ NativePrimitiveSafety result :=
+  pairThenOrdinaryInterfaces natFirst isUnsafe (seededTrEnv _).checkerEnv seededPrimitives
+    seededPrimitiveSafety DefinitionSafety.le_rfl
+
+private def boolHeaderNative := emptyNative.add (.inductInfo { familyInfo with name := ``Bool })
+
+private theorem boolHeaderPrimitiveSafety : NativePrimitiveSafety boolHeaderNative := by
+  apply emptyPrimitiveSafety.addConst (ci := .inductInfo { familyInfo with name := ``Bool })
+  · change ({} : ConstMap).find? ``Bool = none
+    simp [SMap.find?]
+  · intro _
+    exact ⟨rfl, rfl⟩
+
+private theorem rejectsPrimitiveInsertionFrame : ¬NativePrimitiveFrame emptyNative boolHeaderNative := by
+  intro frame
+  have hprim : Kernel.Environment.primitives.contains ``Bool := by
+    apply Std.TreeSet.mem_iff_contains.mp
+    simp [Kernel.Environment.primitives, NameSet.ofList]
+  have hconstant := frame.constants hprim
+  change (({} : ConstMap).insert ``Bool (.inductInfo { familyInfo with name := ``Bool })).find? ``Bool =
+    ({} : ConstMap).find? ``Bool at hconstant
+  rw [SMap.WF.empty.find?_insert] at hconstant
+  simp [SMap.find?] at hconstant
+
+private theorem rejectsPrimitiveRemovalFrame : ¬NativePrimitiveFrame boolHeaderNative emptyNative := by
+  intro frame
+  have hprim : Kernel.Environment.primitives.contains ``Bool := by
+    apply Std.TreeSet.mem_iff_contains.mp
+    simp [Kernel.Environment.primitives, NameSet.ofList]
+  have hconstant := frame.constants hprim
+  change ({} : ConstMap).find? ``Bool =
+    (({} : ConstMap).insert ``Bool (.inductInfo { familyInfo with name := ``Bool })).find? ``Bool at hconstant
+  rw [SMap.WF.empty.find?_insert] at hconstant
+  simp [SMap.find?] at hconstant
+
+private theorem aliasPrimitiveFrame : NativePrimitiveFrame emptyNative seededNative := by
+  apply NativePrimitiveFrame.addConst (ci := .defnInfo nativeAlias) SMap.WF.empty
+  · change ({} : ConstMap).find? nativeAlias.name = none
+    simp [SMap.find?]
+  · apply Bool.eq_false_iff.mpr
+    intro hcontains
+    have hmem := Std.TreeSet.mem_iff_contains.mpr hcontains
+    simp [Kernel.Environment.primitives, NameSet.ofList, ConstantInfo.name,
+      ConstantInfo.toConstantVal, nativeAlias] at hmem
+
+private def polymorphicFamily : InductiveType := {
+  name := `PolymorphicFamily, type := .sort (.succ (.param `u)),
+  ctors := [⟨`PolymorphicFamily.mk, .const `PolymorphicFamily [.param `u]⟩] }
+
+private def polymorphicHeader : VInductiveType := {
+  name := polymorphicFamily.name, uvars := 1, type := .sort (.succ (.param 0)),
+  ctors := [{ name := `PolymorphicFamily.mk, uvars := 1, type := .const `PolymorphicFamily [.param 0] }] }
+
+private theorem acceptedPolymorphicInterfaces {native : Kernel.Environment} {semantic : VEnv}
+    {safety : DefinitionSafety} (isUnsafe : Bool)
+    (hchecker : CheckerEnv safety native semantic) (hp : semantic.HasPrimitives)
+    (hsafe : NativePrimitiveSafety native)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe) :
+    (checkedConstructorStage #[polymorphicFamily] isUnsafe
+      { context native isUnsafe with lparams := [`u] }).WF fun result =>
+      ∃ final, CheckerEnv safety result final ∧ final.HasPrimitives ∧
+        NativePrimitiveSafety result ∧ NativePrimitiveFrame native result := by
+  refine (AddInductive.checkInductiveTypes.refinesOrdinaryInterfaces
+    { context native isUnsafe with lparams := [`u] } 0 #[polymorphicFamily] 0 isUnsafe
+    (headers := [polymorphicHeader]) (vtypes := [polymorphicHeader]) hchecker hp hsafe rfl hsafety
+    (.cons ⟨rfl, rfl, .sort rfl⟩ .nil) ?_ ?_ ?_).mono ?_
+  · intro candidate hmem
+    simp only [List.mem_singleton] at hmem
+    subst candidate
+    exact ⟨_, .sort (by decide)⟩
+  · intro headerEnv hadd
+    have hlookup := VEnv.addInductHeaders.constants hadd (header := polymorphicHeader) (by simp)
+    exact .cons (.cons ⟨rfl, rfl, TrExprS.const (ci := polymorphicHeader.toVConstant) hlookup rfl rfl⟩ .nil) .nil
+  · intro headerEnv hadd candidate hmem
+    simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, polymorphicHeader,
+      List.mem_singleton] at hmem
+    subst candidate
+    have hlookup := VEnv.addInductHeaders.constants hadd (header := polymorphicHeader) (by simp)
+    exact ⟨_, .const (ci := polymorphicHeader.toVConstant) hlookup
+      (by simp [VLevel.WF]) rfl⟩
+  · rintro result ⟨headerEnv, final, _, _, hfinal, hp', hsafe', hframe⟩
+    exact ⟨final, hfinal, hp', hsafe', hframe⟩
+
+example (isUnsafe : Bool) :
+    (checkedConstructorStage #[polymorphicFamily] isUnsafe
+      { context seededNative isUnsafe with lparams := [`u] }).WF fun result =>
+      ∃ final, CheckerEnv (if isUnsafe then .unsafe else .safe) result final ∧
+        final.HasPrimitives ∧ NativePrimitiveSafety result ∧ NativePrimitiveFrame seededNative result :=
+  acceptedPolymorphicInterfaces isUnsafe (seededTrEnv _).checkerEnv seededPrimitives
+    seededPrimitiveSafety DefinitionSafety.le_rfl
+
+private def sameConstant : Option ConstantInfo → Option ConstantInfo → Bool
+  | none, none => true
+  | some (.axiomInfo first), some (.axiomInfo second) => first == second
+  | some (.defnInfo first), some (.defnInfo second) => first == second
+  | some (.thmInfo first), some (.thmInfo second) => first == second
+  | some (.opaqueInfo first), some (.opaqueInfo second) => first == second
+  | some (.quotInfo first), some (.quotInfo second) =>
+    first.toConstantVal == second.toConstantVal && match first.kind, second.kind with
+      | .type, .type | .ctor, .ctor | .lift, .lift | .ind, .ind => true
+      | _, _ => false
+  | some (.inductInfo first), some (.inductInfo second) =>
+    first.toConstantVal == second.toConstantVal && first.numParams == second.numParams &&
+      first.numIndices == second.numIndices && first.all == second.all && first.ctors == second.ctors &&
+      first.numNested == second.numNested && first.isRec == second.isRec &&
+      first.isUnsafe == second.isUnsafe && first.isReflexive == second.isReflexive
+  | some (.ctorInfo first), some (.ctorInfo second) => first == second
+  | some (.recInfo first), some (.recInfo second) => first == second
+  | _, _ => false
+
+run_meta
+  let logical := [``propext, ``Quot.sound, ``Classical.choice]
+  let native := logical ++ [``Lean.PersistentHashMap.WF.find?_eq,
+    ``Lean.PersistentHashMap.WF.toList'_insert, ``Lean.PersistentHashMap.findAux_isSome]
+  let semantic := native ++ [``sorryAx]
+  let primitive := semantic ++ [``Lean.Expr.eqv_eq, ``Lean.Level.instLawfulBEqLevel,
+    ``Lean.Syntax.structEq_eq]
+  for theoremName in [``NativePrimitiveFrame.refl, ``NativePrimitiveFrame.trans,
+      ``NativePrimitiveFrame.foldlM, ``NativePrimitiveSafety.of_frame,
+      ``VEnv.HasPrimitives.mono_of_primitiveConstants] do
+    audit theoremName logical
+  audit ``NativePrimitiveFrame.find? (logical ++ [``Lean.PersistentHashMap.findAux_isSome])
+  for theoremName in [``NativePrimitiveFrame.addConst, ``aliasPrimitiveFrame,
+      ``AddInductive.declareInductiveTypes.preservesPrimitives,
+      ``AddInductive.declareConstructors.preservesPrimitives,
+      ``AddInductive.checkInductiveTypes.preservesHeaderConstructorPrimitives] do
+    audit theoremName native
+  for theoremName in [``Aligned.constants_eq_of_lookup, ``CheckerEnv.hasPrimitives_of_frame,
+      ``AddInductive.declareInductiveTypes.refinesOrdinaryInterfaces,
+      ``AddInductive.declareConstructors.refinesOrdinaryInterfaces,
+      ``AddInductive.checkInductiveTypes.refinesOrdinaryInterfaces,
+      ``acceptedOrdinaryInterfaces, ``acceptedPolymorphicInterfaces, ``boolHeaderPrimitiveSafety] do
+    audit theoremName semantic
+  audit ``pairThenOrdinaryInterfaces primitive
+  for theoremName in [``rejectsPrimitiveInsertionFrame, ``rejectsPrimitiveRemovalFrame] do
+    audit theoremName (logical ++
+      [``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert])
+  let mut count := 0
+  let mut forbidden := 0
+  for (seeded, initial) in [(false, emptyNative), (true, seededNative)] do
+    for natFirst in [false, true] do
+      let .ok native := pairStage natFirst (primitiveContext initial) | throwError "cannot seed primitive interfaces"
+      for isUnsafe in [false, true] do
+        for types in [#[], #[{ family with ctors := [familyCtor] }], ordinaryMutual] do
+          let .ok result := checkedConstructorStage types isUnsafe (context native isUnsafe)
+            | throwError "ordinary staging after primitives failed"
+          for name in Kernel.Environment.primitives.toList do
+            unless sameConstant (result.find? name) (native.find? name) do
+              throwError "ordinary staging changed a reserved primitive lookup"
+          let .ok inferred := M.run result .safe {} [] {} (checkType (.lit (.natVal 37)))
+            | throwError "ordinary staging broke Nat literal type checking"
+          unless inferred == .const ``Nat [] do throwError "wrong Nat literal type after ordinary staging"
+          if seeded then
+            let .ok reduced := M.run result .safe {} [] {} (whnf (.const nativeAlias.name []))
+              | throwError "ordinary staging broke retained safe delta reduction"
+            unless reduced == .sort .zero do throwError "ordinary staging changed retained safe delta reduction"
+          count := count + 1
+        let .ok result := checkedConstructorStage #[polymorphicFamily] isUnsafe
+          { context native isUnsafe with lparams := [`u] }
+          | throwError "polymorphic ordinary staging after primitives failed"
+        for name in Kernel.Environment.primitives.toList do
+          unless sameConstant (result.find? name) (native.find? name) do
+            throwError "polymorphic ordinary staging changed a reserved primitive lookup"
+        let .ok inferred := M.run result (if isUnsafe then .unsafe else .safe) {} [`u] {}
+          (checkType (.const `PolymorphicFamily.mk [.param `u]))
+          | throwError "cannot type check a polymorphic ordinary constructor"
+        unless inferred == .const `PolymorphicFamily [.param `u] do
+          throwError "wrong polymorphic ordinary constructor type"
+        let .ok literalType := M.run result .safe {} [] {} (checkType (.lit (.natVal 37)))
+          | throwError "polymorphic ordinary staging broke Nat literal type checking"
+        unless literalType == .const ``Nat [] do throwError "wrong Nat literal type after polymorphic staging"
+        if seeded then
+          let .ok reduced := M.run result .safe {} [] {} (whnf (.const nativeAlias.name []))
+            | throwError "polymorphic ordinary staging broke retained safe delta reduction"
+          unless reduced == .sort .zero do throwError "polymorphic ordinary staging changed retained safe delta reduction"
+        count := count + 1
+  let native := (← getEnv).toKernelEnv
+  for isUnsafe in [false, true] do
+    let .ok result := checkedConstructorStage ordinaryMutual isUnsafe (context native isUnsafe)
+      | throwError "ordinary staging in the imported primitive environment failed"
+    for name in Kernel.Environment.primitives.toList do
+      unless sameConstant (result.find? name) (native.find? name) do
+        throwError "ordinary staging changed an imported primitive record"
+    let addition := .app (.app (.const ``Nat.add []) (.lit (.natVal 2))) (.lit (.natVal 3))
+    let .ok reduced := M.run result .safe {} [] {} (whnf addition)
+      | throwError "ordinary staging broke imported primitive addition"
+    unless reduced == .lit (.natVal 5) do throwError "ordinary staging changed imported primitive addition"
+    count := count + 1
+  for name in Kernel.Environment.primitives.toList do
+    for isUnsafe in [false, true] do
+      for lparams in [[], [`u]] do
+        for types in [#[{ family with name }], #[{ family with ctors := [⟨name, familyCtor.type⟩] }]] do
+          if (checkedConstructorStage types isUnsafe { context emptyNative isUnsafe with lparams }).isOk then
+            throwError "ordinary staging admitted a reserved primitive name"
+          forbidden := forbidden + 1
+  logInfo m!"{count} ordinary-after-primitive preservation controls; {forbidden} reserved-name rejections"
 
 end CheckerEnvironmentTest
