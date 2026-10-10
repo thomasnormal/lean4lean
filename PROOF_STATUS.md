@@ -80,6 +80,15 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   primitive staging composes with ordinary staging. These results do not
   discharge the remaining inductive metadata/recursor obligations or construct
   full `TrEnv`/`VContext` instances for the staged environment.
+- `TypeChecker.Inner.checkLevel.checker` and `envGet.lookup` prove the leaf
+  universe-validation and native lookup contracts needed by a restricted staged
+  checker context. `inferConstant.checker` translates validated level arguments,
+  preserves semantic constant typing through `CheckerEnv`, handles safe/unsafe
+  and partial-definition guards, and produces `TrTyping` for the inferred native
+  constant type. `infer_sort.checker` supplies the corresponding sort contract.
+  These are leaf contracts only: they do not construct a `VContext`, replace
+  the admitted checker stack, or establish application, projection, recursor,
+  inductive metadata, or full frontend soundness.
 - `Environment.checkPrimitiveInductive.eq_true_iff` characterizes exactly when
   the primitive-inductive validator returns `true`: a safe, monomorphic,
   parameter-free singleton declaration with precisely the `Bool` or `Nat`
