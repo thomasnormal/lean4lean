@@ -22,6 +22,14 @@ private theorem arbitraryFiniteChainProjectsBothTypes
       env.HasType universes context final (.sort level) :=
   chain.hasType envWF contextWF
 
+private theorem linkedChainsCanBeAppended
+    {env : VEnv} {universes : Nat} {context : List VExpr} {level : VLevel}
+    {before middle final : VExpr}
+    (first : SemanticSubstitutionChain env universes context level before middle)
+    (second : SemanticSubstitutionChain env universes context level middle final) :
+    SemanticSubstitutionChain env universes context level before final :=
+  first.append second
+
 private theorem emptyChainKeepsTheSameEndpoint
     {env : VEnv} {universes : Nat} {context : List VExpr} {level : VLevel}
     {expression : VExpr}
@@ -164,12 +172,13 @@ private def auditModule (allowed : List Name) : MetaM Unit := do
         throwError "parameter-substitution-chain module-owned axiom {name}"
       auditDeclaration name allowed
       declarations := declarations + 1
-  unless declarations == 14 do throwError "parameter-substitution-chain declaration manifest changed"
+  unless declarations == 15 do throwError "parameter-substitution-chain declaration manifest changed"
   logInfo m!"parameter-substitution-chain module: {declarations} declarations audited; semantic chain has no native/container interfaces"
 
 run_meta
   let allowed := [``propext, ``Classical.choice, ``Quot.sound, ``sorryAx]
   let structuralControls := [``arbitraryFiniteChainProjectsDefEq, ``arbitraryFiniteChainProjectsBothTypes,
+    ``linkedChainsCanBeAppended,
     ``emptyChainKeepsTheSameEndpoint, ``singleStageChain, ``twoStageChain, ``threeStageChain,
     ``stageDomainTypingIsAnExplicitPremise, ``sharedSortIsPartOfEveryStage,
     ``nonliteralStageArgumentsAreStructurallyDifferent,
