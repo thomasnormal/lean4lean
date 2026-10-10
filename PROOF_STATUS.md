@@ -93,6 +93,13 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   parameter-count assertions, positivity, projection/injectivity behavior,
   recursor generation, or inductive reduction equations. It does not extend the
   full `TrEnv` relation or discharge `AddInduct`.
+- `VEnv.addConstructorHeaders.wf` and
+  `AddInductive.declareConstructors.refinesWF` now close the same constructor
+  registration path under semantic `VEnv.WF`, given an explicit well-formed
+  starting header environment and well-formed translated constructor constants.
+  The result remains a sequence of typed ordinary constants: it does not turn
+  constructor registration into a native `TrEnv`/`AddInduct` proof or establish
+  generated recursors, positivity, metadata soundness, or reduction equations.
 - `AddInductive.checkInductiveTypes.frameHeaderSizesParamsFVars` additionally
   proves that every checked parameter is syntactically a free variable, while
   retaining the size and frame invariants and their existing APIs. `paramsFVars`
