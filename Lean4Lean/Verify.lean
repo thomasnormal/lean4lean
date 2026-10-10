@@ -137,6 +137,7 @@ import Lean4Lean.Verify.InductiveSubstitutionStageEndpoint
 import Lean4Lean.Verify.InductiveSubstitutionStageEndpointRebase
 import Lean4Lean.Verify.InductiveParameterSubstitutionStage
 import Lean4Lean.Verify.InductiveIndexRebase
+import Lean4Lean.Verify.InductiveIndexSubstitutionStageRebase
 import Lean4Lean.Verify.InductiveRecursorTypeTranslationCPS
 import Lean4Lean.Verify.InductiveRecursorApplicationFacts
 import Lean4Lean.Verify.InductiveRecursorApplicationNative
