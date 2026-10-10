@@ -4404,6 +4404,71 @@ interface even when whitelisted. Identity and uniform-cutoff-zero semantic-model
 mutations both fail at the intended semantic-domain sentinel. Run
 `lake env lean tests/InductiveIndexBaseInsertion.lean`.
 
+`Verify.InductiveIndexDomainStrengthening` proves
+`TrExprS.strengthenIsType`: a type-valued source translation can be rebuilt in
+a smaller virtual context from its source closedness and retained free-variable
+support. Inputs retain a genuine structural weakening into an aligned context,
+definitional equality between the original and aligned contexts, and original
+typehood. Inverse expression translation constructs a reduced semantic domain;
+translation uniqueness, context conversion and inverse typing weakening derive
+its typehood at the same sort level. The original semantic domain is
+definitionally equal to the lifted reduced domain, not asserted to be its
+literal syntactic lift image.
+
+`Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
+chronological selected telescope over a supplied smaller mixed base.
+`SelectedRecursorDomainFVars` constrains only actual full-reader stored cdecl
+domains: each domain's native free variables must lie in the smaller base or
+earlier selected identifiers. Its prefix and final-domain projections do not
+assume reduced-context translations or typing. Existing translation receipts
+supply closedness and metavariable exclusion independently.
+`SelectedRecursorTelescope.strengthenBase` takes original and smaller mixed-base
+well-formedness, this source support and a base `FVLift'`. It constructs the
+reduced telescope, its endpoint well-formedness, and a virtual aligned endpoint.
+Freshness follows from the original native freshness and virtual fvar inclusion;
+there is no new collision premise. The final weakening is from the reduced
+endpoint into the aligned endpoint with `.consN baseLift ids.length`, together
+with `VLCtx.IsDefEq` from the actual chronological endpoint to that aligned
+context. This is genuine contraction, not identity transport or a claim of
+exact semantic-context equality.
+
+`SelectedRecursorTelescope.strengthenExtension` specializes to a concrete omitted
+cdecl suffix and derives smaller mixed-base well-formedness by dropping its
+actual `IndexMLCtxExtension` from the original well-formed base. The generic
+weakening can represent interspersed omissions, but does not itself prove a
+native selection algorithm or mixed-context well-formedness.
+`TranslatedRecursorIndexTrace.selectedTelescopeStrengthened` starts from the
+same actual translated history and later native scope frame, retaining the
+chronological endpoint's well-formedness, native/virtual matching, extension and
+unchanged initial index-array prefix. Source support applies only to identifiers
+extracted from the newly allocated suffix; the history proves these are exactly
+the selected identifiers. Full-reader lookup indices, IDs, names, stored peeled
+domains, binder information and declaration kinds remain unchanged, while
+projected indices may change after contraction.
+
+The domain module census is one declaration / one theorem; the base module is
+eight declarations / seven theorems, including two generated simp helpers.
+The domain lemma uses only the standard logical axioms and inherited `sorryAx`;
+the base module additionally uses the three existing allocation/storage
+interfaces. Inverse translation/uniqueness still inherit projection admissions,
+and inverse typing weakening inherits the existing `IsDefEqU.weakN_iff`
+admission. No new admission, axiom, runtime path, cache or native range dependency
+is introduced. Constructing a concrete smaller base, proving its structural
+selection, and discharging stored-domain support from checked/generated header
+receipts remain caller obligations. Complete recursor reordering, motive/minor
+typehood and whole `RecursorSelectedDomainSupport` are not derived here.
+`tests/InductiveIndexBaseStrengthening.lean` adds thirteen proof controls covering
+the domain lemma, generic and actual-extension contraction, native binding
+agreement and actual-history suffix transport. Eighteen cutoff-inverse controls,
+six selected-cdecl and nine retained dependent/let-base checks cover removal
+sizes zero, one and three; three source-support failures distinguish dropped,
+current and future dependencies. The numerical/native models do not provide
+independent semantic typing. Identity and wrong-cutoff model mutations fail at
+the intended semantic-reference sentinel. Exhaustive module/helper audits use
+separate domain/base policies, retain translation, inverse-typing and native
+provenance pins, and reject the forbidden range interface even when whitelisted. Run
+`lake env lean tests/InductiveIndexBaseStrengthening.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
