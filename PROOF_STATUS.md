@@ -13,6 +13,27 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `addDeclVerified.fromEmpty` provide initialization and composition for finite
   declaration sequences. These are partial-correctness statements: they do not
   promise that checking any particular declaration succeeds.
+- `CheckerEnv` factors out the lookup/delta portion of native checker environment
+  correspondence: semantic `VEnv.WF`, native/semantic lookup alignment, and the
+  translation of every admitted safe definition value to its semantic constant.
+  The value contract preserves delta unfolding; well-formedness and alignment
+  alone are not sufficient. `TrEnv.checkerEnv` derives this relation from the
+  existing declaration-history invariant, while `CheckerEnv.addConst` preserves
+  it across fresh translated, well-typed native constants with no unfoldable
+  value. This relation is not yet sufficient to replace `VContext.trenv`:
+  constructor/recursor/projection metadata contracts and primitive invariants
+  remain separate obligations.
+- `AddInductive.declareInductiveTypes.refinesChecker` and
+  `AddInductive.checkInductiveTypes.refinesHeadersChecker` preserve `CheckerEnv`
+  through the actual header-registration fold, including previously registered
+  safe definition values. Header translations and semantic header typing remain
+  explicit inputs. This is typed-axiom staging,
+  not a native declaration-history extension: `AddInduct`, positivity, generated
+  recursors/reduction equations, and full inductive frontend soundness remain
+  open. The verified checker and non-inductive frontend retain the stronger
+  `TrEnv` invariant; the existing metadata-dependent checker admissions are not
+  silently generalized to the weaker relation. No executable checker behavior
+  changes.
 - `Environment.checkPrimitiveInductive.eq_true_iff` characterizes exactly when
   the primitive-inductive validator returns `true`: a safe, monomorphic,
   parameter-free singleton declaration with precisely the `Bool` or `Nat`
