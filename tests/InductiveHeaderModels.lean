@@ -266,6 +266,7 @@ run_meta
     auditDeclaration name admitted
   for name in [``parameterLookupSurvivesIndices, ``fixtureChecker, ``fixtureResetWF, ``fixtureNativeReserved,
       ``actualBatchDerivesModels, ``selectedModelDomainComesFromCanonicalPrefix,
+      ``FirstHeaderCheckerModels.constructorDomainReceipts,
       ``ambientConstructorReceiptUsesSplitModel] do
     auditDeclaration name guarded
   runtimeControls
