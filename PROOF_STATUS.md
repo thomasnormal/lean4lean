@@ -4452,6 +4452,39 @@ each, including generated helpers) and exact dependency manifests for all three
 strengthening theorems.
 Run `lake env lean tests/InductiveSubstitutionStageBody.lean`.
 
+`Verify.InductiveSubstitutionStageRebase` connects that reduced-body receipt to
+`SemanticSubstitutionChain`. Its
+`TrExprS.strengthenSubstitutionStageRebased` theorem preserves all six body
+receipts and appends four: a genuine one-stage reduced-context chain, target
+body translation and typing, and the corresponding target-context chain.
+The additional premises give argument definitional equality at the actual
+reduced domain in the smaller context, explicit smaller-to-target insertion,
+and target WF. Argument equality already supplies both argument typings;
+smaller WF is recovered from the removal receipt and aligned-context WF.
+The source stage is built with substitution congruence and `single`; the target
+stage structurally weakens that same chain, not merely its endpoint equality.
+All outputs share the same existential reduced body and result sort. Removal
+and insertion remain independent: the original body comparison uses
+`removalLift.cons`, target body/domain transport uses `insertionLift.cons` and
+`insertionLift` respectively, and both target arguments use plain
+`insertionLift`. Substitution/lift commutation identifies the target endpoints
+with instantiations of the transported body while protecting its formal binder.
+This receipt does not assume native-domain translation or infer original
+argument preimages, whole-chain strengthening, chronology-to-target weakening,
+native telescope/`replaceParams` reconstruction, inserted motive/minor typehood
+or checker/source acceptance. Dependencies retain only the four inherited
+logical/typing axioms, without native/container interfaces or new admissions.
+The focused fixture has 26 proof controls and 26 runtime checks, forwards all
+ten receipts, and instantiates a genuine one-declaration removal plus a distinct
+two-declaration insertion beneath a retained suffix. Its nested body uses the
+formal binder, suffix and retained base, with nonliteral beta domain and stage
+argument equalities. Both chains project equality and endpoint typing in their
+own well-formed contexts. Wrong body/argument lifts, suffix cutoffs, conflated
+coordinates, support and closure negatives pin the boundary. An exhaustive
+two-declaration module audit includes generated helpers and enforces the exact
+four-axiom inherited manifest.
+Run `lake env lean tests/InductiveSubstitutionStageRebase.lean`.
+
 `Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
 chronological selected telescope over a supplied smaller mixed base.
 `SelectedRecursorDomainFVars` constrains only actual full-reader stored cdecl
