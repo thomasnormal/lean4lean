@@ -122,7 +122,10 @@ theorem replaceParams.prefix_eq (identifiers : List FVarId) (replacements : List
       .ok ((body.abstractList identifiers).instantiateRevList replacements, state) := by
   rw [replaceParams.eq_ok _ _ _ _ _ (by simpa using length)]
   rw [Expr.abstract_eq_of_scope scope.1 distinct, Expr.instantiateRev_eq, Expr.instantiate_eq,
-    Array.toList_reverse, List.toList_toArray, Expr.instantiateList_reverse]
+    Array.toList_reverse, List.toList_toArray]
+  rw [Expr.instantiateMany_eq_instantiateList _ _ _ ?_, Expr.instantiateList_reverse]
+  intro replacement member
+  exact (scope.2 replacement (by simpa using member)).looseBVarRange_zero
 
 theorem replaceParams.prefix_typed
     {env : VEnv} {universes : List Name} {base source : MLCtx} {identifiers : List FVarId}
