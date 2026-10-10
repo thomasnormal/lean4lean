@@ -195,7 +195,7 @@ private def auditModule (allowed : List Name) : MetaM Unit := do
         throwError "parameter-substitution-chain module-owned axiom {name}"
       auditDeclaration name allowed
       declarations := declarations + 1
-  unless declarations == 17 do throwError "parameter-substitution-chain declaration manifest changed"
+  unless declarations == 18 do throwError "parameter-substitution-chain declaration manifest changed"
   logInfo m!"parameter-substitution-chain module: {declarations} declarations audited; semantic chain has no native/container interfaces"
 
 run_meta
@@ -211,6 +211,10 @@ run_meta
     ``actualStageBodyUsesTheSuppliedDomain, ``distinctChainLengthsAreNotInterchangeable]
   for name in structuralControls do auditDeclaration name allowed
   auditModule allowed
+  let pairChainAxioms ← collectAxioms ``RetainedFVarPrefixAgreement.instantiatePairOuterChain
+  unless pairChainAxioms.size == allowed.length && allowed.all pairChainAxioms.contains do
+    throwError "parameter-substitution-chain pair adapter dependency manifest changed"
+  logInfo "parameter-substitution-chain pair adapter: exact four inherited logical/typing axioms; no native/container interfaces"
   runtimeChainControls
   logInfo m!"parameter-substitution-chain tests: {structuralControls.length} proof controls; arbitrary finite chain recursion; empty/single/two/three-stage construction; explicit per-stage domain typing and shared sort; native order; nonliteral arguments; length/position negatives"
 
