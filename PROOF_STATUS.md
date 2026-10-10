@@ -4625,6 +4625,38 @@ lookup shifts and native/core instantiation; omission/support/position
 negatives and separate core/native axiom audits enforce the stated boundaries.
 Run `lake env lean tests/InductiveParameterSubstitution.lean`.
 
+`Verify.InductiveParameterSubstitutionRebase` adds
+`RetainedFVarPrefixAgreement.instantiateIsTypeRebasedCore` and
+`.instantiateIsTypeRebased`. A supported original-context type body under its
+actual anonymous parameter domain must be closed at depth one. The proof uses
+the existing structural `Closed.instantiate1_offset` to derive depth-zero
+closure after substituting the retained fvar, then composes single-parameter
+substitution with explicit source-to-aligned weakening, original/aligned
+context agreement and independently supplied source-to-target weakening.
+It returns the selected argument's exact source lookup/translation/typing,
+substituted closure/support and original translation/typehood, source and
+target translations/typehood through one existential reduced result, and
+sort-correct original-context comparisons for both the actual original
+argument and the removal-lifted source argument against that common result.
+The agreement and old-context comparisons use only `removalLift`; target
+translation/typehood use only `insertionLift`. The proof derives original
+context well-formedness from the explicit context agreement, not from the
+positionwise lookup receipt alone. Core dependencies remain inherited
+logical/typing axioms including `sorryAx`; the native wrapper additionally
+uses only the existing `Expr.instantiate1_eq` interface, with no native range
+interface or new admission/axiom/runtime/cache changes.
+The reduced result is not asserted to be substitution into an independently
+contracted pre-substitution body. This does not prove full-prefix reverse
+substitution, native parameter reconstruction, inserted motive/minor
+typehood, complete binder reordering or checker/source acceptance.
+The focused fixture has 27 proof controls and 28 runtime checks, including a
+beta-valued retained type parameter, nested forall bodies, distinct one/three
+removal/insertion lifts and selected `consN` cutoffs. Omitted/dropped parameters,
+unsupported/unclosed bodies and wrong-position negatives enforce the premises;
+separate core/native audits cover every module declaration and check the
+structural closure helper's logical-only provenance.
+Run `lake env lean tests/InductiveParameterSubstitutionRebase.lean`.
+
 `TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains` adapts
 that composition to an actual translated index history. It invokes the
 stored-domain contraction bridge, preserves chronological/native/virtual and

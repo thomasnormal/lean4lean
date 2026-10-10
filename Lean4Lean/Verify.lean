@@ -128,6 +128,7 @@ import Lean4Lean.Verify.InductiveIndexRebaseTyping
 import Lean4Lean.Verify.InductiveParameterPrefixTransport
 import Lean4Lean.Verify.InductiveParameterPrefixAgreement
 import Lean4Lean.Verify.InductiveParameterSubstitution
+import Lean4Lean.Verify.InductiveParameterSubstitutionRebase
 import Lean4Lean.Verify.InductiveIndexRebase
 import Lean4Lean.Verify.InductiveRecursorTypeTranslationCPS
 import Lean4Lean.Verify.InductiveRecursorApplicationFacts
