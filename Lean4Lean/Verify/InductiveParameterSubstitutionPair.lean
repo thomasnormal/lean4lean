@@ -3,6 +3,69 @@ import Lean4Lean.Verify.InductiveParameterSubstitutionRebase
 namespace Lean4Lean
 open Lean hiding Environment Exception
 
+theorem RetainedFVarPrefixAgreement.instantiatePairIsDefEq
+    {env : VEnv} {universes : List Name} {source original aligned : VLCtx}
+    {removalLift : Lift} {identifiers : List FVarId}
+    (receipt : RetainedFVarPrefixAgreement env universes source original aligned removalLift identifiers)
+    (envWF : env.WF) (originalWF : original.WF env universes.length)
+    (outerPosition : Nat) (outerIdentifier : FVarId)
+    (outerSelected : identifiers[outerPosition]? = some outerIdentifier)
+    (innerPosition : Nat) (innerIdentifier : FVarId)
+    (innerSelected : identifiers[innerPosition]? = some innerIdentifier)
+    {originalOuterArgument originalOuterArgumentType originalInnerArgument originalInnerArgumentType : VExpr}
+    (outerLookup : original.find? (.inr outerIdentifier) =
+      some (originalOuterArgument, originalOuterArgumentType))
+    (innerLookup : original.find? (.inr innerIdentifier) =
+      some (originalInnerArgument, originalInnerArgumentType))
+    {innerDomain : VExpr}
+    (raisedInnerArgumentTyped : env.HasType universes.length
+      (originalOuterArgumentType :: original.toCtx) originalInnerArgument.lift innerDomain)
+    {bodySemantic : VExpr} {level : VLevel}
+    (bodyTyped : env.HasType universes.length
+      (innerDomain :: originalOuterArgumentType :: original.toCtx) bodySemantic (.sort level)) :
+    ∃ reducedInnerArgument reducedInnerArgumentType reducedOuterArgument reducedOuterArgumentType,
+      source.find? (.inr innerIdentifier) = some (reducedInnerArgument, reducedInnerArgumentType) ∧
+      source.find? (.inr outerIdentifier) = some (reducedOuterArgument, reducedOuterArgumentType) ∧
+      env.IsDefEq universes.length (originalOuterArgumentType :: original.toCtx)
+        originalInnerArgument.lift (reducedInnerArgument.lift' removalLift).lift innerDomain ∧
+      env.IsDefEq universes.length original.toCtx
+        ((bodySemantic.inst originalInnerArgument.lift).inst originalOuterArgument)
+        ((bodySemantic.inst (reducedInnerArgument.lift' removalLift).lift).inst
+          (reducedOuterArgument.lift' removalLift)) (.sort level) := by
+  obtain ⟨reducedInnerArgument, reducedInnerArgumentType, receiptInnerArgument, receiptInnerType, _,
+    reducedInnerLookup, _, _, receiptInnerLookup, _, _, _, innerEquality⟩ :=
+    receipt.lookups innerPosition innerIdentifier innerSelected
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (receiptInnerLookup.symm.trans innerLookup))
+  obtain ⟨reducedOuterArgument, reducedOuterArgumentType, receiptOuterArgument, receiptOuterType, _,
+    reducedOuterLookup, _, _, receiptOuterLookup, _, originalOuterTyped, _, outerEquality⟩ :=
+    receipt.lookups outerPosition outerIdentifier outerSelected
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (receiptOuterLookup.symm.trans outerLookup))
+  obtain ⟨outerLevel, outerTypeTyped⟩ :=
+    originalOuterTyped.isType envWF.ordered originalWF.toCtx
+  have outerContextWF : OnCtx (receiptOuterType :: original.toCtx)
+      (env.IsType universes.length) := ⟨originalWF.toCtx, outerLevel, outerTypeTyped⟩
+  have liftedInnerEquality : env.IsDefEq universes.length
+      (receiptOuterType :: original.toCtx) receiptInnerArgument.lift
+      (reducedInnerArgument.lift' removalLift).lift receiptInnerType.lift := by
+    simpa using innerEquality.weakN envWF.ordered (Ctx.LiftN.one (A := receiptOuterType))
+  have actualDomainInnerEquality : env.IsDefEq universes.length
+      (receiptOuterType :: original.toCtx) receiptInnerArgument.lift
+      (reducedInnerArgument.lift' removalLift).lift innerDomain :=
+    liftedInnerEquality.toU.of_l envWF outerContextWF raisedInnerArgumentTyped
+  have intermediateEquality : env.IsDefEq universes.length
+      (receiptOuterType :: original.toCtx) (bodySemantic.inst receiptInnerArgument.lift)
+      (bodySemantic.inst (reducedInnerArgument.lift' removalLift).lift) (.sort level) := by
+    simpa only [VExpr.inst] using VEnv.IsDefEq.instDF envWF.ordered outerContextWF
+      bodyTyped actualDomainInnerEquality
+  have simultaneousEquality : env.IsDefEq universes.length original.toCtx
+      ((bodySemantic.inst receiptInnerArgument.lift).inst receiptOuterArgument)
+      ((bodySemantic.inst (reducedInnerArgument.lift' removalLift).lift).inst
+        (reducedOuterArgument.lift' removalLift)) (.sort level) := by
+    simpa only [VExpr.inst] using VEnv.IsDefEq.instDF envWF.ordered originalWF.toCtx
+      intermediateEquality outerEquality
+  exact ⟨reducedInnerArgument, reducedInnerArgumentType, reducedOuterArgument, reducedOuterArgumentType,
+    reducedInnerLookup, reducedOuterLookup, actualDomainInnerEquality, simultaneousEquality⟩
+
 theorem RetainedFVarPrefixAgreement.instantiatePairIsTypeRebasedCore
     {env : VEnv} {universes : List Name} {source original aligned target : VLCtx}
     {removalLift insertionLift : Lift} {identifiers : List FVarId}
@@ -70,7 +133,18 @@ theorem RetainedFVarPrefixAgreement.instantiatePairIsTypeRebasedCore
         ((body.instantiate1' (.fvar innerIdentifier)).instantiate1' (.fvar outerIdentifier))
         (reducedSemantic.lift' insertionLift) ∧
       env.HasType universes.length target.toCtx
-        (reducedSemantic.lift' insertionLift) (.sort level) := by
+        (reducedSemantic.lift' insertionLift) (.sort level) ∧
+      env.HasType universes.length original.toCtx
+        ((bodySemantic.inst (reducedInnerArgument.lift' removalLift).lift).inst
+          (reducedOuterArgument.lift' removalLift)) (.sort level) ∧
+      env.IsDefEq universes.length original.toCtx
+        ((bodySemantic.inst originalInnerArgument.lift).inst originalOuterArgument)
+        ((bodySemantic.inst (reducedInnerArgument.lift' removalLift).lift).inst
+          (reducedOuterArgument.lift' removalLift)) (.sort level) ∧
+      env.IsDefEq universes.length original.toCtx
+        ((bodySemantic.inst (reducedInnerArgument.lift' removalLift).lift).inst
+          (reducedOuterArgument.lift' removalLift))
+        (reducedSemantic.lift' removalLift) (.sort level) := by
   obtain ⟨reducedInnerArgument, reducedInnerArgumentType, receiptInnerArgument, receiptInnerType, _,
     reducedInnerLookup, reducedInnerTranslation, reducedInnerTyped, receiptInnerLookup, _, _, _,
     innerEquality⟩ := receipt.lookups innerPosition innerIdentifier innerSelected
@@ -101,12 +175,20 @@ theorem RetainedFVarPrefixAgreement.instantiatePairIsTypeRebasedCore
     receipt.instantiateIsTypeRebasedCore envWF removal contexts insertion targetWF
       outerPosition outerIdentifier outerSelected outerLookup intermediateTranslation
       intermediateTyped intermediateClosed intermediateSupported
-  exact ⟨reducedInnerArgument, reducedInnerArgumentType, reducedOuterArgument, reducedOuterArgumentType,
+  obtain ⟨agreementInnerArgument, agreementInnerType, agreementOuterArgument, agreementOuterType,
+    agreementInnerLookup, agreementOuterLookup, _, simultaneousEquality⟩ :=
+    receipt.instantiatePairIsDefEq envWF contexts.wf outerPosition outerIdentifier outerSelected
+      innerPosition innerIdentifier innerSelected outerLookup innerLookup raisedInnerArgumentTyped bodyTyped
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (agreementInnerLookup.symm.trans reducedInnerLookup))
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (agreementOuterLookup.symm.trans reducedOuterLookup))
+  have simultaneousRebaseEquality := simultaneousEquality.symm.trans rebaseEquality
+  exact ⟨agreementInnerArgument, agreementInnerType, agreementOuterArgument, agreementOuterType,
     reducedSemantic, reducedInnerLookup, reducedInnerTranslation, reducedInnerTyped, innerEquality,
     intermediateClosed, intermediateSupported, intermediateTranslation, intermediateTyped,
     reducedOuterLookup, reducedOuterTranslation, reducedOuterTyped, substitutedClosed,
     substitutedSupported, substitutedTranslation, substitutedTyped, outerEquality,
-    reducedTranslation, reducedType, rebaseEquality, alternativeEquality, targetTranslation, targetType⟩
+    reducedTranslation, reducedType, rebaseEquality, alternativeEquality, targetTranslation, targetType,
+    simultaneousEquality.hasType.2, simultaneousEquality, simultaneousRebaseEquality⟩
 
 theorem RetainedFVarPrefixAgreement.instantiatePairIsTypeRebased
     {env : VEnv} {universes : List Name} {source original aligned target : VLCtx}
@@ -175,7 +257,18 @@ theorem RetainedFVarPrefixAgreement.instantiatePairIsTypeRebased
         ((body.instantiate1 (.fvar innerIdentifier)).instantiate1 (.fvar outerIdentifier))
         (reducedSemantic.lift' insertionLift) ∧
       env.HasType universes.length target.toCtx
-        (reducedSemantic.lift' insertionLift) (.sort level) := by
+        (reducedSemantic.lift' insertionLift) (.sort level) ∧
+      env.HasType universes.length original.toCtx
+        ((bodySemantic.inst (reducedInnerArgument.lift' removalLift).lift).inst
+          (reducedOuterArgument.lift' removalLift)) (.sort level) ∧
+      env.IsDefEq universes.length original.toCtx
+        ((bodySemantic.inst originalInnerArgument.lift).inst originalOuterArgument)
+        ((bodySemantic.inst (reducedInnerArgument.lift' removalLift).lift).inst
+          (reducedOuterArgument.lift' removalLift)) (.sort level) ∧
+      env.IsDefEq universes.length original.toCtx
+        ((bodySemantic.inst (reducedInnerArgument.lift' removalLift).lift).inst
+          (reducedOuterArgument.lift' removalLift))
+        (reducedSemantic.lift' removalLift) (.sort level) := by
   simpa only [Expr.instantiate1_eq] using receipt.instantiatePairIsTypeRebasedCore envWF removal
     contexts insertion targetWF outerPosition outerIdentifier outerSelected innerPosition
     innerIdentifier innerSelected outerLookup innerLookup raisedInnerArgumentTyped bodyTranslated
