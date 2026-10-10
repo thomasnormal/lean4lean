@@ -323,3 +323,36 @@ interfaces and exclude `sorryAx`. No new implementation axiom, admission, checke
 workaround, or kernel discrepancy is introduced. Scope propagation through the
 complete rewrite traversal and auxiliary map, auxiliary semantic typing,
 positivity, recursors, and full inductive soundness remain separate obligations.
+
+## Trusted native instantiation specification mismatch (2026-10-10)
+
+The pinned Lean **4.29.0** native substitution is simultaneous, but the existing
+`Verify.Axioms.Expr.instantiate_eq` interface universally identifies it with
+sequential structural `instantiateList`. That unrestricted specification is
+false for replacement arrays containing loose bound variables. For example,
+native `(Expr.bvar 0).instantiateRev #[.sort .zero, .bvar 0]` returns `.bvar 0`.
+The corresponding structural `instantiateRevList` first inserts `.bvar 0`,
+then substitutes through that inserted value and returns `.sort .zero`.
+The same discrepancy occurs for forward instantiation with the reversed array
+and beneath a lambda binder. `Expr.instantiateRev_eq`, which relates the two
+native array orders, is not itself contradicted by these examples.
+
+Run `lake env lean tests/NativeInstantiation.lean`. It reproduces these three
+loose-argument boundaries and checks 72 native/model comparisons for closed
+replacement arrays, including empty/single/multiple arrays, out-of-prefix
+bvars, applications, lambdas, foralls and lets. The counterexamples concern an
+existing trusted verification specification, not a C++ kernel bug or a newly
+accepted invalid declaration. No executable checker change or proof of kernel
+unsoundness is demonstrated.
+
+The new whole-prefix replacement contract restricts raw native/structural
+agreement to a range-zero body and structurally closed replacement arguments.
+Its typed contract derives every replacement's closure from strict translation
+in the remaining mixed base, so these negatives cannot supply its hypotheses.
+It does not assume a latest dependent argument is already typed at an
+unsubstituted source domain: chronological typed application checks each domain
+after earlier arguments have been instantiated. Correcting the existing
+unrestricted instantiation interface to a faithful simultaneous model, and
+revalidating its clients, remains an explicit verification obligation. The
+scoped new proofs still depend on that existing trusted interface and inherited
+typing admissions; they do not establish unconditional kernel soundness.
