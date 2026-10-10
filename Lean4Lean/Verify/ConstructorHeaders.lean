@@ -139,4 +139,42 @@ theorem AddInductive.declareConstructors.refinesWF (ctx : AddInductive.Context)
     fun _ ⟨venv', hadd, haligned'⟩ =>
       ⟨venv', hadd, VEnv.addConstructorHeaders.wf hvenv htypes hadd, haligned'⟩
 
+theorem AddInductive.checkInductiveTypes.refinesHeaderConstructorWF
+    (ctx : AddInductive.Context) (numParams : Nat) (indTypes : Array InductiveType)
+    (numNested : Nat) (isUnsafe : Bool)
+    {safety : DefinitionSafety} {venv : VEnv} {headers : List VInductiveType}
+    {vtypes : List VInductiveType}
+    (haligned : Aligned safety ctx.env.constants venv) (hvenv : venv.WF)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe)
+    (hheaders : List.Forall₂ (TrInductiveHeader venv ctx.lparams) indTypes.toList headers)
+    (headerTypes : ∀ header ∈ headers, header.toVConstant.WF venv)
+    (hctors : ∀ headerEnv, venv.addInductHeaders headers = some headerEnv →
+      List.Forall₂ (fun (type : InductiveType) (vtype : VInductiveType) =>
+        List.Forall₂ (TrConstructor headerEnv ctx.lparams) type.ctors vtype.ctors)
+        indTypes.toList vtypes)
+    (constructorTypes : ∀ headerEnv, venv.addInductHeaders headers = some headerEnv →
+      ∀ ctor ∈ vtypes.flatMap (fun type : VInductiveType => type.ctors),
+        ctor.toVConstant.WF headerEnv) :
+    (checkInductiveTypes numParams indTypes (fun stats => do
+      let nativeHeaders ← declareInductiveTypes stats numParams indTypes numNested isUnsafe
+      withEnv nativeHeaders (declareConstructors stats indTypes isUnsafe)) ctx).WF fun env' =>
+      ∃ headerEnv ctorEnv,
+        venv.addInductHeaders headers = some headerEnv ∧ headerEnv.WF ∧
+        headerEnv.addConstructorHeaders
+          (vtypes.flatMap (fun type : VInductiveType => type.ctors)) = some ctorEnv ∧
+        ctorEnv.WF ∧ Aligned safety env'.constants ctorEnv := by
+  apply checkInductiveTypes.frameHeaderSizes
+  intro stats ctx' hsizes hframe
+  refine (declareInductiveTypes.refinesWF ctx' stats numParams indTypes numNested isUnsafe
+    (by simpa [hframe.env] using haligned) hvenv hsafety hsizes.1
+    (by simpa [hframe.lparams] using hheaders) headerTypes).bind ?_
+  rintro nativeHeaders ⟨headerEnv, haddHeaders, headerWF, headerAligned⟩
+  have hctorModels := hctors headerEnv haddHeaders
+  have hconstructorTypes := constructorTypes headerEnv haddHeaders
+  refine (declareConstructors.refinesWF { ctx' with env := nativeHeaders } stats indTypes isUnsafe
+    (by simpa [hframe.env, headerAligned]) headerWF hsafety
+    (by simpa [hframe.lparams] using hctorModels) hconstructorTypes).mono ?_
+  rintro ctorNative ⟨ctorEnv, haddCtors, ctorWF, ctorAligned⟩
+  exact ⟨headerEnv, ctorEnv, haddHeaders, headerWF, haddCtors, ctorWF, ctorAligned⟩
+
 end Lean4Lean

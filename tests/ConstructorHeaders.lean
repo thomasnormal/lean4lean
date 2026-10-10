@@ -69,6 +69,29 @@ example (ctx : AddInductive.Context) (stats : AddInductive.InductiveStats)
   AddInductive.declareConstructors.refinesWF ctx stats types isUnsafe
     haligned henv hsafety hctors htypes
 
+example (ctx : AddInductive.Context) (numParams : Nat) (types : Array InductiveType)
+    (numNested : Nat) (isUnsafe : Bool) {safety : DefinitionSafety} {venv : VEnv}
+    {headers vtypes : List VInductiveType}
+    (haligned : Aligned safety ctx.env.constants venv) (hvenv : venv.WF)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe)
+    (hheaders : List.Forall₂ (TrInductiveHeader venv ctx.lparams) types.toList headers)
+    (headerTypes : ∀ header ∈ headers, header.toVConstant.WF venv)
+    (hctors : ∀ headerEnv, venv.addInductHeaders headers = some headerEnv →
+      List.Forall₂ (fun type vtype =>
+        List.Forall₂ (TrConstructor headerEnv ctx.lparams) type.ctors vtype.ctors)
+        types.toList vtypes)
+    (constructorTypes : ∀ headerEnv, venv.addInductHeaders headers = some headerEnv →
+      ∀ ctor ∈ vtypes.flatMap (·.ctors), ctor.toVConstant.WF headerEnv) :
+    (AddInductive.checkInductiveTypes numParams types (fun stats => do
+      let nativeHeaders ← AddInductive.declareInductiveTypes stats numParams types numNested isUnsafe
+      AddInductive.withEnv nativeHeaders (AddInductive.declareConstructors stats types isUnsafe)) ctx).WF
+      fun result => ∃ headerEnv ctorEnv,
+        venv.addInductHeaders headers = some headerEnv ∧ headerEnv.WF ∧
+        headerEnv.addConstructorHeaders (vtypes.flatMap (·.ctors)) = some ctorEnv ∧
+        ctorEnv.WF ∧ Aligned safety result.constants ctorEnv :=
+  AddInductive.checkInductiveTypes.refinesHeaderConstructorWF ctx numParams types numNested isUnsafe
+    haligned hvenv hsafety hheaders headerTypes hctors constructorTypes
+
 private def context (isUnsafe : Bool) : AddInductive.Context := {
   env := Kernel.Environment.empty `ConstructorHeadersTest, lparams := [],
   safety := if isUnsafe then .unsafe else .safe, allowPrimitive := false }
@@ -143,6 +166,7 @@ run_meta
   audit ``AddInductive.declareConstructors.refines registration
   audit ``AddInductive.declareConstructors.ordered registration
   audit ``AddInductive.declareConstructors.refinesWF registration
+  audit ``AddInductive.checkInductiveTypes.refinesHeaderConstructorWF registration
   let primitives ← importedTypes (← Lean.getEnv).toKernelEnv
   for isUnsafe in [false, true] do
     checkMetadata (context isUnsafe) 0 mutualTypes #[#[0, 1], #[1]] isUnsafe

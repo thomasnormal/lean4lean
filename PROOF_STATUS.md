@@ -100,6 +100,14 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   The result remains a sequence of typed ordinary constants: it does not turn
   constructor registration into a native `TrEnv`/`AddInduct` proof or establish
   generated recursors, positivity, metadata soundness, or reduction equations.
+- `AddInductive.checkInductiveTypes.refinesHeaderConstructorWF` composes the
+  executable header stage with constructor registration under explicit semantic
+  header/constructor models. Successful staging returns both a well-formed
+  header environment and a well-formed constructor-extended environment, while
+  preserving native `Aligned` correspondence. The constructor model is
+  supplied for the semantic header environment produced by `addInductHeaders`;
+  this remains conditional and does not include `checkConstructors` soundness,
+  native `TrEnv` extension, generated recursors, or cache semantics.
 - `AddInductive.checkInductiveTypes.frameHeaderSizesParamsFVars` additionally
   proves that every checked parameter is syntactically a free variable, while
   retaining the size and frame invariants and their existing APIs. `paramsFVars`
