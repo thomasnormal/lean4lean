@@ -2,6 +2,7 @@ import Lean4Lean.Verify.InductiveIndexBaseInsertion
 import Lean4Lean.Verify.InductiveIndexBaseStrengthening
 import Lean4Lean.Verify.InductiveIndexDomainSupport
 import Lean4Lean.Verify.InductiveIndexRebaseTyping
+import Lean4Lean.Verify.InductiveParameterPrefixTransport
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
@@ -120,7 +121,11 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains
       SelectedRecursorTelescope env universes current.lctx larger ids target ∧
       target.WF env universes ∧
       VLCtx.FVLift' reduced.vlctx target.vlctx 0
-        (.consN (.skipN .refl inserted) ids.length) 0 := by
+        (.consN (.skipN .refl inserted) ids.length) 0 ∧
+      RetainedFVarPrefix env universes smaller.vlctx larger.vlctx
+        (.skipN .refl inserted) params ∧
+      RetainedFVarPrefix env universes reduced.vlctx target.vlctx
+        (.consN (.skipN .refl inserted) ids.length) params := by
   obtain ⟨chronological, ids, reduced, aligned, chronologicalWF, chronologicalNative,
     chronologicalVirtual, extension, array, reducedTelescope, reducedWF, contraction, contexts⟩ :=
     history.selectedTelescopeStrengthenedOfStoredDomains model modelWF native
@@ -133,9 +138,16 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains
     exact List.mem_map.mpr ⟨identifier, member, rfl⟩
   obtain ⟨target, targetTelescope, targetWF, insertionWeakening⟩ :=
     reducedTelescope.insertBase envWF smallerWF largerWF insertion selectedFresh
+  have baseParameters := insertion.toFVLift'.retainedPrefix envWF
+    smallerWF.tr.wf largerWF.tr.wf parameters
+  have reducedParameters : params ⊆ reduced.vlctx.fvars := by
+    rw [reducedTelescope.extension.virtualFVars]
+    exact fun _ member => List.mem_append_right _ (parameters member)
+  have endpointParameters := insertionWeakening.retainedPrefix envWF
+    reducedWF.tr.wf targetWF.tr.wf reducedParameters
   exact ⟨chronological, ids, reduced, aligned, target, chronologicalWF, chronologicalNative,
     chronologicalVirtual, extension, array, reducedTelescope, reducedWF, contraction, contexts,
-    targetTelescope, targetWF, insertionWeakening⟩
+    targetTelescope, targetWF, insertionWeakening, baseParameters, endpointParameters⟩
 
 theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedBodyOfStoredDomains
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
@@ -178,6 +190,10 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedBodyOfStoredDomains
       target.WF env universes ∧
       VLCtx.FVLift' reduced.vlctx target.vlctx 0
         (.consN (.skipN .refl inserted) ids.length) 0 ∧
+      RetainedFVarPrefix env universes smaller.vlctx larger.vlctx
+        (.skipN .refl inserted) params ∧
+      RetainedFVarPrefix env universes reduced.vlctx target.vlctx
+        (.consN (.skipN .refl inserted) ids.length) params ∧
       TrExprS env universes reduced.vlctx body reducedSemantic ∧
       env.HasType universes.length reduced.vlctx.toCtx reducedSemantic (.sort level) ∧
       env.IsDefEq universes.length chronological.vlctx.toCtx bodySemantic
@@ -188,7 +204,7 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedBodyOfStoredDomains
         (reducedSemantic.lift' (.consN (.skipN .refl inserted) ids.length)) (.sort level) := by
   obtain ⟨chronological, ids, reduced, aligned, target, chronologicalWF, chronologicalNative,
     chronologicalVirtual, extension, array, reducedTelescope, reducedWF, contraction, contexts,
-    targetTelescope, targetWF, insertionWeakening⟩ :=
+    targetTelescope, targetWF, insertionWeakening, baseParameters, endpointParameters⟩ :=
     history.selectedTelescopeRebasedOfStoredDomains model modelWF native converted reserved
       current frame envWF smaller smallerWF baseLift baseWeakening stored values parameters
       prefixRetained larger largerWF inserted insertion freshBase
@@ -209,7 +225,7 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedBodyOfStoredDomains
       insertionWeakening targetWF.tr.wf bodyTranslated' bodyTyped' bodyClosed reducedBodySupport'
   exact ⟨chronological, ids, reduced, aligned, target, reducedSemantic, chronologicalWF,
     chronologicalNative, chronologicalVirtual, extension, array, reducedTelescope, reducedWF,
-    contraction, contexts, targetTelescope, targetWF, insertionWeakening, reducedTranslation,
-    reducedType, bodyEquality, targetTranslation, targetType⟩
+    contraction, contexts, targetTelescope, targetWF, insertionWeakening, baseParameters,
+    endpointParameters, reducedTranslation, reducedType, bodyEquality, targetTranslation, targetType⟩
 
 end Lean4Lean.AddInductive
