@@ -4766,6 +4766,41 @@ cutoffs. An exact eight-axiom manifest audit enforces the stated inherited and
 native dependency boundary.
 Run `lake env lean tests/InductiveIndexSubstitutionRebase.lean`.
 
+`TranslatedRecursorIndexTrace.selectedTelescopeRebasedSubstitutedPairTypeOfStoredDomains`
+applies the strengthened ordered two-parameter proof to the actual history
+endpoint. Both selections refer to the supplied retained-parameter list, not
+the allocated index suffix. Exact final-virtual argument lookups, raised-inner
+typing at the actual inner domain, two-anonymous-binder body translation/sort
+typing, depth-two structural closure and explicit suffix-plus-base fvar
+support remain premises. The adapter rewrites all lookup/typing/translation
+receipts through the chronological endpoint equality and derives support in
+the recovered reduced telescope's exact fvar list.
+All 15 history/parameter receipts and 25 pair-substitution receipts remain
+available, including the actual intermediate body, both reduced arguments,
+depth-zero final closure, original/reduced/target type translations and typing,
+and outer-only/simultaneous agreements with the common reduced result.
+Both-reduced interpretation typing and agreements stay in chronological
+coordinates under `consN baseLift ids.length`; target transport independently
+uses `consN (skipN refl inserted) ids.length`. Inner arguments are raised only
+after being placed in the chronological context. The supplied body is not
+asserted to equal the trace terminal or have its semantic interpretation.
+Dependencies retain only the existing logical/typing axioms, three persistent
+container interfaces and `Expr.instantiate1_eq`; no new admission/axiom or
+runtime change is introduced. This does not reconstruct dependent parameter
+domains/native telescopes, prove arbitrary typed-list recursion or native
+`replaceParams`, identify separately contracted syntax, prove inserted
+motive/minor typehood or establish checker/source acceptance.
+Run `lake env lean tests/InductiveIndexPairSubstitutionRebase.lean`.
+
+The focused history fixture has 14 proof controls and 23 runtime checks. It
+forwards all 15 history/parameter and 25 strengthened pair receipts, applies
+the adapter to an actual empty translated history whose body uses both formal
+binders, and separately checks a retained prefix with two chronological suffix
+IDs, reversed support, intermediate/final closure, discarded-fvar rejection,
+nonzero parameter positions, nested-binder protection, swapped order, missing
+inner lifting and distinct removal/insertion cutoffs. Its exact eight-axiom
+adapter manifest matches the prior actual-history boundary.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
