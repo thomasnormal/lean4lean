@@ -105,6 +105,38 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   constructor/recursor typing, positivity, or reduction equations. The inherited
   checker/metatheory admissions remain explicit; no new axiom or admission is
   introduced, and the initial annotation contracts are not silently assumed.
+- `Verify.InductiveHeaderAxiomView` constructs a strong declaration-history model
+  for a separate axiom shadow of the actual native header stage. It does not
+  reinterpret the native inductive rows as verified inductive declarations or
+  change `TrEnv`, `VContext`, or any checker admission. Fresh accepted header
+  registration is replayed through existing `TrEnv'.axiom` constructors and
+  semantic `addInductHeaders`; every old record is retained exactly. The shadow
+  replaces only the new inductive-header tags with axiom tags, retaining names,
+  universe parameters, source types, safety, and exact optional values at every
+  lookup. Replay uses the existing registration and semantic monotonicity
+  contracts, rather than invoking the admitted checker algorithms. The
+  all-header checking and arbitrary-continuation
+  stage theorems derive the header models/WF instead of requiring caller models;
+  `run.headerAxiomViewStage` projects the shadow stage from complete successful
+  safe/unsafe runs. The latter explicitly excludes `.partial` checker safety,
+  whose admission order does not admit the runner's unsafe header rows.
+  `VContext.inHeaderAxiomView` derives a genuine strong context for the shadow,
+  preserving the original local model and every other native context field,
+  given the semantic extension, strong shadow history, and exact primitive
+  frame. Header registration derives that primitive frame when primitive
+  declarations are disabled. `VState.WF.headerAxiomReset` carries the existing
+  generator reservations into a fresh validated shadow state; it does not reuse
+  old caches. There is still no proof transporting actual
+  constructor checking into this shadow: projections and other metadata-sensitive
+  operations distinguish the two environments even when all type/value lookup
+  signatures agree. In particular, the projection regression demonstrates this
+  after constructor registration. The initial strong checker, canonical
+  annotation, and generator-prefix premises remain explicit; the three checked
+  stage projections inherit the existing checker/metatheory admissions, while
+  replay and context-model extension retain the existing semantic metatheory
+  admissions. No
+  constructor-WF, positivity, recursor equation, or full-inductive theorem is
+  claimed by the shadow construction.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -147,7 +179,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   These ordinary-definition bridges keep freshness and primitive-name guards
   explicit. These results do not
   discharge the remaining inductive metadata/recursor obligations or construct
-  full `TrEnv`/`VContext` instances for the staged environment.
+  full `TrEnv`/`VContext` instances for the actual metadata-bearing staged
+  environment. The separate typed axiom shadow above now has these instances;
+  checker transport to it remains an independent obligation.
 - `TypeChecker.Inner.checkLevel.checker` and `envGet.lookup` prove the leaf
   universe-validation and native lookup contracts needed by a restricted staged
   checker context. `inferConstant.checker` translates validated level arguments,
@@ -6090,6 +6124,29 @@ absent. Zero-fuel and partially allocated traversal failures propagate. These
 unchecked helper fixtures do not claim full frontend acceptance or semantic
 typing. Audits admit only the existing persistent-array list-push and two map
 interfaces where required; all exclude `sorryAx` and expression interfaces.
+
+`tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
+bridge, absence and optional-value agreement, empty shadow history, strong
+context/local-model preservation, reset-state WF, raw registration, all-header derived staging,
+and complete runner projection. Its exhaustive production-module audit rejects
+module-owned axioms and dependencies outside the inherited registration,
+header-checking, and primitive-interface footprints. The nine tag/signature/view
+contracts reject `sorryAx`; semantic replay and context-model extension retain
+the existing semantic metatheory admissions, and the three checked stage
+projections also inherit the checker admissions. Seven native-accepted fixtures
+cover zero/one/two parameters,
+mutual headers, indices, nonempty constructor lists, retained definition aliases,
+and universe parameters under both safety and primitive-declaration flags. Every
+lookup signature and every exact old record is compared in both directions;
+ordinary constructor fixtures check in both stages and full actual runs reach
+recursor registration. Empty batches preserve the base. Duplicate/colliding
+names, later domain mismatch, and fuel controls reject. A native-accepted
+one-field structure has equal type/value signatures in its actual and axiom
+environments after constructor registration, but its projection checks only in
+the actual environment. This is a negative transport control, not a kernel
+discrepancy or an assertion that the header-only stage cannot be transported.
+Run `lake env lean tests/InductiveHeaderAxiomView.lean`. Imported-prelude fixtures
+do not construct the missing semantic prelude translation.
 
 `tests/InductiveMutualHeaderTyping.lean` contains eight proof regressions for
 accepted parameter equality, typed reused-body substitution/normalization,
