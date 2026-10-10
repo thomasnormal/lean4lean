@@ -4707,12 +4707,39 @@ Source/target native instantiated translations and endpoint typing share one
 existential reduced body, while original endpoint equality uses the distinct
 removal lift. No literal reduced-body identification is inferred from the
 separate expected-coordinate controls.
-The full fixture now has thirty-six proof controls and forty-one runtime
-checks, including all prior one-step controls. Exact audits pin four
-dependencies for the new forall normalization and the inherited eight for
-the actual two-step adapter application. Order/reversal and missing-either-
-index/parameter negatives pin the nonempty suffix and support boundary.
-This is a conditional proof fixture for the existing adapter, not
+The dependent two-index application additionally constructs a genuine
+`.index`, `.index`, `.stop` history from `(first : Sort 0) → first → Sort 0`.
+Its first opening substitutes the actual first allocated identifier into the
+second native domain; the second stored declaration has precisely that free
+variable as its type, not another closed sort. Native normalization of the
+opened dependent forall and terminal sort is proved at positive recursion
+depth. Both successful stored lookups are recovered through the actual scope
+frames. Raw domain support allows the earlier chronological index, while
+retained-base-only and reversed-history controls cannot supply that dependency.
+The virtual endpoint distinguishes the first type-valued index from the second
+proof-valued index, whose type is the shifted first index.
+The dependent stage body uses its formal as a forall domain and the second
+index as a well-typed native let value, with the first index as the let's type
+and the retained parameter as its body. Translation checks the proof's actual
+type; the let is erased and does not add a semantic binder. This application
+preserves the constructed removal-one/insertion-two bases, cutoff-two context
+maps, protected-formal body maps, shared existential reduced body, source/target
+native instantiated translations and typing, and original endpoint agreement.
+An empty mixed-context seed, empty semantic/native environments, empty native
+parameter array and positive-depth reader instantiate the adapter without
+fixture premises. This proves the test premises are jointly inhabited; it
+does not establish kernel acceptance of an inductive declaration or retention
+of the let-bound proof in the erased semantic body.
+The full fixture now has fifty-two proof controls and sixty-eight runtime
+checks, including all prior one-step and closed-domain two-step controls.
+Exact audits pin four dependencies for the new forall normalization and the inherited eight for
+the actual two-step and dependent two-step adapter applications, including the
+premise-free empty-seed instantiation. Runtime checks also exercise actual
+dependent allocation, both native normalizations and zero-depth rejection.
+All fixture-namespace declarations, including generated helpers, are audited
+for unexpected axioms. Order/reversal and missing-either-index/parameter
+negatives pin the nonempty suffix and support boundary.
+These proof fixtures exercise the existing adapter, not
 inductive-checker/source acceptance, arbitrary whole-history strengthening or
 a literal original-stage preimage claim.
 Run `lake env lean tests/InductiveIndexSubstitutionStageOneStep.lean`.
