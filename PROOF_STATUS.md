@@ -4696,7 +4696,7 @@ and original-context comparisons from the original interpretation to this
 both-reduced interpretation and from it to the lifted common reduced final
 type. The extra inner lift protects the still-present outer anonymous binder;
 none of these equalities identifies a separately contracted body's syntax.
-The focused fixture has 29 proof controls and 27 runtime checks. A genuine
+The focused fixture has 30 proof controls and 30 runtime checks. A genuine
 two-formal body preserves its nested local binder; swapped substitution order
 and an unraised original inner argument fail their controls. Concrete proofs
 cover distinct one/three lifts, repeated selected positions, both original
@@ -4728,6 +4728,25 @@ The focused fixture has 18 proof controls and 9 runtime checks, covering
 empty, single, two- and three-stage construction, explicit per-stage domains,
 shared sort, native order, nonliteral arguments and length/position negatives.
 Run `lake env lean tests/InductiveParameterSubstitutionChain.lean`.
+
+`RetainedFVarPrefixAgreement.instantiatePairOuterChain` connects the retained
+pair receipt to the fixed-context chain. It preserves both exact source
+argument lookups, the raised inner equality at its explicit actual domain,
+and the simultaneous pair equality. It derives typing of the original-inner
+intermediate body, reconciles the selected outer lookup witnesses, and returns
+a one-stage chain replacing only the outer argument in `original.toCtx`.
+Cancelling that chain against the simultaneous equality additionally proves
+the residual inner equality with the reduced outer argument held fixed. This
+is not a chain removing both formal binders across their different contexts.
+No native expression, closure, support or target insertion premise is needed;
+the module audit pins exactly the four inherited logical/typing dependencies
+(`propext`, `Classical.choice`, `Quot.sound`, `sorryAx`) and excludes native and
+container interfaces. The beta-valued pair fixture also cancels the returned
+chain against its existing rebase equality, retaining the same existential
+common reduced result and independent removal/insertion lifts. Three runtime
+controls distinguish the outer-only intermediate from both endpoints. Native
+telescopes, dependent-domain reconstruction, `replaceParams`, inserted
+motive/minor typehood and checker/source acceptance remain separate.
 
 `TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains` adapts
 that composition to an actual translated index history. It invokes the
