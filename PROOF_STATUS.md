@@ -65,6 +65,21 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   Both Bool/Nat staging orders compose. The missing structural metadata and
   recursor/reduction obligations still prevent replacing `VContext.trenv` or
   claiming full inductive frontend correctness.
+- `NativePrimitiveFrame` proves exact reserved-name lookup preservation,
+  including absent primitive names, for ordinary header/constructor staging
+  with `allowPrimitive = false`. It applies to unsafe and polymorphic ordinary
+  declarations as well as safe monomorphic declarations. Alignment and semantic
+  extension turn this native frame into semantic primitive-constant equality;
+  `CheckerEnv.hasPrimitives_of_frame` then transports the existing primitive
+  typing/reduction interface. The ordinary registration refinements and
+  `checkInductiveTypes.refinesOrdinaryInterfaces` combine semantic registration,
+  lookup/delta correspondence, semantic primitives, native primitive safety,
+  and the exact primitive frame for the checked prefix. They require translated,
+  well-typed header/constructor signatures, but do not assume registration
+  success or primitive-name exclusion in the semantic models. Complete canonical
+  primitive staging composes with ordinary staging. These results do not
+  discharge the remaining inductive metadata/recursor obligations or construct
+  full `TrEnv`/`VContext` instances for the staged environment.
 - `Environment.checkPrimitiveInductive.eq_true_iff` characterizes exactly when
   the primitive-inductive validator returns `true`: a safe, monomorphic,
   parameter-free singleton declaration with precisely the `Bool` or `Nat`
