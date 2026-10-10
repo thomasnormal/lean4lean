@@ -190,5 +190,6 @@ import Lean4Lean.Verify.InductiveValueFrame
 import Lean4Lean.Verify.InductiveHeaderTyping
 import Lean4Lean.Verify.InductiveMutualHeaderTyping
 import Lean4Lean.Verify.InductiveHeaderAxiomView
+import Lean4Lean.Verify.InductiveHeaderContinuation
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveNestedRewrite
