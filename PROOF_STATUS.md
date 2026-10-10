@@ -34,6 +34,22 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `TrEnv` invariant; the existing metadata-dependent checker admissions are not
   silently generalized to the weaker relation. No executable checker behavior
   changes.
+- `NativeValueFrame` independently proves native constant-map well-formedness,
+  retention of every old lookup, and that any final definition value belongs to
+  the initial map. Its fresh no-value insertion and generic stateful fold proofs
+  apply to both native registration traversals. `declareInductiveTypes.preservesValues`,
+  `declareConstructors.preservesValues`, and
+  `checkInductiveTypes.preservesHeaderConstructorValues` cover the actual checked
+  header/constructor prefix without semantic typing or translation premises.
+  `declareConstructors.refinesChecker` combines this native frame with semantic
+  constructor WF/registration refinement. The stronger
+  `checkInductiveTypes.refinesPrimitiveHeaderConstructorChecker` derives canonical
+  `Bool`/`Nat` header/constructor registration, translation, semantic WF, and final
+  lookup/delta correspondence from initial `CheckerEnv` and primitive-validator
+  success, with no caller-supplied semantic models or registration-success
+  premises. These results still install typed ordinary constants; they do not
+  justify native constructor/projection metadata, generated recursors/reduction
+  equations, primitive invariants, or replacement of `VContext.trenv`.
 - `Environment.checkPrimitiveInductive.eq_true_iff` characterizes exactly when
   the primitive-inductive validator returns `true`: a safe, monomorphic,
   parameter-free singleton declaration with precisely the `Bool` or `Nat`
