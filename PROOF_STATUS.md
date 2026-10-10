@@ -137,6 +137,32 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   admissions. No
   constructor-WF, positivity, recursor equation, or full-inductive theorem is
   claimed by the shadow construction.
+- `Verify.InductiveHeaderContinuation` derives the typed continuation reader
+  from the actual mutual header traversal. `TypedHeaderReader` separates the
+  first shared parameter model from all accumulated index locals, records the
+  exact native parameter array, and supplies native reader alignment, a validated
+  fresh checker state, full parameter/ambient prefix histories, and parameter
+  lookup support. The traversal constructs the first model by checked binder
+  opening and preserves it through later reused-parameter equality checks and
+  index allocations. `checkInductiveTypes.withTypedContinuation` exposes this
+  model at the real continuation together with whole-array source-header models
+  and semantic WF, native header sizes/counts, and unchanged environment,
+  universe, safety, primitive-authorization, and fuel fields. It supports empty
+  arrays without selecting a default source header.
+  `withHeaderAxiomContinuation` performs actual header registration, derives its
+  separate strong axiom shadow, and extends this exact local model to the shadow
+  with fresh-state WF and primitive/value frames. No caller-provided parameter
+  model, header model, or header type-WF evidence is required.
+  `constructorAxiomContinuation` packages this proved shadow model with successful
+  actual constructor checking and the accepted native constructor traces at the
+  same staging checkpoint. The complete runner projects this package for
+  ordinary safe/unsafe runs, excluding `.partial` checker safety and primitive
+  declarations explicitly. The shadow model now supplies the existing constructor
+  domain-receipt theorem's parameter/ambient premises, but acceptance in the
+  actual checker is not yet transported to the shadow checker. These results
+  retain the strong initial `VContext`/`TrEnv`, canonical annotation contracts,
+  disjoint generator prefixes, and inherited checker/metatheory admissions;
+  they are not semantic constructor WF, positivity, or inductive soundness.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6096,6 +6122,23 @@ absent. Zero-fuel and partially allocated traversal failures propagate. These
 unchecked helper fixtures do not claim full frontend acceptance or semantic
 typing. Audits admit only the existing persistent-array list-push and two map
 interfaces where required; all exclude `sorryAx` and expression interfaces.
+
+`tests/InductiveHeaderContinuation.lean` checks derived parameter support, full
+parameter/ambient histories, exact parameter-base recovery and WF, shadow-reader
+alignment, the typed continuation endpoint, actual accepted constructor/stage
+receipts, complete runner projection, and direct compatibility with the existing
+shadow constructor-domain receipt theorem. Its exhaustive module audit rejects
+module-owned axioms and dependencies outside the inherited header checker,
+registration, prefix, constructor-trace, and reset-state footprints. Six native-accepted
+fixtures cover shared zero/one/two parameters, aliased reused domains, dependent
+second parameters, and accumulated/differing index counts with nonempty
+constructor lists under both safety modes. The exact continuation local count,
+every parameter lookup, source signature, exact old definition, constructor arity, and complete
+recursor registration are checked. Empty batches preserve the empty local model;
+invalid constructor returns, captured headers, later parameter-domain mismatch,
+duplicate headers, and zero fuel reject. Runtime fixtures use the imported
+prelude and do not construct its missing semantic translation. Run
+`lake env lean tests/InductiveHeaderContinuation.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
