@@ -101,13 +101,28 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   one-binder constructor-signature telescope steps as explicit `TrExprS`
   contracts. They require semantic function/argument typing or binder-domain
   and body well-formedness, respectively, and preserve the restricted scope;
-  native application inference and full telescope instantiation remain future
-  obligations.
+  these wrappers alone do not verify native inference or telescope
+  instantiation.
 - `RestrictedContext.lamExpr`, `letExpr`, `litExpr`, `mdataExpr`, and
   `projExpr` package the remaining recursive `TrExprS` expression constructors
   over the same restricted scope. Their semantic typing, literal-availability,
   and projection-relation premises stay explicit; they do not establish native
   inference, projection metadata, or full frontend soundness.
+- `Verify.StagedApplications` proves partial correctness of the actual
+  `TypeChecker.Inner.inferApp` and its argument loop under explicit
+  `ApplicationMethods` contracts for head inference and normalization. Its
+  `RunWF` predicate preserves an arbitrary native-state invariant. The proof
+  handles dependent arguments, batched delayed substitutions, and telescope
+  tails exposed by normalization, returning `TrTyping` without constructing a
+  `VContext` or invoking the existing full-context application theorem. A
+  concrete fixture discharges these contracts for constant/sort leaf inference
+  and identity or cheap beta normalization, preserving arbitrary state
+  invariants. Accepted canonical Nat staging supplies the context and successor
+  translation without caller-supplied semantic models. Runtime controls also
+  cover dependent substitution, polymorphic heads, delta-exposed telescope
+  tails, and missing-head/universe-arity/argument-arity rejection.
+  Correctness of the full recursive methods, normalization, caches, native
+  local scopes, and metadata-dependent checker paths remains separate.
 - `Environment.checkPrimitiveInductive.eq_true_iff` characterizes exactly when
   the primitive-inductive validator returns `true`: a safe, monomorphic,
   parameter-free singleton declaration with precisely the `Bool` or `Nat`
