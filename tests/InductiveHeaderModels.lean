@@ -144,6 +144,30 @@ private theorem selectedModelDomainComesFromCanonicalPrefix
       ∃ declaration, reader.lctx.find? identifier = some declaration ∧ declaration.type = nativeDomain :=
   models.selectedParameterDomain selected
 
+private theorem ambientConstructorReceiptUsesSplitModel
+    {checker : TypeChecker.VContext} {reader : Context}
+    (aligned : checker.toContext =
+      { env := reader.env, lctx := reader.lctx, safety := reader.safety,
+        lparams := reader.lparams, fuel := reader.fuel })
+    (initialWF : ({} : TypeChecker.VState).WF checker)
+    {base parameterModel : MLCtx} {identifiers ambient : List FVarId}
+    (parameters : ParameterPrefix base checker.mlctx (identifiers ++ ambient))
+    (ambientParameters : ParameterPrefix parameterModel checker.mlctx ambient)
+    (parameterBase : checker.mlctx.dropN ambient.length ambientParameters.bound = parameterModel)
+    {stats : InductiveStats} (statsParams : stats.params = (identifiers.map Expr.fvar).toArray)
+    {type result terminal : Expr} (sourceFree : type.FVarsIn (fun _ => False))
+    (sourceChecked : (monadLift (TypeChecker.checkType type) : M Expr) reader = .ok result)
+    {isUnsafe : Bool} {parent finalIndex : Nat} {finalReader : Context}
+    (trace : AcceptedConstructorTrace stats isUnsafe parent reader 0 type finalReader finalIndex terminal) :
+    ∃ finalTarget,
+      CheckedConstructorDomainReceipts checker.venv checker.lparams trace
+        base.vlctx.toCtx base.vlctx.toCtx parameterModel.vlctx.toCtx finalTarget ∧
+      checker.venv.IsDefEqCtx checker.lparams.length base.vlctx.toCtx
+        parameterModel.vlctx.toCtx finalTarget ∧
+      finalTarget.length = base.vlctx.toCtx.length + stats.params.size :=
+  trace.domainReceiptsAtParameterModel checker reader aligned initialWF parameters ambientParameters
+    parameterBase statsParams sourceFree sourceChecked
+
 private def domainAt (position : Nat) : Expr :=
   if position = 0 then
     .app (.const ``outParam [.max .zero (.succ (.succ .zero))]) (.sort (.succ .zero))
@@ -241,7 +265,8 @@ run_meta
       ``fullReaderIsNotParameterOnly, ``defaultPrefixesAreDisjoint, ``checkerCannotResetAcrossOwnFreshName] do
     auditDeclaration name admitted
   for name in [``parameterLookupSurvivesIndices, ``fixtureChecker, ``fixtureResetWF, ``fixtureNativeReserved,
-      ``actualBatchDerivesModels, ``selectedModelDomainComesFromCanonicalPrefix] do
+      ``actualBatchDerivesModels, ``selectedModelDomainComesFromCanonicalPrefix,
+      ``ambientConstructorReceiptUsesSplitModel] do
     auditDeclaration name guarded
   runtimeControls
 
