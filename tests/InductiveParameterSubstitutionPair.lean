@@ -43,15 +43,25 @@ private theorem coreProjectsInnerEqualityAndFinalOuterAgreements
         (semantic.lift' removalLift) (.sort level) ∧
       env.IsDefEq universes.length original.toCtx
         ((bodySemantic.inst originalInnerArgument.lift).inst (outerArgument.lift' removalLift))
+        (semantic.lift' removalLift) (.sort level) ∧
+      env.HasType universes.length original.toCtx
+        ((bodySemantic.inst (innerArgument.lift' removalLift).lift).inst (outerArgument.lift' removalLift)) (.sort level) ∧
+      env.IsDefEq universes.length original.toCtx
+        ((bodySemantic.inst originalInnerArgument.lift).inst originalOuterArgument)
+        ((bodySemantic.inst (innerArgument.lift' removalLift).lift).inst (outerArgument.lift' removalLift)) (.sort level) ∧
+      env.IsDefEq universes.length original.toCtx
+        ((bodySemantic.inst (innerArgument.lift' removalLift).lift).inst (outerArgument.lift' removalLift))
         (semantic.lift' removalLift) (.sort level) := by
   obtain ⟨innerArgument, innerType, outerArgument, outerType, semantic, sourceInnerLookup, _, _,
     innerEquality, _, _, intermediateTranslation, intermediateTyping, sourceOuterLookup, _, _, _, _,
-    _, _, outerEquality, _, _, rebaseEquality, alternativeEquality, _, _⟩ :=
+    _, _, outerEquality, _, _, rebaseEquality, alternativeEquality, _, _, simultaneousTyped,
+    simultaneousEquality, simultaneousRebaseEquality⟩ :=
     receipt.instantiatePairIsTypeRebasedCore envWF removal contexts insertion targetWF outerPosition
       outerIdentifier outerSelected innerPosition innerIdentifier innerSelected outerLookup innerLookup
       raisedInnerArgumentTyped translated typed closed supported
   exact ⟨innerArgument, innerType, outerArgument, outerType, semantic, sourceInnerLookup, sourceOuterLookup,
-    innerEquality, intermediateTranslation, intermediateTyping, outerEquality, rebaseEquality, alternativeEquality⟩
+    innerEquality, intermediateTranslation, intermediateTyping, outerEquality, rebaseEquality,
+    alternativeEquality, simultaneousTyped, simultaneousEquality, simultaneousRebaseEquality⟩
 
 private theorem nativeProjectsBothStagesClosureSupportAndTargetTyping
     {env : VEnv} {universes : List Name} {source original aligned target : VLCtx}
@@ -78,17 +88,53 @@ private theorem nativeProjectsBothStagesClosureSupportAndTargetTyping
       (body.instantiate1 (.fvar innerIdentifier)).FVarsIn (· ∈ source.fvars) ∧
       Closed ((body.instantiate1 (.fvar innerIdentifier)).instantiate1 (.fvar outerIdentifier)) 0 ∧
       ((body.instantiate1 (.fvar innerIdentifier)).instantiate1 (.fvar outerIdentifier)).FVarsIn (· ∈ source.fvars) ∧
-      ∃ (semantic : VExpr),
+      ∃ (innerArgument outerArgument semantic : VExpr),
         TrExprS env universes target
           ((body.instantiate1 (.fvar innerIdentifier)).instantiate1 (.fvar outerIdentifier)) (semantic.lift' insertionLift) ∧
-        env.HasType universes.length target.toCtx (semantic.lift' insertionLift) (.sort level) := by
-  obtain ⟨_, _, _, _, semantic, _, _, _, _, intermediateClosed, intermediateSupported, _, _, _, _, _,
-    finalClosed, finalSupported, _, _, _, _, _, _, _, targetTranslation, targetTyping⟩ :=
+        env.HasType universes.length target.toCtx (semantic.lift' insertionLift) (.sort level) ∧
+        env.HasType universes.length original.toCtx
+          ((bodySemantic.inst (innerArgument.lift' removalLift).lift).inst (outerArgument.lift' removalLift)) (.sort level) ∧
+        env.IsDefEq universes.length original.toCtx
+          ((bodySemantic.inst originalInnerArgument.lift).inst originalOuterArgument)
+          ((bodySemantic.inst (innerArgument.lift' removalLift).lift).inst (outerArgument.lift' removalLift)) (.sort level) ∧
+        env.IsDefEq universes.length original.toCtx
+          ((bodySemantic.inst (innerArgument.lift' removalLift).lift).inst (outerArgument.lift' removalLift))
+          (semantic.lift' removalLift) (.sort level) := by
+  obtain ⟨innerArgument, _, outerArgument, _, semantic, _, _, _, _, intermediateClosed, intermediateSupported,
+    _, _, _, _, _, finalClosed, finalSupported, _, _, _, _, _, _, _, targetTranslation, targetTyping,
+    simultaneousTyped, simultaneousEquality, simultaneousRebaseEquality⟩ :=
     receipt.instantiatePairIsTypeRebased envWF removal contexts insertion targetWF outerPosition
       outerIdentifier outerSelected innerPosition innerIdentifier innerSelected outerLookup innerLookup
       raisedInnerArgumentTyped translated typed closed supported
-  exact ⟨intermediateClosed, intermediateSupported, finalClosed, finalSupported, semantic,
-    targetTranslation, targetTyping⟩
+  exact ⟨intermediateClosed, intermediateSupported, finalClosed, finalSupported, innerArgument, outerArgument,
+    semantic, targetTranslation, targetTyping, simultaneousTyped, simultaneousEquality, simultaneousRebaseEquality⟩
+
+private theorem semanticHelperProjectsBothArgumentCongruenceWithoutAnExpression
+    {env : VEnv} {universes : List Name} {source original aligned : VLCtx}
+    {removalLift : Lift} {identifiers : List FVarId}
+    (receipt : RetainedFVarPrefixAgreement env universes source original aligned removalLift identifiers)
+    (envWF : env.WF) (originalWF : original.WF env universes.length)
+    (outerPosition : Nat) (outerIdentifier : FVarId) (outerSelected : identifiers[outerPosition]? = some outerIdentifier)
+    (innerPosition : Nat) (innerIdentifier : FVarId) (innerSelected : identifiers[innerPosition]? = some innerIdentifier)
+    {originalOuterArgument originalOuterArgumentType originalInnerArgument originalInnerArgumentType : VExpr}
+    (outerLookup : original.find? (.inr outerIdentifier) = some (originalOuterArgument, originalOuterArgumentType))
+    (innerLookup : original.find? (.inr innerIdentifier) = some (originalInnerArgument, originalInnerArgumentType))
+    {innerDomain : VExpr}
+    (raisedInnerArgumentTyped : env.HasType universes.length
+      (originalOuterArgumentType :: original.toCtx) originalInnerArgument.lift innerDomain)
+    {bodySemantic : VExpr} {level : VLevel}
+    (typed : env.HasType universes.length
+      (innerDomain :: originalOuterArgumentType :: original.toCtx) bodySemantic (.sort level)) :
+    ∃ innerArgument innerType outerArgument outerType,
+      source.find? (.inr innerIdentifier) = some (innerArgument, innerType) ∧
+      source.find? (.inr outerIdentifier) = some (outerArgument, outerType) ∧
+      env.IsDefEq universes.length (originalOuterArgumentType :: original.toCtx)
+        originalInnerArgument.lift (innerArgument.lift' removalLift).lift innerDomain ∧
+      env.IsDefEq universes.length original.toCtx
+        ((bodySemantic.inst originalInnerArgument.lift).inst originalOuterArgument)
+        ((bodySemantic.inst (innerArgument.lift' removalLift).lift).inst (outerArgument.lift' removalLift)) (.sort level) := by
+  exact receipt.instantiatePairIsDefEq envWF originalWF outerPosition outerIdentifier outerSelected
+    innerPosition innerIdentifier innerSelected outerLookup innerLookup raisedInnerArgumentTyped typed
 
 private def outerIdentifier : FVarId := ⟨`ParameterSubstitutionPairOuter⟩
 private def innerIdentifier : FVarId := ⟨`ParameterSubstitutionPairInner⟩
@@ -260,7 +306,7 @@ private theorem genuinePairRebasesThroughDistinctInsertions
   have receipt := concreteAgreement (universes := universes) envWF sourceSupportsBothSelectedArgumentsAndBody.1
   obtain ⟨_, _, _, _, semantic, _, _, _, _, intermediateClosed, _, intermediateTranslation, _,
     _, _, _, finalClosed, _, _, _, _, sourceTranslation, sourceTyping, rebaseEquality, _,
-    targetTranslation, targetTyping⟩ :=
+    targetTranslation, targetTyping, _, _, _⟩ :=
     receipt.instantiatePairIsTypeRebasedCore envWF oneInsertedWeakening
       (.refl envWF.ordered (originalContextWF env universes.length)) threeInsertedWeakening
       (targetContextWF env universes.length) 0 outerIdentifier rfl 1 innerIdentifier rfl
@@ -287,7 +333,7 @@ private theorem repeatedSelectedParameterDoesNotRequireDistinctPositions
     simp [equality, sourceContext, VLCtx.fvars]
   have receipt := concreteAgreement (universes := universes) envWF retained
   obtain ⟨_, _, _, _, semantic, _, _, _, _, _, _, _, _, _, _, _, closed, _, _, _, _, _, _, _, _,
-    targetTranslation, targetTyping⟩ :=
+    targetTranslation, targetTyping, _, _, _⟩ :=
     receipt.instantiatePairIsTypeRebasedCore envWF oneInsertedWeakening
       (.refl envWF.ordered (originalContextWF env universes.length)) threeInsertedWeakening
       (targetContextWF env universes.length) 0 outerIdentifier rfl 0 outerIdentifier rfl
@@ -322,7 +368,15 @@ private theorem nonliteralInnerDomainStillRebasesTheGenuinePair
     {env : VEnv} {universes : List Name} (envWF : env.WF) :
     ∃ (semantic : VExpr),
       TrExprS env universes targetContext finalBody (semantic.lift' (.skipN .refl 3)) ∧
-      env.HasType universes.length targetContext.toCtx (semantic.lift' (.skipN .refl 3)) (.sort equivalentPairLevel) := by
+      env.HasType universes.length targetContext.toCtx (semantic.lift' (.skipN .refl 3)) (.sort equivalentPairLevel) ∧
+      env.HasType universes.length originalContext.toCtx
+        ((pairedSemantic.inst (VExpr.bvar 1).lift).inst (.bvar 2)) (.sort equivalentPairLevel) ∧
+      env.IsDefEq universes.length originalContext.toCtx
+        ((pairedSemantic.inst (VExpr.bvar 1).lift).inst (.bvar 2))
+        ((pairedSemantic.inst (VExpr.bvar 1).lift).inst (.bvar 2)) (.sort equivalentPairLevel) ∧
+      env.IsDefEq universes.length originalContext.toCtx
+        ((pairedSemantic.inst (VExpr.bvar 1).lift).inst (.bvar 2))
+        (semantic.lift' (.skip .refl)) (.sort equivalentPairLevel) := by
   have typed : env.HasType universes.length
       (equivalentInnerDomain :: parameterType :: originalContext.toCtx) pairedSemantic (.sort equivalentPairLevel) :=
     VEnv.HasType.forallE (.sort (by trivial))
@@ -345,8 +399,9 @@ private theorem nonliteralInnerDomainStillRebasesTheGenuinePair
       · exact .forallE ⟨equivalentInnerUniverse, .bvar (.succ (.succ .zero))⟩
           ⟨.succ .zero, .bvar (.succ (.succ .zero))⟩ (.bvar rfl) (.bvar rfl)
   have receipt := concreteAgreement (universes := universes) envWF sourceSupportsBothSelectedArgumentsAndBody.1
-  obtain ⟨_, _, _, _, semantic, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
-    targetTranslation, targetTyping⟩ :=
+  obtain ⟨innerArgument, innerType, outerArgument, outerType, semantic, innerLookup, _, _, _, _, _, _, _,
+    outerLookup, _, _, _, _, _, _, _, _, _, _, _, targetTranslation, targetTyping,
+    simultaneousTyped, simultaneousEquality, simultaneousRebaseEquality⟩ :=
     receipt.instantiatePairIsTypeRebasedCore envWF oneInsertedWeakening
       (.refl envWF.ordered (originalContextWF env universes.length)) threeInsertedWeakening
       (targetContextWF env universes.length) 0 outerIdentifier rfl 1 innerIdentifier rfl
@@ -354,7 +409,122 @@ private theorem nonliteralInnerDomainStillRebasesTheGenuinePair
       (originalInnerArgument := .bvar 1) (originalInnerArgumentType := parameterType) rfl rfl
       (explicitRaisedTypingDoesNotRequireLiteralDomainEquality env universes.length).2 translated typed
       genuineIntermediateBodyRetainsOnlyItsOuterFormal.1 sourceSupportsBothSelectedArgumentsAndBody.2.1
-  exact ⟨semantic, targetTranslation, targetTyping⟩
+  have innerSourceLookup : sourceContext.find? (.inr innerIdentifier) = some (.bvar 0, parameterType) := rfl
+  have outerSourceLookup : sourceContext.find? (.inr outerIdentifier) = some (.bvar 1, parameterType) := rfl
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (innerLookup.symm.trans innerSourceLookup))
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (outerLookup.symm.trans outerSourceLookup))
+  exact ⟨semantic, targetTranslation, targetTyping, simultaneousTyped, simultaneousEquality, simultaneousRebaseEquality⟩
+
+private def betaOuterCarrier : FVarId := ⟨`ParameterSubstitutionPairBetaOuterCarrier⟩
+private def betaInnerCarrier : FVarId := ⟨`ParameterSubstitutionPairBetaInnerCarrier⟩
+private def betaArgument (position : Nat) : VExpr :=
+  .app (.lam parameterType (.bvar 0)) (.bvar position)
+
+private def betaSourceContext : VLCtx :=
+  [(some (innerIdentifier, [betaInnerCarrier]), .vlet parameterType (.bvar 0)),
+    (some (outerIdentifier, [betaOuterCarrier]), .vlet parameterType (.bvar 1)),
+    (some (betaInnerCarrier, []), .vlam parameterType),
+    (some (betaOuterCarrier, []), .vlam parameterType)]
+
+private def betaOriginalBase : VLCtx :=
+  [(some (innerIdentifier, [betaInnerCarrier]), .vlet parameterType (betaArgument 0)),
+    (some (outerIdentifier, [betaOuterCarrier]), .vlet parameterType (betaArgument 1)),
+    (some (betaInnerCarrier, []), .vlam parameterType),
+    (some (betaOuterCarrier, []), .vlam parameterType)]
+
+private def betaOriginalContext : VLCtx := insertLambda insertedOne betaOriginalBase
+private def betaAlignedContext : VLCtx := insertLambda insertedOne betaSourceContext
+private def betaTargetContext : VLCtx :=
+  insertLambda insertedThree (insertLambda insertedTwo betaAlignedContext)
+
+private theorem bothBetaContextsAgreeWithoutLiteralValueEquality (env : VEnv) (universes : Nat) :
+    VLCtx.IsDefEq env universes betaOriginalBase betaSourceContext := by
+  apply VLCtx.IsDefEq.cons
+  · apply VLCtx.IsDefEq.cons
+    · apply VLCtx.IsDefEq.cons
+      · apply VLCtx.IsDefEq.cons .nil
+        · rintro identifier dependencies equality
+          cases equality
+          simp [VLCtx.fvars]
+        · exact .vlam (.sortDF (by trivial) (by trivial) rfl)
+      · rintro identifier dependencies equality
+        cases equality
+        simp [VLCtx.fvars, betaInnerCarrier, betaOuterCarrier]
+      · exact .vlam (.sortDF (by trivial) (by trivial) rfl)
+    · rintro identifier dependencies equality
+      cases equality
+      simp [VLCtx.fvars, betaInnerCarrier, betaOuterCarrier, outerIdentifier]
+    · exact .vlet (.beta (.bvar .zero) (.bvar (.succ .zero))) (.sortDF (by trivial) (by trivial) rfl)
+  · rintro identifier dependencies equality
+    cases equality
+    simp [VLCtx.fvars, betaInnerCarrier, betaOuterCarrier, outerIdentifier, innerIdentifier]
+  · exact .vlet (.beta (.bvar .zero) (.bvar .zero)) (.sortDF (by trivial) (by trivial) rfl)
+
+private theorem insertedBetaContextsStillAgree (env : VEnv) (universes : Nat) :
+    VLCtx.IsDefEq env universes betaOriginalContext betaAlignedContext := by
+  apply VLCtx.IsDefEq.cons (bothBetaContextsAgreeWithoutLiteralValueEquality env universes)
+  · rintro identifier dependencies equality
+    cases equality
+    simp [betaOriginalBase, VLCtx.fvars, insertedOne, betaInnerCarrier, betaOuterCarrier,
+      outerIdentifier, innerIdentifier]
+  · exact .vlam (.sortDF (by trivial) (by trivial) rfl)
+
+private theorem bothOriginalArgumentsAreNonliteralBetaValues :
+    betaOriginalContext.find? (.inr innerIdentifier) =
+      some ((betaArgument 0).lift' (.skip .refl), parameterType) ∧
+    betaOriginalContext.find? (.inr outerIdentifier) =
+      some ((betaArgument 1).lift' (.skip .refl), parameterType) ∧
+      (betaArgument 0).lift' (.skip .refl) ≠ .bvar 1 ∧
+      (betaArgument 1).lift' (.skip .refl) ≠ .bvar 2 := by
+  refine ⟨rfl, rfl, ?_, ?_⟩ <;> intro equality <;> cases equality
+
+private theorem simultaneousCongruenceReplacesBothNonliteralBetaArguments
+    {env : VEnv} {universes : List Name} (envWF : env.WF) :
+    ∃ (semantic : VExpr),
+      env.HasType universes.length betaOriginalContext.toCtx
+        ((pairedSemantic.inst (VExpr.bvar 1).lift).inst (.bvar 2)) (.sort pairedLevel) ∧
+      env.IsDefEq universes.length betaOriginalContext.toCtx
+        ((pairedSemantic.inst ((betaArgument 0).lift' (.skip .refl)).lift).inst
+          ((betaArgument 1).lift' (.skip .refl)))
+        ((pairedSemantic.inst (VExpr.bvar 1).lift).inst (.bvar 2)) (.sort pairedLevel) ∧
+      env.IsDefEq universes.length betaOriginalContext.toCtx
+        ((pairedSemantic.inst (VExpr.bvar 1).lift).inst (.bvar 2)) (semantic.lift' (.skip .refl)) (.sort pairedLevel) ∧
+      TrExprS env universes betaTargetContext finalBody (semantic.lift' (.skipN .refl 3)) ∧
+      env.HasType universes.length betaTargetContext.toCtx (semantic.lift' (.skipN .refl 3)) (.sort pairedLevel) := by
+  have contexts := insertedBetaContextsStillAgree env universes.length
+  have sourceWF := ((bothBetaContextsAgreeWithoutLiteralValueEquality env universes.length).symm envWF.ordered).wf
+  have alignedWF := (contexts.symm envWF.ordered).wf
+  have targetWF := insertedContextWF
+    (insertedContextWF alignedWF insertedTwo (by decide)) insertedThree (by decide)
+  have removal : VLCtx.FVLift' betaSourceContext betaAlignedContext 0 (.skip .refl) 0 :=
+    .skip_fvar (insertedOne, []) (.vlam (.sort .zero)) .refl
+  have insertion : VLCtx.FVLift' betaSourceContext betaTargetContext 0 (.skipN .refl 3) 0 :=
+    .skip_fvar (insertedThree, []) (.vlam (.sort .zero))
+      (.skip_fvar (insertedTwo, []) (.vlam (.sort .zero)) removal)
+  have retained : [outerIdentifier, innerIdentifier] ⊆ betaSourceContext.fvars := by
+    intro identifier member
+    simp [betaSourceContext, VLCtx.fvars] at member ⊢
+    grind
+  have receipt := (removal.retainedPrefix envWF sourceWF alignedWF retained).agreesWithOriginal envWF contexts
+  have raisedTyped : env.HasType universes.length (parameterType :: betaOriginalContext.toCtx)
+      ((betaArgument 0).lift' (.skip .refl)).lift parameterType :=
+    VEnv.HasType.app (VEnv.HasType.lam (.sort (by trivial)) (.bvar .zero)) (.bvar (.succ (.succ .zero)))
+  obtain ⟨innerArgument, innerType, outerArgument, outerType, semantic, innerLookup, _, _, _, _, _, _, _,
+    outerLookup, _, _, _, _, _, _, _, _, _, _, _, targetTranslation, targetTyping,
+    simultaneousTyped, simultaneousEquality, simultaneousRebaseEquality⟩ :=
+    receipt.instantiatePairIsTypeRebasedCore envWF removal contexts insertion targetWF
+      0 outerIdentifier rfl 1 innerIdentifier rfl
+      (originalOuterArgument := (betaArgument 1).lift' (.skip .refl)) (originalOuterArgumentType := parameterType)
+      (originalInnerArgument := (betaArgument 0).lift' (.skip .refl)) (originalInnerArgumentType := parameterType)
+      rfl rfl raisedTyped (pairedBodyTranslated env universes betaOriginalContext)
+      (pairedBodyTyped env universes.length betaOriginalContext.toCtx)
+      genuineIntermediateBodyRetainsOnlyItsOuterFormal.1
+      (by simp [pairedBody, FVarsIn, Level.hasMVar'])
+  have innerSourceLookup : betaSourceContext.find? (.inr innerIdentifier) = some (.bvar 0, parameterType) := rfl
+  have outerSourceLookup : betaSourceContext.find? (.inr outerIdentifier) = some (.bvar 1, parameterType) := rfl
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (innerLookup.symm.trans innerSourceLookup))
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (outerLookup.symm.trans outerSourceLookup))
+  exact ⟨semantic, simultaneousTyped, simultaneousEquality, simultaneousRebaseEquality, targetTranslation, targetTyping⟩
 
 private def semanticShape : VExpr → List Nat
   | .bvar position => [0, position]
@@ -406,6 +576,30 @@ private def runtimePairs : MetaM Unit := do
     unless condition do throwError "parameter-substitution-pair runtime failed: {label}"
   logInfo m!"parameter-substitution-pair runtime: {conditions.length} genuine intermediate/final/order/shift controls; both anonymous formal binders used and local binder protected"
 
+private def runtimeSimultaneousBetaPairs : MetaM Unit := do
+  let originalInner := (betaArgument 0).lift' (.skip .refl)
+  let originalOuter := (betaArgument 1).lift' (.skip .refl)
+  let raisedInner := (VExpr.bvar 0).lift' (.skip .refl)
+  let raisedOuter := (VExpr.bvar 1).lift' (.skip .refl)
+  let originalFinal := (pairedSemantic.inst originalInner.lift).inst originalOuter
+  let bothReduced := (pairedSemantic.inst raisedInner.lift).inst raisedOuter
+  let sourceFinal := (pairedSemantic.inst (VExpr.bvar 0).lift).inst (.bvar 1)
+  let targetFinal := sourceFinal.lift' (.skipN .refl 3)
+  let conditions := [
+    (semanticShape originalInner != semanticShape raisedInner, "nonliteral inner beta"),
+    (semanticShape originalOuter != semanticShape raisedOuter, "nonliteral outer beta"),
+    (semanticShape originalFinal != semanticShape bothReduced, "simultaneous equality is not literal equality"),
+    (semanticShape originalFinal == semanticShape (expectedSemantic originalOuter originalInner), "both original beta shifts"),
+    (semanticShape bothReduced == semanticShape (expectedSemantic raisedOuter raisedInner), "both reduced argument shifts"),
+    (semanticShape bothReduced == semanticShape (sourceFinal.lift' (.skip .refl)), "common removal semantic"),
+    (semanticShape ((pairedSemantic.inst raisedInner).inst raisedOuter) != semanticShape bothReduced, "both-reduced inner lift required"),
+    (semanticShape ((pairedSemantic.inst raisedOuter.lift).inst raisedInner) != semanticShape bothReduced, "both-reduced order required"),
+    (semanticShape targetFinal == semanticShape (expectedSemantic (.bvar 4) (.bvar 3)), "common insertion semantic"),
+    (semanticShape bothReduced != semanticShape targetFinal, "removal/insertion receipts distinct")]
+  for (condition, label) in conditions do
+    unless condition do throwError "parameter-substitution-pair simultaneous runtime failed: {label}"
+  logInfo m!"parameter-substitution-pair simultaneous runtime: {conditions.length} two-nonliteral-beta/common-semantic/order/lift controls"
+
 private def auditDeclaration (name : Name) (allowed : List Name) : MetaM Unit := do
   let some _ := (← getEnv).find? name | throwError "parameter-substitution-pair declaration absent: {name}"
   for axiomName in ← collectAxioms name do
@@ -423,6 +617,7 @@ private def auditModule (coreAllowed nativeAllowed : List Name) : MetaM Unit := 
       let allowed := if name == ``RetainedFVarPrefixAgreement.instantiatePairIsTypeRebased then nativeAllowed else coreAllowed
       auditDeclaration name allowed
       declarations := declarations + 1
+  unless declarations == 3 do throwError "parameter-substitution-pair module declaration manifest changed"
   logInfo m!"parameter-substitution-pair module: {declarations} declarations audited; core forbids native/container/range/abstraction interfaces"
 
 private def rejectedNativeInterface (logical : List Name) : MetaM Unit := do
@@ -443,21 +638,27 @@ run_meta
   let nativeAllowed := inherited ++ [``Expr.instantiate1_eq]
   let inheritedControls := [``coreProjectsInnerEqualityAndFinalOuterAgreements, ``pairedBodyTranslated,
     ``concreteAgreement, ``genuinePairRebasesThroughDistinctInsertions,
-    ``repeatedSelectedParameterDoesNotRequireDistinctPositions, ``nonliteralInnerDomainStillRebasesTheGenuinePair]
+    ``repeatedSelectedParameterDoesNotRequireDistinctPositions, ``nonliteralInnerDomainStillRebasesTheGenuinePair,
+    ``semanticHelperProjectsBothArgumentCongruenceWithoutAnExpression,
+    ``simultaneousCongruenceReplacesBothNonliteralBetaArguments]
   let logicalControls := [``sourceContextWF, ``insertedContextWF, ``originalContextWF, ``targetContextWF,
     ``oneInsertedWeakening, ``threeInsertedWeakening, ``pairedBodyTyped,
     ``bothAnonymousBindersAreActuallyUsed, ``genuineIntermediateBodyRetainsOnlyItsOuterFormal,
     ``innerBeforeOuterIsNotTheSwappedOrder, ``sourceSupportsBothSelectedArgumentsAndBody,
     ``unsupportedIntermediateCannotSatisfyTheSupportPremise, ``thirdAnonymousBinderFailsTheClosurePremise,
     ``selectedPositionsCannotBeSwappedOrOutOfRange, ``duplicateRequestedPositionIsStillAValidSelection,
-    ``distinctRemovalAndInsertionMoveBothActualParameters, ``explicitRaisedTypingDoesNotRequireLiteralDomainEquality]
+    ``distinctRemovalAndInsertionMoveBothActualParameters, ``explicitRaisedTypingDoesNotRequireLiteralDomainEquality,
+    ``bothBetaContextsAgreeWithoutLiteralValueEquality, ``insertedBetaContextsStillAgree,
+    ``bothOriginalArgumentsAreNonliteralBetaValues]
   for name in inheritedControls do auditDeclaration name inherited
   for name in logicalControls do auditDeclaration name logical
   auditDeclaration ``nativeProjectsBothStagesClosureSupportAndTargetTyping nativeAllowed
+  auditDeclaration ``RetainedFVarPrefixAgreement.instantiatePairIsDefEq inherited
   auditDeclaration ``Closed.instantiate1_offset logical
   auditModule inherited nativeAllowed
   rejectedNativeInterface logical
   runtimePairs
-  logInfo m!"parameter-substitution-pair tests: {inheritedControls.length + logicalControls.length + 1} proof controls; genuine two-formal body and typed intermediate; inner-before-outer substitution; nested local binder protected; explicit arbitrary innerDomain typing premise; distinct removal/insertion; duplicate position accepted; closure/support/selection negatives"
+  runtimeSimultaneousBetaPairs
+  logInfo m!"parameter-substitution-pair tests: {inheritedControls.length + logicalControls.length + 1} proof controls; simultaneous inner/outer congruence; both original beta arguments nonliteral; genuine two-formal body and typed intermediate; inner-before-outer substitution; nested local binder protected; explicit arbitrary innerDomain typing premise; distinct removal/insertion; duplicate position accepted; closure/support/selection negatives"
 
 end InductiveParameterSubstitutionPairTest
