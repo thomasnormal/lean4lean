@@ -832,6 +832,11 @@ run_meta
     ``Lean.Level.instLawfulBEqLevel]
   audit ``RestrictedContext.appExpr [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx]
   audit ``RestrictedContext.forallExpr [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx]
+  audit ``RestrictedContext.lamExpr [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx]
+  audit ``RestrictedContext.letExpr [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx]
+  audit ``RestrictedContext.litExpr [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx]
+  audit ``RestrictedContext.mdataExpr [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx]
+  audit ``RestrictedContext.projExpr [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx]
   audit ``restrictedOrdinaryInterfaces [``propext, ``Quot.sound, ``Classical.choice,
     ``sorryAx, ``Lean.PersistentHashMap.findAux_isSome, ``Lean.PersistentHashMap.WF.find?_eq,
     ``Lean.PersistentHashMap.WF.toList'_insert]

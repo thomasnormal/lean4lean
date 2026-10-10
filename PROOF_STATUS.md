@@ -103,6 +103,11 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   and body well-formedness, respectively, and preserve the restricted scope;
   native application inference and full telescope instantiation remain future
   obligations.
+- `RestrictedContext.lamExpr`, `letExpr`, `litExpr`, `mdataExpr`, and
+  `projExpr` package the remaining recursive `TrExprS` expression constructors
+  over the same restricted scope. Their semantic typing, literal-availability,
+  and projection-relation premises stay explicit; they do not establish native
+  inference, projection metadata, or full frontend soundness.
 - `Environment.checkPrimitiveInductive.eq_true_iff` characterizes exactly when
   the primitive-inductive validator returns `true`: a safe, monomorphic,
   parameter-free singleton declaration with precisely the `Bool` or `Nat`
