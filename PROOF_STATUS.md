@@ -3488,6 +3488,47 @@ inherited foundation roots and native-instantiation provenance. All three
 bridge modules replay through lean4lean. Run
 `lake env lean tests/InductiveAnnotationTranslation.lean`.
 
+`Verify.InductiveAnnotationDomainPeeling` removes literal universe uniformity
+from semantic domain peeling. `TrExprS.peeledDomain` derives a strict translation
+of the actual total peeling result and definitional equality at the input's
+requested sort from its actual strict translation and sort typing. It needs
+canonical annotation signatures and definition equations, environment
+well-formedness and context typing, but no annotation spine or uniform-universe
+premise. Constant arity and level translation determine each annotation's own
+well-formed universe. Type uniqueness and Pi-domain injectivity recover the
+carrier and binary payload typing at that universe; recursion may use a
+different literal universe at each nested wrapper. Sorted equality conversion
+then returns the result at the caller's requested sort without assuming literal
+level equality. Unsupported shapes and metadata barriers remain unchanged.
+
+`TrExprS.peeledDomainHasType` supplies the peeled-domain typing receipt.
+`TrExprS.peeledAnonymousBodyTranslation` converts an actual anonymous body to
+the peeled binder context with the same peeled witness and definitionally
+preserved semantic body. The additive
+`BinderRawDomainTranslations.peeledTypingReceipt` and
+`OpenedTelescope.peeledTypingReceipt` derive raw, peeled and actual stored index
+typing on the existing extracted context/level schedule without a uniformity
+implication. Legacy spine APIs and their explicit uniformity premises remain
+available; the native index-allocation bridges are not automatically generalized
+by these new theorems.
+
+The annotation translation fixture adds twenty-four proof controls and
+twenty-three runtime controls. All four wrappers support distinct but equivalent
+universe expressions. A mixed nested chain cannot satisfy the old uniformity
+predicate at any level, yet peels and transports an actual dependent body and
+header's stored-domain receipts. Runtime controls check native acceptance,
+carrier conversion, malformed arity/universe vectors, ill-typed carriers and
+payloads, unsupported shapes, and fresh first-header parameter/index allocation
+for both safety flags. Seven new production declarations, including generated
+helpers, have exhaustive exact dependency manifests; both additive binder
+providers and all twenty-four new proof controls also have exact manifests.
+The semantic peeling/body providers retain four inherited dependencies,
+including the existing typing/projection/context-conversion admissions; the
+opened-telescope provider additionally retains `Expr.instantiate1_eq`. No new
+admission, axiom, checker call or runtime behavior is introduced. This removes a
+verification-premise restriction, not a kernel discrepancy or the remaining
+first-header checker-model construction obligation.
+
 `Verify.InductiveAnnotationContext` converts an actual anonymous body
 translation from the raw annotation-domain binder to a definitionally equal
 peeled-domain binder, retaining the same peeled witness. The old semantic body
@@ -5226,6 +5267,15 @@ with the full canonical checker context and derives aggregate candidate-domain
 agreement and complete parameter growth. `checkConstructors.domainReceipts`
 obtains this for every member of an accepted safe or unsafe batch without a
 receipt-provider callback or an assumed complete-prefix equality judgment.
+
+This provider still requires the full checker local context to be the canonical
+parameter prefix over its supplied base. Native indexed header checking retains
+its allocated index binders in the reader passed to constructor checking. A
+future first-header model bridge must distinguish the parameter-only history
+from that larger ambient reader and supply the corresponding insertion/lookup
+transport; parameter-array identity alone cannot establish full-prefix reader
+alignment. General annotation-domain peeling removes the old literal-universe
+restriction, not this remaining model obligation.
 
 The constructor prefix fixture derives a genuine checker environment from the
 verified native registration of a safe family axiom, constructs its canonical
