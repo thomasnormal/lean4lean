@@ -4297,6 +4297,57 @@ The application census is 46 declarations / 42 theorems (facts 8/7, native
 18/17, translation 15/14, CPS 5/4), with no new admission. Run
 `lake env lean tests/InductiveRecursorApplicationTranslation.lean`.
 
+`Verify.InductiveIndexSelectedTranslation` derives the chronological index
+block's selected telescope from the same actual translated native history.
+`IndexMLCtxExtension.selectedTelescope` converts a chronological mixed-context
+extension and its final well-formedness into selected-binder evidence, using
+each actual prefix's freshness, stored-domain translation and typehood. It
+retains exact native declaration identifiers, physical indices, names, peeled
+domains, binder information and default declaration kinds. The initial model's
+well-formedness follows by dropping the actual extension, rather than from an
+independent projected-context premise.
+
+`TranslatedRecursorIndexTrace.selectedTelescope` derives both the extension and
+final well-formedness through the existing same-history `mixedContext` bridge.
+Its inputs remain the actual translated history, initial model well-formedness,
+exact native/virtual context matching and name-generator reservation; it does
+not assume the desired selected telescope or an independently well-formed final
+model. The returned index array keeps its original prefix and appends exactly
+the selected newly allocated identifiers in chronological order. Stored peeled
+domains and their semantic translations come from that history's annotation
+opening receipts, not from syntactic identification with raw domains.
+
+`SelectedRecursorTelescope.monoFull` transports only selected native lookup
+evidence. `selectedTelescopeAt` uses a later actual scope frame to retain these
+lookups while keeping the same chronological endpoint model and virtual
+context. It does not extend that semantic model, perform identity weakening,
+lift a body to the later reader, or move binders into recursor-selected order.
+Parameters may already be present in the initial model of an index-only suffix;
+this does not translate a reused-parameter prefix. Motives/minors-before-indices
+reordering, whole `RecursorSelectedDomainSupport`, source-header acceptance,
+general strong-normalization support, nonzero-parameter complete transport,
+empty-base/universe alignment and rule/registration soundness remain separate.
+Existing translation foundations retain their inherited admissions; no new
+axiom, admission, runtime path, cache or native loose-bound-variable-range
+dependency is introduced.
+The whole-module census is nine declarations / eight theorems, including
+private/generated helpers. Beyond standard logical axioms and the inherited
+`sorryAx`, it uses only the three existing allocation/storage interfaces
+`PersistentArray.toList'_push`, `PersistentHashMap.WF.find?_eq` and
+`PersistentHashMap.WF.toList'_insert`. Even lookup-only `monoFull` inherits the
+admission through the existing selected-telescope/translation types; it is not
+an admission-free foundation.
+
+`tests/InductiveIndexSelectedTranslation.lean` adds seven proof controls, twenty
+native chronological captures and thirty-two fresh cdecl checks. These cover
+dependent/indexed domains, annotation/default peeling, stored dependencies,
+seeded local/let bases and empty/nonempty/duplicate preserved index prefixes.
+The native duplicate-prefix controls do not supply semantic selected-domain
+support. Exhaustive module/helper dependency audits retain three inherited
+foundation provenance/admission pins and three existing native-interface pins;
+the forbidden range control rejects it even when whitelisted. Run
+`lake env lean tests/InductiveIndexSelectedTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
