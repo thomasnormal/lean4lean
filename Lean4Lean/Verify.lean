@@ -121,6 +121,7 @@ import Lean4Lean.Verify.InductiveRecursorTypeNative
 import Lean4Lean.Verify.InductiveRecursorImplicitTranslation
 import Lean4Lean.Verify.InductiveRecursorTypeTranslation
 import Lean4Lean.Verify.InductiveIndexSelectedTranslation
+import Lean4Lean.Verify.InductiveIndexBaseInsertion
 import Lean4Lean.Verify.InductiveRecursorTypeTranslationCPS
 import Lean4Lean.Verify.InductiveRecursorApplicationFacts
 import Lean4Lean.Verify.InductiveRecursorApplicationNative
