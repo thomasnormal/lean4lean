@@ -950,15 +950,19 @@ run_meta do
     ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq, ``Expr.instantiateRevRange_eq]
   let allowed := checker ++ [``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq]
   for name in [``ParameterPrefix.baseWF, ``ParameterPrefix.uncons, ``ParameterPrefix.retainsLookup,
+      ``ParameterPrefix.contextAgreement,
       ``AcceptedConstructorTrace.receiptsAfterParameters, ``TrExprS.openCanonicalParameter,
       ``AcceptedConstructorTrace.completeParameters, ``AcceptedConstructorTrace.domainReceipts,
-      ``checkConstructors.domainReceipts, ``registeredFamilyBatchProducesReceipts,
+      ``AcceptedConstructorTrace.domainReceiptsAtParameterModel,
+      ``checkConstructors.domainReceipts, ``checkConstructors.domainReceiptsAtParameterModel,
+      ``registeredFamilyBatchProducesReceipts,
       ``canonicalOpeningChangesDependentDomain, ``completeParametersRequireSourceAbsence] do
     let dependencies ← collectAxioms name
     for dependency in dependencies do
       unless allowed.contains dependency do throwError "unexpected constructor prefix-receipt dependency {dependency} in {name}"
     logInfo m!"{name}: {dependencies.size} dependencies = {repr dependencies}"
   auditExact ``ParameterPrefix.uncons [``propext]
+  auditExact ``ParameterPrefix.contextAgreement inherited
   for name in [``ParameterPrefix.baseWF, ``AcceptedConstructorTrace.receiptsAfterParameters] do
     auditExact name inherited
   auditExact ``ParameterPrefix.retainsLookup canonical
@@ -967,7 +971,9 @@ run_meta do
   for name in [``AcceptedConstructorTrace.completeParameters, ``completeParametersRequireSourceAbsence] do
     auditExact name (logical ++ [``Expr.eqv_eq, ``Expr.instantiate1_eq])
   auditExact ``AcceptedConstructorTrace.domainReceipts checker
-  for name in [``checkConstructors.domainReceipts, ``registeredFamilyBatchProducesReceipts] do
+  auditExact ``AcceptedConstructorTrace.domainReceiptsAtParameterModel checker
+  for name in [``checkConstructors.domainReceipts, ``checkConstructors.domainReceiptsAtParameterModel,
+      ``registeredFamilyBatchProducesReceipts] do
     auditExact name allowed
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveConstructorPrefixReceipts
@@ -987,7 +993,7 @@ run_meta do
         unless allowed.contains dependency do throwError "unexpected constructor prefix-receipt fixture dependency {dependency} in {name}"
       fixtureCount := fixtureCount + 1
   logInfo m!"constructor prefix-receipt exhaustive audit: {moduleCount} module and {fixtureCount} fixture declarations"
-  unless moduleCount == 23 do throwError "constructor prefix-receipt module manifest changed: {moduleCount}"
+  unless moduleCount == 29 do throwError "constructor prefix-receipt module manifest changed: {moduleCount}"
   unless fixtureCount == 17 do throwError "constructor prefix-receipt fixture manifest changed: {fixtureCount}"
   runtimeControls
 

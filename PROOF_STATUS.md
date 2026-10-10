@@ -5305,14 +5305,23 @@ agreement and complete parameter growth. `checkConstructors.domainReceipts`
 obtains this for every member of an accepted safe or unsafe batch without a
 receipt-provider callback or an assumed complete-prefix equality judgment.
 
-This provider still requires the full checker local context to be the canonical
-parameter prefix over its supplied base. Native indexed header checking retains
-its allocated index binders in the reader passed to constructor checking. A
-future first-header model bridge must distinguish the parameter-only history
-from that larger ambient reader and supply the corresponding insertion/lookup
-transport; parameter-array identity alone cannot establish full-prefix reader
-alignment. General annotation-domain peeling removes the old literal-universe
-restriction, not this remaining model obligation.
+`ParameterPrefix.contextAgreement` separately records the semantic agreement
+between a canonical prefix base and its full source context. The new
+`AcceptedConstructorTrace.domainReceiptsAtParameterModel` and
+`checkConstructors.domainReceiptsAtParameterModel` providers use that split
+explicitly: constructor receipts end at the parameter-only semantic model,
+while the indexed ambient reader remains an explicit `ambient` suffix with a
+`dropN`/`parameterBase` alignment premise. This prevents the full native
+`indices :: parameters :: base` reader from being identified with the
+`parameters :: base` constructor prefix.
+
+The split provider still requires the canonical parameter history, the ambient
+prefix model, and their explicit `parameterBase` alignment. Native indexed
+header checking retains its allocated index binders in the reader passed to
+constructor checking; the provider preserves that suffix rather than claiming
+full-reader equality. General annotation-domain peeling removes the old
+literal-universe restriction, not the remaining first-header/cache and
+registration obligations.
 
 The constructor prefix fixture derives a genuine checker environment from the
 verified native registration of a safe family axiom, constructs its canonical
@@ -5323,15 +5332,16 @@ second parameter, nonliteral first domains, fields, retained partial loops,
 rejected incompatible domains and raw zero-check terminals excluded by the
 source guard. The semantic opening control changes a candidate beta-equivalent
 binder to its canonical stored domain before checking the dependent tail.
-All 23 production and 17 prefix-fixture declarations are audited, with 25 new
+All 29 production and 17 prefix-fixture declarations are audited, with 25 new
 runtime controls. Exact manifests pin four inherited dependencies for prefix
 well-formedness and the field-only receipt chain, one logical dependency for
-canonical prefix decomposition, seven for native lookup retention and eight
-for semantic binder conversion/opening. Native source-absence completion has
-five dependencies and no inherited admission. The complete native trace
-provider has the existing 28 checker dependencies; accepted batch composition
-and the registered-family model fixture have those 28 plus the three existing
-source-guard expression axioms. There is no new axiom, admission or runtime change.
+canonical prefix decomposition, seven for native lookup retention, four for
+prefix context agreement, and eight for semantic binder conversion/opening.
+Native source-absence completion has five dependencies and no inherited
+admission. Both parameter-model receipt providers have the existing 28/31
+checker dependencies (with the latter including the three source-guard
+expression interfaces), matching the original full-context providers. There
+is no new axiom, admission or runtime change.
 The initial reader/checker alignment, semantic environment/local-context model,
 reset-state well-formedness and canonical parameter history remain explicit
 production inputs. Constructing those models from the actual first header,
