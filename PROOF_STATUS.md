@@ -4983,10 +4983,50 @@ A proof negative shows target-only fvars are not translated in the
 removed empty base. The low-level infer-only path is not used to establish
 rejection of malformed dependent arguments.
 
-The strict semantic-domain agreement premise is still explicit. Deriving that
-agreement, or a suitable definitional-equivalence transport, from accepted
-original header/constructor parameter checks is the next obligation; it must
-not be fabricated from structural `ParamValidity`. Rebinding callbacks below
+`Verify.InductiveParameterOpeningAgreement` discharges semantic-domain equality
+for independently opened copies of one strict semantic telescope, without
+assuming equality of the resulting contexts or reading it from structural
+`ParamValidity`. `ParameterPrefix.forall_eq_iff` recovers both the full semantic
+domain context and the residual body from equality of two reconstructions with
+the same selected parameter count and retained base. Native names, binder
+information, annotations and fvar identities need not agree. Its inverse
+direction also characterizes precisely when the reconstructions agree.
+
+`TypedParameterOpening.agreement` uses the original-semantic reconstruction
+receipts from two actual openings to construct a `TypedParameterAgreement`.
+The result identifies both actual native contexts and chronological parameter
+arrays, proves well-formedness and domain-context equality, and translates both
+remainders to the same residual semantic type. `withParams.getTypedAgreement`
+collects those receipts through two real sequential `withParams` traversals,
+each allocating its own parameters from the current generator.
+`TypedParameterAgreement.rebindRemainder` then supplies the previously explicit
+domain agreement to typed parameter replacement. The composed
+`withParams.rebindTypedRemainder` proves strict translation, typehood, closure
+and target support for the actual open/open/replace program. Callers supply
+strict closed input translations to a shared semantic telescope and its
+typehood, not the opened contexts, semantic domain equality or dependent
+argument-typing receipts.
+
+`tests/InductiveParameterOpeningAgreement.lean` exercises 12 proof controls and
+41 runtime controls. The native inputs deliberately differ in binder names,
+binder information and metadata annotations, and contain a dependent second
+domain. Zero-, one- and two-parameter openings use two generator offsets;
+nonempty source/target arrays contain genuinely distinct IDs. Full
+`TypeChecker.checkType` checks both native remainders and the rebound remainder.
+Exact audits pin three logical dependencies for reconstruction injectivity,
+four inherited dependencies for opening agreement, eight for actual paired
+opening, ten for receipt-based rebinding and eleven for the composed program.
+All ten module-owned and 33 fixture-namespace declarations are exhaustively
+audited. Unequal semantic-domain and unequal-reconstruction negatives prevent
+treating arbitrary structurally valid prefixes as equal. No new axiom,
+admission or production runtime change is introduced.
+
+The generic `typedRebinding` semantic-domain agreement premise remains explicit
+for arbitrary source/target telescopes. The new shared-semantic-input case does
+not show that accepted original headers and constructors have literally equal
+strict translations: their checks may establish only definitional equality.
+Deriving a suitable definitional-equivalence transport from those actual
+checks remains open. Rebinding callbacks below
 un-opened raw binders also need to strengthen the selected closed prefix from
 its ambient bound-variable context into the parameter-only source context;
 the classifier permits loose residual indices, while the current rebinding
