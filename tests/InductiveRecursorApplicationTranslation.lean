@@ -521,12 +521,15 @@ private def runtimeFixtures (reader : Context) : MetaM Unit := do
   logInfo "recursor-application runtime: seven actual full mkRecInfos captures and nine selected-parent complete applications; independent original motive/major/index cdecl lookups, exact nested motive domains and step-by-step instantiated actual argument domains; full domain/partial-arrow/complete-sort checking, seeded local/let base and retained mutual/other-parent residual fields/IHs/minors; original-parameter controls remain native-only; omitted-major stays a function, duplicate-major/reordered-dependent/duplicate-index/cross-parent-major applications rejected; one untyped-index allocation-only boundary"
 
 private def auditDeclaration (name : Name) (allowed : List Name) : MetaM Unit := do
+  let some _ := (← getEnv).find? name
+    | throwError "recursor-application audited declaration absent: {name}"
   let axioms ← collectAxioms name
   for axiomName in axioms do
     unless allowed.contains axiomName && axiomName != ``Expr.looseBVarRange_eq do
       throwError "recursor-application unexpected or forbidden axiom {axiomName} in {name}"
+  logInfo m!"{name}: axioms = {repr axioms}"
 
-private def auditModule (moduleName : Name) : MetaM Unit := do
+private def auditModule (moduleName : Name) (allowed : List Name) : MetaM Unit := do
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx? moduleName
     | throwError "recursor-application audited module absent: {moduleName}"
@@ -539,12 +542,89 @@ private def auditModule (moduleName : Name) : MetaM Unit := do
         throwError "recursor-application new module-owned axiom {name}"
       if information matches .thmInfo _ then
         theorems := theorems + 1
+      auditDeclaration name allowed
   logInfo m!"{moduleName}: declarations incl private/generated = {declarations}; theorems = {theorems}"
 
-private def auditFoundations : MetaM Unit := do
-  for name in [``TrProj, ``TrProj.uniq, ``TrExprS.instN, ``TrExprS.uniq] do
-    auditDeclaration name [``propext, ``Classical.choice, ``Quot.sound, ``sorryAx]
-  logInfo "recursor-application inherited translation foundations pinned separately"
+private def auditProvenance (name moduleName : Name) : MetaM Unit := do
+  let environment ← getEnv
+  let some moduleIndex := environment.getModuleIdx? moduleName
+    | throwError "recursor-application foundation module absent: {moduleName}"
+  unless environment.getModuleIdxFor? name == some moduleIndex do
+    throwError "recursor-application foundation provenance changed: {name} from {moduleName}"
+
+private def auditFoundation (name moduleName : Name) (expected : List Name) : MetaM Unit := do
+  auditProvenance name moduleName
+  auditDeclaration name expected
+  let axioms ← collectAxioms name
+  unless axioms.size == expected.length && expected.all axioms.contains do
+    throwError "recursor-application foundation dependency set changed: {name}"
+  logInfo m!"pinned inherited recursor-application foundation: {name} from {moduleName}"
+
+private def auditFoundations (nativeInterfaces : List Name) : MetaM Unit := do
+  let logical := [``propext, ``Classical.choice, ``Quot.sound]
+  let inherited := logical ++ [``sorryAx]
+  auditFoundation ``TrProj `Lean4Lean.Verify.Typing.Expr [``sorryAx]
+  auditFoundation ``TrProj.uniq `Lean4Lean.Verify.Typing.Lemmas
+    [``propext, ``Quot.sound, ``sorryAx]
+  for name in [``TrExprS.instN, ``TrExprS.uniq] do
+    auditFoundation name `Lean4Lean.Verify.Typing.Lemmas inherited
+  let allocation := [``PersistentArray.toList'_push, ``PersistentHashMap.WF.find?_eq,
+    ``PersistentHashMap.WF.toList'_insert]
+  let abstraction := [``Expr.abstractRange_eq, ``Expr.abstract_eq,
+    ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq]
+  auditFoundation ``TypeChecker.MLCtx.WF.mkForall_eq `Lean4Lean.Verify.TypeChecker.Basic
+    (inherited ++ allocation ++ abstraction)
+  auditFoundation ``TypeChecker.MLCtx.WF.mkForall_tr `Lean4Lean.Verify.TypeChecker.Basic
+    (inherited ++ allocation)
+  auditFoundation ``TypeChecker.MLCtx.WF.mkForall_trS `Lean4Lean.Verify.TypeChecker.Basic inherited
+  for name in nativeInterfaces do
+    let some (.axiomInfo _) := (← getEnv).find? name
+      | throwError "recursor-application native interface is not an existing axiom: {name}"
+    auditProvenance name `Lean4Lean.Verify.Axioms
+    auditDeclaration name (logical ++ [name])
+    logInfo m!"pinned existing native recursor-application interface: {name}"
+
+private def expectAuditRejection (label : String) (expectedPrefix : MessageData)
+    (action : MetaM Unit) : MetaM Unit := do
+  let failure ← try
+    action
+    pure none
+  catch exception =>
+    pure (some exception)
+  let some exception := failure
+    | throwError "recursor-application {label} audit unexpectedly succeeded"
+  match exception with
+  | .error _ message =>
+    unless (← message.toString).startsWith (← expectedPrefix.toString) do
+      throw exception
+  | .internal .. => throw exception
+  logInfo m!"recursor-application rejected audit control {label}: {exception.toMessageData}"
+
+private def checkAuditRejections (logical : List Name) : MetaM Unit := do
+  expectAuditRejection "forbidden range even when whitelisted"
+    m!"recursor-application unexpected or forbidden axiom {``Expr.looseBVarRange_eq} in {``Expr.looseBVarRange_eq}"
+    (auditDeclaration ``Expr.looseBVarRange_eq (logical ++ [``Expr.looseBVarRange_eq]))
+  expectAuditRejection "excluded inherited admission"
+    m!"recursor-application unexpected or forbidden axiom {``sorryAx} in {``TrProj}"
+    (auditDeclaration ``TrProj logical)
+  expectAuditRejection "excluded native interface"
+    m!"recursor-application unexpected or forbidden axiom {``Expr.instantiate1_eq} in {``Expr.instantiate1_eq}"
+    (auditDeclaration ``Expr.instantiate1_eq logical)
+  expectAuditRejection "absent declaration"
+    m!"recursor-application audited declaration absent: {`InductiveRecursorApplicationTranslationTest.AbsentDeclaration}"
+    (auditDeclaration `InductiveRecursorApplicationTranslationTest.AbsentDeclaration logical)
+  expectAuditRejection "absent module"
+    m!"recursor-application audited module absent: {`Lean4Lean.Verify.AbsentRecursorApplicationModule}"
+    (auditModule `Lean4Lean.Verify.AbsentRecursorApplicationModule logical)
+  expectAuditRejection "wrong existing foundation origin"
+    m!"recursor-application foundation provenance changed: {``TrProj} from {`Lean4Lean.Verify.Typing.Lemmas}"
+    (auditProvenance ``TrProj `Lean4Lean.Verify.Typing.Lemmas)
+  expectAuditRejection "whole-module transitive dependency policy"
+    "recursor-application unexpected or forbidden axiom "
+    (auditModule `Lean4Lean.Verify.InductiveRecursorApplicationFacts logical)
+  expectAuditRejection "exact inherited foundation dependency set"
+    m!"recursor-application foundation dependency set changed: {``TrProj}"
+    (auditFoundation ``TrProj `Lean4Lean.Verify.Typing.Expr [``sorryAx, ``Classical.choice])
 
 #print axioms actualBodyHasExactlyTheSelectedMotiveIndicesAndMajor
 #print axioms cancellationAllowsArbitraryPreexistingBoundVariablesWithoutAClosurePremise
@@ -561,15 +641,40 @@ private def auditFoundations : MetaM Unit := do
 #print axioms runtimeFixtures
 
 run_meta
-  let reader : Context := {
-    env := (← getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
-  runtimeFixtures reader
   let logical := [``propext, ``Classical.choice, ``Quot.sound]
-  let nativeInterfaces := [``Expr.instantiate1_eq, ``Expr.abstractRange_eq, ``Expr.abstract_eq,
-    ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq, ``PersistentArray.toList'_push,
-    ``PersistentHashMap.WF.find?_eq, ``PersistentHashMap.WF.toList'_insert]
+  let abstraction := [``Expr.abstractRange_eq, ``Expr.abstract_eq,
+    ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq]
+  let allocation := [``PersistentArray.toList'_push, ``PersistentHashMap.WF.find?_eq,
+    ``PersistentHashMap.WF.toList'_insert]
+  let nativeInterfaces := abstraction ++ allocation ++ [``Expr.instantiate1_eq]
   let native := logical ++ nativeInterfaces
   let inherited := native ++ [``sorryAx]
+  for name in [``actualBodyHasExactlyTheSelectedMotiveIndicesAndMajor,
+      ``realDependentApplicationCannotReplaceCombinedSuffixLiftingWithIdentity,
+      ``mismatchedCancellationDepthDoesNotRestoreTheOriginalBoundVariable,
+      ``arrayApplicationPreservesOrderedOriginalFVarsNotASetOfArguments,
+      ``captureFull, ``checkSameReader, ``requireCDecl, ``requireSort,
+      ``checkInstantiatedDomains, ``projectSelected, ``checkProjectedApplication,
+      ``checkRetained, ``checkApplication, ``expectIllTyped, ``checkNegativeApplications,
+      ``typeFor, ``statsFor, ``checkFixture, ``checkAllocationOnlyControl,
+      ``checkCancellationFixtures, ``runtimeFixtures, ``auditDeclaration, ``auditModule,
+      ``auditProvenance, ``auditFoundation, ``auditFoundations,
+      ``expectAuditRejection, ``checkAuditRejections] do
+    auditDeclaration name logical
+  for name in [``cancellationAllowsArbitraryPreexistingBoundVariablesWithoutAClosurePremise,
+      ``cancellationKeepsNestedBindersAndBothSidesOfTheDepthBoundary,
+      ``cancellationPreservesMetadataWithoutDiscardingItsPayload,
+      ``actualSourceRecoversTheUnpeeledOriginalMotiveDomainAtTheCurrentReader] do
+    auditDeclaration name (logical ++ abstraction ++ allocation)
+  for name in [``actualCDeclTranslationDerivesTheTypedArgumentFromMixedContextWellFormedness,
+      ``nativeForallSelfApplicationDerivesEveryAppliedArgumentInsteadOfAssumingBodyTyping,
+      ``actualSelectedForallSortApplicationUsesOnlyTheTranslatedNativeMotiveType,
+      ``selectedDomainHistoryDerivesMotiveAndMajorApplicationSupportInsteadOfReceivingIt,
+      ``domainOnlySupportDerivesWholeRawSupportFromTheSameActualSource,
+      ``actualEndpointDerivesRawStoredReceiptsFromDomainsWithoutWholeBodyTyping,
+      ``actualGetterRecoversSourcesAtItsSameSuccessAndNeedsOnlySelectedDomainSupport,
+      ``scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate] do
+    auditDeclaration name inherited
   for name in [``Lean.Expr.instantiate1'_abstract1,
       ``Lean4Lean.AddInductive.mkForall_selected_cons] do
     auditDeclaration name native
@@ -578,13 +683,19 @@ run_meta
       ``Lean4Lean.AddInductive.RecursorInfoModelEndpoint.recursorTypeFromDomains,
       ``Lean4Lean.AddInductive.mkRecInfos.getTranslatedAppliedRecursorTypes] do
     auditDeclaration name inherited
-  for moduleName in [`Lean4Lean.Verify.InductiveRecursorApplicationFacts,
-      `Lean4Lean.Verify.InductiveRecursorApplicationNative] do
-    auditModule moduleName
-  for moduleName in [`Lean4Lean.Verify.InductiveRecursorApplicationTranslation,
-      `Lean4Lean.Verify.InductiveRecursorApplicationTranslationCPS] do
-    auditModule moduleName
-  auditFoundations
-  logInfo "recursor-application audits: four new modules censused; module-owned axioms and Expr.looseBVarRange_eq forbidden; inherited uniqueness/instantiation foundations pinned"
+  for moduleName in [`Lean4Lean.Verify.InductiveAnnotationSemantics,
+      `Lean4Lean.Verify.InductiveAnnotationTyping, `Lean4Lean.Verify.InductiveBinderTyping] do
+    auditModule moduleName logical
+  auditModule `Lean4Lean.Verify.InductiveRecursorApplicationFacts (logical ++ abstraction)
+  auditModule `Lean4Lean.Verify.InductiveRecursorApplicationNative (logical ++ abstraction ++ allocation)
+  auditModule `Lean4Lean.Verify.InductiveRecursorApplicationTranslation
+    (logical ++ abstraction ++ allocation ++ [``sorryAx])
+  auditModule `Lean4Lean.Verify.InductiveRecursorApplicationTranslationCPS inherited
+  auditFoundations nativeInterfaces
+  checkAuditRejections logical
+  let reader : Context := {
+    env := (← getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
+  runtimeFixtures reader
+  logInfo "recursor-application audits: every module-owned declaration including private/generated helpers transitively checked; clean annotation/binder core and runtime helpers exclude sorryAx; facts/native exclude inherited admissions; semantic/CPS retain explicitly pinned inherited admissions; seven exact foundation dependency/provenance pins and eight existing native-interface pins; eight negative audit controls including whole-module policy and forbidden range even if whitelisted"
 
 end InductiveRecursorApplicationTranslationTest

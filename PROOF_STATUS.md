@@ -4277,9 +4277,22 @@ the complete application sort, including seeded local/let bases, mutual and
 indexed/dependent families, retained other-parent fields/IHs/minors, original-
 parameter native-only controls and an allocation-only untyped boundary.
 Omitted-major, duplicate-major, reordered-dependent, duplicate-index and
-cross-parent applications are rejected. Four new modules are audited with no
-module-owned axioms; the inherited uniqueness/instantiation foundations are
-pinned separately and `Expr.looseBVarRange_eq` is forbidden even if whitelisted.
+cross-parent applications are rejected. Every declaration in the four application
+modules, including private/generated helpers, receives a transitive dependency
+audit; no module-owned axiom is allowed. Facts/native exclude `sorryAx`, and
+semantic/CPS modules explicitly allow existing inherited admissions. The clean
+annotation/binder core and all fixture proof/runtime/audit helpers are checked
+with their respective policies, excluding runtime admissions. Seven existing
+translation/abstraction foundations have exact dependency-set and module-origin
+pins; all eight allowed native interfaces must remain axioms from
+`Lean4Lean.Verify.Axioms`. Eight negative audit controls exercise forbidden range
+even when whitelisted, excluded admissions/interfaces, absent declarations/modules,
+wrong existing foundation origin, whole-module transitive policy enforcement and
+exact foundation dependency-set enforcement. `Expr.looseBVarRange_eq` is forbidden
+under every policy. The inherited `sorryAx` allowance is not proof that semantic
+foundations are admission-free or that new local admissions could be distinguished
+from existing inherited ones; the unchanged source-admission census remains a
+separate guard.
 The application census is 46 declarations / 42 theorems (facts 8/7, native
 18/17, translation 15/14, CPS 5/4), with no new admission. Run
 `lake env lean tests/InductiveRecursorApplicationTranslation.lean`.
