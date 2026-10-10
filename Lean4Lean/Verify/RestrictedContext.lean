@@ -41,6 +41,26 @@ theorem inferSort {safety : DefinitionSafety} {env : Environment} {venv : VEnv}
       (.sort translated) (.sort translated.succ) :=
   TypeChecker.Inner.infer_sort.checker hlevel
 
+theorem appExpr {safety : DefinitionSafety} {env : Environment} {venv : VEnv}
+    (c : RestrictedContext safety env venv)
+    (hfunction : venv.HasType c.lparams.length c.scope.toCtx function'
+      (.forallE domain' body'))
+    (hargument : venv.HasType c.lparams.length c.scope.toCtx argument' domain')
+    (hfunctionTr : TrExprS venv c.lparams c.scope function function')
+    (hargumentTr : TrExprS venv c.lparams c.scope argument argument') :
+    TrExprS venv c.lparams c.scope (.app function argument) (.app function' argument') :=
+  .app hfunction hargument hfunctionTr hargumentTr
+
+theorem forallExpr {safety : DefinitionSafety} {env : Environment} {venv : VEnv}
+    (c : RestrictedContext safety env venv)
+    (hdomainType : venv.IsType c.lparams.length c.scope.toCtx domain')
+    (hbodyType : venv.IsType c.lparams.length (domain' :: c.scope.toCtx) body')
+    (hdomainTr : TrExprS venv c.lparams c.scope domain domain')
+    (hbodyTr : TrExprS venv c.lparams ((none, .vlam domain') :: c.scope) body body') :
+    TrExprS venv c.lparams c.scope
+      (.forallE binder domain body binderInfo) (.forallE domain' body') :=
+  .forallE hdomainType hbodyType hdomainTr hbodyTr
+
 end RestrictedContext
 
 def RestrictedContext.ofOrdinary
