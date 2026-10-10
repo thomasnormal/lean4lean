@@ -213,7 +213,7 @@ inductive CheckedConstructorDomainReceipts (env : VEnv) (universes : List Name) 
         source target source target
   | parameter
       (selected : stats.params[index]? = some parameter)
-      (storedType : getType parameter reader = .ok stored)
+      {storedType : getType parameter reader = .ok stored}
       (accepted : (monadLift (TypeChecker.isDefEq domain stored) : M Bool) reader = .ok true)
       {trace : AcceptedConstructorTrace stats isUnsafe parent reader (index + 1)
         (Expr.instantiate1 body parameter) finalReader finalIndex terminal}
@@ -264,7 +264,7 @@ theorem CheckedConstructorDomainReceipts.agreement
     env.IsDefEqCtx universes.length base finalSource finalTarget := by
   induction receipts with
   | terminal => exact contexts
-  | parameter _ _ accepted domainReceipt _ induction =>
+  | parameter _ accepted domainReceipt _ induction =>
     obtain ⟨_, equality⟩ := domainReceipt.accepted accepted
     exact induction (.succ contexts equality)
   | field _ _ _ _ _ induction => exact induction contexts
@@ -275,7 +275,7 @@ theorem CheckedConstructorDomainReceipts.growth
       finalTarget.length = target.length + (min finalIndex stats.params.size - min index stats.params.size) := by
   induction receipts with
   | terminal => simp
-  | parameter selected _ _ _ tail induction =>
+  | parameter selected _ _ tail induction =>
     have bound := selectedParameterBound selected
     have monotone := tail.index_le
     simp only [List.length_cons] at induction
