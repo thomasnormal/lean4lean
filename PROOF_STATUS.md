@@ -4926,7 +4926,75 @@ The typed prefix contracts now inherit the corrected native implementation
 specification, not its false retired sequential formulation. Existing typing
 admissions remain; this is not unconditional kernel soundness, nested frontend
 acceptance, positivity or recursor-reduction correctness. Discharging the actual
-frontend's prefix/argument typing receipts remains an open obligation.
+frontend's prefix/argument typing receipts is advanced by the independent-target
+adapter below, but the complete frontend obligation remains open.
+
+`Verify.InductiveParameterPrefixTyping` derives typed chronological parameter
+contexts from the actual `ElimNestedInductive.withParams` traversal. The CPS and
+collector contracts construct one well-formed `MLCtx` and `ParameterPrefix`,
+identify its native local context and exact fvar array with the callback's
+actual values, type the opened remainder, and reconstruct the original semantic
+input by binding that remainder over the selected prefix. Freshness comes from
+the live generator reservation; callers do not supply the resulting context or
+its declaration typing.
+
+`ParameterPrefix.arguments` derives all dependent chronological argument-typing
+receipts for that context's own fvars, for an arbitrary semantic codomain. Each
+later argument is checked at the domain after earlier arguments have been
+instantiated. `replaceParams.prefix_typedInto` moves the abstracted source lambda
+into an independent target before applying its target-scoped arguments. The
+body and result types need not be sorts: partially applied indexed families have
+residual forall types. This fixes two practical gaps in the retained-base-only,
+sort-valued contract. Target-only fvars need not exist in the removed source
+base. `prefix_rename_typed` supplies the argument receipts automatically for
+well-formed source/target prefixes with a common retained base, equal selected
+lengths and equal semantic domain contexts. It retains the exact native
+substitution equation, strict existential target translation and typing at the
+source semantic type, together with state, closure and target-support receipts.
+
+`isNestedInductiveApp?.typedPrefix` extracts the actual `mkAppRange` selected by
+the successful classifier from the complete source application's strict
+translation and typing in an arbitrary `VLCtx`, including ambient raw binders.
+Its bound comes from that same classifier receipt; residual indices are not
+included in the prefix. `typedRebinding` composes this
+actual classifier/first-`replaceParams` call boundary, deriving argument typing
+from the declared target prefix rather than accepting it as an extra premise.
+The original selected prefix and its rebound result share one semantic type;
+the result retains the exact substitution equation, classifier scope, native
+state and target support. This is a typed preprocessing-call contract, not just
+range propagation, but it is not yet the complete `replaceIfNested` contract.
+
+`tests/InductiveParameterPrefixTyping.lean` checks 13 fixture proof controls and
+12 public production contracts. Exact audits pin seven dependencies for
+argument derivation/weakening, ten for independent typed replacement, eight for
+actual typed opening, five for typed prefix extraction, and eleven for the
+classifier/rebinding composition. All 22 module-owned and 58 fixture-namespace
+declarations, including generated helpers, are exhaustively audited. The two
+pure insertion/domain-agreement controls use only logical axioms; typed
+contracts explicitly inherit projection/typing admissions and existing native
+interfaces. No new axiom, admission or global native range interface is added.
+The 55 runtime controls use real independent source/target `withParams` captures,
+genuinely dependent second domains, a let-using non-sort family, an actual
+indexed nested container with its index excluded from the selected prefix,
+full `TypeChecker.checkType`, ambient-bound index/closed-prefix separation,
+state/order checks, short prefixes and overrun rejection. A strict application
+fixture extracts a non-sort prefix in an actual bound-variable semantic context.
+A proof negative shows target-only fvars are not translated in the
+removed empty base. The low-level infer-only path is not used to establish
+rejection of malformed dependent arguments.
+
+The strict semantic-domain agreement premise is still explicit. Deriving that
+agreement, or a suitable definitional-equivalence transport, from accepted
+original header/constructor parameter checks is the next obligation; it must
+not be fabricated from structural `ParamValidity`. Rebinding callbacks below
+un-opened raw binders also need to strengthen the selected closed prefix from
+its ambient bound-variable context into the parameter-only source context;
+the classifier permits loose residual indices, while the current rebinding
+adapter assumes a strict full-application receipt in that parameter context.
+Initial strict source
+translation/typing, semantic typing of cached auxiliaries and newly generated
+families/constructors, full replacement traversal and frontend acceptance,
+positivity and recursor-reduction correctness remain separate obligations.
 
 `Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
 chronological selected telescope over a supplied smaller mixed base.
