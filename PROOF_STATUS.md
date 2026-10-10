@@ -35,7 +35,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   silently generalized to the weaker relation. No executable checker behavior
   changes.
 - `NativeValueFrame` independently proves native constant-map well-formedness,
-  retention of every old lookup, and that any final definition value belongs to
+  retention of every old lookup, and that any final value-bearing record belongs to
   the initial map. Its fresh no-value insertion and generic stateful fold proofs
   apply to both native registration traversals. `declareInductiveTypes.preservesValues`,
   `declareConstructors.preservesValues`, and
@@ -50,6 +50,23 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   premises. These results still install typed ordinary constants; they do not
   justify native constructor/projection metadata, generated recursors/reduction
   equations, primitive invariants, or replacement of `VContext.trenv`.
+- `Verify.InductiveValueFrame` extends that native frame through the full
+  `AddInductive.run`, including fresh recursor registration, for arbitrary
+  context safety. `declareRecursors.preservesValues` strengthens the existing
+  suffix map/lookup theorem without changing its interface. Fresh restoration
+  traces preserve values when every allowed record has `value? = none`;
+  `RestoredInductiveRecord.value?_eq_none` supplies that condition for restored
+  headers, constructors, and recursors. Consequently
+  `Environment.addInductive.safePreservesValues` and
+  `addDecl.safeInductivePreservesValues` cover the actual safe public frontend,
+  direct and genuinely nested restoration branches, and both dispatch check
+  flags. Their only input invariant is initial native map validity. This is
+  exact old-record retention and exclusion of new delta-value records, not
+  constructor/recursor typing, inductive reduction soundness, or a replacement
+  for semantic `VInductDecl.WF`, `VEnv.addInduct`, `AddInduct`, or `VContext.trenv`.
+  All six new theorems are audited without `sorryAx`; only the existing three
+  persistent-map interfaces and standard logical axioms occur. Unsafe public
+  nested restoration is deliberately outside this theorem.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6035,6 +6052,22 @@ absent. Zero-fuel and partially allocated traversal failures propagate. These
 unchecked helper fixtures do not claim full frontend acceptance or semantic
 typing. Audits admit only the existing persistent-array list-push and two map
 interfaces where required; all exclude `sorryAx` and expression interfaces.
+
+`tests/InductiveValueFrame.lean` contains eight proof regressions and six axiom
+audits for recursor registration, full runner composition, no-value restoration
+traces, the safe public frontend, both dispatch flags, and final value-record
+provenance. The audits exclude `sorryAx` and any new interface assumptions;
+even the full public frontend uses only standard logical axioms and the three
+existing persistent-map interfaces. Eight native-accepted direct/nested fixtures
+cover empty, enumeration, recursive, mutual, parameterized nested families, and
+an empty companion datatype. Each stages both runner safeties and exercises
+both public dispatch flags plus the direct public API. Every result retains
+all initial records, introduces no value-bearing records, and keeps a checked
+safe definition's exact record and delta reduction. Nested cases additionally
+test explicit restoration and assert that preprocessing generated auxiliaries.
+Constructor-name and recursor-name collisions with existing safe definitions,
+and zero preprocessing fuel, are rejected under both dispatch flags. Run
+`lake env lean tests/InductiveValueFrame.lean`.
 
 `tests/RecursorRegistration.lean` contains fifty-nine proof regressions and forty-three axiom
 audits for suffix map validity, successful-result extraction, exact old lookup
