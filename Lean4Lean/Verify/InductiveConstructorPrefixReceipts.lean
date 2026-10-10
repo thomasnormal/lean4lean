@@ -152,10 +152,25 @@ private theorem AcceptedConstructorTrace.prefixReceipts
       have lookup := remainingParameters.retainsLookup checker.mlctx_wf nextLookup
       have modelLocal : checker.mlctx.lctx = reader.lctx :=
         checker.lctx_eq.trans (congrArg TypeChecker.Context.lctx aligned)
+      have readerLookup : reader.lctx.find? identifier = some
+          (.cdecl current.length identifier parameterName nativeDomain parameterBinder .default) := by
+        rw [← modelLocal]
+        exact lookup
+      have inferredType :
+          TypeChecker.Inner.inferFVar
+              { env := reader.env, lctx := reader.lctx, safety := reader.safety,
+                lparams := reader.lparams, fuel := reader.fuel } identifier = .ok stored := by
+        rw [← getType_fvar_eq_inferFVar reader identifier _ readerLookup]
+        exact storedType
+      have inferredDomain :
+          TypeChecker.Inner.inferFVar
+              { env := reader.env, lctx := reader.lctx, safety := reader.safety,
+                lparams := reader.lparams, fuel := reader.fuel } identifier =
+            .ok nativeDomain := by
+        simp [TypeChecker.Inner.inferFVar, readerLookup]
+        rfl
       have sameDomain : nativeDomain = stored := by
-        apply Except.ok.inj
-        change Except.ok (reader.lctx.get! identifier).type = .ok stored at storedType
-        simpa only [← modelLocal, LocalContext.get!, lookup, Option.getD_some, LocalDecl.type] using storedType
+        exact Except.ok.inj (inferredDomain.symm.trans inferredType)
       subst stored
       let .forallE _ _ candidateTranslated bodyTranslated := translated
       obtain ⟨level, storedTyped⟩ := nextWF.2.2.2
