@@ -62,7 +62,7 @@ inductive CheckedHeaderDomainReceipts (env : VEnv) (universes : List Name) (npar
         source target source target
   | reusedParameter
       (selected : index < nparams) (notFirst : ¬ stats.indConsts.isEmpty = true)
-      (storedType : getType stats.params[index]! reader = .ok stored)
+      {storedType : getType stats.params[index]! reader = .ok stored}
       (accepted : (monadLift (TypeChecker.isDefEq domain stored) : M Bool) reader = .ok true)
       (normalized : (monadLift (TypeChecker.whnf (Expr.instantiate1 body stats.params[index]!)) : M Expr)
         reader = .ok normal)
@@ -100,7 +100,7 @@ theorem CheckedHeaderDomainReceipts.agreement
     env.IsDefEqCtx universes.length base finalSource finalTarget := by
   induction receipts with
   | stop => exact contexts
-  | reusedParameter _ _ _ accepted _ domainReceipt _ induction =>
+  | reusedParameter _ _ accepted _ domainReceipt _ induction =>
     obtain ⟨_, equality⟩ := domainReceipt.accepted accepted
     exact induction (.succ contexts equality)
   | index _ _ _ induction => exact induction contexts
@@ -113,7 +113,7 @@ theorem CheckedHeaderDomainReceipts.growth
       finalTarget.length = target.length + (nparams - index) := by
   induction receipts with
   | stop _ complete => simp [complete]
-  | reusedParameter selected _ _ _ _ _ _ induction =>
+  | reusedParameter selected _ _ _ _ _ induction =>
     simp only [List.length_cons] at induction
     omega
   | index _ _ _ induction => exact induction
