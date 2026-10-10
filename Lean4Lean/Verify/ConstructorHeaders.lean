@@ -121,4 +121,22 @@ theorem AddInductive.declareConstructors.ordered (ctx : AddInductive.Context)
     fun _ ⟨venv', hadd, haligned'⟩ =>
       ⟨venv', hadd, haligned', VEnv.addConstructorHeaders.ordered hordered htypes hadd⟩
 
+theorem AddInductive.declareConstructors.refinesWF (ctx : AddInductive.Context)
+    (stats : AddInductive.InductiveStats) (indTypes : Array InductiveType) (isUnsafe : Bool)
+    {safety : DefinitionSafety} {venv : VEnv} {vtypes : List VInductiveType}
+    (haligned : Aligned safety ctx.env.constants venv) (hvenv : venv.WF)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe)
+    (hctors : List.Forall₂ (fun (type : InductiveType) (vtype : VInductiveType) =>
+      List.Forall₂ (TrConstructor venv ctx.lparams) type.ctors vtype.ctors)
+      indTypes.toList vtypes)
+    (htypes : ∀ ctor ∈ vtypes.flatMap (fun type : VInductiveType => type.ctors),
+      ctor.toVConstant.WF venv) :
+    (declareConstructors stats indTypes isUnsafe ctx).WF fun env' =>
+      ∃ venv', venv.addConstructorHeaders
+        (vtypes.flatMap (fun type : VInductiveType => type.ctors)) = some venv' ∧
+        venv'.WF ∧ Aligned safety env'.constants venv' :=
+  (declareConstructors.refines ctx stats indTypes isUnsafe haligned hsafety hctors).mono
+    fun _ ⟨venv', hadd, haligned'⟩ =>
+      ⟨venv', hadd, VEnv.addConstructorHeaders.wf hvenv htypes hadd, haligned'⟩
+
 end Lean4Lean
