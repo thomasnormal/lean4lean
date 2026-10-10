@@ -4348,6 +4348,62 @@ foundation provenance/admission pins and three existing native-interface pins;
 the forbidden range control rejects it even when whitelisted. Run
 `lake env lean tests/InductiveIndexSelectedTranslation.lean`.
 
+`Verify.InductiveIndexBaseInsertion` transports this chronological selected
+index telescope over a supplied larger typed base. `IndexMLCtxExtension.virtualFVars`
+identifies the exact selected identifier prefix of a mixed extension.
+`SelectedRecursorTelescope.insertBase` takes original and larger mixed-context
+well-formedness, a genuine cutoff-zero semantic base weakening and selected-ID
+freshness in the larger base. It constructs the transported telescope and its
+well-formedness; it does not assume an independently well-formed projected
+endpoint. After `j` selected binders, the next semantic domain is lifted by
+`semantic.liftN inserted j`: prior selected references remain fixed while
+references to the original base move past the inserted binders. The returned
+endpoint weakening is `FVLift'` with lift
+`.consN (.skipN .refl inserted) ids.length`, so translated endpoint expressions
+can be lifted at the complete selected suffix cutoff as well. Each preserved
+named binder's dependency premise comes from its actual translated domain.
+
+`SelectedRecursorTelescope.insertExtension` specializes to an actual
+`IndexMLCtxExtension initial insertedIds larger`, using `insertedIds.length`
+as the insertion count and deriving original mixed-context well-formedness by
+dropping the extension from the supplied larger model. Virtual-context
+well-formedness from a generic semantic weakening does not alone establish
+original mixed-context well-formedness; the generic theorem retains that
+distinct premise. The generic weakening also does not prove native provenance
+of the larger base, whereas this structural specialization supplies an actual
+mixed extension.
+
+`TranslatedRecursorIndexTrace.selectedTelescopeInserted` starts from the same
+actual-history selected telescope, retaining its chronological mixed model,
+native/virtual endpoint matching, extension and unchanged initial index-array
+prefix. Its freshness premise concerns only the newly allocated suffix
+`finalIndices.toList.drop indices.size`, not existing prefix indices that may
+already inhabit the base. Exact full-reader lookup evidence, including physical
+indices, identifiers, names, stored peeled domains, binder information and
+declaration kinds, is retained. The transported projected model's physical
+indices can change with the larger base; its native context is not claimed to
+equal the actual reader. This is insertion only: it does not remove unused
+earlier parents, reorder existing binders, prove inserted motive/minor typehood,
+discharge collisions for a complete concrete recursor construction or derive
+whole `RecursorSelectedDomainSupport`.
+
+The whole-module census is eight declarations / eight theorems, including four
+generated simp helpers. The identifier-prefix theorem and generated helpers use
+only `propext`; the three transport theorems use the three standard logical
+axioms, inherited `sorryAx` and the same three existing allocation/storage
+interfaces. In particular, expression weakening still depends on the existing
+admitted `TrExprS.weakFV'` and translation foundations; no new admission, axiom,
+runtime path, cache or native loose-bound-variable-range dependency is added.
+`tests/InductiveIndexBaseInsertion.lean` adds eleven proof controls, nine mixed
+base/selected-reference and nine nested-binder cutoff controls, and six exact
+selected native cdecl checks across insertion sizes zero, one and three with an
+original local/let base. These arithmetic and native helper controls do not
+claim independent semantic typing or frontend acceptance. Exhaustive module/helper
+audits retain inherited/native provenance pins and reject the forbidden range
+interface even when whitelisted. Identity and uniform-cutoff-zero semantic-model
+mutations both fail at the intended semantic-domain sentinel. Run
+`lake env lean tests/InductiveIndexBaseInsertion.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
