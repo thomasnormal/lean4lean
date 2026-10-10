@@ -16,6 +16,15 @@ inductive SemanticSubstitutionChain (env : VEnv) (universes : Nat) (context : Li
       (tail : SemanticSubstitutionChain env universes context level after final) :
       SemanticSubstitutionChain env universes context level before final
 
+theorem SemanticSubstitutionChain.single
+    {env : VEnv} {universes : Nat} {context : List VExpr} {level : VLevel}
+    {body original reduced domain : VExpr}
+    (bodyTyped : env.HasType universes (domain :: context) body (.sort level))
+    (argumentEquality : env.IsDefEq universes context original reduced domain)
+    (reducedTyped : env.HasType universes context (body.inst reduced) (.sort level)) :
+    SemanticSubstitutionChain env universes context level (body.inst original) (body.inst reduced) :=
+  .cons rfl rfl bodyTyped argumentEquality (.nil _ reducedTyped)
+
 theorem SemanticSubstitutionChain.isDefEq
     {env : VEnv} {universes : Nat} {context : List VExpr} {level : VLevel}
     {before final : VExpr}
@@ -40,6 +49,15 @@ theorem SemanticSubstitutionChain.append
   | nil expression typed => exact second
   | cons beforeEq afterEq bodyTyped argumentEquality tail ih =>
     exact .cons beforeEq afterEq bodyTyped argumentEquality (ih second)
+
+theorem SemanticSubstitutionChain.cancelLeft
+    {env : VEnv} {universes : Nat} {context : List VExpr} {level : VLevel}
+    {before middle final : VExpr}
+    (chain : SemanticSubstitutionChain env universes context level before middle)
+    (direct : env.IsDefEq universes context before final (.sort level))
+    (envWF : env.WF) (contextWF : OnCtx context (env.IsType universes)) :
+    env.IsDefEq universes context middle final (.sort level) :=
+  (chain.isDefEq envWF contextWF).symm.trans direct
 
 theorem SemanticSubstitutionChain.hasType
     {env : VEnv} {universes : Nat} {context : List VExpr} {level : VLevel}

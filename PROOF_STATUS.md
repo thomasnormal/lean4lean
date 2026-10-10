@@ -4713,15 +4713,18 @@ Run `lake env lean tests/InductiveParameterSubstitutionPair.lean`.
 at one shared result sort. Each `cons` stage stores the before/after
 instantiations, body typing under the explicit actual domain, and argument
 definitional equality in the shared context; the tail carries the remaining
-stages. Its `isDefEq` theorem composes `VEnv.IsDefEq.instDF` stage by stage,
-and `hasType` projects both endpoints. The relation keeps native argument-list
+stages. The `single` helper packages one such stage, while `append` composes
+already-linked receipts. Its `isDefEq` theorem composes `VEnv.IsDefEq.instDF` stage by stage,
+`cancelLeft` projects a residual equality from a direct endpoint equality
+through one such chain, using only transitivity at the fixed context. The
+`hasType` theorem projects both endpoints. The relation keeps native argument-list
 order; `append` composes receipts only when their intermediate endpoints are
 definitionally linked. It does not reconstruct retained positions, dependent domains, native
 telescopes or `replaceParams` output. It also does not identify a chain with
 an inductive trace or claim inserted motive/minor typing or checker/source
 acceptance. The semantic module has no native expression or persistent
 container interfaces beyond the inherited logical/typing axioms.
-The focused fixture has 16 proof controls and 9 runtime checks, covering
+The focused fixture has 18 proof controls and 9 runtime checks, covering
 empty, single, two- and three-stage construction, explicit per-stage domains,
 shared sort, native order, nonliteral arguments and length/position negatives.
 Run `lake env lean tests/InductiveParameterSubstitutionChain.lean`.
