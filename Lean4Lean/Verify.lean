@@ -10,6 +10,7 @@ import Lean4Lean.Verify.StagedLeaves
 import Lean4Lean.Verify.RestrictedContext
 import Lean4Lean.Verify.StagedApplications
 import Lean4Lean.Verify.StagedLocals
+import Lean4Lean.Verify.ConstructorDomainLookup
 import Lean4Lean.Verify.ConstructorArity
 import Lean4Lean.Verify.ConstructorParams
 import Lean4Lean.Verify.InductivePositivity
