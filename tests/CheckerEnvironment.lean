@@ -17,6 +17,10 @@ private def ordinaryFrameDefinition : DefinitionVal := {
 private def ordinaryFrameAxiom : AxiomVal := {
   name := `OrdinaryFrameAxiom, levelParams := [], type := .sort (.succ .zero), isUnsafe := false }
 
+private def unsafeFrameDefinition : DefinitionVal := {
+  name := `UnsafeFrameDefinition, levelParams := [], type := .sort (.succ .zero),
+  value := .sort .zero, hints := .abbrev, safety := .unsafe }
+
 private def semanticAlias : VDefVal := {
   name := nativeAlias.name, uvars := 0, type := .sort (.succ .zero), value := .sort .zero }
 
@@ -327,6 +331,17 @@ example :
   · native_decide
   · exact hresult
 
+example :
+    (addDefinitionHeader emptyNative unsafeFrameDefinition {}).WF
+      (NativePrimitiveFrame emptyNative) := by
+  intro result hresult
+  apply addDefinitionHeader.nativePrimitiveFrame emptyNative unsafeFrameDefinition {}
+  · exact SMap.WF.empty
+  · change ({} : ConstMap).find? unsafeFrameDefinition.name = none
+    simp [SMap.find?]
+  · native_decide
+  · exact hresult
+
 run_meta
   let simple := [``propext, ``Quot.sound]
   let structural := simple ++ [``Classical.choice]
@@ -351,7 +366,7 @@ run_meta
       ``NativePrimitiveFrame.foldlM] do
     audit theoremName structural
   for theoremName in [``NativePrimitiveFrame.addConst, ``addDefinition.nativePrimitiveFrame,
-      ``addAxiom.nativePrimitiveFrame] do
+      ``addAxiom.nativePrimitiveFrame, ``addDefinitionHeader.nativePrimitiveFrame] do
     audit theoremName native
   audit ``CheckerEnv.of_valueFrame logical
   for theoremName in [``NativeValueFrame.addConst,
