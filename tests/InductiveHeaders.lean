@@ -109,11 +109,35 @@ example (isUnsafe : Bool) :
     rcases hmem with rfl | rfl <;> exact ⟨_, .sort trivial⟩
 
 example (isUnsafe : Bool) :
+    (AddInductive.declareInductiveTypes ordinaryStats 0 ordinaryTypes 0 isUnsafe
+      (ordinaryContext isUnsafe)).WF fun env' =>
+        ∃ venv', VEnv.empty.addInductHeaders ordinaryHeaders = some venv' ∧
+          venv'.WF ∧ Aligned (if isUnsafe then .unsafe else .safe) env'.constants venv' := by
+  apply AddInductive.declareInductiveTypes.refinesWF (ordinaryContext isUnsafe)
+    ordinaryStats 0 ordinaryTypes 0 isUnsafe Aligned.empty ⟨[], .empty⟩
+    DefinitionSafety.le_rfl rfl ?_ ?_
+  · exact .cons ⟨rfl, rfl, .sort rfl⟩ (.cons ⟨rfl, rfl, .sort rfl⟩ .nil)
+  · intro header hmem
+    simp [ordinaryHeaders] at hmem
+    rcases hmem with rfl | rfl <;> exact ⟨_, .sort trivial⟩
+
+example (isUnsafe : Bool) :
     (checkedHeaders 0 ordinaryTypes isUnsafe (ordinaryContext isUnsafe)).WF fun env' =>
       ∃ venv', VEnv.empty.addInductHeaders ordinaryHeaders = some venv' ∧
         Aligned (if isUnsafe then .unsafe else .safe) env'.constants venv' ∧ venv'.Ordered := by
   apply AddInductive.checkInductiveTypes.orderedHeaders (ordinaryContext isUnsafe)
     0 ordinaryTypes 0 isUnsafe Aligned.empty VEnv.Ordered.empty DefinitionSafety.le_rfl
+  · exact .cons ⟨rfl, rfl, .sort rfl⟩ (.cons ⟨rfl, rfl, .sort rfl⟩ .nil)
+  · intro header hmem
+    simp [ordinaryHeaders] at hmem
+    rcases hmem with rfl | rfl <;> exact ⟨_, .sort trivial⟩
+
+example (isUnsafe : Bool) :
+    (checkedHeaders 0 ordinaryTypes isUnsafe (ordinaryContext isUnsafe)).WF fun env' =>
+      ∃ venv', VEnv.empty.addInductHeaders ordinaryHeaders = some venv' ∧
+        venv'.WF ∧ Aligned (if isUnsafe then .unsafe else .safe) env'.constants venv' := by
+  apply AddInductive.checkInductiveTypes.refinesHeadersWF (ordinaryContext isUnsafe)
+    0 ordinaryTypes 0 isUnsafe Aligned.empty ⟨[], .empty⟩ DefinitionSafety.le_rfl
   · exact .cons ⟨rfl, rfl, .sort rfl⟩ (.cons ⟨rfl, rfl, .sort rfl⟩ .nil)
   · intro header hmem
     simp [ordinaryHeaders] at hmem
@@ -251,7 +275,9 @@ run_meta
     ``Lean.PersistentHashMap.WF.toList'_insert, ``Lean.PersistentHashMap.WF.find?_eq]
   audit ``AddInductive.declareInductiveTypes.refines registration
   audit ``AddInductive.declareInductiveTypes.ordered registration
+  audit ``AddInductive.declareInductiveTypes.refinesWF registration
   audit ``AddInductive.checkInductiveTypes.refinesHeaders registration
+  audit ``AddInductive.checkInductiveTypes.refinesHeadersWF registration
   audit ``AddInductive.checkInductiveTypes.orderedHeaders registration
   let imported := (← Lean.getEnv).toKernelEnv
   for typeName in [``Bool, ``Nat] do
