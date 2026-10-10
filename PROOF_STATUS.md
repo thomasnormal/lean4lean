@@ -67,6 +67,22 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   All six new theorems are audited without `sorryAx`; only the existing three
   persistent-map interfaces and standard logical axioms occur. Unsafe public
   nested restoration is deliberately outside this theorem.
+- `Verify.InductiveHeaderTyping` derives semantic type well-formedness of the
+  first source header from successful `checkInductiveTypes`, without a supplied
+  semantic header model or type-WF premise. It uses actual source guarding,
+  checked source translation, and accepted WHNF: a normalized Pi is a type by
+  strict translation, while a non-Pi must pass the actual terminal sort check.
+  `firstHeaderWF` closes the semantic local context and constructs its reset
+  checker-state invariant automatically. `singleHeaderChecker` consequently
+  derives typed header registration, semantic environment WF, alignment, and
+  old-value translation for an arbitrary singleton header and parameter count.
+  `run.firstHeaderWF` exposes the source-header result on every successful
+  nonempty complete runner. The input remains the existing strong `VContext`
+  with `TrEnv`; it is not replaced by the weaker native frame or `CheckerEnv`.
+  These proofs inherit the existing checker/metatheory's `sorryAx` and interfaces,
+  but introduce no new admission or axiom. They do not verify later mutual
+  header models, constructor positivity/typing, recursor typing/equations,
+  preprocessing transport of original header semantics, or `VInductDecl.WF`.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6052,6 +6068,23 @@ absent. Zero-fuel and partially allocated traversal failures propagate. These
 unchecked helper fixtures do not claim full frontend acceptance or semantic
 typing. Audits admit only the existing persistent-array list-push and two map
 interfaces where required; all exclude `sorryAx` and expression interfaces.
+
+`tests/InductiveHeaderTyping.lean` contains six proof regressions for accepted
+sort typing, the arbitrary-continuation first-header theorem, closed-context
+source WF, singleton checker registration, final typed lookup/WF, and the actual
+complete runner. Its exhaustive production-module audit rejects module-owned
+axioms and dependencies outside the inherited checker, source-guard, type
+conversion, and header-registration interfaces; inherited `sorryAx` is explicit.
+Eleven native-accepted fixtures cover direct and aliased sorts, beta reduction,
+metadata wrappers, a Pi-valued alias, parameter domains with aliases/reduction,
+indices, dependent parameters/indices, and mutual headers. Both safety modes
+retain the exact original header types and seed definitions through header
+registration and complete runs, which must reach recursor registration.
+Separate controls show that successful standalone expression checking is not
+enough: terms and non-sort terminals reject as headers. Parameter-count, fuel,
+and source-variable failures also reject. Runtime use of the imported prelude
+does not construct its missing semantic `TrEnv` model. Run
+`lake env lean tests/InductiveHeaderTyping.lean`.
 
 `tests/InductiveValueFrame.lean` contains eight proof regressions and six axiom
 audits for recursor registration, full runner composition, no-value restoration
