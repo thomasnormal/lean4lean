@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.ConstructorDomainLookup
+import Lean4Lean.Verify.InductiveConstructorDomainReceipts
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive Lean4Lean.TypeChecker
