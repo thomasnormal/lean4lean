@@ -173,5 +173,6 @@ import Lean4Lean.Verify.InductiveSingletonParameterReplacement
 import Lean4Lean.Verify.InductiveParameterPrefixReplacement
 import Lean4Lean.Verify.InductiveParameterPrefixTyping
 import Lean4Lean.Verify.InductiveParameterOpeningAgreement
+import Lean4Lean.Verify.InductiveParameterDomainTransport
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveNestedRewrite

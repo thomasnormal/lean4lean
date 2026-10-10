@@ -5021,13 +5021,55 @@ audited. Unequal semantic-domain and unequal-reconstruction negatives prevent
 treating arbitrary structurally valid prefixes as equal. No new axiom,
 admission or production runtime change is introduced.
 
-The generic `typedRebinding` semantic-domain agreement premise remains explicit
-for arbitrary source/target telescopes. The new shared-semantic-input case does
-not show that accepted original headers and constructors have literally equal
-strict translations: their checks may establish only definitional equality.
-Deriving a suitable definitional-equivalence transport from those actual
-checks remains open. Rebinding callbacks below
-un-opened raw binders also need to strengthen the selected closed prefix from
+`Verify.InductiveParameterDomainTransport` separately handles parameter domains
+that are definitionally equivalent but not literally equal. Its
+`ParameterPrefix.forall_defeq` reconstructs equivalent forall telescopes from
+`VEnv.IsDefEqCtx` and a typed equality of their residual bodies. The numeric
+semantic contexts permit independent native fvar IDs, and the retained base is
+shared rather than silently discarded. `replaceParams.prefix_typedInto_defeq`
+converts the abstracted source lambda's function type before applying typed
+target arguments, preserving the exact native substitution equation, closure,
+target support, strict translation, typing and beta equality.
+`replaceParams.prefix_rename_defeq_typed` constructs the dependent target
+argument receipts itself; its result type need not be a sort.
+`isNestedInductiveApp?.defeqTypedRebinding` composes that transport with actual
+classifier-selected parameter-prefix rebinding, without requiring literal
+domain-context equality.
+
+`TypeChecker.isDefEq.acceptedParameterDomain` obtains sorted semantic domain
+equality from a successful checker call, strict translations, source-domain
+typehood and a well-formed checker context/state.
+`TypeChecker.isDefEq.acceptedParameterContextStep` extends an existing
+`IsDefEqCtx` with that equality. These are accepted-check adapters, not a theorem
+deriving aggregate parameter-domain agreement from an arbitrary accepted
+`checkInductiveTypes` or `checkConstructors` trace.
+
+`tests/InductiveParameterDomainTransport.lean` proves literal inequality of
+contexts whose first domains are `Prop` and `(fun type : Type => type) Prop`,
+then derives their semantic equivalence and typed replacement of a non-sort
+lambda family across independently allocated dependent parameters. Additional
+proof controls cover simultaneous domain/body conversion, a retained-base
+zero prefix, and the checker adapter at an actual empty-context `M.run`
+boundary. Its 55 runtime controls include independent opening offsets, native
+replacement equations, full source/target family typing, an indexed nested
+prefix, rejected reversed dependent arguments and incompatible universes.
+Actual header/declaration/constructor checks accept nonliteral matching domains
+and reject incompatible header domains. These runtime checks are distinct from
+the semantic proof contracts. Exact audits pin one dependency for context
+length, three logical dependencies for forall conversion, ten for converted
+replacement and renaming, eleven for classifier/rebinding composition and the
+same 28 inherited dependencies as `TypeChecker.isDefEq.WF` for the accepted
+checker adapters. All 13 module-owned and 71 fixture-namespace declarations are
+exhaustively audited; no new axiom, admission or production runtime change is
+introduced.
+
+The original `typedRebinding` literal semantic-domain agreement premise remains
+explicit outside its shared-semantic-input case. The new definitional transport
+is an alternative boundary, not a proof that accepted original headers and
+constructors have literally equal strict translations. Collecting domain
+equivalence through the full accepted parameter-check traversal remains open.
+Rebinding callbacks below unopened raw binders also need to strengthen the
+selected closed prefix from
 its ambient bound-variable context into the parameter-only source context;
 the classifier permits loose residual indices, while the current rebinding
 adapter assumes a strict full-application receipt in that parameter context.
