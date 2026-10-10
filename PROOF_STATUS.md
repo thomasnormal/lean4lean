@@ -84,7 +84,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   existing `VEnvs.WF`/`CheckerEnv` extension and semantic primitive interface.
   `addAxiom.nativePrimitiveFrame` supplies the corresponding checked-axiom
   registration bridge, including unsafe axioms, under the same explicit
-  freshness and primitive-name guards.
+  freshness and primitive-name guards. `addDefinitionHeader.nativePrimitiveFrame`
+  isolates the unsafe-definition header stage under those guards; the full
+  unsafe body pipeline remains a separate contract.
   These ordinary-definition bridges keep freshness and primitive-name guards
   explicit. These results do not
   discharge the remaining inductive metadata/recursor obligations or construct
