@@ -4562,6 +4562,48 @@ An exhaustive two-declaration audit includes the generated helper and pins the
 exact inherited four-axiom manifest.
 Run `lake env lean tests/InductiveSubstitutionStageEndpointRebase.lean`.
 
+`Verify.InductiveParameterSubstitutionStage` connects that body-level endpoint
+receipt to one selected `RetainedFVarPrefixAgreement.lookups` receipt. Its
+`instantiateStageIsTypeRebasedCore` and `instantiateStageIsTypeRebased`
+theorems take the supplied selection and actual original lookup, a type-valued
+body translated under that lookup's actual domain, `Closed body 1`, support in
+the exact source context, and independent removal/insertion receipts. Domain
+and argument equalities are recovered from the actual prefix agreement, not
+added as premises. The lookup is reconciled with both the supplied original
+argument and its supplied type; the original domain's sort comes from that
+same lookup receipt and is independent of the body's result sort.
+The twenty-three outputs share one reduced argument, actual reduced domain,
+domain sort and existential reduced body. Four lookup/actual-domain agreement
+receipts precede the thirteen endpoint-rebase receipts unchanged; six native
+receipts follow. These establish closedness and source support after native
+fvar substitution, original and source substituted-body translations, target
+fvar translation, and target substituted-body translation. The semantic source
+endpoint is explicitly `reducedBody.inst reducedArgument`, rather than an
+unrelated existential interpretation of an already-substituted native type.
+Every substitution translation uses the corresponding actual argument typing.
+Target argument translation is weakened from the source receipt through the
+independent insertion; original endpoint equality stays in the original
+context through removal. The core uses structural `instantiate1'` and the four
+inherited logical/typing axioms. The native `instantiate1` specialization adds
+only the existing `Expr.instantiate1_eq` interface, without new admissions.
+This does not construct an actual translated index history, strengthen a whole
+chain, infer original-to-target context weakening, require literal original
+argument preimages, reconstruct native telescopes/`replaceParams`, prove
+inserted motive/minor typehood, or establish checker/source acceptance.
+The focused fixture has 30 proof controls and 24 runtime checks. Both APIs
+forward all twenty-three receipts, and a genuine transported prefix constructs
+the selected lookup agreement. The original selected declaration has a beta
+domain, while the distinct aligned/source declarations have its reduced
+domain. One-declaration removal and independent two-declaration insertion
+preserve the nested body's formal/suffix/base coordinates. Three substituted
+native translations, target selected-fvar translation, source/target endpoint
+typing and original endpoint agreement are projected. Position, missing lookup,
+original value/type mismatch, support, closure and wrong-lift controls pin the
+boundary. This concrete selected lookup is a genuine `vlam` lookup; it does not
+claim a nonliteral argument or no-preimage counterexample. Exhaustive audits
+cover both module declarations and exact structural-four/native-five manifests.
+Run `lake env lean tests/InductiveParameterSubstitutionStage.lean`.
+
 `Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
 chronological selected telescope over a supplied smaller mixed base.
 `SelectedRecursorDomainFVars` constrains only actual full-reader stored cdecl
