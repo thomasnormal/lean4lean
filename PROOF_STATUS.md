@@ -4525,6 +4525,43 @@ pin the semantic boundary. An exhaustive one-declaration module audit enforces
 the exact inherited four-axiom manifest.
 Run `lake env lean tests/InductiveSubstitutionStageEndpoint.lean`.
 
+`Verify.InductiveSubstitutionStageEndpointRebase` proves
+`TrExprS.strengthenSubstitutionStageEndpointRebased`, retaining the original
+endpoint bridge while inserting its reduced endpoint into an independently
+supplied target context. It preserves all nine endpoint receipts unchanged
+and appends four: target body translation and typing under the lifted actual
+domain, target argument typing at that domain, and target instantiated endpoint
+typing. All thirteen outputs retain one existential reduced body; the body and
+endpoint typing receipts preserve the result sort.
+The extra premises are smaller-to-target `FVLift'` and target WF. Actual target
+domain typing is obtained by weakening the reduced-domain receipt, and supports
+the anonymous target-body context needed for native translation. The body is
+transported with `insertionLift.cons`; domain and argument use plain
+`insertionLift`. Target endpoint typing weakens the already-proved reduced
+instantiated endpoint, then uses substitution/lift commutation to express it
+as substitution into the protected target body.
+Original endpoint equality remains in the original context with its actual
+removal lift. Target typing remains in the target context with its independent
+insertion lift. No original-to-target context weakening or endpoint equality
+is inferred, and no literal original-argument preimage or single-body
+substitution chain is manufactured. This does not reconstruct native
+telescopes/`replaceParams`, strengthen arbitrary whole chains, prove inserted
+motive/minor typehood, construct an actual history, or establish checker/source
+acceptance. Dependencies retain the four inherited logical/typing axioms,
+without native/container interfaces or new admissions.
+The focused fixture has 37 proof controls and 32 runtime checks, forwarding all
+thirteen receipts. A genuine one-declaration removal and independent
+two-declaration insertion protect the same suffix under a nested body using its
+formal, suffix and retained base. Original endpoint equality remains in a
+three-declaration context, while target body/argument/endpoint typing uses a
+distinct four-declaration context. The historical beta argument retains its
+universal no-literal-preimage proof. Target endpoint normalization, independent
+coordinate maps, structural domain/argument/endpoint plain-lift negatives,
+formal/suffix protection, support and closure controls enforce the boundary.
+An exhaustive two-declaration audit includes the generated helper and pins the
+exact inherited four-axiom manifest.
+Run `lake env lean tests/InductiveSubstitutionStageEndpointRebase.lean`.
+
 `Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
 chronological selected telescope over a supplied smaller mixed base.
 `SelectedRecursorDomainFVars` constrains only actual full-reader stored cdecl
