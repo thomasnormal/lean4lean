@@ -30,6 +30,17 @@ theorem SemanticSubstitutionChain.isDefEq
     have stage := VEnv.IsDefEq.instDF envWF.ordered contextWF bodyTyped argumentEquality
     simpa only [VExpr.inst] using stage.trans ih
 
+theorem SemanticSubstitutionChain.append
+    {env : VEnv} {universes : Nat} {context : List VExpr} {level : VLevel}
+    {before middle final : VExpr}
+    (first : SemanticSubstitutionChain env universes context level before middle)
+    (second : SemanticSubstitutionChain env universes context level middle final) :
+    SemanticSubstitutionChain env universes context level before final := by
+  induction first with
+  | nil expression typed => exact second
+  | cons beforeEq afterEq bodyTyped argumentEquality tail ih =>
+    exact .cons beforeEq afterEq bodyTyped argumentEquality (ih second)
+
 theorem SemanticSubstitutionChain.hasType
     {env : VEnv} {universes : Nat} {context : List VExpr} {level : VLevel}
     {before final : VExpr}

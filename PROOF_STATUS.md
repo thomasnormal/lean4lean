@@ -4715,12 +4715,13 @@ instantiations, body typing under the explicit actual domain, and argument
 definitional equality in the shared context; the tail carries the remaining
 stages. Its `isDefEq` theorem composes `VEnv.IsDefEq.instDF` stage by stage,
 and `hasType` projects both endpoints. The relation keeps native argument-list
-order and does not reconstruct retained positions, dependent domains, native
+order; `append` composes receipts only when their intermediate endpoints are
+definitionally linked. It does not reconstruct retained positions, dependent domains, native
 telescopes or `replaceParams` output. It also does not identify a chain with
 an inductive trace or claim inserted motive/minor typing or checker/source
 acceptance. The semantic module has no native expression or persistent
 container interfaces beyond the inherited logical/typing axioms.
-The focused fixture has 15 proof controls and 9 runtime checks, covering
+The focused fixture has 16 proof controls and 9 runtime checks, covering
 empty, single, two- and three-stage construction, explicit per-stage domains,
 shared sort, native order, nonliteral arguments and length/position negatives.
 Run `lake env lean tests/InductiveParameterSubstitutionChain.lean`.
