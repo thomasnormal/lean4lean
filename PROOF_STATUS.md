@@ -82,6 +82,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `addDefinition.nativePrimitiveFrame` gives the same native reserved-name
   frame, and `addDefinition.refinesPrimitiveFrame` packages it with the
   existing `VEnvs.WF`/`CheckerEnv` extension and semantic primitive interface.
+  `addAxiom.nativePrimitiveFrame` supplies the corresponding checked-axiom
+  registration bridge, including unsafe axioms, under the same explicit
+  freshness and primitive-name guards.
   These ordinary-definition bridges keep freshness and primitive-name guards
   explicit. These results do not
   discharge the remaining inductive metadata/recursor obligations or construct
