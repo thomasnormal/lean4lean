@@ -14,6 +14,9 @@ private def ordinaryFrameDefinition : DefinitionVal := {
   name := `OrdinaryFrameDefinition, levelParams := [], type := .sort (.succ .zero),
   value := .sort .zero, hints := .abbrev, safety := .safe }
 
+private def ordinaryFrameAxiom : AxiomVal := {
+  name := `OrdinaryFrameAxiom, levelParams := [], type := .sort (.succ .zero), isUnsafe := false }
+
 private def semanticAlias : VDefVal := {
   name := nativeAlias.name, uvars := 0, type := .sort (.succ .zero), value := .sort .zero }
 
@@ -313,6 +316,17 @@ example :
     simp [SMap.find?]
   · native_decide
 
+example :
+    (addAxiom emptyNative ordinaryFrameAxiom true).WF
+      (NativePrimitiveFrame emptyNative) := by
+  intro result hresult
+  apply addAxiom.nativePrimitiveFrame emptyNative ordinaryFrameAxiom {}
+  · exact SMap.WF.empty
+  · change ({} : ConstMap).find? ordinaryFrameAxiom.name = none
+    simp [SMap.find?]
+  · native_decide
+  · exact hresult
+
 run_meta
   let simple := [``propext, ``Quot.sound]
   let structural := simple ++ [``Classical.choice]
@@ -336,7 +350,8 @@ run_meta
   for theoremName in [``NativePrimitiveFrame.refl, ``NativePrimitiveFrame.trans,
       ``NativePrimitiveFrame.foldlM] do
     audit theoremName structural
-  for theoremName in [``NativePrimitiveFrame.addConst, ``addDefinition.nativePrimitiveFrame] do
+  for theoremName in [``NativePrimitiveFrame.addConst, ``addDefinition.nativePrimitiveFrame,
+      ``addAxiom.nativePrimitiveFrame] do
     audit theoremName native
   audit ``CheckerEnv.of_valueFrame logical
   for theoremName in [``NativeValueFrame.addConst,
