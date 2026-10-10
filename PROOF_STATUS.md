@@ -33,7 +33,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   header-only specification in any starting environment.
 - `boolInductDecl.constructorWF` and `natInductDecl.constructorWF` prove that
   the canonical primitive constructor signatures are semantically well-formed
-  after their corresponding headers are staged. Together with
+  after their corresponding headers are staged in any starting semantic
+  environment. Together with
   `VEnv.addConstructorHeaders.wf`, concrete `Bool` and `Nat` constructor
   environments now have semantic `VEnv.WF`; this remains ordinary typed-axiom
   staging and does not install inductive reduction or recursor behavior.
@@ -44,6 +45,16 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   recursive datatype references are available. These translations do not prove
   the full inductive frontend; no recursor or reduction equation is installed at
   this stage.
+- `AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorWF`
+  connects successful primitive recognition to the actual checked
+  header/constructor registration prefix. From initial `Aligned` correspondence
+  and semantic `VEnv.WF`, successful native staging produces both semantic
+  registration witnesses, their well-formedness, a source `TrInductDecl`
+  translation and final native alignment. Unlike the generic registration
+  theorem, primitive header/constructor translations, typing and semantic
+  registration success are derived, not caller-supplied premises. This remains
+  partial correctness of typed-axiom staging; it does not justify positivity,
+  native `TrEnv`, generated recursors or reduction semantics.
 - `AddInductive.declareInductiveTypes.refines` now connects the executable header
   stage to `VEnv.addInductHeaders`. Given an initially `Aligned` constant map,
   translated headers, an admitting safety filter, and exactly one index-count
@@ -2380,7 +2391,7 @@ API (`TrExprS` includes the admitted `TrProj` specification).
 `checkPrimitiveInductive.toVDecl` also inherits the three equality interface
 assumptions of the validator classification. No new axiom or admitted proof
 is added, and these bridges do not claim unconditional inductive soundness.
-Focused executable replay checks 21 declarations in `Theory.InductiveHeaders`
+Focused executable replay checks 24 declarations in `Theory.InductiveHeaders`
 and nine in `Verify.Inductive`, assuming their imported dependencies are correct.
 
 The header-extraction lemma inherits the structural-translation API's
@@ -2449,9 +2460,24 @@ constructor-checking and numeric-metadata checks are runtime evidence, not their
 semantic verification. The refinement concerns constant-map type entries only;
 the separate numeric registration theorem below supplies the arity assertion's
 precondition from checked parameter arrays and successful full batch checking.
-Focused executable replay checks fourteen declarations in `Theory.ConstructorHeaders`
-and twenty-four in `Verify.ConstructorHeaders`, assuming their imported dependencies
+Focused executable replay checks fifteen declarations in `Theory.ConstructorHeaders`
+and twenty-eight in `Verify.ConstructorHeaders`, assuming their imported dependencies
 are correct.
+
+`tests/PrimitiveInductiveStaging.lean` exercises the primitive checked-prefix
+refinement without supplying header/constructor translations or typing models.
+Proof controls cover empty and typed-axiom-seeded starting environments,
+arbitrary `Nat.succ` binder names/annotations and arbitrary admitting safety
+filters. The derived final model preserves old semantic constants and
+definitional equations. Twenty-six executable acceptance fixtures cover `Bool`
+and twelve `Nat.succ` binder variations in each starting environment, with
+156 duplicate, primitive-authorization, zero-fuel and individual header/constructor
+name-collision rejections. Recognition still succeeds for occupied primitive
+names; registration rejects them, confirming that the theorem is partial
+correctness rather than an acceptance guarantee. An exact ten-axiom manifest
+pins the new theorem to the existing logical, translation, persistent-map and
+inherited `sorryAx` foundations. Run
+`lake env lean tests/PrimitiveInductiveStaging.lean`.
 
 `tests/ConstructorArity.lean` contains four proof regressions and twelve axiom
 audits, all excluding `sorryAx`. The checked-parameter invariants use only the
