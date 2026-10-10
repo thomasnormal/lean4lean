@@ -4686,6 +4686,35 @@ and returns reduced/new body translations and sort typing together with the
 same two retained-parameter transports and chronological agreement; it does
 not infer body support from allocation alone.
 
+`TranslatedRecursorIndexTrace.selectedTelescopeRebasedSubstitutedTypeOfStoredDomains`
+selects one retained parameter by its supplied list position and composes the
+actual-history adapter with native single-parameter type substitution/rebasing.
+It requires the exact final-virtual-context argument lookup, original body
+translation and sort typing under that argument's actual anonymous domain,
+depth-one structural closure and explicit final-array-suffix fvar support.
+The proof converts suffix support to the reduced selected telescope's exact
+fvar list and rewrites the lookup/body premises through the chronological
+endpoint equality. All history, telescope, weakening, context agreement and
+retained-parameter receipts remain available. It additionally returns the
+selected reduced argument's lookup/translation/typing, substituted closure
+and support, original/reduced/target type translations and sort typing, and
+three chronological-context comparisons through one existential reduced type.
+Old-context comparisons use `consN baseLift ids.length`; target transport uses
+the independent `consN (skipN refl inserted) ids.length`. Dependencies retain
+the existing logical/typing axioms, persistent-container interfaces and
+`Expr.instantiate1_eq`; no new admission/axiom or runtime change is introduced.
+This does not reconstruct native parameter telescopes, prove whole-prefix
+`replaceParams`, identify a pre-contracted body, prove inserted motive/minor
+typehood or establish complete binder ordering/checker/source acceptance.
+The focused fixture has 13 proof controls and 14 runtime checks. It pins all
+15 history/parameter receipts and 14 substituted-type receipts, applies the
+adapter to an actual empty translated history, and separately checks a retained
+old prefix with two new chronological suffix IDs, reversed endpoint support,
+closure, nested binder protection, selection negatives and distinct lift
+cutoffs. An exact eight-axiom manifest audit enforces the stated inherited and
+native dependency boundary.
+Run `lake env lean tests/InductiveIndexSubstitutionRebase.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
