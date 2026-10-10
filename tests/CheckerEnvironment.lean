@@ -10,6 +10,10 @@ private def nativeAlias : DefinitionVal := {
   name := `SortAlias, levelParams := [], type := .sort (.succ .zero),
   value := .sort .zero, hints := .abbrev, safety := .safe }
 
+private def ordinaryFrameDefinition : DefinitionVal := {
+  name := `OrdinaryFrameDefinition, levelParams := [], type := .sort (.succ .zero),
+  value := .sort .zero, hints := .abbrev, safety := .safe }
+
 private def semanticAlias : VDefVal := {
   name := nativeAlias.name, uvars := 0, type := .sort (.succ .zero), value := .sort .zero }
 
@@ -297,24 +301,55 @@ example (safety : DefinitionSafety) :
         TrExpr final [] [] nativeAlias.value (.const nativeAlias.name []) :=
   retainedAliasValue safety .bool
 
+example :
+    (addDefinition emptyNative ordinaryFrameDefinition true).WF fun result =>
+      ∃ ves, VEnvs.WF result ves ∧ NativePrimitiveFrame emptyNative result ∧
+        ∀ safety, VEnv.empty ≤ ves.venv safety ∧
+          CheckerEnv safety result (ves.venv safety) ∧
+          VEnv.HasPrimitives (ves.venv safety) := by
+  apply addDefinition.refinesPrimitiveFrame (VEnvs.WF.empty `CheckerEnvironmentTest)
+  · simp [ordinaryFrameDefinition]
+  · change ({} : ConstMap).find? ordinaryFrameDefinition.name = none
+    simp [SMap.find?]
+  · native_decide
+
 run_meta
   let simple := [``propext, ``Quot.sound]
+  let structural := simple ++ [``Classical.choice]
   let logical := simple ++ [``Classical.choice, ``sorryAx]
   let native := simple ++ [``Classical.choice, ``Lean.PersistentHashMap.WF.find?_eq,
     ``Lean.PersistentHashMap.WF.toList'_insert, ``Lean.PersistentHashMap.findAux_isSome]
   let semantic := native ++ [``sorryAx]
   let primitive := semantic ++ [``Lean.Expr.eqv_eq, ``Lean.Level.instLawfulBEqLevel,
     ``Lean.Syntax.structEq_eq]
+  let ordinary := primitive ++ [``Lean.Expr.hasFVar_eq, ``Lean.Expr.hasExprMVar_eq,
+    ``Lean.Expr.hasLevelMVar_eq, ``Lean.Level.hasMVar_eq, ``Lean4Lean.ptrEqExpr_eq,
+    ``Lean.PersistentArray.toList'_push, ``Lean.Expr.looseBVarRange_eq,
+    ``Lean.Expr.instantiateRev_eq, ``Lean.Expr.instantiate_eq, ``Lean.Expr.replace_eq,
+    ``Lean.Level.hasParam_eq, ``Lean.Expr.hasLevelParam_eq,
+    ``Lean4Lean.ptrEqConstantInfo_eq, ``Lean.Expr.instantiateRange_eq,
+    ``Lean.Expr.instantiate1_eq, ``Lean.Expr.mkAppRangeAux.eq_def,
+    ``Lean.Expr.abstractRange_eq, ``Lean.Expr.abstract_eq, ``Lean.Expr.hasLooseBVar_eq,
+    ``Lean.Expr.lowerLooseBVars_eq, ``Lean.Expr.instantiateRevRange_eq]
   for theoremName in [``NativeValueFrame.refl, ``NativeValueFrame.trans, ``NativeValueFrame.foldlM] do
     audit theoremName simple
+  for theoremName in [``NativePrimitiveFrame.refl, ``NativePrimitiveFrame.trans,
+      ``NativePrimitiveFrame.foldlM] do
+    audit theoremName structural
+  for theoremName in [``NativePrimitiveFrame.addConst, ``addDefinition.nativePrimitiveFrame] do
+    audit theoremName native
   audit ``CheckerEnv.of_valueFrame logical
   for theoremName in [``NativeValueFrame.addConst,
       ``AddInductive.declareInductiveTypes.preservesValues,
       ``AddInductive.declareConstructors.preservesValues,
       ``AddInductive.checkInductiveTypes.preservesHeaderConstructorValues] do
     audit theoremName native
-  for theoremName in [``AddInductive.declareConstructors.refinesChecker, ``ordinaryConstructorChecker] do
-    audit theoremName semantic
+  for theoremName in [``AddInductive.declareConstructors.refinesChecker, ``ordinaryConstructorChecker,
+      ``addDefinition.refinesPrimitiveFrame] do
+    if theoremName == ``addDefinition.refinesPrimitiveFrame then
+      audit theoremName ordinary
+    else
+      audit theoremName semantic
   for theoremName in [
       ``AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorChecker,
       ``acceptedPrimitiveChecker, ``retainedAliasValue] do

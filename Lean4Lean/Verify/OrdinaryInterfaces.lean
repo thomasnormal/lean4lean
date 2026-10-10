@@ -41,6 +41,25 @@ theorem NativePrimitiveFrame.addConst {env : Kernel.Environment} {ci : ConstantI
     contradiction
   · rfl
 
+theorem addDefinition.nativePrimitiveFrame (env : Kernel.Environment) (v : DefinitionVal)
+    (fuel : FuelConfig) (hmap : env.constants.WF) (hunsafe : v.safety ≠ .unsafe)
+    (hfresh : env.find? v.name = none)
+    (hprimitive : Kernel.Environment.primitives.contains v.name = false)
+    {env' : Kernel.Environment}
+    (hresult : addDefinition env v true fuel = .ok env') :
+    NativePrimitiveFrame env env' := by
+  unfold addDefinition at hresult
+  simp only [if_true, pure_bind] at hresult
+  cases hs : v.safety
+  · exact (hunsafe hs).elim
+  all_goals
+    simp [hprimitive] at hresult
+    simp only [Functor.map, Except.map] at hresult
+    split at hresult <;> cases hresult
+    apply NativePrimitiveFrame.addConst (ci := .defnInfo v) hmap ?_ ?_
+    · simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name] using hfresh
+    · simpa only [ConstantInfo.name] using hprimitive
+
 theorem NativePrimitiveFrame.foldlM {Item State Error : Type}
     (getEnv : State → Kernel.Environment) (step : State → Item → Except Error State)
     (items : List Item) (initial : State) (hmap : (getEnv initial).constants.WF)
@@ -103,6 +122,29 @@ theorem CheckerEnv.hasPrimitives_of_frame {before after : Kernel.Environment} {e
     env'.HasPrimitives :=
   hp.mono_of_primitiveConstants hle fun _ hprim =>
     hbefore.aligned.constants_eq_of_lookup hafter.aligned hle (hframe.constants hprim)
+
+theorem addDefinition.refinesPrimitiveFrame {env : Kernel.Environment} {ves : VEnvs}
+    (wf : ves.WF env) (v : DefinitionVal) (hunsafe : v.safety ≠ .unsafe)
+    (hfresh : env.find? v.name = none)
+    (hprimitive : Kernel.Environment.primitives.contains v.name = false)
+    (fuel : FuelConfig := {}) :
+    (addDefinition env v true fuel).WF fun env' =>
+      ∃ ves', VEnvs.WF env' ves' ∧ NativePrimitiveFrame env env' ∧
+        ∀ safety, ves.venv safety ≤ ves'.venv safety ∧
+          CheckerEnv safety env' (ves'.venv safety) ∧
+          (ves'.venv safety).HasPrimitives := by
+  intro env' hresult
+  obtain ⟨ves', hwf, hle⟩ := addDefinition.WF wf v fuel env' hresult
+  have hframe := addDefinition.nativePrimitiveFrame env v fuel
+    (wf.tr (safety := .safe)).map_wf hunsafe
+    hfresh hprimitive hresult
+  refine ⟨ves', hwf, hframe, ?_⟩
+  intro safety
+  have hbefore := (wf.tr (safety := safety)).checkerEnv
+  have hafter := (hwf.tr (safety := safety)).checkerEnv
+  exact ⟨hle safety, hafter,
+    hbefore.hasPrimitives_of_frame hafter (hle safety)
+      (wf.hasPrimitives (safety := safety)) hframe⟩
 
 theorem AddInductive.declareInductiveTypes.preservesPrimitives
     (ctx : AddInductive.Context) (stats : AddInductive.InductiveStats)
