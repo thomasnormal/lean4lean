@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.StagedLeaves
+import Lean4Lean.Verify.RestrictedContext
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.TypeChecker
@@ -583,6 +583,42 @@ example (natFirst isUnsafe : Bool) :
   pairThenOrdinaryInterfaces natFirst isUnsafe (seededTrEnv _).checkerEnv seededPrimitives
     seededPrimitiveSafety DefinitionSafety.le_rfl
 
+private theorem restrictedOrdinaryInterfaces (isUnsafe : Bool)
+    {native : Kernel.Environment} {semantic : VEnv} {safety : DefinitionSafety}
+    (hchecker : CheckerEnv safety native semantic) (hp : semantic.HasPrimitives)
+    (hsafe : NativePrimitiveSafety native)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe) :
+    (checkedConstructorStage #[{ family with ctors := [familyCtor] }] isUnsafe
+      (context native isUnsafe)).WF fun result =>
+      ∃ final, Nonempty (RestrictedContext safety result final) :=
+  (acceptedOrdinaryInterfaces isUnsafe hchecker hp hsafe hsafety).mono fun _ =>
+    fun ⟨final, hfinal, hp', hsafe', _⟩ =>
+      ⟨final, ⟨RestrictedContext.ofOrdinary hfinal hp' hsafe' []⟩⟩
+
+example (isUnsafe : Bool) :
+    (checkedConstructorStage #[{ family with ctors := [familyCtor] }] isUnsafe
+      (context seededNative isUnsafe)).WF fun result =>
+      ∃ final, Nonempty (RestrictedContext (if isUnsafe then .unsafe else .safe) result final) :=
+  restrictedOrdinaryInterfaces isUnsafe (seededTrEnv _).checkerEnv seededPrimitives
+    seededPrimitiveSafety DefinitionSafety.le_rfl
+
+private theorem pairThenRestrictedInterfaces (natFirst isUnsafe : Bool)
+    {native : Kernel.Environment} {semantic : VEnv} {safety : DefinitionSafety}
+    (hchecker : CheckerEnv safety native semantic) (hp : semantic.HasPrimitives)
+    (hsafe : NativePrimitiveSafety native)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe) :
+    (pairThenOrdinary natFirst isUnsafe (context native isUnsafe)).WF fun result =>
+      ∃ final, Nonempty (RestrictedContext safety result final) :=
+  (pairThenOrdinaryInterfaces natFirst isUnsafe hchecker hp hsafe hsafety).mono fun _ =>
+    fun ⟨final, hfinal, hp', hsafe'⟩ =>
+      ⟨final, ⟨RestrictedContext.ofOrdinary hfinal hp' hsafe' []⟩⟩
+
+example (natFirst isUnsafe : Bool) :
+    (pairThenOrdinary natFirst isUnsafe (context seededNative isUnsafe)).WF fun result =>
+      ∃ final, Nonempty (RestrictedContext (if isUnsafe then .unsafe else .safe) result final) :=
+  pairThenRestrictedInterfaces natFirst isUnsafe (seededTrEnv _).checkerEnv seededPrimitives
+    seededPrimitiveSafety DefinitionSafety.le_rfl
+
 private def boolHeaderNative := emptyNative.add (.inductInfo { familyInfo with name := ``Bool })
 
 private theorem boolHeaderPrimitiveSafety : NativePrimitiveSafety boolHeaderNative := by
@@ -787,5 +823,19 @@ run_meta
     ``Lean.Expr.hasLevelParam_eq, ``Lean.Level.hasMVar_eq, ``Lean.Level.instLawfulBEqLevel]
   audit ``Lean4Lean.TypeChecker.Inner.infer_sort.checker [``propext, ``Quot.sound,
     ``Classical.choice, ``sorryAx]
+  audit ``RestrictedContext.ofOrdinary [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx]
+  audit ``RestrictedContext.inferSort [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx]
+  audit ``RestrictedContext.inferConstant [``propext, ``Quot.sound, ``Classical.choice,
+    ``sorryAx, ``Lean.Level.hasParam_eq, ``Lean.PersistentHashMap.WF.find?_eq,
+    ``Lean.PersistentHashMap.WF.toList'_insert, ``Lean.PersistentHashMap.findAux_isSome,
+    ``Lean.Expr.replace_eq, ``Lean.Expr.hasLevelParam_eq, ``Lean.Level.hasMVar_eq,
+    ``Lean.Level.instLawfulBEqLevel]
+  audit ``restrictedOrdinaryInterfaces [``propext, ``Quot.sound, ``Classical.choice,
+    ``sorryAx, ``Lean.PersistentHashMap.findAux_isSome, ``Lean.PersistentHashMap.WF.find?_eq,
+    ``Lean.PersistentHashMap.WF.toList'_insert]
+  audit ``pairThenRestrictedInterfaces [``propext, ``Quot.sound, ``Classical.choice,
+    ``sorryAx, ``Lean.Expr.eqv_eq, ``Lean.Level.instLawfulBEqLevel, ``Lean.Syntax.structEq_eq,
+    ``Lean.PersistentHashMap.findAux_isSome, ``Lean.PersistentHashMap.WF.find?_eq,
+    ``Lean.PersistentHashMap.WF.toList'_insert]
 
 end CheckerEnvironmentTest

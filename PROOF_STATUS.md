@@ -89,6 +89,14 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   These are leaf contracts only: they do not construct a `VContext`, replace
   the admitted checker stack, or establish application, projection, recursor,
   inductive metadata, or full frontend soundness.
+- `RestrictedContext` packages `CheckerEnv`, semantic primitive contracts,
+  native primitive safety, universe parameters, and a well-formed no-bound-
+  variable semantic scope without requiring `TrEnv`. Its `inferConstant` and
+  `inferSort` bridges reuse the leaf contracts above, and ordinary staging
+  controls construct such a context after complete header/constructor
+  registration. This is an intentionally restricted staged checker relation:
+  it carries no native constructor/projection/recursor metadata and does not
+  widen the existing `VContext.trenv` admission scope.
 - `Environment.checkPrimitiveInductive.eq_true_iff` characterizes exactly when
   the primitive-inductive validator returns `true`: a safe, monomorphic,
   parameter-free singleton declaration with precisely the `Bool` or `Nat`

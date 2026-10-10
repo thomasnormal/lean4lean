@@ -7,6 +7,7 @@ import Lean4Lean.Verify.ConstructorHeaders
 import Lean4Lean.Verify.PrimitiveInterfaces
 import Lean4Lean.Verify.OrdinaryInterfaces
 import Lean4Lean.Verify.StagedLeaves
+import Lean4Lean.Verify.RestrictedContext
 import Lean4Lean.Verify.ConstructorArity
 import Lean4Lean.Verify.ConstructorParams
 import Lean4Lean.Verify.InductivePositivity
