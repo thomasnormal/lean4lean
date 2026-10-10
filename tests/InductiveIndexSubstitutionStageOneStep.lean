@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveIndexSubstitutionStageBinding
+import Lean4Lean.Verify.InductiveSingletonParameterReplacement
 import Lean.Util.CollectAxioms
 
 namespace InductiveIndexSubstitutionStageOneStepTest
@@ -1560,6 +1560,100 @@ private theorem existingIndexPrefixIsNotBoundByAnEmptyActualHistory :
     nativeIdentity ▸ sourceAbstracted, sourceAbstractedTyped, nativeIdentity ▸ targetAbstracted, targetAbstractedTyped,
     originalAgreement, targetAgreement⟩
 
+private def singletonTargetSeed : MLCtx := pushSortModel .nil dependentSeedReader
+
+private def singletonSourceReader : Context := nextReader dependentSeedReader
+
+private def singletonPostReader : Context :=
+  { nextReader singletonSourceReader with lctx := singletonTargetSeed.lctx }
+
+private def singletonPostTarget : MLCtx := insertedMixedBase singletonTargetSeed singletonPostReader
+
+private def singletonReplacementFixture (replacement : Expr) (argument : VExpr)
+    (state : ElimNestedInductive.State) : Prop :=
+  let seed := singletonTargetSeed
+  let reader := singletonSourceReader
+  let source := pushSortModel seed reader
+  let actualReader := originalMixedReader (nextReader reader)
+  let endpoint := (dependentNativeStageBody actualReader (generated reader)).instantiate1 (.fvar (generated reader))
+  ∃ (reduced : MLCtx) (nativeType : Expr) (semantic : VExpr) (level : VLevel),
+    SelectedRecursorTelescope VEnv.empty [] (dependentFinalReader actualReader).lctx source
+      [generated actualReader, generated (nextReader actualReader)] reduced ∧
+    nativeType = reduced.lctx.mkForall (twoIndexArray actualReader) endpoint ∧
+    TrExprS VEnv.empty [] source.vlctx nativeType semantic ∧
+    VEnv.empty.HasType 0 source.vlctx.toCtx semantic (.sort level) ∧
+    (ElimNestedInductive.replaceParams #[replacement] nativeType #[.fvar (generated reader)]
+      dependentSeedReader.env state).WF fun returned =>
+        returned.2 = state ∧ returned.1 = (nativeType.abstract1 (generated reader)).instantiate1' replacement ∧
+        TrExprS VEnv.empty [] seed.vlctx returned.1 (semantic.inst argument) ∧
+        VEnv.empty.HasType 0 seed.vlctx.toCtx (semantic.inst argument) (.sort level) ∧
+        Closed returned.1 0 ∧ returned.1.looseBVarRange' = 0 ∧
+        returned.1.FVarsIn (· ∈ seed.vlctx.fvars) ∧ generated reader ∉ seed.vlctx.fvars ∧
+        TrExprS VEnv.empty [] singletonPostTarget.vlctx returned.1
+          ((semantic.inst argument).lift' (.skip (.skip .refl))) ∧
+        VEnv.empty.HasType 0 singletonPostTarget.vlctx.toCtx
+          ((semantic.inst argument).lift' (.skip (.skip .refl))) (.sort level)
+
+private theorem actualDependentTelescopeSuppliesTheSingletonReplacementFixture
+    {replacement : Expr} {argument : VExpr}
+    (replacementTranslated : TrExprS VEnv.empty [] singletonTargetSeed.vlctx replacement argument)
+    (replacementTyped : VEnv.empty.HasType 0 singletonTargetSeed.vlctx.toCtx argument (.sort .zero))
+    (state : ElimNestedInductive.State) : singletonReplacementFixture replacement argument state := by
+  let seed := singletonTargetSeed
+  let reader := singletonSourceReader
+  let source := pushSortModel seed reader
+  let actualReader := originalMixedReader (nextReader reader)
+  have envWF : VEnv.empty.WF := ⟨[], .empty⟩
+  have seedCreated := pushSortModelIsWellFormed (env := VEnv.empty) (universes := [])
+    .nil trivial dependentSeedReader rfl (ContextReserved.empty _)
+  have sourceCreated := pushSortModelIsWellFormed seed seedCreated.1 reader seedCreated.2.1 seedCreated.2.2
+  obtain ⟨chronological, reduced, target, reducedArgument, reducedDomain, reducedBody,
+    chronologicalConverted, sourceTelescope, targetTelescope, sourceFVars, targetFVars,
+    insertionWeakening, bodyTranslation, bodyTyping, sourceTranslation, sourceTyping,
+    targetTranslation, targetTyping, commutingTyping, endpointEquality, endpointClosed, endpointSupport⟩ :=
+    genuineDependentTwoStepHistoryRebasesConstructedMixedBases (env := VEnv.empty) (universes := [])
+      (stats := noParameterStats) rfl seed seedCreated.1 reader seedCreated.2.1 seedCreated.2.2 envWF 0 rfl
+  obtain ⟨boundTranslated, level, boundTyped⟩ := sourceTelescope.extension.typedBodyAbstractionS
+    envWF (sourceTelescope.context sourceCreated.1) sourceTranslation ⟨dependentStageLevel, sourceTyping⟩
+  have postReserved : ContextReserved singletonPostReader.lctx singletonPostReader.ngen := by
+    intro declaration member
+    apply NameGenerator.Reserves.mono NameGenerator.LE.next
+    apply seedCreated.2.2 declaration
+    simpa only [singletonPostReader, seedCreated.2.1] using member
+  have postBases := constructedMixedBasesAreWellFormed seed seedCreated.1 singletonPostReader rfl postReserved
+  have postWeakening := (constructedMixedBaseWeakenings seed singletonPostReader).2.toFVLift'
+  refine ⟨reduced, _, _, level, sourceTelescope, rfl, boundTranslated, boundTyped, ?_⟩
+  exact ElimNestedInductive.replaceParams.singleton_typedRebased (base := seed)
+    envWF sourceCreated.1 boundTranslated boundTyped replacementTranslated replacementTyped
+    postBases.2.2.2.1 postWeakening dependentSeedReader.env state
+
+private theorem distinctDeclaredParameterReplacesTheActualBoundTelescope
+    (state : ElimNestedInductive.State) :
+    singletonReplacementFixture (.fvar (generated dependentSeedReader)) (.bvar 0) state := by
+  exact actualDependentTelescopeSuppliesTheSingletonReplacementFixture
+    (TrExprS.fvar (A := .sort .zero) rfl) (.bvar .zero) state
+
+private def betaParameterReplacement : Expr :=
+  .app (.lam `parameterIdentity (.sort .zero) (.bvar 0) .default) (.fvar (generated dependentSeedReader))
+
+private def betaParameterSemantic : VExpr := .app (.lam (.sort .zero) (.bvar 0)) (.bvar 0)
+
+private theorem nonliteralTypedArgumentReplacesTheActualBoundTelescope
+    (state : ElimNestedInductive.State) :
+    singletonReplacementFixture betaParameterReplacement betaParameterSemantic state := by
+  have domainTyped : VEnv.empty.HasType 0 singletonTargetSeed.vlctx.toCtx
+      (.sort .zero) (.sort (.succ .zero)) := .sortDF (by trivial) (by trivial) rfl
+  have identityTyped : VEnv.empty.HasType 0 singletonTargetSeed.vlctx.toCtx
+      (.lam (.sort .zero) (.bvar 0)) (.forallE (.sort .zero) (.sort .zero)) :=
+    .lamDF domainTyped (.bvar .zero)
+  have argumentTyped : VEnv.empty.HasType 0 singletonTargetSeed.vlctx.toCtx (.bvar 0) (.sort .zero) := .bvar .zero
+  have identityTranslation : TrExprS VEnv.empty [] singletonTargetSeed.vlctx
+      (.lam `parameterIdentity (.sort .zero) (.bvar 0) .default) (.lam (.sort .zero) (.bvar 0)) :=
+    .lam ⟨.succ .zero, domainTyped⟩ (.sort (by simp [VLevel.ofLevel])) (.bvar rfl)
+  exact actualDependentTelescopeSuppliesTheSingletonReplacementFixture
+    (.app identityTyped argumentTyped identityTranslation (.fvar (A := .sort .zero) rfl))
+    (identityTyped.app argumentTyped) state
+
 private theorem theStoredStepAndArrayReallyContainOneFreshIndex (reader : Context) :
     [oneStep reader][0]? = some (oneStep reader) ∧
     [oneStep reader][1]? = none ∧
@@ -1738,6 +1832,108 @@ private def expectedNativeDependentStageTelescope : Expr :=
         (.letE `proofUse (.bvar 2) (.bvar 1) (.fvar (generated dependentSeedReader)) true) .default)
       .default) .default
 
+private def auditSingletonReplacementModule (allowed : List Name) : MetaM Unit := do
+  let environment ← getEnv
+  let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveSingletonParameterReplacement
+    | throwError "singleton replacement module absent"
+  let mut declarations := 0
+  for (name, information) in environment.constants do
+    if environment.getModuleIdxFor? name == some moduleIndex then
+      if information matches .axiomInfo _ then throwError "singleton replacement module-owned axiom {name}"
+      auditDeclaration name allowed
+      declarations := declarations + 1
+  unless declarations == 3 do
+    throwError "singleton replacement declaration manifest changed: expected 3, got {declarations}"
+  logInfo m!"singleton replacement: {declarations} module-owned declarations including generated helpers audited"
+
+private def singletonReplacementRuntimeControls : MetaM Unit := do
+  let seed := singletonTargetSeed
+  let reader := singletonSourceReader
+  let source := pushSortModel seed reader
+  let actualReader := originalMixedReader (nextReader reader)
+  let selected := dependentIndexModel source actualReader
+  let sourceIdentifier := generated reader
+  let targetIdentifier := generated dependentSeedReader
+  let first := generated actualReader
+  let second := generated (nextReader actualReader)
+  let endpoint := (dependentNativeStageBody actualReader sourceIdentifier).instantiate1 (.fvar sourceIdentifier)
+  let nativeType := selected.lctx.mkForall (twoIndexArray actualReader) endpoint
+  let replacement := Expr.fvar targetIdentifier
+  let expected := Expr.forallE `oneIndex (.sort .zero)
+    (.forallE `dependentIndex (.bvar 0)
+      (.forallE `formalUse replacement (.letE `proofUse (.bvar 2) (.bvar 1) replacement true) .default)
+      .default) .default
+  let expectedBeta := Expr.forallE `oneIndex (.sort .zero)
+    (.forallE `dependentIndex (.bvar 0)
+      (.forallE `formalUse betaParameterReplacement
+        (.letE `proofUse (.bvar 2) (.bvar 1) betaParameterReplacement true) .default) .default) .default
+  let state : ElimNestedInductive.State :=
+    { ngen := { namePrefix := `SingletonReplacementState, idx := 17 },
+      nestedAux := #[(.sort .zero, `PreviouslyRecordedNestedAux)], lvls := [.zero], newTypes := #[], nextIdx := 73 }
+  let .ok (returned, returnedState) := ElimNestedInductive.replaceParams #[replacement] nativeType
+      #[.fvar sourceIdentifier] dependentSeedReader.env state
+    | throwError "singleton replacement unexpectedly failed"
+  let .ok (returnedBeta, _) := ElimNestedInductive.replaceParams #[betaParameterReplacement] nativeType
+      #[.fvar sourceIdentifier] dependentSeedReader.env state
+    | throwError "singleton beta replacement unexpectedly failed"
+  let .ok (unsupported, _) := ElimNestedInductive.replaceParams #[.fvar sourceIdentifier] nativeType
+      #[.fvar sourceIdentifier] dependentSeedReader.env state
+    | throwError "unsupported replacement raw operation unexpectedly failed"
+  let .ok (wrongDomain, _) := ElimNestedInductive.replaceParams #[.sort .zero] nativeType
+      #[.fvar sourceIdentifier] dependentSeedReader.env state
+    | throwError "wrong-domain replacement raw operation unexpectedly failed"
+  let checkReader := { reader with lctx := seed.lctx, fuel := { recDepth := 256 } }
+  let checks := [
+    (sourceIdentifier != targetIdentifier, "source and target parameter IDs are genuinely distinct"),
+    ((#[replacement] : Array Expr).size == 1 && (#[.fvar sourceIdentifier] : Array Expr).size == 1,
+      "both actual executable parameter arrays are nonempty singletons"),
+    (nativeType.looseBVarRange' == 0, "bound dependent native telescope supplies range-zero source scope"),
+    (returned == expected, "actual replacement changes the formal domain and let body beneath dependent binders"),
+    (returnedBeta == expectedBeta, "actual replacement accepts a nonliteral well-typed beta-valued argument"),
+    (returned == (nativeType.abstract1 sourceIdentifier).instantiate1' replacement,
+      "actual reverse instantiation agrees with structural singleton substitution"),
+    (returnedBeta == (nativeType.abstract1 sourceIdentifier).instantiate1' betaParameterReplacement,
+      "nonliteral reverse instantiation agrees with structural singleton substitution"),
+    (returned.looseBVarRange' == 0 && returnedBeta.looseBVarRange' == 0,
+      "both actual replacement outputs remain structurally scoped"),
+    (!returned.fvarsList.contains sourceIdentifier && !returnedBeta.fvarsList.contains sourceIdentifier,
+      "old source parameter does not escape either replacement"),
+    (returned.fvarsList == [targetIdentifier, targetIdentifier],
+      "fvar replacement keeps exactly the declared target parameter support"),
+    (!returned.fvarsList.contains first && !returned.fvarsList.contains second,
+      "actual dependent indices remain bound after parameter replacement"),
+    (returnedState.ngen.curr == state.ngen.curr && returnedState.nextIdx == state.nextIdx,
+      "actual operation preserves nontrivial name-generator and counter state"),
+    (returnedState.nestedAux == state.nestedAux && returnedState.lvls == state.lvls && returnedState.newTypes.size == 0,
+      "actual operation preserves remembered auxiliary declarations and levels"),
+    (match ((monadLift (TypeChecker.checkType returned) : M Expr) checkReader) with
+      | .ok (.sort .zero) => true
+      | _ => false, "actual substituted telescope is type-checked in the target-parameter seed"),
+    (match ((monadLift (TypeChecker.checkType returnedBeta) : M Expr) checkReader) with
+      | .ok (.sort .zero) => true
+      | _ => false, "actual beta-substituted telescope is type-checked in the target-parameter seed"),
+    (match ((monadLift (TypeChecker.checkType returned) : M Expr)
+        { checkReader with lctx := singletonPostTarget.lctx }) with
+      | .ok (.sort .zero) => true
+      | _ => false, "actual result remains type-checked through independent two-declaration insertion"),
+    (unsupported.fvarsList.contains sourceIdentifier,
+      "raw execution alone can preserve an unsupported source argument"),
+    (match ((monadLift (TypeChecker.checkType unsupported) : M Expr) checkReader) with
+      | .error _ => true
+      | .ok _ => false, "missing target-context argument translation is a real rejection boundary"),
+    (match ((monadLift (TypeChecker.checkType wrongDomain) : M Expr) checkReader) with
+      | .ok (.sort .zero) => false
+      | _ => true, "raw execution without argument typing does not preserve the original result universe")]
+  for (condition, label) in checks do
+    unless condition do throwError "singleton replacement runtime failed: {label}"
+  let loose := Expr.app (.fvar sourceIdentifier) (.bvar 0)
+  let .ok (nativeLoose, _) := ElimNestedInductive.replaceParams #[replacement] loose
+      #[.fvar sourceIdentifier] dependentSeedReader.env state
+    | throwError "raw loose-body replacement unexpectedly failed"
+  unless nativeLoose != (loose.abstract1 sourceIdentifier).instantiate1' replacement do
+    throwError "singleton replacement source-scope boundary changed"
+  logInfo m!"singleton replacement runtime: {checks.length + 1} additional actual nonempty-array, dependent binding, native/structural substitution, state preservation, target/insertion type-checking and scope/argument boundaries"
+
 private def nativeStageBindingRuntimeControls : MetaM Unit := do
   let seedReader := dependentSeedReader
   let baseReader := nextReader seedReader
@@ -1902,6 +2098,11 @@ run_meta
     ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq]
   let bindingAllowed := adapterAllowed ++ abstractionInterfaces
   let abstractionAllowed := adapterAllowed.filter (· != ``Expr.instantiate1_eq) ++ abstractionInterfaces
+  let replacementInterfaces := [``Expr.instantiateRev_eq, ``Expr.instantiate_eq]
+  let singletonRawAllowed := logical ++ [``Expr.abstract_eq] ++ replacementInterfaces
+  let singletonTypedAllowed := adapterAllowed.filter (· != ``Expr.instantiate1_eq) ++
+    [``Expr.abstract_eq] ++ replacementInterfaces
+  let replacementAllowed := bindingAllowed ++ replacementInterfaces
   let actualControls := [``constructActualIndexOpening, ``constructGenuineOneStepHistory,
     ``oneActualStoredDomainIsSupported, ``actualNewIndexIsFreshInTheBase,
     ``translatedStageUsesTheFormalNewIndexAndSelectedParameter, ``genuineOneStepHistoryInvokesTheStageAdapter,
@@ -1948,6 +2149,14 @@ run_meta
   auditExactDependencies ``emptySelectedTelescopeBindingAddsNoSemanticBinder abstractionAllowed
   auditExactDependencies ``existingIndexPrefixIsNotBoundByAnEmptyActualHistory bindingAllowed
   auditNativeStageBindingModule bindingAllowed
+  auditExactDependencies ``ElimNestedInductive.replaceParams.singleton_eq singletonRawAllowed
+  auditExactDependencies ``ElimNestedInductive.replaceParams.singleton_typed singletonTypedAllowed
+  auditExactDependencies ``ElimNestedInductive.replaceParams.singleton_typedRebased singletonTypedAllowed
+  auditExactDependencies ``actualDependentTelescopeSuppliesTheSingletonReplacementFixture replacementAllowed
+  auditExactDependencies ``distinctDeclaredParameterReplacesTheActualBoundTelescope replacementAllowed
+  auditExactDependencies ``nonliteralTypedArgumentReplacesTheActualBoundTelescope replacementAllowed
+  auditSingletonReplacementModule singletonTypedAllowed
+  auditDeclaration ``singletonReplacementFixture (logical ++ [``sorryAx])
   for name in [``generated, ``nextReader, ``nextVirtual, ``normalizationReceipt, ``oneStep,
       ``nativeStageBody, ``stageSemantic, ``stageLevel, ``semanticPosition, ``semanticShape, ``runtimeControls,
       ``pushSortModel, ``advanceReaderTwice, ``removedMixedBase, ``originalMixedReader, ``insertedMixedBase,
@@ -1959,6 +2168,9 @@ run_meta
       ``dependentTwoIndexRuntimeControls,
       ``nativeDependentStageTelescope, ``dependentIndexModel, ``expectedNativeDependentStageTelescope,
       ``nativeStageBindingRuntimeControls, ``auditNativeStageBindingModule,
+      ``singletonTargetSeed, ``singletonSourceReader, ``singletonPostReader, ``singletonPostTarget,
+      ``betaParameterReplacement, ``betaParameterSemantic,
+      ``singletonReplacementRuntimeControls, ``auditSingletonReplacementModule,
       ``auditDeclaration, ``auditExactDependencies, ``auditFixtureDeclarations] do auditDeclaration name logical
   auditExactDependencies ``nativeSortNormalizationWithPositiveDepth (logical ++ [``Expr.instantiate1_eq])
   auditExactDependencies ``genuineOneStepHistoryInvokesTheStageAdapter adapterAllowed
@@ -1968,14 +2180,16 @@ run_meta
   auditExactDependencies ``dependentNativeNormalizationsWithPositiveDepth (logical ++ [``Expr.instantiate1_eq])
   auditExactDependencies ``genuineDependentTwoStepHistoryRebasesConstructedMixedBases adapterAllowed
   auditExactDependencies ``emptySeedExercisesTheDependentAdapterWithoutFixturePremises adapterAllowed
-  auditFixtureDeclarations bindingAllowed
+  auditFixtureDeclarations replacementAllowed
   runtimeControls
   twoIndexRuntimeControls
   dependentTwoIndexRuntimeControls
   nativeStageBindingRuntimeControls
+  singletonReplacementRuntimeControls
   logInfo m!"one-step-stage tests: {actualControls.length + structuralControls.length + 1} proof controls; real index/stop trace and actual array push; real peeled opening and nonvacuous stored declaration; constructed retained parameter, original one-declaration removal and independent two-declaration target insertion; shared reduced body, suffix support, target native translation/typing and original endpoint agreement; native sort normalization proved at positive depth; both identity and mixed-base applications tied to actual pushed suffix receipt"
   logInfo m!"two-step-stage tests: {twoStepControls.length + twoStructuralControls.length + 1} additional proof controls ({actualControls.length + structuralControls.length + twoStepControls.length + twoStructuralControls.length + 2} total); actual index/index/stop history, positive-depth native forall/sort normalization, real peeled openings and two existing stored declarations; chronological IDs from actual array pushes versus reversed selected-telescope endpoint support; both-index stage body, shared existential reduced body, nonidentity cutoff-two source/target native translations/typing and original endpoint agreement"
   logInfo m!"dependent-two-step-stage tests: {dependentControls.length + dependentStructuralControls.length + 1} additional proof controls ({actualControls.length + structuralControls.length + twoStepControls.length + twoStructuralControls.length + dependentControls.length + dependentStructuralControls.length + 3} total); genuine dependent index/index/stop history, actual stored second domain referencing first index, typed proof-valued native let, derived removal-one/insertion-two maps, shared existential reduced body and source/target translation/typing; empty seed and empty environment instantiate the full adapter with no fixture premises"
   logInfo "native-stage-binding tests: three additional fixture proof controls plus three exact module contracts; one native telescope translates strictly and is type-valued in original/removal-one and reduced/insertion-two base contexts, with abstracted semantic agreement at the distinct base maps; body and all three native contexts have derived structural binding scope, chronological selected arrays and dependent binder order; an actual empty history with nonempty retained array prefix binds nothing; no fixture premises, global native range axiom, arbitrary later-context scope or frontend acceptance claim"
+  logInfo "singleton replacement tests: three additional fixture proof controls plus three exact module contracts; actual dependent history supplies a scoped bound telescope, old parameter declaration over a distinct declared target-parameter seed, and typed singleton replacement/reverse instantiation; both fvar and nonliteral beta arguments preserve native state and yield strict substituted translations/typing, scope/support and source freshness under the target seed and independent two-declaration insertion; no whole-prefix reverse substitution or frontend acceptance claim"
 
 end InductiveIndexSubstitutionStageOneStepTest
