@@ -111,7 +111,14 @@ private theorem actualHistoryPairSubstitutionPreservesEveryReceipt
       env.IsDefEq universes.length chronological.vlctx.toCtx
         (pairSemantic bodySemantic (reducedOuterArgument.lift' (.consN baseLift ids.length))
           (reducedInnerArgument.lift' (.consN baseLift ids.length)))
-        (reducedSemantic.lift' (.consN baseLift ids.length)) (.sort level) := by
+        (reducedSemantic.lift' (.consN baseLift ids.length)) (.sort level) ∧
+      SemanticSubstitutionChain env universes.length chronological.vlctx.toCtx level
+        (pairSemantic bodySemantic originalOuterArgument originalInnerArgument)
+        (pairSemantic bodySemantic (reducedOuterArgument.lift' (.consN baseLift ids.length)) originalInnerArgument) ∧
+      env.IsDefEq universes.length chronological.vlctx.toCtx
+        (pairSemantic bodySemantic (reducedOuterArgument.lift' (.consN baseLift ids.length)) originalInnerArgument)
+        (pairSemantic bodySemantic (reducedOuterArgument.lift' (.consN baseLift ids.length))
+          (reducedInnerArgument.lift' (.consN baseLift ids.length))) (.sort level) := by
   exact history.selectedTelescopeRebasedSubstitutedPairTypeOfStoredDomains model modelWF native converted
     reserved current frame envWF smaller smallerWF baseLift baseWeakening stored values parameters
     prefixRetained larger largerWF inserted insertion freshBase outerPosition outerIdentifier outerSelected
@@ -127,12 +134,22 @@ private theorem emptyActualHistoryInstantiatesBothFormalBinders
     {outerArgument innerArgument : VExpr} {outerLevel innerLevel : VLevel}
     (outerLookup : model.vlctx.find? (.inr outerIdentifier) = some (outerArgument, .sort outerLevel))
     (innerLookup : model.vlctx.find? (.inr innerIdentifier) = some (innerArgument, .sort innerLevel)) :
-    ∃ reduced target semantic,
+    ∃ reduced target semantic reducedInnerArgument reducedOuterArgument,
       SelectedRecursorTelescope env universes reader.lctx model [] reduced ∧
       SelectedRecursorTelescope env universes reader.lctx model [] target ∧
       TrExprS env universes target.vlctx
         (.forallE `pair (.fvar outerIdentifier) (.fvar innerIdentifier) .default) semantic ∧
-      env.HasType universes.length target.vlctx.toCtx semantic (.sort (.imax outerLevel innerLevel)) := by
+      env.HasType universes.length target.vlctx.toCtx semantic (.sort (.imax outerLevel innerLevel)) ∧
+      SemanticSubstitutionChain env universes.length model.vlctx.toCtx (.imax outerLevel innerLevel)
+        (pairSemantic (.forallE (.bvar 1) (.bvar 1)) outerArgument innerArgument)
+        (pairSemantic (.forallE (.bvar 1) (.bvar 1)) reducedOuterArgument innerArgument) ∧
+      env.IsDefEq universes.length model.vlctx.toCtx
+        (pairSemantic (.forallE (.bvar 1) (.bvar 1)) reducedOuterArgument innerArgument)
+        (pairSemantic (.forallE (.bvar 1) (.bvar 1)) reducedOuterArgument reducedInnerArgument)
+        (.sort (.imax outerLevel innerLevel)) ∧
+      env.IsDefEq universes.length model.vlctx.toCtx
+        (pairSemantic (.forallE (.bvar 1) (.bvar 1)) reducedOuterArgument innerArgument)
+        semantic (.sort (.imax outerLevel innerLevel)) := by
   have correspondence : TrLCtx env universes reader.lctx model.vlctx := by
     simpa only [native] using modelWF.tr
   have notForall : ∀ name domain body bi, Expr.sort .zero ≠ .forallE name domain body bi := by
@@ -153,15 +170,15 @@ private theorem emptyActualHistoryInstantiatesBothFormalBinders
   have typed : env.HasType universes.length (.sort innerLevel :: .sort outerLevel :: model.vlctx.toCtx)
       (.forallE (.bvar 1) (.bvar 1)) (.sort (.imax outerLevel innerLevel)) :=
     VEnv.HasType.forallE (.bvar (.succ .zero)) (.bvar (.succ .zero))
-  obtain ⟨_, ids, reduced, _, target, _, _, _, _, semantic,
-    _, _, _, _, array, reducedTelescope, _, _, _, targetTelescope, _, _, _, _, _,
+  obtain ⟨chronological, ids, reduced, _, target, reducedInnerArgument, _, reducedOuterArgument, _, semantic,
+    chronologicalWF, _, chronologicalConverted, _, array, reducedTelescope, _, _, _, targetTelescope, _, _, _, _, _,
     _, _, _, _,
     _, _, _, _,
     _, _, _,
     _, _,
     _, _, _,
-    _, _, _, _,
-    targetTranslation, targetTyping, _, _, _⟩ :=
+    _, _, commonEquality, _,
+    targetTranslation, targetTyping, _, _, _, outerChain, residualEquality⟩ :=
     history.selectedTelescopeRebasedSubstitutedPairTypeOfStoredDomains model modelWF native rfl reserved
       reader (.refl reader correspondence.1 reserved) envWF model modelWF .refl .refl stored rfl
       (by intro candidate member
@@ -173,9 +190,14 @@ private theorem emptyActualHistoryInstantiatesBothFormalBinders
       outerLookup innerLookup raisedTyped translated typed (by simp [Closed]) (by trivial)
   have idsEmpty : ids = [] := by simpa using array.symm
   subst ids
-  refine ⟨reduced, target, semantic, reducedTelescope, targetTelescope, ?_, ?_⟩
+  have residualCommon := outerChain.cancelLeft commonEquality envWF chronologicalWF.tr.wf.toCtx
+  refine ⟨reduced, target, semantic, reducedInnerArgument, reducedOuterArgument,
+    reducedTelescope, targetTelescope, ?_, ?_, ?_, ?_, ?_⟩
   · simpa [Expr.instantiate1_eq, Expr.instantiate1'] using targetTranslation
   · simpa using targetTyping
+  · simpa [chronologicalConverted, pairSemantic] using outerChain
+  · simpa [chronologicalConverted, pairSemantic] using residualEquality
+  · simpa [chronologicalConverted, pairSemantic] using residualCommon
 
 private def outerParameter : FVarId := ⟨`IndexPairSubstitutionOuterParameter⟩
 private def innerParameter : FVarId := ⟨`IndexPairSubstitutionInnerParameter⟩
@@ -289,6 +311,29 @@ private theorem bothReducedInnerArgumentStillNeedsItsAnonymousOuterLift :
   intro equality
   cases equality
 
+private def chronologicalRemoval : Lift := .consN (.skip .refl) 2
+private def chronologicalBeta (position : Nat) : VExpr :=
+  .app (.lam (.sort .zero) (.bvar 0)) (.bvar position)
+private def chronologicalPairBefore : VExpr :=
+  pairSemantic (.forallE (.bvar 1) (.bvar 1)) (chronologicalBeta 4) (chronologicalBeta 3)
+private def chronologicalPairOuterOnly : VExpr :=
+  pairSemantic (.forallE (.bvar 1) (.bvar 1))
+    ((VExpr.bvar 3).lift' chronologicalRemoval) (chronologicalBeta 3)
+private def chronologicalPairBothReduced : VExpr :=
+  pairSemantic (.forallE (.bvar 1) (.bvar 1))
+    ((VExpr.bvar 3).lift' chronologicalRemoval) ((VExpr.bvar 2).lift' chronologicalRemoval)
+
+private theorem nonliteralOuterOnlyBoundaryKeepsChronologicalInnerArgument :
+    (chronologicalBeta 3).lift' chronologicalRemoval = chronologicalBeta 4 ∧
+      chronologicalPairOuterOnly = .forallE (.bvar 4) (chronologicalBeta 4) ∧
+      chronologicalPairOuterOnly ≠ chronologicalPairBefore ∧
+      chronologicalPairOuterOnly ≠ chronologicalPairBothReduced := by
+  refine ⟨rfl, rfl, ?_, ?_⟩
+  · intro equality
+    cases equality
+  · intro equality
+    cases equality
+
 private def semanticPosition : VExpr → Nat
   | .bvar position => position
   | _ => 1000
@@ -296,6 +341,14 @@ private def semanticPosition : VExpr → Nat
 private def semanticPairPositions : VExpr → Option (Nat × Nat)
   | .forallE (.bvar outerPosition) (.bvar innerPosition) => some (outerPosition, innerPosition)
   | _ => none
+
+private def semanticShape : VExpr → List Nat
+  | .bvar position => [0, position]
+  | .sort _ => [1]
+  | .lam domain body => [2] ++ semanticShape domain ++ semanticShape body
+  | .forallE domain body => [3] ++ semanticShape domain ++ semanticShape body
+  | .app function argument => [4] ++ semanticShape function ++ semanticShape argument
+  | _ => [5]
 
 private def runtimeControls : MetaM Unit := do
   let conditions := [
@@ -321,7 +374,13 @@ private def runtimeControls : MetaM Unit := do
     (semanticPosition ((VExpr.bvar 3).lift' (.consN (.skipN .refl 3) 2)) == 6, "outer insertion position"),
     (semanticPairPositions (pairSemantic (.forallE (.bvar 1) (.bvar 1)) (.bvar 4) (.bvar 3)) == some (4, 4), "both semantic argument shifts"),
     (semanticPairPositions (((VExpr.forallE (.bvar 1) (.bvar 1)).inst (.bvar 3)).inst (.bvar 4)) != some (4, 4), "missing raised inner argument"),
-    (semanticPairPositions (pairSemantic (.forallE (.bvar 1) (.bvar 1)) (.bvar 3) (.bvar 4)) != some (4, 4), "swapped semantic argument order")]
+    (semanticPairPositions (pairSemantic (.forallE (.bvar 1) (.bvar 1)) (.bvar 3) (.bvar 4)) != some (4, 4), "swapped semantic argument order"),
+    (semanticShape ((chronologicalBeta 3).lift' chronologicalRemoval) == semanticShape (chronologicalBeta 4), "nonliteral chronological removal cutoff"),
+    (semanticShape chronologicalPairBefore == semanticShape (.forallE (chronologicalBeta 4) (chronologicalBeta 4)), "both original beta arguments"),
+    (semanticShape chronologicalPairOuterOnly == semanticShape (.forallE (.bvar 4) (chronologicalBeta 4)), "outer-only keeps original inner beta"),
+    (semanticShape chronologicalPairBothReduced == semanticShape (.forallE (.bvar 4) (.bvar 4)), "both cutoff-reduced arguments"),
+    (semanticShape chronologicalPairOuterOnly != semanticShape chronologicalPairBefore, "outer-chain endpoint is nonliteral"),
+    (semanticShape chronologicalPairOuterOnly != semanticShape chronologicalPairBothReduced, "residual inner boundary is nonliteral")]
   for (condition, label) in conditions do
     unless condition do throwError "index-pair-substitution-rebase runtime failed: {label}"
   logInfo m!"index-pair-substitution-rebase runtime: {conditions.length} suffix/two-stage/order/selection/cutoff controls"
@@ -357,10 +416,11 @@ run_meta
     ``twoNativeStagesProtectTheSelectedLocalBinder, ``swappedSubstitutionOrderCannotProduceTheSameBody,
     ``missingSuffixCannotSupplyPairSupport, ``discardedInitialCannotSupplyPairSupport,
     ``twoNonzeroParameterPositionsAreNotTheIndexPrefixPositions, ``freshSuffixIdentifiersCannotReplaceSelectedParameters,
-    ``endpointCutoffsProtectBothIndicesAndShiftBothArguments, ``bothReducedInnerArgumentStillNeedsItsAnonymousOuterLift]
+    ``endpointCutoffsProtectBothIndicesAndShiftBothArguments, ``bothReducedInnerArgumentStillNeedsItsAnonymousOuterLift,
+    ``nonliteralOuterOnlyBoundaryKeepsChronologicalInnerArgument]
   for name in structuralControls do auditDeclaration name logical
   auditActualHistoryAdapter adapterAllowed
   runtimeControls
-  logInfo m!"index-pair-substitution-rebase tests: {structuralControls.length + 2} proof controls; all 15 history/parameter and 25 pair receipts forwarded; actual empty translated history uses both formal binders; retained prefix plus two chronological suffix IDs; intermediate/final support and closure; order/selection/lift boundaries"
+  logInfo m!"index-pair-substitution-rebase tests: {structuralControls.length + 2} proof controls; all 15 history/parameter and 27 pair receipts forwarded; actual empty translated history uses both formal binders and chain cancellation to the common result; retained prefix plus two chronological suffix IDs; nonliteral outer-only/residual boundaries; intermediate/final support and closure; order/selection/lift boundaries"
 
 end InductiveIndexPairSubstitutionRebaseTest

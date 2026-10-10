@@ -4819,6 +4819,16 @@ All 15 history/parameter receipts and 25 pair-substitution receipts remain
 available, including the actual intermediate body, both reduced arguments,
 depth-zero final closure, original/reduced/target type translations and typing,
 and outer-only/simultaneous agreements with the common reduced result.
+Two appended receipts now expose the actual outer-only semantic chain and
+the residual inner equality with the reduced outer argument held fixed, both
+in `chronological.vlctx.toCtx`. They are composed from the pure retained-pair
+helper after rewriting through the actual chronological endpoint and matching
+both reduced argument/type witnesses by exact source lookup uniqueness.
+Cancelling the outer chain against the existing rebase equality reconstructs
+the existing outer-only comparison with the same existential common reduced
+result. All previous 40 receipts retain their positions; the total is now 42.
+The changed-context inner substitution is not asserted to be a fixed-context
+chain stage, nor is the reduced result identified with contracted syntax.
 Both-reduced interpretation typing and agreements stay in chronological
 coordinates under `consN baseLift ids.length`; target transport independently
 uses `consN (skipN refl inserted) ids.length`. Inner arguments are raised only
@@ -4832,13 +4842,16 @@ domains/native telescopes, prove arbitrary typed-list recursion or native
 motive/minor typehood or establish checker/source acceptance.
 Run `lake env lean tests/InductiveIndexPairSubstitutionRebase.lean`.
 
-The focused history fixture has 14 proof controls and 23 runtime checks. It
-forwards all 15 history/parameter and 25 strengthened pair receipts, applies
+The focused history fixture has 15 proof controls and 29 runtime checks. It
+forwards all 15 history/parameter and 27 strengthened pair receipts, applies
 the adapter to an actual empty translated history whose body uses both formal
-binders, and separately checks a retained prefix with two chronological suffix
+binders and consumes the new outer chain and residual equality, deriving the
+outer-only comparison with the common reduced result by cancellation. It
+separately checks a retained prefix with two chronological suffix
 IDs, reversed support, intermediate/final closure, discarded-fvar rejection,
 nonzero parameter positions, nested-binder protection, swapped order, missing
-inner lifting and distinct removal/insertion cutoffs. Its exact eight-axiom
+inner lifting, distinct removal/insertion cutoffs and nonliteral beta arguments
+distinguishing original, outer-only and both-reduced endpoints. Its exact eight-axiom
 adapter manifest matches the prior actual-history boundary.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen

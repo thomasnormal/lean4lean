@@ -2,7 +2,7 @@ import Lean4Lean.Verify.InductiveIndexBaseInsertion
 import Lean4Lean.Verify.InductiveIndexBaseStrengthening
 import Lean4Lean.Verify.InductiveIndexDomainSupport
 import Lean4Lean.Verify.InductiveIndexRebaseTyping
-import Lean4Lean.Verify.InductiveParameterSubstitutionPair
+import Lean4Lean.Verify.InductiveParameterSubstitutionChain
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
@@ -466,7 +466,16 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedSubstitutedPairType
       env.IsDefEq universes.length chronological.vlctx.toCtx
         ((bodySemantic.inst (reducedInnerArgument.lift' (.consN baseLift ids.length)).lift).inst
           (reducedOuterArgument.lift' (.consN baseLift ids.length)))
-        (reducedSemantic.lift' (.consN baseLift ids.length)) (.sort level) := by
+        (reducedSemantic.lift' (.consN baseLift ids.length)) (.sort level) ∧
+      SemanticSubstitutionChain env universes.length chronological.vlctx.toCtx level
+        ((bodySemantic.inst originalInnerArgument.lift).inst originalOuterArgument)
+        ((bodySemantic.inst originalInnerArgument.lift).inst
+          (reducedOuterArgument.lift' (.consN baseLift ids.length))) ∧
+      env.IsDefEq universes.length chronological.vlctx.toCtx
+        ((bodySemantic.inst originalInnerArgument.lift).inst
+          (reducedOuterArgument.lift' (.consN baseLift ids.length)))
+        ((bodySemantic.inst (reducedInnerArgument.lift' (.consN baseLift ids.length)).lift).inst
+          (reducedOuterArgument.lift' (.consN baseLift ids.length))) (.sort level) := by
   obtain ⟨chronological, ids, reduced, aligned, target, chronologicalWF, chronologicalNative,
     chronologicalVirtual, extension, array, reducedTelescope, reducedWF, contraction, contexts,
     targetTelescope, targetWF, insertionWeakening, baseParameters, endpointParameters,
@@ -502,13 +511,21 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedSubstitutedPairType
     intermediateClosed, intermediateSupported, intermediateTranslation, intermediateTyped,
     reducedOuterLookup, reducedOuterTranslation, reducedOuterTyped, substitutedClosed,
     substitutedSupported, substitutedTranslation, substitutedTyped, outerEquality,
-    reducedTranslation, reducedType, rebaseEquality, alternativeEquality, targetTranslation, targetType,
+    reducedTranslation, reducedType, rebaseEquality, _, targetTranslation, targetType,
     simultaneousTyped, simultaneousEquality, simultaneousRebaseEquality⟩ :=
     chronologicalParameters.instantiatePairIsTypeRebased envWF contraction contexts insertionWeakening
       targetWF.tr.wf outerPosition outerIdentifier outerSelected innerPosition innerIdentifier innerSelected
       outerLookup' innerLookup' raisedInnerArgumentTyped' bodyTranslated' bodyTyped' bodyClosed reducedBodySupport
-  exact ⟨chronological, ids, reduced, aligned, target, reducedInnerArgument, reducedInnerArgumentType,
-    reducedOuterArgument, reducedOuterArgumentType, reducedSemantic, chronologicalWF,
+  obtain ⟨chainInnerArgument, chainInnerType, chainOuterArgument, chainOuterType,
+    chainInnerLookup, chainOuterLookup, _, _, outerChain, residualInnerEquality⟩ :=
+    chronologicalParameters.instantiatePairOuterChain envWF contexts.wf outerPosition outerIdentifier
+      outerSelected innerPosition innerIdentifier innerSelected outerLookup' innerLookup'
+      raisedInnerArgumentTyped' bodyTyped'
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (chainInnerLookup.symm.trans reducedInnerLookup))
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (chainOuterLookup.symm.trans reducedOuterLookup))
+  have alternativeEquality := outerChain.cancelLeft rebaseEquality envWF contexts.wf.toCtx
+  exact ⟨chronological, ids, reduced, aligned, target, chainInnerArgument, chainInnerType,
+    chainOuterArgument, chainOuterType, reducedSemantic, chronologicalWF,
     chronologicalNative, chronologicalVirtual, extension, array, reducedTelescope, reducedWF,
     contraction, contexts, targetTelescope, targetWF, insertionWeakening, baseParameters,
     endpointParameters, chronologicalParameters, reducedInnerLookup, reducedInnerTranslation,
@@ -516,6 +533,6 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedSubstitutedPairType
     intermediateTyped, reducedOuterLookup, reducedOuterTranslation, reducedOuterTyped, substitutedClosed,
     substitutedSupported, substitutedTranslation, substitutedTyped, outerEquality, reducedTranslation,
     reducedType, rebaseEquality, alternativeEquality, targetTranslation, targetType, simultaneousTyped,
-    simultaneousEquality, simultaneousRebaseEquality⟩
+    simultaneousEquality, simultaneousRebaseEquality, outerChain, residualInnerEquality⟩
 
 end Lean4Lean.AddInductive
