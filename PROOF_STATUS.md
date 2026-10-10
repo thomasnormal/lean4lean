@@ -3970,6 +3970,63 @@ bound-variable-range axiom even if accidentally whitelisted. All three
 modules replay through lean4lean. Run
 `lake env lean tests/InductiveUArgTranslation.lean`.
 
+`Verify.InductiveIHTrace` records the actual `mkRecInfos.loopU` recursive-
+hypothesis pass. Each node retains the successful `loopUArgs` opening and the
+exact temporary-reader abstraction of the selected motive applied to native
+indices and the fully applied recursive field. IH names come from the stored
+field metadata. Allocation occurs after the temporary reader has been
+discarded, with the original reader's generator and annotation-peeled domain.
+The trace proves ordered allocation, seeded-prefix preservation, persistent
+allocation counts and structural reader scope, without asserting domain typing
+or valid parent/head alignment from `getIIndices` or array defaulting.
+
+`Verify.InductiveIHTranslation` derives actual motive-body typing from the
+same UArg endpoint's application typing and explicit selected-motive arrow
+support. It abstracts precisely those temporary arguments, obtaining strong
+raw IH-domain translation and typehood in the initial constructor-field model.
+Canonical annotation conversion and explicit annotation-universe support then
+derive the stored domain and its exact pushed reader. The mixed model adds one
+IH to that restored initial model, never to the discarded argument model.
+Temporary argument IDs may legitimately be reused as IH IDs; only persistent
+IH declarations and generator steps survive.
+
+`Verify.InductiveIHTranslationCPS` retains the native source witness, its exact
+UArg endpoint, derived IH opening and constructed model in each typed step.
+The whole history threads those same models through the actual IH chronology;
+its composed extension contains only the ordered IH suffix. Successful-result-
+local support supplies inference/normalization translation, motive application
+typing and annotation compatibility at that exact source. Neither whole IH-
+domain typehood nor an independently aligned final model is a support premise.
+Getter and scoped CPS reach the actual IH-pass endpoint before minor allocation.
+
+With an empty initial hypothesis array, typed arbitrary-body abstraction over
+the derived IH suffix returns to the initial constructor-field model, retaining
+earlier fields and parent/motive locals. This is a minor-facing abstraction
+boundary, not verification of the actual minor body or domain. Deriving the
+source and selected-motive support from the checked parent/field histories,
+constructor application typing, head/index alignment, outer field abstraction
+and eventual minor/current-reader correspondence remain separate obligations.
+Inherited foundations and existing native interfaces remain explicitly audited;
+no new admission, axiom, oracle, runtime change, cache or fast path is introduced.
+
+`tests/InductiveIHTranslation.lean` adds thirty proof controls, 214 declaration
+audits, twelve axiom prints and eight existing native-interface provenance pins.
+Eighteen successful whole-loop captures, one allocation-only untyped-motive
+countercontrol and seven failure controls check actual IH IDs, names, domains,
+dependencies and order; restoration and reuse of temporary IDs; retained
+locals, fields, parameters and indices; seeded and skipped-prefix behavior;
+and inference/normalization/fuel/callback failures. An allocation-only
+untyped-motive countercontrol distinguishes native scope from semantic typing.
+Formal controls expose actual body/domain typing, restored-reader allocation,
+same-history model threading and abstraction back to the field model. Strict
+whole-module audits reject new module-owned axioms and runtime admissions and
+forbid the global native bound-variable-range axiom even if whitelisted.
+The new whole-module census is eighty-eight declarations / thirty-nine theorems,
+including private/generated helpers (native trace 31/14, semantic transport
+22/14, CPS 35/11); the old clean logical core stays seventy-three / thirty-eight.
+All three modules replay through lean4lean. Run
+`lake env lean tests/InductiveIHTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
