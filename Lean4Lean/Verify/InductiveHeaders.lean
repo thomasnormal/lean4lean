@@ -80,39 +80,6 @@ private theorem zipInductiveHeaders {safety : DefinitionSafety} {venv : VEnv}
     | cons index indices =>
       exact .cons (hmap _ index _ hheader) (ih (by simpa using hsize))
 
-private theorem registerInductiveHeaders.checkerWF {safety : DefinitionSafety}
-    {env : Kernel.Environment} {venv : VEnv} {infos : List InductiveVal}
-    {headers : List VInductiveType} (allowPrimitive : Bool)
-    (hchecker : CheckerEnv safety env venv)
-    (hheaders : List.Forall₂ (fun info header => info.name = header.name ∧
-      TrConstant safety venv (.inductInfo info) header.toVConstant) infos headers)
-    (htypes : ∀ header ∈ headers, header.toVConstant.WF venv) :
-    (infos.foldlM (fun (env : Kernel.Environment) (info : InductiveVal) => do
-      Kernel.Environment.checkName env info.name allowPrimitive
-      pure (env.add (.inductInfo info))) env).WF fun env' =>
-        ∃ venv', venv.addInductHeaders headers = some venv' ∧
-          CheckerEnv safety env' venv' := by
-  induction infos generalizing env venv headers with
-  | nil => cases hheaders; exact .pure ⟨venv, rfl, hchecker⟩
-  | cons info infos ih =>
-    cases hheaders with
-    | cons hinfo hrest =>
-      rename_i header headers
-      simp only [List.foldlM_cons, bind_assoc, pure_bind]
-      refine (checkName.WF env info.name allowPrimitive).bind fun _ ⟨hfresh, _⟩ => ?_
-      have hvfresh : venv.constants header.name = none :=
-        hinfo.1 ▸ hchecker.aligned.constants_eq_none hfresh
-      obtain ⟨nextVenv, hstep⟩ :
-          ∃ nextVenv, venv.addConst header.name header.toVConstant = some nextVenv := by
-        simp [VEnv.addConst, hvfresh]
-      have hnext := hchecker.addConst (ci := .inductInfo info) hfresh hinfo.2 rfl
-        (htypes header (by simp)) (hinfo.1.symm ▸ hstep)
-      have hle := VEnv.addConst_le hstep
-      refine (ih hnext (hrest.imp fun info header htr => ⟨htr.1, htr.2.mono hle⟩)
-        (fun remaining hmem => (htypes remaining (by simp [hmem])).mono hle)).mono ?_
-      rintro env' ⟨venv', hadd, hchecker'⟩
-      exact ⟨venv', by simpa [VEnv.addInductHeaders, hstep] using hadd, hchecker'⟩
-
 theorem AddInductive.declareInductiveTypes.refines
     (ctx : AddInductive.Context) (stats : AddInductive.InductiveStats)
     (numParams : Nat) (indTypes : Array InductiveType) (numNested : Nat) (isUnsafe : Bool)
@@ -184,6 +151,20 @@ theorem AddInductive.checkInductiveTypes.refinesHeaders
     (by simpa [hframe.env] using haligned) hsafety hsizes.1
     (by simpa [hframe.lparams] using hheaders)
 
+theorem AddInductive.declareInductiveTypes.preservesValues
+    (ctx : AddInductive.Context) (stats : AddInductive.InductiveStats)
+    (numParams : Nat) (indTypes : Array InductiveType) (numNested : Nat) (isUnsafe : Bool)
+    (hmap : ctx.env.constants.WF) :
+    (declareInductiveTypes stats numParams indTypes numNested isUnsafe ctx).WF
+      (NativeValueFrame ctx.env) := by
+  unfold declareInductiveTypes
+  dsimp only
+  rw [← Array.foldlM_toList]
+  apply NativeValueFrame.foldlM id _ _ _ hmap
+  intro info env hmap
+  exact (checkName.WF env info.name ctx.allowPrimitive).bind fun _ ⟨hfresh, _⟩ =>
+    .pure (NativeValueFrame.addConst (ci := .inductInfo info) hmap hfresh rfl)
+
 theorem AddInductive.declareInductiveTypes.refinesChecker
     (ctx : AddInductive.Context) (stats : AddInductive.InductiveStats)
     (numParams : Nat) (indTypes : Array InductiveType) (numNested : Nat) (isUnsafe : Bool)
@@ -195,15 +176,13 @@ theorem AddInductive.declareInductiveTypes.refinesChecker
     (htypes : ∀ header ∈ headers, header.toVConstant.WF venv) :
     (declareInductiveTypes stats numParams indTypes numNested isUnsafe ctx).WF fun env' =>
       ∃ venv', venv.addInductHeaders headers = some venv' ∧ CheckerEnv safety env' venv' := by
-  unfold declareInductiveTypes
-  dsimp only
-  rw [← Array.foldlM_toList]
-  apply registerInductiveHeaders.checkerWF ctx.allowPrimitive hchecker ?_ htypes
-  rw [Array.toList_zipWith]
-  refine zipInductiveHeaders _ ?_ (by simpa using hsize) hheaders
-  intro type index header htr
-  refine ⟨htr.1, ?_, htr.2.1, htr.2.2⟩
-  simpa [ConstantInfo.safety, ConstantInfo.isUnsafe, ConstantInfo.isPartial] using hsafety
+  intro env' accepted
+  obtain ⟨venv', hadd, hvenv, haligned⟩ := declareInductiveTypes.refinesWF
+    ctx stats numParams indTypes numNested isUnsafe hchecker.aligned hchecker.wf
+      hsafety hsize hheaders htypes env' accepted
+  have hframe := declareInductiveTypes.preservesValues ctx stats numParams indTypes numNested isUnsafe
+    hchecker.map_wf env' accepted
+  exact ⟨venv', hadd, hchecker.of_valueFrame hframe (VEnv.addInductHeaders.le hadd) hvenv haligned⟩
 
 theorem AddInductive.checkInductiveTypes.refinesHeadersChecker
     (ctx : AddInductive.Context) (numParams : Nat) (indTypes : Array InductiveType)

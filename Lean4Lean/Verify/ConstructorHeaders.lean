@@ -141,6 +141,64 @@ theorem AddInductive.declareConstructors.refinesWF (ctx : AddInductive.Context)
     fun _ ⟨venv', hadd, haligned'⟩ =>
       ⟨venv', hadd, VEnv.addConstructorHeaders.wf hvenv htypes hadd, haligned'⟩
 
+theorem AddInductive.declareConstructors.preservesValues (ctx : AddInductive.Context)
+    (stats : AddInductive.InductiveStats) (indTypes : Array InductiveType) (isUnsafe : Bool)
+    (hmap : ctx.env.constants.WF) :
+    (declareConstructors stats indTypes isUnsafe ctx).WF (NativeValueFrame ctx.env) := by
+  unfold declareConstructors
+  dsimp only
+  rw [← Array.foldlM_toList]
+  apply NativeValueFrame.foldlM id _ _ _ hmap
+  intro type env hmap
+  refine Except.WF.bind ?_ (fun state hframe => .pure hframe)
+  apply NativeValueFrame.foldlM Prod.snd _ _ _ hmap
+  intro ctor state hmap
+  refine (checkName.WF state.2 ctor.name ctx.allowPrimitive).bind fun _ ⟨hfresh, _⟩ => ?_
+  exact .pure (NativeValueFrame.addConst hmap hfresh rfl)
+
+theorem AddInductive.declareConstructors.refinesChecker (ctx : AddInductive.Context)
+    (stats : AddInductive.InductiveStats) (indTypes : Array InductiveType) (isUnsafe : Bool)
+    {safety : DefinitionSafety} {venv : VEnv} {vtypes : List VInductiveType}
+    (hchecker : CheckerEnv safety ctx.env venv)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe)
+    (hctors : List.Forall₂ (fun (type : InductiveType) (vtype : VInductiveType) =>
+      List.Forall₂ (TrConstructor venv ctx.lparams) type.ctors vtype.ctors)
+      indTypes.toList vtypes)
+    (htypes : ∀ ctor ∈ vtypes.flatMap (fun type : VInductiveType => type.ctors),
+      ctor.toVConstant.WF venv) :
+    (declareConstructors stats indTypes isUnsafe ctx).WF fun env' =>
+      ∃ venv', venv.addConstructorHeaders
+        (vtypes.flatMap (fun type : VInductiveType => type.ctors)) = some venv' ∧
+        CheckerEnv safety env' venv' := by
+  intro env' accepted
+  obtain ⟨venv', hadd, hvenv, haligned⟩ :=
+    declareConstructors.refinesWF ctx stats indTypes isUnsafe hchecker.aligned hchecker.wf
+      hsafety hctors htypes env' accepted
+  have hframe := declareConstructors.preservesValues ctx stats indTypes isUnsafe
+    hchecker.map_wf env' accepted
+  exact ⟨venv', hadd, hchecker.of_valueFrame hframe (VEnv.addConstructorHeaders.le hadd)
+    hvenv haligned⟩
+
+theorem AddInductive.checkInductiveTypes.preservesHeaderConstructorValues
+    (ctx : AddInductive.Context) (numParams : Nat) (indTypes : Array InductiveType)
+    (numNested : Nat) (isUnsafe : Bool) (hmap : ctx.env.constants.WF) :
+    (checkInductiveTypes numParams indTypes (fun stats => do
+      withEnv (← declareInductiveTypes stats numParams indTypes numNested isUnsafe) do
+        checkConstructors indTypes stats isUnsafe
+        declareConstructors stats indTypes isUnsafe) ctx).WF (NativeValueFrame ctx.env) := by
+  apply checkInductiveTypes.frameHeaderSizes
+  intro stats current _ hframe
+  refine (declareInductiveTypes.preservesValues current stats numParams indTypes numNested isUnsafe
+    (by simpa only [hframe.env] using hmap)).bind ?_
+  intro nativeHeaders headerFrame
+  refine (show (checkConstructors indTypes stats isUnsafe
+    { current with env := nativeHeaders }).WF (fun _ => True) from fun _ _ => trivial).bind ?_
+  intro _ _
+  refine (declareConstructors.preservesValues { current with env := nativeHeaders }
+    stats indTypes isUnsafe headerFrame.map_wf).mono ?_
+  intro nativeCtors constructorFrame
+  simpa only [hframe.env] using headerFrame.trans constructorFrame
+
 theorem AddInductive.checkInductiveTypes.refinesHeaderConstructorWF
     (ctx : AddInductive.Context) (numParams : Nat) (indTypes : Array InductiveType)
     (numNested : Nat) (isUnsafe : Bool)
@@ -255,5 +313,31 @@ theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorWF
     rintro env' ⟨headerEnv, ctorEnv, result⟩
     exact ⟨natInductDecl, headerEnv, ctorEnv, .inr rfl,
       by simpa only [huniverses] using result⟩
+
+theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorChecker
+    (ctx : AddInductive.Context) (numParams : Nat) (types : List InductiveType)
+    (numNested : Nat) (isUnsafe : Bool) {safety : DefinitionSafety} {venv : VEnv}
+    (hchecker : CheckerEnv safety ctx.env venv)
+    (hprimitive : Environment.checkPrimitiveInductive
+      ctx.env ctx.lparams numParams types isUnsafe = .ok true) :
+    (checkInductiveTypes numParams types.toArray (fun stats => do
+      withEnv (← declareInductiveTypes stats numParams types.toArray numNested isUnsafe) do
+        checkConstructors types.toArray stats isUnsafe
+        declareConstructors stats types.toArray isUnsafe) ctx).WF fun env' =>
+      ∃ decl headerEnv ctorEnv, (decl = boolInductDecl ∨ decl = natInductDecl) ∧
+        venv.addInductHeaders decl.types = some headerEnv ∧ headerEnv.WF ∧
+        TrInductDecl venv headerEnv ctx.lparams numParams types decl ∧
+        headerEnv.addConstructorHeaders (decl.types.flatMap (fun type => type.ctors)) = some ctorEnv ∧
+        CheckerEnv safety env' ctorEnv := by
+  intro env' accepted
+  obtain ⟨decl, headerEnv, ctorEnv, hdecl, haddHeaders, headerWF, htr, haddCtors, ctorWF, haligned⟩ :=
+    refinesPrimitiveHeaderConstructorWF ctx numParams types numNested isUnsafe
+      hchecker.aligned hchecker.wf hprimitive env' accepted
+  have hframe := preservesHeaderConstructorValues ctx numParams types.toArray numNested isUnsafe
+    hchecker.map_wf env' accepted
+  exact ⟨decl, headerEnv, ctorEnv, hdecl, haddHeaders, headerWF, htr, haddCtors,
+    hchecker.of_valueFrame hframe
+      ((VEnv.addInductHeaders.le haddHeaders).trans (VEnv.addConstructorHeaders.le haddCtors))
+      ctorWF haligned⟩
 
 end Lean4Lean
