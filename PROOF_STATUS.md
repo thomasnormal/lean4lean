@@ -4558,6 +4558,23 @@ paths or caches; their inherited
 typing receipt retains the existing inverse-translation `sorryAx` boundary.
 Run `lake env lean tests/InductiveIndexRebase.lean`.
 
+`Verify.InductiveParameterPrefixTransport` adds `RetainedFVarPrefix` and
+`VLCtx.FVLift'.retainedPrefix`. For each position in the supplied retained
+parameter-ID list, the receipt provides exact source and lifted-target virtual
+lookups, strict fvar translations and semantic typing in both contexts. It
+retains the same ordered IDs, without treating let-valued entries as bvars or
+assuming that the supplied list is a contiguous native telescope prefix. The
+proof uses an explicit weakening and environment/context well-formedness;
+membership preservation alone would not establish these typed lookups.
+It introduces no new admissions, axioms, runtime paths or caches and inherits
+the existing `sorryAx` boundary from typing lemmas. Focused tests cover receipt
+construction and projection, mixed lambda/let lookup lifting through selected
+binders, and omitted-ID and wrong-position negative controls.
+Thirty runtime checks exercise exact semantic/type positions; the exhaustive
+ten-declaration bridge audit permits only inherited logical/typing axioms,
+not container or expression-range interfaces.
+Run `lake env lean tests/InductiveParameterPrefixTransport.lean`.
+
 `TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains` adapts
 that composition to an actual translated index history. It invokes the
 stored-domain contraction bridge, preserves chronological/native/virtual and
@@ -4566,12 +4583,19 @@ larger base. Its freshness premise ranges only over newly allocated suffix
 IDs, never retained parameters or the original index prefix. The adapter still
 leaves concrete smaller-base construction, inserted motive/minor typehood,
 complete binder reordering and source acceptance explicit.
+It additionally returns separate typed retained-parameter receipts for the
+smaller-to-larger base insertion and the reduced-to-target endpoint weakening;
+their lifts are respectively `skipN refl inserted` and
+`consN (skipN refl inserted) ids.length`. Neither receipt identifies the old
+chronological endpoint with the new endpoint or proves native parameter
+telescope reconstruction/substitution.
 `TranslatedRecursorIndexTrace.selectedTelescopeRebasedBodyOfStoredDomains`
 extends the adapter with an explicit old body translation/typehood and
 suffix-ID fvar support. It rewrites the final-array suffix to the actual
 allocated IDs, derives support in the reduced telescope's exact fvar list,
-and returns reduced/new body translations and sort typing; it does not infer
-body support from allocation alone.
+and returns reduced/new body translations and sort typing together with the
+same two retained-parameter receipts; it does not infer body support from
+allocation alone.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
