@@ -4674,8 +4674,8 @@ helper; final original semantics are
 The result preserves both reduced argument lookups/translation/typing, the
 inner argument's original-context agreement, all intermediate receipts,
 depth-zero final closure/support and original/reduced/target translations
-and sort typing. Outer-argument congruence and contraction compare against
-one existential reduced final type using the removal lift, independently
+and sort typing. Outer-only and simultaneous two-argument congruence compare
+against one existential reduced final type using the removal lift, independently
 from target insertion. No distinctness of the supplied positions/IDs or header
 validity is asserted. Core dependencies remain inherited logical/typing axioms
 including `sorryAx`; the native wrapper adds only `Expr.instantiate1_eq` for
@@ -4683,13 +4683,29 @@ both ordered operations. This does not identify the reduced result with
 substitution of both reduced arguments into a separately contracted body,
 prove whole-prefix recursion/native `replaceParams`, reconstruct telescopes,
 prove inserted motive/minor typehood or establish checker/source acceptance.
-The focused fixture has 24 proof controls and 17 runtime checks. A genuine
+`RetainedFVarPrefixAgreement.instantiatePairIsDefEq` provides the pure semantic
+simultaneous congruence without native expressions, closure/support or target
+weakening premises. Explicit original context well-formedness and original
+outer lookup typing establish well-formedness under the remaining anonymous
+binder. The proof weakens the inner argument equality, retags it to the actual
+inner domain via `IsDefEqU.of_l` and supplied raised-argument typing, then
+composes two `instDF` steps at the common sort. Both substitution/rebase helpers
+append typehood of
+`(bodySemantic.inst (reducedInnerArgument.lift' removalLift).lift).inst (reducedOuterArgument.lift' removalLift)`
+and original-context comparisons from the original interpretation to this
+both-reduced interpretation and from it to the lifted common reduced final
+type. The extra inner lift protects the still-present outer anonymous binder;
+none of these equalities identifies a separately contracted body's syntax.
+The focused fixture has 29 proof controls and 27 runtime checks. A genuine
 two-formal body preserves its nested local binder; swapped substitution order
 and an unraised original inner argument fail their controls. Concrete proofs
-cover distinct one/three lifts, repeated selected positions and an equivalent
-but nonliteral inner domain with explicit raised-argument typing. Closure,
-support and selection negatives and exhaustive core/native module audits
-enforce the premises and dependency boundary.
+cover distinct one/three lifts, repeated selected positions, both original
+arguments as nonliteral beta values and an equivalent but nonliteral inner
+domain with explicit raised-argument typing. Core/native projections verify
+both-reduced typing and comparison with the common lifted reduced result; the
+pure semantic helper has a separate projection without expression premises.
+Closure, support and selection negatives and exhaustive audits of all three
+module declarations enforce the premises and dependency boundary.
 Run `lake env lean tests/InductiveParameterSubstitutionPair.lean`.
 
 `TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains` adapts
