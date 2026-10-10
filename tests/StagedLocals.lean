@@ -30,8 +30,8 @@ private def continuation : Expr → RecM Expr
   | _ => throw .deepRecursion
 
 private theorem continuationWF (context : RestrictedContext .safe native VEnv.empty)
-    {identifier : FVarId} {name : Name} {domain : Expr} {semantic : VExpr} {binder : BinderInfo}
-    (extendedWF : (MLCtx.vlam identifier name domain semantic binder context.mlctx).WF
+    {identifier : FVarId} {model : MLCtx}
+    (extendedWF : model.WF
       VEnv.empty context.lparams) :
     (context.withMLC _ extendedWF).RunWF methods
       (context.withMLC _ extendedWF).StateWF
@@ -54,8 +54,11 @@ private theorem continuationWF (context : RestrictedContext .safe native VEnv.em
       (context.withMLC _ extendedWF).inferFVar result headSuccess
     exact ⟨initialWF, semantic, type, translated, typed⟩
 
+private theorem propHasType : VEnv.empty.HasType 0 [] (.sort .zero) (.sort (.succ .zero)) :=
+  .sort (show VLevel.WF 0 .zero from by trivial)
+
 private theorem propType : VEnv.empty.IsType 0 [] (.sort .zero) :=
-  ⟨.succ .zero, .sort (show VLevel.WF 0 .zero from by trivial)⟩
+  ⟨.succ .zero, propHasType⟩
 
 private theorem localBinderWF :
     context.RunWF methods context.StateWF
@@ -65,6 +68,18 @@ private theorem localBinderWF :
   apply RestrictedContext.RunWF.withLocalDecl
     (domainTr := (TrExprS.sort (u := .zero) rfl))
     (domainType := propType)
+  intro identifier extendedWF
+  exact (continuationWF context extendedWF).mono fun _ _ => trivial
+
+private theorem localLetWF :
+    context.RunWF methods context.StateWF
+      (withLetDecl `bound q(Type) q(Prop)
+        continuation) fun _ =>
+      True := by
+  apply RestrictedContext.RunWF.withLetDecl
+    (domainTr := (TrExprS.sort (u := .succ .zero) rfl))
+    (valueTr := (TrExprS.sort (u := .zero) rfl))
+    (valueType := propHasType)
   intro identifier extendedWF
   exact (continuationWF context extendedWF).mono fun _ _ => trivial
 
@@ -88,13 +103,18 @@ run_meta
     ``Lean.Syntax.structEq_eq]
   for name in [``RestrictedContext.StateWF.find?_eq_none,
       ``RestrictedContext.StateWF.freshLambda, ``RestrictedContext.StateWF.restoreLambda,
-      ``RestrictedContext.inferFVar, ``RestrictedContext.RunWF.withLocalDecl] do
+      ``RestrictedContext.StateWF.freshLet, ``RestrictedContext.StateWF.restoreLet,
+      ``RestrictedContext.inferFVar, ``RestrictedContext.RunWF.withLocalDecl,
+      ``RestrictedContext.RunWF.withLetDecl] do
     audit name cache
   audit ``RestrictedContext.StateWF.empty empty
   audit ``localBinderEmpty (logical ++ [``Lean.PersistentHashMap.findAux_isSome,
     ``Lean.Expr.eqv_eq, ``Lean.Level.instLawfulBEqLevel, ``Lean.Syntax.structEq_eq])
   audit ``continuationWF cache
   audit ``localBinderWF (logical ++ [``Lean.PersistentHashMap.findAux_isSome,
+    ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentArray.toList'_push,
+    ``Lean.PersistentHashMap.WF.toList'_insert])
+  audit ``localLetWF (logical ++ [``Lean.PersistentHashMap.findAux_isSome,
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentArray.toList'_push,
     ``Lean.PersistentHashMap.WF.toList'_insert])
   let initial : State := { ngen := { namePrefix := `StagedLocalsTest, idx := 0 } }
@@ -106,6 +126,13 @@ run_meta
     throwError "native local binder returned the wrong type"
   unless final.ngen.namePrefix == `StagedLocalsTest && final.ngen.idx == 1 do
     throwError "native local binder did not advance and restore the state"
-  logInfo "one native local-binder allocation, lookup, and restoration control"
+  let .ok (result, final) :=
+      (withLetDecl `bound q(Type) q(Prop) continuation) methods reader initial
+    | throwError "native local let control failed"
+  unless result == .sort (.succ .zero) do
+    throwError "native local let returned the wrong type"
+  unless final.ngen.namePrefix == `StagedLocalsTest && final.ngen.idx == 1 do
+    throwError "native local let did not advance and restore the state"
+  logInfo "one native local-binder and one native local-let allocation, lookup, and restoration control"
 
 end StagedLocalsTest

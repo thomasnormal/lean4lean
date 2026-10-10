@@ -87,6 +87,65 @@ theorem StateWF.freshLambda {context : RestrictedContext safety env venv}
       · exact allocated
       · exact (reserved _ member).mono increase
 
+theorem StateWF.freshLet {context : RestrictedContext safety env venv}
+    (stateWF : context.StateWF state)
+    (domainTr : TrExprS venv context.lparams context.scope domain semanticDomain)
+    (valueTr : TrExprS venv context.lparams context.scope value semanticValue)
+    (valueType : venv.HasType context.lparams.length context.scope.toCtx semanticValue semanticDomain)
+    (extendedWF : (MLCtx.vlet ⟨state.ngen.curr⟩ name domain value semanticDomain semanticValue
+      context.mlctx).WF venv context.lparams) :
+    (context.withMLC _ extendedWF).StateWF { state with ngen := state.ngen.next } := by
+  have extendedScopeWF := extendedWF.tr.wf
+  have allocated := state.ngen.next_reserves_self
+  have fresh := state.ngen.not_reserves_self
+  have increase : state.ngen ≤ state.ngen.next := .next
+  have inference {cache} (correct : context.InferCacheWF state cache) :
+      (context.withMLC _ extendedWF).InferCacheWF { state with ngen := state.ngen.next } cache := by
+    intro expression type lookup
+    simp only [withMLC, MLCtx.vlctx, context.scope_eq] at ⊢
+    exact ((correct lookup).fresh context.checker.wf.ordered
+      (by simpa only [MLCtx.vlctx, context.scope_eq] using extendedScopeWF)).mono increase
+  have normalization {cache} (correct : context.WHNFCacheWF state cache) :
+      (context.withMLC _ extendedWF).WHNFCacheWF { state with ngen := state.ngen.next } cache := by
+    intro expression result lookup
+    simp only [withMLC, MLCtx.vlctx, context.scope_eq] at ⊢
+    exact ((correct lookup).fresh context.checker.wf
+      (by simpa only [MLCtx.vlctx, context.scope_eq] using extendedScopeWF)).mono increase
+  refine ⟨?_, ?_, inference stateWF.inferI, inference stateWF.inferC,
+    normalization stateWF.whnfCore, normalization stateWF.whnf, stateWF.unfold⟩
+  · intro identifier member
+    simp only [withMLC, MLCtx.vlctx, VLCtx.fvars_cons_some] at member
+    rcases List.mem_cons.mp member with rfl | member
+    · exact allocated
+    · exact (stateWF.reserved _ (context.scope_eq ▸ member)).mono increase
+  · obtain ⟨scope, shift, scopeWF, inserted, equivalent, reserved⟩ := stateWF.equivalence
+    have domainScope : domain.fvarsList ⊆ context.scope.fvars := domainTr.fvarsList
+    have valueScope : value.fvarsList ⊆ context.scope.fvars := valueTr.fvarsList
+    have combinedScope : domain.fvarsList ++ value.fvarsList ⊆ context.scope.fvars := by
+      intro identifier member
+      rcases List.mem_append.mp member with member | member
+      · exact domainScope member
+      · exact valueScope member
+    have typed : VLocalDecl.WF venv context.lparams.length scope.toCtx
+        (.vlet (semanticDomain.lift' shift) (semanticValue.lift' shift)) :=
+      valueType.weak' context.checker.wf.ordered inserted.toCtx
+    have nextScopeWF : VLCtx.WF venv context.lparams.length
+        ((some (⟨state.ngen.curr⟩, domain.fvarsList ++ value.fvarsList),
+          .vlet (semanticDomain.lift' shift) (semanticValue.lift' shift)) :: scope) := by
+      refine ⟨scopeWF, ?_, typed⟩
+      intro identifier dependencies same
+      cases same
+      exact ⟨fun member => fresh (reserved _ member), combinedScope.trans inserted.fvars_sublist.subset⟩
+    refine ⟨_, shift, nextScopeWF, ?_,
+      equivalent.weak' context.checker.wf (.skip_fvar _ _ .refl) nextScopeWF, ?_⟩
+    · simpa only [withMLC, MLCtx.vlctx, context.scope_eq] using
+        inserted.cons_fvar (⟨state.ngen.curr⟩, domain.fvarsList ++ value.fvarsList)
+          (.vlet semanticDomain semanticValue) combinedScope
+    · intro identifier member
+      rcases List.mem_cons.mp member with rfl | member
+      · exact allocated
+      · exact (reserved _ member).mono increase
+
 theorem StateWF.restoreLambda {context : RestrictedContext safety env venv}
     (extendedWF : (MLCtx.vlam identifier name domain semantic binder context.mlctx).WF venv context.lparams)
     (stateWF : (context.withMLC _ extendedWF).StateWF state) : context.StateWF state := by
@@ -110,6 +169,34 @@ theorem StateWF.restoreLambda {context : RestrictedContext safety env venv}
   · intro identifier member
     exact stateWF.reserved _ (by simpa only [withMLC, MLCtx.vlctx, context.scope_eq, VLCtx.fvars_cons_some]
       using (List.mem_cons_of_mem _ member))
+  · obtain ⟨scope, shift, scopeWF, inserted, equivalent, reserved⟩ := stateWF.equivalence
+    exact ⟨scope, _, scopeWF, .comp (.skip_fvar _ _ .refl) (by
+      simpa only [withMLC, MLCtx.vlctx, context.scope_eq] using inserted), equivalent, reserved⟩
+
+theorem StateWF.restoreLet {context : RestrictedContext safety env venv}
+    (extendedWF : (MLCtx.vlet identifier name domain value semanticDomain semanticValue context.mlctx).WF
+      venv context.lparams)
+    (stateWF : (context.withMLC _ extendedWF).StateWF state) : context.StateWF state := by
+  have extendedScopeWF := extendedWF.tr.wf
+  have inference {cache} (correct : (context.withMLC _ extendedWF).InferCacheWF state cache) :
+      context.InferCacheWF state cache := by
+    intro expression type lookup
+    have typed := correct lookup
+    simp only [withMLC, MLCtx.vlctx, context.scope_eq] at typed
+    exact typed.weakN_inv context.checker.wf
+      (by simpa only [MLCtx.vlctx, context.scope_eq] using extendedScopeWF)
+  have normalization {cache} (correct : (context.withMLC _ extendedWF).WHNFCacheWF state cache) :
+      context.WHNFCacheWF state cache := by
+    intro expression result lookup
+    have normalized := correct lookup
+    simp only [withMLC, MLCtx.vlctx, context.scope_eq] at normalized
+    exact normalized.weakN_inv context.checker.wf
+      (by simpa only [MLCtx.vlctx, context.scope_eq] using extendedScopeWF)
+  refine ⟨?_, ?_, inference stateWF.inferI, inference stateWF.inferC,
+    normalization stateWF.whnfCore, normalization stateWF.whnf, stateWF.unfold⟩
+  · intro identifier member
+    exact stateWF.reserved _ (by simpa only [withMLC, MLCtx.vlctx, context.scope_eq,
+      VLCtx.fvars_cons_some] using (List.mem_cons_of_mem _ member))
   · obtain ⟨scope, shift, scopeWF, inserted, equivalent, reserved⟩ := stateWF.equivalence
     exact ⟨scope, _, scopeWF, .comp (.skip_fvar _ _ .refl) (by
       simpa only [withMLC, MLCtx.vlctx, context.scope_eq] using inserted), equivalent, reserved⟩
@@ -149,6 +236,29 @@ theorem RunWF.withLocalDecl {context : RestrictedContext safety env venv}
     { initial with ngen := initial.ngen.next } (initialWF.freshLambda domainTr domainType extendedWF)
     returned success
   exact ⟨finalWF.restoreLambda extendedWF, finalPost⟩
+
+theorem RunWF.withLetDecl {context : RestrictedContext safety env venv}
+    {methods : Methods} {continuation : Expr → RecM Result} {post : Result → Prop}
+    (domainTr : TrExprS venv context.lparams context.scope domain semanticDomain)
+    (valueTr : TrExprS venv context.lparams context.scope value semanticValue)
+    (valueType : venv.HasType context.lparams.length context.scope.toCtx semanticValue semanticDomain)
+    (continuationWF : ∀ identifier, ∀ extendedWF :
+      (MLCtx.vlet identifier name domain value semanticDomain semanticValue context.mlctx).WF
+        venv context.lparams,
+      (context.withMLC _ extendedWF).RunWF methods (context.withMLC _ extendedWF).StateWF
+        (continuation (.fvar identifier)) post) :
+    context.RunWF methods context.StateWF (withLetDecl name domain value continuation) post := by
+  intro initial initialWF returned success
+  have absent := initialWF.find?_eq_none initial.ngen.not_reserves_self
+  have extendedWF :
+      (MLCtx.vlet ⟨initial.ngen.curr⟩ name domain value semanticDomain semanticValue context.mlctx).WF
+        venv context.lparams :=
+    ⟨context.mlctx_wf, absent, context.scope_eq ▸ domainTr, context.scope_eq ▸ valueTr,
+      context.scope_eq ▸ valueType⟩
+  obtain ⟨finalWF, finalPost⟩ := continuationWF ⟨initial.ngen.curr⟩ extendedWF
+    { initial with ngen := initial.ngen.next } (initialWF.freshLet domainTr valueTr valueType extendedWF)
+    returned success
+  exact ⟨finalWF.restoreLet extendedWF, finalPost⟩
 
 end RestrictedContext
 end Lean4Lean
