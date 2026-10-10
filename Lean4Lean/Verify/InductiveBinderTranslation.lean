@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveAnnotationTranslation
+import Lean4Lean.Verify.InductiveAnnotationDomainPeeling
 import Lean4Lean.Verify.InductiveTelescopeTranslation
 import Lean4Lean.Verify.InductiveBinderTyping
 
@@ -46,6 +46,27 @@ theorem BinderRawDomainTranslations.typingReceipt {env : VEnv} {universeNames : 
         env universeNames.length (fun position => (contexts position).toCtx) levels ctx steps :=
   (translated.typedSpines envWF contextTypes constants uniform).typingReceipt definitions envWF.ordered declared
 
+theorem BinderRawDomainTranslations.peeledTypingReceipt {env : VEnv} {universeNames : List Name}
+    {contexts : Nat → VLCtx} {levels : Nat → VLevel} {ctx : Context} {steps : List BinderStep}
+    (translated : BinderRawDomainTranslations env universeNames contexts levels steps)
+    (envWF : env.WF)
+    (contextTypes : ∀ position, OnCtx (contexts position).toCtx (env.IsType universeNames.length))
+    (constants : CanonicalAnnotationConstants env) (definitions : CanonicalAnnotationDefinitions env)
+    (declared : BinderStepsIndexDeclared ctx steps) :
+    BinderRawDomainHasType (fun position => TrExprS env universeNames (contexts position))
+        env universeNames.length (fun position => (contexts position).toCtx) levels steps ∧
+      BinderStoredIndexDomainHasType (fun position => TrExprS env universeNames (contexts position))
+        env universeNames.length (fun position => (contexts position).toCtx) levels steps ∧
+      BinderStoredIndexTypeHasType (fun position => TrExprS env universeNames (contexts position))
+        env universeNames.length (fun position => (contexts position).toCtx) levels ctx steps := by
+  have stored : BinderStoredIndexDomainHasType
+      (fun position => TrExprS env universeNames (contexts position)) env universeNames.length
+      (fun position => (contexts position).toCtx) levels steps := by
+    intro position step selected _
+    obtain ⟨semantic, domainTranslated, domainTyped⟩ := translated position step selected
+    exact domainTranslated.peeledDomainHasType envWF (contextTypes position) constants definitions domainTyped
+  exact ⟨translated, stored, stored.storedIndexTypeHasType declared⟩
+
 theorem OpenedTelescope.domainTranslations {env : VEnv} {universeNames : List Name}
     {context : VLCtx} {type terminal : Expr} {steps : List BinderStep} {semantic : VExpr}
     (opened : OpenedTelescope type steps terminal)
@@ -79,5 +100,28 @@ theorem OpenedTelescope.translatedTypingReceipt {env : VEnv} {universeNames : Li
     opened.domainTranslations translated envWF.ordered contextWF freshValues
   exact ⟨contexts, levels, initial, contextsWF, domains, fun uniform =>
     domains.typingReceipt envWF (fun position => (contextsWF position).toCtx) constants definitions uniform declared⟩
+
+theorem OpenedTelescope.peeledTypingReceipt {env : VEnv} {universeNames : List Name}
+    {context : VLCtx} {type terminal : Expr} {steps : List BinderStep} {semantic : VExpr} {ctx : Context}
+    (opened : OpenedTelescope type steps terminal)
+    (translated : TrExprS env universeNames context type semantic)
+    (envWF : env.WF) (contextWF : context.WF env universeNames.length)
+    (freshValues : FreshBinderValues context.fvars steps)
+    (constants : CanonicalAnnotationConstants env) (definitions : CanonicalAnnotationDefinitions env)
+    (declared : BinderStepsIndexDeclared ctx steps) :
+    ∃ contexts : Nat → VLCtx, ∃ levels : Nat → VLevel,
+      contexts 0 = context ∧ (∀ position, (contexts position).WF env universeNames.length) ∧
+      BinderRawDomainTranslations env universeNames contexts levels steps ∧
+      BinderRawDomainHasType (fun position => TrExprS env universeNames (contexts position))
+          env universeNames.length (fun position => (contexts position).toCtx) levels steps ∧
+        BinderStoredIndexDomainHasType (fun position => TrExprS env universeNames (contexts position))
+          env universeNames.length (fun position => (contexts position).toCtx) levels steps ∧
+        BinderStoredIndexTypeHasType (fun position => TrExprS env universeNames (contexts position))
+          env universeNames.length (fun position => (contexts position).toCtx) levels ctx steps := by
+  obtain ⟨contexts, levels, initial, contextsWF, domains⟩ :=
+    opened.domainTranslations translated envWF.ordered contextWF freshValues
+  exact ⟨contexts, levels, initial, contextsWF, domains,
+    domains.peeledTypingReceipt envWF (fun position => (contextsWF position).toCtx)
+      constants definitions declared⟩
 
 end Lean4Lean.AddInductive

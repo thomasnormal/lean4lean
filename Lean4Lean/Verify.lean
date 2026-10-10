@@ -69,6 +69,7 @@ import Lean4Lean.Verify.InductiveAnnotationModelRangeFits
 import Lean4Lean.Verify.InductiveAnnotationSemantics
 import Lean4Lean.Verify.InductiveAnnotationTyping
 import Lean4Lean.Verify.InductiveAnnotationTranslation
+import Lean4Lean.Verify.InductiveAnnotationDomainPeeling
 import Lean4Lean.Verify.InductiveAnnotationContext
 import Lean4Lean.Verify.InductiveAnnotationModelRenaming
 import Lean4Lean.Verify.InductiveAnnotationStoredTypes
