@@ -50,6 +50,21 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   premises. These results still install typed ordinary constants; they do not
   justify native constructor/projection metadata, generated recursors/reduction
   equations, primitive invariants, or replacement of `VContext.trenv`.
+- `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
+  semantic primitive interface after complete header/constructor registration.
+  The literal-availability/signature component is rebuilt from installed
+  constructor lookups; unchanged primitive operation signatures preserve their
+  existing typing and reduction contracts by semantic environment extension.
+  Header-only Bool/Nat staging does not satisfy even this literal component,
+  and the proof does not pretend otherwise. `NativePrimitiveSafety` and the
+  native header/constructor safety-preservation theorems retain safe monomorphic
+  primitive records when primitive names are forbidden, or when new declarations
+  are safe and monomorphic. `checkInductiveTypes.refinesPrimitiveInterfaces`
+  combines recognized primitive staging with semantic `HasPrimitives` and native
+  primitive safety, deriving all final interfaces from their initial versions.
+  Both Bool/Nat staging orders compose. The missing structural metadata and
+  recursor/reduction obligations still prevent replacing `VContext.trenv` or
+  claiming full inductive frontend correctness.
 - `Environment.checkPrimitiveInductive.eq_true_iff` characterizes exactly when
   the primitive-inductive validator returns `true`: a safe, monomorphic,
   parameter-free singleton declaration with precisely the `Bool` or `Nat`
