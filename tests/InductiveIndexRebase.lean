@@ -101,7 +101,11 @@ private theorem actualHistoryRebaseReceiptComposes
       SelectedRecursorTelescope env universes current.lctx larger ids target ∧
       target.WF env universes ∧
       VLCtx.FVLift' reduced.vlctx target.vlctx 0
-        (.consN (.skipN .refl inserted) ids.length) 0 := by
+        (.consN (.skipN .refl inserted) ids.length) 0 ∧
+      RetainedFVarPrefix env universes smaller.vlctx larger.vlctx
+        (.skipN .refl inserted) params ∧
+      RetainedFVarPrefix env universes reduced.vlctx target.vlctx
+        (.consN (.skipN .refl inserted) ids.length) params := by
   exact history.selectedTelescopeRebasedOfStoredDomains model modelWF native converted reserved
     current frame envWF smaller smallerWF baseLift baseWeakening stored values parameters
     prefixRetained larger largerWF inserted insertion freshBase
@@ -147,6 +151,10 @@ private theorem actualHistoryBodyRebaseReceiptComposes
       target.WF env universes ∧
       VLCtx.FVLift' reduced.vlctx target.vlctx 0
         (.consN (.skipN .refl inserted) ids.length) 0 ∧
+      RetainedFVarPrefix env universes smaller.vlctx larger.vlctx
+        (.skipN .refl inserted) params ∧
+      RetainedFVarPrefix env universes reduced.vlctx target.vlctx
+        (.consN (.skipN .refl inserted) ids.length) params ∧
       TrExprS env universes reduced.vlctx body reducedSemantic ∧
       env.HasType universes.length reduced.vlctx.toCtx reducedSemantic (.sort level) ∧
       env.IsDefEq universes.length chronological.vlctx.toCtx bodySemantic
