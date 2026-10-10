@@ -16,7 +16,7 @@ inductive AcceptedConstructorTrace (stats : InductiveStats) (isUnsafe : Bool) (p
       AcceptedConstructorTrace stats isUnsafe parent reader index type reader index type
   | parameter
       (selected : stats.params[index]? = some parameter)
-      (storedType : getType parameter reader = .ok stored)
+      {storedType : getType parameter reader = .ok stored}
       (accepted : (monadLift (TypeChecker.isDefEq domain stored) : M Bool) reader = .ok true)
       (tail : AcceptedConstructorTrace stats isUnsafe parent reader (index + 1)
         (Expr.instantiate1 body parameter) finalReader finalIndex terminal) :
@@ -43,7 +43,7 @@ theorem AcceptedConstructorTrace.index_le
     index ≤ finalIndex := by
   induction trace with
   | terminal => omega
-  | parameter _ _ _ _ induction => omega
+  | parameter _ _ _ induction => omega
   | field _ _ _ _ _ induction => omega
 
 theorem AcceptedConstructorTrace.safe
@@ -51,7 +51,7 @@ theorem AcceptedConstructorTrace.safe
     SafeConstructorTrace stats PositivityWHNF parent reader index type terminal := by
   induction trace with
   | terminal notForall valid => exact .terminal notForall valid
-  | parameter selected _ _ _ induction => exact .parameter selected induction
+  | parameter selected _ _ induction => exact .parameter selected induction
   | field notParameter _ _ positive _ induction => exact .field notParameter (positive rfl) induction
 
 theorem AcceptedConstructorTrace.scope
@@ -61,7 +61,7 @@ theorem AcceptedConstructorTrace.scope
   revert readerWF reserved
   induction trace with
   | terminal => intro readerWF reserved; exact .refl _ readerWF reserved
-  | parameter _ _ _ _ induction => exact induction
+  | parameter _ _ _ induction => exact induction
   | @field index domain reader sort name binder body finalReader finalIndex terminal
       notParameter domainChecked universeAccepted positive tail induction =>
     intro readerWF reserved
@@ -93,7 +93,7 @@ theorem checkConstructors.loop.acceptedTrace (stats : InductiveStats) (isUnsafe 
           subst equal
           refine (induction (body.instantiate1 parameter) (index + 1) reader).mono ?_
           rintro _ ⟨finalReader, finalIndex, terminal, tail⟩
-          exact ⟨_, _, _, .parameter selected storedType accepted tail⟩
+          exact ⟨_, _, _, .parameter selected (storedType := storedType) accepted tail⟩
         · exact Except.WF.throw
       | none =>
         apply bindHeaderResultWF
@@ -222,7 +222,8 @@ inductive CheckedConstructorDomainReceipts (env : VEnv) (universes : List Name) 
       (tail : CheckedConstructorDomainReceipts env universes trace
         (storedSemantic :: source) (candidateSemantic :: target) finalSource finalTarget) :
       CheckedConstructorDomainReceipts env universes
-        (AcceptedConstructorTrace.parameter (name := name) (binder := binder) selected storedType accepted trace)
+        (AcceptedConstructorTrace.parameter (name := name) (binder := binder) selected
+          (storedType := storedType) accepted trace)
         source target finalSource finalTarget
   | field
       (notParameter : stats.params[index]? = none)
