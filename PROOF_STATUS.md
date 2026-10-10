@@ -4169,10 +4169,10 @@ binding agreement are derived from this history, not independently supplied.
 Component support types the major and the already index-applied motive at the
 same projected model with their arrow aligned, deriving the actual body
 application and then typed abstraction back to the initial model. No support
-premise asserts whole-body or whole-raw-type typehood. The selected array of
-free-variable identifiers and the projected-domain/component support remain
-explicit; deriving them from checked declarations and complete construction
-histories is still open.
+premise asserts whole-body or whole-raw-type typehood. This earlier interface
+keeps the selected array and projected-domain/body-component support explicit.
+The stronger actual-source adapter below derives the body-component obligations;
+deriving selected-domain support from checked declarations remains open.
 
 The actual complete `RecursorInfoModelEndpoint` supplies the full reader's
 binding scope and ordered model extension. Translation/typehood at its final
@@ -4224,6 +4224,65 @@ private/generated helpers (native 41/32, implicit 2/2, semantic 31/17, CPS 7/6);
 the old clean core stays seventy-three / thirty-eight. All four new modules
 replay through lean4lean. Run
 `lake env lean tests/InductiveRecursorTypeTranslation.lean`.
+
+`Verify.InductiveRecursorApplicationFacts` proves that abstracting a free variable
+and instantiating it back cancels, including under arbitrary pre-existing bound
+variables and at every depth. It also identifies the first forall of an actual
+selected native cdecl telescope. No global native bound-variable-range axiom is
+used. `Verify.InductiveRecursorApplicationNative` recovers the actual motive's
+cdecl lookup from `RecursorInfoIndexSource` at the current reader. Its stored
+domain is proved equal to that reader's nested abstraction of the same original
+indices and major over the elimination sort. Original allocation provenance,
+lookup preservation, selected binding congruence and distinctness derive this
+equality; it is not an assumed motive-domain alignment.
+
+`Verify.InductiveRecursorApplicationTranslation` derives local/domain translation
+and local typing from an actual cdecl lookup in a well-formed mixed model. Its
+generic application theorem consumes a typed head and translation of its actual
+native selected-forall domain, then applies the head to those same original
+locals. Each argument's domain is recovered from the model and aligned with the
+translated forall using semantic definitional equality. Instantiation cancels
+native abstraction rather than relying on physical-to-projected semantic
+identity. Terminal typing and terminal native-type translation are derived;
+no premise supplies the already-applied head's typing. Partial motive
+application leaves the actual major-to-sort arrow, and the major's lookup
+derives its matching typing. A selected telescope plus the actual source
+therefore derives the earlier body-application support.
+
+`Verify.InductiveRecursorApplicationTranslationCPS` reduces recursor type support
+to the selected array and a telescope built from actual original domain lookups,
+freshness and per-step translation/typehood. The getter recovers native index
+sources from the same successful `mkRecInfos` result used by the typed complete
+parent/minor endpoint; it does not assume an independently aligned source or
+final model. Actual motive provenance and the constructed projection discharge
+major/applied-motive alignment for every bounded parent. Raw and inferred-stored
+type receipts still refer to the same initial model and the genuinely lifted
+full construction suffix. Arbitrary continuations receive the same receipts.
+The full typed adapters retain zero original parameters; indexed and mutual
+cases are not replaced by a special zero-index path.
+
+This strengthens the conditional recursor-type result, not complete inductive
+soundness. Selected-array/domain support, checked-source provenance for the
+semantic component passes, nonzero-parameter transport, empty-base/universe
+alignment, recursor rules and safe registration remain open. Semantic uniqueness,
+instantiation and translation foundations retain their existing inherited
+admissions, separately audited; no new runtime code, axiom or admission is added.
+
+`tests/InductiveRecursorApplicationTranslation.lean` adds cancellation controls
+under arbitrary pre-existing bound-variable depths, ordered original-fvar array
+controls, seven complete `mkRecInfos` captures and nine selected-parent
+applications. It checks actual motive/major/index cdecl lookups, exact nested
+motive domains, each instantiated argument domain, the partial major arrow and
+the complete application sort, including seeded local/let bases, mutual and
+indexed/dependent families, retained other-parent fields/IHs/minors, original-
+parameter native-only controls and an allocation-only untyped boundary.
+Omitted-major, duplicate-major, reordered-dependent, duplicate-index and
+cross-parent applications are rejected. Four new modules are audited with no
+module-owned axioms; the inherited uniqueness/instantiation foundations are
+pinned separately and `Expr.looseBVarRange_eq` is forbidden even if whitelisted.
+The application census is 46 declarations / 42 theorems (facts 8/7, native
+18/17, translation 15/14, CPS 5/4), with no new admission. Run
+`lake env lean tests/InductiveRecursorApplicationTranslation.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
