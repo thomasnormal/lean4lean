@@ -4598,6 +4598,33 @@ the selected-endpoint lift. Thirty exact runtime lookup checks and exhaustive
 agreement-module audits exclude container and expression-range interfaces.
 Run `lake env lean tests/InductiveParameterPrefixAgreement.lean`.
 
+`Verify.InductiveParameterSubstitution` adds
+`RetainedFVarPrefixAgreement.instantiateCore` and `.instantiate` for one
+position-selected retained parameter. The supplied original lookup determines
+the anonymous lambda binder's actual domain; the native body must have strict
+translation and semantic typing under that binder, and fvar support over the
+reduced context. The result preserves that support after substitution and
+provides the reduced argument's actual lookup/translation/typing, strict
+original-context translation of the substituted native body, typing with both
+the original argument and the lifted reduced argument, and substitution
+congruence for values and dependent result types. Result-type congruence is
+typed at an explicit sort recovered from the body typing. Both comparisons
+remain in the original context and use the same supplied alignment lift.
+The structural helper uses `instantiate1'` and retains only inherited
+logical/typing axioms including `sorryAx`; the actual native `instantiate1`
+wrapper additionally uses the existing `Expr.instantiate1_eq` interface axiom.
+No new admissions, axioms, runtime paths or caches are introduced.
+This substitutes into an explicitly translated original body; it does not
+construct a contracted reduced body, prove whole-prefix reverse substitution
+or `replaceParams` correctness, reconstruct native parameter telescopes, or
+discharge inserted motive/minor typehood or source/header acceptance.
+Twenty-four focused proof controls exercise nonliteral beta parameters,
+dependent result types and doubly nested lambda bodies under zero/one/three
+insertions and the selected-endpoint cutoff. Thirty-six runtime checks cover
+lookup shifts and native/core instantiation; omission/support/position
+negatives and separate core/native axiom audits enforce the stated boundaries.
+Run `lake env lean tests/InductiveParameterSubstitution.lean`.
+
 `TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains` adapts
 that composition to an actual translated index history. It invokes the
 stored-domain contraction bridge, preserves chronological/native/virtual and
@@ -4616,6 +4643,9 @@ The adapter also derives a reduced-to-aligned transport at
 `consN baseLift ids.length` and returns its retained-parameter agreement with
 the chronological endpoint. This historical agreement uses the contraction
 lift, never the different reduced-to-target insertion lift.
+The returned chronological agreement supports the single-parameter
+substitution helpers when their original-body typing/support premises are
+supplied; this does not infer those premises from the index trace.
 `TranslatedRecursorIndexTrace.selectedTelescopeRebasedBodyOfStoredDomains`
 extends the adapter with an explicit old body translation/typehood and
 suffix-ID fvar support. It rewrites the final-array suffix to the actual
