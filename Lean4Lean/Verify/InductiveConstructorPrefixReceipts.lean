@@ -88,14 +88,25 @@ theorem TrExprS.openCanonicalParameter
   refine ⟨openedSemantic, ?_⟩
   simpa only [Expr.instantiate1_eq] using (translated.inst_fvar envWF.ordered nextWF.tr.wf)
 
+theorem ParameterPrefix.contextAgreement
+    {env : VEnv} {universes : List Name} {base source : MLCtx}
+    (parameters : ParameterPrefix base source identifiers)
+    (sourceWF : source.WF env universes) :
+    env.IsDefEqCtx universes.length base.vlctx.toCtx source.vlctx.toCtx source.vlctx.toCtx := by
+  induction parameters with
+  | nil => exact .zero
+  | @snoc previous identifiers identifier name nativeDomain semanticDomain binder parameters induction =>
+    obtain ⟨level, domainTyped⟩ := sourceWF.2.2.2
+    exact .succ (induction sourceWF.1) domainTyped
+
 private theorem AcceptedConstructorTrace.prefixReceipts
     (checker : TypeChecker.VContext) (reader : Context)
     (aligned : checker.toContext =
       { env := reader.env, lctx := reader.lctx, safety := reader.safety,
         lparams := reader.lparams, fuel := reader.fuel })
     (initialWF : ({} : TypeChecker.VState).WF checker)
-    (remaining : List FVarId) {stats : InductiveStats} {isUnsafe : Bool} {parent : Nat}
-    {current : MLCtx} (parameters : ParameterPrefix current checker.mlctx remaining)
+    (remaining ambient : List FVarId) {stats : InductiveStats} {isUnsafe : Bool} {parent : Nat}
+    {current : MLCtx} (parameters : ParameterPrefix current checker.mlctx (remaining ++ ambient))
     (processed : List FVarId)
     (statsParams : stats.params = ((processed ++ remaining).map Expr.fvar).toArray)
     {type terminal : Expr} {semanticType : VExpr} {finalReader : Context} {finalIndex : Nat}
@@ -105,7 +116,7 @@ private theorem AcceptedConstructorTrace.prefixReceipts
     ∃ completed finalTarget unprocessed,
       CheckedConstructorDomainReceipts checker.venv checker.lparams trace
         current.vlctx.toCtx target completed.vlctx.toCtx finalTarget ∧
-      ParameterPrefix completed checker.mlctx unprocessed ∧
+      ParameterPrefix completed checker.mlctx (unprocessed ++ ambient) ∧
       unprocessed.length = stats.params.size - min finalIndex stats.params.size := by
   induction remaining generalizing current processed type semanticType target with
   | nil =>
@@ -150,7 +161,7 @@ private theorem AcceptedConstructorTrace.prefixReceipts
       obtain ⟨level, storedTyped⟩ := nextWF.2.2.2
       have receipt : ReducedParameterDomainReceipt checker.venv checker.lparams reader domain nativeDomain
           current.vlctx.toCtx storedSemantic _ :=
-        ⟨checker, current.vlctx, .skipN .refl (identifier :: remaining).length, level,
+        ⟨checker, current.vlctx, .skipN .refl (identifier :: remaining ++ ambient).length, level,
           aligned, rfl, rfl, rfl, parameters.insertion, nextWF.2.2.1, candidateTranslated, storedTyped, initialWF⟩
       obtain ⟨equalLevel, equal⟩ := receipt.accepted accepted
       obtain ⟨openedSemantic, opened⟩ := TrExprS.openCanonicalParameter checker.Ewf nextWF bodyTranslated equal
@@ -159,7 +170,8 @@ private theorem AcceptedConstructorTrace.prefixReceipts
       have nextTrace : AcceptedConstructorTrace stats isUnsafe parent reader (processed ++ [identifier]).length
           (body.instantiate1 (.fvar identifier)) finalReader finalIndex terminal := by
         simpa only [List.length_append, List.length_singleton] using tail
-      obtain ⟨completed, finalTarget, unprocessed, receipts, suffix, length⟩ := induction remainingParameters (processed ++ [identifier])
+      obtain ⟨completed, finalTarget, unprocessed, receipts, suffix, length⟩ := induction remainingParameters
+        (processed ++ [identifier])
         nextStats opened nextTrace (_ :: target)
       refine ⟨completed, finalTarget, unprocessed, ?_, suffix, length⟩
       exact .parameter (trace := tail) selectedTrace storedType accepted receipt
@@ -210,8 +222,10 @@ theorem AcceptedConstructorTrace.domainReceipts
   obtain ⟨semantic, translated⟩ := ambient.weakFV'_inv checker.Ewf parameters.insertion
     (.refl checker.Ewf.ordered checker.Δwf) (checker.mlctx.noBV ▸ ambient.closed)
     (sourceFree.mono fun _ impossible => impossible.elim)
+  have parameters' : ParameterPrefix base checker.mlctx (identifiers ++ []) := by
+    simpa only [List.append_nil] using parameters
   obtain ⟨completed, finalTarget, unprocessed, receipts, suffix, length⟩ :=
-    trace.prefixReceipts checker reader aligned initialWF identifiers parameters [] statsParams
+      trace.prefixReceipts checker reader aligned initialWF identifiers [] parameters' [] statsParams
       translated base.vlctx.toCtx
   have parameterFVars : stats.ParamsAreFVars := by
     intro parameter member
@@ -227,6 +241,60 @@ theorem AcceptedConstructorTrace.domainReceipts
   have empty : unprocessed = [] := List.eq_nil_of_length_eq_zero (by omega)
   subst unprocessed
   have sameContext : completed = checker.mlctx := by simpa using suffix.drop.symm
+  subst completed
+  have growth := receipts.completeGrowth complete
+  exact ⟨finalTarget, receipts, receipts.agreement .zero, by simpa using growth.2⟩
+
+theorem AcceptedConstructorTrace.domainReceiptsAtParameterModel
+    (checker : TypeChecker.VContext) (reader : Context)
+    (aligned : checker.toContext =
+      { env := reader.env, lctx := reader.lctx, safety := reader.safety,
+        lparams := reader.lparams, fuel := reader.fuel })
+    (initialWF : ({} : TypeChecker.VState).WF checker)
+    {base parameterModel : MLCtx} {identifiers ambient : List FVarId}
+    (parameters : ParameterPrefix base checker.mlctx (identifiers ++ ambient))
+    (ambientParameters : ParameterPrefix parameterModel checker.mlctx ambient)
+    (parameterBase : checker.mlctx.dropN ambient.length ambientParameters.bound = parameterModel)
+    {stats : InductiveStats} (statsParams : stats.params = (identifiers.map Expr.fvar).toArray)
+    {type result terminal : Expr}
+    (sourceFree : type.FVarsIn (fun _ => False))
+    (sourceChecked : (monadLift (TypeChecker.checkType type) : M Expr) reader = .ok result)
+    {isUnsafe : Bool} {parent finalIndex : Nat} {finalReader : Context}
+    (trace : AcceptedConstructorTrace stats isUnsafe parent reader 0 type finalReader finalIndex terminal) :
+    ∃ finalTarget,
+      CheckedConstructorDomainReceipts checker.venv checker.lparams trace
+        base.vlctx.toCtx base.vlctx.toCtx parameterModel.vlctx.toCtx finalTarget ∧
+      checker.venv.IsDefEqCtx checker.lparams.length base.vlctx.toCtx
+        parameterModel.vlctx.toCtx finalTarget ∧
+      finalTarget.length = base.vlctx.toCtx.length + stats.params.size := by
+  obtain ⟨semantic, ambientTranslation⟩ := acceptedSourceTranslation checker reader aligned initialWF
+    (sourceFree.mono fun _ impossible => impossible.elim) sourceChecked
+  obtain ⟨semantic, translated⟩ := ambientTranslation.weakFV'_inv checker.Ewf parameters.insertion
+    (.refl checker.Ewf.ordered checker.Δwf) (checker.mlctx.noBV ▸ ambientTranslation.closed)
+    (sourceFree.mono fun _ impossible => impossible.elim)
+  obtain ⟨completed, finalTarget, unprocessed, receipts, suffix, length⟩ :=
+    trace.prefixReceipts checker reader aligned initialWF identifiers ambient parameters [] statsParams
+      translated base.vlctx.toCtx
+  have parameterFVars : stats.ParamsAreFVars := by
+    intro parameter member
+    simp only [statsParams, List.mem_toArray, List.mem_map] at member
+    obtain ⟨identifier, _, rfl⟩ := member
+    rfl
+  have distinct : stats.params.toList.Nodup := by
+    simp only [statsParams, List.toList_toArray]
+    have identifiersNodup : identifiers.Nodup := (List.nodup_append.mp
+      (parameters.nodup checker.mlctx_wf)).1
+    exact List.pairwise_map.mpr (identifiersNodup.imp
+      fun different same => different (Expr.fvar.inj same))
+  have complete := trace.completeParameters parameterFVars distinct
+    (InductiveStats.RemainingParamsAbsent.of_noFVars sourceFree 0)
+  have empty : unprocessed = [] := List.eq_nil_of_length_eq_zero (by omega)
+  subst unprocessed
+  have sameContext : completed = parameterModel := by
+    have suffixDrop := suffix.drop
+    have sameDrop : checker.mlctx.dropN ambient.length suffix.bound = parameterModel := by
+      simpa only [parameterBase]
+    exact suffixDrop.symm.trans sameDrop
   subst completed
   have growth := receipts.completeGrowth complete
   exact ⟨finalTarget, receipts, receipts.agreement .zero, by simpa using growth.2⟩
@@ -257,6 +325,38 @@ theorem checkConstructors.domainReceipts
   have sourceFree := checkNoMVarNoFVar.WF reader.env constructor.name constructor.type () sourceGuard
   obtain ⟨finalTarget, receipts, agreement, length⟩ := trace.domainReceipts checker reader aligned initialWF
     parameters statsParams sourceFree sourceChecked
+  exact ⟨finalReader, finalIndex, terminal, finalTarget, trace, receipts, agreement, length⟩
+
+theorem checkConstructors.domainReceiptsAtParameterModel
+    (types : Array InductiveType) (stats : InductiveStats) (isUnsafe : Bool)
+    (checker : TypeChecker.VContext) (reader : Context)
+    (aligned : checker.toContext =
+      { env := reader.env, lctx := reader.lctx, safety := reader.safety,
+        lparams := reader.lparams, fuel := reader.fuel })
+    (initialWF : ({} : TypeChecker.VState).WF checker)
+    {base parameterModel : MLCtx} {identifiers ambient : List FVarId}
+    (parameters : ParameterPrefix base checker.mlctx (identifiers ++ ambient))
+    (ambientParameters : ParameterPrefix parameterModel checker.mlctx ambient)
+    (parameterBase : checker.mlctx.dropN ambient.length ambientParameters.bound = parameterModel)
+    (statsParams : stats.params = (identifiers.map Expr.fvar).toArray) :
+    (checkConstructors types stats isUnsafe reader).WF fun _ =>
+      ∀ parent, ∀ bound : parent < types.size, ∀ constructor ∈ types[parent].ctors,
+        ∃ finalReader finalIndex terminal finalTarget,
+          ∃ trace : AcceptedConstructorTrace stats isUnsafe parent reader 0 constructor.type
+            finalReader finalIndex terminal,
+          CheckedConstructorDomainReceipts checker.venv checker.lparams trace
+            base.vlctx.toCtx base.vlctx.toCtx parameterModel.vlctx.toCtx finalTarget ∧
+          checker.venv.IsDefEqCtx checker.lparams.length base.vlctx.toCtx
+            parameterModel.vlctx.toCtx finalTarget ∧
+          finalTarget.length = base.vlctx.toCtx.length + stats.params.size := by
+  refine (checkConstructors.acceptedTraces types stats isUnsafe reader).mono ?_
+  intro _ traces parent bound constructor member
+  obtain ⟨result, finalReader, finalIndex, terminal, sourceGuard, sourceChecked, trace⟩ :=
+    traces parent bound constructor member
+  have sourceFree := checkNoMVarNoFVar.WF reader.env constructor.name constructor.type () sourceGuard
+  obtain ⟨finalTarget, receipts, agreement, length⟩ := trace.domainReceiptsAtParameterModel checker reader
+    aligned initialWF parameters ambientParameters parameterBase statsParams
+    (sourceFree.mono fun _ impossible => impossible.elim) sourceChecked
   exact ⟨finalReader, finalIndex, terminal, finalTarget, trace, receipts, agreement, length⟩
 
 end Lean4Lean.AddInductive
