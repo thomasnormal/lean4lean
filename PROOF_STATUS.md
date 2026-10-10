@@ -4840,6 +4840,68 @@ parameter statistics: these receipts do not verify arbitrary nonempty parameter
 histories, whole-prefix typed reverse substitution, nested frontend acceptance,
 positivity or recursor reduction soundness.
 
+`Verify.InductiveParameterPrefixReplacement` supplies the whole-prefix typing
+bridge for an arbitrary-length ordinary-parameter suffix over a retained mixed
+base. `ParameterPrefix` records the actual named cdecl construction and exact
+chronological identifiers. It derives the suffix bound, exact dropped base,
+reversed native `fvarRevList`, support decomposition and identifier distinctness
+from source mixed-context WF. Its `lambdaBody` proof identifies the complete
+abstracted body of the mixed model's native lambda telescope; it does not assume
+that the selected array has the right order or that a let is a parameter.
+`TypedParameterArguments` checks chronological arguments at each actual
+dependent forall domain after earlier arguments have been instantiated. Each
+argument is strictly translated and typed in the retained base, and its native
+closure is derived from translation and the base's no-bvar property. This avoids
+the invalid shortcut of typing a latest argument at an unsubstituted source
+domain in a context still containing earlier source parameters.
+
+`replaceParams.prefix_eq` proves exact native/structural reverse substitution
+and state identity for equal-length arrays, distinct source IDs, a range-zero
+body and closed replacements. `replaceParams.prefix_typed` derives these scope
+receipts, constructs and types the full native/semantic lambda telescope,
+applies the dependent argument trace, then uses structural beta reduction to
+establish typehood of the executable substitution result. It supplies strict
+translation to an existential output semantic expression, typing at the
+unchanged result sort, and typed definitional equality to the original semantic
+lambda applied to the chronological arguments. Structural closure/range zero
+and remaining-base native support are retained. The existential strict output
+semantics is not identified with a fabricated syntactic inverse or an unproved
+literal simultaneous-substitution formula. `prefix_typedRebased` transports
+that same witness, its sort typing and the functional-meaning equation through
+an independently supplied well-formed base insertion. No intermediate native
+parameter context is required to type a replacement at an unchanged dependent
+source domain.
+
+Concrete fixtures instantiate the contracts without fixture premises for empty,
+singleton, two-parameter and three-parameter prefixes. The second parameter
+really depends on the first; the third also has the first parameter's type.
+Distinct target type/value declarations and a nonliteral beta-valued replacement
+supply the dependent argument trace. Forall/let bodies retain native proof-use
+domains/values, and results are actually type-checked in the retained base and
+an independent two-declaration insertion. Twenty-one fixture proof controls and
+22 runtime controls cover exact suffix/base/order, native/structural agreement,
+source-ID removal, state metadata and invalid order/domain boundaries. Exact
+audits pin six dependencies for raw scoped equality and ten for both typed
+contracts and all five concrete typed applications. All 45 module-owned and 69
+fixture-namespace declarations, including generated helpers, are audited. The
+typed dependencies are the existing logical axioms, inherited `sorryAx`, three
+persistent-container interfaces, raw abstraction, reverse instantiation and
+general instantiation; no global native range axiom or new axiom/admission is
+introduced.
+
+Testing the replacement-scope boundary exposed an existing trusted-interface
+defect: native instantiation is simultaneous whereas unrestricted
+`Expr.instantiate_eq` identifies it with sequential substitution, which is false
+for loose replacement arguments. `tests/NativeInstantiation.lean` reproduces
+three such boundaries and checks 72 closed-argument native/model comparisons.
+`divergences.md` records the minimal counterexample and required model repair.
+The new typed contracts derive closed replacements and exclude these negatives,
+but still inherit that existing trusted interface and typing admissions. This
+is not unconditional kernel soundness, nested frontend acceptance, positivity
+or recursor-reduction correctness. Correcting the instantiation specification,
+then discharging the actual frontend's prefix/argument typing receipts, remain
+open obligations.
+
 `Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
 chronological selected telescope over a supplied smaller mixed base.
 `SelectedRecursorDomainFVars` constrains only actual full-reader stored cdecl
