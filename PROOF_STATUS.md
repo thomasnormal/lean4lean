@@ -4027,6 +4027,72 @@ including private/generated helpers (native trace 31/14, semantic transport
 All three modules replay through lean4lean. Run
 `lake env lean tests/InductiveIHTranslation.lean`.
 
+`Verify.InductiveMinorTrace` captures the actual `mkRecInfos.loopCtors`
+constructor/minor pass. Each source retains the exact constructor-field trace,
+recursive-hypothesis trace, IH-reader endpoint and nested native abstraction.
+Minor allocation uses that same current IH reader, then performs the actual
+selected-parent record update before the recursive constructor tail. Earlier
+constructor fields, IHs and minors remain in that tail reader; only the internal
+UArg scopes were temporary. Getter and scoped traces preserve native errors and
+defaulting. Record-prefix/count claims require a valid selected-parent index;
+scope and record-size preservation do not assert semantic typing or alignment.
+
+`Verify.InductiveMinorTranslation` derives constructor application typing through
+the same translated constructor-field history, converting peeled argument
+domains and annotation-adjusted bodies rather than assuming a fully applied
+constructor type. Explicit constructor-head/header typing and selected-motive
+arrow support then derive actual motive-body typing against the same translated
+native terminal. After weakening into the actual IH model, it abstracts IHs
+and then fields, obtaining strong raw minor-domain translation/typehood in the
+initial constructor model.
+
+The native outer field abstraction occurs at the later IH reader, not at that
+initial model or the field reader. A selected-binding congruence proof uses exact
+preserved declaration lookups, selected-ID membership/nodup, binding scope and
+translated-body closure to reconcile those expressions. The resulting base
+semantic type is then lifted across the same combined field+IH suffix back to
+the actual IH model. Canonical annotation conversion and explicit annotation
+support derive the stored minor domain and its allocation there. Neither reader
+identity nor identity weakening replaces these lookup/lifting obligations.
+
+`Verify.InductiveMinorTranslationCPS` retains each native source witness, derived
+field endpoint, IH history, minor opening and exactly constructed allocation
+model. Its whole-pass history derives every later model and the actual final
+reader correspondence from one initial WF/native-aligned model. The composed
+extension contains all persistent fields, IHs and minors in native chronology.
+Successful-result-local support supplies actual constructor-head/header
+alignment, source/annotation translation, selected-motive typing and IH support;
+whole minor-body/domain typehood and independently aligned final models are not
+premises. Typed transport currently requires `stats.params.size = 0`, a real
+original-parameter restriction inherited from field transport, not the
+parameter-free UArg proof adapter. Native traces remain unrestricted.
+
+This verifies conditional domain typing and current-reader correspondence for
+the actual supported constructor/minor pass, not complete recursor soundness.
+Deriving support from the checked declarations, transporting nonzero constructor
+parameters, validating parent/head/index alignment, threading the full
+`loopInd2` parent pass and verifying recursor types/rules remain separate.
+Inherited foundations and native interfaces remain explicitly audited. No new
+admission, axiom, oracle, runtime checker change, cache or fast path is introduced.
+
+`tests/InductiveMinorTranslation.lean` adds thirty proof controls, 222 declaration
+audits, twelve axiom prints and eight existing native-interface provenance pins.
+Fourteen successful whole-loop captures, two allocation-only untyped controls
+and five failure controls check actual constructor/minor allocation,
+record updates, nested abstraction and retained-reader chronology, including
+dependent and higher-order fields, parameters/indices, multiple constructors,
+seeded prefixes, operational defaulting and failure controls. Formal controls
+expose same-terminal constructor application, selected-binding congruence,
+base/current semantic lifting, exact minor allocation and whole-pass model
+threading. Strict module audits pin inherited foundations/interfaces separately
+and forbid the global native bound-variable-range axiom even if whitelisted.
+Positive minor domains pass full native `TypeChecker.checkType`, not inference
+alone. The new whole-module census is ninety-five declarations / forty-six
+theorems, including private/generated helpers (native trace 32/14, semantic
+transport 28/21, CPS 35/11); the old clean core stays seventy-three / thirty-eight.
+All three modules replay through lean4lean. Run
+`lake env lean tests/InductiveMinorTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
