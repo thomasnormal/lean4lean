@@ -5063,11 +5063,55 @@ checker adapters. All 13 module-owned and 71 fixture-namespace declarations are
 exhaustively audited; no new axiom, admission or production runtime change is
 introduced.
 
+`Verify.InductiveHeaderDomainAgreement` collects this equality along an actual
+secondary-header `CheckedHeaderTrace`. A `ReducedParameterDomainReceipt`
+aligns the real reader with a well-formed checker and empty initial state, and
+supplies strict translations and canonical stored-domain typehood in the
+chronological smaller parameter prefix, together with its insertion into the
+full checker context. `ReducedParameterDomainReceipt.accepted` consumes the
+trace's actual successful candidate/stored checker call, obtains sorted
+equality in the full context, then strengthens it through that insertion. It
+does not assume domain equality or treat a full-context judgment as a
+prefix-context judgment without transport.
+
+`CheckedHeaderDomainReceipts` follows the concrete reused-parameter and index
+steps of the native trace. Its `agreement` theorem constructs aggregate
+`IsDefEqCtx`, and `growth` proves the exact `nparams - index` extension on both
+sides. Index allocation changes the native reader but does not add a parameter
+domain. Fresh first-header allocation is intentionally not a constructor of
+this receipt family. `checkInductiveTypes.loopInd.loop.scopedDomainAgreement`
+passes the aggregate equality, exact lengths and actual scope frame to the
+real loop continuation when its per-step receipt provider is supplied.
+`CheckedHeaderDomainReceipts.rebindPrefix` uses the aggregate result for typed
+replacement into an independently named equivalent parameter context; it
+derives parameter-array length agreement rather than requiring it separately.
+
+`tests/InductiveHeaderDomainAgreement.lean` builds genuine reduced-prefix
+receipts inside a full two-parameter checker context. The first candidate
+domain is beta-equivalent, not literally equal, to `Prop`; the second depends
+on the first parameter. Its conditional accepted native trace constructs the
+aggregate receipt without an assumed domain equality, then obtains equivalent
+independently named contexts and non-sort family rebinding. Zero-prefix and
+index controls retain arbitrary supplied parameter bases. Its 27 runtime
+controls check the actual reused-header loop, exact normalization endpoints,
+incompatible-domain rejection, index counting, fuel rejection, replacement
+syntax/state/closure, full source/target family typing and result-type
+conversion. Exact audits pin the same 28 dependencies as
+`TypeChecker.isDefEq.WF` for strengthened accepted equality, aggregation, the
+scoped loop contract and composed replacement. Concrete prefix receipts have
+11 dependencies; the growth and zero/index receipt controls have four
+inherited dependencies, including the existing `sorryAx` dependency encoded
+in the receipt types. All 22 module-owned and 69 fixture-namespace declarations
+are audited. There is no new axiom, admission or production runtime change.
+
 The original `typedRebinding` literal semantic-domain agreement premise remains
 explicit outside its shared-semantic-input case. The new definitional transport
 is an alternative boundary, not a proof that accepted original headers and
-constructors have literally equal strict translations. Collecting domain
-equivalence through the full accepted parameter-check traversal remains open.
+constructors have literally equal strict translations. Constructing all reduced
+prefix/checker receipts from accepted original inputs, integrating first-header
+typing and retaining actual checker results in the constructor traversal remain
+open; the new secondary-header aggregation is conditional on those semantic
+receipts, not unconditional frontend soundness.
 Rebinding callbacks below unopened raw binders also need to strengthen the
 selected closed prefix from
 its ambient bound-variable context into the parameter-only source context;
