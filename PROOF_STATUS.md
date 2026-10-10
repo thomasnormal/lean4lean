@@ -4667,8 +4667,8 @@ same existential reduced body. The original control invocation uses identity
 base removal and insertion. Separate removal-one/insertion-two probes derive
 their protected index cutoff from the actual pushed-ID receipt; they are not
 applications over distinct removed/inserted mixed bases. Missing-index and
-missing-parameter support negatives also pin the boundary. The full fixture
-now has twenty-one proof controls and twenty-one runtime checks, retaining
+missing-parameter support negatives also pin the boundary. The twenty-one
+one-step proof controls and twenty-one runtime checks remain, retaining
 the original identity-base controls. Exact audits pin four dependencies for
 native normalization and the inherited eight for both actual-history
 applications, without new interfaces or admissions.
@@ -4690,6 +4690,28 @@ index suffix, and only body lifts protect the additional substitution formal.
 The original selected argument has coordinate two; separate syntactic controls
 pin the corresponding source/target argument and nested body coordinates,
 without identifying the existential reduced body with a literal stage preimage.
+A two-index application additionally constructs a genuine `.index`, `.index`,
+`.stop` translated history from a nested native forall with two sort-zero
+domains. Its first normalization is the inner native forall, and its second
+is `Sort 0`; both are proved at positive recursion depth. Direct peeled
+openings and the first positioned declaration transported through the second
+native scope frame support both actual stored declarations. The exact two
+suffix IDs are recovered in chronological order from the twice-pushed array.
+Selected telescope support reverses them at the endpoint, before the retained
+base; this is not just a two-suffix structural probe.
+The type-valued stage body has three nested foralls and mentions its formal,
+both allocated indices and the selected retained parameter. The actual
+application reuses the constructed removal-one/insertion-two mixed bases,
+with context cutoff two and one additional protected formal for body lifts.
+Source/target native instantiated translations and endpoint typing share one
+existential reduced body, while original endpoint equality uses the distinct
+removal lift. No literal reduced-body identification is inferred from the
+separate expected-coordinate controls.
+The full fixture now has thirty-six proof controls and forty-one runtime
+checks, including all prior one-step controls. Exact audits pin four
+dependencies for the new forall normalization and the inherited eight for
+the actual two-step adapter application. Order/reversal and missing-either-
+index/parameter negatives pin the nonempty suffix and support boundary.
 This is a conditional proof fixture for the existing adapter, not
 inductive-checker/source acceptance, arbitrary whole-history strengthening or
 a literal original-stage preimage claim.
