@@ -116,6 +116,107 @@ private theorem sharedSortIsPartOfEveryStage
     SemanticSubstitutionChain env universes context level (body.inst original) (body.inst reduced) :=
   .cons rfl rfl typed equality (.nil _ finalTyped)
 
+private theorem arbitraryFiniteChainWeakens
+    {env : VEnv} {universes : Nat} {context target : List VExpr} {level : VLevel}
+    {before final : VExpr} {weakeningLift : Lift}
+    (chain : SemanticSubstitutionChain env universes context level before final)
+    (ordered : env.Ordered) (weakening : Ctx.Lift' weakeningLift context target) :
+    SemanticSubstitutionChain env universes target level
+      (before.lift' weakeningLift) (final.lift' weakeningLift) :=
+  chain.weak' ordered weakening
+
+private theorem emptyChainWeakens
+    {env : VEnv} {universes : Nat} {context target : List VExpr} {level : VLevel}
+    {expression : VExpr} {weakeningLift : Lift}
+    (typed : env.HasType universes context expression (.sort level))
+    (ordered : env.Ordered) (weakening : Ctx.Lift' weakeningLift context target) :
+    SemanticSubstitutionChain env universes target level
+      (expression.lift' weakeningLift) (expression.lift' weakeningLift) :=
+  (SemanticSubstitutionChain.nil expression typed).weak' ordered weakening
+
+private theorem singleStageWeakeningRetainsTheFormalBinder
+    {env : VEnv} {universes : Nat} {context target : List VExpr} {level : VLevel}
+    {body original reduced domain : VExpr} {weakeningLift : Lift}
+    (bodyTyped : env.HasType universes (domain :: context) body (.sort level))
+    (argumentEquality : env.IsDefEq universes context original reduced domain)
+    (reducedTyped : env.HasType universes context (body.inst reduced) (.sort level))
+    (ordered : env.Ordered) (weakening : Ctx.Lift' weakeningLift context target) :
+    SemanticSubstitutionChain env universes target level
+      ((body.lift' (.cons weakeningLift)).inst (original.lift' weakeningLift))
+      ((body.lift' (.cons weakeningLift)).inst (reduced.lift' weakeningLift)) := by
+  simpa only [VExpr.lift'_inst_hi] using
+    (SemanticSubstitutionChain.single bodyTyped argumentEquality reducedTyped).weak'
+      ordered weakening
+
+private theorem twoStageChainWeakens
+    {env : VEnv} {universes : Nat} {context target : List VExpr} {level : VLevel}
+    {body original reduced₁ reduced₂ domain₁ domain₂ : VExpr} {weakeningLift : Lift}
+    (firstTyped : env.HasType universes (domain₁ :: context) body (.sort level))
+    (firstEquality : env.IsDefEq universes context original reduced₁ domain₁)
+    (secondTyped : env.HasType universes (domain₂ :: context) body (.sort level))
+    (secondEquality : env.IsDefEq universes context reduced₁ reduced₂ domain₂)
+    (finalTyped : env.HasType universes context (body.inst reduced₂) (.sort level))
+    (ordered : env.Ordered) (weakening : Ctx.Lift' weakeningLift context target) :
+    SemanticSubstitutionChain env universes target level
+      ((body.inst original).lift' weakeningLift) ((body.inst reduced₂).lift' weakeningLift) :=
+  (twoStageChain firstTyped firstEquality secondTyped secondEquality finalTyped).weak'
+    ordered weakening
+
+private theorem weakenedChainsCanBeAppended
+    {env : VEnv} {universes : Nat} {context target : List VExpr} {level : VLevel}
+    {before middle final : VExpr} {weakeningLift : Lift}
+    (first : SemanticSubstitutionChain env universes context level before middle)
+    (second : SemanticSubstitutionChain env universes context level middle final)
+    (ordered : env.Ordered) (weakening : Ctx.Lift' weakeningLift context target) :
+    SemanticSubstitutionChain env universes target level
+      (before.lift' weakeningLift) (final.lift' weakeningLift) :=
+  (first.weak' ordered weakening).append (second.weak' ordered weakening)
+
+private theorem weakenedChainProjectsBothTypes
+    {env : VEnv} {universes : Nat} {context target : List VExpr} {level : VLevel}
+    {before final : VExpr} {weakeningLift : Lift}
+    (chain : SemanticSubstitutionChain env universes context level before final)
+    (envWF : env.WF) (weakening : Ctx.Lift' weakeningLift context target)
+    (targetWF : OnCtx target (env.IsType universes)) :
+    env.HasType universes target (before.lift' weakeningLift) (.sort level) ∧
+      env.HasType universes target (final.lift' weakeningLift) (.sort level) :=
+  (chain.weak' envWF.ordered weakening).hasType envWF targetWF
+
+private theorem weakenedChainProjectsDefEq
+    {env : VEnv} {universes : Nat} {context target : List VExpr} {level : VLevel}
+    {before final : VExpr} {weakeningLift : Lift}
+    (chain : SemanticSubstitutionChain env universes context level before final)
+    (envWF : env.WF) (weakening : Ctx.Lift' weakeningLift context target)
+    (targetWF : OnCtx target (env.IsType universes)) :
+    env.IsDefEq universes target (before.lift' weakeningLift)
+      (final.lift' weakeningLift) (.sort level) :=
+  (chain.weak' envWF.ordered weakening).isDefEq envWF targetWF
+
+private theorem weakenedChainCancelsInTheTargetContext
+    {env : VEnv} {universes : Nat} {context target : List VExpr} {level : VLevel}
+    {before middle final : VExpr} {weakeningLift : Lift}
+    (chain : SemanticSubstitutionChain env universes context level before middle)
+    (direct : env.IsDefEq universes context before final (.sort level))
+    (envWF : env.WF) (weakening : Ctx.Lift' weakeningLift context target)
+    (targetWF : OnCtx target (env.IsType universes)) :
+    env.IsDefEq universes target (middle.lift' weakeningLift)
+      (final.lift' weakeningLift) (.sort level) := by
+  have targetDirect : env.IsDefEq universes target (before.lift' weakeningLift)
+      (final.lift' weakeningLift) (.sort level) := by
+    simpa only [VExpr.lift'] using direct.weak' envWF.ordered weakening
+  exact (chain.weak' envWF.ordered weakening).cancelLeft targetDirect envWF targetWF
+
+private theorem chronologicalInsertionRequiresItsOwnContextLift
+    {env : VEnv} {universes inserted suffixLength : Nat}
+    {context target : List VExpr} {level : VLevel} {before final : VExpr}
+    (chain : SemanticSubstitutionChain env universes context level before final)
+    (ordered : env.Ordered)
+    (weakening : Ctx.Lift' (.consN (.skipN .refl inserted) suffixLength) context target) :
+    SemanticSubstitutionChain env universes target level
+      (before.lift' (.consN (.skipN .refl inserted) suffixLength))
+      (final.lift' (.consN (.skipN .refl inserted) suffixLength)) :=
+  chain.weak' ordered weakening
+
 private def carrier : FVarId := ⟨`SubstitutionChainCarrier⟩
 private def context : List VExpr := [.sort (.succ .zero)]
 private def stageDomain : VExpr := .sort (.succ .zero)
@@ -151,6 +252,37 @@ private theorem actualStageBodyUsesTheSuppliedDomain :
 private theorem distinctChainLengthsAreNotInterchangeable :
     ([0, 1].length : Nat) ≠ [0, 1, 2].length := by decide
 
+private def insertionLift : Lift := .consN (.skipN .refl 3) 2
+private def insertionStageBody : VExpr := .app (.bvar 0) (.app (.bvar 2) (.bvar 3))
+private def insertionBeta (position : Nat) : VExpr :=
+  .app (.lam (.sort .zero) (.bvar 0)) (.bvar position)
+
+private theorem insertionProtectsSuffixAndTheAdditionalFormalBinder :
+    (VExpr.bvar 0).lift' insertionLift = .bvar 0 ∧
+      (VExpr.bvar 1).lift' insertionLift = .bvar 1 ∧
+      (VExpr.bvar 2).lift' insertionLift = .bvar 5 ∧
+      insertionStageBody.lift' (.cons insertionLift) =
+        .app (.bvar 0) (.app (.bvar 2) (.bvar 6)) := ⟨rfl, rfl, rfl, rfl⟩
+
+private theorem insertionCommutesWithInstantiationOnlyUnderTheFormalBinder :
+    (insertionStageBody.inst (insertionBeta 2)).lift' insertionLift =
+      (insertionStageBody.lift' (.cons insertionLift)).inst (insertionBeta 5) := rfl
+
+private theorem wrongInsertionCutoffAndMissingFormalBinderChangeTheStage :
+    insertionStageBody.lift' (.cons insertionLift) ≠ insertionStageBody.lift' insertionLift ∧
+      (VExpr.bvar 2).lift' insertionLift ≠
+        (VExpr.bvar 2).lift' (.consN (.skipN .refl 3) 3) ∧
+      (VExpr.bvar 0).lift' (.cons (.skipN .refl 3)) ≠
+        (VExpr.bvar 0).lift' (.skipN .refl 3) := by
+  refine ⟨?_, ?_, ?_⟩ <;> intro equality <;> cases equality
+
+private theorem insertedBetaArgumentIsNotItsReducedEndpoint :
+    (insertionBeta 2).lift' insertionLift = insertionBeta 5 ∧
+      (insertionBeta 2).lift' insertionLift ≠ (VExpr.bvar 2).lift' insertionLift := by
+  refine ⟨rfl, ?_⟩
+  intro equality
+  cases equality
+
 private def semanticShape : VExpr → List Nat
   | .bvar position => [0, position]
   | .sort _ => [1]
@@ -178,6 +310,34 @@ private def runtimeChainControls : MetaM Unit := do
     unless condition do throwError "parameter-substitution-chain runtime failed: {label}"
   logInfo m!"parameter-substitution-chain runtime: {conditions.length} empty/single/two/three-stage, sort/domain/order/position controls"
 
+private def runtimeWeakeningControls : MetaM Unit := do
+  let protectedBody := insertionStageBody.lift' (.cons insertionLift)
+  let conditions := [
+    (semanticShape ((VExpr.bvar 0).lift' insertionLift) == [0, 0], "first protected suffix"),
+    (semanticShape ((VExpr.bvar 1).lift' insertionLift) == [0, 1], "second protected suffix"),
+    (semanticShape ((VExpr.bvar 2).lift' insertionLift) == [0, 5], "inserted base argument"),
+    (semanticShape ((VExpr.bvar 3).lift' insertionLift) == [0, 6], "inserted later base argument"),
+    (semanticShape protectedBody == semanticShape (.app (.bvar 0) (.app (.bvar 2) (.bvar 6))),
+      "stage formal binder and suffix protection"),
+    (semanticShape protectedBody != semanticShape (insertionStageBody.lift' insertionLift),
+      "missing extra formal binder"),
+    (semanticShape ((VExpr.bvar 2).lift' insertionLift) !=
+      semanticShape ((VExpr.bvar 2).lift' (.consN (.skipN .refl 3) 3)), "wrong suffix cutoff"),
+    (semanticShape ((VExpr.bvar 0).lift' (.cons (.skipN .refl 3))) !=
+      semanticShape ((VExpr.bvar 0).lift' (.skipN .refl 3)), "unprotected formal binder"),
+    (semanticShape ((insertionBeta 2).lift' insertionLift) == semanticShape (insertionBeta 5),
+      "nonliteral beta argument insertion"),
+    (semanticShape ((insertionBeta 2).lift' insertionLift) !=
+      semanticShape ((VExpr.bvar 2).lift' insertionLift), "beta endpoint remains nonliteral"),
+    (semanticShape ((insertionStageBody.inst (insertionBeta 2)).lift' insertionLift) ==
+      semanticShape (protectedBody.inst (insertionBeta 5)), "lifted body instantiation"),
+    (semanticShape ((insertionStageBody.inst (insertionBeta 2)).lift' insertionLift) !=
+      semanticShape ((insertionStageBody.lift' insertionLift).inst (insertionBeta 5)),
+      "unprotected body instantiation changes endpoint")]
+  for (condition, label) in conditions do
+    unless condition do throwError "parameter-substitution-chain weakening runtime failed: {label}"
+  logInfo m!"parameter-substitution-chain weakening runtime: {conditions.length} insertion, formal-binder, cutoff, nonliteral-beta controls"
+
 private def auditDeclaration (name : Name) (allowed : List Name) : MetaM Unit := do
   let some _ := (← getEnv).find? name | throwError "parameter-substitution-chain declaration absent: {name}"
   for axiomName in ← collectAxioms name do
@@ -195,7 +355,7 @@ private def auditModule (allowed : List Name) : MetaM Unit := do
         throwError "parameter-substitution-chain module-owned axiom {name}"
       auditDeclaration name allowed
       declarations := declarations + 1
-  unless declarations == 18 do throwError "parameter-substitution-chain declaration manifest changed"
+  unless declarations == 19 do throwError "parameter-substitution-chain declaration manifest changed"
   logInfo m!"parameter-substitution-chain module: {declarations} declarations audited; semantic chain has no native/container interfaces"
 
 run_meta
@@ -208,14 +368,29 @@ run_meta
     ``nonliteralStageArgumentsAreStructurallyDifferent,
     ``chainFixtureSupportsEmptySingleAndTwoLengths, ``chainFixtureSupportsExplicitDomainsAndSharedSort,
     ``nativeArgumentOrderIsRetained, ``repeatedStagePositionsAreDataNotHeaderClaims,
-    ``actualStageBodyUsesTheSuppliedDomain, ``distinctChainLengthsAreNotInterchangeable]
+    ``actualStageBodyUsesTheSuppliedDomain, ``distinctChainLengthsAreNotInterchangeable,
+    ``arbitraryFiniteChainWeakens, ``emptyChainWeakens, ``singleStageWeakeningRetainsTheFormalBinder,
+    ``twoStageChainWeakens, ``weakenedChainsCanBeAppended, ``weakenedChainProjectsBothTypes,
+    ``weakenedChainProjectsDefEq, ``weakenedChainCancelsInTheTargetContext,
+    ``chronologicalInsertionRequiresItsOwnContextLift,
+    ``insertionProtectsSuffixAndTheAdditionalFormalBinder,
+    ``insertionCommutesWithInstantiationOnlyUnderTheFormalBinder,
+    ``wrongInsertionCutoffAndMissingFormalBinderChangeTheStage,
+    ``insertedBetaArgumentIsNotItsReducedEndpoint]
   for name in structuralControls do auditDeclaration name allowed
   auditModule allowed
+  let weakeningAxioms ← collectAxioms ``SemanticSubstitutionChain.weak'
+  let weakeningAllowed := [``propext, ``Quot.sound]
+  unless weakeningAxioms.size == weakeningAllowed.length && weakeningAllowed.all weakeningAxioms.contains do
+    throwError "parameter-substitution-chain weakening dependency manifest changed"
+  auditDeclaration ``SemanticSubstitutionChain.weak' weakeningAllowed
+  logInfo m!"parameter-substitution-chain weakening axioms: {weakeningAxioms.toList}"
   let pairChainAxioms ← collectAxioms ``RetainedFVarPrefixAgreement.instantiatePairOuterChain
   unless pairChainAxioms.size == allowed.length && allowed.all pairChainAxioms.contains do
     throwError "parameter-substitution-chain pair adapter dependency manifest changed"
   logInfo "parameter-substitution-chain pair adapter: exact four inherited logical/typing axioms; no native/container interfaces"
   runtimeChainControls
-  logInfo m!"parameter-substitution-chain tests: {structuralControls.length} proof controls; arbitrary finite chain recursion; empty/single/two/three-stage construction; explicit per-stage domain typing and shared sort; native order; nonliteral arguments; length/position negatives"
+  runtimeWeakeningControls
+  logInfo m!"parameter-substitution-chain tests: {structuralControls.length} proof controls; arbitrary finite chain recursion; empty/single/two/three-stage construction; context weakening; append and cancellation in explicit well-formed target; per-stage domains, protected formal binder and suffix cutoff; native order; nonliteral arguments; length/position negatives"
 
 end InductiveParameterSubstitutionChainTest
