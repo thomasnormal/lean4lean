@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveHeaderDomainAgreement
+import Lean4Lean.Verify.InductiveConstructorDomainTrace
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive Lean4Lean.ElimNestedInductive
@@ -327,3 +327,283 @@ run_meta do
   runtimeControls
 
 end InductiveHeaderDomainAgreementTest
+
+namespace InductiveConstructorDomainTraceTest
+open InductiveHeaderDomainAgreementTest
+
+inductive DependentProbe (proposition : Prop) (value : proposition) : Prop where
+  | intro : DependentProbe proposition value
+
+private def constructorTerminal : Expr :=
+  mkApp2 stats.indConsts[0]! (.fvar sourceType) (.fvar sourceValue)
+
+private def constructorType : Expr :=
+  .forallE `type betaDomain
+    (.forallE `value (.bvar 0) (mkApp2 stats.indConsts[0]! (.bvar 1) (.bvar 0)) .default) .default
+
+private theorem secondNativeTrace (isUnsafe : Bool)
+    (secondAccepted : (monadLift (TypeChecker.isDefEq (.fvar sourceType) (.fvar sourceType)) : AddInductive.M Bool)
+      reader = .ok true)
+    (valid : isValidIndAppIdx stats constructorTerminal 0 = true) :
+    AcceptedConstructorTrace stats isUnsafe 0 reader 1
+      (.forallE `value (.fvar sourceType) (mkApp2 stats.indConsts[0]! (.fvar sourceType) (.bvar 0)) .default)
+      reader 2 constructorTerminal := by
+  refine .parameter (parameter := .fvar sourceValue) (by rfl) secondStoredType secondAccepted ?_
+  simp only [Expr.instantiate1_eq]
+  exact .terminal (by rfl) valid
+
+private theorem acceptedTrace
+    (isUnsafe : Bool)
+    (firstAccepted : (monadLift (TypeChecker.isDefEq betaDomain (.sort .zero)) : AddInductive.M Bool)
+      reader = .ok true)
+    (secondAccepted : (monadLift (TypeChecker.isDefEq (.fvar sourceType) (.fvar sourceType)) : AddInductive.M Bool)
+      reader = .ok true)
+    (valid : isValidIndAppIdx stats constructorTerminal 0 = true) :
+    AcceptedConstructorTrace stats isUnsafe 0 reader 0 constructorType reader 2 constructorTerminal := by
+  refine .parameter (parameter := .fvar sourceType) (by rfl) firstStoredType firstAccepted ?_
+  simp only [Expr.instantiate1_eq]
+  exact secondNativeTrace isUnsafe secondAccepted valid
+
+private theorem acceptedReceiptModel
+    (isUnsafe : Bool)
+    (firstAccepted : (monadLift (TypeChecker.isDefEq betaDomain (.sort .zero)) : AddInductive.M Bool)
+      reader = .ok true)
+    (secondAccepted : (monadLift (TypeChecker.isDefEq (.fvar sourceType) (.fvar sourceType)) : AddInductive.M Bool)
+      reader = .ok true)
+    (valid : isValidIndAppIdx stats constructorTerminal 0 = true) :
+    CheckedConstructorDomainReceipts VEnv.empty [] (acceptedTrace isUnsafe firstAccepted secondAccepted valid)
+      [] [] source.vlctx.toCtx target.vlctx.toCtx := by
+  refine .parameter (parameter := .fvar sourceType)
+    (trace := by
+      simp only [Expr.instantiate1_eq]
+      exact secondNativeTrace isUnsafe secondAccepted valid)
+    (by rfl) firstStoredType firstAccepted firstReceipt ?_
+  simp only [Expr.instantiate1_eq]
+  refine .parameter (stats := stats) (index := 1) (parameter := .fvar sourceValue)
+    (name := `value) (binder := .default)
+    (body := mkApp2 stats.indConsts[0]! (.fvar sourceType) (.bvar 0))
+    (trace := by
+      simp only [Expr.instantiate1_eq]
+      exact .terminal (by rfl) valid)
+    (by rfl) secondStoredType secondAccepted secondReceipt ?_
+  simp only [Expr.instantiate1_eq]
+  exact .terminal (source := source.vlctx.toCtx) (target := target.vlctx.toCtx) (by rfl) valid
+
+private theorem aggregatedDomains
+    {isUnsafe : Bool}
+    {trace : AcceptedConstructorTrace stats isUnsafe 0 reader 0 constructorType reader 2 constructorTerminal}
+    (model : CheckedConstructorDomainReceipts VEnv.empty [] trace [] []
+      source.vlctx.toCtx target.vlctx.toCtx) :
+    VEnv.empty.IsDefEqCtx 0 [] source.vlctx.toCtx target.vlctx.toCtx ∧
+      source.vlctx.toCtx.length = 2 ∧ target.vlctx.toCtx.length = 2 :=
+  ⟨model.agreement .zero, by simpa [stats] using model.completeGrowth (by decide) |>.1,
+    by simpa [stats] using model.completeGrowth (by decide) |>.2⟩
+
+private theorem rawTerminalKeepsZeroChecks (isUnsafe : Bool) (baseSource baseTarget : List VExpr)
+    (valid : isValidIndAppIdx stats constructorTerminal 0 = true) :
+    ∃ trace : AcceptedConstructorTrace stats isUnsafe 0 reader 0 constructorTerminal reader 0 constructorTerminal,
+      CheckedConstructorDomainReceipts VEnv.empty [] trace baseSource baseTarget baseSource baseTarget :=
+  ⟨.terminal (by rfl) valid, .terminal (by rfl) valid⟩
+
+private theorem partialPrefixRetainsBase (isUnsafe : Bool)
+    (secondAccepted : (monadLift (TypeChecker.isDefEq (.fvar sourceType) (.fvar sourceType)) : AddInductive.M Bool)
+      reader = .ok true)
+    (valid : isValidIndAppIdx stats constructorTerminal 0 = true) :
+    ∃ trace : AcceptedConstructorTrace stats isUnsafe 0 reader 1
+      (.forallE `value (.fvar sourceType) (mkApp2 stats.indConsts[0]! (.fvar sourceType) (.bvar 0)) .default)
+      reader 2 constructorTerminal,
+      CheckedConstructorDomainReceipts VEnv.empty [] trace sourceFirst.vlctx.toCtx targetFirst.vlctx.toCtx
+        source.vlctx.toCtx target.vlctx.toCtx := by
+  refine ⟨secondNativeTrace isUnsafe secondAccepted valid, ?_⟩
+  refine .parameter (stats := stats) (index := 1) (parameter := .fvar sourceValue)
+    (trace := by
+      simp only [Expr.instantiate1_eq]
+      exact .terminal (by rfl) valid)
+    (by rfl) secondStoredType secondAccepted secondReceipt ?_
+  simp only [Expr.instantiate1_eq]
+  exact .terminal (source := source.vlctx.toCtx) (target := target.vlctx.toCtx) (by rfl) valid
+
+private theorem fieldRetainsCompletePrefix (isUnsafe : Bool) (baseSource baseTarget : List VExpr)
+    (checked : (monadLift (TypeChecker.ensureType (.sort .zero)) : AddInductive.M Expr)
+      reader = .ok (.sort (.succ .zero)))
+    (positive : isUnsafe = false → PositivityTrace stats PositivityWHNF reader (.sort .zero))
+    (valid : isValidIndAppIdx stats (constructorTerminal.instantiate1 (.fvar ⟨reader.ngen.curr⟩)) 0 = true) :
+    ∃ trace : AcceptedConstructorTrace stats isUnsafe 0 reader 2
+      (.forallE `field (.sort .zero) constructorTerminal .default)
+      (reader.withPositivityArg `field (.sort .zero) .default) 3
+      (constructorTerminal.instantiate1 (.fvar ⟨reader.ngen.curr⟩)),
+      CheckedConstructorDomainReceipts VEnv.empty [] trace baseSource baseTarget baseSource baseTarget := by
+  have notForall : (constructorTerminal.instantiate1 (.fvar ⟨reader.ngen.curr⟩)).isForall = false := by
+    simp only [Expr.instantiate1_eq, constructorTerminal, mkApp2, Expr.instantiate1', Expr.isForall]
+  exact ⟨.field (by rfl) checked (by decide) positive (.terminal notForall valid),
+    .field (by rfl) checked (by decide) positive (.terminal notForall valid)⟩
+
+private theorem aggregateRebindsFamily
+    {isUnsafe : Bool}
+    {trace : AcceptedConstructorTrace stats isUnsafe 0 reader 0 constructorType reader 2 constructorTerminal}
+    (model : CheckedConstructorDomainReceipts VEnv.empty [] trace [] []
+      source.vlctx.toCtx target.vlctx.toCtx)
+    (nativeEnv : Kernel.Environment) (state : ElimNestedInductive.State) :
+    (replaceParams (targetIdentifiers.map Expr.fvar).toArray family
+      (sourceIdentifiers.map Expr.fvar).toArray nativeEnv state).WF fun returned =>
+        Closed returned.1 0 ∧
+        ∃ semantic, TrExprS VEnv.empty [] target.vlctx returned.1 semantic ∧
+          VEnv.empty.HasType 0 target.vlctx.toCtx semantic (.forallE (.bvar 1) (.sort .zero)) := by
+  have translated : TrExprS VEnv.empty [] source.vlctx family (.lam (.bvar 1) (.bvar 2)) :=
+    .lam ⟨_, .bvar (.succ .zero)⟩ (.fvar rfl) (.fvar rfl)
+  have typed : VEnv.empty.HasType 0 source.vlctx.toCtx (.lam (.bvar 1) (.bvar 2))
+      (.forallE (.bvar 1) (.sort .zero)) :=
+    .lam (.bvar (.succ .zero)) (.bvar (.succ (.succ .zero)))
+  exact (model.rebindPrefix environmentWF sourceWellFormed targetWellFormed
+    sourcePrefix targetPrefix translated typed nativeEnv state).mono
+      fun _ ⟨_, _, closed, _, _, semantic, translated, typed⟩ => ⟨closed, semantic, translated, typed⟩
+
+private theorem batchRetainsSourceCheck (types : Array InductiveType) (statistics : InductiveStats)
+    (isUnsafe : Bool) (ambient : AddInductive.Context)
+    (accepted : checkConstructors types statistics isUnsafe ambient = .ok ())
+    (parent : Nat) (bound : parent < types.size) (constructor : Constructor)
+    (member : constructor ∈ types[parent].ctors) :
+    ∃ sourceType finalReader finalIndex terminal,
+      (monadLift (TypeChecker.checkType constructor.type) : AddInductive.M Expr) ambient = .ok sourceType ∧
+      AcceptedConstructorTrace statistics isUnsafe parent ambient 0 constructor.type finalReader finalIndex terminal :=
+  checkConstructors.acceptedTraces types statistics isUnsafe ambient () accepted parent bound constructor member
+
+private def runtimeConstructorType (head : Expr) (field : Option Expr := none) : Expr :=
+  let result := mkApp2 head (.bvar 1) (.bvar 0)
+  let body := match field with
+    | none => result
+    | some domain => .forallE `field domain (mkApp2 head (.bvar 2) (.bvar 1)) .default
+  .forallE `type betaDomain (.forallE `value (.bvar 0) body .default) .default
+
+private def runtimeControls : MetaM Unit := do
+  let nativeEnv := (← getEnv).toKernelEnv
+  let head := Expr.const ``DependentProbe []
+  let statistics := { stats with indConsts := #[head], nindices := #[0] }
+  let ambient := { reader with env := nativeEnv, fuel := { inductiveFuel := 32, recDepth := 256 } }
+  let positive := runtimeConstructorType head (some (.sort .zero))
+  let negativeDomain := Expr.forallE `argument (mkApp2 head (.bvar 1) (.bvar 0)) (.const ``False []) .default
+  let negative := runtimeConstructorType head (some negativeDomain)
+  let mut checks := 0
+  for isUnsafe in [false, true] do
+    for fuel in [4, 32] do
+      for type in [runtimeConstructorType head, positive] do
+        let .ok () := checkConstructors.loop statistics isUnsafe 0 `AcceptedConstructor type 0 fuel ambient
+          | throwError "actual constructor loop rejected nonliteral dependent parameter domains"
+        checks := checks + 1
+    let constructor : Constructor := { name := `AcceptedConstructor, type := runtimeConstructorType head }
+    let fieldConstructor : Constructor := { name := `AcceptedFieldConstructor, type := positive }
+    let types : Array InductiveType :=
+      #[{
+        name := ``DependentProbe
+        type := .forallE `type (.sort .zero) (.forallE `value (.bvar 0) (.sort .zero) .default) .default,
+        ctors := [constructor, fieldConstructor] }]
+    let .ok () := checkConstructors types statistics isUnsafe ambient
+      | throwError "actual checked constructor batch rejected matching dependent domains"
+    checks := checks + 1
+    let duplicate := #[{ types[0]! with ctors := [constructor, constructor] }]
+    match checkConstructors duplicate statistics isUnsafe ambient with
+    | .error _ => checks := checks + 1
+    | .ok _ => throwError "actual constructor batch accepted duplicate names"
+    let openResult := mkApp2 head (.fvar sourceType) (.fvar sourceValue)
+    let .ok () := checkConstructors.loop statistics isUnsafe 0 `OpenLoop openResult 0 1 ambient
+      | throwError "raw terminal control unexpectedly required prior parameter checks"
+    checks := checks + 1
+    let openSource := #[{ types[0]! with ctors := [{ name := `RejectedOpenSource, type := openResult }] }]
+    match checkConstructors openSource statistics isUnsafe ambient with
+    | .error _ => checks := checks + 1
+    | .ok _ => throwError "outer constructor source guard accepted the open raw-loop control"
+    let partialType := Expr.forallE `value (.fvar sourceType) (mkApp2 head (.fvar sourceType) (.bvar 0)) .default
+    let .ok () := checkConstructors.loop statistics isUnsafe 0 `PartialLoop partialType 1 2 ambient
+      | throwError "retained-base partial parameter check failed"
+    checks := checks + 1
+    for fuel in [0, 1, 2] do
+      match checkConstructors.loop statistics isUnsafe 0 `FuelControl (runtimeConstructorType head) 0 fuel ambient with
+      | .error .deepRecursion => checks := checks + 1
+      | _ => throwError "constructor parameter fuel control changed"
+    let incompatible := Expr.forallE `type (.sort (.succ .zero))
+      (.forallE `value (.bvar 0) (mkApp2 head (.bvar 1) (.bvar 0)) .default) .default
+    match checkConstructors.loop statistics isUnsafe 0 `Mismatch incompatible 0 32 ambient with
+    | .error _ => checks := checks + 1
+    | .ok _ => throwError "constructor loop accepted incompatible parameter universes"
+    match checkConstructors.loop statistics isUnsafe 0 `Negative negative 0 32 ambient with
+    | .ok () =>
+      unless isUnsafe do throwError "safe constructor loop skipped negative positivity"
+      checks := checks + 1
+    | .error _ =>
+      if isUnsafe then throwError "unsafe constructor loop unexpectedly enforced positivity"
+      checks := checks + 1
+  let .ok stored := getType statistics.params[0]! ambient | throwError "actual stored-domain lookup failed"
+  let .ok true := (monadLift (TypeChecker.isDefEq betaDomain stored) : AddInductive.M Bool) ambient
+    | throwError "actual retained first-domain checker result was not true"
+  let .ok dependent := getType statistics.params[1]! ambient | throwError "actual dependent-domain lookup failed"
+  let .ok true := (monadLift (TypeChecker.isDefEq (.fvar sourceType) dependent) : AddInductive.M Bool) ambient
+    | throwError "actual retained dependent-domain checker result was not true"
+  unless stored == .sort .zero && dependent == .fvar sourceType && stored != betaDomain do
+    throwError "native retained lookup/check pairs collapsed or changed"
+  checks := checks + 5
+  unless checks == 33 do throwError "constructor-domain runtime manifest changed: {checks}"
+  logInfo m!"constructor domain trace runtime: {checks} dependent, nonliteral, safe/unsafe, fields, batch, retained-base, truncated-loop, fuel and negative controls"
+
+run_meta do
+  let logical := [``propext, ``Classical.choice, ``Quot.sound]
+  let inherited := logical ++ [``sorryAx]
+  let receipts := inherited ++ [``PersistentHashMap.WF.find?_eq, ``PersistentArray.toList'_push,
+    ``PersistentHashMap.WF.toList'_insert, ``PersistentHashMap.findAux_isSome, ``Expr.eqv_eq,
+    ``Level.instLawfulBEqLevel, ``Syntax.structEq_eq]
+  let checker := receipts ++ [``Lean4Lean.ptrEqExpr_eq, ``Expr.looseBVarRange_eq,
+    ``Expr.instantiateRev_eq, ``Expr.instantiate_eq, ``Expr.replace_eq, ``Level.hasParam_eq,
+    ``Expr.hasLevelParam_eq, ``Level.hasMVar_eq, ``Lean4Lean.ptrEqConstantInfo_eq,
+    ``Expr.instantiateRange_eq, ``Expr.instantiate1_eq, `Lean.Expr.mkAppRangeAux.eq_def,
+    ``Expr.abstractRange_eq, ``Expr.abstract_eq, ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq,
+    ``Expr.instantiateRevRange_eq]
+  for name in [``AcceptedConstructorTrace.index_le, ``AcceptedConstructorTrace.safe,
+      ``checkConstructors.loop.acceptedTrace,
+      ``InductiveStats.AcceptedConstructorTraces.safe, ``checkConstructors.acceptedTraces,
+      ``batchRetainsSourceCheck] do audit name logical
+  audit ``AcceptedConstructorTrace.scope
+    (logical ++ [``PersistentArray.toList'_push, ``PersistentHashMap.WF.find?_eq,
+      ``PersistentHashMap.WF.toList'_insert])
+  for name in [``CheckedConstructorDomainReceipts.agreement, ``CheckedConstructorDomainReceipts.growth,
+      ``CheckedConstructorDomainReceipts.completeGrowth, ``CheckedConstructorDomainReceipts.rebindPrefix,
+      ``checkConstructors.domainAgreement,
+      ``acceptedTrace, ``acceptedReceiptModel, ``aggregatedDomains, ``rawTerminalKeepsZeroChecks,
+      ``partialPrefixRetainsBase, ``fieldRetainsCompletePrefix, ``aggregateRebindsFamily] do audit name checker
+  for name in [``AcceptedConstructorTrace.index_le, ``AcceptedConstructorTrace.safe,
+      ``checkConstructors.loop.acceptedTrace, ``InductiveStats.AcceptedConstructorTraces.safe,
+      ``checkConstructors.acceptedTraces, ``batchRetainsSourceCheck] do auditExact name logical
+  auditExact ``AcceptedConstructorTrace.scope
+    (logical ++ [``PersistentArray.toList'_push, ``PersistentHashMap.WF.find?_eq,
+      ``PersistentHashMap.WF.toList'_insert])
+  for name in [``CheckedConstructorDomainReceipts.agreement, ``CheckedConstructorDomainReceipts.rebindPrefix,
+      ``checkConstructors.domainAgreement, ``aggregatedDomains, ``aggregateRebindsFamily] do auditExact name checker
+  for name in [``CheckedConstructorDomainReceipts.growth, ``CheckedConstructorDomainReceipts.completeGrowth,
+      ``rawTerminalKeepsZeroChecks] do auditExact name inherited
+  auditExact ``acceptedTrace
+    (inherited ++ [``PersistentHashMap.WF.find?_eq, ``PersistentArray.toList'_push,
+      ``PersistentHashMap.WF.toList'_insert, ``Expr.instantiate1_eq])
+  for name in [``acceptedReceiptModel, ``partialPrefixRetainsBase] do
+    auditExact name (receipts ++ [``Expr.instantiate1_eq])
+  auditExact ``fieldRetainsCompletePrefix (inherited ++ [``Expr.instantiate1_eq])
+  let environment ← getEnv
+  let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveConstructorDomainTrace
+    | throwError "constructor-domain module absent"
+  let mut moduleCount := 0
+  let mut fixtureCount := 0
+  for (name, information) in environment.constants do
+    if environment.getModuleIdxFor? name == some moduleIndex then
+      if information matches .axiomInfo _ then throwError "new constructor-domain axiom {name}"
+      let dependencies ← collectAxioms name
+      for dependency in dependencies do
+        unless checker.contains dependency do throwError "unexpected constructor-domain module dependency {dependency} in {name}"
+      moduleCount := moduleCount + 1
+    if name.toString.contains "InductiveConstructorDomainTraceTest" then
+      let dependencies ← collectAxioms name
+      for dependency in dependencies do
+        unless checker.contains dependency do throwError "unexpected constructor-domain fixture dependency {dependency} in {name}"
+      fixtureCount := fixtureCount + 1
+  logInfo m!"constructor domain trace exhaustive audit: {moduleCount} module and {fixtureCount} fixture declarations"
+  unless moduleCount == 51 do throwError "constructor-domain module manifest changed: {moduleCount}"
+  unless fixtureCount == 26 do throwError "constructor-domain fixture manifest changed: {fixtureCount}"
+  runtimeControls
+
+end InductiveConstructorDomainTraceTest

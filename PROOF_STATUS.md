@@ -5104,14 +5104,60 @@ inherited dependencies, including the existing `sorryAx` dependency encoded
 in the receipt types. All 22 module-owned and 69 fixture-namespace declarations
 are audited. There is no new axiom, admission or production runtime change.
 
+`Verify.InductiveConstructorDomainTrace` retains the corresponding actual
+constructor checks instead of reading equality from the older
+`SafeConstructorTrace.parameter`, which omits their results.
+`AcceptedConstructorTrace` records every selected parameter, actual stored-type
+lookup and successful candidate/stored `isDefEq` call. Field steps retain the
+actual `ensureType` result and universe guard, plus native positivity evidence
+when the declaration is safe. Both safe and unsafe traversals retain their
+final reader and binder index. Its `safe` projection recovers the original
+positivity trace, and `scope` derives the native scope frame from original
+well-formedness/freshness. `checkConstructors.loop.acceptedTrace` obtains this
+trace from the real loop without a semantic receipt premise.
+`checkConstructors.acceptedTraces` retains both that trace and the successful
+initial full-source `checkType` call for every member of an accepted batch.
+
+`CheckedConstructorDomainReceipts` consumes reduced-prefix receipts at the
+recorded parameter checks and constructs aggregate `IsDefEqCtx`. Field
+allocation changes the native reader but does not add a parameter domain. Its
+exact growth is `min finalIndex numParams - min initialIndex numParams`, not
+unconditionally all parameters: a raw loop can start partially checked or
+accept an already-open terminal at index zero. `completeGrowth` gives
+`numParams - initialIndex` only when the final index has reached the parameter
+count. `rebindPrefix` derives equal independent parameter-array lengths from
+the resulting domain agreement and provides typed non-sort rebinding.
+`checkConstructors.domainAgreement` composes the actual accepted batch with a
+per-constructor receipt provider, preserving initial source-check acceptance,
+native traces, aggregate equality and exact checked-prefix lengths.
+
+The constructor section of `tests/InductiveHeaderDomainAgreement.lean` reuses
+the genuine full-reader/reduced-prefix semantic model from its header section.
+It constructs accepted dependent nonliteral-domain traces and models for both
+safety flags, typed independent family rebinding, retained partial bases,
+field allocation without domain growth and the zero-check raw terminal case.
+Its 33 runtime controls exercise real loops and full batches, safe positivity
+rejection versus unsafe bypass, positive fields, duplicate-name rejection,
+partial prefixes, fuel rejection, incompatible domains and exact retained
+lookup/check pairs. An open terminal is accepted by the raw loop but rejected
+by the outer source guard; this is a boundary control, not a kernel discrepancy
+or evidence of complete parameter checking. Exact audits pin three logical
+dependencies for native trace/batch extraction and safe projection, six for
+native scope transport, four inherited dependencies for count/zero-prefix
+controls, and the existing 28 checker dependencies for domain aggregation,
+batch composition and typed replacement. Concrete native/semantic prefix
+models use the inherited `Expr.instantiate1_eq` boundary, with exact manifests
+of eight, twelve and five dependencies. All 51 production declarations and 26
+constructor-fixture declarations are audited in addition to the header audits.
+There is no new axiom, admission or production runtime change.
+
 The original `typedRebinding` literal semantic-domain agreement premise remains
 explicit outside its shared-semantic-input case. The new definitional transport
 is an alternative boundary, not a proof that accepted original headers and
 constructors have literally equal strict translations. Constructing all reduced
-prefix/checker receipts from accepted original inputs, integrating first-header
-typing and retaining actual checker results in the constructor traversal remain
-open; the new secondary-header aggregation is conditional on those semantic
-receipts, not unconditional frontend soundness.
+prefix/checker receipt providers from accepted original inputs and integrating
+first-header semantic typing remain open; header and constructor aggregation
+are conditional on those semantic receipts, not unconditional frontend soundness.
 Rebinding callbacks below unopened raw binders also need to strengthen the
 selected closed prefix from
 its ambient bound-variable context into the parameter-only source context;
