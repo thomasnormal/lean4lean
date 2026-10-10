@@ -4649,6 +4649,33 @@ construction or acceptance of a nonempty history. An exhaustive one-declaration
 module audit enforces the exact inherited eight-axiom manifest.
 Run `lake env lean tests/InductiveIndexSubstitutionStageRebase.lean`.
 
+`tests/InductiveIndexSubstitutionStageOneStep.lean` additionally constructs a
+nonempty translated history: a native forall over `Sort 0` allocates one fresh
+index and terminates at `Sort 0`, with an actual `.index` followed by `.stop`.
+The opening is built directly from sort translation/typehood, the pushed
+mixed-context correspondence, the allocated binder's positioned declaration
+and the native scope frame. Stored-domain support is proved for that actual singleton
+declaration, rather than discharged by an empty list of binder steps. Native
+sort normalization is derived from positive recursion depth, not assumed as
+an arbitrary checker result. The native parameter list is empty, while the
+retained selection remains an actual base membership and sort-zero lookup.
+The separate type-valued stage body uses its protected substitution formal,
+the allocated index and a selected retained parameter. The adapter's actual
+array suffix and selected telescope determine the endpoint support and lift
+cutoff; native instantiated translations and source/target typing share the
+same existential reduced body. The actual adapter invocation uses identity
+base removal and insertion. Separate removal-one/insertion-two probes derive
+their protected index cutoff from the actual pushed-ID receipt; they are not
+applications over distinct removed/inserted mixed bases. Missing-index and
+missing-parameter support negatives also pin the boundary. Fourteen proof
+controls and twelve runtime checks pass. Exact audits pin four dependencies
+for native normalization and the inherited eight for the actual-history
+application, without new interfaces or admissions.
+This is a conditional proof fixture for the existing adapter, not
+inductive-checker/source acceptance, arbitrary whole-history strengthening or
+a literal original-stage preimage claim.
+Run `lake env lean tests/InductiveIndexSubstitutionStageOneStep.lean`.
+
 `Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
 chronological selected telescope over a supplied smaller mixed base.
 `SelectedRecursorDomainFVars` constrains only actual full-reader stored cdecl
