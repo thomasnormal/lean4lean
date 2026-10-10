@@ -504,6 +504,431 @@ private theorem constructedSelectedStageHasDistinctSourceOriginalAndTargetCoordi
     ((stageSemantic (.bvar 0)).inst (.bvar 1)).lift' (.cons (.skip (.skip .refl))) =
       .forallE (.bvar 3) (.forallE (.bvar 1) (.bvar 5)) := ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
+private def oneIndexType : Expr := .forallE `oneIndex (.sort .zero) (.sort .zero) .default
+
+private def twoIndexType : Expr := .forallE `oneIndex (.sort .zero) oneIndexType .default
+
+private def twoIndexArray (reader : Context) : Array Expr :=
+  (#[].push (.fvar (generated reader))).push (.fvar (generated (nextReader reader)))
+
+private def twoIndexSteps (reader : Context) : List BinderStep := [oneStep reader, oneStep (nextReader reader)]
+
+private def twoIndexVirtual (virtual : VLCtx) (reader : Context) : VLCtx :=
+  nextVirtual (nextVirtual virtual reader) (nextReader reader)
+
+private def twoIndexNativeStageBody (reader : Context) (identifier : FVarId) : Expr :=
+  .forallE `formalUse (.bvar 0)
+    (.forallE `firstIndexUse (.fvar (generated reader))
+      (.forallE `secondIndexUse (.fvar (generated (nextReader reader))) (.fvar identifier) .default)
+      .default) .default
+
+private def twoIndexStageSemantic (argument : VExpr) : VExpr :=
+  .forallE (.bvar 0) (.forallE (.bvar 3) (.forallE (.bvar 3) argument.lift.lift.lift.lift.lift.lift))
+
+private def twoIndexStageLevel : VLevel := .imax .zero (.imax .zero (.imax .zero .zero))
+
+private theorem nativeForallNormalizationWithPositiveDepth
+    (reader : Context) (depth : Nat) (positive : reader.fuel.recDepth = depth + 1) :
+    ((monadLift (TypeChecker.whnf (oneIndexType.instantiate1 (.fvar (generated reader)))) : M Expr)
+      (nextReader reader)) = .ok oneIndexType := by
+  rw [Expr.instantiate1_eq]
+  change (Prod.fst <$> (TypeChecker.Methods.withFuel reader.fuel.recDepth).whnf oneIndexType
+    { env := reader.env, safety := reader.safety, lctx := (nextReader reader).lctx,
+      lparams := reader.lparams, fuel := reader.fuel } {}) = .ok oneIndexType
+  rw [positive]
+  rfl
+
+private theorem sortForallTranslationAndTyping {env : VEnv} {universes : List Name} (virtual : VLCtx) :
+    TrExprS env universes virtual oneIndexType (.forallE (.sort .zero) (.sort .zero)) ∧
+    env.HasType universes.length virtual.toCtx (.forallE (.sort .zero) (.sort .zero))
+      (.sort (.imax (.succ .zero) (.succ .zero))) := by
+  have domainTyped : env.HasType universes.length virtual.toCtx (.sort .zero) (.sort (.succ .zero)) :=
+    .sortDF (by trivial) (by trivial) rfl
+  have bodyTyped : env.HasType universes.length ((.sort .zero) :: virtual.toCtx)
+      (.sort .zero) (.sort (.succ .zero)) := .sortDF (by trivial) (by trivial) rfl
+  exact ⟨.forallE ⟨.succ .zero, domainTyped⟩ ⟨.succ .zero, bodyTyped⟩
+    (.sort (by simp [VLevel.ofLevel])) (.sort (by simp [VLevel.ofLevel])),
+    .forallEDF domainTyped bodyTyped⟩
+
+private theorem constructFirstOfTwoActualIndexOpenings
+    {env : VEnv} {universes : List Name} {reader : Context} {virtual : VLCtx}
+    (correspondence : TrLCtx env universes reader.lctx virtual)
+    (reserved : ContextReserved reader.lctx reader.ngen) :
+    PeeledIndexOpening env universes reader virtual `oneIndex (.sort .zero) oneIndexType
+      .default (.sort .zero) (.forallE (.sort .zero) (.sort .zero)) (.succ .zero) (.sort .zero) := by
+  have opening := constructActualIndexOpening correspondence reserved
+  have translated := sortForallTranslationAndTyping (env := env) (universes := universes)
+    (nextVirtual virtual reader)
+  refine ⟨opening.1, opening.2.1, opening.2.2.1, ?_, opening.2.2.2.2.1, opening.2.2.2.2.2⟩
+  rw [Expr.instantiate1_eq]
+  exact ⟨_, translated.1, translated.2.toU⟩
+
+private theorem constructGenuineTwoStepHistory
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {reader : Context} {virtual : VLCtx}
+    (parametersEmpty : stats.params.size = 0)
+    (correspondence : TrLCtx env universes reader.lctx virtual)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (depth : Nat) (positive : reader.fuel.recDepth = depth + 1) :
+    ∃ trace : RecursorIndexTrace stats twoIndexType 0 #[] reader (.sort .zero) 0
+      (twoIndexArray reader) (nextReader (nextReader reader)),
+      TranslatedRecursorIndexTrace env universes trace virtual
+        (.forallE (.sort .zero) (.forallE (.sort .zero) (.sort .zero)))
+        (twoIndexVirtual virtual reader) (.sort .zero) := by
+  have firstOpening := constructFirstOfTwoActualIndexOpenings correspondence reserved
+  have firstCorrespondence := firstOpening.2.2.1
+  have secondOpening := constructActualIndexOpening firstCorrespondence firstOpening.2.2.2.2.2.reserved
+  have firstNormalized := nativeForallNormalizationWithPositiveDepth reader depth positive
+  have secondNormalized := nativeSortNormalizationWithPositiveDepth (nextReader reader) depth positive
+  have notParameter : ¬0 < stats.params.size := by simp [parametersEmpty]
+  have notForall : ∀ name domain body bi, Expr.sort .zero ≠ .forallE name domain body bi := by
+    intro name domain body binder equality
+    cases equality
+  have stopped := RecursorIndexTrace.stop (stats := stats) (index := 0)
+    (indices := twoIndexArray reader) (ctx := nextReader (nextReader reader)) notForall
+  have second := RecursorIndexTrace.index (stats := stats) (name := `oneIndex) (domain := .sort .zero)
+    (body := .sort .zero) (bi := .default) (index := 0)
+    (indices := #[].push (.fvar (generated reader))) (ctx := nextReader reader)
+    notParameter secondNormalized stopped
+  have stoppedTranslated := TranslatedRecursorIndexTrace.stop (stats := stats)
+    (index := 0) (indices := twoIndexArray reader) notForall secondOpening.2.2.1
+    (TrExprS.sort (u' := .zero) (by simp [VLevel.ofLevel]))
+  have secondTranslated := TranslatedRecursorIndexTrace.index (name := `oneIndex)
+    (domain := .sort .zero) (body := .sort .zero) (bi := .default) (reader := nextReader reader)
+    (index := 0) (indices := #[].push (.fvar (generated reader)))
+    notParameter secondNormalized stopped (sortForallTranslationAndTyping (nextVirtual virtual reader)).1
+    secondOpening (.sort (by simp [VLevel.ofLevel]))
+    (show env.HasType universes.length (twoIndexVirtual virtual reader).toCtx
+      (.sort .zero) (.sort (.succ .zero)) from .sortDF (by trivial) (by trivial) rfl).toU stoppedTranslated
+  have firstTranslated := sortForallTranslationAndTyping (env := env) (universes := universes)
+    ((none, .vlam (.sort .zero)) :: virtual)
+  have translated : TrExprS env universes virtual twoIndexType
+      (.forallE (.sort .zero) (.forallE (.sort .zero) (.sort .zero))) :=
+    .forallE ⟨.succ .zero, .sortDF (by trivial) (by trivial) rfl⟩
+      ⟨.imax (.succ .zero) (.succ .zero), firstTranslated.2⟩
+      (.sort (by simp [VLevel.ofLevel])) firstTranslated.1
+  refine ⟨.index notParameter firstNormalized second, ?_⟩
+  exact .index (name := `oneIndex) (domain := .sort .zero) (body := oneIndexType)
+    (bi := .default) (reader := reader) (index := 0) (indices := #[])
+    notParameter firstNormalized second translated firstOpening
+    (sortForallTranslationAndTyping (nextVirtual virtual reader)).1
+    (sortForallTranslationAndTyping (nextVirtual virtual reader)).2.toU secondTranslated
+
+private theorem twoActualStoredDomainsAreSupported
+    {env : VEnv} {universes : List Name} {reader : Context} {virtual : VLCtx}
+    (correspondence : TrLCtx env universes reader.lctx virtual)
+    (reserved : ContextReserved reader.lctx reader.ngen) (identifier : FVarId) :
+    BinderStoredIndexTypeFVarsIn [identifier] (nextReader (nextReader reader)) (twoIndexSteps reader) := by
+  have firstOpening := constructActualIndexOpening correspondence reserved
+  have secondOpening := constructActualIndexOpening firstOpening.2.2.1 firstOpening.2.2.2.2.2.reserved
+  have firstDeclared := firstOpening.2.2.2.2.1.declared.mono firstOpening.2.2.1.1
+    secondOpening.2.2.2.2.2
+  have declared : BinderStepsIndexDeclared (nextReader (nextReader reader)) (twoIndexSteps reader) := by
+    intro step member role
+    have alternatives : step = oneStep reader ∨ step = oneStep (nextReader reader) := by
+      simpa [twoIndexSteps] using member
+    rcases alternatives with equality | equality
+    · subst step
+      exact firstDeclared
+    · subst step
+      exact secondOpening.2.2.2.2.1.declared
+  have raw : BinderRawDomainFVarsIn [identifier] (twoIndexSteps reader) := by
+    intro position step selected
+    cases position with
+    | zero =>
+      have equality : oneStep reader = step := Option.some.inj selected
+      subst step
+      trivial
+    | succ position =>
+      cases position with
+      | zero =>
+        have equality : oneStep (nextReader reader) = step := Option.some.inj selected
+        subst step
+        trivial
+      | succ position => simp [twoIndexSteps] at selected
+  exact raw.storedIndexTypeFVarsIn declared
+
+private theorem exactlyTwoIdentifiersComeFromTheActualArrayPushes
+    {reader : Context} {ids : List FVarId}
+    (array : (twoIndexArray reader).toList = (#[] : Array Expr).toList ++ ids.map Expr.fvar) :
+    ids = [generated reader, generated (nextReader reader)] := by
+  have mapped : ids.map Expr.fvar = [.fvar (generated reader), .fvar (generated (nextReader reader))] := by
+    simpa [twoIndexArray] using array.symm
+  have injective : Function.Injective (Expr.fvar : FVarId → Expr) := fun _ _ equality => Expr.fvar.inj equality
+  exact (List.map_inj_right injective).mp mapped
+
+private theorem twoFreshIndexNamesAreDistinctFromTheRetainedParameter
+    {env : VEnv} {universes : List Name} {reader : Context} {virtual : VLCtx}
+    (correspondence : TrLCtx env universes reader.lctx virtual)
+    (reserved : ContextReserved reader.lctx reader.ngen) (identifier : FVarId)
+    (member : identifier ∈ virtual.fvars) :
+    generated reader ≠ identifier ∧ generated (nextReader reader) ≠ identifier ∧
+      generated (nextReader reader) ≠ generated reader := by
+  have firstOpening := constructActualIndexOpening correspondence reserved
+  have firstFresh := actualNewIndexIsFreshInTheBase correspondence reserved
+  have secondFresh := actualNewIndexIsFreshInTheBase firstOpening.2.2.1 firstOpening.2.2.2.2.2.reserved
+  refine ⟨?_, ?_, ?_⟩
+  · intro equality
+    exact firstFresh (equality.symm ▸ member)
+  · intro equality
+    apply secondFresh
+    change generated (nextReader reader) ∈ generated reader :: virtual.fvars
+    exact List.mem_cons_of_mem _ (equality.symm ▸ member)
+  · intro equality
+    apply secondFresh
+    change generated (nextReader reader) ∈ generated reader :: virtual.fvars
+    simp [equality]
+
+private theorem bothActualStoredIndexDeclarationsExist
+    {env : VEnv} {universes : List Name} {reader : Context} {virtual : VLCtx}
+    (correspondence : TrLCtx env universes reader.lctx virtual)
+    (reserved : ContextReserved reader.lctx reader.ngen) :
+    ∃ first second : LocalDecl,
+      (nextReader (nextReader reader)).lctx.find? (generated reader) = some first ∧
+      first.type = .sort .zero ∧
+      (nextReader (nextReader reader)).lctx.find? (generated (nextReader reader)) = some second ∧
+      second.type = .sort .zero := by
+  have firstOpening := constructActualIndexOpening correspondence reserved
+  have secondOpening := constructActualIndexOpening firstOpening.2.2.1 firstOpening.2.2.2.2.2.reserved
+  obtain ⟨first, firstLookup, _, firstType, _, _⟩ := firstOpening.2.2.2.2.1.declared.mono
+    firstOpening.2.2.1.1 secondOpening.2.2.2.2.2
+  obtain ⟨second, secondLookup, _, secondType, _, _⟩ := secondOpening.2.2.2.2.1.declared
+  exact ⟨first, second, firstLookup, firstType, secondLookup, secondType⟩
+
+private theorem theSecondActualIndexIsFreshInTheIndependentLargerBase
+    {env : VEnv} {universes : List Name} (model : MLCtx) (modelWF : model.WF env universes)
+    (reader : Context) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen) :
+    generated (nextReader (originalMixedReader reader)) ∉ (insertedMixedBase model reader).vlctx.fvars := by
+  have first := pushSortModelIsWellFormed model modelWF reader native reserved
+  have second := pushSortModelIsWellFormed (pushSortModel model reader) first.1
+    (nextReader reader) first.2.1 first.2.2
+  have insertedReserved : ContextReserved (insertedMixedBase model reader).lctx
+      (nextReader (originalMixedReader reader)).ngen := by
+    intro declaration member
+    apply NameGenerator.Reserves.mono (NameGenerator.LE.next.trans NameGenerator.LE.next)
+    apply second.2.2 declaration
+    change declaration ∈ (pushSortModel (pushSortModel model reader) (nextReader reader)).lctx.toList at member
+    simpa only [second.2.1] using member
+  exact second.1.tr.find?_eq_none.mp (insertedReserved.fresh second.1.tr.1)
+
+private theorem translatedStageUsesTheFormalBothNewIndicesAndSelectedParameter
+    {env : VEnv} {universes : List Name} {reader : Context} {virtual : VLCtx}
+    (envWF : env.WF) (virtualWF : virtual.WF env universes.length)
+    (identifier : FVarId) (firstDifferent : generated reader ≠ identifier)
+    (secondDifferent : generated (nextReader reader) ≠ identifier)
+    (indexDifferent : generated (nextReader reader) ≠ generated reader) {argument : VExpr}
+    (lookup : virtual.find? (.inr identifier) = some (argument, .sort .zero)) :
+    TrExprS env universes ((none, .vlam (.sort .zero)) :: twoIndexVirtual virtual reader)
+      (twoIndexNativeStageBody reader identifier) (twoIndexStageSemantic argument) ∧
+    env.HasType universes.length ((.sort .zero) :: (twoIndexVirtual virtual reader).toCtx)
+      (twoIndexStageSemantic argument) (.sort twoIndexStageLevel) := by
+  have argumentTyped := virtualWF.find?_wf envWF.ordered lookup
+  have raisedTyped : env.HasType universes.length
+      (.bvar 3 :: .bvar 3 :: .bvar 0 :: .sort .zero :: .sort .zero :: .sort .zero :: virtual.toCtx)
+      argument.lift.lift.lift.lift.lift.lift (.sort .zero) :=
+    (((((argumentTyped.weak envWF.ordered).weak envWF.ordered).weak envWF.ordered).weak envWF.ordered).weak
+      envWF.ordered).weak envWF.ordered
+  have finalLookup :
+      VLCtx.find? ((none, .vlam (.bvar 3)) :: (none, .vlam (.bvar 3)) :: (none, .vlam (.bvar 0)) ::
+        (none, .vlam (.sort .zero)) :: twoIndexVirtual virtual reader) (.inr identifier) =
+      some (argument.lift.lift.lift.lift.lift.lift, .sort .zero) := by
+    simp [twoIndexVirtual, nextVirtual, peeledIndexVirtualContext, VLCtx.find?, VLCtx.next,
+      firstDifferent, secondDifferent, lookup, VLocalDecl.depth, VExpr.liftN, VExpr.lift]
+  have typed : env.HasType universes.length ((.sort .zero) :: (twoIndexVirtual virtual reader).toCtx)
+      (twoIndexStageSemantic argument) (.sort twoIndexStageLevel) :=
+    .forallEDF (.bvar .zero) (.forallEDF (.bvar (.succ (.succ (.succ .zero))))
+      (.forallEDF (.bvar (.succ (.succ (.succ .zero)))) raisedTyped))
+  refine ⟨?_, typed⟩
+  exact .forallE ⟨.zero, .bvar .zero⟩
+    ⟨.imax .zero (.imax .zero .zero), .forallEDF (.bvar (.succ (.succ (.succ .zero))))
+      (.forallEDF (.bvar (.succ (.succ (.succ .zero)))) raisedTyped)⟩
+    (.bvar rfl) (.forallE ⟨.zero, .bvar (.succ (.succ (.succ .zero)))⟩
+      ⟨.imax .zero .zero, .forallEDF (.bvar (.succ (.succ (.succ .zero)))) raisedTyped⟩
+      (.fvar (A := .sort .zero) (by simp [twoIndexVirtual, nextVirtual, peeledIndexVirtualContext,
+        VLCtx.find?, VLCtx.next, indexDifferent, VLocalDecl.value, VLocalDecl.type,
+        VLocalDecl.depth, VExpr.liftN, VExpr.lift]))
+      (.forallE ⟨.zero, .bvar (.succ (.succ (.succ .zero)))⟩ ⟨.zero, raisedTyped⟩
+        (.fvar (A := .sort .zero) (by simp [twoIndexVirtual, nextVirtual, peeledIndexVirtualContext,
+          VLCtx.find?, VLCtx.next, VLocalDecl.value, VLocalDecl.type, VLocalDecl.depth, VExpr.liftN, VExpr.lift]))
+        (.fvar finalLookup)))
+
+private theorem actualTwoIndexStageBodyClosedAndSupported
+    (reader : Context) (identifier : FVarId) (base : List FVarId) (member : identifier ∈ base) :
+    Closed (twoIndexNativeStageBody reader identifier) 1 ∧
+    ¬Closed (twoIndexNativeStageBody reader identifier) 0 ∧
+    (twoIndexNativeStageBody reader identifier).FVarsIn
+      (· ∈ generated (nextReader reader) :: generated reader :: base) := by
+  simp [twoIndexNativeStageBody, Closed, FVarsIn, member]
+
+private theorem genuineTwoStepHistoryRebasesConstructedMixedBases
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    (parametersEmpty : stats.params.size = 0)
+    (seed : MLCtx) (seedWF : seed.WF env universes) (reader : Context)
+    (native : seed.lctx = reader.lctx) (reserved : ContextReserved reader.lctx reader.ngen)
+    (envWF : env.WF) (depth : Nat) (positive : reader.fuel.recDepth = depth + 1) :
+    let smaller := pushSortModel seed reader
+    let baseReader := nextReader reader
+    let original := removedMixedBase smaller baseReader
+    let larger := insertedMixedBase smaller baseReader
+    let actualReader := originalMixedReader baseReader
+    let finalReader := nextReader (nextReader actualReader)
+    ∃ (chronological reduced target : MLCtx) (reducedArgument reducedDomain reducedBody : VExpr),
+      chronological.vlctx = twoIndexVirtual original.vlctx actualReader ∧
+      SelectedRecursorTelescope env universes finalReader.lctx smaller
+        [generated actualReader, generated (nextReader actualReader)] reduced ∧
+      SelectedRecursorTelescope env universes finalReader.lctx larger
+        [generated actualReader, generated (nextReader actualReader)] target ∧
+      reduced.vlctx.fvars = generated (nextReader actualReader) :: generated actualReader :: smaller.vlctx.fvars ∧
+      target.vlctx.fvars = generated (nextReader actualReader) :: generated actualReader :: larger.vlctx.fvars ∧
+      VLCtx.FVLift' reduced.vlctx target.vlctx 0 (.consN (.skip (.skip .refl)) 2) 0 ∧
+      TrExprS env universes ((none, .vlam reducedDomain) :: reduced.vlctx)
+        (twoIndexNativeStageBody actualReader (generated reader)) reducedBody ∧
+      env.HasType universes.length (reducedDomain :: reduced.vlctx.toCtx) reducedBody (.sort twoIndexStageLevel) ∧
+      TrExprS env universes reduced.vlctx
+        ((twoIndexNativeStageBody actualReader (generated reader)).instantiate1 (.fvar (generated reader)))
+        (reducedBody.inst reducedArgument) ∧
+      env.HasType universes.length reduced.vlctx.toCtx (reducedBody.inst reducedArgument) (.sort twoIndexStageLevel) ∧
+      TrExprS env universes target.vlctx
+        ((twoIndexNativeStageBody actualReader (generated reader)).instantiate1 (.fvar (generated reader)))
+        ((reducedBody.lift' (Lift.consN (.skip (.skip .refl)) 2).cons).inst
+          (reducedArgument.lift' (.consN (.skip (.skip .refl)) 2))) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        ((reducedBody.lift' (Lift.consN (.skip (.skip .refl)) 2).cons).inst
+          (reducedArgument.lift' (.consN (.skip (.skip .refl)) 2))) (.sort twoIndexStageLevel) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        ((reducedBody.inst reducedArgument).lift' (.consN (.skip (.skip .refl)) 2)) (.sort twoIndexStageLevel) ∧
+      env.IsDefEq universes.length chronological.vlctx.toCtx
+        ((twoIndexStageSemantic (.bvar 1)).inst (.bvar 3))
+        ((reducedBody.inst reducedArgument).lift' (.consN (.skip .refl) 2)) (.sort twoIndexStageLevel) ∧
+      Closed ((twoIndexNativeStageBody actualReader (generated reader)).instantiate1 (.fvar (generated reader))) 0 ∧
+      ((twoIndexNativeStageBody actualReader (generated reader)).instantiate1 (.fvar (generated reader))).FVarsIn
+        (· ∈ reduced.vlctx.fvars) := by
+  let smaller := pushSortModel seed reader
+  let baseReader := nextReader reader
+  let original := removedMixedBase smaller baseReader
+  let larger := insertedMixedBase smaller baseReader
+  let actualReader := originalMixedReader baseReader
+  have retained := pushSortModelIsWellFormed seed seedWF reader native reserved
+  have mixed := constructedMixedBasesAreWellFormed smaller retained.1 baseReader retained.2.1 retained.2.2
+  have weakenings := constructedMixedBaseWeakenings smaller baseReader
+  have correspondence : TrLCtx env universes actualReader.lctx original.vlctx := by
+    simpa only [mixed.2.1] using mixed.1.tr
+  obtain ⟨trace, history⟩ := constructGenuineTwoStepHistory parametersEmpty correspondence mixed.2.2.1 depth positive
+  have firstOpening := constructActualIndexOpening correspondence mixed.2.2.1
+  have secondOpening := constructActualIndexOpening firstOpening.2.2.1 firstOpening.2.2.2.2.2.reserved
+  have originalLookup : original.vlctx.find? (.inr (generated reader)) = some (.bvar 1, .sort .zero) := by
+    have fresh := mixed.1.tr.wf.2.1 (generated (advanceReaderTwice baseReader)) [] rfl
+    have different : generated (advanceReaderTwice baseReader) ≠ generated reader := by
+      intro equality
+      apply fresh.1
+      simp [smaller, pushSortModel, MLCtx.vlctx, VLCtx.fvars, ← equality]
+    have lookup : smaller.vlctx.find? (.inr (generated reader)) = some (.bvar 0, .sort .zero) := by
+      simp [smaller, pushSortModel, MLCtx.vlctx, VLCtx.find?, VLCtx.next,
+        VLocalDecl.value, VLocalDecl.type, VExpr.lift, VExpr.liftN]
+    exact selectedLookupSurvivesTheActualIndexPush different lookup
+  have member : generated reader ∈ smaller.vlctx.fvars := by
+    simp [smaller, pushSortModel, MLCtx.vlctx, VLCtx.fvars]
+  have originalMember : generated reader ∈ original.vlctx.fvars := by
+    change generated reader ∈ generated (advanceReaderTwice baseReader) :: smaller.vlctx.fvars
+    exact List.mem_cons_of_mem _ member
+  have different := twoFreshIndexNamesAreDistinctFromTheRetainedParameter correspondence mixed.2.2.1
+    (generated reader) originalMember
+  have firstLookup := selectedLookupSurvivesTheActualIndexPush different.1 originalLookup
+  have finalLookup := selectedLookupSurvivesTheActualIndexPush different.2.1 firstLookup
+  have stageReceipts := translatedStageUsesTheFormalBothNewIndicesAndSelectedParameter envWF mixed.1.tr.wf
+    (generated reader) different.1 different.2.1 different.2.2 originalLookup
+  have closedSupport := actualTwoIndexStageBodyClosedAndSupported actualReader (generated reader) smaller.vlctx.fvars member
+  have secondFresh := theSecondActualIndexIsFreshInTheIndependentLargerBase smaller retained.1 baseReader
+    retained.2.1 retained.2.2
+  obtain ⟨chronological, ids, reduced, _, target, reducedArgument, reducedDomain, _, reducedBody,
+    _, _, chronologicalConverted, _, array, reducedTelescope, _, _, _, targetTelescope,
+    _, insertionWeakening, _, _, _, _, _, _, _, _, _, _, reducedBodyTranslation, reducedBodyTyping, _, _,
+    sourceTyping, endpointEquality, _, _, _, targetTyping, substitutedClosed, substitutedSupport,
+    _, sourceTranslation, _, targetTranslation⟩ :=
+    history.selectedTelescopeRebasedSubstitutionStageOfStoredDomains original mixed.1 mixed.2.1 rfl mixed.2.2.1
+      (nextReader (nextReader actualReader)) (.refl _ secondOpening.2.2.1.1 secondOpening.2.2.2.2.2.reserved) envWF
+      smaller retained.1 (.skip .refl) weakenings.1
+      (twoActualStoredDomainsAreSupported correspondence mixed.2.2.1 (generated reader))
+      (by simp [twoIndexSteps, twoIndexArray, oneStep, BinderStep.indexValues])
+      (by intro candidate selected
+          have equality : candidate = generated reader := by simpa using selected
+          simpa only [equality] using member)
+      (by simp) larger mixed.2.2.2.1 2 weakenings.2
+      (by intro candidate selected
+          have alternatives : candidate = generated actualReader ∨ candidate = generated (nextReader actualReader) := by
+            simpa [twoIndexArray] using selected
+          rcases alternatives with equality | equality
+          · simpa only [equality] using mixed.2.2.2.2
+          · simpa only [equality] using secondFresh)
+      0 (generated reader) rfl finalLookup stageReceipts.1 stageReceipts.2 closedSupport.1
+      (by simpa [twoIndexArray] using closedSupport.2.2)
+  have idsPair := exactlyTwoIdentifiersComeFromTheActualArrayPushes array
+  subst ids
+  refine ⟨chronological, reduced, target, reducedArgument, reducedDomain, reducedBody,
+    chronologicalConverted, reducedTelescope, targetTelescope, ?_, ?_, insertionWeakening,
+    reducedBodyTranslation, reducedBodyTyping, sourceTranslation, sourceTyping, targetTranslation,
+    targetTyping, ?_, endpointEquality, substitutedClosed, substitutedSupport⟩
+  · simpa using reducedTelescope.extension.virtualFVars
+  · simpa using targetTelescope.extension.virtualFVars
+  · simpa only [VExpr.lift'_inst_hi] using targetTyping
+
+private theorem actualPushReceiptFixesTwoSuffixOrderAndCutoffs
+    {env : VEnv} {universes : List Name} {reader : Context} {virtual : VLCtx} {ids : List FVarId}
+    (correspondence : TrLCtx env universes reader.lctx virtual)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (array : (twoIndexArray reader).toList = (#[] : Array Expr).toList ++ ids.map Expr.fvar) :
+    ids = [generated reader, generated (nextReader reader)] ∧
+    ids.reverse = [generated (nextReader reader), generated reader] ∧ ids ≠ ids.reverse ∧
+    (VExpr.bvar 0).lift' (.consN (.skip (.skip .refl)) ids.length) = .bvar 0 ∧
+    (VExpr.bvar 1).lift' (.consN (.skip (.skip .refl)) ids.length) = .bvar 1 ∧
+    (VExpr.bvar 2).lift' (.consN (.skip .refl) ids.length) = .bvar 3 ∧
+    (VExpr.bvar 2).lift' (.consN (.skip (.skip .refl)) ids.length) = .bvar 4 ∧
+    (VExpr.bvar 2).lift' (Lift.consN (.skip (.skip .refl)) ids.length).cons = .bvar 2 ∧
+    (VExpr.bvar 3).lift' (Lift.consN (.skip (.skip .refl)) ids.length).cons = .bvar 5 ∧
+    (VExpr.bvar 1).lift' (.consN (.skip (.skip .refl)) ids.length) ≠
+      (VExpr.bvar 1).lift' (.cons (.skip (.skip .refl))) ∧
+    (VExpr.bvar 2).lift' (Lift.consN (.skip (.skip .refl)) ids.length).cons ≠
+      (VExpr.bvar 2).lift' (.consN (.skip (.skip .refl)) ids.length) := by
+  have pair := exactlyTwoIdentifiersComeFromTheActualArrayPushes array
+  subst ids
+  have opening := constructActualIndexOpening correspondence reserved
+  have secondFresh := actualNewIndexIsFreshInTheBase opening.2.2.1 opening.2.2.2.2.2.reserved
+  refine ⟨rfl, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_⟩
+  · intro equality
+    have firstEquality := (List.cons.inj equality).1
+    apply secondFresh
+    change generated (nextReader reader) ∈ generated reader :: virtual.fvars
+    simp [← firstEquality]
+  · intro equality
+    cases equality
+  · intro equality
+    cases equality
+
+private theorem twoIndexStageHasDistinctSourceOriginalAndTargetCoordinates :
+    twoIndexStageSemantic (.bvar 0) = .forallE (.bvar 0) (.forallE (.bvar 3) (.forallE (.bvar 3) (.bvar 6))) ∧
+    twoIndexStageSemantic (.bvar 1) = .forallE (.bvar 0) (.forallE (.bvar 3) (.forallE (.bvar 3) (.bvar 7))) ∧
+    (twoIndexStageSemantic (.bvar 0)).lift' (Lift.consN (.skip .refl) 2).cons =
+      twoIndexStageSemantic (.bvar 1) ∧
+    (twoIndexStageSemantic (.bvar 0)).lift' (Lift.consN (.skip (.skip .refl)) 2).cons =
+      .forallE (.bvar 0) (.forallE (.bvar 3) (.forallE (.bvar 3) (.bvar 8))) ∧
+    (twoIndexStageSemantic (.bvar 0)).inst (.bvar 2) =
+      .forallE (.bvar 2) (.forallE (.bvar 2) (.forallE (.bvar 2) (.bvar 5))) ∧
+    (twoIndexStageSemantic (.bvar 1)).inst (.bvar 3) =
+      .forallE (.bvar 3) (.forallE (.bvar 2) (.forallE (.bvar 2) (.bvar 6))) ∧
+    ((twoIndexStageSemantic (.bvar 0)).inst (.bvar 2)).lift' (.consN (.skip (.skip .refl)) 2) =
+      .forallE (.bvar 4) (.forallE (.bvar 2) (.forallE (.bvar 2) (.bvar 7))) :=
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+private theorem missingEitherIndexOrTheParameterCannotSupplyTwoIndexStageSupport
+    (reader : Context) (identifier : FVarId) (firstDifferent : generated reader ≠ identifier)
+    (secondDifferent : generated (nextReader reader) ≠ identifier)
+    (indexDifferent : generated (nextReader reader) ≠ generated reader) :
+    ¬(twoIndexNativeStageBody reader identifier).FVarsIn (· ∈ [identifier, generated reader]) ∧
+    ¬(twoIndexNativeStageBody reader identifier).FVarsIn (· ∈ [identifier, generated (nextReader reader)]) ∧
+    ¬(twoIndexNativeStageBody reader identifier).FVarsIn (· ∈ [generated reader, generated (nextReader reader)]) := by
+  simp [twoIndexNativeStageBody, FVarsIn, firstDifferent, secondDifferent, indexDifferent,
+    Ne.symm firstDifferent, Ne.symm secondDifferent, Ne.symm indexDifferent]
+
 private theorem theStoredStepAndArrayReallyContainOneFreshIndex (reader : Context) :
     [oneStep reader][0]? = some (oneStep reader) ∧
     [oneStep reader][1]? = none ∧
@@ -591,6 +1016,61 @@ private def auditExactDependencies (name : Name) (allowed : List Name) : MetaM U
     throwError "one-step-stage exact dependency manifest changed: {name}; got {axioms}"
   logInfo m!"{name}: exact {allowed.length} inherited/native dependencies"
 
+private def twoIndexRuntimeControls : MetaM Unit := do
+  let first : FVarId := ⟨`TwoStepFirstActualPushIndex⟩
+  let second : FVarId := ⟨`TwoStepSecondActualPushIndex⟩
+  let parameter : FVarId := ⟨`TwoStepRetainedParameter⟩
+  let pushed : Array Expr := (#[].push (.fvar first)).push (.fvar second)
+  let removal : Lift := .consN (.skip .refl) pushed.size
+  let insertion : Lift := .consN (.skip (.skip .refl)) pushed.size
+  let sourceBody := twoIndexStageSemantic (.bvar 0)
+  let originalBody := twoIndexStageSemantic (.bvar 1)
+  let nativeBody := Expr.forallE `formalUse (.bvar 0)
+    (.forallE `firstIndexUse (.fvar first)
+      (.forallE `secondIndexUse (.fvar second) (.fvar parameter) .default) .default) .default
+  let expected := Expr.forallE `formalUse (.fvar parameter)
+    (.forallE `firstIndexUse (.fvar first)
+      (.forallE `secondIndexUse (.fvar second) (.fvar parameter) .default) .default) .default
+  let conditions := [
+    (pushed.size == 2 && pushed.toList == [.fvar first, .fvar second], "two actual pushes preserve chronological order"),
+    (pushed.toList.reverse == [.fvar second, .fvar first] && pushed.toList.reverse != pushed.toList,
+      "endpoint order reverses distinct chronological indices"),
+    (semanticPosition ((VExpr.bvar 0).lift' insertion) == 0, "target insertion protects second fresh index"),
+    (semanticPosition ((VExpr.bvar 1).lift' insertion) == 1, "target insertion protects first fresh index"),
+    (semanticPosition ((VExpr.bvar 2).lift' removal) == 3, "original removal occurs beneath both fresh indices"),
+    (semanticPosition ((VExpr.bvar 2).lift' insertion) == 4, "target insertion occurs beneath both fresh indices"),
+    (semanticPosition ((VExpr.bvar 0).lift' insertion.cons) == 0, "two-index body lift protects formal"),
+    (semanticPosition ((VExpr.bvar 2).lift' insertion.cons) == 2, "two-index body lift protects first fresh index"),
+    (semanticPosition ((VExpr.bvar 3).lift' insertion.cons) == 5, "two-index body lift inserts after formal and suffix"),
+    (semanticPosition ((VExpr.bvar 1).lift' insertion) !=
+      semanticPosition ((VExpr.bvar 1).lift' (.cons (.skip (.skip .refl)))),
+      "one-index cutoff corrupts first fresh index"),
+    (semanticPosition ((VExpr.bvar 2).lift' insertion.cons) != semanticPosition ((VExpr.bvar 2).lift' insertion),
+      "plain context map is wrong for body suffix"),
+    (semanticShape sourceBody == semanticShape (.forallE (.bvar 0) (.forallE (.bvar 3) (.forallE (.bvar 3) (.bvar 6)))),
+      "source body mentions formal both indices and retained parameter"),
+    (semanticShape originalBody == semanticShape (.forallE (.bvar 0) (.forallE (.bvar 3) (.forallE (.bvar 3) (.bvar 7)))),
+      "original body reflects one removed declaration"),
+    (semanticShape (sourceBody.lift' removal.cons) == semanticShape originalBody,
+      "two-index removal reconstructs original body"),
+    (semanticShape (sourceBody.lift' insertion.cons) ==
+      semanticShape (.forallE (.bvar 0) (.forallE (.bvar 3) (.forallE (.bvar 3) (.bvar 8)))),
+      "target body reflects independent two-declaration insertion"),
+    (semanticShape (sourceBody.inst (.bvar 2)) ==
+      semanticShape (.forallE (.bvar 2) (.forallE (.bvar 2) (.forallE (.bvar 2) (.bvar 5)))),
+      "source instantiated endpoint retains both fresh indices"),
+    (semanticShape (originalBody.inst (.bvar 3)) ==
+      semanticShape (.forallE (.bvar 3) (.forallE (.bvar 2) (.forallE (.bvar 2) (.bvar 6)))),
+      "original instantiated endpoint retains both indices beneath removal"),
+    (semanticShape ((sourceBody.inst (.bvar 2)).lift' insertion) ==
+      semanticShape (.forallE (.bvar 4) (.forallE (.bvar 2) (.forallE (.bvar 2) (.bvar 7)))),
+      "target instantiated endpoint retains both indices beneath insertion"),
+    (nativeBody.instantiate1' (.fvar parameter) == expected, "structural substitution preserves both fresh indices"),
+    (nativeBody.instantiate1 (.fvar parameter) == expected, "native substitution preserves both fresh indices")]
+  for (condition, label) in conditions do
+    unless condition do throwError "two-step-stage runtime failed: {label}"
+  logInfo m!"two-step-stage runtime: {conditions.length} additional chronological-order, reversed-suffix, cutoff and native/structural substitution probes; previous 21 one-step controls remain"
+
 run_meta
   let logical := [``propext, ``Classical.choice, ``Quot.sound]
   let adapterAllowed := logical ++ [``sorryAx, ``PersistentArray.toList'_push,
@@ -609,14 +1089,31 @@ run_meta
     ``constructedMixedBaseWeakenings, ``constructedMixedBasesHaveIndependentWidths,
     ``constructedMixedBasesHaveExactSupports, ``constructedSelectedStageHasDistinctSourceOriginalAndTargetCoordinates]
   for name in structuralControls do auditDeclaration name logical
+  let twoStepControls := [``sortForallTranslationAndTyping, ``constructFirstOfTwoActualIndexOpenings, ``constructGenuineTwoStepHistory,
+    ``twoActualStoredDomainsAreSupported, ``twoFreshIndexNamesAreDistinctFromTheRetainedParameter,
+    ``bothActualStoredIndexDeclarationsExist, ``theSecondActualIndexIsFreshInTheIndependentLargerBase,
+    ``translatedStageUsesTheFormalBothNewIndicesAndSelectedParameter,
+    ``genuineTwoStepHistoryRebasesConstructedMixedBases, ``actualPushReceiptFixesTwoSuffixOrderAndCutoffs]
+  for name in twoStepControls do auditDeclaration name adapterAllowed
+  let twoStructuralControls := [``exactlyTwoIdentifiersComeFromTheActualArrayPushes,
+    ``actualTwoIndexStageBodyClosedAndSupported, ``twoIndexStageHasDistinctSourceOriginalAndTargetCoordinates,
+    ``missingEitherIndexOrTheParameterCannotSupplyTwoIndexStageSupport]
+  for name in twoStructuralControls do auditDeclaration name logical
+  auditDeclaration ``nativeForallNormalizationWithPositiveDepth (logical ++ [``Expr.instantiate1_eq])
   for name in [``generated, ``nextReader, ``nextVirtual, ``normalizationReceipt, ``oneStep,
       ``nativeStageBody, ``stageSemantic, ``stageLevel, ``semanticPosition, ``semanticShape, ``runtimeControls,
       ``pushSortModel, ``advanceReaderTwice, ``removedMixedBase, ``originalMixedReader, ``insertedMixedBase,
+      ``oneIndexType, ``twoIndexType, ``twoIndexArray, ``twoIndexSteps, ``twoIndexVirtual,
+      ``twoIndexNativeStageBody, ``twoIndexStageSemantic, ``twoIndexStageLevel, ``twoIndexRuntimeControls,
       ``auditDeclaration, ``auditExactDependencies] do auditDeclaration name logical
   auditExactDependencies ``nativeSortNormalizationWithPositiveDepth (logical ++ [``Expr.instantiate1_eq])
   auditExactDependencies ``genuineOneStepHistoryInvokesTheStageAdapter adapterAllowed
   auditExactDependencies ``genuineOneStepHistoryRebasesConstructedMixedBases adapterAllowed
+  auditExactDependencies ``nativeForallNormalizationWithPositiveDepth (logical ++ [``Expr.instantiate1_eq])
+  auditExactDependencies ``genuineTwoStepHistoryRebasesConstructedMixedBases adapterAllowed
   runtimeControls
+  twoIndexRuntimeControls
   logInfo m!"one-step-stage tests: {actualControls.length + structuralControls.length + 1} proof controls; real index/stop trace and actual array push; real peeled opening and nonvacuous stored declaration; constructed retained parameter, original one-declaration removal and independent two-declaration target insertion; shared reduced body, suffix support, target native translation/typing and original endpoint agreement; native sort normalization proved at positive depth; both identity and mixed-base applications tied to actual pushed suffix receipt"
+  logInfo m!"two-step-stage tests: {twoStepControls.length + twoStructuralControls.length + 1} additional proof controls ({actualControls.length + structuralControls.length + twoStepControls.length + twoStructuralControls.length + 2} total); actual index/index/stop history, positive-depth native forall/sort normalization, real peeled openings and two existing stored declarations; chronological IDs from actual array pushes versus reversed selected-telescope endpoint support; both-index stage body, shared existential reduced body, nonidentity cutoff-two source/target native translations/typing and original endpoint agreement"
 
 end InductiveIndexSubstitutionStageOneStepTest
