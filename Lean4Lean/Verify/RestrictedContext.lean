@@ -12,6 +12,9 @@ structure RestrictedContext (safety : DefinitionSafety) (env : Environment) (ven
   scope : VLCtx
   scope_wf : scope.WF venv lparams.length
   noBV : scope.NoBV
+  mlctx : TypeChecker.MLCtx
+  mlctx_wf : mlctx.WF venv lparams
+  scope_eq : mlctx.vlctx = scope
 
 namespace RestrictedContext
 
@@ -19,11 +22,27 @@ def emptyScope {safety : DefinitionSafety} {env : Environment} {venv : VEnv}
     (checker : CheckerEnv safety env venv) (hasPrimitives : venv.HasPrimitives)
     (safePrimitives : NativePrimitiveSafety env) (lparams : List Name) :
     RestrictedContext safety env venv :=
-  { checker, hasPrimitives, safePrimitives, lparams, scope := [], scope_wf := trivial, noBV := rfl }
+  { checker, hasPrimitives, safePrimitives, lparams, scope := [], scope_wf := trivial,
+    noBV := rfl, mlctx := .nil, mlctx_wf := trivial, scope_eq := rfl }
 
 def toContext {safety : DefinitionSafety} {env : Environment} {venv : VEnv}
     (c : RestrictedContext safety env venv) : TypeChecker.Context :=
-  { env, safety, lparams := c.lparams }
+  { env, safety, lparams := c.lparams, lctx := c.mlctx.lctx }
+
+theorem trScope {safety : DefinitionSafety} {env : Environment} {venv : VEnv}
+    (c : RestrictedContext safety env venv) : TrLCtx venv c.lparams c.mlctx.lctx c.scope :=
+  c.scope_eq ▸ c.mlctx_wf.tr
+
+def withMLC {safety : DefinitionSafety} {env : Environment} {venv : VEnv}
+    (c : RestrictedContext safety env venv) (model : TypeChecker.MLCtx)
+    (modelWF : model.WF venv c.lparams) : RestrictedContext safety env venv :=
+  { c with
+    scope := model.vlctx
+    scope_wf := modelWF.tr.wf
+    noBV := model.noBV
+    mlctx := model
+    mlctx_wf := modelWF
+    scope_eq := rfl }
 
 theorem inferConstant {safety : DefinitionSafety} {env : Environment} {venv : VEnv}
     (c : RestrictedContext safety env venv)
