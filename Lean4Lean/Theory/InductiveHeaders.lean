@@ -119,4 +119,30 @@ theorem natInductDecl.headersWF : natInductDecl.HeadersWF env := by
   subst header
   exact ⟨rfl, ⟨_, .sort trivial⟩⟩
 
+theorem boolInductDecl.constructorWF {env : VEnv}
+    (hadd : VEnv.empty.addInductHeaders boolInductDecl.types = some env) :
+    ∀ ctor ∈ boolInductDecl.types.flatMap (fun type => type.ctors),
+      ctor.toVConstant.WF env := by
+  have hbool := VEnv.addInductHeaders.constants hadd
+    (header := boolInductDecl.types[0]) (by simp [boolInductDecl])
+  intro ctor hmem
+  simp [boolInductDecl] at hmem
+  rcases hmem with rfl | rfl
+  · exact ⟨_, .const hbool (by simp) rfl⟩
+  · exact ⟨_, .const hbool (by simp) rfl⟩
+
+theorem natInductDecl.constructorWF {env : VEnv}
+    (hadd : VEnv.empty.addInductHeaders natInductDecl.types = some env) :
+    ∀ ctor ∈ natInductDecl.types.flatMap (fun type => type.ctors),
+      ctor.toVConstant.WF env := by
+  have hnat := VEnv.addInductHeaders.constants hadd
+    (header := natInductDecl.types[0]) (by simp [natInductDecl])
+  have hnatType (ctx : List VExpr) : env.IsType 0 ctx (.const ``Nat []) :=
+    ⟨_, .const hnat (by simp) rfl⟩
+  intro ctor hmem
+  simp [natInductDecl] at hmem
+  rcases hmem with rfl | rfl
+  · exact hnatType []
+  · exact .forallE (hnatType []) (hnatType [_])
+
 end Lean4Lean

@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.Inductive
 import Lean4Lean.Verify.InductiveHeaders
+import Lean4Lean.Verify.ConstructorHeaders
 import Lean4Lean.Inductive.Add
 import Lean.Util.CollectAxioms
 
@@ -10,6 +11,16 @@ namespace InductiveHeadersTest
 private def headers : List VInductiveType := boolInductDecl.types ++ natInductDecl.types
 
 private def stagedEnv : VEnv := (VEnv.empty.addInductHeaders headers).getD VEnv.empty
+private def boolHeaderEnv : VEnv :=
+  (VEnv.empty.addInductHeaders boolInductDecl.types).getD VEnv.empty
+private def boolConstructorEnv : VEnv :=
+  (boolHeaderEnv.addConstructorHeaders
+    (boolInductDecl.types.flatMap (fun type => type.ctors))).getD boolHeaderEnv
+private def natHeaderEnv : VEnv :=
+  (VEnv.empty.addInductHeaders natInductDecl.types).getD VEnv.empty
+private def natConstructorEnv : VEnv :=
+  (natHeaderEnv.addConstructorHeaders
+    (natInductDecl.types.flatMap (fun type => type.ctors))).getD natHeaderEnv
 
 example : VEnv.empty.addInductHeaders headers = some stagedEnv := rfl
 
@@ -28,6 +39,30 @@ example : stagedEnv.WF := by
   rcases List.mem_append.mp hmem with hmem | hmem
   · exact (boolInductDecl.headersWF header hmem).2
   · exact (natInductDecl.headersWF header hmem).2
+
+example : boolConstructorEnv.WF := by
+  apply VEnv.addConstructorHeaders.wf
+    (VEnv.addInductHeaders.wf (env := VEnv.empty) (env' := boolHeaderEnv)
+      ⟨[], .empty⟩ ?_ (show VEnv.empty.addInductHeaders boolInductDecl.types =
+        some boolHeaderEnv from rfl))
+    (boolInductDecl.constructorWF (show
+      VEnv.empty.addInductHeaders boolInductDecl.types = some boolHeaderEnv from rfl))
+    (show boolHeaderEnv.addConstructorHeaders
+      (boolInductDecl.types.flatMap (fun type => type.ctors)) = some boolConstructorEnv from rfl)
+  intro header hmem
+  exact (boolInductDecl.headersWF header hmem).2
+
+example : natConstructorEnv.WF := by
+  apply VEnv.addConstructorHeaders.wf
+    (VEnv.addInductHeaders.wf (env := VEnv.empty) (env' := natHeaderEnv)
+      ⟨[], .empty⟩ ?_ (show VEnv.empty.addInductHeaders natInductDecl.types =
+        some natHeaderEnv from rfl))
+    (natInductDecl.constructorWF (show
+      VEnv.empty.addInductHeaders natInductDecl.types = some natHeaderEnv from rfl))
+    (show natHeaderEnv.addConstructorHeaders
+      (natInductDecl.types.flatMap (fun type => type.ctors)) = some natConstructorEnv from rfl)
+  intro header hmem
+  exact (natInductDecl.headersWF header hmem).2
 
 example : stagedEnv.constants ``Bool = some { uvars := 0, type := .sort (.succ .zero) } := rfl
 example : stagedEnv.constants ``Nat = some { uvars := 0, type := .sort (.succ .zero) } := rfl
@@ -262,7 +297,8 @@ run_meta
   let standard := [``propext, ``Classical.choice, ``Quot.sound]
   for theoremName in [``VEnv.addInductHeaders.le, ``VEnv.addInductHeaders.constants,
       ``VEnv.addInductHeaders.defeqs_eq, ``VEnv.addInductHeaders.ordered,
-      ``VInductDecl.HeadersWF.mono, ``boolInductDecl.headersWF, ``natInductDecl.headersWF] do
+      ``VInductDecl.HeadersWF.mono, ``boolInductDecl.headersWF, ``natInductDecl.headersWF,
+      ``boolInductDecl.constructorWF, ``natInductDecl.constructorWF] do
     audit theoremName standard
   audit ``VEnv.addInductHeaders.wf (standard ++ [``sorryAx])
   audit ``Environment.PrimitiveInductiveDecl.toVDecl (standard ++ [``sorryAx])

@@ -31,6 +31,12 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `VInductDecl.HeadersWF` checks uniform universe-parameter counts and
   well-formed header types. Canonical `Bool`/`Nat` declarations satisfy this
   header-only specification in any starting environment.
+- `boolInductDecl.constructorWF` and `natInductDecl.constructorWF` prove that
+  the canonical primitive constructor signatures are semantically well-formed
+  after their corresponding headers are staged. Together with
+  `VEnv.addConstructorHeaders.wf`, concrete `Bool` and `Nat` constructor
+  environments now have semantic `VEnv.WF`; this remains ordinary typed-axiom
+  staging and does not install inductive reduction or recursor behavior.
 - `PrimitiveInductiveDecl.toVDecl` and `checkPrimitiveInductive.toVDecl` connect
   the recognized primitive shapes to those canonical declarations. Their
   `TrInductDecl` translations check datatype headers in the old environment and
