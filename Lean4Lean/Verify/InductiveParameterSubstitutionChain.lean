@@ -69,6 +69,25 @@ theorem SemanticSubstitutionChain.hasType
   have equality := chain.isDefEq envWF contextWF
   exact ⟨equality.hasType.1, equality.hasType.2⟩
 
+theorem SemanticSubstitutionChain.weak'
+    {env : VEnv} {universes : Nat} {context target : List VExpr} {level : VLevel}
+    {before final : VExpr} {weakeningLift : Lift}
+    (chain : SemanticSubstitutionChain env universes context level before final)
+    (ordered : env.Ordered) (weakening : Ctx.Lift' weakeningLift context target) :
+    SemanticSubstitutionChain env universes target level
+      (before.lift' weakeningLift) (final.lift' weakeningLift) := by
+  induction chain with
+  | nil expression typed =>
+    exact .nil _ (by simpa using typed.weak' ordered weakening)
+  | @cons before after final body original reduced domain beforeEq afterEq bodyTyped argumentEquality tail ih =>
+    refine .cons (body := body.lift' weakeningLift.cons)
+      (original := original.lift' weakeningLift) (reduced := reduced.lift' weakeningLift)
+      (domain := domain.lift' weakeningLift) ?_ ?_ ?_ ?_ ih
+    · rw [beforeEq, VExpr.lift'_inst_hi]
+    · rw [afterEq, VExpr.lift'_inst_hi]
+    · simpa using bodyTyped.weak' ordered weakening.cons
+    · exact argumentEquality.weak' ordered weakening
+
 theorem RetainedFVarPrefixAgreement.instantiatePairOuterChain
     {env : VEnv} {universes : List Name} {source original aligned : VLCtx}
     {removalLift : Lift} {identifiers : List FVarId}

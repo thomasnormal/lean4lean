@@ -4719,14 +4719,33 @@ already-linked receipts. Its `isDefEq` theorem composes `VEnv.IsDefEq.instDF` st
 through one such chain, using only transitivity at the fixed context. The
 `hasType` theorem projects both endpoints. The relation keeps native argument-list
 order; `append` composes receipts only when their intermediate endpoints are
-definitionally linked. It does not reconstruct retained positions, dependent domains, native
+definitionally linked. Its `weak'` theorem transports the entire chain through
+an explicit `Ctx.Lift'` receipt using only environment ordering. Each stage's
+actual domain and arguments use the supplied lift, while its body uses the
+lift's `cons` extension to protect the formal binder. Substitution/lift
+commutation preserves both stage endpoints, and the shared result sort is
+unchanged. This is structural stage transport, not just a weakened endpoint
+equality. Target equality, typing and cancellation projections additionally
+require the usual target-context WF premise. The theorem supports insertion
+lifts with protected chronological suffixes but does not infer a direct
+chronological-to-target weakening from unrelated removal/insertion receipts.
+The weakening helper's exact dependency audit contains only `propext` and
+`Quot.sound`, not inherited `sorryAx` or `Classical.choice`.
+It does not reconstruct retained positions, dependent domains, native
 telescopes or `replaceParams` output. It also does not identify a chain with
 an inductive trace or claim inserted motive/minor typing or checker/source
 acceptance. The semantic module has no native expression or persistent
 container interfaces beyond the inherited logical/typing axioms.
-The focused fixture has 18 proof controls and 9 runtime checks, covering
+The focused fixture has 31 proof controls and 21 runtime checks, covering
 empty, single, two- and three-stage construction, explicit per-stage domains,
 shared sort, native order, nonliteral arguments and length/position negatives.
+It also covers arbitrary context weakening, empty/single/two-stage transport,
+append and equality/type/cancellation projections in an explicitly well-formed
+target, and insertion with two protected suffix binders and three new base
+binders. Cutoff and missing-formal-binder controls distinguish incorrect stage
+transport, including beta-valued arguments. The module census audits all 19
+declarations; the weakening and retained-pair helpers keep their separate exact
+two-axiom and four-axiom manifests.
 Run `lake env lean tests/InductiveParameterSubstitutionChain.lean`.
 
 `RetainedFVarPrefixAgreement.instantiatePairOuterChain` connects the retained
