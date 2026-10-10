@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveConstructorDomainReceipts
+import Lean4Lean.Verify.InductiveConstructorPrefixReceipts
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive Lean4Lean.ElimNestedInductive
@@ -796,3 +796,199 @@ run_meta do
   runtimeControls
 
 end InductiveConstructorDomainReceiptTest
+
+namespace InductiveConstructorPrefixReceiptTest
+open InductiveHeaderDomainAgreementTest
+
+private def family : AxiomVal :=
+  { name := `ReceiptFamily, levelParams := [], isUnsafe := false,
+    type := .forallE `type (.sort .zero) (.forallE `value (.bvar 0) (.sort .zero) .default) .default }
+
+private def constructorType (field : Bool := false) : Expr :=
+  let head := Expr.const family.name []
+  let result := if field then
+      Expr.forallE `field (.sort .zero) (mkApp2 head (.bvar 2) (.bvar 1)) .default
+    else mkApp2 head (.bvar 1) (.bvar 0)
+  .forallE `type betaDomain (.forallE `value (.bvar 0) result .default) .default
+
+private def constructors : Array InductiveType :=
+  #[{
+    name := family.name
+    type := family.type
+    ctors := [{ name := `ReceiptConstructor, type := constructorType },
+      { name := `ReceiptFieldConstructor, type := constructorType true }] }]
+
+private def statistics : InductiveStats :=
+  { stats with indConsts := #[.const family.name []], nindices := #[0] }
+
+private theorem sourceWFFor (env : VEnv) : source.WF env [] := by
+  have first : sourceFirst.WF env [] :=
+    ⟨trivial, (TrLCtx.nil (env := env) (Us := [])).find?_eq_none.mpr (by simp),
+      .sort rfl, _, .sortDF (by trivial) (by trivial) rfl⟩
+  exact ⟨first, first.tr.find?_eq_none.mpr (by simp [sourceFirst, sourceType, sourceValue]),
+    .fvar rfl, _, .bvar .zero⟩
+
+private def fixtureChecker {nativeEnv : Kernel.Environment} {environments : VEnvs}
+    (nativeWF : environments.WF nativeEnv) : TypeChecker.VContext :=
+  { TypeChecker.VContext.mk' nativeWF .safe [] {} with
+    lctx := source.lctx, mlctx := source, mlctx_wf := sourceWFFor _, lctx_eq := rfl }
+
+private theorem fixtureInitialWF {nativeEnv : Kernel.Environment} {environments : VEnvs}
+    (nativeWF : environments.WF nativeEnv) : ({} : TypeChecker.VState).WF (fixtureChecker nativeWF) := by
+  let checker := fixtureChecker nativeWF
+  have reserved : ∀ identifier ∈ checker.vlctx.fvars,
+      ({} : TypeChecker.VState).ngen.Reserves identifier := by
+    intro identifier member position equality
+    change identifier ∈ [sourceValue, sourceType] at member
+    simp only [List.mem_cons, List.mem_nil_iff, or_false] at member
+    obtain rfl | rfl := member <;> cases equality
+  exact {
+    trctx := checker.mlctx_wf.tr
+    ngen_wf := reserved
+    ectx := ⟨checker.vlctx, .refl, checker.Δwf, .refl, .empty, reserved⟩
+    inferTypeI_wf := .empty
+    inferTypeC_wf := .empty
+    whnfCore_wf := .empty
+    whnf_wf := .empty
+    unfold_wf := fun _ => by simp }
+
+private theorem registeredFamilyBatchProducesReceipts
+    {nativeEnv : Kernel.Environment}
+    (registered : Lean4Lean.addAxiom (Kernel.Environment.empty `PrefixReceiptFixture) family true {} = .ok nativeEnv)
+    (isUnsafe : Bool)
+    (accepted : checkConstructors constructors statistics isUnsafe { reader with env := nativeEnv } = .ok ()) :
+    ∃ environments : VEnvs, ∃ _nativeWF : environments.WF nativeEnv,
+      ∀ constructor ∈ constructors[0]!.ctors,
+        ∃ finalReader finalIndex terminal finalTarget,
+          ∃ trace : AcceptedConstructorTrace statistics isUnsafe 0 { reader with env := nativeEnv }
+            0 constructor.type finalReader finalIndex terminal,
+          CheckedConstructorDomainReceipts (environments.venv .safe) [] trace
+            [] [] source.vlctx.toCtx finalTarget ∧
+          (environments.venv .safe).IsDefEqCtx 0 [] source.vlctx.toCtx finalTarget ∧ finalTarget.length = 2 := by
+  obtain ⟨environments, nativeWF, _⟩ := addAxiom.WF (VEnvs.WF.empty `PrefixReceiptFixture) family {}
+    nativeEnv registered
+  refine ⟨environments, nativeWF, ?_⟩
+  intro constructor member
+  let checker := fixtureChecker nativeWF
+  have receipts := checkConstructors.domainReceipts constructors statistics isUnsafe checker
+    { reader with env := nativeEnv } rfl (fixtureInitialWF nativeWF) sourcePrefix rfl () accepted
+    0 (by decide) constructor member
+  simpa [statistics, stats, sourceIdentifiers] using receipts
+
+private theorem canonicalOpeningChangesDependentDomain
+    (equal : VEnv.empty.IsDefEq 0 [] (.sort .zero) betaSemantic (.sort (.succ .zero))) :
+    ∃ opened, TrExprS VEnv.empty [] sourceFirst.vlctx
+      ((Expr.forallE `value (.bvar 0) (.sort .zero) .default).instantiate1 (.fvar sourceType)) opened := by
+  have raw : TrExprS VEnv.empty [] [(none, .vlam betaSemantic)]
+      (.forallE `value (.bvar 0) (.sort .zero) .default) (.forallE (.bvar 0) (.sort .zero)) :=
+    .forallE ⟨_, by
+      have equality := betaEquality.weak environmentWF.ordered (B := betaSemantic)
+      simpa [betaSemantic, VExpr.lift, VExpr.liftN] using
+        VEnv.IsDefEq.defeqDF equality (VEnv.IsDefEq.bvar Lookup.zero)⟩
+      ⟨_, sortTyping _ .zero (by trivial)⟩ (.bvar rfl) (.sort rfl)
+  exact TrExprS.openCanonicalParameter environmentWF sourceWellFormed.1 raw equal
+
+private theorem completeParametersRequireSourceAbsence
+    {statistics : InductiveStats} {isUnsafe : Bool} {parent index finalIndex : Nat}
+    {ambient finalReader : AddInductive.Context} {type terminal : Expr}
+    (trace : AcceptedConstructorTrace statistics isUnsafe parent ambient index type finalReader finalIndex terminal)
+    (fvars : statistics.ParamsAreFVars) (distinct : statistics.params.toList.Nodup)
+    (absent : statistics.RemainingParamsAbsent index type) : statistics.params.size ≤ finalIndex :=
+  trace.completeParameters fvars distinct absent
+
+private def runtimeControls : MetaM Unit := do
+  let .ok nativeEnv := Lean4Lean.addAxiom (Kernel.Environment.empty `PrefixReceiptFixture) family true {}
+    | throwError "verified family registration control failed"
+  let ambient := { reader with env := nativeEnv }
+  let mut checks := 1
+  for isUnsafe in [false, true] do
+    let .ok () := checkConstructors constructors statistics isUnsafe ambient
+      | throwError "complete dependent constructor-prefix batch failed"
+    checks := checks + 1
+    for constructor in constructors[0]!.ctors do
+      let .ok () := ambient.env.checkNoMVarNoFVar constructor.name constructor.type
+        | throwError "complete-prefix source guard failed"
+      let .ok _ := (monadLift (TypeChecker.checkType constructor.type) : AddInductive.M Expr) ambient
+        | throwError "complete-prefix source check failed"
+      let .ok () := checkConstructors.loop statistics isUnsafe 0 constructor.name constructor.type 0 32 ambient
+        | throwError "complete-prefix native loop failed"
+      checks := checks + 3
+    let partialType := Expr.forallE `value (.fvar sourceType)
+      (mkApp2 (.const family.name []) (.fvar sourceType) (.bvar 0)) .default
+    let .ok () := checkConstructors.loop statistics isUnsafe 0 `Partial partialType 1 2 ambient
+      | throwError "dependent partial-loop control failed"
+    checks := checks + 1
+    let openResult := mkApp2 (.const family.name []) (.fvar sourceType) (.fvar sourceValue)
+    let .ok () := checkConstructors.loop statistics isUnsafe 0 `RawTerminal openResult 0 1 ambient
+      | throwError "raw zero-check terminal boundary failed"
+    match ambient.env.checkNoMVarNoFVar `RawTerminal openResult with
+    | .error _ => checks := checks + 2
+    | .ok _ => throwError "full source guard accepted the zero-check raw terminal"
+    let bad := Expr.forallE `type (.sort (.succ .zero))
+      (.forallE `value (.bvar 0) (mkApp2 (.const family.name []) (.bvar 1) (.bvar 0)) .default) .default
+    match checkConstructors.loop statistics isUnsafe 0 `Mismatch bad 0 32 ambient with
+    | .error _ => checks := checks + 1
+    | .ok _ => throwError "complete-prefix loop accepted incompatible first domains"
+  let .ok true := (monadLift (TypeChecker.isDefEq betaDomain (.sort .zero)) : AddInductive.M Bool) ambient
+    | throwError "nonliteral canonical opening equality failed"
+  let .ok true := (monadLift (TypeChecker.isDefEq (.fvar sourceType) (.fvar sourceType)) : AddInductive.M Bool) ambient
+    | throwError "dependent second checkpoint equality failed"
+  checks := checks + 2
+  unless checks == 25 do throwError "constructor prefix-receipt runtime manifest changed: {checks}"
+  logInfo m!"constructor prefix-receipt runtime: {checks} registered-family, dependent, safe/unsafe, field, partial, truncated and negative controls"
+
+run_meta do
+  let logical := [``propext, ``Classical.choice, ``Quot.sound]
+  let inherited := logical ++ [``sorryAx]
+  let canonical := inherited ++ [``PersistentHashMap.WF.find?_eq, ``PersistentArray.toList'_push,
+    ``PersistentHashMap.WF.toList'_insert]
+  let checker := canonical ++ [``PersistentHashMap.findAux_isSome, ``Expr.eqv_eq,
+    ``Level.instLawfulBEqLevel, ``Syntax.structEq_eq, ``Lean4Lean.ptrEqExpr_eq, ``Expr.looseBVarRange_eq,
+    ``Expr.instantiateRev_eq, ``Expr.instantiate_eq, ``Expr.replace_eq, ``Level.hasParam_eq,
+    ``Expr.hasLevelParam_eq, ``Level.hasMVar_eq, ``Lean4Lean.ptrEqConstantInfo_eq, ``Expr.instantiateRange_eq,
+    ``Expr.instantiate1_eq, `Lean.Expr.mkAppRangeAux.eq_def, ``Expr.abstractRange_eq, ``Expr.abstract_eq,
+    ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq, ``Expr.instantiateRevRange_eq]
+  let allowed := checker ++ [``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq]
+  for name in [``ParameterPrefix.baseWF, ``ParameterPrefix.uncons, ``ParameterPrefix.retainsLookup,
+      ``AcceptedConstructorTrace.receiptsAfterParameters, ``TrExprS.openCanonicalParameter,
+      ``AcceptedConstructorTrace.completeParameters, ``AcceptedConstructorTrace.domainReceipts,
+      ``checkConstructors.domainReceipts, ``registeredFamilyBatchProducesReceipts,
+      ``canonicalOpeningChangesDependentDomain, ``completeParametersRequireSourceAbsence] do
+    let dependencies ← collectAxioms name
+    for dependency in dependencies do
+      unless allowed.contains dependency do throwError "unexpected constructor prefix-receipt dependency {dependency} in {name}"
+    logInfo m!"{name}: {dependencies.size} dependencies = {repr dependencies}"
+  auditExact ``ParameterPrefix.uncons [``propext]
+  for name in [``ParameterPrefix.baseWF, ``AcceptedConstructorTrace.receiptsAfterParameters] do
+    auditExact name inherited
+  auditExact ``ParameterPrefix.retainsLookup canonical
+  for name in [``TrExprS.openCanonicalParameter, ``canonicalOpeningChangesDependentDomain] do
+    auditExact name (canonical ++ [``Expr.instantiate1_eq])
+  for name in [``AcceptedConstructorTrace.completeParameters, ``completeParametersRequireSourceAbsence] do
+    auditExact name (logical ++ [``Expr.eqv_eq, ``Expr.instantiate1_eq])
+  auditExact ``AcceptedConstructorTrace.domainReceipts checker
+  for name in [``checkConstructors.domainReceipts, ``registeredFamilyBatchProducesReceipts] do
+    auditExact name allowed
+  let environment ← getEnv
+  let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveConstructorPrefixReceipts
+    | throwError "constructor prefix-receipt module absent"
+  let mut moduleCount := 0
+  let mut fixtureCount := 0
+  for (name, information) in environment.constants do
+    if environment.getModuleIdxFor? name == some moduleIndex then
+      if information matches .axiomInfo _ then throwError "new constructor prefix-receipt axiom {name}"
+      let dependencies ← collectAxioms name
+      for dependency in dependencies do
+        unless allowed.contains dependency do throwError "unexpected constructor prefix-receipt module dependency {dependency} in {name}"
+      moduleCount := moduleCount + 1
+    if name.toString.contains "InductiveConstructorPrefixReceiptTest" then
+      let dependencies ← collectAxioms name
+      for dependency in dependencies do
+        unless allowed.contains dependency do throwError "unexpected constructor prefix-receipt fixture dependency {dependency} in {name}"
+      fixtureCount := fixtureCount + 1
+  logInfo m!"constructor prefix-receipt exhaustive audit: {moduleCount} module and {fixtureCount} fixture declarations"
+  unless moduleCount == 23 do throwError "constructor prefix-receipt module manifest changed: {moduleCount}"
+  unless fixtureCount == 17 do throwError "constructor prefix-receipt fixture manifest changed: {fixtureCount}"
+  runtimeControls
+
+end InductiveConstructorPrefixReceiptTest
