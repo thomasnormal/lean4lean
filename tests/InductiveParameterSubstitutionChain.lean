@@ -30,6 +30,15 @@ private theorem linkedChainsCanBeAppended
     SemanticSubstitutionChain env universes context level before final :=
   first.append second
 
+private theorem linkedChainCancellationProjectsTheResidualEquality
+    {env : VEnv} {universes : Nat} {context : List VExpr} {level : VLevel}
+    {before middle final : VExpr}
+    (chain : SemanticSubstitutionChain env universes context level before middle)
+    (direct : env.IsDefEq universes context before final (.sort level))
+    (envWF : env.WF) (contextWF : OnCtx context (env.IsType universes)) :
+    env.IsDefEq universes context middle final (.sort level) :=
+  chain.cancelLeft direct envWF contextWF
+
 private theorem emptyChainKeepsTheSameEndpoint
     {env : VEnv} {universes : Nat} {context : List VExpr} {level : VLevel}
     {expression : VExpr}
@@ -44,7 +53,21 @@ private theorem singleStageChain
     (argumentEquality : env.IsDefEq universes context original reduced domain)
     (reducedTyped : env.HasType universes context (body.inst reduced) (.sort level)) :
     SemanticSubstitutionChain env universes context level (body.inst original) (body.inst reduced) :=
-  .cons rfl rfl bodyTyped argumentEquality (.nil _ reducedTyped)
+  .single bodyTyped argumentEquality reducedTyped
+
+private theorem twoStageChainViaAppend
+    {env : VEnv} {universes : Nat} {context : List VExpr} {level : VLevel}
+    {body original reduced₁ reduced₂ domain₁ domain₂ : VExpr}
+    (firstTyped : env.HasType universes (domain₁ :: context) body (.sort level))
+    (firstEquality : env.IsDefEq universes context original reduced₁ domain₁)
+    (intermediateTyped : env.HasType universes context (body.inst reduced₁) (.sort level))
+    (secondTyped : env.HasType universes (domain₂ :: context) body (.sort level))
+    (secondEquality : env.IsDefEq universes context reduced₁ reduced₂ domain₂)
+    (finalTyped : env.HasType universes context (body.inst reduced₂) (.sort level)) :
+    SemanticSubstitutionChain env universes context level (body.inst original)
+      (body.inst reduced₂) :=
+  (SemanticSubstitutionChain.single firstTyped firstEquality intermediateTyped).append
+    (SemanticSubstitutionChain.single secondTyped secondEquality finalTyped)
 
 private theorem twoStageChain
     {env : VEnv} {universes : Nat} {context : List VExpr} {level : VLevel}
@@ -172,14 +195,15 @@ private def auditModule (allowed : List Name) : MetaM Unit := do
         throwError "parameter-substitution-chain module-owned axiom {name}"
       auditDeclaration name allowed
       declarations := declarations + 1
-  unless declarations == 15 do throwError "parameter-substitution-chain declaration manifest changed"
+  unless declarations == 17 do throwError "parameter-substitution-chain declaration manifest changed"
   logInfo m!"parameter-substitution-chain module: {declarations} declarations audited; semantic chain has no native/container interfaces"
 
 run_meta
   let allowed := [``propext, ``Classical.choice, ``Quot.sound, ``sorryAx]
   let structuralControls := [``arbitraryFiniteChainProjectsDefEq, ``arbitraryFiniteChainProjectsBothTypes,
-    ``linkedChainsCanBeAppended,
-    ``emptyChainKeepsTheSameEndpoint, ``singleStageChain, ``twoStageChain, ``threeStageChain,
+    ``linkedChainsCanBeAppended, ``linkedChainCancellationProjectsTheResidualEquality,
+    ``emptyChainKeepsTheSameEndpoint, ``singleStageChain, ``twoStageChainViaAppend,
+    ``twoStageChain, ``threeStageChain,
     ``stageDomainTypingIsAnExplicitPremise, ``sharedSortIsPartOfEveryStage,
     ``nonliteralStageArgumentsAreStructurallyDifferent,
     ``chainFixtureSupportsEmptySingleAndTwoLengths, ``chainFixtureSupportsExplicitDomainsAndSharedSort,
