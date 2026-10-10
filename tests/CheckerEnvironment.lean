@@ -830,6 +830,8 @@ run_meta
     ``Lean.PersistentHashMap.WF.toList'_insert, ``Lean.PersistentHashMap.findAux_isSome,
     ``Lean.Expr.replace_eq, ``Lean.Expr.hasLevelParam_eq, ``Lean.Level.hasMVar_eq,
     ``Lean.Level.instLawfulBEqLevel]
+  audit ``RestrictedContext.appExpr [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx]
+  audit ``RestrictedContext.forallExpr [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx]
   audit ``restrictedOrdinaryInterfaces [``propext, ``Quot.sound, ``Classical.choice,
     ``sorryAx, ``Lean.PersistentHashMap.findAux_isSome, ``Lean.PersistentHashMap.WF.find?_eq,
     ``Lean.PersistentHashMap.WF.toList'_insert]

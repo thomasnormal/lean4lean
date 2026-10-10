@@ -97,6 +97,12 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   registration. This is an intentionally restricted staged checker relation:
   it carries no native constructor/projection/recursor metadata and does not
   widen the existing `VContext.trenv` admission scope.
+- `RestrictedContext.appExpr` and `forallExpr` expose the application and
+  one-binder constructor-signature telescope steps as explicit `TrExprS`
+  contracts. They require semantic function/argument typing or binder-domain
+  and body well-formedness, respectively, and preserve the restricted scope;
+  native application inference and full telescope instantiation remain future
+  obligations.
 - `Environment.checkPrimitiveInductive.eq_true_iff` characterizes exactly when
   the primitive-inductive validator returns `true`: a safe, monomorphic,
   parameter-free singleton declaration with precisely the `Bool` or `Nat`
