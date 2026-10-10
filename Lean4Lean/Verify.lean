@@ -175,5 +175,6 @@ import Lean4Lean.Verify.InductiveParameterPrefixTyping
 import Lean4Lean.Verify.InductiveParameterOpeningAgreement
 import Lean4Lean.Verify.InductiveParameterDomainTransport
 import Lean4Lean.Verify.InductiveHeaderDomainAgreement
+import Lean4Lean.Verify.InductiveConstructorDomainTrace
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveNestedRewrite
