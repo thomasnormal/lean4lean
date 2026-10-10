@@ -60,6 +60,21 @@ theorem addDefinition.nativePrimitiveFrame (env : Kernel.Environment) (v : Defin
     · simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name] using hfresh
     · simpa only [ConstantInfo.name] using hprimitive
 
+theorem addAxiom.nativePrimitiveFrame (env : Kernel.Environment) (v : AxiomVal)
+    (fuel : FuelConfig) (hmap : env.constants.WF)
+    (hfresh : env.find? v.name = none)
+    (hprimitive : Kernel.Environment.primitives.contains v.name = false)
+    {env' : Kernel.Environment}
+    (hresult : addAxiom env v true fuel = .ok env') :
+    NativePrimitiveFrame env env' := by
+  unfold addAxiom at hresult
+  simp only [if_true, pure_bind] at hresult
+  simp [(· >>= ·), Except.bind] at hresult
+  split at hresult <;> cases hresult
+  apply NativePrimitiveFrame.addConst (ci := .axiomInfo v) hmap ?_ ?_
+  · simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name] using hfresh
+  · simpa only [ConstantInfo.name] using hprimitive
+
 theorem NativePrimitiveFrame.foldlM {Item State Error : Type}
     (getEnv : State → Kernel.Environment) (step : State → Item → Except Error State)
     (items : List Item) (initial : State) (hmap : (getEnv initial).constants.WF)
