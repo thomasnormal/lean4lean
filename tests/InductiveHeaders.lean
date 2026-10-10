@@ -21,6 +21,14 @@ example : stagedEnv.Ordered := by
   · exact (boolInductDecl.headersWF header hmem).2
   · exact (natInductDecl.headersWF header hmem).2
 
+example : stagedEnv.WF := by
+  apply VEnv.addInductHeaders.wf (env := VEnv.empty) (env' := stagedEnv)
+    ⟨[], .empty⟩ ?_ (show VEnv.empty.addInductHeaders headers = some stagedEnv from rfl)
+  intro header hmem
+  rcases List.mem_append.mp hmem with hmem | hmem
+  · exact (boolInductDecl.headersWF header hmem).2
+  · exact (natInductDecl.headersWF header hmem).2
+
 example : stagedEnv.constants ``Bool = some { uvars := 0, type := .sort (.succ .zero) } := rfl
 example : stagedEnv.constants ``Nat = some { uvars := 0, type := .sort (.succ .zero) } := rfl
 
@@ -232,6 +240,7 @@ run_meta
       ``VEnv.addInductHeaders.defeqs_eq, ``VEnv.addInductHeaders.ordered,
       ``VInductDecl.HeadersWF.mono, ``boolInductDecl.headersWF, ``natInductDecl.headersWF] do
     audit theoremName standard
+  audit ``VEnv.addInductHeaders.wf (standard ++ [``sorryAx])
   audit ``Environment.PrimitiveInductiveDecl.toVDecl (standard ++ [``sorryAx])
   let translation := standard ++ [``sorryAx, ``Lean.Expr.eqv_eq,
     ``Lean.Level.instLawfulBEqLevel, ``Lean.Syntax.structEq_eq]

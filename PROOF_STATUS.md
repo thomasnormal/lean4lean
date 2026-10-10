@@ -25,9 +25,12 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
 - `VEnv.addInductHeaders` models fresh registration of arbitrary inductive
   headers. Successful registration extends the existing constants, installs
   every header, preserves the definitional equations, and preserves `Ordered`
-  when the header types are well-formed. `VInductDecl.HeadersWF` checks uniform
-  universe-parameter counts and well-formed header types. Canonical `Bool`/`Nat`
-  declarations satisfy this header-only specification in any starting environment.
+  when the header types are well-formed. `VEnv.addInductHeaders.wf` additionally
+  closes semantic `VEnv.WF` under those header-as-axiom registrations, while
+  inheriting the existing inductive-declaration foundation encoded in `VEnv.WF`.
+  `VInductDecl.HeadersWF` checks uniform universe-parameter counts and
+  well-formed header types. Canonical `Bool`/`Nat` declarations satisfy this
+  header-only specification in any starting environment.
 - `PrimitiveInductiveDecl.toVDecl` and `checkPrimitiveInductive.toVDecl` connect
   the recognized primitive shapes to those canonical declarations. Their
   `TrInductDecl` translations check datatype headers in the old environment and
@@ -2319,7 +2322,7 @@ declarations successfully; as above, imported dependencies are assumed correct.
 
 `tests/InductiveHeaders.lean` checks successful registration, registered type
 lookups, duplicate/collision rejection, empty batches, polymorphic headers, and
-orderedness, with eighteen proof regressions and fourteen axiom audits. It
+orderedness, with nineteen proof regressions and fifteen axiom audits. It
 confirms that the header stage does not install constructors.
 Runtime checks exercise the executable `declareInductiveTypes` for `Bool` and
 `Nat`, including duplicate-name and primitive-authorization rejection, and for
@@ -2339,7 +2342,9 @@ header-theorem audits exclude `sorryAx` and implementation-interface
 axioms; seven translation/refinement audits track their inherited assumptions.
 The abstract extension, lookup, equation-preservation, and orderedness proofs
 use only `propext` and `Quot.sound`; the header-well-formedness proofs use only
-`propext`. `PrimitiveInductiveDecl.toVDecl` additionally inherits
+`propext`. The semantic `VEnv.WF` closure inherits `sorryAx` through the
+existing `VDecl.WF`/`VInductDecl.WF` foundation; it adds no new admission.
+`PrimitiveInductiveDecl.toVDecl` additionally inherits
 `Classical.choice` and `sorryAx` through the existing structural-translation
 API (`TrExprS` includes the admitted `TrProj` specification).
 `checkPrimitiveInductive.toVDecl` also inherits the three equality interface
