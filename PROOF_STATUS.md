@@ -80,9 +80,31 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   nonempty complete runner. The input remains the existing strong `VContext`
   with `TrEnv`; it is not replaced by the weaker native frame or `CheckerEnv`.
   These proofs inherit the existing checker/metatheory's `sorryAx` and interfaces,
-  but introduce no new admission or axiom. They do not verify later mutual
-  header models, constructor positivity/typing, recursor typing/equations,
+  but introduce no new admission or axiom. By themselves, they do not verify
+  later mutual header models, constructor positivity/typing, recursor typing/equations,
   preprocessing transport of original header semantics, or `VInductDecl.WF`.
+- `Verify.InductiveMutualHeaderTyping` extends derived semantic header WF to
+  every header in the actual mutual checking traversal, not only the first.
+  `HeaderParameterModels` tracks real parameter lookup support. Accepted
+  parameter equality is interpreted through the existing checker, and
+  `translatedReusedHeaderParameter` types the reused argument and substitutes it
+  into the candidate body before interpreting its accepted WHNF. General
+  `CheckedHeaderTrace.checkerModels` handles fresh parameters, reused parameters,
+  and accumulated indices, preserving a typed local-context history. Each
+  guarded closed source header is strengthened back to the initial empty
+  semantic context, so `checkInductiveTypes.headersWF` derives all source models
+  and type-WF proofs without asking the caller to supply them.
+  `headersChecker` derives whole-array typed header registration, semantic WF,
+  alignment, and old-value translation; `run.headersWF` projects every source
+  header from the successful complete runner, including empty arrays without a
+  default-element claim. The existing strong initial `VContext`/`TrEnv` remains
+  required. Initial canonical annotation constants/definitions and disjoint
+  reader/reset-checker generator prefixes are explicit; the root reservation
+  and reset-state invariants are derived from the empty model. These are typed
+  ordinary-constant header results, not semantic inductive declarations,
+  constructor/recursor typing, positivity, or reduction equations. The inherited
+  checker/metatheory admissions remain explicit; no new axiom or admission is
+  introduced, and the initial annotation contracts are not silently assumed.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6040,6 +6062,25 @@ absent. Zero-fuel and partially allocated traversal failures propagate. These
 unchecked helper fixtures do not claim full frontend acceptance or semantic
 typing. Audits admit only the existing persistent-array list-push and two map
 interfaces where required; all exclude `sorryAx` and expression interfaces.
+
+`tests/InductiveMutualHeaderTyping.lean` contains eight proof regressions for
+accepted parameter equality, typed reused-body substitution/normalization,
+general header reader models, closed-source strengthening, all-header WF,
+whole-array checker registration, full runner projection, and rejection of a
+missing parameter-support model. The exhaustive production-module audit rejects
+module-owned axioms and dependencies outside the inherited checker, canonical
+annotation/context bridge, source guard, strengthening, and registration
+interfaces; inherited `sorryAx` is explicit. Seven native-accepted mutual
+fixtures cover zero/one/two parameters, accumulated and differing index counts,
+aliased/beta-equivalent reused domains, annotations, repeated binder names,
+dependent second parameters, and differing binder visibility. Both safety modes
+retain every exact source header and the checked seed definition through header
+registration and full runs, which must reach recursor registration. Empty
+header batches succeed without projecting a default first element. Later
+parameter-domain mismatch, ill-shaped terminal, captured source-variable, and
+fuel controls reject; native typed lookup rejects an absent unchecked parameter.
+The imported-prelude fixtures do not construct a semantic `TrEnv` model. Run
+`lake env lean tests/InductiveMutualHeaderTyping.lean`.
 
 `tests/InductiveHeaderTyping.lean` contains six proof regressions for accepted
 sort typing, the arbitrary-continuation first-header theorem, closed-context
