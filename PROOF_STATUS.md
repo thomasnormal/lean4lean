@@ -4549,10 +4549,19 @@ supported closed domain/type through the same reduced semantic expression,
 preserving the old definitional equality and deriving the larger-base strict
 translation/typehood by weakening. Neither helper types inserted motives or
 minors, proves a concrete smaller-base construction, or establishes complete
-recursor-body/source acceptance. The rebase module adds two composition
-theorems and no new admissions, axioms, runtime paths or caches; its inherited
+recursor-body/source acceptance. The rebase modules add three composition
+theorems and no new admissions, axioms, runtime paths or caches; their inherited
 typing receipt retains the existing inverse-translation `sorryAx` boundary.
 Run `lake env lean tests/InductiveIndexRebase.lean`.
+
+`TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains` adapts
+that composition to an actual translated index history. It invokes the
+stored-domain contraction bridge, preserves chronological/native/virtual and
+full-index-array receipts, and inserts the reduced selected telescope into a
+larger base. Its freshness premise ranges only over newly allocated suffix
+IDs, never retained parameters or the original index prefix. The adapter still
+leaves concrete smaller-base construction, inserted motive/minor typehood,
+complete binder reordering and source acceptance explicit.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
