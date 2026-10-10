@@ -4469,6 +4469,73 @@ separate domain/base policies, retain translation, inverse-typing and native
 provenance pins, and reject the forbidden range interface even when whitelisted. Run
 `lake env lean tests/InductiveIndexBaseStrengthening.lean`.
 
+`Verify.InductiveIndexBinderOrder` proves `BinderStep.indexIds_split`: a split
+of the filtered chronological index-ID list identifies an actual index step and
+exactly the same earlier filtered prefix at its raw binder position. Parameter
+steps can be arbitrarily interleaved; no nodup, all-index, declaration or typing
+premise is needed. The result preserves position and order rather than merely
+set membership, and does not turn duplicate native IDs into typed binders.
+
+`Verify.InductiveIndexDomainSupport` derives the contraction theorem's ordered
+native support premise from existing generated-header dependency receipts.
+`BinderStoredIndexTypeFVarsIn.selectedDomains` applies the filtered-order witness
+to the exact actual cdecl lookup, obtaining stored-domain free-variable support
+in parameters and earlier selected IDs. Parameter inclusion in the retained
+base yields `SelectedRecursorDomainFVars`; there is no assumed projected typing
+or desired ordered-domain support. The raw-domain convenience theorem reuses
+the existing `storedIndexTypeFVarsIn` bridge and its actual declaration receipts,
+so annotation peeling and stored-type alignment are not bypassed.
+`SelectedRecursorDomainFVars.dropPrefix` moves only a retained earlier index
+prefix and the old base into the supplied new base, preserving the selected
+suffix's own chronological ordering. Earlier indices remain legitimate domain
+dependencies; membership in a complete index array does not license current or
+future dependencies.
+
+`ParentBinderIntegrity.selectedIndexDomains` extracts the actual generated
+steps' stored-type receipt and their exact equality with `info.indices`.
+`RecursorBinderIntegrity.selectedIndexDomains` applies this to each bounded
+parent. Both retain explicit parameter inclusion in the chosen base; neither
+infers the receipt from allocation alone nor substitutes checked-side support
+for generated-side lookup evidence.
+`TranslatedRecursorIndexTrace.selectedTelescopeStrengthenedOfStoredDomains`
+combines stored receipts matching the full actual index array with the same
+translated history. It derives the preserved initial-array prefix/suffix split
+from actual allocations, moves retained parameters and preexisting indices into
+the smaller typed base, and discharges suffix support internally before calling
+semantic contraction. The result keeps chronological endpoint well-formedness,
+native/virtual matching, extension, unchanged index-array prefix, exact native
+lookup evidence, reduced endpoint well-formedness and the honest aligned virtual
+endpoint. It does not require callers to supply `SelectedRecursorDomainFVars`.
+
+This closes the ordered stored-domain support adapter, conditional on existing
+generated-header receipts, their equality with the actual trace's full index
+array and retention of parameters/preexisting indices. A concrete smaller mixed
+base and its structural semantic weakening remain explicit; complete parameter
+translation, motive/minor typehood, recursor reordering and whole
+`RecursorSelectedDomainSupport` remain separate obligations. Semantic contraction
+still inherits its existing inverse-translation/typing admissions; no new
+admission, axiom, runtime path, cache or native range dependency is introduced.
+The binder-order module census is one declaration / one theorem, using only
+`propext`. The support module is six declarations / six theorems with no extra
+private/generated declarations. Its stored/raw support, prefix contraction and
+parent/recursor wrappers use only the three standard logical axioms, without
+`sorryAx` or native interfaces. Only the final actual-history semantic adapter
+uses the inherited seven-axiom policy: logical axioms, `sorryAx` and the three
+existing allocation/storage interfaces. No abstraction/instantiation interface
+is needed by either module.
+`tests/InductiveIndexDomainSupport.lean` adds fifteen proof controls exercising
+all seven new APIs. Three shifted mixed-role fixtures include six exact cdecl
+provenance checks and three structural duplicate-ID controls; four missing
+parameter/omitted/current/future dependency failures and positive/negative
+initial-prefix retention controls enforce the source-support boundary. Annotation
+controls distinguish raw default dependencies, peeled stored types and metadata
+barriers. These native/structural controls do not prove semantic typing or
+frontend acceptance. Raw-versus-stored and prefix-omission fixture-model mutants
+fail at their intended sentinels. Separate module and pure/semantic API audits
+retain inherited provenance pins and reject the forbidden range interface even
+when whitelisted.
+Run `lake env lean tests/InductiveIndexDomainSupport.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
