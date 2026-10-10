@@ -2,7 +2,7 @@ import Lean4Lean.Verify.InductiveIndexBaseInsertion
 import Lean4Lean.Verify.InductiveIndexBaseStrengthening
 import Lean4Lean.Verify.InductiveIndexDomainSupport
 import Lean4Lean.Verify.InductiveIndexRebaseTyping
-import Lean4Lean.Verify.InductiveParameterPrefixAgreement
+import Lean4Lean.Verify.InductiveParameterSubstitution
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
