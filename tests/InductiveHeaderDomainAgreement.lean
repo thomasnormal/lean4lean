@@ -138,9 +138,9 @@ private theorem acceptedDomainsAggregate
     CheckedHeaderDomainReceipts VEnv.empty [] 2
       (nativeTrace firstAccepted secondAccepted firstNormalized secondNormalized)
       [] [] source.vlctx.toCtx target.vlctx.toCtx :=
-  .reusedParameter (by decide) (by decide) firstStoredType firstAccepted firstNormalized firstReceipt
+  .reusedParameter (by decide) (by decide) (storedType := firstStoredType) firstAccepted firstNormalized firstReceipt
     (.reusedParameter (name := `value) (binder := .default) (body := .sort .zero)
-      (by decide) (by decide) secondStoredType secondAccepted secondNormalized secondReceipt
+      (by decide) (by decide) (storedType := secondStoredType) secondAccepted secondNormalized secondReceipt
       (.stop (by intro name domain body binder equality; cases equality) rfl))
 
 private theorem aggregateProducesEquivalence
