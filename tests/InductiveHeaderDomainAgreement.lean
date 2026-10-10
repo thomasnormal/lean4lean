@@ -377,7 +377,7 @@ private theorem acceptedReceiptModel
     (trace := by
       simp only [Expr.instantiate1_eq]
       exact secondNativeTrace isUnsafe secondAccepted valid)
-    (by rfl) firstStoredType firstAccepted firstReceipt ?_
+    (storedType := firstStoredType) (by rfl) firstAccepted firstReceipt ?_
   simp only [Expr.instantiate1_eq]
   refine .parameter (stats := stats) (index := 1) (parameter := .fvar sourceValue)
     (name := `value) (binder := .default)
@@ -385,7 +385,7 @@ private theorem acceptedReceiptModel
     (trace := by
       simp only [Expr.instantiate1_eq]
       exact .terminal (by rfl) valid)
-    (by rfl) secondStoredType secondAccepted secondReceipt ?_
+    (storedType := secondStoredType) (by rfl) secondAccepted secondReceipt ?_
   simp only [Expr.instantiate1_eq]
   exact .terminal (source := source.vlctx.toCtx) (target := target.vlctx.toCtx) (by rfl) valid
 
@@ -419,7 +419,7 @@ private theorem partialPrefixRetainsBase (isUnsafe : Bool)
     (trace := by
       simp only [Expr.instantiate1_eq]
       exact .terminal (by rfl) valid)
-    (by rfl) secondStoredType secondAccepted secondReceipt ?_
+    (storedType := secondStoredType) (by rfl) secondAccepted secondReceipt ?_
   simp only [Expr.instantiate1_eq]
   exact .terminal (source := source.vlctx.toCtx) (target := target.vlctx.toCtx) (by rfl) valid
 

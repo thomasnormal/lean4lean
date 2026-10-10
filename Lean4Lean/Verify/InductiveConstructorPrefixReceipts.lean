@@ -189,7 +189,7 @@ private theorem AcceptedConstructorTrace.prefixReceipts
         (processed ++ [identifier])
         nextStats opened nextTrace (_ :: target)
       refine ⟨completed, finalTarget, unprocessed, ?_, suffix, length⟩
-      exact .parameter (trace := tail) selectedTrace storedType accepted receipt
+      exact .parameter (trace := tail) (storedType := storedType) selectedTrace accepted receipt
         (by simpa only [List.length_append, List.length_singleton] using receipts)
 
 theorem AcceptedConstructorTrace.completeParameters
