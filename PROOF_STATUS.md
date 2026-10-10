@@ -4536,6 +4536,24 @@ retain inherited provenance pins and reject the forbidden range interface even
 when whitelisted.
 Run `lake env lean tests/InductiveIndexDomainSupport.lean`.
 
+`Verify.InductiveIndexRebase` composes the selected-telescope contraction and
+larger-base insertion receipts through one shared reduced endpoint.
+`SelectedRecursorTelescope.rebase` returns the reduced telescope, its explicit
+contraction weakening and aligned old endpoint, plus the independently
+well-formed larger-base telescope and its insertion weakening. It requires
+the smaller mixed-base well-formedness derivable from the removal extension,
+larger-base well-formedness, and freshness of every selected identifier in the
+new base; it does not identify the old and new endpoints or infer freshness
+across an arbitrary replacement base. `TrExprS.rebaseIsType` transports a
+supported closed domain/type through the same reduced semantic expression,
+preserving the old definitional equality and deriving the larger-base strict
+translation/typehood by weakening. Neither helper types inserted motives or
+minors, proves a concrete smaller-base construction, or establishes complete
+recursor-body/source acceptance. The rebase module adds two composition
+theorems and no new admissions, axioms, runtime paths or caches; its inherited
+typing receipt retains the existing inverse-translation `sorryAx` boundary.
+Run `lake env lean tests/InductiveIndexRebase.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field
