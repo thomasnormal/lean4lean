@@ -4730,7 +4730,7 @@ parameter array and positive-depth reader instantiate the adapter without
 fixture premises. This proves the test premises are jointly inhabited; it
 does not establish kernel acceptance of an inductive declaration or retention
 of the let-bound proof in the erased semantic body.
-The full fixture now has fifty-two proof controls and sixty-eight runtime
+The full fixture now has fifty-five proof controls and ninety-five runtime
 checks, including all prior one-step and closed-domain two-step controls.
 Exact audits pin four dependencies for the new forall normalization and the inherited eight for
 the actual two-step and dependent two-step adapter applications, including the
@@ -4743,6 +4743,58 @@ These proof fixtures exercise the existing adapter, not
 inductive-checker/source acceptance, arbitrary whole-history strengthening or
 a literal original-stage preimage claim.
 Run `lake env lean tests/InductiveIndexSubstitutionStageOneStep.lean`.
+
+`Verify.InductiveIndexSubstitutionStageBinding` connects these stage endpoints
+to actual scoped native forall reconstruction. `IndexMLCtxExtension.typedBodyAbstractionS`
+strengthens the existing abstraction bridge to strict translation into the
+exact `MLCtx.mkForall'` semantic expression. Its selected-telescope corollary
+also equates the full reader's native binding with the selected mixed model's
+binding. Both derive body range-zero scope from translation and projected
+context scope from mixed-context WF, using the extension's proved suffix bound,
+reversed `fvarRevList` selection and exact dropped base. The selected bridge
+keeps arbitrary full-reader scope explicit; the actual-history wrapper below
+discharges it from the chronological WF receipt. They use the scoped
+`MLCtx.WF.mkForall_eq` interface, not unrestricted native abstraction.
+`TranslatedRecursorIndexTrace.selectedTelescopeRebasedSubstitutionStageNativeForall`
+composes the actual-history stage adapter with these bridges at the actual
+history endpoint. It derives endpoint reservation and scope from the translated
+history, full-reader binding scope from the chronological model, and source and
+target binding scope from their existing WF receipts. The same native expression
+is equated with both reduced and independently inserted native telescope
+bindings, strictly translated in all three original/reduced/target base contexts,
+and proved type-valued there. Each semantic result is precisely its own model's
+`mkForall'` application to the appropriate original or shared reduced endpoint;
+the independent insertion retains its protected-index lift inside the endpoint.
+After binding, translation weakening and strict translation uniqueness derive
+abstracted-type agreement in the original and target base contexts using their
+distinct base-only removal/insertion maps. These maps no longer protect an
+extra context-level index suffix; the semantic forall binders protect their
+own bound variables structurally. The existing original endpoint equality
+remains available. No literal reduced-body identification or independent
+chronological-to-target weakening is inferred.
+Only newly allocated suffix identifiers are bound. Existing initial-array
+identifiers stay in the supplied retained base. The wrapper deliberately uses
+stored-domain receipts at `finalReader`; it does not infer global binding scope
+for an arbitrary later native scope frame.
+The genuine dependent two-step fixture instantiates the full native binding
+wrapper without fixture premises, retaining the derived removal-one/insertion-two
+bases and proof-valued let. A separate actual empty history has a nonempty
+retained initial array and proves the new suffix binds nothing; binding the
+whole initial array would not be the same operation. Runtime checks compare the
+full, contracted and inserted native/model telescopes, check different physical
+context widths, and reject reversed dependency order, omitted binders, binding
+the retained parameter as part of the selected suffix, or retaining phantom
+context suffix cutoffs after abstraction. Expected-coordinate controls are not
+literal identifications of the existential reduced body. Exact axiom audits pin
+eleven inherited dependencies for each strict abstraction helper and twelve for
+the actual-history wrapper and its concrete applications: the existing logical
+axioms, `sorryAx`, three container interfaces, four scoped abstraction/binding
+interfaces, and native instantiation only for the history wrapper. All three
+module-owned declarations, including generated helpers, are audited. The global
+native range axiom is absent; no new axiom, admission or runtime code is added.
+This establishes scoped type-valued native telescope reconstruction, not
+inductive frontend acceptance, positivity, recursor reduction soundness or
+complete parameter substitution through arbitrary telescopes.
 
 `Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
 chronological selected telescope over a supplied smaller mixed base.
