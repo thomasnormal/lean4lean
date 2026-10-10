@@ -4549,8 +4549,12 @@ supported closed domain/type through the same reduced semantic expression,
 preserving the old definitional equality and deriving the larger-base strict
 translation/typehood by weakening. Neither helper types inserted motives or
 minors, proves a concrete smaller-base construction, or establishes complete
-recursor-body/source acceptance. The rebase modules add three composition
-theorems and no new admissions, axioms, runtime paths or caches; their inherited
+recursor-body/source acceptance. `SelectedRecursorTelescope.rebaseBodyIsType`
+adds a supported body/type receipt over the exact reduced fvar list
+`ids.reverse ++ smaller.vlctx.fvars`; it reuses the explicit common endpoint
+and never assumes a separately translated common body. The rebase modules add
+four composition/transport theorems and no new admissions, axioms, runtime
+paths or caches; their inherited
 typing receipt retains the existing inverse-translation `sorryAx` boundary.
 Run `lake env lean tests/InductiveIndexRebase.lean`.
 

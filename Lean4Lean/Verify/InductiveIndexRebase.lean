@@ -38,6 +38,55 @@ theorem SelectedRecursorTelescope.rebase
   exact ⟨reduced, aligned, target, reducedTelescope, reducedWF, contraction, contexts,
     targetTelescope, targetWF, insertionWeakening⟩
 
+theorem SelectedRecursorTelescope.rebaseBodyIsType
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial final smaller larger : MLCtx} {ids removedIds : List FVarId}
+    {inserted : Nat}
+    (telescope : SelectedRecursorTelescope env universes full initial ids final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (removal : IndexMLCtxExtension smaller removedIds initial)
+    (selectedSupport : SelectedRecursorDomainFVars full smaller.vlctx.fvars ids)
+    (largerWF : larger.WF env universes)
+    (insertion : VLCtx.FVLift smaller.vlctx larger.vlctx 0 inserted 0)
+    (freshBase : ∀ identifier ∈ ids, identifier ∉ larger.vlctx.fvars)
+    {body : Expr} {bodySemantic : VExpr} {level : VLevel}
+    (bodyTranslated : TrExprS env universes final.vlctx body bodySemantic)
+    (bodyTyped : env.HasType universes.length final.vlctx.toCtx bodySemantic (.sort level))
+    (bodyClosed : Closed body 0)
+    (bodySupport : body.FVarsIn (· ∈ ids.reverse ++ smaller.vlctx.fvars)) :
+    ∃ reduced aligned target reducedSemantic,
+      SelectedRecursorTelescope env universes full smaller ids reduced ∧
+      reduced.WF env universes ∧
+      VLCtx.FVLift' reduced.vlctx aligned 0
+        (.consN (.skipN .refl removedIds.length) ids.length) 0 ∧
+      VLCtx.IsDefEq env universes.length final.vlctx aligned ∧
+      SelectedRecursorTelescope env universes full larger ids target ∧
+      target.WF env universes ∧
+      VLCtx.FVLift' reduced.vlctx target.vlctx 0
+        (.consN (.skipN .refl inserted) ids.length) 0 ∧
+      TrExprS env universes reduced.vlctx body reducedSemantic ∧
+      env.HasType universes.length reduced.vlctx.toCtx reducedSemantic (.sort level) ∧
+      env.IsDefEq universes.length final.vlctx.toCtx bodySemantic
+        (reducedSemantic.lift' (.consN (.skipN .refl removedIds.length) ids.length))
+        (.sort level) ∧
+      TrExprS env universes target.vlctx body
+        (reducedSemantic.lift' (.consN (.skipN .refl inserted) ids.length)) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        (reducedSemantic.lift' (.consN (.skipN .refl inserted) ids.length)) (.sort level) := by
+  obtain ⟨reduced, aligned, target, reducedTelescope, reducedWF, contraction, contexts,
+    targetTelescope, targetWF, insertionWeakening⟩ := telescope.rebase envWF initialWF removal
+      selectedSupport largerWF insertion freshBase
+  have reducedFVars : reduced.vlctx.fvars = ids.reverse ++ smaller.vlctx.fvars :=
+    reducedTelescope.extension.virtualFVars
+  have reducedBodySupport : body.FVarsIn (· ∈ reduced.vlctx.fvars) := by
+    simpa only [reducedFVars] using bodySupport
+  obtain ⟨reducedSemantic, reducedTranslation, reducedType, bodyEquality,
+    targetTranslation, targetType⟩ := TrExprS.rebaseIsType envWF contraction contexts
+      insertionWeakening targetWF.tr.wf bodyTranslated bodyTyped bodyClosed reducedBodySupport
+  exact ⟨reduced, aligned, target, reducedSemantic, reducedTelescope, reducedWF, contraction,
+    contexts, targetTelescope, targetWF, insertionWeakening, reducedTranslation, reducedType,
+    bodyEquality, targetTranslation, targetType⟩
+
 theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {source terminal : Expr} {index finalIndex : Nat} {indices finalIndices : Array Expr}
