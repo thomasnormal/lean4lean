@@ -56,4 +56,20 @@ theorem VEnv.addConstructorHeaders.ordered (hordered : env.Ordered)
     intro remaining hmem
     exact (htypes remaining (by simp [hmem])).mono (addConst_le hstep)
 
+theorem VEnv.addConstructorHeaders.wf
+    (henv : env.WF) (htypes : ∀ ctor ∈ ctors, ctor.toVConstant.WF env)
+    (hadd : env.addConstructorHeaders ctors = some env') : env'.WF := by
+  induction ctors generalizing env env' with
+  | nil => cases hadd; exact henv
+  | cons ctor ctors ih =>
+    obtain ⟨nextEnv, hstep, hrest⟩ := Option.bind_eq_some_iff.mp hadd
+    have hctor : ctor.toVConstant.WF env := htypes ctor (by simp)
+    obtain ⟨decls, hdecls⟩ := henv
+    have hnext : nextEnv.WF := by
+      exact ⟨_, .decl (.axiom hctor hstep) hdecls⟩
+    apply ih hnext
+    · intro remaining hmem
+      exact (htypes remaining (by simp [hmem])).mono (addConst_le hstep)
+    · exact hrest
+
 end Lean4Lean

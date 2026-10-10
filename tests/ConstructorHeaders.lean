@@ -29,6 +29,11 @@ example (env env' : VEnv) (ctors : List VConstVal) (hordered : env.Ordered)
     (hadd : env.addConstructorHeaders ctors = some env') : env'.Ordered :=
   VEnv.addConstructorHeaders.ordered hordered htypes hadd
 
+example (env env' : VEnv) (ctors : List VConstVal) (henv : env.WF)
+    (htypes : ∀ ctor ∈ ctors, ctor.toVConstant.WF env)
+    (hadd : env.addConstructorHeaders ctors = some env') : env'.WF :=
+  VEnv.addConstructorHeaders.wf henv htypes hadd
+
 example (oldEnv env : VEnv) (lparams : List Name) (types : List InductiveType)
     (vtypes : List VInductiveType)
     (htr : List.Forall₂ (TrInductiveType oldEnv env lparams) types vtypes) :
@@ -49,6 +54,20 @@ example (ctx : AddInductive.Context) (stats : AddInductive.InductiveStats)
     haligned hsafety hctors).mono fun _ ⟨env', hadd, haligned'⟩ =>
       ⟨env', hadd, VEnv.addConstructorHeaders.le hadd,
         VEnv.addConstructorHeaders.defeqs_eq hadd, haligned'⟩
+
+example (ctx : AddInductive.Context) (stats : AddInductive.InductiveStats)
+    (types : Array InductiveType) (isUnsafe : Bool) {safety : DefinitionSafety}
+    {env : VEnv} {vtypes : List VInductiveType} (haligned : Aligned safety ctx.env.constants env)
+    (henv : env.WF)
+    (hsafety : safety ≤ if isUnsafe then .unsafe else .safe)
+    (hctors : List.Forall₂ (fun type vtype =>
+      List.Forall₂ (TrConstructor env ctx.lparams) type.ctors vtype.ctors) types.toList vtypes)
+    (htypes : ∀ ctor ∈ vtypes.flatMap (·.ctors), ctor.toVConstant.WF env) :
+    (AddInductive.declareConstructors stats types isUnsafe ctx).WF fun result =>
+      ∃ env', env.addConstructorHeaders (vtypes.flatMap (·.ctors)) = some env' ∧
+        env'.WF ∧ Aligned safety result.constants env' :=
+  AddInductive.declareConstructors.refinesWF ctx stats types isUnsafe
+    haligned henv hsafety hctors htypes
 
 private def context (isUnsafe : Bool) : AddInductive.Context := {
   env := Kernel.Environment.empty `ConstructorHeadersTest, lparams := [],
@@ -117,11 +136,13 @@ run_meta
       ``VEnv.addConstructorHeaders.constants, ``VEnv.addConstructorHeaders.defeqs_eq,
       ``VEnv.addConstructorHeaders.ordered] do
     audit theoremName standard
+  audit ``VEnv.addConstructorHeaders.wf (standard ++ [``sorryAx])
   audit ``TrConstructor.mono (standard ++ [``sorryAx])
   let registration := standard ++ [``sorryAx, ``Lean.PersistentHashMap.findAux_isSome,
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert]
   audit ``AddInductive.declareConstructors.refines registration
   audit ``AddInductive.declareConstructors.ordered registration
+  audit ``AddInductive.declareConstructors.refinesWF registration
   let primitives ← importedTypes (← Lean.getEnv).toKernelEnv
   for isUnsafe in [false, true] do
     checkMetadata (context isUnsafe) 0 mutualTypes #[#[0, 1], #[1]] isUnsafe
