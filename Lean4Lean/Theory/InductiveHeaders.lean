@@ -1,5 +1,6 @@
 import Lean4Lean.Theory.VDecl
 import Lean4Lean.Theory.Typing.Lemmas
+import Lean4Lean.Theory.Typing.Env
 
 namespace Lean4Lean
 
@@ -62,6 +63,22 @@ theorem VEnv.addInductHeaders.ordered (hordered : env.Ordered)
     refine ih (.const hordered (htypes header (by simp)) hstep) ?_ hrest
     intro remaining hmem
     exact (htypes remaining (by simp [hmem])).mono (addConst_le hstep)
+
+theorem VEnv.addInductHeaders.wf
+    (henv : env.WF) (htypes : ∀ header ∈ headers, header.toVConstant.WF env)
+    (hadd : env.addInductHeaders headers = some env') : env'.WF := by
+  induction headers generalizing env env' with
+  | nil => cases hadd; exact henv
+  | cons header headers ih =>
+    obtain ⟨nextEnv, hstep, hrest⟩ := Option.bind_eq_some_iff.mp hadd
+    have hheader : header.toVConstant.WF env := htypes header (by simp)
+    obtain ⟨decls, hdecls⟩ := henv
+    have hnext : nextEnv.WF := by
+      exact ⟨_, .decl (.axiom hheader hstep) hdecls⟩
+    apply ih hnext
+    · intro remaining hmem
+      exact (htypes remaining (by simp [hmem])).mono (addConst_le hstep)
+    · exact hrest
 
 def boolInductDecl : VInductDecl := {
   uvars := 0
