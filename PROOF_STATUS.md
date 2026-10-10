@@ -86,7 +86,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   registration bridge, including unsafe axioms, under the same explicit
   freshness and primitive-name guards. `addDefinitionHeader.nativePrimitiveFrame`
   isolates the unsafe-definition header stage under those guards; the full
-  unsafe body pipeline remains a separate contract.
+  unsafe body pipeline remains a separate contract. `addDefinition.unsafeHeaderResult`
+  extracts the successful header result from the nested unsafe body pipeline,
+  without asserting anything beyond the executable result decomposition.
   These ordinary-definition bridges keep freshness and primitive-name guards
   explicit. These results do not
   discharge the remaining inductive metadata/recursor obligations or construct
