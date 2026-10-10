@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.ConstructorHeaders
+import Lean4Lean.Verify.PrimitiveInterfaces
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.TypeChecker
@@ -369,5 +369,156 @@ run_meta
           throwError "ordinary staging admitted duplicate names"
         ordinaryCount := ordinaryCount + 1
   logInfo m!"{ordinaryCount} ordinary empty/single/mutual constructor staging controls"
+
+private theorem emptyPrimitiveSafety : NativePrimitiveSafety emptyNative :=
+  NativePrimitiveSafety.of_native SMap.WF.empty
+    (VEnvs.WF.empty `CheckerEnvironmentTest).safePrimitives
+
+private theorem seededPrimitiveSafety : NativePrimitiveSafety seededNative := by
+  apply emptyPrimitiveSafety.addConst (ci := .defnInfo nativeAlias)
+  · change ({} : ConstMap).find? nativeAlias.name = none
+    simp [SMap.find?]
+  · intro _
+    exact ⟨rfl, rfl⟩
+
+private theorem emptyPrimitives : VEnv.empty.HasPrimitives :=
+  (VEnvs.WF.empty `CheckerEnvironmentTest).hasPrimitives (safety := .safe)
+
+private theorem seededPrimitives : seededSemantic.HasPrimitives := by
+  have aliasPrimitives : aliasHeaderEnv.HasPrimitives :=
+    emptyPrimitives.addConst (show VEnv.empty.addConst semanticAlias.name
+      semanticAlias.toVConstant = some aliasHeaderEnv from rfl) (by decide)
+  exact aliasPrimitives.addDefEq
+
+private theorem acceptedPrimitiveInterfaces {native : Kernel.Environment} {semantic : VEnv}
+    {safety : DefinitionSafety} {types : List InductiveType}
+    (hchecker : CheckerEnv safety native semantic) (hp : semantic.HasPrimitives)
+    (hsafe : NativePrimitiveSafety native)
+    (shape : Lean4Lean.Environment.PrimitiveInductiveDecl [] 0 types false) :
+    (primitiveStage types (primitiveContext native)).WF fun result =>
+      ∃ final, CheckerEnv safety result final ∧ final.HasPrimitives ∧ NativePrimitiveSafety result := by
+  have recognized := (Lean4Lean.Environment.checkPrimitiveInductive.eq_true_iff
+    native [] 0 types false).mpr shape
+  refine (AddInductive.checkInductiveTypes.refinesPrimitiveInterfaces
+    (primitiveContext native) 0 types 0 false hchecker hp hsafe recognized).mono ?_
+  rintro result ⟨decl, headers, constructors, _, _, _, _, _, hfinal, hprimitives, hsafe'⟩
+  exact ⟨constructors, hfinal, hprimitives, hsafe'⟩
+
+example : (primitiveStage [boolType] (primitiveContext emptyNative)).WF fun result =>
+    ∃ final, CheckerEnv .safe result final ∧ final.HasPrimitives ∧ NativePrimitiveSafety result :=
+  acceptedPrimitiveInterfaces (CheckerEnv.empty _) emptyPrimitives emptyPrimitiveSafety .bool
+
+example (binderName : Name) (binderInfo : BinderInfo) (safety : DefinitionSafety) :
+    (primitiveStage [natType binderName binderInfo] (primitiveContext seededNative)).WF fun result =>
+      ∃ final, CheckerEnv safety result final ∧ final.HasPrimitives ∧ NativePrimitiveSafety result :=
+  acceptedPrimitiveInterfaces (seededTrEnv safety).checkerEnv seededPrimitives seededPrimitiveSafety
+    (.nat binderName binderInfo)
+
+private def pairStage (natFirst : Bool) : AddInductive.M Kernel.Environment := do
+  let first := if natFirst then natType `value .default else boolType
+  let second := if natFirst then boolType else natType `value .default
+  AddInductive.withEnv (← primitiveStage [first]) (primitiveStage [second])
+
+private theorem withEnv_bind {ctx : AddInductive.Context}
+    {action next : AddInductive.M Kernel.Environment} {intermediate post : Kernel.Environment → Prop}
+    (hfirst : (action ctx).WF intermediate)
+    (hnext : ∀ middle, intermediate middle → (next { ctx with env := middle }).WF post) :
+    ((do AddInductive.withEnv (← action) next) ctx).WF post :=
+  hfirst.bind hnext
+
+private theorem pairInterfaces (natFirst : Bool) {native : Kernel.Environment} {semantic : VEnv}
+    {safety : DefinitionSafety} (hchecker : CheckerEnv safety native semantic)
+    (hp : semantic.HasPrimitives) (hsafe : NativePrimitiveSafety native) :
+    (pairStage natFirst (primitiveContext native)).WF fun result =>
+      ∃ final, CheckerEnv safety result final ∧ final.HasPrimitives ∧ NativePrimitiveSafety result := by
+  cases natFirst
+  · refine withEnv_bind (action := primitiveStage [boolType])
+      (next := primitiveStage [natType `value .default])
+      (acceptedPrimitiveInterfaces hchecker hp hsafe .bool) ?_
+    rintro middle ⟨semantic, hchecker, hp, hsafe⟩
+    exact acceptedPrimitiveInterfaces hchecker hp hsafe (.nat `value .default)
+  · refine withEnv_bind (action := primitiveStage [natType `value .default])
+      (next := primitiveStage [boolType])
+      (acceptedPrimitiveInterfaces hchecker hp hsafe (.nat `value .default)) ?_
+    rintro middle ⟨semantic, hchecker, hp, hsafe⟩
+    exact acceptedPrimitiveInterfaces hchecker hp hsafe .bool
+
+example (natFirst : Bool) (safety : DefinitionSafety) :
+    (pairStage natFirst (primitiveContext seededNative)).WF fun result =>
+      ∃ final, CheckerEnv safety result final ∧ final.HasPrimitives ∧ NativePrimitiveSafety result :=
+  pairInterfaces natFirst (seededTrEnv safety).checkerEnv seededPrimitives seededPrimitiveSafety
+
+private def boolHeaderOnly := (VEnv.empty.addInductHeaders boolInductDecl.types).getD VEnv.empty
+private def natHeaderOnly := (VEnv.empty.addInductHeaders natInductDecl.types).getD VEnv.empty
+
+private theorem boolHeaderOnly_notPrimitives : ¬boolHeaderOnly.HasPrimitiveLiterals := by
+  intro hliterals
+  obtain ⟨⟨constant, hlookup⟩, _⟩ := hliterals.bool ⟨_, rfl⟩
+  change none = some constant at hlookup
+  contradiction
+
+private theorem natHeaderOnly_notPrimitives : ¬natHeaderOnly.HasPrimitiveLiterals := by
+  intro hliterals
+  obtain ⟨⟨constant, hlookup⟩, _⟩ := hliterals.nat ⟨_, rfl⟩
+  change none = some constant at hlookup
+  contradiction
+
+example : ¬boolHeaderOnly.HasPrimitives := fun hp => boolHeaderOnly_notPrimitives hp.literals
+example : ¬natHeaderOnly.HasPrimitives := fun hp => natHeaderOnly_notPrimitives hp.literals
+
+example (isUnsafe : Bool) :
+    (checkedConstructorStage ordinaryMutual isUnsafe (context seededNative isUnsafe)).WF NativePrimitiveSafety :=
+  AddInductive.checkInductiveTypes.preservesHeaderConstructorPrimitiveSafety
+    (context seededNative isUnsafe) 0 ordinaryMutual 0 isUnsafe seededPrimitiveSafety (.inl rfl)
+
+run_meta
+  let simple := [``propext, ``Quot.sound]
+  let lookup := simple ++ [``Classical.choice, ``Lean.PersistentHashMap.findAux_isSome]
+  let native := lookup ++ [``Lean.PersistentHashMap.WF.find?_eq,
+    ``Lean.PersistentHashMap.WF.toList'_insert]
+  let primitive := native ++ [``sorryAx, ``Lean.Expr.eqv_eq,
+    ``Lean.Level.instLawfulBEqLevel, ``Lean.Syntax.structEq_eq]
+  audit ``VEnv.HasPrimitives.literals [``propext]
+  for theoremName in [``VEnv.addInductHeaders.constants_eq,
+      ``VEnv.addConstructorHeaders.constants_eq, ``VInductDecl.stagedConstants_eq,
+      ``VEnv.HasPrimitives.mono_of_literals, ``boolInductDecl.hasPrimitives, ``natInductDecl.hasPrimitives,
+      ``boolHeaderOnly_notPrimitives, ``natHeaderOnly_notPrimitives] do
+    audit theoremName simple
+  for theoremName in [``NativePrimitiveSafety.of_native, ``NativePrimitiveSafety.find?] do
+    audit theoremName lookup
+  for theoremName in [``NativePrimitiveSafety.addConst,
+      ``AddInductive.declareInductiveTypes.preservesPrimitiveSafety,
+      ``AddInductive.declareConstructors.preservesPrimitiveSafety,
+      ``AddInductive.checkInductiveTypes.preservesHeaderConstructorPrimitiveSafety] do
+    audit theoremName native
+  audit ``Lean4Lean.Environment.PrimitiveInductiveDecl.safeMonomorphic []
+  audit ``withEnv_bind [``propext, ``Quot.sound, ``Classical.choice]
+  for theoremName in [
+      ``AddInductive.checkInductiveTypes.refinesPrimitiveInterfaces,
+      ``acceptedPrimitiveInterfaces, ``pairInterfaces] do
+    audit theoremName primitive
+  for theoremName in [``emptyPrimitiveSafety, ``emptyPrimitives, ``seededPrimitives] do
+    audit theoremName (lookup ++ [``sorryAx])
+  audit ``seededPrimitiveSafety (native ++ [``sorryAx])
+  let mut pairs := 0
+  for native in [emptyNative, seededNative] do
+    for natFirst in [false, true] do
+      let .ok result := pairStage natFirst (primitiveContext native) | throwError "primitive pair staging failed"
+      for name in [``Bool, ``Bool.false, ``Bool.true, ``Nat, ``Nat.zero, ``Nat.succ] do
+        let some info := result.find? name | throwError "missing primitive interface member"
+        unless info.safety == .safe && info.levelParams.isEmpty do
+          throwError "primitive interface member is unsafe or polymorphic"
+      for value in [0, 1, 37] do
+        let .ok inferred := M.run result .safe {} [] {} (checkType (.lit (.natVal value)))
+          | throwError "cannot type check a Nat literal after primitive staging"
+        unless inferred == .const ``Nat [] do throwError "wrong Nat literal type"
+      let .ok succType := M.run result .safe {} [] {} (checkType (.const ``Nat.succ []))
+        | throwError "cannot type check the retained Nat constructor"
+      unless succType == (natType `value .default).ctors[1]!.type do throwError "wrong retained Nat interface"
+      let .ok falseType := M.run result .safe {} [] {} (checkType (.const ``Bool.false []))
+        | throwError "cannot type check the retained Bool constructor"
+      unless falseType == .const ``Bool [] do throwError "wrong retained Bool interface"
+      pairs := pairs + 1
+  logInfo m!"{pairs} Bool/Nat order-composition and primitive-literal interface controls"
 
 end CheckerEnvironmentTest
