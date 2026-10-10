@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.OrdinaryInterfaces
+import Lean4Lean.Verify.StagedLeaves
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.TypeChecker
@@ -775,5 +775,17 @@ run_meta
             throwError "ordinary staging admitted a reserved primitive name"
           forbidden := forbidden + 1
   logInfo m!"{count} ordinary-after-primitive preservation controls; {forbidden} reserved-name rejections"
+
+run_meta
+  audit ``Lean4Lean.TypeChecker.Inner.checkLevel.checker [``propext, ``Quot.sound,
+    ``Classical.choice, ``Lean.Level.hasParam_eq]
+  audit ``Lean4Lean.TypeChecker.Inner.envGet.lookup [``propext, ``Quot.sound, ``Classical.choice]
+  audit ``Lean4Lean.TypeChecker.Inner.inferConstant.checker [``propext, ``Quot.sound,
+    ``Classical.choice, ``sorryAx, ``Lean.Level.hasParam_eq,
+    ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
+    ``Lean.PersistentHashMap.findAux_isSome, ``Lean.Expr.replace_eq,
+    ``Lean.Expr.hasLevelParam_eq, ``Lean.Level.hasMVar_eq, ``Lean.Level.instLawfulBEqLevel]
+  audit ``Lean4Lean.TypeChecker.Inner.infer_sort.checker [``propext, ``Quot.sound,
+    ``Classical.choice, ``sorryAx]
 
 end CheckerEnvironmentTest
