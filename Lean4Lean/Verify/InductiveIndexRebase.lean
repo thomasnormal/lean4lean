@@ -2,7 +2,7 @@ import Lean4Lean.Verify.InductiveIndexBaseInsertion
 import Lean4Lean.Verify.InductiveIndexBaseStrengthening
 import Lean4Lean.Verify.InductiveIndexDomainSupport
 import Lean4Lean.Verify.InductiveIndexRebaseTyping
-import Lean4Lean.Verify.InductiveParameterPrefixTransport
+import Lean4Lean.Verify.InductiveParameterPrefixAgreement
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
@@ -125,7 +125,9 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains
       RetainedFVarPrefix env universes smaller.vlctx larger.vlctx
         (.skipN .refl inserted) params ∧
       RetainedFVarPrefix env universes reduced.vlctx target.vlctx
-        (.consN (.skipN .refl inserted) ids.length) params := by
+        (.consN (.skipN .refl inserted) ids.length) params ∧
+      RetainedFVarPrefixAgreement env universes reduced.vlctx chronological.vlctx aligned
+        (.consN baseLift ids.length) params := by
   obtain ⟨chronological, ids, reduced, aligned, chronologicalWF, chronologicalNative,
     chronologicalVirtual, extension, array, reducedTelescope, reducedWF, contraction, contexts⟩ :=
     history.selectedTelescopeStrengthenedOfStoredDomains model modelWF native
@@ -145,9 +147,13 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains
     exact fun _ member => List.mem_append_right _ (parameters member)
   have endpointParameters := insertionWeakening.retainedPrefix envWF
     reducedWF.tr.wf targetWF.tr.wf reducedParameters
+  have alignedParameters := contraction.retainedPrefix envWF
+    reducedWF.tr.wf (contexts.symm envWF.ordered).wf reducedParameters
+  have chronologicalParameters := alignedParameters.agreesWithOriginal envWF contexts
   exact ⟨chronological, ids, reduced, aligned, target, chronologicalWF, chronologicalNative,
     chronologicalVirtual, extension, array, reducedTelescope, reducedWF, contraction, contexts,
-    targetTelescope, targetWF, insertionWeakening, baseParameters, endpointParameters⟩
+    targetTelescope, targetWF, insertionWeakening, baseParameters, endpointParameters,
+    chronologicalParameters⟩
 
 theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedBodyOfStoredDomains
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
@@ -194,6 +200,8 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedBodyOfStoredDomains
         (.skipN .refl inserted) params ∧
       RetainedFVarPrefix env universes reduced.vlctx target.vlctx
         (.consN (.skipN .refl inserted) ids.length) params ∧
+      RetainedFVarPrefixAgreement env universes reduced.vlctx chronological.vlctx aligned
+        (.consN baseLift ids.length) params ∧
       TrExprS env universes reduced.vlctx body reducedSemantic ∧
       env.HasType universes.length reduced.vlctx.toCtx reducedSemantic (.sort level) ∧
       env.IsDefEq universes.length chronological.vlctx.toCtx bodySemantic
@@ -204,7 +212,8 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedBodyOfStoredDomains
         (reducedSemantic.lift' (.consN (.skipN .refl inserted) ids.length)) (.sort level) := by
   obtain ⟨chronological, ids, reduced, aligned, target, chronologicalWF, chronologicalNative,
     chronologicalVirtual, extension, array, reducedTelescope, reducedWF, contraction, contexts,
-    targetTelescope, targetWF, insertionWeakening, baseParameters, endpointParameters⟩ :=
+    targetTelescope, targetWF, insertionWeakening, baseParameters, endpointParameters,
+    chronologicalParameters⟩ :=
     history.selectedTelescopeRebasedOfStoredDomains model modelWF native converted reserved
       current frame envWF smaller smallerWF baseLift baseWeakening stored values parameters
       prefixRetained larger largerWF inserted insertion freshBase
@@ -226,6 +235,7 @@ theorem TranslatedRecursorIndexTrace.selectedTelescopeRebasedBodyOfStoredDomains
   exact ⟨chronological, ids, reduced, aligned, target, reducedSemantic, chronologicalWF,
     chronologicalNative, chronologicalVirtual, extension, array, reducedTelescope, reducedWF,
     contraction, contexts, targetTelescope, targetWF, insertionWeakening, baseParameters,
-    endpointParameters, reducedTranslation, reducedType, bodyEquality, targetTranslation, targetType⟩
+    endpointParameters, chronologicalParameters, reducedTranslation, reducedType, bodyEquality,
+    targetTranslation, targetType⟩
 
 end Lean4Lean.AddInductive

@@ -4575,6 +4575,29 @@ ten-declaration bridge audit permits only inherited logical/typing axioms,
 not container or expression-range interfaces.
 Run `lake env lean tests/InductiveParameterPrefixTransport.lean`.
 
+`Verify.InductiveParameterPrefixAgreement` adds
+`RetainedFVarPrefixAgreement` and `RetainedFVarPrefix.agreesWithOriginal`.
+It pairs each retained reduced-context lookup with the actual original-context
+lookup through the explicit reduced-to-aligned transport and
+`VLCtx.IsDefEq original aligned`. The receipt supplies strict source/original
+fvar translations and typing, plus definitional equality of the original type
+with the lifted reduced type at an explicit sort, and of the original value
+with the lifted reduced value at the original type. Both equalities live in
+the original context, not the reduced context. Sort typing is recovered from
+the original lookup typing before converting the existing `IsDefEqU` lookup
+comparison: its arbitrary type witness is not treated as a universe level.
+The aligned transport remains a separate receipt. This is semantic lookup
+agreement, not literal value equality, native declaration equality,
+parameter-prefix contiguity/distinctness, telescope reconstruction/substitution,
+checked-source/header acceptance or inserted motive/minor typehood.
+No new admissions, axioms, runtime paths or caches are introduced; the proof
+retains the existing typing/unique-typing `sorryAx` boundary.
+Focused controls cover genuinely nonliteral beta-value agreement, distinct
+but equivalent universe types, ordered duplicates and missing IDs, including
+the selected-endpoint lift. Thirty exact runtime lookup checks and exhaustive
+agreement-module audits exclude container and expression-range interfaces.
+Run `lake env lean tests/InductiveParameterPrefixAgreement.lean`.
+
 `TranslatedRecursorIndexTrace.selectedTelescopeRebasedOfStoredDomains` adapts
 that composition to an actual translated index history. It invokes the
 stored-domain contraction bridge, preserves chronological/native/virtual and
@@ -4589,13 +4612,17 @@ their lifts are respectively `skipN refl inserted` and
 `consN (skipN refl inserted) ids.length`. Neither receipt identifies the old
 chronological endpoint with the new endpoint or proves native parameter
 telescope reconstruction/substitution.
+The adapter also derives a reduced-to-aligned transport at
+`consN baseLift ids.length` and returns its retained-parameter agreement with
+the chronological endpoint. This historical agreement uses the contraction
+lift, never the different reduced-to-target insertion lift.
 `TranslatedRecursorIndexTrace.selectedTelescopeRebasedBodyOfStoredDomains`
 extends the adapter with an explicit old body translation/typehood and
 suffix-ID fvar support. It rewrites the final-array suffix to the actual
 allocated IDs, derives support in the reduced telescope's exact fvar list,
 and returns reduced/new body translations and sort typing together with the
-same two retained-parameter receipts; it does not infer body support from
-allocation alone.
+same two retained-parameter transports and chronological agreement; it does
+not infer body support from allocation alone.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
