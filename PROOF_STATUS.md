@@ -4604,6 +4604,51 @@ claim a nonliteral argument or no-preimage counterexample. Exhaustive audits
 cover both module declarations and exact structural-four/native-five manifests.
 Run `lake env lean tests/InductiveParameterSubstitutionStage.lean`.
 
+`Verify.InductiveIndexSubstitutionStageRebase` lifts the selected-stage receipt
+through an actual `TranslatedRecursorIndexTrace`.
+`selectedTelescopeRebasedSubstitutionStageOfStoredDomains` takes the same
+premises as the existing actual-history substituted-type adapter: mixed-model
+alignment and WF, reservation/frame receipts, stored-domain support, retained
+parameters and old index prefix, explicit base removal, independent insertion
+and target freshness, an actual selected final lookup, and a translated typed
+body with one formal binder and exact endpoint support. No new premises are
+needed for the stronger body-level substitution receipt.
+The result preserves fifteen chronological-history/rebase receipts and all
+twenty-three selected-stage receipts. The chronological model remains equal to
+the actual final reader and virtual context. New suffix IDs remain in history
+order, while endpoint support uses their reversal followed by the smaller base.
+The original lookup and body context are rewritten through that exact
+chronological endpoint before consuming the retained-parameter agreement.
+One existential reduced argument, actual reduced domain, domain sort and
+pre-instantiation reduced body then account for all stage translations and
+typing. The reduced instantiated interpretation is explicitly
+`reducedBody.inst reducedArgument`, rather than an independently strengthened
+interpretation of a substituted native type.
+Original body and endpoint equality use removal
+`.consN baseLift ids.length`; independent target translation/typehood uses
+insertion `.consN (.skipN .refl inserted) ids.length`. Only body lifts add a
+further `.cons` protecting the substitution formal. No direct chronological
+to target context weakening or endpoint equality is inferred. Stored-domain
+support and the supplied type-valued body remain explicit conditions; this
+does not strengthen arbitrary whole histories, reconstruct literal native
+stage preimages or telescope/`replaceParams` recipes, prove inserted motive/minor
+typehood, or establish checker/source acceptance.
+The exact inherited eight-axiom boundary matches the prior actual-history
+adapters: four logical/typing dependencies, three persistent-container
+interfaces, and the existing native `Expr.instantiate1_eq` interface. No new
+axioms or admitted proofs are added.
+The focused fixture has 19 proof controls and 20 runtime checks. It forwards
+all thirty-eight outputs and applies the adapter to an actual empty translated
+history with one formal used beneath two nested binders. That application
+projects a shared reduced body, source/target native instantiated translations,
+target instantiated typing, chronological endpoint equality, closure and
+support. Nonempty retained-prefix/two-suffix tests are structural controls for
+history order and support reversal, parameter selection, unsupported domains,
+independent coordinate maps and body-versus-context lifting; they do not claim
+construction or acceptance of a nonempty history. An exhaustive one-declaration
+module audit enforces the exact inherited eight-axiom manifest.
+Run `lake env lean tests/InductiveIndexSubstitutionStageRebase.lean`.
+
 `Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
 chronological selected telescope over a supplied smaller mixed base.
 `SelectedRecursorDomainFVars` constrains only actual full-reader stored cdecl
