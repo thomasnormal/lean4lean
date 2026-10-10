@@ -4553,7 +4553,7 @@ recursor-body/source acceptance. `SelectedRecursorTelescope.rebaseBodyIsType`
 adds a supported body/type receipt over the exact reduced fvar list
 `ids.reverse ++ smaller.vlctx.fvars`; it reuses the explicit common endpoint
 and never assumes a separately translated common body. The rebase modules add
-four composition/transport theorems and no new admissions, axioms, runtime
+five composition/transport theorems and no new admissions, axioms, runtime
 paths or caches; their inherited
 typing receipt retains the existing inverse-translation `sorryAx` boundary.
 Run `lake env lean tests/InductiveIndexRebase.lean`.
@@ -4566,6 +4566,12 @@ larger base. Its freshness premise ranges only over newly allocated suffix
 IDs, never retained parameters or the original index prefix. The adapter still
 leaves concrete smaller-base construction, inserted motive/minor typehood,
 complete binder reordering and source acceptance explicit.
+`TranslatedRecursorIndexTrace.selectedTelescopeRebasedBodyOfStoredDomains`
+extends the adapter with an explicit old body translation/typehood and
+suffix-ID fvar support. It rewrites the final-array suffix to the actual
+allocated IDs, derives support in the reduced telescope's exact fvar list,
+and returns reduced/new body translations and sort typing; it does not infer
+body support from allocation alone.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
