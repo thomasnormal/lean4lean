@@ -124,6 +124,8 @@ import Lean4Lean.Verify.InductiveIndexSelectedTranslation
 import Lean4Lean.Verify.InductiveIndexBaseInsertion
 import Lean4Lean.Verify.InductiveIndexBaseStrengthening
 import Lean4Lean.Verify.InductiveIndexDomainSupport
+import Lean4Lean.Verify.InductiveIndexRebaseTyping
+import Lean4Lean.Verify.InductiveIndexRebase
 import Lean4Lean.Verify.InductiveRecursorTypeTranslationCPS
 import Lean4Lean.Verify.InductiveRecursorApplicationFacts
 import Lean4Lean.Verify.InductiveRecursorApplicationNative
