@@ -4070,8 +4070,8 @@ parameter-free UArg proof adapter. Native traces remain unrestricted.
 This verifies conditional domain typing and current-reader correspondence for
 the actual supported constructor/minor pass, not complete recursor soundness.
 Deriving support from the checked declarations, transporting nonzero constructor
-parameters, validating parent/head/index alignment, threading the full
-`loopInd2` parent pass and verifying recursor types/rules remain separate.
+parameters, validating parent/head/index alignment and verifying recursor
+types/rules remain separate.
 Inherited foundations and native interfaces remain explicitly audited. No new
 admission, axiom, oracle, runtime checker change, cache or fast path is introduced.
 
@@ -4092,6 +4092,63 @@ theorems, including private/generated helpers (native trace 32/14, semantic
 transport 28/21, CPS 35/11); the old clean core stays seventy-three / thirty-eight.
 All three modules replay through lean4lean. Run
 `lake env lean tests/InductiveMinorTranslation.lean`.
+
+`Verify.InductiveMinorPassTrace` captures the actual `mkRecInfos.loopInd2`
+parent traversal. Each step records the selected parent's complete constructor
+trace and passes its exact resulting records and current reader to the next
+parent. The stop case uses the native parent bound, including an initial parent
+already beyond the type array. Scope and record-size preservation concern the
+actual native history, not a separately reconstructed final context. Earlier
+constructor fields, IHs and minors remain present across parent boundaries.
+Selected-record prefix/count facts retain explicit type/record bounds;
+records before the starting parent or beyond the type array remain unchanged.
+
+`Verify.InductiveMinorPassTranslationCPS` translates that same complete history
+from one initial well-formed, native-aligned mixed model. Every constructor pass
+derives the model used by the following parent; final well-formedness, native
+correspondence and an ordered model extension follow from the history rather
+than appearing as independent premises. Getter and arbitrary-continuation
+contracts retain the native traces and propagate native failures. The full
+getter also pairs `RecursorInfoCounts` with the same successful native result;
+these size/count facts do not establish head or index alignment.
+
+The full `mkRecInfos` contracts compose the actual typed `loopInd1` parent pass
+with this typed `loopInd2` history. The final model of parent construction is
+exactly the initial model of minor construction, not a freshly assumed model
+aligned with the same reader. This accounts for the allocation chronology of
+indices, majors and motives, followed by constructor fields, IHs and minors
+across every parent. Outer reader restoration does not discard declarations
+inside the recursor-building continuation.
+
+These are conditional allocation/domain-typing and reader-correspondence
+contracts, not complete recursor soundness. Parent and minor source support
+still supplies the head/header and terminal/index alignment, normalization,
+annotation, selected-motive and IH obligations of the component passes. Typed
+transport retains the genuine zero-original-parameter restriction; native
+traces and operational tests are not restricted to that fragment. Checked-source
+provenance, deriving support from checked inductive declarations, transporting
+nonzero parameters and verifying complete recursor types/rules remain separate
+obligations.
+No runtime checker, cache, fast path, axiom or admission is added.
+
+`tests/InductiveMinorPassTranslation.lean` adds twenty-four proof controls,
+185 declaration audits, twelve axiom prints and eight existing native-interface
+provenance pins. Sixteen successful `loopInd2` captures and eight composed
+`mkRecInfos` captures check exact records, allocation order, prior-parent local
+retention and outer-reader restoration. Thirty-one minor domains and twenty
+parent/index/major/motive domains pass full native `TypeChecker.checkType`.
+Cases include genuine mutual/cross-parent recursion, dependent/higher-order
+fields, multiple IHs, indexed and original-parameter native families, seeded
+prefixes and oversized records, empty/end/beyond-end starts and skipped invalid
+sources. Two allocation-only untyped controls and seven failure controls remain
+operational boundaries, not typing claims or kernel discrepancies.
+
+Strict whole-module audits forbid module-owned axioms and the global native
+bound-variable-range axiom, even if whitelisted. Inherited foundations/interfaces
+are pinned separately. The new census is sixty-three declarations / twenty-nine
+theorems, including private/generated helpers (native trace 28/17, semantic/CPS
+35/12); the old clean core stays seventy-three / thirty-eight. Both modules replay
+through lean4lean. Run `lake env lean tests/InductiveMinorPassTranslation.lean`.
 
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
