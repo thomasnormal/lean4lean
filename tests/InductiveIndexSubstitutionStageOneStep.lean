@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveIndexSubstitutionStageRebase
+import Lean4Lean.Verify.InductiveIndexSubstitutionStageBinding
 import Lean.Util.CollectAxioms
 
 namespace InductiveIndexSubstitutionStageOneStepTest
@@ -1377,6 +1377,189 @@ private theorem emptySeedExercisesTheDependentAdapterWithoutFixturePremises :
   exact ⟨reduced, target, argument, domain, body, translated, sourceTranslated, sourceTyped,
     targetTranslated, targetTyped⟩
 
+private def nativeDependentStageTelescope : Expr :=
+  let actualReader := originalMixedReader (nextReader dependentSeedReader)
+  (dependentFinalReader actualReader).lctx.mkForall (twoIndexArray actualReader)
+    ((dependentNativeStageBody actualReader (generated dependentSeedReader)).instantiate1
+      (.fvar (generated dependentSeedReader)))
+
+private theorem actualDependentStageReconstructsOneNativeTelescopeInThreeBases :
+    let reader := dependentSeedReader
+    let smaller := pushSortModel .nil reader
+    let original := removedMixedBase smaller (nextReader reader)
+    let larger := insertedMixedBase smaller (nextReader reader)
+    let actualReader := originalMixedReader (nextReader reader)
+    let endpoint := (dependentNativeStageBody actualReader (generated reader)).instantiate1 (.fvar (generated reader))
+    ∃ (reduced target : MLCtx) (originalSemantic sourceSemantic targetSemantic : VExpr),
+      (dependentFinalReader actualReader).lctx.BindingScope ∧ reduced.lctx.BindingScope ∧
+      target.lctx.BindingScope ∧ endpoint.looseBVarRange' = 0 ∧
+      nativeDependentStageTelescope = reduced.lctx.mkForall (twoIndexArray actualReader) endpoint ∧
+      nativeDependentStageTelescope = target.lctx.mkForall (twoIndexArray actualReader) endpoint ∧
+      TrExprS VEnv.empty [] original.vlctx nativeDependentStageTelescope originalSemantic ∧
+      VEnv.empty.IsType 0 original.vlctx.toCtx originalSemantic ∧
+      TrExprS VEnv.empty [] smaller.vlctx nativeDependentStageTelescope sourceSemantic ∧
+      VEnv.empty.IsType 0 smaller.vlctx.toCtx sourceSemantic ∧
+      TrExprS VEnv.empty [] larger.vlctx nativeDependentStageTelescope targetSemantic ∧
+      VEnv.empty.IsType 0 larger.vlctx.toCtx targetSemantic ∧
+      VEnv.empty.IsDefEqU 0 original.vlctx.toCtx originalSemantic (sourceSemantic.lift' (.skip .refl)) ∧
+      VEnv.empty.IsDefEqU 0 larger.vlctx.toCtx (sourceSemantic.lift' (.skip (.skip .refl))) targetSemantic := by
+  let reader := dependentSeedReader
+  let smaller := pushSortModel .nil reader
+  let baseReader := nextReader reader
+  let original := removedMixedBase smaller baseReader
+  let larger := insertedMixedBase smaller baseReader
+  let actualReader := originalMixedReader baseReader
+  have envWF : VEnv.empty.WF := ⟨[], .empty⟩
+  have retained := pushSortModelIsWellFormed (env := VEnv.empty) (universes := [])
+    .nil trivial reader rfl (ContextReserved.empty _)
+  have mixed := constructedMixedBasesAreWellFormed smaller retained.1 baseReader retained.2.1 retained.2.2
+  have weakenings := constructedMixedBaseWeakenings smaller baseReader
+  have correspondence : TrLCtx VEnv.empty [] actualReader.lctx original.vlctx := by
+    simpa only [mixed.2.1] using mixed.1.tr
+  obtain ⟨trace, history⟩ := constructGenuineDependentTwoStepHistory (stats := noParameterStats)
+    rfl correspondence mixed.2.2.1 0 rfl
+  have originalLookup : original.vlctx.find? (.inr (generated reader)) = some (.bvar 1, .sort .zero) := rfl
+  have finalLookup : (dependentFinalVirtual original.vlctx actualReader).find? (.inr (generated reader)) =
+      some (.bvar 3, .sort .zero) := rfl
+  have member : generated reader ∈ smaller.vlctx.fvars := by
+    simp [smaller, pushSortModel, MLCtx.vlctx, VLCtx.fvars]
+  have originalMember : generated reader ∈ original.vlctx.fvars := by
+    change generated reader ∈ generated (advanceReaderTwice baseReader) :: smaller.vlctx.fvars
+    exact List.mem_cons_of_mem _ member
+  have different := twoFreshIndexNamesAreDistinctFromTheRetainedParameter correspondence mixed.2.2.1
+    (generated reader) originalMember
+  have stageReceipts := translatedDependentStageUsesTheProofValuedSecondIndex envWF mixed.1.tr.wf
+    (generated reader) different.1 different.2.1 different.2.2 originalLookup
+  have closedSupport := dependentStageBodyClosedAndSupported actualReader (generated reader) smaller.vlctx.fvars member
+  have secondFresh := theSecondActualIndexIsFreshInTheIndependentLargerBase smaller retained.1 baseReader
+    retained.2.1 retained.2.2
+  obtain ⟨chronological, ids, reduced, target, argument, stageBody, extension, reducedTelescope, targetTelescope,
+    chronologicalWF, chronologicalNative, chronologicalVirtual, array, reducedWF, targetWF,
+    sourceTranslation, sourceTyped, targetTranslation, targetTyped, endpointEquality,
+    fullScope, reducedScope, targetScope, endpointScope, sourceBinding, targetBinding,
+    originalAbstracted, originalAbstractedTyped, sourceAbstracted, sourceAbstractedTyped,
+    targetAbstracted, targetAbstractedTyped, originalAgreement, targetAgreement⟩ :=
+    history.selectedTelescopeRebasedSubstitutionStageNativeForall original mixed.1 mixed.2.1 rfl
+      mixed.2.2.1 envWF smaller retained.1 (.skip .refl) weakenings.1
+      (dependentActualStoredDomainsAreSupported correspondence mixed.2.2.1 (generated reader))
+      (by simp [dependentTwoIndexSteps, dependentSecondStep, twoIndexArray, oneStep, BinderStep.indexValues])
+      (by intro candidate selected
+          have equality : candidate = generated reader := by simpa using selected
+          simpa only [equality] using member)
+      (by simp) larger mixed.2.2.2.1 2 weakenings.2
+      (by intro candidate selected
+          have alternatives : candidate = generated actualReader ∨ candidate = generated (nextReader actualReader) := by
+            simpa [twoIndexArray] using selected
+          rcases alternatives with equality | equality
+          · simpa only [equality] using mixed.2.2.2.2
+          · simpa only [equality] using secondFresh)
+      0 (generated reader) rfl finalLookup stageReceipts.1 stageReceipts.2 closedSupport.1
+      (by simpa [twoIndexArray] using closedSupport.2.2)
+  have idsPair := exactlyTwoIdentifiersComeFromTheActualArrayPushes array
+  subst ids
+  refine ⟨reduced, target, _, _, _, fullScope, reducedScope, targetScope, endpointScope,
+    ?_, ?_, ?_, originalAbstractedTyped, ?_, sourceAbstractedTyped, ?_, targetAbstractedTyped,
+    originalAgreement, targetAgreement⟩
+  · exact sourceBinding
+  · exact targetBinding
+  · exact originalAbstracted
+  · exact sourceAbstracted
+  · exact targetAbstracted
+
+private theorem emptySelectedTelescopeBindingAddsNoSemanticBinder
+    {env : VEnv} {universes : List Name} {model : MLCtx} {body : Expr} {semantic : VExpr}
+    (envWF : env.WF) (modelWF : model.WF env universes)
+    (translated : TrExprS env universes model.vlctx body semantic)
+    (typed : env.IsType universes.length model.vlctx.toCtx semantic) :
+    TrExprS env universes model.vlctx (model.lctx.mkForall #[] body) semantic ∧
+      env.IsType universes.length model.vlctx.toCtx semantic := by
+  have telescope : SelectedRecursorTelescope env universes model.lctx model [] model := .nil
+  exact (telescope.scopedTypedAbstractionS envWF modelWF modelWF.bindingScope translated typed).2
+
+private theorem existingIndexPrefixIsNotBoundByAnEmptyActualHistory :
+    let reader := dependentSeedReader
+    let smaller := pushSortModel .nil reader
+    let original := removedMixedBase smaller (nextReader reader)
+    let larger := insertedMixedBase smaller (nextReader reader)
+    let actualReader := originalMixedReader (nextReader reader)
+    let endpoint := (Expr.bvar 0).instantiate1 (.fvar (generated reader))
+    ∃ (originalSemantic sourceSemantic targetSemantic : VExpr),
+      actualReader.lctx.mkForall #[] endpoint = endpoint ∧
+      TrExprS VEnv.empty [] original.vlctx endpoint originalSemantic ∧
+      VEnv.empty.IsType 0 original.vlctx.toCtx originalSemantic ∧
+      TrExprS VEnv.empty [] smaller.vlctx endpoint sourceSemantic ∧
+      VEnv.empty.IsType 0 smaller.vlctx.toCtx sourceSemantic ∧
+      TrExprS VEnv.empty [] larger.vlctx endpoint targetSemantic ∧
+      VEnv.empty.IsType 0 larger.vlctx.toCtx targetSemantic ∧
+      VEnv.empty.IsDefEqU 0 original.vlctx.toCtx originalSemantic (sourceSemantic.lift' (.skip .refl)) ∧
+      VEnv.empty.IsDefEqU 0 larger.vlctx.toCtx (sourceSemantic.lift' (.skip (.skip .refl))) targetSemantic := by
+  let reader := dependentSeedReader
+  let smaller := pushSortModel .nil reader
+  let baseReader := nextReader reader
+  let original := removedMixedBase smaller baseReader
+  let larger := insertedMixedBase smaller baseReader
+  let actualReader := originalMixedReader baseReader
+  have envWF : VEnv.empty.WF := ⟨[], .empty⟩
+  have retained := pushSortModelIsWellFormed (env := VEnv.empty) (universes := [])
+    .nil trivial reader rfl (ContextReserved.empty _)
+  have mixed := constructedMixedBasesAreWellFormed smaller retained.1 baseReader retained.2.1 retained.2.2
+  have weakenings := constructedMixedBaseWeakenings smaller baseReader
+  have correspondence : TrLCtx VEnv.empty [] actualReader.lctx original.vlctx := by
+    simpa only [mixed.2.1] using mixed.1.tr
+  have notForall : ∀ name domain body bi, Expr.sort .zero ≠ .forallE name domain body bi := by
+    intro name domain body binder equality
+    cases equality
+  let trace := RecursorIndexTrace.stop (stats := noParameterStats) (index := 0)
+    (indices := #[.fvar (generated reader)]) (ctx := actualReader) notForall
+  have history : TranslatedRecursorIndexTrace VEnv.empty [] trace original.vlctx
+      (.sort .zero) original.vlctx (.sort .zero) :=
+    .stop notForall correspondence (.sort (by simp [VLevel.ofLevel]))
+  have member : generated reader ∈ smaller.vlctx.fvars := by
+    simp [smaller, pushSortModel, MLCtx.vlctx, VLCtx.fvars]
+  have nativeLookup : actualReader.lctx.find? (generated reader) =
+      some (.cdecl 0 (generated reader) `oneIndex (.sort .zero) .default .default) := by
+    rw [← mixed.2.1, mixed.1.find?_eq]
+    rfl
+  have stored : BinderStoredIndexTypeFVarsIn [generated reader] actualReader [oneStep reader] := by
+    intro position step declaration selected role lookup
+    cases position with
+    | zero =>
+      have equality : oneStep reader = step := Option.some.inj selected
+      subst step
+      have equality : LocalDecl.cdecl 0 (generated reader) `oneIndex (.sort .zero) .default .default = declaration :=
+        Option.some.inj (nativeLookup.symm.trans lookup)
+      subst declaration
+      trivial
+    | succ position => simp at selected
+  have originalLookup : original.vlctx.find? (.inr (generated reader)) = some (.bvar 1, .sort .zero) := rfl
+  obtain ⟨chronological, ids, reduced, target, argument, stageBody, extension, reducedTelescope, targetTelescope,
+    chronologicalWF, chronologicalNative, chronologicalVirtual, array, reducedWF, targetWF,
+    sourceTranslation, sourceTyped, targetTranslation, targetTyped, endpointEquality,
+    fullScope, reducedScope, targetScope, endpointScope, sourceBinding, targetBinding,
+    originalAbstracted, originalAbstractedTyped, sourceAbstracted, sourceAbstractedTyped,
+    targetAbstracted, targetAbstractedTyped, originalAgreement, targetAgreement⟩ :=
+    history.selectedTelescopeRebasedSubstitutionStageNativeForall original mixed.1 mixed.2.1 rfl
+      mixed.2.2.1 envWF smaller retained.1 (.skip .refl) weakenings.1 stored rfl
+      (by intro candidate selected
+          have equality : candidate = generated reader := by simpa using selected
+          simpa only [equality] using member)
+      (by intro candidate selected
+          have equality : candidate = generated reader := by simpa using selected
+          simpa only [equality] using member)
+      larger mixed.2.2.2.1 2 weakenings.2 (by intro candidate selected; simp at selected)
+      0 (generated reader) rfl originalLookup
+      (TrExprS.bvar (i := 0) (A := .sort .zero) rfl)
+      (show VEnv.empty.HasType 0 (.sort .zero :: original.vlctx.toCtx)
+        (.bvar 0) (.sort .zero) from .bvar .zero) (by simp [Closed]) (by trivial)
+  have idsEmpty : ids = [] := by simpa using array
+  subst ids
+  have nativeIdentity : actualReader.lctx.mkForall #[] ((Expr.bvar 0).instantiate1 (.fvar (generated reader))) =
+      (Expr.bvar 0).instantiate1 (.fvar (generated reader)) :=
+    sourceBinding.trans (reducedTelescope.extension.nativeBodyAbstraction reducedWF endpointScope)
+  exact ⟨_, _, _, nativeIdentity, nativeIdentity ▸ originalAbstracted, originalAbstractedTyped,
+    nativeIdentity ▸ sourceAbstracted, sourceAbstractedTyped, nativeIdentity ▸ targetAbstracted, targetAbstractedTyped,
+    originalAgreement, targetAgreement⟩
+
 private theorem theStoredStepAndArrayReallyContainOneFreshIndex (reader : Context) :
     [oneStep reader][0]? = some (oneStep reader) ∧
     [oneStep reader][1]? = none ∧
@@ -1530,6 +1713,100 @@ private def auditFixtureDeclarations (allowed : List Name) : MetaM Unit := do
       declarations := declarations + 1
   logInfo m!"index-stage fixture: {declarations} namespace-owned declarations including generated helpers audited"
 
+private def auditNativeStageBindingModule (allowed : List Name) : MetaM Unit := do
+  let environment ← getEnv
+  let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveIndexSubstitutionStageBinding
+    | throwError "index-stage native binding module absent"
+  let mut declarations := 0
+  for (name, information) in environment.constants do
+    if environment.getModuleIdxFor? name == some moduleIndex then
+      if information matches .axiomInfo _ then throwError "index-stage native binding module-owned axiom {name}"
+      auditDeclaration name allowed
+      declarations := declarations + 1
+  unless declarations == 3 do
+    throwError "index-stage native binding declaration manifest changed: expected 3, got {declarations}"
+  logInfo m!"index-stage native binding: {declarations} module-owned declarations including generated helpers audited"
+
+private def dependentIndexModel (base : MLCtx) (reader : Context) : MLCtx :=
+  .vlam (generated (nextReader reader)) `dependentIndex (.fvar (generated reader)) (.bvar 0) .default
+    (pushSortModel base reader)
+
+private def expectedNativeDependentStageTelescope : Expr :=
+  .forallE `oneIndex (.sort .zero)
+    (.forallE `dependentIndex (.bvar 0)
+      (.forallE `formalUse (.fvar (generated dependentSeedReader))
+        (.letE `proofUse (.bvar 2) (.bvar 1) (.fvar (generated dependentSeedReader)) true) .default)
+      .default) .default
+
+private def nativeStageBindingRuntimeControls : MetaM Unit := do
+  let seedReader := dependentSeedReader
+  let baseReader := nextReader seedReader
+  let smaller := pushSortModel .nil seedReader
+  let original := removedMixedBase smaller baseReader
+  let larger := insertedMixedBase smaller baseReader
+  let actualReader := originalMixedReader baseReader
+  let first := generated actualReader
+  let second := generated (nextReader actualReader)
+  let parameter := generated seedReader
+  let finalReader := dependentFinalReader actualReader
+  let sourceModel := dependentIndexModel smaller actualReader
+  let originalModel := dependentIndexModel original actualReader
+  let targetModel := dependentIndexModel larger actualReader
+  let array := twoIndexArray actualReader
+  let endpoint := (dependentNativeStageBody actualReader parameter).instantiate1 (.fvar parameter)
+  let expected := expectedNativeDependentStageTelescope
+  let wrongOrder := finalReader.lctx.mkForall #[.fvar second, .fvar first] endpoint
+  let sourceBound : 2 ≤ sourceModel.length := by decide
+  let originalBound : 2 ≤ originalModel.length := by decide
+  let targetBound : 2 ≤ targetModel.length := by decide
+  let sourceSemantic := sourceModel.mkForall' 2 sourceBound (.forallE (.bvar 2) (.bvar 3))
+  let originalSemantic := originalModel.mkForall' 2 originalBound (.forallE (.bvar 3) (.bvar 4))
+  let targetSemantic := targetModel.mkForall' 2 targetBound (.forallE (.bvar 4) (.bvar 5))
+  let conditions := [
+    (endpoint.looseBVarRange' == 0, "instantiated native body meets structural range-zero scope"),
+    (nativeDependentStageTelescope == expected,
+      "full native telescope preserves dependent second domain and shifts let proof/type correctly"),
+    (expected.looseBVarRange' == 0, "dependent bound telescope has no loose variables"),
+    (expected.fvarsList == [parameter, parameter],
+      "native binding abstracts only actual indices and retains the selected parameter"),
+    (!expected.fvarsList.contains first && !expected.fvarsList.contains second,
+      "both selected index IDs are genuinely bound"),
+    (sourceModel.lctx.mkForall array endpoint == expected, "contracted source native telescope equals full telescope"),
+    (originalModel.lctx.mkForall array endpoint == expected, "chronological original native telescope equals full telescope"),
+    (targetModel.lctx.mkForall array endpoint == expected, "independently inserted target native telescope equals full telescope"),
+    (sourceModel.mkForall 2 sourceBound endpoint == expected, "source native/model binding equation has exact count two"),
+    (originalModel.mkForall 2 originalBound endpoint == expected, "original native/model binding equation has exact count two"),
+    (targetModel.mkForall 2 targetBound endpoint == expected, "target native/model binding equation has exact count two"),
+    (sourceModel.length == 3 && originalModel.length == 4 && targetModel.length == 5,
+      "source/original/target context widths remain genuinely distinct"),
+    (sourceModel.fvarRevList 2 sourceBound == [second, first], "source selected fvarRevList reverses chronological array"),
+    (originalModel.fvarRevList 2 originalBound == [second, first], "original selected fvarRevList has the same ordered suffix"),
+    (targetModel.fvarRevList 2 targetBound == [second, first], "target selected fvarRevList has the same ordered suffix"),
+    (semanticShape (sourceSemantic.lift' (.skip .refl)) == semanticShape originalSemantic,
+      "after native binding the original abstracted type uses the base removal map"),
+    (semanticShape (sourceSemantic.lift' (.skip (.skip .refl))) == semanticShape targetSemantic,
+      "after native binding the target abstracted type uses the independent base insertion map"),
+    (semanticShape (sourceSemantic.lift' (.consN (.skip .refl) 2)) != semanticShape originalSemantic,
+      "keeping an extra context suffix cutoff after binding corrupts original base transport"),
+    (semanticShape (sourceSemantic.lift' (.consN (.skip (.skip .refl)) 2)) != semanticShape targetSemantic,
+      "keeping an extra context suffix cutoff after binding corrupts target base transport"),
+    (wrongOrder != expected, "reversing chronological native binder order changes the dependent telescope"),
+    (wrongOrder.fvarsList.contains first, "wrong-order outer proof domain escapes the later first-index binding"),
+    (finalReader.lctx.mkForall #[.fvar second] endpoint != expected,
+      "omitting first selected binder cannot reconstruct the telescope"),
+    ((finalReader.lctx.mkForall #[.fvar second] endpoint).fvarsList.contains first,
+      "omitting first binder leaves its dependent proof type unsupported"),
+    (finalReader.lctx.mkForall #[] endpoint == endpoint, "empty native array is identity"),
+    ((#[.fvar parameter] : Array Expr).toList.drop 1 == [],
+      "a retained existing array prefix contributes no newly allocated binding suffix"),
+    (original.lctx.mkForall #[.fvar parameter] (.fvar parameter) != .fvar parameter,
+      "binding the whole nonempty prefix is not the empty-history suffix identity"),
+    (finalReader.lctx.mkForall #[.fvar parameter, .fvar first, .fvar second] endpoint != expected,
+      "selected-index binding does not silently bind the retained parameter too")]
+  for (condition, label) in conditions do
+    unless condition do throwError "native-stage-binding runtime failed: {label}"
+  logInfo m!"native-stage-binding runtime: {conditions.length} additional scoped native/model binding, dependency order, exact suffix, retained parameter and distinct-base controls"
+
 private def dependentTwoIndexRuntimeControls : MetaM Unit := do
   let seedReader := dependentSeedReader
   let actualReader := originalMixedReader (nextReader seedReader)
@@ -1621,6 +1898,10 @@ run_meta
   let logical := [``propext, ``Classical.choice, ``Quot.sound]
   let adapterAllowed := logical ++ [``sorryAx, ``PersistentArray.toList'_push,
     ``PersistentHashMap.WF.find?_eq, ``PersistentHashMap.WF.toList'_insert, ``Expr.instantiate1_eq]
+  let abstractionInterfaces := [``Expr.abstractRange_eq, ``Expr.abstract_eq,
+    ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq]
+  let bindingAllowed := adapterAllowed ++ abstractionInterfaces
+  let abstractionAllowed := adapterAllowed.filter (· != ``Expr.instantiate1_eq) ++ abstractionInterfaces
   let actualControls := [``constructActualIndexOpening, ``constructGenuineOneStepHistory,
     ``oneActualStoredDomainIsSupported, ``actualNewIndexIsFreshInTheBase,
     ``translatedStageUsesTheFormalNewIndexAndSelectedParameter, ``genuineOneStepHistoryInvokesTheStageAdapter,
@@ -1660,6 +1941,13 @@ run_meta
     ``dependentStageSubstitutionPreservesTheProofsActualType]
   for name in dependentStructuralControls do auditDeclaration name logical
   auditDeclaration ``dependentNativeNormalizationsWithPositiveDepth (logical ++ [``Expr.instantiate1_eq])
+  auditExactDependencies ``IndexMLCtxExtension.typedBodyAbstractionS abstractionAllowed
+  auditExactDependencies ``SelectedRecursorTelescope.scopedTypedAbstractionS abstractionAllowed
+  auditExactDependencies ``TranslatedRecursorIndexTrace.selectedTelescopeRebasedSubstitutionStageNativeForall bindingAllowed
+  auditExactDependencies ``actualDependentStageReconstructsOneNativeTelescopeInThreeBases bindingAllowed
+  auditExactDependencies ``emptySelectedTelescopeBindingAddsNoSemanticBinder abstractionAllowed
+  auditExactDependencies ``existingIndexPrefixIsNotBoundByAnEmptyActualHistory bindingAllowed
+  auditNativeStageBindingModule bindingAllowed
   for name in [``generated, ``nextReader, ``nextVirtual, ``normalizationReceipt, ``oneStep,
       ``nativeStageBody, ``stageSemantic, ``stageLevel, ``semanticPosition, ``semanticShape, ``runtimeControls,
       ``pushSortModel, ``advanceReaderTwice, ``removedMixedBase, ``originalMixedReader, ``insertedMixedBase,
@@ -1669,6 +1957,8 @@ run_meta
       ``dependentFinalVirtual, ``dependentSecondStep, ``dependentTwoIndexSteps, ``dependentNativeStageBody,
       ``dependentStageSemantic, ``dependentStageLevel, ``dependentSeedReader, ``noParameterStats,
       ``dependentTwoIndexRuntimeControls,
+      ``nativeDependentStageTelescope, ``dependentIndexModel, ``expectedNativeDependentStageTelescope,
+      ``nativeStageBindingRuntimeControls, ``auditNativeStageBindingModule,
       ``auditDeclaration, ``auditExactDependencies, ``auditFixtureDeclarations] do auditDeclaration name logical
   auditExactDependencies ``nativeSortNormalizationWithPositiveDepth (logical ++ [``Expr.instantiate1_eq])
   auditExactDependencies ``genuineOneStepHistoryInvokesTheStageAdapter adapterAllowed
@@ -1678,12 +1968,14 @@ run_meta
   auditExactDependencies ``dependentNativeNormalizationsWithPositiveDepth (logical ++ [``Expr.instantiate1_eq])
   auditExactDependencies ``genuineDependentTwoStepHistoryRebasesConstructedMixedBases adapterAllowed
   auditExactDependencies ``emptySeedExercisesTheDependentAdapterWithoutFixturePremises adapterAllowed
-  auditFixtureDeclarations adapterAllowed
+  auditFixtureDeclarations bindingAllowed
   runtimeControls
   twoIndexRuntimeControls
   dependentTwoIndexRuntimeControls
+  nativeStageBindingRuntimeControls
   logInfo m!"one-step-stage tests: {actualControls.length + structuralControls.length + 1} proof controls; real index/stop trace and actual array push; real peeled opening and nonvacuous stored declaration; constructed retained parameter, original one-declaration removal and independent two-declaration target insertion; shared reduced body, suffix support, target native translation/typing and original endpoint agreement; native sort normalization proved at positive depth; both identity and mixed-base applications tied to actual pushed suffix receipt"
   logInfo m!"two-step-stage tests: {twoStepControls.length + twoStructuralControls.length + 1} additional proof controls ({actualControls.length + structuralControls.length + twoStepControls.length + twoStructuralControls.length + 2} total); actual index/index/stop history, positive-depth native forall/sort normalization, real peeled openings and two existing stored declarations; chronological IDs from actual array pushes versus reversed selected-telescope endpoint support; both-index stage body, shared existential reduced body, nonidentity cutoff-two source/target native translations/typing and original endpoint agreement"
   logInfo m!"dependent-two-step-stage tests: {dependentControls.length + dependentStructuralControls.length + 1} additional proof controls ({actualControls.length + structuralControls.length + twoStepControls.length + twoStructuralControls.length + dependentControls.length + dependentStructuralControls.length + 3} total); genuine dependent index/index/stop history, actual stored second domain referencing first index, typed proof-valued native let, derived removal-one/insertion-two maps, shared existential reduced body and source/target translation/typing; empty seed and empty environment instantiate the full adapter with no fixture premises"
+  logInfo "native-stage-binding tests: three additional fixture proof controls plus three exact module contracts; one native telescope translates strictly and is type-valued in original/removal-one and reduced/insertion-two base contexts, with abstracted semantic agreement at the distinct base maps; body and all three native contexts have derived structural binding scope, chronological selected arrays and dependent binder order; an actual empty history with nonempty retained array prefix binds nothing; no fixture premises, global native range axiom, arbitrary later-context scope or frontend acceptance claim"
 
 end InductiveIndexSubstitutionStageOneStepTest
