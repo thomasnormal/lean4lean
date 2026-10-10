@@ -4730,7 +4730,7 @@ parameter array and positive-depth reader instantiate the adapter without
 fixture premises. This proves the test premises are jointly inhabited; it
 does not establish kernel acceptance of an inductive declaration or retention
 of the let-bound proof in the erased semantic body.
-The full fixture now has fifty-five proof controls and ninety-five runtime
+The full fixture now has fifty-eight proof controls and 115 runtime
 checks, including all prior one-step and closed-domain two-step controls.
 Exact audits pin four dependencies for the new forall normalization and the inherited eight for
 the actual two-step and dependent two-step adapter applications, including the
@@ -4795,6 +4795,50 @@ native range axiom is absent; no new axiom, admission or runtime code is added.
 This establishes scoped type-valued native telescope reconstruction, not
 inductive frontend acceptance, positivity, recursor reduction soundness or
 complete parameter substitution through arbitrary telescopes.
+
+`Verify.InductiveSingletonParameterReplacement` connects a type-valued native
+body to executable `ElimNestedInductive.replaceParams` with genuinely nonempty
+singleton source/replacement arrays. `replaceParams.singleton_eq` proves exact
+agreement with structural `abstract1` followed by `instantiate1'`, preserving
+the entire native state. Range-zero source scope is essential: native raw
+abstraction preserves existing loose bvars whereas structural abstraction
+shifts them. A loose-body negative control demonstrates this known model
+boundary; it is not a kernel discrepancy.
+`replaceParams.singleton_typed` takes a well-formed named source parameter at
+the head of a mixed context, strict body translation and typehood, and strict
+translation/typing of the replacement in the remaining base. It derives source
+scope from translation, then proves strict translation to semantic singleton
+instantiation and preserves the result sort. It also derives structural
+closedness/range zero, remaining-base fvar support and exclusion of the source
+identifier from that base. The replacement need not be a literal fvar.
+`replaceParams.singleton_typedRebased` preserves these receipts and transports
+the same native result's strict translation and typing through an independently
+supplied well-formed base insertion, with its own semantic lift.
+
+The actual dependent-history fixture supplies the scoped bound telescope and
+its strict translation/typing, with an old source parameter declared over a
+distinct declared target-parameter seed. Concrete applications replace the old
+parameter with either the target fvar or a well-typed nonliteral beta-valued
+argument, without fixture premises. Both preserve the dependent second binder
+and proof-valued let, state, result sort and support in the target seed and its
+independent two-declaration insertion. Twenty additional runtime controls
+exercise actual nonempty replacement arrays, native/structural agreement,
+source-ID removal, nontrivial state metadata, native type checking in the seed
+and inserted context, unsupported/wrong-domain arguments, and the source-scope
+boundary. Together with the preceding controls, the fixture has fifty-eight
+proof controls and 115 runtime checks. All 155 fixture-namespace declarations,
+including generated helpers, are audited.
+Exact axiom audits pin six dependencies for singleton structural equality
+(three logical axioms and the existing raw abstraction, reverse instantiation
+and general instantiation interfaces), without `sorryAx`. The typed contracts
+have ten dependencies, adding inherited `sorryAx` and three persistent-container
+interfaces. The dependent-history fixture applications have fourteen inherited
+dependencies, also retaining the previous scoped binding interfaces. All three
+module-owned declarations are audited; no new axiom, admission or production
+runtime change is introduced. The underlying history still uses empty native
+parameter statistics: these receipts do not verify arbitrary nonempty parameter
+histories, whole-prefix typed reverse substitution, nested frontend acceptance,
+positivity or recursor reduction soundness.
 
 `Verify.InductiveIndexBaseStrengthening` uses this domain lemma to contract a
 chronological selected telescope over a supplied smaller mixed base.
