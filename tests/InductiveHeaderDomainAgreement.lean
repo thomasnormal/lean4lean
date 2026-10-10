@@ -348,7 +348,7 @@ private theorem secondNativeTrace (isUnsafe : Bool)
     AcceptedConstructorTrace stats isUnsafe 0 reader 1
       (.forallE `value (.fvar sourceType) (mkApp2 stats.indConsts[0]! (.fvar sourceType) (.bvar 0)) .default)
       reader 2 constructorTerminal := by
-  refine .parameter (parameter := .fvar sourceValue) (by rfl) secondStoredType secondAccepted ?_
+  refine .parameter (parameter := .fvar sourceValue) (storedType := secondStoredType) (by rfl) secondAccepted ?_
   simp only [Expr.instantiate1_eq]
   exact .terminal (by rfl) valid
 
@@ -360,7 +360,7 @@ private theorem acceptedTrace
       reader = .ok true)
     (valid : isValidIndAppIdx stats constructorTerminal 0 = true) :
     AcceptedConstructorTrace stats isUnsafe 0 reader 0 constructorType reader 2 constructorTerminal := by
-  refine .parameter (parameter := .fvar sourceType) (by rfl) firstStoredType firstAccepted ?_
+  refine .parameter (parameter := .fvar sourceType) (storedType := firstStoredType) (by rfl) firstAccepted ?_
   simp only [Expr.instantiate1_eq]
   exact secondNativeTrace isUnsafe secondAccepted valid
 

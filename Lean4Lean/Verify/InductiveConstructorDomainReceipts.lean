@@ -176,7 +176,8 @@ theorem AcceptedConstructorTrace.firstDomainAgreement
   have sourceFree := checkNoMVarNoFVar.WF reader.env constructor (.forallE name domain body binder) () sourceGuard
   cases trace with
   | terminal notForall => cases notForall
-  | parameter selectedTrace storedType accepted tail =>
+  | @parameter index parameter reader stored domain body finalReader finalIndex terminal name binder
+      selectedTrace storedType accepted tail =>
     have same := Option.some.inj (selectedTrace.symm.trans selected)
     subst_vars
     obtain ⟨smaller, storedSemantic, candidateSemantic, history, receipt⟩ :=
