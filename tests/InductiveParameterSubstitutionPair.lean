@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveParameterSubstitutionPair
+import Lean4Lean.Verify.InductiveParameterSubstitutionChain
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean
@@ -62,6 +62,45 @@ private theorem coreProjectsInnerEqualityAndFinalOuterAgreements
   exact ⟨innerArgument, innerType, outerArgument, outerType, semantic, sourceInnerLookup, sourceOuterLookup,
     innerEquality, intermediateTranslation, intermediateTyping, outerEquality, rebaseEquality,
     alternativeEquality, simultaneousTyped, simultaneousEquality, simultaneousRebaseEquality⟩
+
+private theorem semanticHelperProjectsOuterChainAndResidualWithoutAnExpression
+    {env : VEnv} {universes : List Name} {source original aligned : VLCtx}
+    {removalLift : Lift} {identifiers : List FVarId}
+    (receipt : RetainedFVarPrefixAgreement env universes source original aligned removalLift identifiers)
+    (envWF : env.WF) (originalWF : original.WF env universes.length)
+    (outerPosition : Nat) (outerIdentifier : FVarId)
+    (outerSelected : identifiers[outerPosition]? = some outerIdentifier)
+    (innerPosition : Nat) (innerIdentifier : FVarId)
+    (innerSelected : identifiers[innerPosition]? = some innerIdentifier)
+    {originalOuterArgument originalOuterArgumentType originalInnerArgument originalInnerArgumentType : VExpr}
+    (outerLookup : original.find? (.inr outerIdentifier) =
+      some (originalOuterArgument, originalOuterArgumentType))
+    (innerLookup : original.find? (.inr innerIdentifier) =
+      some (originalInnerArgument, originalInnerArgumentType))
+    {innerDomain : VExpr}
+    (raisedInnerArgumentTyped : env.HasType universes.length
+      (originalOuterArgumentType :: original.toCtx) originalInnerArgument.lift innerDomain)
+    {bodySemantic : VExpr} {level : VLevel}
+    (bodyTyped : env.HasType universes.length
+      (innerDomain :: originalOuterArgumentType :: original.toCtx) bodySemantic (.sort level)) :
+    ∃ innerArgument innerType outerArgument outerType,
+      source.find? (.inr innerIdentifier) = some (innerArgument, innerType) ∧
+      source.find? (.inr outerIdentifier) = some (outerArgument, outerType) ∧
+      env.IsDefEq universes.length (originalOuterArgumentType :: original.toCtx)
+        originalInnerArgument.lift (innerArgument.lift' removalLift).lift innerDomain ∧
+      env.IsDefEq universes.length original.toCtx
+        ((bodySemantic.inst originalInnerArgument.lift).inst originalOuterArgument)
+        ((bodySemantic.inst (innerArgument.lift' removalLift).lift).inst
+          (outerArgument.lift' removalLift)) (.sort level) ∧
+      SemanticSubstitutionChain env universes.length original.toCtx level
+        ((bodySemantic.inst originalInnerArgument.lift).inst originalOuterArgument)
+        ((bodySemantic.inst originalInnerArgument.lift).inst (outerArgument.lift' removalLift)) ∧
+      env.IsDefEq universes.length original.toCtx
+        ((bodySemantic.inst originalInnerArgument.lift).inst (outerArgument.lift' removalLift))
+        ((bodySemantic.inst (innerArgument.lift' removalLift).lift).inst
+          (outerArgument.lift' removalLift)) (.sort level) :=
+  receipt.instantiatePairOuterChain envWF originalWF outerPosition outerIdentifier outerSelected
+    innerPosition innerIdentifier innerSelected outerLookup innerLookup raisedInnerArgumentTyped bodyTyped
 
 private theorem nativeProjectsBothStagesClosureSupportAndTargetTyping
     {env : VEnv} {universes : List Name} {source original aligned target : VLCtx}
@@ -490,7 +529,17 @@ private theorem simultaneousCongruenceReplacesBothNonliteralBetaArguments
       env.IsDefEq universes.length betaOriginalContext.toCtx
         ((pairedSemantic.inst (VExpr.bvar 1).lift).inst (.bvar 2)) (semantic.lift' (.skip .refl)) (.sort pairedLevel) ∧
       TrExprS env universes betaTargetContext finalBody (semantic.lift' (.skipN .refl 3)) ∧
-      env.HasType universes.length betaTargetContext.toCtx (semantic.lift' (.skipN .refl 3)) (.sort pairedLevel) := by
+      env.HasType universes.length betaTargetContext.toCtx (semantic.lift' (.skipN .refl 3)) (.sort pairedLevel) ∧
+      SemanticSubstitutionChain env universes.length betaOriginalContext.toCtx pairedLevel
+        ((pairedSemantic.inst ((betaArgument 0).lift' (.skip .refl)).lift).inst
+          ((betaArgument 1).lift' (.skip .refl)))
+        ((pairedSemantic.inst ((betaArgument 0).lift' (.skip .refl)).lift).inst (.bvar 2)) ∧
+      env.IsDefEq universes.length betaOriginalContext.toCtx
+        ((pairedSemantic.inst ((betaArgument 0).lift' (.skip .refl)).lift).inst (.bvar 2))
+        ((pairedSemantic.inst (VExpr.bvar 1).lift).inst (.bvar 2)) (.sort pairedLevel) ∧
+      env.IsDefEq universes.length betaOriginalContext.toCtx
+        ((pairedSemantic.inst ((betaArgument 0).lift' (.skip .refl)).lift).inst (.bvar 2))
+        (semantic.lift' (.skip .refl)) (.sort pairedLevel) := by
   have contexts := insertedBetaContextsStillAgree env universes.length
   have sourceWF := ((bothBetaContextsAgreeWithoutLiteralValueEquality env universes.length).symm envWF.ordered).wf
   have alignedWF := (contexts.symm envWF.ordered).wf
@@ -510,7 +559,7 @@ private theorem simultaneousCongruenceReplacesBothNonliteralBetaArguments
       ((betaArgument 0).lift' (.skip .refl)).lift parameterType :=
     VEnv.HasType.app (VEnv.HasType.lam (.sort (by trivial)) (.bvar .zero)) (.bvar (.succ (.succ .zero)))
   obtain ⟨innerArgument, innerType, outerArgument, outerType, semantic, innerLookup, _, _, _, _, _, _, _,
-    outerLookup, _, _, _, _, _, _, _, _, _, _, _, targetTranslation, targetTyping,
+    outerLookup, _, _, _, _, _, _, _, _, _, rebaseEquality, _, targetTranslation, targetTyping,
     simultaneousTyped, simultaneousEquality, simultaneousRebaseEquality⟩ :=
     receipt.instantiatePairIsTypeRebasedCore envWF removal contexts insertion targetWF
       0 outerIdentifier rfl 1 innerIdentifier rfl
@@ -524,7 +573,17 @@ private theorem simultaneousCongruenceReplacesBothNonliteralBetaArguments
   have outerSourceLookup : betaSourceContext.find? (.inr outerIdentifier) = some (.bvar 1, parameterType) := rfl
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (innerLookup.symm.trans innerSourceLookup))
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (outerLookup.symm.trans outerSourceLookup))
-  exact ⟨semantic, simultaneousTyped, simultaneousEquality, simultaneousRebaseEquality, targetTranslation, targetTyping⟩
+  obtain ⟨chainInnerArgument, chainInnerType, chainOuterArgument, chainOuterType,
+    chainInnerLookup, chainOuterLookup, _, _, outerChain, residualBoth⟩ :=
+    receipt.instantiatePairOuterChain envWF contexts.wf 0 outerIdentifier rfl 1 innerIdentifier rfl
+      (originalOuterArgument := (betaArgument 1).lift' (.skip .refl)) (originalOuterArgumentType := parameterType)
+      (originalInnerArgument := (betaArgument 0).lift' (.skip .refl)) (originalInnerArgumentType := parameterType)
+      rfl rfl raisedTyped (pairedBodyTyped env universes.length betaOriginalContext.toCtx)
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (chainInnerLookup.symm.trans innerSourceLookup))
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (chainOuterLookup.symm.trans outerSourceLookup))
+  have residualCommon := outerChain.cancelLeft rebaseEquality envWF contexts.wf.toCtx
+  exact ⟨semantic, simultaneousTyped, simultaneousEquality, simultaneousRebaseEquality, targetTranslation,
+    targetTyping, outerChain, residualBoth, residualCommon⟩
 
 private def semanticShape : VExpr → List Nat
   | .bvar position => [0, position]
@@ -582,6 +641,7 @@ private def runtimeSimultaneousBetaPairs : MetaM Unit := do
   let raisedInner := (VExpr.bvar 0).lift' (.skip .refl)
   let raisedOuter := (VExpr.bvar 1).lift' (.skip .refl)
   let originalFinal := (pairedSemantic.inst originalInner.lift).inst originalOuter
+  let outerOnly := (pairedSemantic.inst originalInner.lift).inst raisedOuter
   let bothReduced := (pairedSemantic.inst raisedInner.lift).inst raisedOuter
   let sourceFinal := (pairedSemantic.inst (VExpr.bvar 0).lift).inst (.bvar 1)
   let targetFinal := sourceFinal.lift' (.skipN .refl 3)
@@ -589,6 +649,9 @@ private def runtimeSimultaneousBetaPairs : MetaM Unit := do
     (semanticShape originalInner != semanticShape raisedInner, "nonliteral inner beta"),
     (semanticShape originalOuter != semanticShape raisedOuter, "nonliteral outer beta"),
     (semanticShape originalFinal != semanticShape bothReduced, "simultaneous equality is not literal equality"),
+    (semanticShape originalFinal != semanticShape outerOnly, "outer chain is not literal equality"),
+    (semanticShape outerOnly != semanticShape bothReduced, "residual inner equality is not literal equality"),
+    (semanticShape outerOnly == semanticShape (expectedSemantic raisedOuter originalInner), "outer chain retains original inner argument"),
     (semanticShape originalFinal == semanticShape (expectedSemantic originalOuter originalInner), "both original beta shifts"),
     (semanticShape bothReduced == semanticShape (expectedSemantic raisedOuter raisedInner), "both reduced argument shifts"),
     (semanticShape bothReduced == semanticShape (sourceFinal.lift' (.skip .refl)), "common removal semantic"),
@@ -637,6 +700,7 @@ run_meta
   let inherited := logical ++ [``sorryAx]
   let nativeAllowed := inherited ++ [``Expr.instantiate1_eq]
   let inheritedControls := [``coreProjectsInnerEqualityAndFinalOuterAgreements, ``pairedBodyTranslated,
+    ``semanticHelperProjectsOuterChainAndResidualWithoutAnExpression,
     ``concreteAgreement, ``genuinePairRebasesThroughDistinctInsertions,
     ``repeatedSelectedParameterDoesNotRequireDistinctPositions, ``nonliteralInnerDomainStillRebasesTheGenuinePair,
     ``semanticHelperProjectsBothArgumentCongruenceWithoutAnExpression,
@@ -654,11 +718,12 @@ run_meta
   for name in logicalControls do auditDeclaration name logical
   auditDeclaration ``nativeProjectsBothStagesClosureSupportAndTargetTyping nativeAllowed
   auditDeclaration ``RetainedFVarPrefixAgreement.instantiatePairIsDefEq inherited
+  auditDeclaration ``RetainedFVarPrefixAgreement.instantiatePairOuterChain inherited
   auditDeclaration ``Closed.instantiate1_offset logical
   auditModule inherited nativeAllowed
   rejectedNativeInterface logical
   runtimePairs
   runtimeSimultaneousBetaPairs
-  logInfo m!"parameter-substitution-pair tests: {inheritedControls.length + logicalControls.length + 1} proof controls; simultaneous inner/outer congruence; both original beta arguments nonliteral; genuine two-formal body and typed intermediate; inner-before-outer substitution; nested local binder protected; explicit arbitrary innerDomain typing premise; distinct removal/insertion; duplicate position accepted; closure/support/selection negatives"
+  logInfo m!"parameter-substitution-pair tests: {inheritedControls.length + logicalControls.length + 1} proof controls; simultaneous inner/outer congruence; semantic outer chain and same-context residual cancellation; both original beta arguments nonliteral; genuine two-formal body and typed intermediate; inner-before-outer substitution; nested local binder protected; explicit arbitrary innerDomain typing premise; distinct removal/insertion; duplicate position accepted; closure/support/selection negatives"
 
 end InductiveParameterSubstitutionPairTest

@@ -69,4 +69,65 @@ theorem SemanticSubstitutionChain.hasType
   have equality := chain.isDefEq envWF contextWF
   exact ⟨equality.hasType.1, equality.hasType.2⟩
 
+theorem RetainedFVarPrefixAgreement.instantiatePairOuterChain
+    {env : VEnv} {universes : List Name} {source original aligned : VLCtx}
+    {removalLift : Lift} {identifiers : List FVarId}
+    (receipt : RetainedFVarPrefixAgreement env universes source original aligned removalLift identifiers)
+    (envWF : env.WF) (originalWF : original.WF env universes.length)
+    (outerPosition : Nat) (outerIdentifier : FVarId)
+    (outerSelected : identifiers[outerPosition]? = some outerIdentifier)
+    (innerPosition : Nat) (innerIdentifier : FVarId)
+    (innerSelected : identifiers[innerPosition]? = some innerIdentifier)
+    {originalOuterArgument originalOuterArgumentType originalInnerArgument originalInnerArgumentType : VExpr}
+    (outerLookup : original.find? (.inr outerIdentifier) =
+      some (originalOuterArgument, originalOuterArgumentType))
+    (innerLookup : original.find? (.inr innerIdentifier) =
+      some (originalInnerArgument, originalInnerArgumentType))
+    {innerDomain : VExpr}
+    (raisedInnerArgumentTyped : env.HasType universes.length
+      (originalOuterArgumentType :: original.toCtx) originalInnerArgument.lift innerDomain)
+    {bodySemantic : VExpr} {level : VLevel}
+    (bodyTyped : env.HasType universes.length
+      (innerDomain :: originalOuterArgumentType :: original.toCtx) bodySemantic (.sort level)) :
+    ∃ reducedInnerArgument reducedInnerArgumentType reducedOuterArgument reducedOuterArgumentType,
+      source.find? (.inr innerIdentifier) = some (reducedInnerArgument, reducedInnerArgumentType) ∧
+      source.find? (.inr outerIdentifier) = some (reducedOuterArgument, reducedOuterArgumentType) ∧
+      env.IsDefEq universes.length (originalOuterArgumentType :: original.toCtx)
+        originalInnerArgument.lift (reducedInnerArgument.lift' removalLift).lift innerDomain ∧
+      env.IsDefEq universes.length original.toCtx
+        ((bodySemantic.inst originalInnerArgument.lift).inst originalOuterArgument)
+        ((bodySemantic.inst (reducedInnerArgument.lift' removalLift).lift).inst
+          (reducedOuterArgument.lift' removalLift)) (.sort level) ∧
+      SemanticSubstitutionChain env universes.length original.toCtx level
+        ((bodySemantic.inst originalInnerArgument.lift).inst originalOuterArgument)
+        ((bodySemantic.inst originalInnerArgument.lift).inst (reducedOuterArgument.lift' removalLift)) ∧
+      env.IsDefEq universes.length original.toCtx
+        ((bodySemantic.inst originalInnerArgument.lift).inst (reducedOuterArgument.lift' removalLift))
+        ((bodySemantic.inst (reducedInnerArgument.lift' removalLift).lift).inst
+          (reducedOuterArgument.lift' removalLift)) (.sort level) := by
+  obtain ⟨reducedInnerArgument, reducedInnerArgumentType, reducedOuterArgument, reducedOuterArgumentType,
+    reducedInnerLookup, reducedOuterLookup, actualInnerEquality, simultaneousEquality⟩ :=
+    receipt.instantiatePairIsDefEq envWF originalWF outerPosition outerIdentifier outerSelected
+      innerPosition innerIdentifier innerSelected outerLookup innerLookup raisedInnerArgumentTyped bodyTyped
+  obtain ⟨lookupOuterArgument, lookupOuterType, lookupOriginalArgument, lookupOriginalType, _,
+    sourceOuterLookup, _, _, originalOuterLookup, _, _, _, outerArgumentEquality⟩ :=
+    receipt.lookups outerPosition outerIdentifier outerSelected
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (sourceOuterLookup.symm.trans reducedOuterLookup))
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (originalOuterLookup.symm.trans outerLookup))
+  have intermediateTyped : env.HasType universes.length
+      (lookupOriginalType :: original.toCtx)
+      (bodySemantic.inst originalInnerArgument.lift) (.sort level) := by
+    simpa only [VExpr.inst] using bodyTyped.instN envWF.ordered .zero raisedInnerArgumentTyped
+  have outerStageEquality : env.IsDefEq universes.length original.toCtx
+      ((bodySemantic.inst originalInnerArgument.lift).inst lookupOriginalArgument)
+      ((bodySemantic.inst originalInnerArgument.lift).inst (lookupOuterArgument.lift' removalLift))
+      (.sort level) := by
+    simpa only [VExpr.inst] using VEnv.IsDefEq.instDF envWF.ordered originalWF.toCtx
+      intermediateTyped outerArgumentEquality
+  have outerChain := SemanticSubstitutionChain.single intermediateTyped outerArgumentEquality
+    outerStageEquality.hasType.2
+  exact ⟨reducedInnerArgument, reducedInnerArgumentType, lookupOuterArgument, lookupOuterType,
+    reducedInnerLookup, reducedOuterLookup, actualInnerEquality, simultaneousEquality, outerChain,
+    outerChain.cancelLeft simultaneousEquality envWF originalWF.toCtx⟩
+
 end Lean4Lean
