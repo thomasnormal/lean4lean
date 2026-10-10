@@ -130,6 +130,7 @@ def InductiveStats.AcceptedConstructorTraces (stats : InductiveStats)
     (types : Array InductiveType) (isUnsafe : Bool) (reader : Context) : Prop :=
   ∀ parent, ∀ bound : parent < types.size, ∀ constructor ∈ types[parent].ctors,
     ∃ sourceType finalReader finalIndex terminal,
+      reader.env.checkNoMVarNoFVar constructor.name constructor.type = .ok () ∧
       (monadLift (TypeChecker.checkType constructor.type) : M Expr) reader = .ok sourceType ∧
       AcceptedConstructorTrace stats isUnsafe parent reader 0 constructor.type finalReader finalIndex terminal
 
@@ -137,7 +138,7 @@ theorem InductiveStats.AcceptedConstructorTraces.safe
     (traces : stats.AcceptedConstructorTraces types false reader) :
     stats.SafeConstructorTraces types PositivityWHNF reader := by
   intro parent bound constructor member
-  obtain ⟨_, _, _, terminal, _, trace⟩ := traces parent bound constructor member
+  obtain ⟨_, _, _, terminal, _, _, trace⟩ := traces parent bound constructor member
   exact ⟨terminal, trace.safe⟩
 
 theorem checkConstructors.acceptedTraces (types : Array InductiveType)
@@ -146,14 +147,17 @@ theorem checkConstructors.acceptedTraces (types : Array InductiveType)
       stats.AcceptedConstructorTraces types isUnsafe reader := by
   unfold checkConstructors
   dsimp only
-  apply Lean4Lean.AddInductive.bindWF
-  intro environment
+  apply bindHeaderResultWF
+  intro environment environmentChecked
+  have environmentEq : reader.env = environment := Except.ok.inj environmentChecked
+  subst environment
   refine Lean4Lean.AddInductive.bindInvariantWF (ctx := reader)
     (post := fun _ => stats.AcceptedConstructorTraces types isUnsafe reader)
     (invariant := fun _ =>
       ∀ parent ∈ List.range' 0 types.size, ∀ bound : parent < types.size,
         ∀ constructor ∈ types[parent].ctors,
           ∃ sourceType finalReader finalIndex terminal,
+            reader.env.checkNoMVarNoFVar constructor.name constructor.type = .ok () ∧
             (monadLift (TypeChecker.checkType constructor.type) : M Expr) reader = .ok sourceType ∧
             AcceptedConstructorTrace stats isUnsafe parent reader 0 constructor.type finalReader finalIndex terminal)
     ?_ ?_
@@ -166,10 +170,12 @@ theorem checkConstructors.acceptedTraces (types : Array InductiveType)
       (post := fun (result : ForInStep Unit) => ∃ next, result = .yield next ∧
         ∀ bound : parent < types.size, ∀ constructor ∈ types[parent].ctors,
           ∃ sourceType finalReader finalIndex terminal,
+            reader.env.checkNoMVarNoFVar constructor.name constructor.type = .ok () ∧
             (monadLift (TypeChecker.checkType constructor.type) : M Expr) reader = .ok sourceType ∧
             AcceptedConstructorTrace stats isUnsafe parent reader 0 constructor.type finalReader finalIndex terminal)
       (invariant := fun _ => ∀ constructor ∈ types[parent].ctors,
         ∃ sourceType finalReader finalIndex terminal,
+          reader.env.checkNoMVarNoFVar constructor.name constructor.type = .ok () ∧
           (monadLift (TypeChecker.checkType constructor.type) : M Expr) reader = .ok sourceType ∧
           AcceptedConstructorTrace stats isUnsafe parent reader 0 constructor.type finalReader finalIndex terminal)
       ?_ ?_
@@ -180,13 +186,15 @@ theorem checkConstructors.acceptedTraces (types : Array InductiveType)
       split
       · exact Except.WF.throw
       · simp only [pure_bind]
-        apply Lean4Lean.AddInductive.bindWF
-        intro _
+        apply bindHeaderResultWF
+        intro guarded sourceGuard
+        have sourceGuard : reader.env.checkNoMVarNoFVar constructor.name constructor.type = .ok () :=
+          sourceGuard
         apply bindHeaderResultWF
         intro sourceType sourceChecked
         exact (checkConstructors.loop.acceptedTrace stats isUnsafe parent constructor.name
           constructor.type 0 reader.fuel.inductiveFuel reader).bind fun _ ⟨finalReader, finalIndex, terminal, trace⟩ =>
-            .pure ⟨_, rfl, sourceType, finalReader, finalIndex, terminal, sourceChecked, trace⟩
+            .pure ⟨_, rfl, sourceType, finalReader, finalIndex, terminal, sourceGuard, sourceChecked, trace⟩
     · intro _ constructors
       exact .pure ⟨_, rfl, fun _ => constructors⟩
   · intro _ all
@@ -331,7 +339,7 @@ theorem checkConstructors.domainAgreement (types : Array InductiveType)
           finalTarget.length = target.length + min finalIndex stats.params.size := by
   refine (checkConstructors.acceptedTraces types stats isUnsafe reader).mono ?_
   intro _ traces parent bound constructor member
-  obtain ⟨sourceType, finalReader, finalIndex, terminal, sourceChecked, trace⟩ :=
+  obtain ⟨sourceType, finalReader, finalIndex, terminal, _, sourceChecked, trace⟩ :=
     traces parent bound constructor member
   have model := receiptProvider parent bound constructor member sourceType finalReader finalIndex terminal
     sourceChecked trace

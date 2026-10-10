@@ -5115,8 +5115,9 @@ final reader and binder index. Its `safe` projection recovers the original
 positivity trace, and `scope` derives the native scope frame from original
 well-formedness/freshness. `checkConstructors.loop.acceptedTrace` obtains this
 trace from the real loop without a semantic receipt premise.
-`checkConstructors.acceptedTraces` retains both that trace and the successful
-initial full-source `checkType` call for every member of an accepted batch.
+`checkConstructors.acceptedTraces` retains that trace, the successful source
+no-metavariable/no-free-variable guard and the initial full-source `checkType`
+call for every member of an accepted batch.
 
 `CheckedConstructorDomainReceipts` consumes reduced-prefix receipts at the
 recorded parameter checks and constructs aggregate `IsDefEqCtx`. Field
@@ -5150,6 +5151,54 @@ models use the inherited `Expr.instantiate1_eq` boundary, with exact manifests
 of eight, twelve and five dependencies. All 51 production declarations and 26
 constructor-fixture declarations are audited in addition to the header audits.
 There is no new axiom, admission or production runtime change.
+
+`Verify.InductiveConstructorDomainReceipts` derives the first reduced domain
+receipt from these recorded native checks and a canonical parameter history,
+instead of requiring a semantic receipt provider for that checkpoint.
+`ParameterPrefix.selectedDomain` selects the actual stored native declaration
+at any parameter position. It reconstructs its preceding `identifiers.take
+index` prefix, the prefix's well-formedness, its insertion into the full reader,
+and the stored domain's strict translation and sort typing from the canonical
+model. It does not assume a reduced stored-domain translation or typing judgment.
+`acceptedSourceTranslation` uses the successful source `checkType` call to
+obtain its strict translation through the existing checker correctness theorem.
+`ReducedParameterDomainReceipt.ofCheckedForall` then derives the candidate
+domain's strict reduced translation from that accepted forall source and its
+prefix support. No candidate translation, domain typing or semantic domain
+equality is assumed as an additional receipt.
+
+`AcceptedConstructorTrace.firstDomainAgreement` consumes the recorded source
+guard and source check, the canonical parameter history, and the actual first
+parameter lookup/equality check in the native trace. The source guard supplies
+the empty-prefix candidate support, so this boundary needs no separate support
+premise. `checkConstructors.firstDomainAgreement` derives the same receipt and
+sorted domain equality for every member of a genuinely accepted batch, for
+either safety flag. The existing accepted-source arity theorem supplies the
+initial forall shape when the canonical parameter array is nonempty; that
+shape is not assumed. Reader/checker alignment, the semantic checker model,
+the reset checker's state well-formedness, and the canonical parameter history
+remain explicit inputs. The theorem does not reconstruct those frontend models
+from bare native acceptance.
+
+The additional constructor receipt fixture constructs first and dependent
+domain receipts directly from source-check acceptance, including a retained
+nonempty base, without importing the old assumed candidate translations.
+It also proves that a candidate depending on an absent free variable has no
+strict empty-prefix translation: a successful full-reader check alone does
+not license prefix strengthening. Runtime controls exercise native source
+checks, canonical lookups, nonliteral equality, safe/unsafe accepted batches
+and rejected ill-scoped or ill-typed candidate domains. All 13 production and
+10 receipt-fixture declarations are audited, with 13 runtime controls. Exact
+manifests pin seven inherited dependencies for canonical domain selection,
+the existing 28 checker dependencies for accepted source translation and
+receipt construction, and those 28 plus the three existing source-guard
+expression axioms for accepted first-domain trace/batch agreement. The missing
+prefix-dependency control has four inherited dependencies. Retaining the raw
+source guard does not enlarge the native batch extractor's three logical
+dependencies. There is no new axiom, admission or runtime change. Later parameter
+checkpoints still require propagating the accepted source translation through
+the actual substitutions and checker-approved domain changes; the first
+checkpoint theorem is not an unconditional complete-prefix provider.
 
 The original `typedRebinding` literal semantic-domain agreement premise remains
 explicit outside its shared-semantic-input case. The new definitional transport

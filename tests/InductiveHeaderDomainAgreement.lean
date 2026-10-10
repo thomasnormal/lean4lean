@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveConstructorDomainTrace
+import Lean4Lean.Verify.InductiveConstructorDomainReceipts
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive Lean4Lean.ElimNestedInductive
@@ -466,7 +466,10 @@ private theorem batchRetainsSourceCheck (types : Array InductiveType) (statistic
     ∃ sourceType finalReader finalIndex terminal,
       (monadLift (TypeChecker.checkType constructor.type) : AddInductive.M Expr) ambient = .ok sourceType ∧
       AcceptedConstructorTrace statistics isUnsafe parent ambient 0 constructor.type finalReader finalIndex terminal :=
-  checkConstructors.acceptedTraces types statistics isUnsafe ambient () accepted parent bound constructor member
+  by
+    obtain ⟨sourceType, finalReader, finalIndex, terminal, _, sourceChecked, trace⟩ :=
+      checkConstructors.acceptedTraces types statistics isUnsafe ambient () accepted parent bound constructor member
+    exact ⟨sourceType, finalReader, finalIndex, terminal, sourceChecked, trace⟩
 
 private def runtimeConstructorType (head : Expr) (field : Option Expr := none) : Expr :=
   let result := mkApp2 head (.bvar 1) (.bvar 0)
@@ -607,3 +610,189 @@ run_meta do
   runtimeControls
 
 end InductiveConstructorDomainTraceTest
+
+namespace InductiveConstructorDomainReceiptTest
+open InductiveHeaderDomainAgreementTest
+open InductiveConstructorDomainTraceTest
+
+private theorem canonicalFirstDomain :
+    ∃ smaller nativeDomain semanticDomain insertion,
+      ParameterPrefix .nil smaller [] ∧ smaller.WF VEnv.empty [] ∧
+      VLCtx.FVLift' smaller.vlctx source.vlctx 0 insertion 0 ∧
+      TrExprS VEnv.empty [] smaller.vlctx nativeDomain semanticDomain ∧
+      VEnv.empty.IsType 0 smaller.vlctx.toCtx semanticDomain ∧
+      ∃ declaration, source.lctx.find? sourceType = some declaration ∧ declaration.type = nativeDomain := by
+  simpa using sourcePrefix.selectedDomain sourceWellFormed (index := 0) (identifier := sourceType) (by rfl)
+
+private theorem canonicalDependentDomain :
+    ∃ smaller nativeDomain semanticDomain insertion,
+      ParameterPrefix .nil smaller [sourceType] ∧ smaller.WF VEnv.empty [] ∧
+      VLCtx.FVLift' smaller.vlctx source.vlctx 0 insertion 0 ∧
+      TrExprS VEnv.empty [] smaller.vlctx nativeDomain semanticDomain ∧
+      VEnv.empty.IsType 0 smaller.vlctx.toCtx semanticDomain ∧
+      ∃ declaration, source.lctx.find? sourceValue = some declaration ∧ declaration.type = nativeDomain := by
+  simpa [sourceIdentifiers] using
+    sourcePrefix.selectedDomain sourceWellFormed (index := 1) (identifier := sourceValue) (by rfl)
+
+private theorem firstReceiptFromCheckedSource {result : Expr}
+    (accepted : (monadLift (TypeChecker.checkType targetTelescope) : AddInductive.M Expr) reader = .ok result) :
+    ∃ storedSemantic candidateSemantic,
+      ReducedParameterDomainReceipt VEnv.empty [] reader betaDomain (.sort .zero)
+        [] storedSemantic candidateSemantic := by
+  obtain ⟨smaller, storedSemantic, candidateSemantic, history, receipt⟩ :=
+    ReducedParameterDomainReceipt.ofCheckedForall checker reader rfl initialWellFormed sourcePrefix
+      (index := 0) (identifier := sourceType) (by rfl) firstStoredType
+      (by simp [FVarsIn, betaDomain, Level.hasMVar'])
+      (by simp [FVarsIn, sourceIdentifiers, betaDomain, Level.hasMVar']) accepted
+  have sameContext : smaller = .nil := by simpa using history.drop
+  subst smaller
+  exact ⟨storedSemantic, candidateSemantic, receipt⟩
+
+private theorem dependentReceiptFromCheckedSource {result : Expr}
+    (accepted : (monadLift (TypeChecker.checkType targetBody) : AddInductive.M Expr) reader = .ok result) :
+    ∃ smaller storedSemantic candidateSemantic,
+      ParameterPrefix .nil smaller [sourceType] ∧
+      ReducedParameterDomainReceipt VEnv.empty [] reader (.fvar sourceType) (.fvar sourceType)
+        smaller.vlctx.toCtx storedSemantic candidateSemantic := by
+  simpa [sourceIdentifiers] using
+    ReducedParameterDomainReceipt.ofCheckedForall checker reader rfl initialWellFormed sourcePrefix
+      (index := 1) (identifier := sourceValue) (by rfl) secondStoredType
+      (by simp [FVarsIn, checker, source, sourceFirst, Level.hasMVar'])
+      (by simp [FVarsIn, sourceIdentifiers]) accepted
+
+private theorem checkedSourceProducesEquality {result : Expr}
+    (checked : (monadLift (TypeChecker.checkType targetTelescope) : AddInductive.M Expr) reader = .ok result)
+    (equal : (monadLift (TypeChecker.isDefEq betaDomain (.sort .zero)) : AddInductive.M Bool) reader = .ok true) :
+    ∃ storedSemantic candidateSemantic level,
+      VEnv.empty.IsDefEq 0 [] storedSemantic candidateSemantic (.sort level) := by
+  obtain ⟨storedSemantic, candidateSemantic, receipt⟩ := firstReceiptFromCheckedSource checked
+  obtain ⟨level, equality⟩ := receipt.accepted equal
+  exact ⟨storedSemantic, candidateSemantic, level, equality⟩
+
+private theorem retainedBaseReceiptFromCheckedSource {result : Expr}
+    (accepted : (monadLift (TypeChecker.checkType targetBody) : AddInductive.M Expr) reader = .ok result) :
+    ∃ storedSemantic candidateSemantic,
+      ReducedParameterDomainReceipt VEnv.empty [] reader (.fvar sourceType) (.fvar sourceType)
+        sourceFirst.vlctx.toCtx storedSemantic candidateSemantic := by
+  have parameters : ParameterPrefix sourceFirst source [sourceValue] := .snoc .nil
+  obtain ⟨smaller, storedSemantic, candidateSemantic, history, receipt⟩ :=
+    ReducedParameterDomainReceipt.ofCheckedForall checker reader rfl initialWellFormed parameters
+      (index := 0) (identifier := sourceValue) (by rfl) secondStoredType
+      (by simp [FVarsIn, checker, source, sourceFirst, Level.hasMVar'])
+      (by simp [FVarsIn, sourceFirst]) accepted
+  have sameContext : smaller = sourceFirst := by simpa using history.drop
+  subst smaller
+  exact ⟨storedSemantic, candidateSemantic, receipt⟩
+
+private theorem emptyPrefixRejectsCandidateDependency :
+    ¬ ∃ semantic, TrExprS VEnv.empty [] [] (.fvar sourceType) semantic := by
+  rintro ⟨semantic, translated⟩
+  have supported := translated.fvarsIn
+  simp [FVarsIn] at supported
+
+private theorem actualTraceProducesFirstReceipt {result : Expr}
+    (sourceGuard : reader.env.checkNoMVarNoFVar `Constructor constructorType = .ok ())
+    (sourceChecked : (monadLift (TypeChecker.checkType constructorType) : AddInductive.M Expr) reader = .ok result)
+    {isUnsafe : Bool} {finalReader : AddInductive.Context} {finalIndex : Nat} {terminal : Expr}
+    (trace : AcceptedConstructorTrace stats isUnsafe 0 reader 0 constructorType finalReader finalIndex terminal) :
+    ∃ stored storedSemantic candidateSemantic,
+      getType (.fvar sourceType) reader = .ok stored ∧
+      (monadLift (TypeChecker.isDefEq betaDomain stored) : AddInductive.M Bool) reader = .ok true ∧
+      ReducedParameterDomainReceipt VEnv.empty [] reader betaDomain stored [] storedSemantic candidateSemantic ∧
+      ∃ level, VEnv.empty.IsDefEq 0 [] storedSemantic candidateSemantic (.sort level) :=
+  trace.firstDomainAgreement checker reader rfl initialWellFormed sourcePrefix rfl (by rfl) sourceGuard sourceChecked
+
+private def runtimeControls : MetaM Unit := do
+  let mut checks := 0
+  for type in [targetTelescope, targetBody] do
+    let .ok result := (monadLift (TypeChecker.checkType type) : AddInductive.M Expr) reader
+      | throwError "accepted source-check receipt control failed"
+    unless result.isSort do throwError "source-check receipt control did not infer a sort"
+    checks := checks + 1
+  for position in [0, 1] do
+    let identifier := sourceIdentifiers[position]!
+    let .ok stored := getType (.fvar identifier) reader
+      | throwError "canonical selected-domain lookup failed"
+    let expected := if position == 0 then Expr.sort .zero else Expr.fvar sourceType
+    unless stored == expected do throwError "canonical lookup selected the wrong parameter domain"
+    checks := checks + 1
+  let .ok true := (monadLift (TypeChecker.isDefEq betaDomain (.sort .zero)) : AddInductive.M Bool) reader
+    | throwError "checked nonliteral candidate domain failed equality"
+  checks := checks + 1
+  for type in [Expr.forallE `bad (.bvar 0) (.sort .zero) .default,
+      Expr.forallE `bad (.fvar sourceValue) (.sort .zero) .default] do
+    match (monadLift (TypeChecker.checkType type) : AddInductive.M Expr) reader with
+    | .error _ => checks := checks + 1
+    | .ok _ => throwError "source-check receipt accepted an ill-typed candidate domain"
+  let nativeEnv := (← getEnv).toKernelEnv
+  let head := Expr.const ``DependentProbe []
+  let statistics := { stats with indConsts := #[head], nindices := #[0] }
+  let ambient := { reader with env := nativeEnv, fuel := { inductiveFuel := 32, recDepth := 256 } }
+  let constructor : Constructor := { name := `CheckedFirstDomain, type := runtimeConstructorType head }
+  let types : Array InductiveType :=
+    #[{ name := ``DependentProbe, type := targetTelescope, ctors := [constructor] }]
+  for isUnsafe in [false, true] do
+    let .ok () := checkConstructors types statistics isUnsafe ambient
+      | throwError "accepted whole-batch first-domain receipt control failed"
+    let .ok () := ambient.env.checkNoMVarNoFVar constructor.name constructor.type
+      | throwError "retained accepted-batch source guard failed"
+    let .ok _ := (monadLift (TypeChecker.checkType constructor.type) : AddInductive.M Expr) ambient
+      | throwError "retained accepted-batch source check failed"
+    checks := checks + 3
+  unless checks == 13 do throwError "constructor first-domain runtime manifest changed: {checks}"
+  logInfo m!"constructor first-domain runtime: {checks} source-check, dependent-prefix, safe/unsafe batch and negative controls"
+
+run_meta do
+  let logical := [``propext, ``Classical.choice, ``Quot.sound]
+  let inherited := logical ++ [``sorryAx]
+  let canonical := inherited ++ [``PersistentHashMap.WF.find?_eq, ``PersistentArray.toList'_push,
+    ``PersistentHashMap.WF.toList'_insert]
+  let checker := canonical ++ [``PersistentHashMap.findAux_isSome, ``Expr.eqv_eq,
+    ``Level.instLawfulBEqLevel, ``Syntax.structEq_eq, ``Lean4Lean.ptrEqExpr_eq, ``Expr.looseBVarRange_eq,
+    ``Expr.instantiateRev_eq, ``Expr.instantiate_eq, ``Expr.replace_eq, ``Level.hasParam_eq,
+    ``Expr.hasLevelParam_eq, ``Level.hasMVar_eq, ``Lean4Lean.ptrEqConstantInfo_eq, ``Expr.instantiateRange_eq,
+    ``Expr.instantiate1_eq, `Lean.Expr.mkAppRangeAux.eq_def, ``Expr.abstractRange_eq, ``Expr.abstract_eq,
+    ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq, ``Expr.instantiateRevRange_eq]
+  let allowed := checker ++ [``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq]
+  for name in [``ParameterPrefix.selectedDomain, ``acceptedSourceTranslation,
+      ``ReducedParameterDomainReceipt.ofCheckedForall, ``AcceptedConstructorTrace.firstDomainAgreement,
+      ``checkConstructors.firstDomainAgreement, ``canonicalFirstDomain, ``canonicalDependentDomain,
+      ``firstReceiptFromCheckedSource, ``dependentReceiptFromCheckedSource,
+      ``checkedSourceProducesEquality, ``retainedBaseReceiptFromCheckedSource,
+      ``emptyPrefixRejectsCandidateDependency, ``actualTraceProducesFirstReceipt] do
+    let dependencies ← collectAxioms name
+    for dependency in dependencies do
+      unless allowed.contains dependency do throwError "unexpected constructor first-domain dependency {dependency} in {name}"
+    logInfo m!"{name}: {dependencies.size} dependencies = {repr dependencies}"
+  for name in [``ParameterPrefix.selectedDomain, ``canonicalFirstDomain, ``canonicalDependentDomain] do
+    auditExact name canonical
+  for name in [``TypeChecker.checkType.WF, ``TypeChecker.isDefEq.WF, ``acceptedSourceTranslation,
+      ``ReducedParameterDomainReceipt.ofCheckedForall, ``firstReceiptFromCheckedSource,
+      ``dependentReceiptFromCheckedSource, ``checkedSourceProducesEquality,
+      ``retainedBaseReceiptFromCheckedSource] do auditExact name checker
+  for name in [``AcceptedConstructorTrace.firstDomainAgreement, ``checkConstructors.firstDomainAgreement,
+      ``actualTraceProducesFirstReceipt] do auditExact name allowed
+  auditExact ``emptyPrefixRejectsCandidateDependency inherited
+  let environment ← getEnv
+  let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveConstructorDomainReceipts
+    | throwError "constructor-domain receipt module absent"
+  let mut moduleCount := 0
+  let mut fixtureCount := 0
+  for (name, information) in environment.constants do
+    if environment.getModuleIdxFor? name == some moduleIndex then
+      if information matches .axiomInfo _ then throwError "new constructor-domain receipt axiom {name}"
+      let dependencies ← collectAxioms name
+      for dependency in dependencies do
+        unless allowed.contains dependency do throwError "unexpected constructor-domain receipt module dependency {dependency} in {name}"
+      moduleCount := moduleCount + 1
+    if name.toString.contains "InductiveConstructorDomainReceiptTest" then
+      let dependencies ← collectAxioms name
+      for dependency in dependencies do
+        unless allowed.contains dependency do throwError "unexpected constructor-domain receipt fixture dependency {dependency} in {name}"
+      fixtureCount := fixtureCount + 1
+  logInfo m!"constructor first-domain exhaustive audit: {moduleCount} module and {fixtureCount} fixture declarations"
+  unless moduleCount == 13 do throwError "constructor-domain receipt module manifest changed: {moduleCount}"
+  unless fixtureCount == 10 do throwError "constructor-domain receipt fixture manifest changed: {fixtureCount}"
+  runtimeControls
+
+end InductiveConstructorDomainReceiptTest
