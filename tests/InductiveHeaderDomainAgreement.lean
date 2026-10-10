@@ -791,7 +791,7 @@ run_meta do
         unless allowed.contains dependency do throwError "unexpected constructor-domain receipt fixture dependency {dependency} in {name}"
       fixtureCount := fixtureCount + 1
   logInfo m!"constructor first-domain exhaustive audit: {moduleCount} module and {fixtureCount} fixture declarations"
-  unless moduleCount == 13 do throwError "constructor-domain receipt module manifest changed: {moduleCount}"
+  unless moduleCount == 14 do throwError "constructor-domain receipt module manifest changed: {moduleCount}"
   unless fixtureCount == 10 do throwError "constructor-domain receipt fixture manifest changed: {fixtureCount}"
   runtimeControls
 

@@ -56,6 +56,16 @@ open Lean hiding Environment Exception
 open TypeChecker (MLCtx)
 open ElimNestedInductive (ParameterPrefix)
 
+theorem getType_fvar_eq_inferFVar (reader : Context) (identifier : FVarId)
+    (declaration : LocalDecl) (lookup : reader.lctx.find? identifier = some declaration) :
+    getType (.fvar identifier) reader =
+      TypeChecker.Inner.inferFVar
+        { env := reader.env, lctx := reader.lctx, safety := reader.safety,
+          lparams := reader.lparams, fuel := reader.fuel } identifier := by
+  change Except.ok (reader.lctx.get! identifier |>.type) = _
+  simp [TypeChecker.Inner.inferFVar, LocalContext.get!, lookup]
+  rfl
+
 theorem acceptedSourceTranslation
     (checker : TypeChecker.VContext) (reader : Context)
     (aligned : checker.toContext =
@@ -105,10 +115,25 @@ theorem ReducedParameterDomainReceipt.ofCheckedForall
     parameters.selectedDomain checker.mlctx_wf selected
   have modelLocal : checker.mlctx.lctx = reader.lctx :=
     checker.lctx_eq.trans (congrArg TypeChecker.Context.lctx aligned)
+  have readerLookup : reader.lctx.find? identifier = some declaration := by
+    rw [← modelLocal]
+    exact lookup
+  have inferredType :
+      TypeChecker.Inner.inferFVar
+          { env := reader.env, lctx := reader.lctx, safety := reader.safety,
+            lparams := reader.lparams, fuel := reader.fuel } identifier = .ok stored := by
+    rw [← getType_fvar_eq_inferFVar reader identifier declaration readerLookup]
+    exact storedType
+  have inferredDomain :
+      TypeChecker.Inner.inferFVar
+          { env := reader.env, lctx := reader.lctx, safety := reader.safety,
+            lparams := reader.lparams, fuel := reader.fuel } identifier =
+        .ok declaration.type := by
+    simp [TypeChecker.Inner.inferFVar, readerLookup]
+    rfl
   have sameDomain : nativeDomain = stored := by
-    apply Except.ok.inj
-    change Except.ok (reader.lctx.get! identifier).type = .ok stored at storedType
-    simpa only [← modelLocal, LocalContext.get!, lookup, Option.getD_some, storedDomain] using storedType
+    rw [← storedDomain]
+    exact Except.ok.inj (inferredDomain.symm.trans inferredType)
   subst stored
   obtain ⟨semantic, translated⟩ := acceptedSourceTranslation checker reader aligned initialWF supported accepted
   let .forallE _ _ candidateTranslated _ := translated
