@@ -321,6 +321,40 @@ theorem checkInductiveTypes.firstModels (nparams : Nat) (types : Array Inductive
   · rename_i empty
     exact False.elim (empty nonempty)
 
+theorem FirstHeaderCheckerModels.constructorDomainReceipts
+    {checker : TypeChecker.VContext} {nparams nindices : Nat} {params : Array Expr}
+    {reader : Context} {terminal : Expr}
+    (models : FirstHeaderCheckerModels checker nparams nindices params reader terminal)
+    (types : Array InductiveType) (stats : InductiveStats) (isUnsafe : Bool)
+    (statsParams : stats.params = params) :
+    ∃ (parameterModel : MLCtx) (finalChecker : TypeChecker.VContext),
+      ∃ parameters : List FVarId, ∃ indices : List FVarId,
+      ParameterPrefix checker.mlctx parameterModel parameters ∧
+      ParameterPrefix parameterModel finalChecker.mlctx indices ∧
+      params.toList = parameters.map Expr.fvar ∧
+      (checkConstructors types stats isUnsafe reader).WF fun _ =>
+        ∀ parent, ∀ bound : parent < types.size, ∀ constructor ∈ types[parent].ctors,
+          ∃ finalReader finalIndex terminal finalTarget,
+            ∃ trace : AcceptedConstructorTrace stats isUnsafe parent reader 0
+              constructor.type finalReader finalIndex terminal,
+            CheckedConstructorDomainReceipts finalChecker.venv finalChecker.lparams trace
+              checker.mlctx.vlctx.toCtx checker.mlctx.vlctx.toCtx parameterModel.vlctx.toCtx finalTarget ∧
+            finalChecker.venv.IsDefEqCtx finalChecker.lparams.length checker.mlctx.vlctx.toCtx
+              parameterModel.vlctx.toCtx finalTarget ∧
+            finalTarget.length = checker.mlctx.vlctx.toCtx.length + stats.params.size := by
+  obtain ⟨parameterModel, finalChecker, parameters, indices, _, _, finalAligned, finalWF,
+    parameterHistory, indexHistory, paramsEq, _, _, _, _⟩ := models
+  have paramsArray : params = (parameters.map Expr.fvar).toArray :=
+    Array.toList_inj.mp (by simpa only [List.toList_toArray] using paramsEq)
+  have statsParams' : stats.params = (parameters.map Expr.fvar).toArray := by
+    simpa only [statsParams, paramsArray]
+  have fullHistory := parameterHistory.trans indexHistory
+  have receipts := checkConstructors.domainReceiptsAtParameterModel
+    types stats isUnsafe finalChecker reader finalAligned finalWF fullHistory indexHistory
+      indexHistory.drop statsParams'
+  exact ⟨parameterModel, finalChecker, parameters, indices, parameterHistory, indexHistory,
+    paramsEq, receipts⟩
+
 theorem FirstHeaderCheckerModels.selectedParameterDomain
     {checker : TypeChecker.VContext} {nparams nindices : Nat} {params : Array Expr}
     {reader : Context} {terminal : Expr}
