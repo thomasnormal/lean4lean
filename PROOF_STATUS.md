@@ -3049,6 +3049,10 @@ recovers each canonical parameter's stored-domain translation, semantic sort,
 and native lookup through that split, including lookups retained by subsequent
 index binders. A public `checkInductiveTypes.firstModels` adapter supplies this
 model from the actual first member of a successful nonempty header batch.
+`FirstHeaderCheckerModels.constructorDomainReceipts` now composes the two
+prefixes into the full constructor reader and invokes the split constructor
+receipt provider, so accepted constructor receipts terminate at the parameter
+model while the header's index suffix remains explicit.
 
 The provider uses the existing unrestricted annotation-domain peeling theorem,
 so accepted annotations may have distinct but definitionally equivalent literal
@@ -3067,7 +3071,7 @@ nonuniform annotation universes, mutual later-header index suffixes and rejected
 bad arity/free-variable headers. The fixture explicitly proves that a full
 indexed reader is not a parameter-only prefix, splits the canonical history at
 the parameter boundary, and retains parameter lookups across indices. The new
-production module has nineteen exhaustive declarations; accepted-trace/source
+production module has twenty exhaustive declarations; accepted-trace/source
 bridges retain the existing checker dependencies and source-guard expression
 dependencies, with no module-owned axiom or new admission. No kernel
 discrepancy found.
@@ -5319,9 +5323,11 @@ The split provider still requires the canonical parameter history, the ambient
 prefix model, and their explicit `parameterBase` alignment. Native indexed
 header checking retains its allocated index binders in the reader passed to
 constructor checking; the provider preserves that suffix rather than claiming
-full-reader equality. General annotation-domain peeling removes the old
-literal-universe restriction, not the remaining first-header/cache and
-registration obligations.
+full-reader equality. The new first-header adapter closes the history-to-receipt
+composition only; it does not extend the semantic environment with inductive
+headers or prove family/cache/registration obligations. General
+annotation-domain peeling removes the old literal-universe restriction, not
+those remaining environment and registration obligations.
 
 The constructor prefix fixture derives a genuine checker environment from the
 verified native registration of a safe family axiom, constructs its canonical
