@@ -4150,6 +4150,81 @@ theorems, including private/generated helpers (native trace 28/17, semantic/CPS
 35/12); the old clean core stays seventy-three / thirty-eight. Both modules replay
 through lean4lean. Run `lake env lean tests/InductiveMinorPassTranslation.lean`.
 
+`Verify.InductiveRecursorTypeNative` identifies the actual recursor body,
+selected binder arrays and nested raw type used by `declareRecursors`.
+The stored metadata type is exactly that raw type's `inferImplicit 1000 false`.
+Flattening the parameter/motive/minor/index/major groups is proved from native
+binding folds, selected cdecl lookups, distinctness and binding scope; it is not
+an assumed equality in semantic support. Selected-binding congruence preserves
+the original identifiers, names, domains and binder information while allowing
+different physical indices and declaration kinds. This accounts for sparse or
+reordered selections without pretending that the full reader contains only the
+selected declarations.
+
+`Verify.InductiveRecursorTypeTranslation` constructs a selected telescope from
+one initial mixed model. Every step requires an actual full-reader cdecl lookup,
+freshness and translation/typehood of that original domain in the preceding
+constructed model. Projected well-formedness, extension, distinctness and native
+binding agreement are derived from this history, not independently supplied.
+Component support types the major and the already index-applied motive at the
+same projected model with their arrow aligned, deriving the actual body
+application and then typed abstraction back to the initial model. No support
+premise asserts whole-body or whole-raw-type typehood. The selected array of
+free-variable identifiers and the projected-domain/component support remain
+explicit; deriving them from checked declarations and complete construction
+histories is still open.
+
+The actual complete `RecursorInfoModelEndpoint` supplies the full reader's
+binding scope and ordered model extension. Translation/typehood at its final
+model uses the genuine semantic lift by `final.length - initial.length`, which
+is derived from that complete extension, including residual constructor
+fields/IHs/minors and other-parent declarations. Neither the selected-binder
+count nor identity weakening replaces the actual allocation chronology.
+The complete-construction adapters retain the zero-original-parameter
+restriction of the preceding typed parent/minor passes.
+
+`Verify.InductiveRecursorImplicitTranslation` proves strong and ordinary
+translation preservation for the actual `Expr.inferImplicit` definition, for
+every count and both range policies. Its binder annotations do not change the
+semantic expression, and traversal respects the native non-forall barriers.
+These theorems inherit `sorryAx` through the existing `TrExprS`/`TrProj`
+foundation; they are not admission-free foundations. No new admission is added.
+
+`Verify.InductiveRecursorTypeTranslationCPS` pairs the raw and inferred-stored
+types with the same semantic type at the initial model and the genuinely lifted
+type at the actual final model. Receipt facts derive raw/stored loose-bound
+variable closure and restrict their free variables to the initial model;
+metadata receipts refer to the actual `declareRecursors.metadataVal` type.
+Getter and arbitrary-continuation contracts use the same successful full
+`mkRecInfos` construction endpoint and return type receipts for every bounded
+parent. Support is local to that successful result and endpoint, not an
+independently aligned final context. An initial model may still contain base
+locals, so these facts do not establish globally closed declarations without
+empty-base and universe alignment. Recursor rules, safe registration,
+checked-source support derivation, nonzero-parameter semantic transport and
+complete inductive soundness remain separate obligations. No runtime checker,
+cache, fast path, axiom or admission is added.
+
+`tests/InductiveRecursorTypeTranslation.lean` adds twenty-four proof controls,
+200 declaration audits, twelve axiom prints and eight existing native-interface
+provenance pins. Seven actual full construction captures and nine selected-parent
+checks rebuild sparse/reordered projections from the actual domains, checking
+each copied domain and the raw selected body/base/final/stored types with full
+native `TypeChecker.checkType`. Cases include mutual and indexed/dependent
+families, a seeded local/let base, residual fields/IHs and other-parent locals,
+and original-parameter native controls that do not extend the typed fragment.
+Twenty-one invalid forward-order/omitted-major/duplicate-ID projection controls,
+one allocation-only untyped field and three propagated failures remain explicit
+boundaries. Implicit-inference controls cover zero/limited/full counts, both
+range policies and metadata/non-forall barriers. Strict whole-module audits
+forbid module-owned axioms and the global native bound-variable-range axiom,
+even if whitelisted, while separately pinning inherited foundations/interfaces.
+The new census is eighty-one declarations / fifty-seven theorems, including
+private/generated helpers (native 41/32, implicit 2/2, semantic 31/17, CPS 7/6);
+the old clean core stays seventy-three / thirty-eight. All four new modules
+replay through lean4lean. Run
+`lake env lean tests/InductiveRecursorTypeTranslation.lean`.
+
 `tests/RecursorFieldScope.lean` adds eighteen proof regressions and seventeen
 axiom audits for structural context validity/reservation, ordered declaration
 extensions, old native lookup preservation, actual field and selected-field

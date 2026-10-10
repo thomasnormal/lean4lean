@@ -117,6 +117,10 @@ import Lean4Lean.Verify.InductiveMinorTranslation
 import Lean4Lean.Verify.InductiveMinorTranslationCPS
 import Lean4Lean.Verify.InductiveMinorPassTrace
 import Lean4Lean.Verify.InductiveMinorPassTranslationCPS
+import Lean4Lean.Verify.InductiveRecursorTypeNative
+import Lean4Lean.Verify.InductiveRecursorImplicitTranslation
+import Lean4Lean.Verify.InductiveRecursorTypeTranslation
+import Lean4Lean.Verify.InductiveRecursorTypeTranslationCPS
 import Lean4Lean.Verify.InductiveAnnotationNativeScope
 import Lean4Lean.Verify.InductiveAnnotationOpeningShape
 import Lean4Lean.Verify.InductiveAnnotationModelOpening
