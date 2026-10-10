@@ -169,5 +169,6 @@ import Lean4Lean.Verify.InductiveParamReconstruction
 import Lean4Lean.Verify.InductiveSourceChecks
 import Lean4Lean.Verify.InductiveNestedScope
 import Lean4Lean.Verify.InductiveNestedRebinding
+import Lean4Lean.Verify.InductiveSingletonParameterReplacement
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveNestedRewrite
