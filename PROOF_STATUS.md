@@ -377,9 +377,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   native argument-head/arity test and the scoped updated readers, preserving the
   equivalence-manager insertion performed by the actual `isDefEq` wrapper.
   Lambda/forall/let helper transport and projection helper transport are
-  explicit obligations at their reached inputs; the telescope module below
-  derives the former from reached method receipts. Neither theorem assumes
-  new-header projections work in an axiom shadow.
+  explicit obligations at their reached inputs; the telescope/projection modules
+  below derive these from reached method receipts and metadata/freshness frames.
+  None of these theorems assumes new-header projections work in an axiom shadow.
   `NativeAppReachable`, `NativeAppCallbacks` and `NativeInferAppCallbacks` derive
   complete native `inferApp` transport, including its actual argument-array
   loop, delayed reverse-range instantiation, direct-forall steps and normalized
@@ -424,15 +424,55 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   preserves the native source expression and right-folded `mkLevelIMax'`.
   `NativeInferMethodCallbacks.toCallbacks` discharges the three previous
   whole-helper obligations, and `inferType'.headerAxiomMethodTransport` composes
-  them with the complete inference theorem. Projection transport remains an
-  explicit reached helper obligation. All owned declarations use only standard
-  logical axioms, without admissions or expression/persistent-map interface
+  them with the complete inference theorem. The projection module below
+  discharges the remaining whole-helper obligation at eligible metadata frames.
+  All owned declarations use only standard logical axioms, without admissions
+  or expression/persistent-map interface
   axioms. Equal initial local readers remain explicit where closure needs them;
   no semantic fresh-name, local-context, cache or state WF follows from these
-  raw equations. Automatic recursive method receipts, projection receipts,
+  raw equations. Automatic recursive method receipts, projection eligibility,
   translated-input eligibility, general `Methods.withFuel` transport and full
   inductive soundness remain open. Strong initial `VContext`/`TrEnv` and the
   executable checker are unchanged.
+- `Verify.InductiveHeaderProjectionTransport` derives transport of the complete
+  native `inferProj` helper, including its actual parameter and preceding-field
+  range loops, final field normalization and propositional elimination checks.
+  `NativeForInReachable` records only accepted yielding steps of the actual
+  finite traversal; the generic transport also preserves native early completion.
+  Native range/list equivalence, rather than a replacement executable loop,
+  connects those receipts to the original helper. `nativeProjectionView` and
+  its structural `withApp` factorization retain the actual head/argument array
+  without expression-cache interface axioms. Accepted metadata receipts preserve
+  the requested parent name, inductive tag, singleton constructor list, exact
+  parameter/index arity and successful constructor lookup. Constructor inference
+  reads only the instantiated signature, so its raw transport does not demand
+  an ignored constructor-record tag or equality of whole constant records.
+  Reached parameter callbacks demand each native normalization. Proposition
+  callbacks preserve inference-only inference followed by unconditional
+  normalization, including already sorted inferred types. Previous-field domain
+  checks occur only for a dependent body of a propositional structure; final
+  field domain checks occur whenever the structure is propositional. Exact
+  substitution of parameter arguments and earlier `.proj` expressions remains
+  the original native behavior, with all accepted state effects preserved.
+  `NativeProjectionMetadataFrame` permits either unchanged parent metadata or
+  absence of every future constructor. The latter rules out actual success,
+  rather than syntactically banning changed-parent projections. Its freshness
+  bridge derives this frame from existing header-name/list receipts and
+  `ConstructorsFresh`; no new global closure assumption is added. Successful
+  actual projections recover their reached normalized entry receipt, forcing
+  the stable-metadata alternative. Axiom parents and parents whose constructors
+  are absent cannot produce a successful native helper result. After constructor
+  registration a new-parent projection may succeed in the actual environment
+  while still failing in its axiom shadow; this barrier is not erased.
+  `NativeHeaderInferCallbacks` discharges all whole application/telescope/
+  projection helper slots through reached method receipts and composes with
+  complete inference in both modes via `inferType'.headerAxiomCallbackTransport`.
+  All owned declarations exclude admissions and implementation-interface axioms.
+  Raw projection eligibility is not semantic constructor/cache/state WF or
+  automatic mutually recursive method transport. Strong initial `VContext`/
+  `TrEnv`, translated-input eligibility, inherited semantic/checker admissions
+  and imported-prelude translation obligations remain unchanged. Full inductive
+  soundness is still open; the executable checker is unchanged.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6633,7 +6673,7 @@ semantic prelude translation or a general mutually recursive transport theorem.
 Run `lake env lean tests/InductiveHeaderInferenceTransport.lean`.
 
 `tests/InductiveHeaderTelescopeTransport.lean` exhaustively audits all 125 owned
-production declaration, including generated declarations, permitting only
+production declarations, including generated declarations, permitting only
 `propext`, `Classical.choice` and `Quot.sound`. Native-accepted singleton/mutual
 header staging covers both safety/primitive flags before future constructor
 registration, default/seeded states, existing outer local declarations,
@@ -6652,6 +6692,28 @@ dependent let closure and newly staged parent domains/local witnesses in both
 views. The runtime fixtures do not construct
 semantic prelude translation, semantic state WF or automatic recursive method
 receipts. Run `lake env lean tests/InductiveHeaderTelescopeTransport.lean`.
+
+`tests/InductiveHeaderProjectionTransport.lean` exhaustively audits all 175 owned
+production declaration, including generated declarations, permitting only
+`propext`, `Classical.choice` and `Quot.sound`. Native-accepted singleton/mutual
+staging, including a nonzero-index family and native-checked explicit projection
+definitions, covers matching safe/unsafe declarations and both primitive flags,
+default/seeded states and distinct eager/fuel readers and method depths. Scripted
+Prod/Sigma projections exercise exact parameter inputs, both field-loop branches,
+earlier-projection substitution, every complete state field, callback counts,
+proposition gates and deliberately unusable checked-inference/comparison/core
+methods. Wrong heads, arities, constructor counts and field indices reject.
+Complete native methods and inference entries check Prod, Sigma, Subtype and And
+projections in both modes; Exists projections reject the native propositional
+dependent-field restriction. New-parent projections reject before constructors,
+then succeed in helper and whole-inference entries only in the registered actual
+view, not the axiom shadow. Isolated raw metadata controls show that constructor
+signature equality suffices despite
+different ignored record tags, whereas changing a parent's inductive tag blocks
+projection even with identical retained constructor signatures. Those controls
+are not native-accepted malformed environments or semantic-WF claims. These
+fixtures do not construct semantic prelude translation or automatic recursive
+method receipts. Run `lake env lean tests/InductiveHeaderProjectionTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
