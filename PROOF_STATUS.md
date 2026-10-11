@@ -331,6 +331,36 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   checking, automatic domain receipts, constructor WF, semantic inductive
   registration and full inductive soundness remain open. Strong initial
   `VContext`/`TrEnv` and executable checker behavior remain unchanged.
+- `Verify.InductiveHeaderWHNFTransport` transports the complete actual
+  `TypeChecker.Inner.whnf'` program across header shadows, distinct methods and
+  distinct readers with equal local contexts. `NativeWhnfEntryReceipt` requires
+  native cache eligibility and a cold full-normalization cache entry.
+  `NativeWhnfReachable` records the actual selected normal/eager budget and only
+  the accepted core/native/natural/unfolding prefixes that reach a subsequent
+  iteration. `NativeWhnfCallbacks` requires core receipts only at positive-fuel
+  reached inputs and natural-reduction transport only after accepted core
+  normalization and a native miss. No universal untyped callback refinement is
+  assumed. `NativeNatOperands` and the native arithmetic-helper/dispatch proofs
+  derive that natural transport from reached operands: the second callback is
+  needed only after accepted first normalization and successful literal
+  extraction, including the native `Nat.zero` extension and exponent cap.
+  General unfolding equality follows from header delta lookup agreement, even
+  with different methods, safety, universe readers and fuel configurations.
+  Native reduction is independent of its environment argument; unsupported
+  native requests continue to reject.
+  `whnf'.loop_headerAxiomTransport` permits a shadow remaining budget at least
+  the actual remaining budget, rather than requiring identical budgets. The
+  full entry theorem requires this inequality only for a cold eligible entry;
+  easy inputs and native cache hits bypass callbacks and fuel. Metadata peeling
+  and the cache prefix are proved equal to the existing program. Successful loop
+  results retain every state field, followed by the native unconditional final
+  cache insertion; the loop does not reread the outer full-normalization cache.
+  This is directional accepted-computation transport, not semantic cache/state
+  WF or a proof that all callbacks satisfy the receipts. The actual mutually
+  recursive `Methods.withFuel`, general `inferType'`, translated-input
+  eligibility, automatic domain receipts, old-parent/constructor closure,
+  constructor WF, semantic inductive registration and full inductive soundness
+  remain open. Strong initial `VContext`/`TrEnv` and checker behavior are unchanged.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6446,6 +6476,34 @@ computed natural operation yielding a literal; the expectations preserve that
 native distinction. Imported-prelude tests do not provide semantic prelude
 translation, and equal raw state fields do not assert semantic state WF. Run
 `lake env lean tests/InductiveHeaderWHNFCoreTransport.lean`.
+
+`tests/InductiveHeaderWHNFTransport.lean` exhaustively audits all 105 owned
+production declarations, including generated ones, allowing only `propext`,
+`Classical.choice` and `Quot.sound`; it rejects admissions, module-owned axioms
+and persistent-map interface axioms. Native-accepted singleton/mutual header
+staging runs across both safety/primitive flags, before future constructor
+registration, in default/seeded states. Distinct methods and readers compare
+every cache, generator, equivalence-map/union-find, failure-set and unfolding
+field. Stateful callback counts cover all ten binary natural operators,
+successor, both Boolean outcomes, literal/`Nat.zero` operands, first/second
+literal-extraction rejection, operand errors and the exponent-cap boundary.
+Natural-miss controls remove the operator definitions in both raw views so that
+native delta reduction cannot obscure the tested miss; they do not assert
+semantic environment WF or native acceptance of malformed declarations.
+Easy inputs and missing/ordinary local parameters ignore even seeded caches and
+zero fuel; eligible cache hits, including local lets with hidden nondependent
+values, bypass callbacks and budget checks. Nested metadata uses only the
+peeled input's entry. Definition chains check both budget selections, larger
+shadow budgets, insufficient-budget rejection, zero-universe cache bypass,
+polymorphic unfolding-cache hits, wrong universe arity and unsafe-definition
+misses. Callbacks deliberately insert a stale outer cache entry during an
+unfolding chain: the next loop iteration must not reread it, and the native
+final insertion must overwrite it. Actual `Methods.withFuel` at distinct
+sufficient depths checks complete local-let, beta, zeta, natural-operation,
+product-projection, `Nat.rec`, local-proof `Eq.rec` and local-product `Prod.rec`
+applications in both views before full normalization. These imported-prelude
+tests are not semantic prelude translation or a general recursive-method
+transport proof. Run `lake env lean tests/InductiveHeaderWHNFTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
