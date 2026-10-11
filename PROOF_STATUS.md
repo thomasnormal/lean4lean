@@ -211,9 +211,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   bank and arbitrary initial native caches. Missing-name diagnostics may retain
   different environment payloads, so successful constant transport is not stated
   as equality of all exceptions. These raw transport contracts exclude
-  `sorryAx` and do not establish semantic cache WF. Arbitrary expressions,
-  general metadata-sensitive recursor/projection-inference/eta/unit-like computations, full
-  mutually recursive method transport, accepted constructor-check transport,
+  `sorryAx` and do not establish semantic cache WF. Arbitrary-expression and
+  metadata-sensitive recursive transport is composed below under explicit native
+  environmental eligibility. Accepted constructor-check transport,
   automatic shadow domain receipts, and constructor WF remain open. The strong
   initial `VContext`/`TrEnv` is unchanged; no substitute `CheckerEnv` assumption or
   broader checker admission is introduced.
@@ -240,8 +240,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   Missing-name failures may still carry different native environments. All owned
   declarations exclude `sorryAx`; these are real native compositional lemmas with
   explicit reached-callback obligations, not an unrestricted theorem about
-  `Methods.withFuel`. General WHNF/inference/definitional-equality transport,
-  recursor and structure metadata eligibility, semantic native-state WF,
+  `Methods.withFuel`. The recursive module below composes these helper receipts;
+  staged recursor/structure metadata eligibility, semantic native-state WF,
   accepted constructor checking in the strong shadow, automatic domain receipts,
   constructor WF, and full inductive soundness remain open. No executable checker
   behavior or initial strong `VContext`/`TrEnv` invariant changes.
@@ -297,7 +297,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   lookup classification alone is not used to infer it. All module-owned raw
   declarations exclude admissions and persistent-map axioms. Callback transport
   and old-parent closure remain explicit obligations, not consequences of name
-  freshness. These proofs do not derive semantic cache/state WF, automatic old
+  freshness. These proofs alone do not derive semantic cache/state WF, automatic old
   recursor parent/constructor closure, general mutually recursive method
   transport, accepted constructor-check transport, constructor WF, or full
   inductive soundness. Strong initial `VContext`/`TrEnv` remains unchanged.
@@ -356,9 +356,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   results retain every state field, followed by the native unconditional final
   cache insertion; the loop does not reread the outer full-normalization cache.
   This is directional accepted-computation transport, not semantic cache/state
-  WF or a proof that all callbacks satisfy the receipts. The actual mutually
-  recursive `Methods.withFuel`, general `inferType'`, translated-input
-  eligibility, automatic domain receipts, old-parent/constructor closure,
+  WF or a proof that all callbacks satisfy the receipts. Recursive method
+  receipts are closed below under `NativeRecursiveHeaderFrame`; translated-input
+  eligibility, automatic staged domain receipts, old-parent/constructor closure,
   constructor WF, semantic inductive registration and full inductive soundness
   remain open. Strong initial `VContext`/`TrEnv` and checker behavior are unchanged.
 - `Verify.InductiveHeaderWHNFMethodTransport` derives the normalization half of
@@ -376,10 +376,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   combinations and larger shadow normalization budgets.
   `Methods.withFuel.zeroTransport` proves the simultaneous vacuous base case;
   `normalizationStep` derives both normalization fields at successor depth, and
-  `normalizationDepthOne` discharges its smaller-depth premise. This is not yet
-  simultaneous recursive closure: successor inference and comparison, scoped
-  readers and eager comparison readers still need to be derived before the
-  all-depth induction can close.
+  `normalizationDepthOne` discharges its smaller-depth premise. This module
+  supplies only the normalization half; `InductiveHeaderRecursiveTransport`
+  supplies the inference/comparison fields and scoped/eager reader preservation
+  that close simultaneous all-depth induction.
   `NativeRecursorParentFrame.ofNativeOrigins` derives the uniform parent frame
   from initial native recursor-parent closure, actual native recursor-origin
   receipts and retained native shadow inductive lookups. Initial native closure
@@ -391,6 +391,41 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   in the eventual before-constructor bridge. Strong initial `VContext`/`TrEnv`,
   semantic state/cache WF and all inductive soundness boundaries are unchanged;
   no checker algorithm, axiom or admission is added.
+- `Verify.InductiveHeaderRecursiveTransport` closes simultaneous depth induction
+  for all four actual `Methods.withFuel` fields across a native header axiom
+  shadow. The theorem has no method or helper callback obligations: every
+  inference, normalization, quick/binder/application comparison, eta, structure,
+  string, unit, proof-irrelevance, arithmetic and lazy-delta receipt is derived
+  from the smaller-depth induction hypothesis. `NativeHeaderReaderFrame` keeps
+  every reader field except the environment exact, including fuel configurations.
+  Its transport is preserved by actual lambda/forall/let telescope openings,
+  binder-comparison openings and the eager `inferComparisonContext` adjustment.
+  The scoped hypothesis is uniform over complete states and all such readers;
+  no particular expression, method depth or reached-state subset is assumed.
+  The zero-depth deep-recursion case is vacuous, and the complete simultaneous
+  successor step composes the actual native programs, not replacement checkers.
+  Public `inferType`, `checkType`, `whnf`, `whnfCore`, `isDefEq`, `ensureSort` and
+  `ensureType` entry theorems use the actual reader-selected recursion depth and
+  preserve every accepted result and complete final state.
+  `NativeRecursiveHeaderFrame` retains genuine environmental eligibility:
+  header lookup agreement, stable entered recursor/constructor parents, native
+  projection/unit eligibility and quotient-initialization alignment.
+  `beforeConstructors` derives constructor-parent stability and all projection
+  frames from actual constructor freshness, exact native entered-header
+  constructor names and native constructor-parent membership; native old
+  recursor shadow-parent lookups remain explicit. Registered new-parent
+  constructors/recursors across axiom shadows do not satisfy this frame.
+  This is directional accepted-computation transport, not equality of errors or
+  a semantic state/cache WF theorem. Initial/staged native closure and lookup
+  eligibility still need to be obtained from the strong declaration history and
+  actual accepted staging trace. This result does not substitute a weaker
+  `CheckerEnv` for initial `VContext`/`TrEnv`, derive translated constructor inputs
+  or strong shadow cache/state WF, or yet compose accepted constructor checking
+  with semantic constructor WF. Positivity, recursor equations, semantic
+  inductive registration and full inductive/frontend soundness remain open.
+  Every owned declaration excludes admissions and implementation-interface
+  axioms; executable checker behavior and existing admission boundaries are
+  unchanged.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
@@ -428,9 +463,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   Closed cache hits bypass body checks, while every successful cold body inserts
   into exactly the selected cache, retaining every other state field. Unlike
   normalization, metadata wrappers are separately read and saved by inference;
-  an outer hit bypasses its child. Automatic recursive method/projection receipts,
-  semantic cache/state WF, translated-input eligibility, general mutually
-  recursive `Methods.withFuel` transport and full inductive soundness remain
+  an outer hit bypasses its child. The recursive module discharges these method
+  and projection receipts under its native frame. Staged metadata eligibility,
+  semantic cache/state WF, translated-input eligibility and full inductive soundness remain
   open. Strong initial `VContext`/`TrEnv` and checker behavior are unchanged.
 - `Verify.InductiveHeaderTelescopeTransport` derives transport of the complete
   native `inferLambda`, `inferForall` and `inferLet` helpers, including their
@@ -460,8 +495,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   or expression/persistent-map interface
   axioms. Equal initial local readers remain explicit where closure needs them;
   no semantic fresh-name, local-context, cache or state WF follows from these
-  raw equations. Automatic recursive method receipts, projection eligibility,
-  translated-input eligibility, general `Methods.withFuel` transport and full
+  raw equations. Recursive method receipts are derived below; staged projection
+  eligibility, translated-input eligibility and full
   inductive soundness remain open. Strong initial `VContext`/`TrEnv` and the
   executable checker are unchanged.
 - `Verify.InductiveHeaderProjectionTransport` derives transport of the complete
@@ -499,7 +534,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   complete inference in both modes via `inferType'.headerAxiomCallbackTransport`.
   All owned declarations exclude admissions and implementation-interface axioms.
   Raw projection eligibility is not semantic constructor/cache/state WF or
-  automatic mutually recursive method transport. Strong initial `VContext`/
+  unconditional mutually recursive method transport. The recursive module
+  composes these receipts under its native metadata frame. Strong initial `VContext`/
   `TrEnv`, translated-input eligibility, inherited semantic/checker admissions
   and imported-prelude translation obligations remain unchanged. Full inductive
   soundness is still open; the executable checker is unchanged.
@@ -532,7 +568,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   remaining non-delta helpers are derived in the following helper module;
   lazy-delta step/loop transport is derived in the following lazy-delta module;
   complete `isDefEqCore'` transport is derived in the following core module;
-  recursive `Methods.withFuel` transport remains open.
+  recursive `Methods.withFuel` transport is composed under a native metadata
+  frame in `InductiveHeaderRecursiveTransport`.
   These raw transport proofs do not establish semantic cache/state WF,
   translated-input eligibility, accepted strong-shadow constructor checking or
   full inductive soundness. Strong initial `VContext`/`TrEnv`, inherited admission
@@ -571,8 +608,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   can activate actual unit/eta comparison while the axiom shadow rejects, even
   with shared raw constructor records; these metadata barriers remain explicit.
   All owned declarations exclude admissions and implementation-interface axioms.
-  Recursive `Methods.withFuel`
-  transport, semantic state/cache WF, translated-input/metadata eligibility,
+  The recursive module closes method receipts under its native frame. Semantic
+  state/cache WF, translated-input/staged metadata eligibility,
   accepted strong-shadow constructor checking and full inductive soundness remain
   open. Strong initial `VContext`/`TrEnv`, inherited semantic/checker admission
   boundaries, imported-prelude translation and the executable checker are unchanged.
@@ -603,7 +640,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   All owned declarations exclude admissions and implementation-interface axioms.
   These are raw result/complete-state proofs, not semantic cache/state WF,
   translated-input/metadata eligibility or automatic recursive method receipts.
-  Recursive `Methods.withFuel`, accepted strong-shadow
+  The recursive module supplies all-depth method receipts; accepted strong-shadow
   constructor checking, constructor WF, positivity/recursor equations, semantic
   registration and full inductive soundness remain open. Strong initial
   `VContext`/`TrEnv`, inherited admission boundaries, imported-prelude translation
@@ -634,8 +671,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   metadata barriers remain explicit: sharing raw constructor records does not
   turn an axiom shadow into an inductive metadata view. This raw result/state
   theorem does not derive semantic cache/state WF, translated-input/metadata
-  eligibility, automatic recursive `Methods.withFuel` receipts or accepted
-  strong-shadow constructor checking. Constructor WF, positivity/recursor
+  eligibility or accepted strong-shadow constructor checking. The recursive
+  module supplies the all-depth method receipts under its native frame.
+  Constructor WF, positivity/recursor
   equations, semantic registration and full inductive soundness remain open.
   Strong initial `VContext`/`TrEnv`, inherited admission boundaries,
   imported-prelude translation and executable checker behavior are unchanged.
@@ -6801,9 +6839,31 @@ depth-zero errors and shallow normalization. Actual header-stage recursor
 records retain their native origins and old inductive parents; a raw inserted
 new-parent recursor still has differing inductive/axiom parent tags. Synthetic
 record/callback controls and imported native execution do not establish semantic
-metadata or cache/state WF, prelude translation, or the missing simultaneous
-inference/comparison successor steps.
+metadata or cache/state WF, prelude translation, or by themselves the simultaneous
+inference/comparison successor steps supplied by the recursive module.
 Run `lake env lean tests/InductiveHeaderWHNFMethodTransport.lean`.
+
+`tests/InductiveHeaderRecursiveTransport.lean` exhaustively audits every owned
+recursive-transport declaration, permitting only `propext`, `Classical.choice`
+and `Quot.sound`. Proof fixtures apply the all-depth inference theorem, public
+checked inference/type checking, reader opening followed by eager adjustment,
+and the before-constructor environmental-frame derivation. Native-accepted
+singleton/mutual/indexed batches exercise both safety modes, primitive policies
+and eager policies with default/seeded complete states. Runtime gates check exact
+entered-header constructor names, constructor freshness, old native constructor
+membership/parent stability, recursor shadow parents and quotient alignment.
+Depth-zero, shallow and
+deeper methods exercise every native field, both inference modes, all cheap
+flags, dependent lambda/forall/let telescopes, checked eager applications,
+old structure projections, arithmetic, strings and binder comparisons. Public
+checking/type formation and wrapper equality pin accepted native results; all
+state fields are compared directionally. A registered singleton unit-like
+family accepts the actual native comparison while its shared-constructor axiom
+shadow returns false, retaining the environmental-frame barrier. Runtime
+imported-prelude and deliberately seeded-cache controls do not establish
+semantic prelude translation or cache/state WF, and do not discharge the
+remaining actual staged native metadata premises.
+Run `lake env lean tests/InductiveHeaderRecursiveTransport.lean`.
 
 `tests/InductiveHeaderInferenceTransport.lean` exhaustively audits all 145 owned
 production declarations, including generated declarations, permitting only
