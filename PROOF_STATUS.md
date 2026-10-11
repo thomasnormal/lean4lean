@@ -15,10 +15,11 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   rather than assuming an arbitrary native result has a clean head.
   `HeadCacheWF.empty` supplies the cold initial cache invariant, and clean
   core/full insertions preserve it. The worker theorems still require the
-  normalization callbacks' native `Methods.HeadWF` contract and an explicit
-  recursor-helper cache frame; they do not establish that contract for
-  `Methods.withFuel`. Inference/comparison and recursor callback framing remain
-  open. This necessary syntactic property does not establish semantic WHNF
+  normalization callbacks' native `Methods.HeadWF` contract; the generic
+  worker interfaces also take an explicit recursor-helper cache frame, now
+  discharged by the actual helper proofs below. They do not establish that
+  contract for arbitrary `Methods.withFuel`. Inference/comparison worker
+  framing remains open. This necessary syntactic property does not establish semantic WHNF
   completeness, exclude local-let free-variable heads, or discharge accepted
   recursor parameter/index traversal and terminal-sort obligations. The
   existing conversion-only `Methods.WF` is not silently strengthened.
@@ -31,6 +32,26 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   controls demonstrate why the initial cache invariant is necessary; these
   deliberately invalid states are not kernel discrepancies or positive
   checker receipts.
+- `TypeChecker.Inner.reduceRecursor.headWF` proves the actual quotient and
+  inductive reduction helpers preserve both clean WHNF caches under the four
+  native callback contracts. The proof covers actual `isDefEq` equivalence
+  updates, both quotient eliminators, K adaptation (including its pure
+  metavariable-index scan), structure/Prop guards, major normalization,
+  literal constructor adaptation, rule lookup and assembly, and cheap-recursion
+  normalization selection. No semantic header/model alignment or separate
+  recursor-result cache/head premise is supplied by callers. Consequently
+  `whnfCore'.headWFOfMethods` and `whnf'.headWFOfMethods` remove the separate
+  helper-frame premise from the actual-worker head/cache results.
+  `Methods.withFuel.zero_headWF` proves the actual throwing zero-fuel base
+  contract; `whnfCore_succ_headWF` and `whnf_succ_headWF` supply the two real
+  normalizer successor steps from the prior-fuel four-method contract.
+  Arbitrary-fuel inference/comparison worker frames remain necessary for a
+  full `Methods.withFuel.HeadWF` induction. This closes native reduction-helper
+  cache framing, not semantic normalization completeness or frontend closure.
+  `tests/RecursorHeadFrame.lean` audits every owned declaration against the
+  unchanged logical/native representation foundations and uses actual typed
+  Nat/K/structure/Prop/string/quotient terms with real methods, both safeties,
+  eager modes, cheap flags, cold/warm caches and full-reduction endpoints.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked

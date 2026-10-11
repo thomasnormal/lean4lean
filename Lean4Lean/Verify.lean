@@ -199,6 +199,7 @@ import Lean4Lean.Verify.InductiveHeaderReductionTransport
 import Lean4Lean.Verify.InductiveHeaderWHNFCoreTransport
 import Lean4Lean.Verify.InductiveHeaderWHNFTransport
 import Lean4Lean.Verify.TypeChecker.HeadShape
+import Lean4Lean.Verify.TypeChecker.RecursorHeadFrame
 import Lean4Lean.Verify.InductiveHeaderWHNFMethodTransport
 import Lean4Lean.Verify.InductiveHeaderInferenceTransport
 import Lean4Lean.Verify.InductiveHeaderTelescopeTransport
