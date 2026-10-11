@@ -211,6 +211,7 @@ import Lean4Lean.Verify.InductiveConstructorTransport
 import Lean4Lean.Verify.InductiveConstructorContinuation
 import Lean4Lean.Verify.InductiveHeaderNativeMetadata
 import Lean4Lean.Verify.InductiveConstructorSemanticReceipts
+import Lean4Lean.Verify.InductiveReturnTyping
 import Lean4Lean.Verify.InductiveConstructorCheckerModels
 import Lean4Lean.Verify.InductiveHeaderKinds
 import Lean4Lean.Verify.InductiveNestedGuard

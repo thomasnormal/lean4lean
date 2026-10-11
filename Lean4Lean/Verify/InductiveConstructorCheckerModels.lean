@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.InductiveConstructorSemanticReceipts
 import Lean4Lean.Verify.InductiveHeaderKinds
+import Lean4Lean.Verify.InductiveReturnTyping
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
@@ -27,6 +28,12 @@ theorem _root_.Lean4Lean.TrConstructor.sortArityWF
     (kind : environment.SortArity universes.length [] 0 semantic.type) :
     semantic.toVConstant.WF environment := by
   have typed := kind.isType environmentWF (by exact trivial)
+  simpa only [VConstant.WF, translated.2.1] using typed
+
+theorem _root_.Lean4Lean.TrConstructor.typehoodWF
+    (translated : TrConstructor environment universes constructor semantic)
+    (typed : environment.IsType universes.length [] semantic.type) :
+    semantic.toVConstant.WF environment := by
   simpa only [VConstant.WF, translated.2.1] using typed
 
 theorem CanonicalAnnotationConstants.mono (constants : CanonicalAnnotationConstants environment)
@@ -66,6 +73,68 @@ theorem ConstructorSemanticReceipts.parameterizedTypesWF
   obtain ⟨finalReader, finalIndex, terminal, finalTarget, trace, domains, agreement, growth⟩ :=
     receipts.domains parent bound sourceConstructor sourcePresent
   exact constructorTranslated.forallWF (domains.requiresBinder growth positive)
+
+theorem AcceptedConstructorTrace.isType
+    {stats : InductiveStats} {isUnsafe : Bool} {parent index finalIndex : Nat}
+    {reader finalReader : Context} {type terminal : Expr}
+    (trace : AcceptedConstructorTrace stats isUnsafe parent reader index type finalReader finalIndex terminal)
+    {environment : VEnv} {universes : List Name} {context : VLCtx} {semantic : VExpr}
+    (environmentWF : environment.WF) (contextWF : context.WF environment universes.length)
+    (translated : TrExprS environment universes context type semantic)
+    (headerKind : ∀ {headerSemantic},
+      TrExprS environment universes context stats.indConsts[parent]! headerSemantic →
+      ∃ headerType, environment.HasType universes.length context.toCtx headerSemantic headerType ∧
+        environment.SortArity universes.length context.toCtx
+          (stats.params.size + stats.nindices[parent]!) headerType) :
+    environment.IsType universes.length context.toCtx semantic := by
+  cases trace with
+  | terminal notForall valid =>
+    exact isValidIndAppIdx.isType environmentWF contextWF valid translated headerKind
+  | parameter | field =>
+    cases translated with
+    | forallE domainTyped bodyTyped domainTranslated bodyTranslated =>
+      exact domainTyped.forallE bodyTyped
+
+theorem ConstructorSemanticReceipts.typesWF
+    {stage : HeaderAxiomContinuation root original nparams types stats reader actual}
+    (receipts : ConstructorSemanticReceipts stage isUnsafe)
+    (headerKinds : ∀ parent, parent < types.size → ∀ {headerSemantic},
+      TrExprS stage.semantic root.lparams [] stats.indConsts[parent]! headerSemantic →
+      ∃ headerType, stage.semantic.HasType root.lparams.length [] headerSemantic headerType ∧
+        stage.semantic.SortArity root.lparams.length []
+          (stats.params.size + stats.nindices[parent]!) headerType) :
+    ∀ header ∈ receipts.declaration.types, ∀ constructor ∈ header.ctors,
+      constructor.toVConstant.WF stage.semantic := by
+  intro header member constructor present
+  obtain ⟨sourceHeader, sourceMember, headerTranslated⟩ :=
+    relatedMemberRight receipts.translated.2.2 member
+  obtain ⟨sourceConstructor, sourcePresent, constructorTranslated⟩ :=
+    relatedMemberRight headerTranslated.2.2.2 present
+  obtain ⟨parent, bound, rfl⟩ := Array.mem_iff_getElem.mp (Array.mem_toList_iff.mp sourceMember)
+  obtain ⟨finalReader, finalIndex, terminal, finalTarget, trace, domains, agreement, growth⟩ :=
+    receipts.domains parent bound sourceConstructor sourcePresent
+  have environmentWF := VEnv.addInductHeaders.wf root.Ewf
+    (fun header member => (receipts.headersWF header member).2) receipts.registered
+  exact constructorTranslated.typehoodWF
+    (trace.isType (context := []) (universes := root.lparams) environmentWF trivial
+      constructorTranslated.2.2 (headerKinds parent bound))
+
+theorem ConstructorSemanticReceipts.typesWFOfHeaders
+    {stage : HeaderAxiomContinuation root original nparams types stats reader actual}
+    (receipts : ConstructorSemanticReceipts stage isUnsafe)
+    (headerKinds : ∀ parent, parent < types.size → ∃ header ∈ receipts.declaration.types,
+      stats.indConsts[parent]! = .const header.name stats.levels ∧
+        stage.semantic.SortArity header.uvars []
+          (stats.params.size + stats.nindices[parent]!) header.type) :
+    ∀ header ∈ receipts.declaration.types, ∀ constructor ∈ header.ctors,
+      constructor.toVConstant.WF stage.semantic := by
+  apply receipts.typesWF
+  intro parent bound headerSemantic translated
+  obtain ⟨header, member, head, kind⟩ := headerKinds parent bound
+  have environmentWF := VEnv.addInductHeaders.wf root.Ewf
+    (fun header member => (receipts.headersWF header member).2) receipts.registered
+  exact TrExprS.constantKind environmentWF
+    (VEnv.addInductHeaders.constants receipts.registered member) kind (head ▸ translated)
 
 def ConstructorReaderModels (initial : TypeChecker.VContext) (sourceSemantic : VExpr)
     (stats : InductiveStats) (index : Nat) (reader : Context) (finalIndex : Nat) (terminal : Expr) : Prop :=
