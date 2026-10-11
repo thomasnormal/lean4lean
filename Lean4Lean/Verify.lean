@@ -219,6 +219,7 @@ import Lean4Lean.Verify.InductiveRecursorParameterPrefixes
 import Lean4Lean.Verify.InductiveRecursorIndexParameters
 import Lean4Lean.Verify.InductiveHeaderParameterApplications
 import Lean4Lean.Verify.InductiveHeaderApplicationBatch
+import Lean4Lean.Verify.InductiveHeaderParameterUniverses
 import Lean4Lean.Verify.InductiveHeaderKinds
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveNestedRewrite
