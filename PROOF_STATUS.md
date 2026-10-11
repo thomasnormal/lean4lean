@@ -498,14 +498,53 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   application comparison checks both application tags and complete arity before
   comparing heads and arguments in the opposite order. Structural `withApp`
   factorization does not rely on cached-expression interface axioms. All owned
-  declarations exclude admissions and implementation-interface axioms. Remaining
-  eta/proof-irrelevance/string/offset, structural metadata and lazy-delta helpers,
-  complete `isDefEqCore'` and recursive `Methods.withFuel` transport remain open.
+  declarations exclude admissions and implementation-interface axioms. The
+  remaining non-delta helpers are derived in the following helper module;
+  lazy-delta helpers, complete `isDefEqCore'` and recursive `Methods.withFuel`
+  transport remain open.
   These raw transport proofs do not establish semantic cache/state WF,
   translated-input eligibility, accepted strong-shadow constructor checking or
   full inductive soundness. Strong initial `VContext`/`TrEnv`, inherited admission
   boundaries and imported-prelude translation obligations remain unchanged;
   the executable checker is unchanged.
+- `Verify.InductiveHeaderComparisonHelperTransport` derives complete native eta
+  expansion, structure eta, proof irrelevance, natural offset, string expansion
+  and unit-like comparison transport, including the original symmetric wrappers.
+  Symmetric callbacks are required only in the actual forward action's returned
+  state after false/undefined completion. Eta expansion retains its lambda tag
+  gate, inference-only inference, unconditional normalization, exact generated
+  lambda name/domain/binder information and equivalence insertion. Proof
+  irrelevance retains first-type inference, inference-only proposition inference
+  followed by unconditional normalization, and the gate on second-type inference
+  and type comparison. Offset and string helpers invoke the raw comparison core,
+  without the wrapper's extra equivalence insertion, and retain their exact zero,
+  successor, literal, application-head and universe-list guards.
+  `NativeForInPrimeReachable` and dependent finite-loop transport cover only
+  accepted yielding prefixes and preserve native early completion. Structure eta
+  uses the actual proof-indexed range traversal and native `MProd` early-return
+  accumulator, through proved native range/list equivalence, not an invented
+  executable loop. Exact constructor lookup, arity and structure-like entry
+  receipts precede inference/type comparison and ascending projected-field
+  comparison. `NativeEtaStructMetadataFrame.ofShadowParents` derives its entered
+  parent frame from reached native shadow inductive lookups. It does not claim
+  automatic constructor-parent closure or semantic-to-native lookup transfer;
+  an original semantic-map bridge would inherit persistent-map interface axioms.
+  `nativeConstructorLookup` preserves accepted constructor classification and
+  records, but not environment-bearing error payload equality. The unit-like
+  metadata factorization preserves native nonrecursive, unindexed, singleton,
+  nullary-constructor tests and error propagation. Its transport reuses
+  `NativeProjectionMetadataFrame`, including the existing constructor-freshness
+  bridge: changed-parent syntax is not banned, and an absent future constructor
+  cannot produce accepted nullary metadata. Actual accepted false metadata still
+  transports where the axiom shadow also returns false. Constructor registration
+  can activate actual unit/eta comparison while the axiom shadow rejects, even
+  with shared raw constructor records; these metadata barriers remain explicit.
+  All owned declarations exclude admissions and implementation-interface axioms.
+  Lazy-delta helpers, complete `isDefEqCore'`, recursive `Methods.withFuel`
+  transport, semantic state/cache WF, translated-input/metadata eligibility,
+  accepted strong-shadow constructor checking and full inductive soundness remain
+  open. Strong initial `VContext`/`TrEnv`, inherited semantic/checker admission
+  boundaries, imported-prelude translation and the executable checker are unchanged.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6742,6 +6781,30 @@ methods compare beta-reduced dependent lambdas, forall-body let aliases,
 applications, metadata and staged parent domains. These runtime fixtures do not
 construct semantic prelude translation, semantic state WF or automatic recursive
 method receipts. Run `lake env lean tests/InductiveHeaderComparisonTransport.lean`.
+
+`tests/InductiveHeaderComparisonHelperTransport.lean` exhaustively audits all 199
+owned production declaration, including generated/private declarations, permitting
+only `propext`, `Classical.choice` and `Quot.sound`. Native-accepted singleton,
+mutual and nonzero-index staging and explicit parent-typed identities cover both
+safety/primitive flags, default/seeded complete states and distinct eager/fuel
+readers and method depths. Scripts check exact eta-expanded lambdas, direct and
+normalized forall types, false/missing eta paths and symmetric order; all five
+proof-irrelevance callbacks and the nonproposition gate; zero/successor offset
+inputs and the absence of wrapper equivalence insertion; empty/ASCII/Unicode
+string expansion, false comparisons and exact head/universe/overapplication
+rejection; structure metadata/arity gates, both projected fields, false prefixes,
+nullary field loops and unit-like metadata rejection. Every cache, generator,
+equivalence-map/union-find, failure and unfolding field is compared, with exact
+callback counts and input/reader traces. Actual recursive methods exercise
+function eta, product eta, proof irrelevance, unit-like comparison, natural offsets
+and string constructors. Fresh unit-parent constructor absence rejects in the
+actual view while its shadow may return false; indexed parents return false in
+both views without demanding constructors. After registration, actual unit and
+structure eta helpers accept where an axiom-shadow view with the same raw
+constructors returns false. Sharing raw constructor records does not assert
+semantic WF or native acceptance of that shadow. These fixtures do not construct
+semantic prelude translation, semantic state/cache WF or automatic recursive
+method receipts. Run `lake env lean tests/InductiveHeaderComparisonHelperTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
