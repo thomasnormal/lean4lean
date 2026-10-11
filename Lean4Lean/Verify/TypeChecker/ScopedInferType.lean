@@ -439,5 +439,107 @@ theorem inferLambda.scopeWF {context : VContext} {state : VState}
   exact fun predicate upSet inputScope =>
     ⟨(AllAbove.wf wellFormed.trctx.wf.fvwf).2 upSet, inputScope.mono fun _ member _ => member, fun _ => id⟩
 
+theorem inferForall.loop.scopeWF {context : VContext} {state : VState}
+    {initialExpression : Expr} {locals : MLCtx} [localsWF : context.MLCWF locals]
+    {binderCount : Nat} (countBound : binderCount ≤ locals.length)
+    (dropped : locals.dropN binderCount countBound = context.mlctx)
+    (arguments : args.toList.reverse = (locals.fvarRevList binderCount countBound).map .fvar)
+    (initial : initialExpression = locals.mkForall binderCount countBound instantiated)
+    (instantiation : expression.instantiateList
+      ((locals.fvarRevList binderCount countBound).map .fvar) = instantiated)
+    (freeVariables : expression.FVarsIn (· ∈ locals.vlctx.fvars))
+    (levels : universes.toList.reverse.Forall₂ (VLevel.ofLevel context.lparams · = some ·) semanticUniverses)
+    (sorts : locals.vlctx.SortList context.venv context.lparams.length semanticUniverses)
+    (levelCount : semanticUniverses.length = binderCount)
+    (translated : inferOnly = true → ∃ semantic, (context.withMLC locals).TrExprS instantiated semantic) :
+    (inferForall.loop inferOnly args universes expression).ScopeWF (context.withMLC locals) state
+      fun type _ => ∃ semantic level, context.TrTyping initialExpression type semantic (.sort level) := by
+  unfold inferForall.loop
+  generalize variablesEq : (locals.fvarRevList binderCount countBound).map Expr.fvar = variables at *
+  have closed : ∀ value ∈ variables, value.looseBVarRange' = 0 := by
+    intro value member
+    rw [← variablesEq] at member
+    obtain ⟨identifier, _, rfl⟩ := List.mem_map.mp member
+    rfl
+  have many (value : Expr) (depth : Nat) :=
+    Expr.instantiateMany_eq_instantiateList value variables depth closed
+  simp [arguments, many, -bind_pure_comp]
+  split
+  · rename_i name domain body binder
+    rw [Expr.instantiateList_forallE] at instantiation
+    subst instantiated
+    refine (inferType.scopeWF ?_ ?_).bind fun universeType _ _
+      ⟨domain', universe', _, domainTranslation, universeTranslation, domainTyping⟩ => ?_
+    · apply freeVariables.1.instantiateList
+      simp [← variablesEq]
+      exact locals.fvarRevList_prefix.subset
+    · intro checked
+      let ⟨_, .forallE _ _ domainTranslation _⟩ := translated checked
+      exact ⟨_, domainTranslation⟩
+    refine (ensureSortCore.scopeWF universeTranslation).bind fun _ middleState _
+      ⟨sort, sortTranslation, _⟩ => ?_
+    obtain ⟨_, rfl⟩ := sort
+    let ⟨_, .sort levelTranslation, sortEquality⟩ := sortTranslation
+    refine RecM.ScopeWF.stateWF fun wellFormed => ?_
+    have domainTyping := domainTyping.defeqU_r context.Ewf localsWF.1.tr.wf.toCtx sortEquality.symm
+    have domainType : (context.withMLC locals).IsType domain' := ⟨_, domainTyping⟩
+    let identifier : FVarId := ⟨middleState.ngen.curr⟩
+    let extended := locals.vlam identifier name (domain.instantiateList variables) domain' binder
+    have extendedWF : context.MLCWF extended :=
+      ⟨localsWF.1, wellFormed.find?_eq_none middleState.ngen.not_reserves_self,
+        domainTranslation, domainType⟩
+    letI : context.MLCWF extended := extendedWF
+    refine RecM.ScopeWF.withLocalDecl (cwf' := extendedWF) domainTranslation domainType ?_
+    have commute := @Expr.instantiateList_instantiate1_comm body variables (.fvar identifier) (by trivial)
+    refine inferForall.loop.scopeWF (Nat.succ_le_succ countBound) (by simp [dropped])
+      (by simp [variablesEq, arguments]) ?_ (by simp [variablesEq]; rfl)
+      (freeVariables.2.mono fun _ => .tail _)
+      (by simpa using ⟨levelTranslation, levels⟩) (.cons sorts domainTyping) (by simp [levelCount]) ?_
+    · rw [initial, ← commute]
+      simp
+      congr 2
+      refine (FVarsIn.abstract_instantiate1 ((freeVariables.2.instantiateList ?_ _).mono ?_)).symm
+      · simp [← variablesEq, FVarsIn]
+        exact locals.fvarRevList_prefix.subset
+      · rintro _ member rfl
+        exact (extendedWF.1.tr.wf.2.1 _ _ rfl).1 member
+    · intro checked
+      let ⟨_, .forallE (body' := body') _ _ domainTranslation' bodyTranslation⟩ := translated checked
+      have contextEquality := VLCtx.IsDefEq.refl context.Ewf localsWF.1.tr.wf
+      have domainEquality := domainTranslation'.uniq context.Ewf contextEquality domainTranslation
+      have domainEquality := domainEquality.of_r context.Ewf localsWF.1.tr.wf.toCtx domainTyping
+      have ⟨_, bodyTranslation'⟩ := bodyTranslation.defeqDFC context.Ewf <|
+        .cons contextEquality (ofv := none) nofun (.vlam domainEquality)
+      exact commute ▸ ⟨_, bodyTranslation'.inst_fvar context.Ewf.ordered extendedWF.1.tr.wf⟩
+  · subst instantiated
+    refine (inferType.scopeWF ?_ translated).bind fun type _ _
+      ⟨semantic, semanticType, _, expressionTranslation, typeTranslation, typing⟩ => ?_
+    · apply freeVariables.instantiateList
+      simp [← variablesEq]
+      exact locals.fvarRevList_prefix.subset
+    refine (ensureSortCore.scopeWF typeTranslation).bind fun _ _ _ ⟨sort, sortTranslation, _⟩ => ?_
+    obtain ⟨_, rfl⟩ := sort
+    let ⟨_, .sort (u' := semanticLevel) levelTranslation, sortEquality⟩ := sortTranslation
+    obtain ⟨universes, rfl⟩ : ∃ values, ⟨List.reverse values⟩ = universes :=
+      ⟨universes.toList.reverse, by simp⟩
+    simp [Expr.sortLevel!] at levels ⊢
+    have typing := typing.defeqU_r context.Ewf localsWF.1.tr.wf.toCtx sortEquality.symm
+    let ⟨forallTranslation, _⟩ := localsWF.1.mkForall_trS context.Ewf expressionTranslation
+      ⟨_, typing⟩ binderCount countBound
+    have ⟨_, resultLevel, forallTyping⟩ := mkForall_hasType levels sorts levelTranslation typing
+      binderCount countBound (levels.length_eq.trans levelCount)
+    simp [dropped] at forallTranslation forallTyping
+    have resultTranslation : context.TrExprS (.sort _) (.sort _) := TrExprS.sort resultLevel
+    exact RecM.ScopeWF.pure
+      ⟨_, _, fun _ _ _ => resultTranslation.fvarsIn, initial ▸ forallTranslation, resultTranslation, forallTyping⟩
+
+theorem inferForall.scopeWF {context : VContext} {state : VState}
+    (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars))
+    (translated : inferOnly = true → ∃ semantic, context.TrExprS expression semantic) :
+    (inferForall expression inferOnly).ScopeWF context state
+      fun type _ => ∃ semantic level, context.TrTyping expression type semantic (.sort level) :=
+  (context.withMLC_self ▸ inferForall.loop.scopeWF (Nat.zero_le _) rfl rfl rfl rfl
+    freeVariables .nil .nil rfl) translated
+
 end TypeChecker.Inner
 end Lean4Lean
