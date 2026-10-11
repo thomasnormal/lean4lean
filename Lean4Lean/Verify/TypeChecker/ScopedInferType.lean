@@ -6,6 +6,44 @@ open Lean hiding Environment Exception
 open Kernel
 open TypeChecker
 
+theorem TypeChecker.VState.WF.next {context : VContext} {state : VState}
+    (valid : state.WF context) : state.next.WF context := by
+  constructor
+  · exact valid.trctx
+  · intro freeVariable member
+    exact (valid.ngen_wf freeVariable member).mono .next
+  · obtain ⟨levels, count, levelsWF, contextLift, managerWF, reserved⟩ := valid.ectx
+    exact ⟨levels, count, levelsWF, contextLift, managerWF,
+      fun freeVariable member => (reserved freeVariable member).mono .next⟩
+  · intro expression type found
+    exact (valid.inferTypeI_wf found).mono .next
+  · intro expression type found
+    exact (valid.inferTypeC_wf found).mono .next
+  · intro expression value found
+    exact (valid.whnfCore_wf found).mono .next
+  · intro expression value found
+    exact (valid.whnf_wf found).mono .next
+  · exact valid.unfold_wf
+
+theorem TypeChecker.HeadScopeCacheWF.next {locals : LocalContext} {state : TypeChecker.State}
+    (stable : HeadScopeCacheWF locals state) :
+    HeadScopeCacheWF locals { state with ngen := state.ngen.next } := by
+  exact stable
+
+theorem TypeChecker.RecM.ScopeWF.withFreshId {context : VContext} {state : VState}
+    {continuation : Name → RecM Result} {post : Result → VState → Prop}
+    (valid : ∀ name,
+      (continuation name).ScopeWF context state.next post) :
+    (withFreshId continuation).ScopeWF context state post := by
+  intro methods callbacks caches wellFormed result finalState accepted
+  change continuation state.ngen.curr methods context.toContext state.next.toState =
+    .ok (result, finalState) at accepted
+  have final := valid state.ngen.curr methods callbacks
+    (by simpa [VState.next] using caches.next)
+    (wellFormed.next) result finalState accepted
+  obtain ⟨updated, equal, increasing, wellFormed', scopedPost⟩ := final
+  exact ⟨updated, equal, NameGenerator.LE.next.trans increasing, wellFormed', scopedPost⟩
+
 namespace TypeChecker.Inner
 
 theorem ensureSortCore.scopeWF {context : VContext} {state : VState}
