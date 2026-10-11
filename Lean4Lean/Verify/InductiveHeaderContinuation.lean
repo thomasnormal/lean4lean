@@ -6,6 +6,7 @@ import Lean4Lean.Verify.InductiveHeaderParameterApplications
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
 open TypeChecker (MLCtx)
+open private liftedSkip from Lean4Lean.Verify.InductiveHeaderParameterApplications
 open ElimNestedInductive (ParameterPrefix ContextReserved)
 open private Lean4Lean.AddInductive.readWF Lean4Lean.AddInductive.bindWF
   from Lean4Lean.Verify.InductiveStats
@@ -84,6 +85,9 @@ structure CheckedHeaderContinuation (root : TypeChecker.VContext) (original : Co
     root.venv.SortArity root.lparams.length model.checker.vlctx.toCtx stats.nindices[parent]! header.type
   parameterApplications : ∀ parent, ∀ bound : parent < types.size,
     Nonempty (HeaderParameterApplicationInput root.venv root.lparams model.checker.mlctx stats types[parent].type)
+  parameterApplicationKinds : ∀ parent, ∀ bound : parent < types.size,
+    ∃ input : HeaderParameterApplicationInput root.venv root.lparams model.checker.mlctx stats types[parent].type,
+      root.venv.SortArity root.lparams.length model.checker.vlctx.toCtx stats.nindices[parent]! input.result
 
 private theorem alignedPrefixIdentifiers
     {base : MLCtx} {left right : TypeChecker.VContext} {reader : Context}
@@ -187,7 +191,8 @@ private theorem typedHeaderLoop (nparams : Nat) (types : Array InductiveType)
       TrInductiveHeader root.venv root.lparams types[parent] header →
       root.venv.SortArity root.lparams.length model.checker.vlctx.toCtx stats.nindices[parent]! header.type)
     (applications : ∀ parent, ∀ bound : parent < types.size, parent < processed →
-      Nonempty (HeaderParameterApplicationInput root.venv root.lparams model.checker.mlctx stats types[parent].type))
+      ∃ input : HeaderParameterApplicationInput root.venv root.lparams model.checker.mlctx stats types[parent].type,
+        root.venv.SortArity root.lparams.length model.checker.vlctx.toCtx stats.nindices[parent]! input.result)
     (continuation : ∀ stats current, CheckedHeaderContinuation root original nparams types stats current →
       (next stats current).WF post) :
     (checkInductiveTypes.loopInd nparams types next processed stats reader).WF post := by
@@ -218,7 +223,7 @@ private theorem typedHeaderLoop (nparams : Nat) (types : Array InductiveType)
     intro terminal finalStats count current trace scope
     apply Lean4Lean.AddInductive.bindHeaderResultWF
     intro sorted sortedCall
-    obtain ⟨receipt⟩ := trace.parameterApplicationsFromSource model.checker model.aligned model.initialWF
+    obtain ⟨receipt, receiptArity⟩ := trace.parameterApplicationsFromSourceWithKind model.checker model.aligned model.initialWF
       reserved different (sameEnv ▸ constants) (sameEnv ▸ definitions)
       (by simpa [Array.isEmpty, indCount] using parameterCount) model.parameterModels
       guarded checked normalizedCall sortedCall
@@ -260,9 +265,14 @@ private theorem typedHeaderLoop (nparams : Nat) (types : Array InductiveType)
       simpa only [targetChecker] using receipt.history
     have targetWF : target.checker.mlctx.WF root.venv root.lparams := by
       simpa only [targetEnv, sameEnv, targetUniverses, sameUniverses] using target.checker.mlctx_wf
-    have currentInput : HeaderParameterApplicationInput root.venv root.lparams target.checker.mlctx
-        finalStats types[processed].type := by
-      simpa only [targetChecker, sameEnv, sameUniverses] using receipt.input
+    let currentInput : HeaderParameterApplicationInput root.venv root.lparams target.checker.mlctx
+        finalStats types[processed].type := {
+      semantic := receipt.input.semantic,
+      sourceTranslated := by simpa only [targetChecker, sameEnv, sameUniverses] using receipt.input.sourceTranslated,
+      values := receipt.input.values, result := receipt.input.result,
+      arguments := by simpa only [targetChecker, sameEnv, sameUniverses] using receipt.input.arguments }
+    have currentKind : root.venv.SortArity root.lparams.length target.checker.vlctx.toCtx count currentInput.result := by
+      simpa only [currentInput, targetChecker, sameEnv, sameUniverses, receiptArity] using receipt.resultKind
     have sourceTyped := VEnv.IsType.defeqU_l model.checker.Ewf model.checker.Δwf.toCtx equality
       (trace.initialIsType model.checker model.aligned model.initialWF normalizedTranslated sortedCall)
     have headerTyped := model.history.closedHeaderWF sameEnv sameUniverses empty sourceTranslated sourceTyped supported
@@ -329,11 +339,20 @@ private theorem typedHeaderLoop (nparams : Nat) (types : Array InductiveType)
       · intro parent bound earlier
         by_cases selected : parent = processed
         · subst parent
-          exact ⟨currentInput.withStats nextParameters⟩
+          refine ⟨currentInput.withStats nextParameters, ?_⟩
+          simpa only [HeaderParameterApplicationInput.withStats, nextModel, nextIndicesEq,
+            getElem!_pos (stats.nindices.push count) processed (by simp only [Array.size_push, indicesCount]; omega), Array.getElem_push,
+            indicesCount, Nat.lt_irrefl, dite_false] using currentKind
         · have previous : parent < processed := by omega
-          obtain ⟨input⟩ := applications parent bound previous
+          obtain ⟨input, kind⟩ := applications parent bound previous
           have unchanged := trace.paramsUnchanged (by simpa [Array.isEmpty, indCount] using (by omega : processed ≠ 0))
-          exact ⟨(input.weakFV root.Ewf targetWF growth.insertion).withStats (nextParameters.trans unchanged)⟩
+          refine ⟨(input.weakFV root.Ewf targetWF growth.insertion).withStats (nextParameters.trans unchanged), ?_⟩
+          have previousBound : parent < stats.nindices.size := by omega
+          have lifted := kind.weakN root.Ewf.ordered (Ctx.liftN_iff_lift'.mpr growth.insertion.toCtx)
+          simpa only [HeaderParameterApplicationInput.withStats, HeaderParameterApplicationInput.weakFV,
+            liftedSkip, nextModel, nextIndicesEq,
+            getElem!_pos (stats.nindices.push count) parent (by simp only [Array.size_push]; omega), Array.getElem_push_lt previousBound,
+            ← getElem!_pos stats.nindices parent previousBound] using lifted
     split
     · apply Lean4Lean.AddInductive.readWF
       apply Lean4Lean.AddInductive.bindWF
@@ -365,7 +384,10 @@ private theorem typedHeaderLoop (nparams : Nat) (types : Array InductiveType)
         headers, models, typesWF,
         heads := fun parent bound => heads parent bound (by omega),
         contextualKinds := fun zero parent bound => kinds zero parent bound (by omega),
-        parameterApplications := fun parent bound => applications parent bound (by omega) }
+        parameterApplications := fun parent bound => by
+          obtain ⟨input, _⟩ := applications parent bound (by omega)
+          exact ⟨input⟩,
+        parameterApplicationKinds := fun parent bound => applications parent bound (by omega) }
     · have zero : types.size = 0 := by
         by_contra nonempty
         have correct : stats.params.size = nparams := by simpa [complete, nonempty] using parameterCount
@@ -392,7 +414,8 @@ private theorem typedHeaderLoop (nparams : Nat) (types : Array InductiveType)
         headers, models, typesWF,
         heads := by intro parent bound; omega,
         contextualKinds := by intro zero parent bound; omega,
-        parameterApplications := by intro parent bound; omega }
+        parameterApplications := by intro parent bound; omega,
+        parameterApplicationKinds := by intro parent bound; omega }
 termination_by types.size - processed
 decreasing_by all_goals simp_wf; omega
 
