@@ -97,6 +97,32 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   audits every owned declaration and exercises actual typed bidirectional
   comparisons, all configured entries, cold/warm states, real proof/eta/unit
   helpers, resource failures and poisoned-cache preconditions.
+- `NativeHeadScoped` strengthens the native head condition by excluding a
+  free-variable head that names a local let. `HeadScopeCacheWF` imposes it on
+  both WHNF caches, while `HeadCacheNamesWF` reserves cached values' free
+  variables against the actual fresh-name generator. `NativeLocalNamesWF`
+  and native local-context well-formedness discharge allocation freshness.
+  `withLocalDecl.headScopeWF` and `withLetDecl.headScopeWF` prove the actual
+  allocation, extended-reader entry, generator advancement and restored-reader
+  exit frames. Fresh local entry does not need cached-name reservation; fresh
+  let entry does. Both exit frames allow arbitrary new cache entries satisfying
+  the extended-context invariant. Pure actions, exceptions, composition and
+  actual `withFreshId` have the corresponding native cache-scope frames.
+  Native core/full cache insertion preserves both scoped-head and reserved-name
+  invariants when the inserted value satisfies them. Scope lookup/allocation
+  proofs retain the three pre-existing container interfaces
+  `Lean.PersistentHashMap.WF.find?_eq`,
+  `Lean.PersistentHashMap.WF.toList'_insert` and
+  `Lean.PersistentArray.toList'_push`; cache insertion/empty proofs retain the
+  existing expression/level/syntax representation assumptions. No owned
+  axiom or inherited checker/metatheory admission occurs in the exhaustive audit.
+  These are independently audited prerequisites, not an arbitrary-fuel proof
+  that normalization/inference/comparison preserve the stronger invariant.
+  They do not establish semantic WHNF completeness or terminal-sort acceptance;
+  the stronger worker/fuel induction and semantic head obligations remain open.
+  `tests/HeadScope.lean` exercises actual cold/warm normalization across fresh
+  local/let scopes and invalid reservation/shadowing preconditions; those
+  invalid states are not kernel discrepancies.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
