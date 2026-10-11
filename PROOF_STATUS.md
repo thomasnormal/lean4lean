@@ -154,8 +154,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   existing typing/lookup theorems and unchanged caches. The focused
   `ScopedInferType` fixture checks all six contracts and audits ten owned
   declarations for theorem-backed proofs without adding an axiom. These are
-  primitive inference frames. The recursive lambda frame below consumes them;
-  forall/let telescopes, projections, applications, comparison and
+  primitive inference frames. The recursive lambda and forall frames below
+  consume them; let telescopes, projections, applications, comparison and
   arbitrary-fuel method scope preservation remain
   open, and the existing `inferProj.WF` admission is not hidden or widened.
 - `VState.WF.next` advances all model cache/type invariants through the actual
@@ -181,7 +181,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   reservation for the let value, extended reader/cache scope, model-state
   weakening, and cache restoration on exit. The fixture now covers both local
   and let reader frames; the recursive lambda contract below consumes the
-  local frame, while recursive forall/let inference remains open.
+  local frame, while recursive let inference remains open.
 - `Inner.inferType.scopeWF` exposes the original typed callback contract for
   both infer-only and checking modes, while `Inner.checkType.scopeWF` supplies
   the false-`inferOnly` specialization. These frames preserve the scoped
@@ -199,8 +199,17 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   declarations against the existing semantic lambda/WHNF dependency baselines
   and native scope foundations. The proof inherits the existing
   semantic/metatheory admissions and requires `Methods.ScopeWF` callbacks;
-  it does not close recursive forall/let/projection/application inference,
+  it does not close recursive let/projection/application inference,
   arbitrary-fuel methods, semantic WHNF completeness, or the frontend theorem.
+- `Inner.inferForall.loop.scopeWF` and `Inner.inferForall.scopeWF` prove the
+  corresponding scoped forall telescope. They preserve universe-list and
+  sort-list witnesses, consume the local-declaration frame for each domain,
+  carry the translated forall body through fresh context extension, and build
+  the terminal sort typing result. The fixture covers generic mode and two-
+  binder checking/infer-only contracts, while its dependency audit includes
+  the existing semantic forall baseline. Recursive let inference, projections,
+  applications, comparison, arbitrary-fuel methods, and terminal frontend
+  closure remain open.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
