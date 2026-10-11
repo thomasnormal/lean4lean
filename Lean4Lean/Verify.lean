@@ -204,5 +204,6 @@ import Lean4Lean.Verify.InductiveHeaderProjectionTransport
 import Lean4Lean.Verify.InductiveHeaderComparisonTransport
 import Lean4Lean.Verify.InductiveHeaderComparisonHelperTransport
 import Lean4Lean.Verify.InductiveHeaderLazyDeltaTransport
+import Lean4Lean.Verify.InductiveHeaderDefEqCoreTransport
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveNestedRewrite

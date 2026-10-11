@@ -501,7 +501,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   declarations exclude admissions and implementation-interface axioms. The
   remaining non-delta helpers are derived in the following helper module;
   lazy-delta step/loop transport is derived in the following lazy-delta module;
-  complete `isDefEqCore'` and recursive `Methods.withFuel` transport remain open.
+  complete `isDefEqCore'` transport is derived in the following core module;
+  recursive `Methods.withFuel` transport remains open.
   These raw transport proofs do not establish semantic cache/state WF,
   translated-input eligibility, accepted strong-shadow constructor checking or
   full inductive soundness. Strong initial `VContext`/`TrEnv`, inherited admission
@@ -540,7 +541,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   can activate actual unit/eta comparison while the axiom shadow rejects, even
   with shared raw constructor records; these metadata barriers remain explicit.
   All owned declarations exclude admissions and implementation-interface axioms.
-  Complete `isDefEqCore'`, recursive `Methods.withFuel`
+  Recursive `Methods.withFuel`
   transport, semantic state/cache WF, translated-input/metadata eligibility,
   accepted strong-shadow constructor checking and full inductive soundness remain
   open. Strong initial `VContext`/`TrEnv`, inherited semantic/checker admission
@@ -572,11 +573,42 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   All owned declarations exclude admissions and implementation-interface axioms.
   These are raw result/complete-state proofs, not semantic cache/state WF,
   translated-input/metadata eligibility or automatic recursive method receipts.
-  Complete `isDefEqCore'`, recursive `Methods.withFuel`, accepted strong-shadow
+  Recursive `Methods.withFuel`, accepted strong-shadow
   constructor checking, constructor WF, positivity/recursor equations, semantic
   registration and full inductive soundness remain open. Strong initial
   `VContext`/`TrEnv`, inherited admission boundaries, imported-prelude translation
   obligations and executable checker behavior remain unchanged.
+- `Verify.InductiveHeaderDefEqCoreTransport` derives transport of the complete
+  actual `isDefEqCore'` body from reached method/metadata receipts and the proved
+  native comparison helpers. Its factorization retains the original control-flow
+  shapes; separate Boolean-shortcut, normalized-recheck and unknown-result
+  factorizations expose the actual accepted states for composition. Initial quick
+  comparison uses `useHash := true` and can finish before any normalization or
+  lazy-delta fuel is used. The Boolean-true shortcut retains the open-term/eager
+  reader gate and normalizes only its first operand. Ordered cheap-projection
+  normalization retains the returned states, and actual pointer guards decide
+  whether to run the non-hash normalized quick probe. Proof irrelevance precedes
+  the complete fuelled lazy-delta loop. Only its actual unknown result enters
+  direct constant/universe, local-variable or projection-field comparison;
+  projection comparison retains the original index-only parent-tag policy and
+  wrapped equivalence insertion. Full normalization restarts the raw method core
+  only after an actual pointer change; unchanged operands enter the original
+  application, function eta, structure eta, string expansion and unit-like order.
+  `NativeDefEqFallbackReachable` tracks actual accepted false/undefined prefixes,
+  so later and symmetric receipts are required only in reached returned states.
+  The complete theorem derives helper transport, rather than assuming equality
+  of any whole helper or of the whole core. It retains native hash/pointer/cache
+  guards, reader policy, larger shadow lazy-delta budgets, error propagation and
+  the exact original continue-status panic fallback. All owned declarations
+  exclude admissions and implementation-interface axioms. Structure/unit
+  metadata barriers remain explicit: sharing raw constructor records does not
+  turn an axiom shadow into an inductive metadata view. This raw result/state
+  theorem does not derive semantic cache/state WF, translated-input/metadata
+  eligibility, automatic recursive `Methods.withFuel` receipts or accepted
+  strong-shadow constructor checking. Constructor WF, positivity/recursor
+  equations, semantic registration and full inductive soundness remain open.
+  Strong initial `VContext`/`TrEnv`, inherited admission boundaries,
+  imported-prelude translation and executable checker behavior are unchanged.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6864,6 +6896,36 @@ can still reach the native `get!` fallback, whose unreachability is not assumed
 or established by a panic-producing passing fixture. Runtime prelude imports do
 not provide semantic prelude translation, semantic state/cache WF or automatic
 recursive method receipts. Run `lake env lean tests/InductiveHeaderLazyDeltaTransport.lean`.
+
+`tests/InductiveHeaderDefEqCoreTransport.lean` exhaustively audits all 229 owned
+production declarations, including private/generated declarations, allowing only
+standard logical axioms. Twelve native-accepted singleton/mutual/nonzero-index
+header staging combinations cover safe/unsafe and primitive-policy modes with
+default/seeded complete states and distinct reader recursion/lazy-delta budgets.
+Scripts replay the actual complete core and its proved entry factorization,
+checking exact callback inputs/order, cheap flags, local-reader traces and every
+state field. Initial quick true/false results finish despite zero method/fuel
+budgets; `mdata`/lambda/forall quick bodies retain wrapped core calls. Boolean
+shortcut success/miss, closed/open eager gates, skipped unchanged-pointer recheck,
+hash-guarded initial queries and non-hash normalized cached hits remain distinct.
+Proof irrelevance, real delta unfolding, full-normalization restart, index-only
+projection comparison, application head/argument order and false prefixes,
+forward/backward function eta, product structure eta and PUnit unit-like results
+are pinned. Changed full normalization calls the raw core without wrapper
+equivalence insertion. Existing `String.ofList` delta unfolding precedes string
+fallback; a raw no-value signature control exposes that fallback in both views.
+The control is not a native declaration-history extension or semantic-WF claim.
+Before constructors, actual nullary-parent unit metadata errors while its axiom
+shadow returns false; indexed parents return false in both complete cores. After
+registration, the actual core accepts unit metadata where an axiom shadow with
+the same raw constructors rejects. Thus complete-core transport still needs its
+reached metadata receipts; header lookup agreement alone is insufficient.
+Directional callback rejection permits shadow success, and native recursive
+methods independently check literal, delta and string Boolean outcomes and
+complete states. No panic-producing fixture asserts unreachable control flow.
+These runtime controls do not establish semantic prelude translation, semantic
+cache/state/local-context WF or automatic recursive method receipts. Run
+`lake env lean tests/InductiveHeaderDefEqCoreTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
