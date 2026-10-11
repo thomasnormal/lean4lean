@@ -276,6 +276,13 @@ structure HeaderParameterApplicationInput (environment : VEnv) (universes : List
   result : VExpr
   arguments : TypedParameterApplications environment universes model semantic stats.params.toList values result
 
+def HeaderParameterApplicationInput.withStats
+    (input : HeaderParameterApplicationInput environment universes model stats source)
+    (parameters : targetStats.params = stats.params) :
+    HeaderParameterApplicationInput environment universes model targetStats source :=
+  ⟨input.semantic, input.sourceTranslated, input.values, input.result,
+    by simpa only [parameters] using input.arguments⟩
+
 def HeaderParameterApplicationInput.monoEnv
     (input : HeaderParameterApplicationInput environment universes model stats source)
     (increase : environment ≤ extended) :
