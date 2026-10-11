@@ -67,6 +67,8 @@ structure CheckedHeaderContinuation (root : TypeChecker.VContext) (original : Co
   sameEnv : model.checker.venv = root.venv
   sameUniverses : model.checker.lparams = root.lparams
   frame : original.HeaderFrame reader
+  readerReserved : ContextReserved reader.lctx reader.ngen
+  readerDifferent : ({} : TypeChecker.VState).ngen.namePrefix ≠ reader.ngen.namePrefix
   sizes : stats.HeaderSizes types.size
   parameterCount : stats.ParamsCount nparams types.size
   headers : List VInductiveType
@@ -208,7 +210,7 @@ private theorem typedHeaderLoop (nparams : Nat) (types : Array InductiveType)
     simp only [levelCount, indicesCount, indCount, complete, beq_self_eq_true, ite_true]
     split
     · exact continuation stats reader {
-        model, sameEnv, sameUniverses, frame,
+        model, sameEnv, sameUniverses, frame, readerReserved := reserved, readerDifferent := different,
         sizes := ⟨indicesCount.trans complete, indCount.trans complete⟩,
         parameterCount := by simpa only [InductiveStats.ParamsCount, complete] using parameterCount,
         headers, models, typesWF }
@@ -227,7 +229,7 @@ private theorem typedHeaderLoop (nparams : Nat) (types : Array InductiveType)
         parameters := model.parameters, ambient := model.ambient,
         statsParams := model.statsParams.symm.trans noParameters |>.symm }
       exact continuation _ reader {
-        model := fallback, sameEnv, sameUniverses, frame,
+        model := fallback, sameEnv, sameUniverses, frame, readerReserved := reserved, readerDifferent := different,
         sizes := by
           change (0 = types.size ∧ 0 = types.size)
           exact ⟨zero.symm, zero.symm⟩,
