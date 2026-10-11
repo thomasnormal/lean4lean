@@ -154,8 +154,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   existing typing/lookup theorems and unchanged caches. The focused
   `ScopedInferType` fixture checks all six contracts and audits ten owned
   declarations for theorem-backed proofs without adding an axiom. These are
-  primitive inference frames only: lambda/forall/let telescopes, projections,
-  applications, comparison and arbitrary-fuel method scope preservation remain
+  primitive inference frames. The recursive lambda frame below consumes them;
+  forall/let telescopes, projections, applications, comparison and
+  arbitrary-fuel method scope preservation remain
   open, and the existing `inferProj.WF` admission is not hidden or widened.
 - `VState.WF.next` advances all model cache/type invariants through the actual
   fresh-name generator transition, while `HeadScopeCacheWF.next` preserves
@@ -163,8 +164,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   then frames the real `mkFreshId`/state transition, carrying cache scope,
   model WF, generator monotonicity, and the callback's postcondition. The
   fixture now audits fourteen theorem-backed declarations without owned
-  axioms. Local-reader entry/exit for `withLocalDecl` and `withLetDecl`, and
-  recursive inference worker closure, remain open.
+  axioms. The local/let reader frames and recursive lambda inference below
+  consume this fresh-state transition; the remaining recursive inference
+  workers are still open.
 - `VState.WF.mkLocalDecl` constructs the actual extended model state for a
   fresh local binder, including translated-context, equivalence-manager,
   cache-value and generator reservations. `RecM.ScopeWF.withLocalDecl` frames
@@ -173,13 +175,32 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   final model state back to the outer context, and removes the local binder
   from both cache scopes on exit. The local-reader frame remains conditional
   on the existing translated domain/type and extended-context model; the
-  corresponding let frame and recursive inference closure remain open.
+  corresponding let frame and recursive lambda contract are recorded below.
 - `VState.WF.mkLetDecl` and `RecM.ScopeWF.withLetDecl` provide the matching
   let-binder frame, including translated value/typehood, cached-name
   reservation for the let value, extended reader/cache scope, model-state
   weakening, and cache restoration on exit. The fixture now covers both local
-  and let reader frames; recursive lambda/forall/let inference still needs to
-  consume them explicitly.
+  and let reader frames; the recursive lambda contract below consumes the
+  local frame, while recursive forall/let inference remains open.
+- `Inner.inferType.scopeWF` exposes the original typed callback contract for
+  both infer-only and checking modes, while `Inner.checkType.scopeWF` supplies
+  the false-`inferOnly` specialization. These frames preserve the scoped
+  caches exactly through the callback boundary and retain the original
+  translation premise; they do not assert the recursive worker's semantic
+  soundness or close `Methods.ScopeWF.inferType` beyond that field.
+- `Inner.inferLambda.loop.scopeWF` proves scoped cache preservation and the
+  existing translated typing/free-variable result for the actual recursive
+  lambda telescope. It constructs the extended model at the real fresh ID,
+  consumes `RecM.ScopeWF.withLocalDecl`, checks domains through the scoped
+  inference/sort callbacks, and handles the body's cheap beta reduction and
+  final local-context forall construction. `Inner.inferLambda.scopeWF`
+  supplies the empty-telescope entry point; the fixture checks generic mode
+  and two-binder checking/infer-only contracts, and exhaustively audits owned
+  declarations against the existing semantic lambda/WHNF dependency baselines
+  and native scope foundations. The proof inherits the existing
+  semantic/metatheory admissions and requires `Methods.ScopeWF` callbacks;
+  it does not close recursive forall/let/projection/application inference,
+  arbitrary-fuel methods, semantic WHNF completeness, or the frontend theorem.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
