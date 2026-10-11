@@ -51,18 +51,16 @@ theorem acceptedHeaderParameterEquality (checker : TypeChecker.VContext) (reader
       TypeChecker.isDefEq.WF candidateTranslated storedTranslated initialWF true final checked
     exact equal rfl
 
-theorem translatedReusedHeaderParameter (checker : TypeChecker.VContext) (reader : Context)
+theorem translatedReusedHeaderParameterOpening (checker : TypeChecker.VContext) (reader : Context)
     (aligned : HeaderCheckerAligned checker reader)
     (initialWF : ({} : TypeChecker.VState).WF checker)
-    {identifier : FVarId} {declaration : LocalDecl} {name : Name} {domain body stored normalized : Expr}
+    {identifier : FVarId} {declaration : LocalDecl} {name : Name} {domain body stored : Expr}
     {binder : BinderInfo} {semantic : VExpr}
     (lookup : reader.lctx.find? identifier = some declaration)
     (translated : checker.TrExprS (.forallE name domain body binder) semantic)
     (storedCall : getType (.fvar identifier) reader = .ok stored)
-    (equalCall : (monadLift (TypeChecker.isDefEq domain stored) : M Bool) reader = .ok true)
-    (normalizedCall : (monadLift (TypeChecker.whnf (body.instantiate1 (.fvar identifier))) : M Expr)
-      reader = .ok normalized) :
-    ∃ result, checker.TrExprS normalized result := by
+    (equalCall : (monadLift (TypeChecker.isDefEq domain stored) : M Bool) reader = .ok true) :
+    ∃ result, checker.TrExprS (body.instantiate1 (.fvar identifier)) result ∧ checker.IsType result := by
   have inferred : TypeChecker.Inner.inferFVar checker.toContext identifier = .ok stored := by
     rw [aligned, ← getType_fvar_eq_inferFVar reader identifier declaration lookup]
     exact storedCall
@@ -78,9 +76,26 @@ theorem translatedReusedHeaderParameter (checker : TypeChecker.VContext) (reader
     have opened : checker.TrExprS (body.instantiate1 (.fvar identifier))
         (bodySemantic.inst parameterSemantic) := by
       simpa only [Expr.instantiate1_eq] using opened
-    obtain ⟨result, resultTranslated, _⟩ := acceptedHeaderNormalization checker reader aligned initialWF
-      (opened.trExpr checker.Ewf.ordered checker.Δwf) normalizedCall
-    exact ⟨result, resultTranslated⟩
+    exact ⟨_, opened, bodyTyped.imp fun _ typedBody =>
+      VEnv.HasType.instN checker.Ewf.ordered .zero typedBody typed⟩
+
+theorem translatedReusedHeaderParameter (checker : TypeChecker.VContext) (reader : Context)
+    (aligned : HeaderCheckerAligned checker reader)
+    (initialWF : ({} : TypeChecker.VState).WF checker)
+    {identifier : FVarId} {declaration : LocalDecl} {name : Name} {domain body stored normalized : Expr}
+    {binder : BinderInfo} {semantic : VExpr}
+    (lookup : reader.lctx.find? identifier = some declaration)
+    (translated : checker.TrExprS (.forallE name domain body binder) semantic)
+    (storedCall : getType (.fvar identifier) reader = .ok stored)
+    (equalCall : (monadLift (TypeChecker.isDefEq domain stored) : M Bool) reader = .ok true)
+    (normalizedCall : (monadLift (TypeChecker.whnf (body.instantiate1 (.fvar identifier))) : M Expr)
+      reader = .ok normalized) :
+    ∃ result, checker.TrExprS normalized result := by
+  obtain ⟨openedSemantic, opened, _⟩ := translatedReusedHeaderParameterOpening checker reader aligned initialWF
+    lookup translated storedCall equalCall
+  obtain ⟨result, resultTranslated, _⟩ := acceptedHeaderNormalization checker reader aligned initialWF
+    (opened.trExpr checker.Ewf.ordered checker.Δwf) normalizedCall
+  exact ⟨result, resultTranslated⟩
 
 theorem CheckedHeaderTrace.checkerModels
     {nparams : Nat} {stats finalStats : InductiveStats} {type terminal : Expr}

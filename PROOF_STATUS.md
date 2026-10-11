@@ -550,23 +550,82 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   constructor freshness from later accepted registration. Strong initial
   `VContext`/`TrEnv`, ordinary primitive/safety restrictions and exact fuel,
   scope and generator contracts remain unchanged.
-  These receipts do not establish that translated constructor types are
+  These receipts alone do not establish that translated constructor types are
   `IsType`. The executable `checkType` is checked inference, not sort-valued
   type formation: `Nat.zero` passes that source call but is rejected as a
-  constructor type by the complete constructor checker. Constructor WF still
-  requires recovering semantic sort-valued typing from the accepted spine.
+  constructor type by the complete constructor checker. The checker-model
+  module below recovers constructor WF for binder sources and complete
+  parameterized batches; binder-free sources still require semantic header-kind
+  and return-application typing.
   Positivity/recursor equations, semantic inductive registration and full
   inductive/frontend/prelude soundness remain open.
   The fixture exhaustively audits all 32 owned declarations, including generated
   receipt declarations. List membership/signature lemmas use only logical
   axioms; strong receipt types inherit existing `sorryAx`; translation, domain
   and prefix/run proofs retain the existing checker/metatheory baseline of 31
-  dependencies. No new axiom or admitted proof is added. Twenty-eight native
+  dependencies. No new axiom or admitted proof is added. Thirty-two native
   controls cover empty/constructor-free, recursive/higher-order, parameterized,
-  universe-polymorphic, indexed and genuinely mutual batches under both
+  universe-polymorphic, indexed and genuinely mutual batches, plus
+  annotation-peeled dependent field openings, under both
   safety/primitive settings, with unsupported-source rejection and the checked
   term/type-formation boundary. Runtime controls do not fabricate a semantic
   context or prove the imported prelude's strong invariant.
+- `Verify.InductiveConstructorCheckerModels` models the entire real accepted
+  constructor spine in strong typed readers, including reused parameters and
+  fresh fields, rather than stopping semantic reasoning at the parameter prefix.
+  `translatedHeaderOpening` and `translatedReusedHeaderParameterOpening` factor
+  the existing header helpers before their subsequent WHNF call. Both provide
+  strict translated and sort-valued typed opened bodies; the old normalized
+  helper signatures remain unchanged compositions. Constructor checking does
+  not normalize opened bodies, so no fictitious accepted WHNF premise is added.
+  Fresh fields use the exact annotation-peeled native domain, declaration name,
+  binder, free-variable identifier and generator advance. Domain conversion
+  transports body typing into the peeled context, and the actual lifted
+  `ensureType` receipt recovers the checked sort and its precise semantic level.
+  `CheckedHeaderContinuation` now retains native reader reservation and the
+  default-checker/reader generator-prefix separation already derived inside the
+  actual header program; callers supply neither as staged obligations.
+  `AcceptedConstructorTrace.checkerModels` supplies an aligned final strong
+  checker with default-state WF, unchanged semantic environment/universes, a
+  typed local-declaration history and exact field count, including arbitrary
+  starting constructor indices. Reused parameters do not add native locals;
+  fields do, with their actual fresh identifiers. Source typehood is preserved
+  through every real opening to the final translated return expression.
+  `TypedConstructorReceipts` combines complete input/domain receipts with these
+  reader models for every accepted constructor. The strong shadow, actual-stage,
+  checked-prefix and complete `AddInductive.run.typedConstructorAxiomContinuation`
+  bridges derive them from real acceptance and later registration freshness.
+  Canonical annotation signatures and definitions are inherited from the root
+  through the actual semantic header extension, not assumed for the shadow.
+  `TrConstructor.forallWF` proves semantic constructor type WF for every source
+  beginning with a forall. `CheckedConstructorDomainReceipts.requiresBinder`
+  derives that source shape from positive complete parameter-target growth.
+  Consequently `ConstructorSemanticReceipts.parameterizedTypesWF` automatically
+  proves WF for every translated constructor in the complete declaration when
+  `stats.params.size > 0`, with no caller-supplied constructor translations or
+  per-constructor binder/typehood premises.
+  Binder-free constructors of zero-parameter families still need semantic
+  header-kind/arity and saturated return-application typing. Semantic positivity,
+  recursor equations, complete inductive registration and full frontend/prelude
+  soundness remain open; this is not a full inductive soundness theorem.
+  Strong initial `VContext`/`TrEnv`, exact ordinary safety/primitive restrictions,
+  genuine initial native parent closure and all executable checker behavior
+  remain unchanged. The expanded semantic receipt fixture exercises the new
+  opening, final-context/field-count/typehood, parameterized WF, actual-stage and
+  full-run contracts through 21 formal examples. It audits all 34 new owned
+  declarations, both factored shared helpers and the 32 earlier input-receipt
+  declarations, and passes 32 native source/constructor/full-run controls.
+  Canonical annotation extension lemmas have no axiom dependencies. Binder and
+  parameterized constructor-WF extraction retain the existing semantic input
+  baseline of four dependencies, including `sorryAx` through the existing
+  `TrConstructor`/strong receipt interfaces; they are not admission-free semantic
+  soundness proofs. Fresh and reused opening helpers inherit 11 and 28 existing
+  dependencies respectively; whole trace models retain 28, and source-guard,
+  batch, strong-stage and prefix/run composition retain the existing 31.
+  Each audit compares against the genuine earlier semantic/checker/source
+  interfaces, including the real no-metavariable/free-variable guard, rather
+  than using the admission-free raw native transport baseline. No new axiom or
+  admitted proof is added.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw

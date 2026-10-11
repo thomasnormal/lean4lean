@@ -104,7 +104,7 @@ theorem acceptedHeaderNormalization
     exact ⟨normalizedSemantic, normalizedTranslated,
       normalizedEquality.trans checker.Ewf checker.Δwf.toCtx equality⟩
 
-theorem translatedHeaderContext
+theorem translatedHeaderOpening
     (checker : TypeChecker.VContext) (reader : Context)
     (aligned : HeaderCheckerAligned checker reader)
     (initialWF : ({} : TypeChecker.VState).WF checker)
@@ -112,16 +112,15 @@ theorem translatedHeaderContext
     (different : ({} : TypeChecker.VState).ngen.namePrefix ≠ reader.ngen.namePrefix)
     (constants : CanonicalAnnotationConstants checker.venv)
     (definitions : CanonicalAnnotationDefinitions checker.venv)
-    {name : Name} {domain body normalized : Expr} {binder : BinderInfo} {semantic : VExpr}
-    (translated : checker.TrExprS (.forallE name domain body binder) semantic)
-    (accepted : (monadLift (TypeChecker.whnf (body.instantiate1 (.fvar ⟨reader.ngen.curr⟩))) : M Expr)
-      (recursorIndexContext reader name binder (peelTypeAnnotations domain)) = .ok normalized) :
+    {name : Name} {domain body : Expr} {binder : BinderInfo} {semantic : VExpr}
+    (translated : checker.TrExprS (.forallE name domain body binder) semantic) :
     ∃ (peeled : VExpr) (nextChecker : TypeChecker.VContext),
       nextChecker.venv = checker.venv ∧ nextChecker.lparams = checker.lparams ∧
       nextChecker.mlctx = .vlam ⟨reader.ngen.curr⟩ name (peelTypeAnnotations domain) peeled binder checker.mlctx ∧
       HeaderCheckerAligned nextChecker (recursorIndexContext reader name binder (peelTypeAnnotations domain)) ∧
       ({} : TypeChecker.VState).WF nextChecker ∧
-      ∃ nextSemantic, nextChecker.TrExprS normalized nextSemantic := by
+      ∃ nextSemantic, nextChecker.TrExprS (body.instantiate1 (.fvar ⟨reader.ngen.curr⟩)) nextSemantic ∧
+        nextChecker.IsType nextSemantic := by
   cases translated with
   | forallE domainIsType _ domainTranslated bodyTranslated =>
     rename_i semanticDomain bodySemantic bodyIsType
@@ -156,9 +155,37 @@ theorem translatedHeaderContext
         (body.instantiate1 (.fvar ⟨reader.ngen.curr⟩)) bodySemantic := by
       rw [Expr.instantiate1_eq]
       exact convertedBody.openFreshFVar checker.Ewf.ordered nextWF.tr.wf
-    obtain ⟨nextSemantic, nextTranslated, _⟩ :=
-      acceptedHeaderNormalization nextChecker _ nextAligned nextStateWF openedBody accepted
-    exact ⟨peeled, nextChecker, rfl, rfl, rfl, nextAligned, nextStateWF, nextSemantic, nextTranslated⟩
+    obtain ⟨nextSemantic, nextTranslated, nextEquality⟩ := openedBody
+    have bodyTyped := bodyIsType.imp fun _ typedBody => typedBody.defeq_l checker.Ewf.ordered equality
+    have nextTyped := VEnv.IsType.defeqU_l nextChecker.Ewf nextChecker.Δwf.toCtx
+      nextEquality.symm bodyTyped
+    exact ⟨peeled, nextChecker, rfl, rfl, rfl, nextAligned, nextStateWF,
+      nextSemantic, nextTranslated, nextTyped⟩
+
+theorem translatedHeaderContext
+    (checker : TypeChecker.VContext) (reader : Context)
+    (aligned : HeaderCheckerAligned checker reader)
+    (initialWF : ({} : TypeChecker.VState).WF checker)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (different : ({} : TypeChecker.VState).ngen.namePrefix ≠ reader.ngen.namePrefix)
+    (constants : CanonicalAnnotationConstants checker.venv)
+    (definitions : CanonicalAnnotationDefinitions checker.venv)
+    {name : Name} {domain body normalized : Expr} {binder : BinderInfo} {semantic : VExpr}
+    (translated : checker.TrExprS (.forallE name domain body binder) semantic)
+    (accepted : (monadLift (TypeChecker.whnf (body.instantiate1 (.fvar ⟨reader.ngen.curr⟩))) : M Expr)
+      (recursorIndexContext reader name binder (peelTypeAnnotations domain)) = .ok normalized) :
+    ∃ (peeled : VExpr) (nextChecker : TypeChecker.VContext),
+      nextChecker.venv = checker.venv ∧ nextChecker.lparams = checker.lparams ∧
+      nextChecker.mlctx = .vlam ⟨reader.ngen.curr⟩ name (peelTypeAnnotations domain) peeled binder checker.mlctx ∧
+      HeaderCheckerAligned nextChecker (recursorIndexContext reader name binder (peelTypeAnnotations domain)) ∧
+      ({} : TypeChecker.VState).WF nextChecker ∧
+      ∃ nextSemantic, nextChecker.TrExprS normalized nextSemantic := by
+  obtain ⟨peeled, nextChecker, environment, universes, context, nextAligned, nextWF,
+    openedSemantic, opened, _⟩ := translatedHeaderOpening checker reader aligned initialWF reserved different
+      constants definitions translated
+  obtain ⟨nextSemantic, nextTranslated, _⟩ := acceptedHeaderNormalization nextChecker _ nextAligned nextWF
+    (opened.trExpr nextChecker.Ewf.ordered nextChecker.Δwf) accepted
+  exact ⟨peeled, nextChecker, environment, universes, context, nextAligned, nextWF, nextSemantic, nextTranslated⟩
 
 theorem CheckedHeaderTrace.firstModels
     {nparams : Nat} {stats finalStats : InductiveStats} {type terminal : Expr}
