@@ -284,6 +284,7 @@ structure HeaderAxiomContinuation (root : TypeChecker.VContext) (original : Cont
   shadow : Kernel.Environment
   semantic : VEnv
   registered : root.venv.addInductHeaders before.headers = some semantic
+  actualWF : actual.constants.WF
   agreement : HeaderAxiomAgreement actual shadow
   values : NativeValueFrame reader.env shadow
   primitives : NativePrimitiveFrame reader.env shadow
@@ -317,18 +318,22 @@ theorem checkInductiveTypes.withHeaderAxiomContinuation
       congrArg TypeChecker.Context.safety before.model.aligned
     have initialSafety : root.safety = reader.safety := congrArg TypeChecker.Context.safety aligned
     exact currentSafety.trans (before.frame.safety.trans initialSafety.symm)
-  refine (declareInductiveTypes.strongHeaderAxiomView current stats nparams types numNested isUnsafe
+  apply Lean4Lean.AddInductive.bindHeaderResultWF
+  intro actual declared
+  obtain ⟨shadow, semantic, registered, history, agreement, values, primitives⟩ :=
+    declareInductiveTypes.strongHeaderAxiomView current stats nparams types numNested isUnsafe
     (nativeEnv ▸ before.model.checker.trenv) (safety ▸ safetyBound) before.sizes.1
     (by simpa only [before.sameEnv, currentUniverses] using before.models)
-    (by simpa only [before.sameEnv] using before.typesWF)).bind ?_
-  rintro actual ⟨shadow, semantic, registered, history, agreement, values, primitives⟩
+    (by simpa only [before.sameEnv] using before.typesWF) actual declared
+  have actualWF := (declareInductiveTypes.preservesValues current stats nparams types numNested isUnsafe
+    (nativeEnv ▸ before.model.checker.trenv.map_wf) actual declared).map_wf
   have primitiveFrame := primitives (before.frame.allowPrimitive.trans ordinary)
   have modelPrimitiveFrame : NativePrimitiveFrame before.model.checker.env shadow := nativeEnv.symm ▸ primitiveFrame
   have increase := VEnv.addInductHeaders.le registered
   exact continuation stats current actual {
     before, shadow, semantic,
     registered := by simpa only [before.sameEnv] using registered,
-    agreement, values, primitives := primitiveFrame,
+    actualWF, agreement, values, primitives := primitiveFrame,
     model := before.model.inHeaderAxiomView shadow semantic increase history modelPrimitiveFrame,
     semantic_eq := rfl }
 

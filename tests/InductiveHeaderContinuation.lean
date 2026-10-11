@@ -7,6 +7,12 @@ open Lean4Lean.AddInductive
 open TypeChecker (MLCtx)
 open ElimNestedInductive (ParameterPrefix)
 
+example {root : TypeChecker.VContext} {reader current : Context} {nparams : Nat}
+    {types : Array InductiveType} {stats : InductiveStats} {actual : Kernel.Environment}
+    (stage : HeaderAxiomContinuation root reader nparams types stats current actual) :
+    actual.constants.WF :=
+  stage.actualWF
+
 example {base : MLCtx} {stats : InductiveStats} {reader : Context}
     (model : TypedHeaderReader base stats reader) :
     HeaderParameterModels stats model.checker.vlctx :=
