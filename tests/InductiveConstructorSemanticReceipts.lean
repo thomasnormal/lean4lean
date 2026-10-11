@@ -93,6 +93,12 @@ example (stage : HeaderAxiomContinuation root original nparams types stats reade
     TrInductDecl root.venv stage.semantic root.lparams nparams types.toList receipts.inputs.declaration :=
   receipts.inputs.translated
 
+example (stage : HeaderAxiomContinuation root original nparams types stats reader actual)
+    (receipts : TypedConstructorReceipts stage isUnsafe) :
+    ∀ header ∈ receipts.inputs.declaration.types, ∀ constructor ∈ header.ctors,
+      constructor.toVConstant.WF stage.semantic :=
+  receipts.constructorTypesWF
+
 example (checker : TypeChecker.VContext) (reader : Context)
     (aligned : HeaderCheckerAligned checker reader) (initialWF : ({} : TypeChecker.VState).WF checker)
     (reserved : ElimNestedInductive.ContextReserved reader.lctx reader.ngen)
@@ -227,6 +233,25 @@ example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
     (recursors : NativeRecursorParentsClosed reader.env) :
     (run nparams types numNested reader).WF fun _ => ∃ stats current actual final,
       ∃ stage : HeaderAxiomContinuation root reader nparams types.toArray stats current actual,
+        NativeValueFrame actual final ∧ ∃ receipts : ConstructorSemanticReceipts stage (reader.safety != .safe),
+          ∀ header ∈ receipts.declaration.types, ∀ constructor ∈ header.ctors,
+            constructor.toVConstant.WF stage.semantic := by
+  refine (run.semanticConstructorAxiomContinuation nparams types numNested root reader aligned empty different
+    constants definitions ordinary ordinarySafety constructors recursors).mono ?_
+  rintro result ⟨stats, current, actual, final, stage, retained, ⟨receipts⟩⟩
+  exact ⟨stats, current, actual, final, stage, retained, receipts, receipts.constructorTypesWF⟩
+
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (root : TypeChecker.VContext) (reader : Context) (aligned : HeaderCheckerAligned root reader)
+    (empty : root.mlctx = .nil)
+    (different : ({} : TypeChecker.VState).ngen.namePrefix ≠ reader.ngen.namePrefix)
+    (constants : CanonicalAnnotationConstants root.venv)
+    (definitions : CanonicalAnnotationDefinitions root.venv)
+    (ordinary : reader.allowPrimitive = false) (ordinarySafety : root.safety ≠ .partial)
+    (constructors : NativeConstructorParentClosure reader.env)
+    (recursors : NativeRecursorParentsClosed reader.env) :
+    (run nparams types numNested reader).WF fun _ => ∃ stats current actual final,
+      ∃ stage : HeaderAxiomContinuation root reader nparams types.toArray stats current actual,
         NativeValueFrame actual final ∧ Nonempty (TypedConstructorReceipts stage (reader.safety != .safe)) :=
   run.typedConstructorAxiomContinuation nparams types numNested root reader aligned empty different
     constants definitions ordinary ordinarySafety constructors recursors
@@ -286,15 +311,20 @@ private def checkBatch (types : Array InductiveType) (parameters : Nat := 0)
         for constructor in type.ctors do
           unless (shadow.checkNoMVarNoFVar constructor.name constructor.type).isOk do
             throwError "accepted constructor source guard absent"
-          unless ((monadLift (TypeChecker.checkType constructor.type) : M Expr) shadowReader).isOk do
-            throwError "accepted lifted constructor source checking absent"
+          let .ok inferred := (monadLift (TypeChecker.checkType constructor.type) : M Expr) shadowReader
+            | throwError "accepted lifted constructor source checking absent"
+          let .ok normalizedSort := (monadLift (TypeChecker.ensureSort inferred) : M Expr) shadowReader
+            | throwError "accepted constructor type did not infer a sort"
+          unless normalizedSort.isSort do throwError "accepted constructor type has a nonsort inferred type"
       for expression in [Expr.fvar ⟨`escaped⟩, Expr.mvar ⟨`unsolved⟩] do
         if (shadow.checkNoMVarNoFVar `SemanticInvalid expression).isOk then
           throwError "unsupported source expression accepted"
       if ((monadLift (TypeChecker.checkType (.const `SemanticMissing [])) : M Expr) shadowReader).isOk then
         throwError "missing constructor source accepted"
-      unless ((monadLift (TypeChecker.checkType (.const ``Nat.zero [])) : M Expr) shadowReader).isOk do
-        throwError "checked source translation was confused with sort-valued typing"
+      let .ok naturalType := (monadLift (TypeChecker.checkType (.const ``Nat.zero [])) : M Expr) shadowReader
+        | throwError "checked source translation was confused with sort-valued typing"
+      if ((monadLift (TypeChecker.ensureSort naturalType) : M Expr) shadowReader).isOk then
+        throwError "a non-type term acquired sort-valued inferred typing"
       unless types.isEmpty do
         let invalid := types.map fun type =>
           { type with ctors := [⟨type.name ++ `invalid, .const ``Nat.zero []⟩] }
@@ -396,6 +426,20 @@ run_meta
   outcomes := outcomes + (← checkBatch #[{
     name := `SemanticIndexed, type := .forallE `index natural sortType .default,
     ctors := [⟨`SemanticIndexed.base, mkApp (.const `SemanticIndexed []) (.const ``Nat.zero [])⟩] }])
+  let universeLevel := Level.param `universe
+  let polySort := Expr.sort (.succ universeLevel)
+  let polyReturn := fun name arguments => mkAppN (.const name [universeLevel]) arguments
+  outcomes := outcomes + (← checkBatch #[{
+    name := `SemanticPolyIndexedFirst,
+    type := .forallE `carrier polySort polySort .default,
+    ctors := [⟨`SemanticPolyIndexedFirst.base,
+      polyReturn `SemanticPolyIndexedFirst #[.sort universeLevel]⟩] }, {
+    name := `SemanticPolyIndexedSecond, type := polySort,
+    ctors := [⟨`SemanticPolyIndexedSecond.base, polyReturn `SemanticPolyIndexedSecond #[]⟩] }, {
+    name := `SemanticPolyIndexedThird,
+    type := .forallE `carrier polySort (.forallE `index natural polySort .default) .default,
+    ctors := [⟨`SemanticPolyIndexedThird.base,
+      polyReturn `SemanticPolyIndexedThird #[.sort universeLevel, .const ``Nat.zero []]⟩] }] 0 [`universe])
   let first := family `SemanticFirst
   let second := family `SemanticSecond
   outcomes := outcomes + (← checkBatch #[
@@ -403,6 +447,6 @@ run_meta
       .forallE `other (.const `SemanticSecond []) (.const `SemanticFirst []) .default⟩] },
     { second with ctors := second.ctors ++ [⟨`SemanticSecond.cross,
       .forallE `other (.const `SemanticFirst []) (.const `SemanticSecond []) .default⟩] }])
-  logInfo m!"{outcomes} semantic-source controls passed: accepted actual/shadow constructors and lifted source checks, parameter scopes, universe alignment, full runs, unsupported-source rejection and checked-term/non-type-constructor boundary; runtime checks do not fabricate a semantic context"
+  logInfo m!"{outcomes} semantic-source controls passed: accepted actual/shadow constructors, strict source checks and inferred sorts, parameter scopes, universe alignment, full runs, unsupported-source rejection and checked-term/non-type-constructor boundary; runtime checks do not fabricate a semantic context"
 
 end InductiveConstructorSemanticReceiptsTest

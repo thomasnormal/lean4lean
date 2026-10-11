@@ -119,6 +119,28 @@ theorem ConstructorSemanticReceipts.typesWF
     (trace.isType (context := []) (universes := root.lparams) environmentWF trivial
       constructorTranslated.2.2 (headerKinds parent bound))
 
+theorem AcceptedConstructorTrace.isTypeOfContextualKinds
+    {stats : InductiveStats} {isUnsafe : Bool} {parent index finalIndex : Nat}
+    {reader finalReader : Context} {type terminal : Expr}
+    (trace : AcceptedConstructorTrace stats isUnsafe parent reader index type finalReader finalIndex terminal)
+    {environment : VEnv} {universes : List Name} {semantic : VExpr}
+    (environmentWF : environment.WF)
+    (translated : TrExprS environment universes [] type semantic)
+    (headerKind : ∀ {headerSemantic},
+      TrExprS environment universes [] stats.indConsts[parent]! headerSemantic →
+      ∃ headerType context, environment.HasType universes.length [] headerSemantic headerType ∧
+        OnCtx context (environment.IsType universes.length) ∧
+        environment.SortArity universes.length context
+          (stats.params.size + stats.nindices[parent]!) headerType) :
+    environment.IsType universes.length [] semantic := by
+  cases trace with
+  | terminal notForall valid =>
+    exact isValidIndAppIdx.isTypeOfContextualKinds environmentWF valid translated headerKind
+  | parameter | field =>
+    cases translated with
+    | forallE domainTyped bodyTyped domainTranslated bodyTranslated =>
+      exact domainTyped.forallE bodyTyped
+
 theorem ConstructorSemanticReceipts.typesWFOfHeaders
     {stage : HeaderAxiomContinuation root original nparams types stats reader actual}
     (receipts : ConstructorSemanticReceipts stage isUnsafe)
@@ -152,6 +174,44 @@ theorem ConstructorSemanticReceipts.contextualHeaderKinds
   refine ⟨complete, member, ?_, ?_⟩
   · simpa only [name] using head
   · simpa only [universes, type] using kind.mono (VEnv.addInductHeaders.le receipts.registered)
+
+theorem ConstructorSemanticReceipts.constructorTypesWF
+    {stage : HeaderAxiomContinuation root original nparams types stats reader actual}
+    (receipts : ConstructorSemanticReceipts stage isUnsafe) :
+    ∀ header ∈ receipts.declaration.types, ∀ constructor ∈ header.ctors,
+      constructor.toVConstant.WF stage.semantic := by
+  by_cases positive : 0 < stats.params.size
+  · exact receipts.parameterizedTypesWF positive
+  intro header member constructor present
+  obtain ⟨sourceHeader, sourceMember, headerTranslated⟩ :=
+    relatedMemberRight receipts.translated.2.2 member
+  obtain ⟨sourceConstructor, sourcePresent, constructorTranslated⟩ :=
+    relatedMemberRight headerTranslated.2.2.2 present
+  obtain ⟨parent, bound, rfl⟩ := Array.mem_iff_getElem.mp (Array.mem_toList_iff.mp sourceMember)
+  have nonempty : types.size ≠ 0 := by omega
+  have zero : nparams = 0 := by
+    have count := stage.before.parameterCount
+    simp only [InductiveStats.ParamsCount, if_neg nonempty] at count
+    omega
+  subst nparams
+  obtain ⟨finalReader, finalIndex, terminal, finalTarget, trace, domains, agreement, growth⟩ :=
+    receipts.domains parent bound sourceConstructor sourcePresent
+  have environmentWF := VEnv.addInductHeaders.wf root.Ewf
+    (fun header member => (receipts.headersWF header member).2) receipts.registered
+  apply constructorTranslated.typehoodWF
+  apply trace.isTypeOfContextualKinds environmentWF constructorTranslated.2.2
+  intro headerSemantic translated
+  obtain ⟨matched, matchedMember, head, kind⟩ := receipts.contextualHeaderKinds parent bound
+  have headerUniverses : matched.uvars = root.lparams.length :=
+    (receipts.headersWF matched matchedMember).1.trans receipts.translated.1.symm
+  have contextWF : OnCtx stage.before.model.checker.vlctx.toCtx (stage.semantic.IsType matched.uvars) := by
+    rw [headerUniverses]
+    have beforeWF : OnCtx stage.before.model.checker.vlctx.toCtx (root.venv.IsType root.lparams.length) := by
+      simpa only [stage.before.sameEnv, stage.before.sameUniverses] using
+        stage.before.model.checker.Δwf.toCtx
+    exact beforeWF.mono fun typed => typed.mono (VEnv.addInductHeaders.le receipts.registered)
+  exact TrExprS.contextualConstantKind (VEnv.addInductHeaders.constants receipts.registered matchedMember)
+    contextWF kind (head ▸ translated)
 
 def ConstructorReaderModels (initial : TypeChecker.VContext) (sourceSemantic : VExpr)
     (stats : InductiveStats) (index : Nat) (reader : Context) (finalIndex : Nat) (terminal : Expr) : Prop :=
@@ -358,6 +418,8 @@ theorem HeaderAxiomContinuation.shadowConstructorReaderModels
 structure TypedConstructorReceipts
     (stage : HeaderAxiomContinuation root original nparams types stats reader actual) (isUnsafe : Bool) where
   inputs : ConstructorSemanticReceipts stage isUnsafe
+  constructorTypesWF : ∀ header ∈ inputs.declaration.types, ∀ constructor ∈ header.ctors,
+    constructor.toVConstant.WF stage.semantic
   readers : ∀ parent, ∀ bound : parent < types.size, ∀ constructor ∈ types[parent].ctors,
     ∃ semantic finalReader finalIndex terminal,
       ∃ _trace : AcceptedConstructorTrace stats isUnsafe parent { reader with env := stage.shadow }
@@ -372,7 +434,8 @@ theorem HeaderAxiomContinuation.shadowTypedConstructors
     (accepted : checkConstructors types stats isUnsafe { reader with env := stage.shadow } = .ok ()) :
     Nonempty (TypedConstructorReceipts stage isUnsafe) := by
   obtain ⟨inputs⟩ := stage.shadowConstructorSemantics empty isUnsafe accepted
-  exact ⟨⟨inputs, stage.shadowConstructorReaderModels constants definitions isUnsafe () accepted⟩⟩
+  exact ⟨⟨inputs, inputs.constructorTypesWF,
+    stage.shadowConstructorReaderModels constants definitions isUnsafe () accepted⟩⟩
 
 theorem HeaderAxiomContinuation.typedConstructors
     (stage : HeaderAxiomContinuation root original nparams types stats reader actual)
