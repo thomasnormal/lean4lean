@@ -212,11 +212,39 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   different environment payloads, so successful constant transport is not stated
   as equality of all exceptions. These raw transport contracts exclude
   `sorryAx` and do not establish semantic cache WF. Arbitrary expressions,
-  metadata-sensitive recursor/projection/eta/unit-like computations, full
+  general metadata-sensitive recursor/projection-inference/eta/unit-like computations, full
   mutually recursive method transport, accepted constructor-check transport,
   automatic shadow domain receipts, and constructor WF remain open. The strong
   initial `VContext`/`TrEnv` is unchanged; no substitute `CheckerEnv` assumption or
   broader checker admission is introduced.
+- `Verify.TypeChecker.Transport` supplies directional accepted-result
+  composition rather than equality of failing computations. `Except.SuccessTransport`
+  allows different error types, and its bind rule requires continuation transport
+  only for an accepted actual prefix. `TypeChecker.M.SuccessTransport` preserves
+  the entire returned native state; its continuation receives the exact accepted
+  result/state equation. The application-spine relation lemma covers the actual
+  `Expr.withApp` implementation, not an alternative expression traversal.
+  `Verify.InductiveHeaderNormalizationTransport` applies this calculus to native
+  sort/forall guards, proposition testing, equality-manager updates, and projection
+  reduction. Direct sort/forall guards require no normalization premise. Otherwise
+  their reached WHNF callback must transport. Proposition testing requires inference
+  transport and WHNF transport only on the accepted inferred type/state. Equality
+  testing preserves both true/false results and the complete native equivalence
+  manager update after an accepted comparison callback.
+  `reduceProj.headerAxiomTransport` combines the exact header lookup bridge with
+  transport of the selected full/core normalization callback. String expansion
+  requires its second callback only when the accepted first result is a string
+  literal, at that returned state. Constructor records agree exactly; a changed
+  inductive header and its axiom shadow are both non-constructors, so no structure
+  metadata equality or old-parent eligibility premise is needed by this helper.
+  Missing-name failures may still carry different native environments. All owned
+  declarations exclude `sorryAx`; these are real native compositional lemmas with
+  explicit reached-callback obligations, not an unrestricted theorem about
+  `Methods.withFuel`. General WHNF/inference/definitional-equality transport,
+  recursor and structure metadata eligibility, semantic native-state WF,
+  accepted constructor checking in the strong shadow, automatic domain receipts,
+  constructor WF, and full inductive soundness remain open. No executable checker
+  behavior or initial strong `VContext`/`TrEnv` invariant changes.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6267,6 +6295,26 @@ Runtime fixtures use the imported prelude without its missing semantic
 translation. These are base-case transport regressions, not unrestricted
 constructor-check or inductive soundness tests. Run
 `lake env lean tests/InductiveHeaderCheckerTransport.lean`.
+
+`tests/InductiveHeaderNormalizationTransport.lean` checks accepted-prefix bind
+composition with distinct error types, direct guards without WHNF premises,
+and native proposition testing with the returned inference state. Its exhaustive
+audits cover both new production modules, including generated declarations, and
+reject module-owned axioms, unexpected dependencies, and `sorryAx`. Native-accepted
+singleton/mutual header batches and the empty checkpoint cover both safety and
+primitive flags before future constructors are registered. Default/seeded states
+exercise every cache bank, the name generator, equivalence-manager map/union-find
+data, failure set, and unfolding cache; complete states are compared. Stateful
+callbacks exercise normalized sort/forall guards, wrong forms, recursion errors,
+two-stage proposition testing, true/false equivalence-manager updates, and the
+string-expansion projection branch across different readers. Actual native
+callbacks cover aliases, old constructors and parameter offsets, out-of-range
+fields, nonconstant heads, changed headers, missing future constructors, string
+literals, and both cheap flags. Full normalization of `Nat.succ Nat.zero` produces
+a literal while cheap core normalization retains the constructor application;
+the projection tests preserve that intentional difference. Imported-prelude
+fixtures do not supply its missing semantic translation or prove general callback
+transport. Run `lake env lean tests/InductiveHeaderNormalizationTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
