@@ -7,6 +7,26 @@ open Lean4Lean.AddInductive
 open TypeChecker (MLCtx)
 open ElimNestedInductive (ParameterPrefix)
 
+example (before : CheckedHeaderContinuation root original nparams types stats reader)
+    (parent : Nat) (bound : parent < types.size) :
+    stats.indConsts[parent]! = .const types[parent].name stats.levels :=
+  before.heads parent bound
+
+example (before : CheckedHeaderContinuation root original 0 types stats reader)
+    (parent : Nat) (bound : parent < types.size) (header : VInductiveType)
+    (translated : TrInductiveHeader root.venv root.lparams types[parent] header) :
+    root.venv.SortArity root.lparams.length before.model.checker.vlctx.toCtx
+      stats.nindices[parent]! header.type :=
+  before.contextualKinds rfl parent bound header translated
+
+example (before : CheckedHeaderContinuation root original 0 types stats reader)
+    (parent : Nat) (bound : parent < types.size) :
+    ∃ header ∈ before.headers,
+      stats.indConsts[parent]! = .const header.name stats.levels ∧
+      root.venv.SortArity header.uvars before.model.checker.vlctx.toCtx
+        (stats.params.size + stats.nindices[parent]!) header.type :=
+  before.contextualHeaderKind parent bound
+
 example {root : TypeChecker.VContext} {reader current : Context} {nparams : Nat}
     {types : Array InductiveType} {stats : InductiveStats} {actual : Kernel.Environment}
     (stage : HeaderAxiomContinuation root reader nparams types stats current actual) :
@@ -152,6 +172,10 @@ private def checkBatch (host : Lean.Environment) (env : Kernel.Environment)
       total + (declareConstructors.arity 0 type.type - parameters)) 0
     unless current.lctx.decls.size == parameters + indices && stats.params.size == parameters do
       throwError "constructor continuation lost the exact parameter/accumulated-index context"
+    for parent in [:types.size] do
+      unless stats.indConsts[parent]! == .const types[parent]!.name stats.levels &&
+          stats.nindices[parent]! == declareConstructors.arity 0 types[parent]!.type - parameters do
+        throwError "constructor continuation lost an exact header head/index count"
     for parameter in stats.params do
       unless parameter.isFVar && (current.lctx.find? parameter.fvarId!).isSome do
         throwError "constructor continuation lost shared parameter lookup support"
@@ -200,6 +224,9 @@ run_meta
     checkBatch seededHost env parameters #[family `ContinuationFirst parameters 1,
       family `ContinuationSecond parameters 1 0 (.const `ContinuationSortAlias [])]
   checkBatch seededHost env 0 #[family `ContinuationIndexed 0 1 2]
+  checkBatch seededHost env 0 #[family `ContinuationMixedFirst 0 1 2,
+    family `ContinuationMixedSecond 0 1 0, family `ContinuationMixedThird 0 1 3,
+    family `ContinuationMixedFourth 0 1 1]
   checkBatch seededHost env 1 #[family `ContinuationIndexedFirst 1 1 3,
     family `ContinuationIndexedSecond 1 1 0, family `ContinuationIndexedThird 1 1 2]
   let dependent (name : Name) (domain : Expr) : InductiveType := {
@@ -240,6 +267,6 @@ run_meta
       throwError "constructor continuation accepted a later parameter-domain mismatch"
     if (run 0 [family `ContinuationDuplicate 0 1, family `ContinuationDuplicate 0 1] 0 reader).isOk then
       throwError "constructor continuation accepted duplicate headers"
-  logInfo "6 native-accepted constructor continuation fixtures preserve exact parameter/accumulated-index contexts, source metadata, old definitions, constructor arity and recursors under both safeties; dependent reuse, empty and 10 failure controls passed"
+  logInfo "7 native-accepted constructor continuation fixtures preserve exact header heads/index counts, parameter/accumulated-index contexts, source metadata, old definitions, constructor arity and recursors under both safeties; dependent reuse, empty and 10 failure controls passed"
 
 end InductiveHeaderContinuationTest

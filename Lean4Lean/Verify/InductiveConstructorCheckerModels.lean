@@ -136,6 +136,23 @@ theorem ConstructorSemanticReceipts.typesWFOfHeaders
   exact TrExprS.constantKind environmentWF
     (VEnv.addInductHeaders.constants receipts.registered member) kind (head ▸ translated)
 
+theorem ConstructorSemanticReceipts.contextualHeaderKinds
+    {stage : HeaderAxiomContinuation root original 0 types stats reader actual}
+    (receipts : ConstructorSemanticReceipts stage isUnsafe) (parent : Nat) (bound : parent < types.size) :
+    ∃ header ∈ receipts.declaration.types,
+      stats.indConsts[parent]! = .const header.name stats.levels ∧
+      stage.semantic.SortArity header.uvars stage.before.model.checker.vlctx.toCtx
+        (stats.params.size + stats.nindices[parent]!) header.type := by
+  obtain ⟨incomplete, member, head, kind⟩ := stage.before.contextualHeaderKind parent bound
+  obtain ⟨complete, member, signature⟩ := relatedMemberRight receipts.headerSignatures member
+  have name := congrArg VConstVal.name signature
+  have constant := congrArg VConstVal.toVConstant signature
+  have universes := congrArg VConstant.uvars constant
+  have type := congrArg VConstant.type constant
+  refine ⟨complete, member, ?_, ?_⟩
+  · simpa only [name] using head
+  · simpa only [universes, type] using kind.mono (VEnv.addInductHeaders.le receipts.registered)
+
 def ConstructorReaderModels (initial : TypeChecker.VContext) (sourceSemantic : VExpr)
     (stats : InductiveStats) (index : Nat) (reader : Context) (finalIndex : Nat) (terminal : Expr) : Prop :=
   ∃ (checker : TypeChecker.VContext) (identifiers : List FVarId) (semantic : VExpr),

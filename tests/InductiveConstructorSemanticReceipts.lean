@@ -4,6 +4,20 @@ namespace InductiveConstructorSemanticReceiptsTest
 open Lean hiding Environment Exception
 open Lean4Lean Lean4Lean.AddInductive
 
+example (stage : HeaderAxiomContinuation root original nparams types stats reader actual)
+    (receipts : ConstructorSemanticReceipts stage isUnsafe) :
+    List.Forall₂ (fun complete header : VInductiveType => complete.toVConstVal = header.toVConstVal)
+      receipts.declaration.types stage.before.headers :=
+  receipts.headerSignatures
+
+example (stage : HeaderAxiomContinuation root original 0 types stats reader actual)
+    (receipts : ConstructorSemanticReceipts stage isUnsafe) (parent : Nat) (bound : parent < types.size) :
+    ∃ header ∈ receipts.declaration.types,
+      stats.indConsts[parent]! = .const header.name stats.levels ∧
+      stage.semantic.SortArity header.uvars stage.before.model.checker.vlctx.toCtx
+        (stats.params.size + stats.nindices[parent]!) header.type :=
+  receipts.contextualHeaderKinds parent bound
+
 example (translated : TrConstructor environment universes constructor semantic)
     (binder : constructor.type.isForall = true) : semantic.toVConstant.WF environment :=
   translated.forallWF binder
