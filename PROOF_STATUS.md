@@ -123,6 +123,27 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `tests/HeadScope.lean` exercises actual cold/warm normalization across fresh
   local/let scopes and invalid reservation/shadowing preconditions; those
   invalid states are not kernel discrepancies.
+- `TypeChecker.Inner.whnfCore'.scopeWF` and `whnf'.scopeWF` carry the stronger
+  scoped-head cache invariant through the actual core/full normalizer workers
+  together with the existing semantic state, conversion and free-variable
+  contracts. Successful heads are neither metadata nor let expressions nor
+  free variables naming local lets. The proofs cover native metadata stripping,
+  local-let lookup, cached results, multi-lambda beta consumption, rebuilt
+  application spines, projection/string expansion, natural-number reducers,
+  native-reduction rejection, delta unfolding, fuel loops and core/full cache
+  insertion. Existing `VState.WF` supplies both cache-value and local-name
+  reservation; these are not fresh independent caller assumptions. Native
+  delta helpers preserve the actual scoped caches and name generator.
+  `Methods.ScopeWF` retains the original semantic contract and adds scoped
+  cache preservation at its typed four-method boundaries. Its actual zero-fuel
+  instance is proved; nonzero inference/comparison/recursor scope frames and
+  the stronger arbitrary-fuel induction remain open. Worker recursor cache
+  frames are explicit premises, not silently assumed implementing results.
+  These model-aware proofs inherit the pre-existing checker/metatheory and
+  representation dependencies of `whnf'.WF`; the separate native scope module
+  remains audited without checker/metatheory admissions. No new admission or
+  axiom is added. Neither the scoped-head invariant nor conversion preservation
+  establishes semantic WHNF completeness or terminal-sort acceptance.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
