@@ -191,6 +191,32 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   Raw freshness and metadata-barrier contracts exclude `sorryAx`; typed shadow
   receipts retain the inherited checker/metatheory admissions. Constructor WF,
   positivity, recursor equations, and full inductive soundness remain open.
+- `Verify.InductiveHeaderCheckerTransport` starts native checker transport with
+  an exact lookup bridge, not unrestricted signature extensionality.
+  `HeaderAxiomLookupAgreement` classifies each lookup as an identical native
+  record in both environments, or a source-batch inductive header and its exact
+  axiom view. Successful header registration derives this source-indexed
+  classification while retaining the old strong-header theorem as a projection.
+  `HeaderAxiomContinuation` also derives exact source constructor lists for the
+  installed headers. Combined with eventual registration freshness,
+  `missingChangedHeader` supplies the missing-constructor premise for every
+  changed native header. Continuation construction requires no additional caller
+  header/parameter model, lookup classification, or constructor-list premise.
+  Constructor/recursor lookup casts and constructor-application observations
+  agree exactly. Delta selection and both core/application definition unfolding
+  agree exactly, including optional results and the entire native checker state.
+  Constant inference preserves every accepted result; the executable constant
+  branch and public `checkType`/`inferType` entry points preserve accepted bare
+  constants and their complete state at every recursion fuel, with either cache
+  bank and arbitrary initial native caches. Missing-name diagnostics may retain
+  different environment payloads, so successful constant transport is not stated
+  as equality of all exceptions. These raw transport contracts exclude
+  `sorryAx` and do not establish semantic cache WF. Arbitrary expressions,
+  metadata-sensitive recursor/projection/eta/unit-like computations, full
+  mutually recursive method transport, accepted constructor-check transport,
+  automatic shadow domain receipts, and constructor WF remain open. The strong
+  initial `VContext`/`TrEnv` is unchanged; no substitute `CheckerEnv` assumption or
+  broader checker admission is introduced.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6191,6 +6217,28 @@ after actual constructor registration in their positive controls. These staging
 differences are not kernel discrepancies.
 Runtime fixtures use the imported prelude without its missing semantic
 translation. Run `lake env lean tests/InductiveConstructorFreshness.lean`.
+
+`tests/InductiveHeaderCheckerTransport.lean` checks the derived source-indexed
+lookup bridge, changed-header constructor exclusions, untouched-record and
+delta equality, public constant checking/inference transport, and complete
+unfolding transport. Its exhaustive production-module audit rejects every
+module-owned axiom, unexpected inherited dependency, and `sorryAx`. Five
+native-accepted batches cover singleton/mutual headers, zero/one/two parameters,
+indices, and universe parameters under both safeties and primitive flags. Every
+empty checkpoint preserves the same lookup bridge and checker behavior. Every
+non-header record is compared exactly, every changed record is its precise axiom
+view, and all future constructors are absent before accepted actual checking and
+eventual registration. Default and seeded native states cover both inference
+caches, normalization caches, the generator, equivalence manager, failure set,
+and universe-unfolding cache; every result state component is compared. Constant
+queries cover source headers, old inductive/constructor rows, safe/universe/
+partial/unsafe definitions, missing names, and universe-count mismatches.
+Core/application unfolding tests positive universe instantiation, cache hits,
+misses, and unchanged cache data; zero fuel rejects even seeded inference hits.
+Runtime fixtures use the imported prelude without its missing semantic
+translation. These are base-case transport regressions, not unrestricted
+constructor-check or inductive soundness tests. Run
+`lake env lean tests/InductiveHeaderCheckerTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
