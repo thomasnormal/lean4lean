@@ -213,8 +213,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   as equality of all exceptions. These raw transport contracts exclude
   `sorryAx` and do not establish semantic cache WF. Arbitrary-expression and
   metadata-sensitive recursive transport is composed below under explicit native
-  environmental eligibility. Accepted constructor-check transport,
-  automatic shadow domain receipts, and constructor WF remain open. The strong
+  environmental eligibility. Accepted constructor-check transport is composed
+  below under that native frame; its automatic staged eligibility, automatic
+  shadow domain receipts, and constructor WF remain open. The strong
   initial `VContext`/`TrEnv` is unchanged; no substitute `CheckerEnv` assumption or
   broader checker admission is introduced.
 - `Verify.TypeChecker.Transport` supplies directional accepted-result
@@ -241,9 +242,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   declarations exclude `sorryAx`; these are real native compositional lemmas with
   explicit reached-callback obligations, not an unrestricted theorem about
   `Methods.withFuel`. The recursive module below composes these helper receipts;
-  staged recursor/structure metadata eligibility, semantic native-state WF,
-  accepted constructor checking in the strong shadow, automatic domain receipts,
-  constructor WF, and full inductive soundness remain open. No executable checker
+  automatic staged recursor/structure metadata eligibility, semantic native-state
+  WF, automatic domain receipts, constructor WF, and full inductive soundness
+  remain open. The constructor module below composes accepted strong-shadow
+  constructor checking under the native frame. No executable checker
   behavior or initial strong `VContext`/`TrEnv` invariant changes.
 - `Verify.InductiveHeaderRecursorTransport` transports the actual native K and
   structure-major adaptation helpers without assuming structure metadata agrees
@@ -426,6 +428,51 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   Every owned declaration excludes admissions and implementation-interface
   axioms; executable checker behavior and existing admission boundaries are
   unchanged.
+- `Verify.InductiveConstructorTransport` applies the callback-free recursive
+  checker transport to the actual `AddInductive.checkConstructors` program.
+  `M.SuccessTransport.typeChecker` respects the actual lift: each checker call
+  starts with its fresh default state, copies the full local context, universe
+  parameters, safety and fuel, and discards the returned native state. Positivity
+  and constructor-spine transport follow their actual decreasing fuel, shared
+  parameter lookup/comparison, domain sort and universe checks, safe-only
+  positivity calls and annotation-peeled local openings with the exact scoped
+  name-generator advancement. The list-loop theorem preserves duplicate-name
+  state and both early completion/yield cases. A definitional factorization
+  captures the initial environment read rather than falsely transporting that
+  environment as an equal result. The mvar/fvar source guard preserves accepted
+  outcomes even though rejected diagnostics can contain different environments.
+  `checkConstructors.headerAxiomTransport` has no helper/method callback premises
+  and transports the entire actual constructor batch under
+  `NativeRecursiveHeaderFrame`. All owned raw declarations exclude admissions
+  and implementation-interface axioms.
+  `Verify.InductiveConstructorContinuation` separately composes this transport
+  with the existing strong staged axiom shadow.
+  `HeaderAxiomContinuation.acceptedConstructors` derives accepted shadow checking
+  and constructor traces from actual acceptance. Its remaining inputs are genuine
+  native metadata eligibility: actual constructor freshness and parent closure,
+  old recursor shadow-parent lookups and quotient alignment; entered header
+  lookup agreement and exact constructor lists come from the stage. The strong
+  composition theorem inherits `sorryAx` through its existing `VContext` and
+  `HeaderAxiomContinuation` input types, not through the raw transport proof; its
+  exhaustive audit permits only the dependencies already present in that strong
+  input. Automatic derivation of native metadata eligibility from the initial
+  strong history and accepted staging trace remains open. This is not a semantic
+  constructor WF, positivity/recursor equation, registration or full frontend
+  soundness theorem; translated-input eligibility and shadow reader/state/cache
+  WF still need semantic composition. No weaker `CheckerEnv`, checker algorithm
+  change, new admission or implementation-interface axiom is introduced.
+  `tests/InductiveConstructorTransport.lean` exhaustively audits all twenty-four
+  owned raw declarations against only `propext`, `Classical.choice` and
+  `Quot.sound`, and the one strong continuation theorem against its exact
+  existing strong-stage dependency baseline. Its 432 native/shadow outcomes
+  cover empty and constructor-free batches, nullary and genuinely mutual types,
+  shared/dependent/universe parameters, indexed and higher-order recursion,
+  peeled annotations, a thirty-two-field spine, both safety/primitive settings,
+  complete fuel configurations and exhaustion. Rejection controls exercise
+  parameter mismatch, nonpositivity, universe overflow, wrong returns, duplicate
+  names and source metavariables/free variables. Expected nonempty successes also
+  pass the native kernel. These executable metadata-stage checks are not proofs
+  of the remaining staged native eligibility or semantic constructor WF.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
@@ -609,10 +656,11 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   with shared raw constructor records; these metadata barriers remain explicit.
   All owned declarations exclude admissions and implementation-interface axioms.
   The recursive module closes method receipts under its native frame. Semantic
-  state/cache WF, translated-input/staged metadata eligibility,
-  accepted strong-shadow constructor checking and full inductive soundness remain
-  open. Strong initial `VContext`/`TrEnv`, inherited semantic/checker admission
-  boundaries, imported-prelude translation and the executable checker are unchanged.
+  state/cache WF, translated-input/staged metadata eligibility and full inductive
+  soundness remain open; the constructor module composes accepted strong-shadow
+  checking under that frame. Strong initial `VContext`/`TrEnv`, inherited
+  semantic/checker admission boundaries, imported-prelude translation and the
+  executable checker are unchanged.
 - `Verify.InductiveHeaderLazyDeltaTransport` derives the actual native lazy-delta
   step and complete fuelled loop transport. The pure dispatch policy preserves
   exact delta option records, reducibility-hint order, application tags, native
