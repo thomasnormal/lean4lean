@@ -1237,6 +1237,45 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   under/overapplication, wrong-parameter and malformed/nonsort controls remain.
   Runtime controls do not fabricate semantic contexts. No executable checker change,
   new axiom or admitted proof is introduced.
+- `Theory.SortArityCounts` proves uniqueness of semantic sort arity in well-formed
+  environments/contexts and positivity of a literal semantic forall's arity. Counts
+  therefore cannot be supplied inconsistently through conversion or dependent
+  domain/context changes. `Verify.InductiveIndexCountClosure` uses those facts to
+  prove that a translated actual index trace cannot overrun its accepted residual
+  arity, including dependent instantiation, stored-domain peeling and accepted WHNF.
+  `remainingKind` retains the exact unconsumed sort arity at the final context.
+  `checkedHeaderIndexBound` selects the accepted whole-batch input and derives the
+  native stored-count upper bound without a caller-supplied index-count equality.
+  Entry checker/alignment/reset, reservation/canonical annotations, original source
+  normalization and parameter completion remain explicit as in the earlier endpoint.
+  `exactCountOfSortKind` proves exhaustion from a zero-arity terminal kind;
+  `HeaderRecursorIndexCheckerEndpoint.exactCountOfSortCheck` derives that kind from
+  an actual accepted terminal `ensureSort` call in the genuine final checker.
+  `checkedHeaderParentOfSortCheck` consequently derives exact stored/native index
+  agreement and actual major/motive checker closure, without a numeric count premise
+  or literal native terminal-sort premise. It still requires that real sort-check
+  acceptance; the recursor frontend does not perform this extra check, and acceptance
+  has not yet been derived automatically from its reached normalization receipts.
+  Unconditional parameter completion and normalized count alignment remain open.
+  `tests/InductiveIndexCountClosure.lean` checks six interface contracts and audits
+  all 13 owned declarations (three count-theory, ten index-count bridge) against
+  genuinely unchanged earlier foundations, rejecting owned axioms. Count-theory
+  proofs inherit three dependencies, trace bounds/kinds seven and checked adapters
+  28, including existing admissions but no new ones. A formal conversion-only method
+  contract countermodel retains a metadata-hidden forall while satisfying the
+  existing `Methods.WF` specification. It is explicitly not the actual normalizer
+  and supplies no positive frontend/checker receipt: output head completeness must
+  be proved for the implementing normalizer, not inferred from that contract alone.
+  The fixture passes 64 actual normalized zero/one/two/three-index traversals and
+  accepted terminal sort checks under both safeties/primitive modes, with exact-fuel
+  rejection and unchecked stale-array controls. Thirty-six typed hidden unchecked
+  traversals stop below their normalized count and reject terminal-sort acceptance;
+  twelve nonliteral zero-arity terminals retain real sort-check acceptance.
+  The residual-kind fixture now checks actual terminal-sort acceptance rather than
+  assuming literal terminal syntax across its 2208 parent applications, 4416 motives
+  and 4224 complete native parent passes. These are proof-boundary controls, not a
+  kernel discrepancy. Runtime controls do not fabricate semantic contexts or strong
+  checkers. No executable checker change, new axiom or admitted proof is introduced.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw

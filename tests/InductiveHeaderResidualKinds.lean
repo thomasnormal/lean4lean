@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.InductiveParentPassCheckerClosure
+import Lean4Lean.Verify.InductiveIndexCountClosure
 import Lean.Util.CollectAxioms
 
 namespace InductiveHeaderResidualKindsTest
@@ -367,7 +368,9 @@ private def checkBatch (types : Array InductiveType) (parameters : Nat) (origina
                 throwError "residual kinds parameter prefix changed actual index context"
               let .ok (terminal, peelings) := consumeIndices residual indices.toList finalReader
                 | throwError "residual kinds selected indices failed normalized consumption"
-              unless terminal.isSort do throwError "residual kinds accepted terminal is not a sort"
+              let .ok sortedTerminal := (monadLift (TypeChecker.ensureSort terminal) : M Expr) finalReader
+                | throwError "actual terminal failed native sort checking for exact index-count closure"
+              unless sortedTerminal.isSort do throwError "native terminal sort-check result is not a sort"
               let .ok appliedType := (monadLift (TypeChecker.checkType (mkAppN partialParent indices)) : M Expr) finalReader
                 | throwError "residual kinds full parent application failed genuine index-domain checking"
               let .ok true := (monadLift (TypeChecker.isDefEq appliedType terminal) : M Bool) finalReader
