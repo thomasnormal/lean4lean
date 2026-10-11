@@ -21,6 +21,23 @@ theorem headerAxiomInfo.typeValue (info : InductiveVal) :
 def HeaderAxiomAgreement (actual shadow : Kernel.Environment) : Prop :=
   ∀ name, (actual.find? name).map headerTypeValue = (shadow.find? name).map headerTypeValue
 
+def HeaderAxiomLookupAgreement (changed : Name → Prop) (actual shadow : Kernel.Environment) : Prop :=
+  ∀ name, actual.find? name = shadow.find? name ∨ changed name ∧
+    ∃ header, actual.find? name = some (.inductInfo header) ∧
+      shadow.find? name = some (headerAxiomInfo header)
+
+theorem HeaderAxiomLookupAgreement.refl (changed : Name → Prop) (env : Kernel.Environment) :
+    HeaderAxiomLookupAgreement changed env env :=
+  fun _ => .inl rfl
+
+theorem HeaderAxiomLookupAgreement.signatures
+    (agreement : HeaderAxiomLookupAgreement changed actual shadow) : HeaderAxiomAgreement actual shadow := by
+  intro name
+  rcases agreement name with same | ⟨_, header, actualLookup, shadowLookup⟩
+  · rw [same]
+  · rw [actualLookup, shadowLookup]
+    rfl
+
 theorem HeaderAxiomAgreement.refl (env : Kernel.Environment) : HeaderAxiomAgreement env env :=
   fun _ => rfl
 
@@ -60,10 +77,29 @@ theorem HeaderAxiomAgreement.addHeader (agreement : HeaderAxiomAgreement actual 
 def headerAxiomView (env : Kernel.Environment) (infos : List InductiveVal) : Kernel.Environment :=
   infos.foldl (fun current info => current.add (headerAxiomInfo info)) env
 
+theorem HeaderAxiomLookupAgreement.addHeader
+    (agreement : HeaderAxiomLookupAgreement changed actual shadow) (info : InductiveVal)
+    (member : changed info.name) (actualWF : actual.constants.WF) (shadowWF : shadow.constants.WF)
+    (actualFresh : actual.constants.find? info.name = none)
+    (shadowFresh : shadow.constants.find? info.name = none) :
+    HeaderAxiomLookupAgreement changed (actual.add (.inductInfo info)) (shadow.add (headerAxiomInfo info)) := by
+  intro name
+  rw [headerViewLookup actual (.inductInfo info) actualWF actualFresh,
+    headerViewLookup shadow (headerAxiomInfo info) shadowWF shadowFresh]
+  by_cases same : info.name = name
+  · simp only [ConstantInfo.name, ConstantInfo.toConstantVal, headerAxiomInfo,
+      same, beq_self_eq_true, if_true]
+    exact .inr ⟨same ▸ member, info, rfl, rfl⟩
+  · simpa only [ConstantInfo.name, ConstantInfo.toConstantVal, headerAxiomInfo,
+      beq_iff_eq, same, if_false] using agreement name
+
 private theorem registerHeaderAxiomView (infos : List InductiveVal) (allowPrimitive : Bool)
     (actual shadow : Kernel.Environment) (semantic : VEnv) (headers : List VInductiveType)
+    (changed : Name → Prop)
     (actualWF : actual.constants.WF) (history : TrEnv safety shadow semantic)
     (agreement : HeaderAxiomAgreement actual shadow)
+    (lookups : HeaderAxiomLookupAgreement changed actual shadow)
+    (members : ∀ info ∈ infos, changed info.name)
     (models : List.Forall₂ (fun (info : InductiveVal) (header : VInductiveType) => info.name = header.name ∧
       TrConstant safety semantic (.inductInfo info) header.toVConstant) infos headers)
     (typesWF : ∀ header ∈ headers, header.toVConstant.WF semantic) :
@@ -73,12 +109,13 @@ private theorem registerHeaderAxiomView (infos : List InductiveVal) (allowPrimit
       ∃ final, semantic.addInductHeaders headers = some final ∧
         TrEnv safety (headerAxiomView shadow infos) final ∧
         HeaderAxiomAgreement result (headerAxiomView shadow infos) ∧
+        HeaderAxiomLookupAgreement changed result (headerAxiomView shadow infos) ∧
         NativeValueFrame shadow (headerAxiomView shadow infos) ∧
         (allowPrimitive = false → NativePrimitiveFrame shadow (headerAxiomView shadow infos)) := by
   induction infos generalizing actual shadow semantic headers with
   | nil =>
     cases models
-    exact .pure ⟨semantic, rfl, history, agreement, .refl history.map_wf,
+    exact .pure ⟨semantic, rfl, history, agreement, lookups, .refl history.map_wf,
       fun _ => .refl history.map_wf⟩
   | cons info infos induction =>
     cases models with
@@ -106,16 +143,54 @@ private theorem registerHeaderAxiomView (infos : List InductiveVal) (allowPrimit
       have shadowFrame := NativeValueFrame.addConst (ci := headerAxiomInfo info)
         history.map_wf shadowFresh rfl
       have nextAgreement := agreement.addHeader info actualWF history.map_wf fresh shadowFresh
+      have nextLookups := lookups.addHeader info (members info (by simp))
+        actualWF history.map_wf fresh shadowFresh
       refine (induction (actual.add (.inductInfo info)) (shadow.add (headerAxiomInfo info)) next headers
-        (actualWF.insert _ _ fresh) nextHistory nextAgreement
+        (actualWF.insert _ _ fresh) nextHistory nextAgreement nextLookups
+        (fun info member => members info (by simp [member]))
         (remaining.imp fun _ _ model => ⟨model.1, model.2.mono (VEnv.addConst_le step)⟩)
         (fun header member => (typesWF header (by simp [member])).mono (VEnv.addConst_le step))).mono ?_
-      rintro result ⟨final, registered, finalHistory, finalAgreement, finalFrame, finalPrimitives⟩
-      refine ⟨final, ?_, finalHistory, finalAgreement, shadowFrame.trans finalFrame, ?_⟩
+      rintro result ⟨final, registered, finalHistory, finalAgreement, finalLookups, finalFrame, finalPrimitives⟩
+      refine ⟨final, ?_, finalHistory, finalAgreement, finalLookups, shadowFrame.trans finalFrame, ?_⟩
       · simpa only [VEnv.addInductHeaders, ← model.1, step, Option.bind_some] using registered
       · intro disabled
         exact (NativePrimitiveFrame.addConst (ci := headerAxiomInfo info) history.map_wf
           shadowFresh (primitive disabled)).trans (finalPrimitives disabled)
+
+theorem AddInductive.declareInductiveTypes.strongHeaderAxiomLookupView
+    (reader : AddInductive.Context) (stats : AddInductive.InductiveStats)
+    (nparams : Nat) (types : Array InductiveType) (numNested : Nat) (isUnsafe : Bool)
+    (history : TrEnv safety reader.env semantic)
+    (safetyBound : safety ≤ if isUnsafe then .unsafe else .safe)
+    (sizes : stats.nindices.size = types.size)
+    (models : List.Forall₂ (TrInductiveHeader semantic reader.lparams) types.toList headers)
+    (typesWF : ∀ header ∈ headers, header.toVConstant.WF semantic) :
+    (AddInductive.declareInductiveTypes stats nparams types numNested isUnsafe reader).WF fun actual =>
+      ∃ shadow final, semantic.addInductHeaders headers = some final ∧ TrEnv safety shadow final ∧
+        HeaderAxiomAgreement actual shadow ∧ NativeValueFrame reader.env shadow ∧
+        HeaderAxiomLookupAgreement (fun name => ∃ type ∈ types, type.name = name) actual shadow ∧
+        (reader.allowPrimitive = false → NativePrimitiveFrame reader.env shadow) := by
+  unfold AddInductive.declareInductiveTypes
+  dsimp only
+  rw [← Array.foldlM_toList]
+  refine (registerHeaderAxiomView _ reader.allowPrimitive reader.env reader.env semantic headers
+    (fun name => ∃ type ∈ types, type.name = name)
+    history.map_wf history (.refl _) (.refl _ _) ?_ ?_ typesWF).mono ?_
+  · intro info member
+    rw [Array.mem_toList_iff] at member
+    obtain ⟨index, bound, rfl⟩ := Array.mem_iff_getElem.mp member
+    have typeBound : index < types.size := by
+      simp only [Array.size_zipWith] at bound
+      omega
+    refine ⟨types[index], Array.getElem_mem typeBound, ?_⟩
+    simp only [Array.getElem_zipWith]
+  · rw [Array.toList_zipWith]
+    refine Lean4Lean.zipInductiveHeaders _ ?_ (by simpa using sizes) models
+    intro type index header model
+    refine ⟨model.1, ?_, model.2.1, model.2.2⟩
+    simpa [ConstantInfo.safety, ConstantInfo.isUnsafe, ConstantInfo.isPartial] using safetyBound
+  · rintro actual ⟨final, registered, finalHistory, agreement, lookups, frame, primitives⟩
+    exact ⟨_, final, registered, finalHistory, agreement, frame, lookups, primitives⟩
 
 theorem AddInductive.declareInductiveTypes.strongHeaderAxiomView
     (reader : AddInductive.Context) (stats : AddInductive.InductiveStats)
@@ -129,18 +204,10 @@ theorem AddInductive.declareInductiveTypes.strongHeaderAxiomView
       ∃ shadow final, semantic.addInductHeaders headers = some final ∧ TrEnv safety shadow final ∧
         HeaderAxiomAgreement actual shadow ∧ NativeValueFrame reader.env shadow ∧
         (reader.allowPrimitive = false → NativePrimitiveFrame reader.env shadow) := by
-  unfold AddInductive.declareInductiveTypes
-  dsimp only
-  rw [← Array.foldlM_toList]
-  refine (registerHeaderAxiomView _ reader.allowPrimitive reader.env reader.env semantic headers
-    history.map_wf history (.refl _) ?_ typesWF).mono ?_
-  · rw [Array.toList_zipWith]
-    refine Lean4Lean.zipInductiveHeaders _ ?_ (by simpa using sizes) models
-    intro type index header model
-    refine ⟨model.1, ?_, model.2.1, model.2.2⟩
-    simpa [ConstantInfo.safety, ConstantInfo.isUnsafe, ConstantInfo.isPartial] using safetyBound
-  · rintro actual ⟨final, registered, finalHistory, agreement, frame, primitives⟩
-    exact ⟨_, final, registered, finalHistory, agreement, frame, primitives⟩
+  refine (AddInductive.declareInductiveTypes.strongHeaderAxiomLookupView reader stats nparams types
+    numNested isUnsafe history safetyBound sizes models typesWF).mono ?_
+  rintro actual ⟨shadow, final, registered, finalHistory, agreement, frame, _, primitives⟩
+  exact ⟨shadow, final, registered, finalHistory, agreement, frame, primitives⟩
 
 theorem TypeChecker.MLCtx.WF.monoEnv {model : TypeChecker.MLCtx}
     (typed : model.WF semantic universes) (increase : semantic ≤ final) : model.WF final universes := by
