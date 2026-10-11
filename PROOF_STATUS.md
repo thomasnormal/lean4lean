@@ -604,9 +604,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   proves WF for every translated constructor in the complete declaration when
   `stats.params.size > 0`, with no caller-supplied constructor translations or
   per-constructor binder/typehood premises.
-  Binder-free constructors of zero-parameter families still need automatic
-  semantic header-kind/arity extraction; saturated return-application typing is
-  proved below. Semantic positivity,
+  Binder-free constructors of zero-parameter families still need closed-context
+  semantic header kinds; automatic contextual batch kinds and saturated
+  return-application typing are proved below. Semantic positivity,
   recursor equations, complete inductive registration and full frontend/prelude
   soundness remain open; this is not a full inductive soundness theorem.
   The conditional `AcceptedConstructorTrace.zeroParameterKind` reconstructs
@@ -660,10 +660,24 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   lookup automatically from the actual registered declaration and needs only
   matching native header heads and semantic header sort arities, not translated
   constructor inputs or constructor/return typehood assumptions.
-  Automatic exact header-kind/count extraction for every member of the accepted
-  batch remains open; the first-header kind theorem alone does not discharge
-  this obligation. Consequently full batch constructor WF is still conditional
-  on those header receipts, and full inductive soundness is not established.
+  `CheckedHeaderContinuation.heads` retains the exact accepted native constant
+  for every parent, including parameterized batches. `contextualKinds` derives
+  exact zero-parameter sort arity for every translated header, not just the first,
+  and transports earlier receipts through all later accepted index contexts.
+  `contextualHeaderKind` packages a matching semantic member, native head and
+  parameter-plus-index arity in the final typed reader context. The semantic
+  constructor receipt retains the complete/incomplete header signature relation;
+  `ConstructorSemanticReceipts.contextualHeaderKinds` transports those automatic
+  receipts to every corresponding complete declaration member in the registered
+  semantic environment without changing constructor lists or assuming equality
+  of entire headers. These are contextual kinds, not empty-context kinds.
+  Generic sort-arity strengthening through head reduction would additionally
+  require the metatheory's reduction-pattern `VEnv.Params`, not merely `VEnv.WF`;
+  no such additional assumption is imposed on the checker. Specializing these
+  contextual receipts to translated header universes and strengthening the
+  resulting constructor typehood remains open. Consequently full batch
+  constructor WF is still conditional on those header receipts, and full
+  inductive soundness is not established.
   No strong checker or native parent-closure contract is weakened, and no
   executable checker behavior changes. The return fixture exercises eleven
   formal contracts, audits all twenty-two sort-arity and seven return-typing owned
