@@ -793,8 +793,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   it with the original strong context, canonical-annotation, primitive/safety and
   native parent-closure contracts unchanged. The semantic environment remains
   the reached signature-registration stage, not a claimed final actual `TrEnv`.
-  Signature eligibility is now automatic for all parameter counts, but accepted
-  parameter-consuming field/index trace translation, their reached normalization
+  Signature eligibility is now automatic for all parameter counts. The following
+  parameter-prefix module supplies compatible arguments and nonzero-parameter
+  field endpoints at the original source universes; parameter-consuming index
+  translation, universe-reindexed parameter applications, reached normalization
   and annotation support, motive/IH/minor domain formation, recursor equations
   and final inductive registration remain separate obligations. In particular,
   the existing field-only endpoint representation is not silently treated as a
@@ -818,6 +820,45 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   retain the earlier 31-dependency checker/metatheory baseline. All existing
   metatheory admissions remain
   inherited, with no additional caller typehood or head-typing premise.
+- `Verify.InductiveRecursorParameterPrefixes` closes the accepted constructor
+  parameter-consuming prefix before translating its actual recursor field suffix.
+  The strengthened `translatedReusedHeaderParameterArgument` exposes genuine
+  parameter-domain typing from the accepted stored-type and definitional-equality
+  calls; the earlier opening theorem retains its API as a projection.
+  `AcceptedConstructorTrace.parameterPrefix` derives `TypedParameterArguments`
+  together with a strict residual source translation and an exact native prefix.
+  Its completed index is `max initialIndex stats.params.size`; an unchecked early
+  stop cannot supply this accepted receipt. `ConstructorSemanticReceipts` derives
+  these prefixes for every accepted constructor without caller-supplied argument
+  typing. Native suffix extraction preserves the actual field trace and its
+  annotation support without allocating locals or changing readers.
+  `ConstructorConstantRegistration.parameterizedFields` transports the automatic
+  receipts through the semantic registration extension and a genuine reached
+  mixed-context insertion, then translates the actual field suffix after all
+  parameters. `ParameterizedCtorFieldModelEndpoint` retains the complete typed
+  parameter application, residual translation, final model well-formedness and
+  native agreement, terminal translation and field abstraction extension.
+  Its application theorem types `mkAppN (mkAppN head stats.params) fields`;
+  `constantInputApplication` derives the head premises from the registered
+  constant input. This is a separate parameter-plus-field endpoint, not a change
+  to the earlier field-only application's meaning. All accepted parameter counts
+  are supported at the original source universes. Reindexing compatible parameter
+  applications into fresh elimination universes, parameter-consuming index
+  normalization, reached annotation support, motive/IH/minor formation, recursor
+  equations and final actual inductive histories remain open. The strong initial
+  checker interface and actual/shadow boundary are unchanged; no final actual
+  `TrEnv`, executable checker change, new axiom or admitted proof is introduced.
+  `tests/InductiveRecursorParameterPrefixes.lean` checks 16 prefix, suffix,
+  environment transport, registration and endpoint contracts, exhaustively audits
+  all 50 owned declarations against genuine earlier foundations, and separately
+  audits the strengthened shared argument helper. Its 152 native controls compare
+  the full traversal with the exact remaining-fuel suffix in constructor-registered and
+  reached actual motive readers, checking terminal, field/recursive-field arrays,
+  name generator, every local declaration, residual typehood and complete
+  constructor application typing. Empty/constructor-free, zero/one/two-parameter,
+  dependent/polymorphic, parameter-plus-index and mutual batches run under both
+  safeties and primitive modes. Unchecked incomplete prefixes retain no accepted
+  constructor eligibility; runtime controls do not fabricate semantic contexts.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
