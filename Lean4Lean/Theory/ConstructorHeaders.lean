@@ -8,7 +8,32 @@ def VEnv.addConstructorHeaders (env : VEnv) : List VConstVal → Option VEnv
     let env ← env.addConst ctor.name ctor.toVConstant
     env.addConstructorHeaders ctors
 
+def VInductDecl.constructorHeaders (declaration : VInductDecl) : List VConstVal :=
+  declaration.types.flatMap (fun header => header.ctors)
+
 variable {env env' : VEnv} {ctors : List VConstVal} {ctor : VConstVal}
+
+theorem VEnv.addConstructorHeaders.exists
+    (fresh : ∀ constructor ∈ ctors, env.constants constructor.name = none)
+    (distinct : (ctors.map VConstVal.name).Nodup) :
+    ∃ extended, env.addConstructorHeaders ctors = some extended := by
+  induction ctors generalizing env with
+  | nil => exact ⟨env, rfl⟩
+  | cons first remaining induction =>
+    have firstFresh := fresh first (by simp)
+    have names := List.nodup_cons.mp distinct
+    let next : VEnv := { env with constants := fun name =>
+      if first.name = name then some first.toVConstant else env.constants name }
+    have registered : env.addConst first.name first.toVConstant = some next := by
+      simp only [VEnv.addConst, firstFresh, next]
+    have remainingFresh : ∀ constructor ∈ remaining, next.constants constructor.name = none := by
+      intro constructor member
+      have different : first.name ≠ constructor.name := by
+        intro equal
+        exact names.1 (equal ▸ List.mem_map.mpr ⟨constructor, member, rfl⟩)
+      exact (if_neg different).trans (fresh constructor (by simp [member]))
+    obtain ⟨extended, final⟩ := induction remainingFresh names.2
+    exact ⟨extended, by simp only [addConstructorHeaders, registered]; exact final⟩
 
 theorem VEnv.addConstructorHeaders.append (env : VEnv) (first second : List VConstVal) :
     env.addConstructorHeaders (first ++ second) =
