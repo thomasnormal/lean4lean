@@ -301,6 +301,36 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   recursor parent/constructor closure, general mutually recursive method
   transport, accepted constructor-check transport, constructor WF, or full
   inductive soundness. Strong initial `VContext`/`TrEnv` remains unchanged.
+- `Verify.InductiveHeaderWHNFCoreTransport` transports the complete actual
+  `TypeChecker.Inner.whnfCore'` program from reached callback receipts and equal
+  local contexts, across distinct methods/readers and identical initial states.
+  `NativeCoreHeadReceipt` records the actual application/cache miss and accepted
+  head normalization result/state. `NativeCoreCallbacks` limits local-let, zeta,
+  beta, rebuilt-head, recursor and projection obligations to the native reached
+  branches and exact earlier accepted states/results. Recursor/projection fields
+  accept the native helper contracts established by the previous transport
+  modules; environment lookup agreement is not silently treated as universal
+  callback refinement. Native head comparison remains its actual Boolean test,
+  not an unjustified propositional equality of expressions.
+  `whnfCoreBetaInput` factors the exact native lambda-peeling input, including
+  reversed arguments, partial saturation and overapplication; `loop_eq` proves
+  this factorization against the existing native loop. It does not replace that
+  loop or use a different beta traversal. Outer metadata removal and the native
+  reader/cache prefixes are likewise proved equal to the actual program.
+  The proof preserves all result-state fields and the asymmetric native cache
+  policy: easy cases and non-let free variables bypass cache reads; other reached
+  cache hits return even under cheap flags. Beta, rebuilt-head, zeta and projection
+  paths save only with both flags off; local-let free variables and unchanged-head
+  recursor paths do not add the outer cache entry. Native `isLetFVar` includes
+  nondependent local lets, so its value receipt uses `LocalDecl.value? true`.
+  All owned declarations exclude admissions and persistent-map axioms. This is
+  directional accepted-computation transport, not semantic cache/state WF, a
+  proof that malformed metadata cannot reach panic fallbacks, or general
+  `whnf'`/`inferType'`/mutually recursive `Methods.withFuel` transport. Translated
+  input eligibility, old-parent/constructor closure, general accepted constructor
+  checking, automatic domain receipts, constructor WF, semantic inductive
+  registration and full inductive soundness remain open. Strong initial
+  `VContext`/`TrEnv` and executable checker behavior remain unchanged.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6390,6 +6420,32 @@ Subsequent normalization
 checks their expected results. Imported-prelude fixtures do not supply semantic
 prelude translation, and raw state equality is not semantic state WF. Run
 `lake env lean tests/InductiveHeaderReductionTransport.lean`.
+
+`tests/InductiveHeaderWHNFCoreTransport.lean` exhaustively audits the raw core
+module and checks native-accepted singleton/mutual header batches across both
+safety/primitive flags before future constructor registration. All four cheap
+flag combinations run in default/seeded states and alternate readers, comparing
+every inference/normalization cache, generator field, equivalence map/union-find,
+failure set and unfolding cache. Scripted stateful callbacks cover every easy
+expression tag, free-variable misses/parameters/local lets (including hidden
+nondependent values), outer metadata, cache hits/misses, exact under/full/over-
+applied beta inputs, every non-lambda rebuilt head, unchanged-head recursor
+miss/success, zeta, projection success/out-of-range and string expansion.
+Independent callback counts and outer-cache assertions enforce the actual
+branch-specific policy, including cache hits under cheap flags and no save on
+local-let free variables or successful unchanged-head recursor paths. Exhausted
+callbacks test failures, and an actual rejection can coexist with a successful
+shadow. Deliberately different local let values produce different results even
+with agreeing environment classifications, showing that local-context equality
+is a real premise; this is not a kernel discrepancy. Actual `Methods.withFuel`
+first checks complete local-let, beta, zeta, product-projection, `Nat.rec`, local-
+proof `Eq.rec` and local-product `Prod.rec` applications in both views, then
+normalizes through the real core at all flag combinations and checks the full
+normalization result. A bare `Nat.zero` retains its constructor form, unlike a
+computed natural operation yielding a literal; the expectations preserve that
+native distinction. Imported-prelude tests do not provide semantic prelude
+translation, and equal raw state fields do not assert semantic state WF. Run
+`lake env lean tests/InductiveHeaderWHNFCoreTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong

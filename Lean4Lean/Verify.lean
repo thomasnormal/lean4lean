@@ -196,5 +196,6 @@ import Lean4Lean.Verify.InductiveHeaderCheckerTransport
 import Lean4Lean.Verify.InductiveHeaderNormalizationTransport
 import Lean4Lean.Verify.InductiveHeaderRecursorTransport
 import Lean4Lean.Verify.InductiveHeaderReductionTransport
+import Lean4Lean.Verify.InductiveHeaderWHNFCoreTransport
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveNestedRewrite
