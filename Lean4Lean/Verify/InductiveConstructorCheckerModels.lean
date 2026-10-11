@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.InductiveConstructorSemanticReceipts
+import Lean4Lean.Verify.InductiveHeaderKinds
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
@@ -19,6 +20,14 @@ theorem _root_.Lean4Lean.TrConstructor.forallWF
   cases translated with
   | forallE domainTyped bodyTyped domainTranslated bodyTranslated =>
     simpa only [VConstant.WF, VLCtx.toCtx, ← count] using domainTyped.forallE bodyTyped
+
+theorem _root_.Lean4Lean.TrConstructor.sortArityWF
+    (translated : TrConstructor environment universes constructor semantic)
+    (environmentWF : environment.WF)
+    (kind : environment.SortArity universes.length [] 0 semantic.type) :
+    semantic.toVConstant.WF environment := by
+  have typed := kind.isType environmentWF (by exact trivial)
+  simpa only [VConstant.WF, translated.2.1] using typed
 
 theorem CanonicalAnnotationConstants.mono (constants : CanonicalAnnotationConstants environment)
     (increase : environment ≤ extended) : CanonicalAnnotationConstants extended :=
@@ -152,6 +161,70 @@ theorem AcceptedConstructorTrace.checkerModels
     · simpa only [List.singleton_append] using head.trans history
     · simp only [List.length_cons]
       omega
+
+theorem AcceptedConstructorTrace.zeroParameterKind
+    {stats : InductiveStats} {isUnsafe : Bool} {parent index finalIndex : Nat}
+    {reader finalReader : Context} {type terminal : Expr}
+    (trace : AcceptedConstructorTrace stats isUnsafe parent reader index type finalReader finalIndex terminal)
+    (zero : stats.params = #[])
+    (checker : TypeChecker.VContext) (aligned : HeaderCheckerAligned checker reader)
+    (initialWF : ({} : TypeChecker.VState).WF checker)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (different : ({} : TypeChecker.VState).ngen.namePrefix ≠ reader.ngen.namePrefix)
+    (constants : CanonicalAnnotationConstants checker.venv)
+    (definitions : CanonicalAnnotationDefinitions checker.venv)
+    (parameters : HeaderParameterModels stats checker.vlctx)
+    {semantic : VExpr} (translated : checker.TrExprS type semantic)
+    (anchor : ∀ {anchorChecker : TypeChecker.VContext} {anchorReader : Context},
+      HeaderCheckerAligned anchorChecker anchorReader →
+      ({} : TypeChecker.VState).WF anchorChecker →
+      {anchorSemantic : VExpr} → anchorChecker.TrExprS terminal anchorSemantic →
+      anchorChecker.venv.SortArity anchorChecker.lparams.length anchorChecker.vlctx.toCtx 0 anchorSemantic) :
+    checker.venv.SortArity checker.lparams.length checker.vlctx.toCtx (finalIndex - index) semantic := by
+  induction trace generalizing checker semantic with
+  | terminal notForall valid =>
+    simpa only [Nat.sub_self] using anchor aligned initialWF translated
+  | parameter selected accepted tail induction =>
+    have impossible : False := by
+      simpa [zero] using (selectedParameterBound selected)
+    exact impossible.elim
+  | @field index domain reader sort name binder body finalReader finalIndex terminal
+      notParameter domainChecked universeAccepted positive tail induction =>
+    obtain ⟨peeled, nextChecker, environment, universes, context, nextAligned, nextWF,
+      openedSemantic, opened, openedTyped, domainSemantic, bodySemantic, level, sourceShape,
+      domainTyped, domainEquality, bodyEquality⟩ := translatedHeaderOpeningWithSemantics checker reader aligned
+        initialWF reserved different constants definitions translated
+    have native : checker.mlctx.lctx = reader.lctx :=
+      checker.lctx_eq.trans (congrArg TypeChecker.Context.lctx aligned)
+    have pushed := Context.RecursorScopeFrame.push reader (native ▸ checker.trlctx.1) reserved name binder
+      (peelTypeAnnotations domain)
+    have head : ParameterPrefix checker.mlctx nextChecker.mlctx [⟨reader.ngen.curr⟩] := by
+      rw [context]
+      simpa only [List.nil_append] using ParameterPrefix.snoc (ParameterPrefix.nil (base := checker.mlctx))
+    have nextParameters := parameters.mono head.insertion.fvars_sublist.subset
+    have bodyKind := induction nextChecker nextAligned nextWF pushed.reserved different
+      (environment ▸ constants) (environment ▸ definitions) nextParameters opened anchor
+    have bodyKind' : nextChecker.venv.SortArity nextChecker.lparams.length
+        nextChecker.vlctx.toCtx (finalIndex - (index + 1)) openedSemantic := bodyKind
+    have bodyEquality' : nextChecker.venv.IsDefEqU nextChecker.lparams.length
+        nextChecker.vlctx.toCtx openedSemantic bodySemantic := bodyEquality
+    have bodyKind := bodyKind'.defeq nextChecker.Ewf nextChecker.Δwf.toCtx bodyEquality'.symm
+    have bodyKind : checker.venv.SortArity checker.lparams.length (peeled :: checker.vlctx.toCtx)
+        (finalIndex - (index + 1)) bodySemantic := by
+      simpa only [environment, universes, TypeChecker.VContext.vlctx, context, MLCtx.vlctx, VLCtx.toCtx] using bodyKind
+    have contexts : checker.venv.IsDefEqCtx checker.lparams.length checker.vlctx.toCtx
+        (peeled :: checker.vlctx.toCtx) (domainSemantic :: checker.vlctx.toCtx) :=
+      .succ .zero domainEquality.symm
+    have bodyKind := bodyKind.defeqCtx checker.Ewf.ordered contexts
+    have domainIsType : checker.IsType domainSemantic := ⟨level, domainTyped⟩
+    have bodyIsType := bodyKind.isType checker.Ewf ⟨checker.Δwf.toCtx, domainIsType⟩
+    obtain ⟨sortLevel, sourceTyped⟩ := domainIsType.forallE bodyIsType
+    have equality : checker.IsDefEqU semantic (.forallE domainSemantic bodySemantic) :=
+      sourceShape.symm ▸ ⟨.sort sortLevel, sourceTyped⟩
+    have monotone := tail.index_le
+    have exactCount : finalIndex - index = (finalIndex - (index + 1)) + 1 := by omega
+    rw [exactCount]
+    exact .forallE domainIsType equality bodyKind
 
 theorem TypedHeaderReader.constructorReaderModels (model : TypedHeaderReader base stats reader)
     (reserved : ContextReserved reader.lctx reader.ngen)
