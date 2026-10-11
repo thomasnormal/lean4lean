@@ -245,6 +245,35 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   accepted constructor checking in the strong shadow, automatic domain receipts,
   constructor WF, and full inductive soundness remain open. No executable checker
   behavior or initial strong `VContext`/`TrEnv` invariant changes.
+- `Verify.InductiveHeaderRecursorTransport` transports the actual native K and
+  structure-major adaptation helpers without assuming structure metadata agrees
+  for a changed header. A parent whose shadow lookup still has an inductive tag
+  must have an identical actual lookup. `stableOriginalInductiveParent` derives
+  this equality from the existing shadow value-frame receipt and an original
+  inductive lookup; the parent name need not be separately excluded from the
+  abstract changed-name predicate. Stable parent lookups preserve the native
+  structure-like test, first-constructor selection, nullary constructor creation,
+  and structure expansion. Constructor casts agree even at other names that
+  change from inductive headers to axioms. Pure expansion equality does not assert
+  constructor metadata WF or exclude the existing unreachable fallback.
+  `toCtorWhenStruct.headerAxiomTransport` handles both initial early exits,
+  normalized-type parent mismatch, proposition rejection, and structure expansion,
+  preserving complete accepted states across distinct methods/readers. Its type
+  and sort prefix obligations are guarded by the actual reached initial tests;
+  the sort obligation also receives the exact accepted type/state and matching
+  parent test. `toCtorWhenK.headerAxiomTransport` requires the native K flag and
+  covers nonconstant and wrong-parent types, the complete metavariable-index scan,
+  missing constructor selection, and true/false constructor comparisons. Its
+  comparison receipt is indexed by the accepted type/state and selected native
+  constructor. The generic transport module now relates `Expr.withApp` to its
+  actual head and proves the native pure `forIn'` scan independent of readers and
+  checker state, including early exits. These raw contracts exclude `sorryAx`;
+  only original-parent lookup conversion uses the existing persistent-map lookup
+  interface. They do not derive old recursor parent/constructor closure merely
+  from lookup classification, or prove general `inductiveReduceRec`, recursive
+  `Methods.withFuel` transport, semantic state WF, accepted constructor-check
+  transport, constructor WF, or full inductive soundness. Strong initial
+  `VContext`/`TrEnv` and executable behavior remain unchanged.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6287,6 +6316,25 @@ a literal while cheap core normalization retains the constructor application;
 the projection tests preserve that intentional difference. Imported-prelude
 fixtures do not supply its missing semantic translation or prove general callback
 transport. Run `lake env lean tests/InductiveHeaderNormalizationTransport.lean`.
+
+`tests/InductiveHeaderRecursorTransport.lean` checks automatic original-parent
+stability at the existing typed continuation, and exhaustively audits both raw
+transport modules against their explicit logical/persistent-lookup footprints.
+Native-accepted singleton/mutual batches exercise both safety and primitive flags
+before constructor registration, with default and fully seeded checker states.
+Stateful callbacks cover all K/structure early exits, matching/mismatching parents,
+proposition rejection, constructor comparison success/failure, and metavariable
+scans that reject indices but permit parameter-only metavariables. Actual native
+methods convert a local equality proof through `Eq.rec` and eta-expand a local
+product; complete result states are compared. A negative control manually injects
+identical malformed recursor records with a newly staged parent into both native
+environments. With identical raw callbacks, actual K/reduction results differ
+from the shadow despite exact recursor-record preservation. This is evidence that
+old-parent metadata closure remains a real obligation, not a kernel discrepancy
+or a native-accepted malformed declaration. The fixture does not execute the
+unreachable structure fallback, construct semantic prelude translation, or prove
+unrestricted recursive transport. Run
+`lake env lean tests/InductiveHeaderRecursorTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong

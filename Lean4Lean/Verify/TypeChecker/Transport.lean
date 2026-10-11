@@ -2,6 +2,17 @@ import Lean4Lean.Verify.TypeChecker.Basic
 
 namespace Lean.Expr
 
+theorem withApp_getAppFn (expression : Expr) (callback : Expr → Array Expr → resultType) :
+    expression.withApp callback = expression.withApp (fun _ arguments => callback expression.getAppFn arguments) := by
+  have auxiliary : ∀ expression arguments index,
+      Expr.withAppAux callback expression arguments index =
+        Expr.withAppAux (fun _ arguments => callback expression.getAppFn arguments) expression arguments index := by
+    intro expression arguments index
+    induction expression generalizing arguments index with
+    | app function argument functionIH argumentIH => exact functionIH _ _
+    | _ => rfl
+  exact auxiliary expression _ _
+
 theorem withApp_rel (expression : Expr) (actual : Expr → Array Expr → actualType)
     (shadow : Expr → Array Expr → shadowType) (relation : actualType → shadowType → Prop)
     (continuation : ∀ head arguments, relation (actual head arguments) (shadow head arguments)) :
@@ -16,6 +27,23 @@ theorem withApp_rel (expression : Expr) (actual : Expr → Array Expr → actual
   exact auxiliary expression _ _
 
 end Lean.Expr
+
+namespace List
+
+theorem forIn'_pure [Monad monad] [LawfulMonad monad] (items : List itemType) (initial : resultType)
+    (step : (item : itemType) → item ∈ items → resultType → ForInStep resultType) :
+    forIn' (m := monad) items initial (fun item member value => pure (step item member value)) =
+      pure (forIn' (m := Id) items initial (fun item member value => step item member value)) := by
+  induction items generalizing initial with
+  | nil => rfl
+  | cons first items inductionHypothesis =>
+    rw [List.forIn'_cons, List.forIn'_cons]
+    simp only [pure_bind]
+    cases selected : step first (by simp) initial with
+    | done value => rfl
+    | yield value => exact inductionHypothesis value _
+
+end List
 
 namespace Except
 
