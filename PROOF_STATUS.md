@@ -165,6 +165,15 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   fixture now audits fourteen theorem-backed declarations without owned
   axioms. Local-reader entry/exit for `withLocalDecl` and `withLetDecl`, and
   recursive inference worker closure, remain open.
+- `VState.WF.mkLocalDecl` constructs the actual extended model state for a
+  fresh local binder, including translated-context, equivalence-manager,
+  cache-value and generator reservations. `RecM.ScopeWF.withLocalDecl` frames
+  the real reader transition under that model, extends both scoped caches,
+  invokes the callback at the fresh free variable, weakens the callback's
+  final model state back to the outer context, and removes the local binder
+  from both cache scopes on exit. The local-reader frame remains conditional
+  on the existing translated domain/type and extended-context model; the
+  corresponding let frame and recursive inference closure remain open.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
