@@ -1099,6 +1099,52 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   original/local/let contexts, both safeties/primitive modes and post-parameter
   let/beta/metadata wrappers. Runtime controls do not fabricate semantic contexts.
   No executable checker change, new axiom or admitted proof is introduced.
+- `Verify.InductiveIndexCheckerClosure` closes reached annotation peeling and
+  index-opening WHNF directly in genuine strong checker models. The unrestricted
+  forall-opening bridge uses the earlier conversion-aware domain/body peeling
+  theorem, deriving the actual stored domain, dependent opened body, native binder
+  position and scope frame without a literal-uniform annotation universe premise.
+  `RecursorIndexTrace.checkedIndexModels` extends the real entry checker through
+  every actual peeled index declaration and derives each accepted normalization
+  from that reached checker. It retains the real `TrEnv`, environment/universe
+  equalities, reader alignment, cold reset-state WF, exact mixed-model extension,
+  selected index array and the existing translated trace. It neither fabricates
+  universal legacy support predicates nor asserts their literal uniformity, which
+  can genuinely fail for accepted nested annotations with equivalent universes.
+  `HeaderRecursorIndexCheckerEndpoint` adds the final genuine checker to the earlier
+  conversion-aware result-indexed model endpoint. `headerCheckedModels`,
+  `checkedHeaderBatch` and the actual `mkRecInfos.loopArgs1.checkedHeaderBatchTrace`
+  compose original-header WHNF, checked parameter consumption and index traversal
+  without caller-supplied annotation/index-normalization support or head/domain
+  typing. Partial-parent application and sort-terminal typehood adapters expose
+  the resulting strict translations and typing in that actual final checker.
+  The entry checker, alignment/reset WF, context reservation, disjoint native versus
+  reset checker name prefixes, canonical annotation signatures/definitions, initial
+  normalization and parameter completion/source arity remain genuine premises.
+  Terminal-sort eligibility and subsequent motive/recursor/frontend closure remain
+  unproved: source typehood plus stopped traversal does not imply a sort terminal.
+  This does not manufacture a checker for the final actual inductive environment;
+  the entry checker's real native/semantic environment correspondence is preserved.
+  Legacy support-based APIs and their explicit premises remain unchanged.
+  `tests/InductiveIndexCheckerClosure.lean` checks 11 interface contracts and an
+  explicit impossibility of literal universe uniformity for an accepted nested
+  domain. Its exhaustive genuine-prior-foundation audit checks all 12 owned
+  declarations, including generated helpers, and rejects owned axioms. Unrestricted
+  native opening inherits eight dependencies and checked-trace/batch/CPS bridges
+  28, including existing metatheory admissions. Its 2016 native controls check exact
+  remaining fuel, indices, name generators, every local declaration, actual stored
+  peeled domains, residual and saturated parent typing/typehood, including 1248
+  parameter-opening WHNF changes, 288 original-header changes and 960 nonidentity
+  stored-domain peelings. They reject 1440 unchecked wrong-domain free-variable
+  arrays, 16 malformed/nonsort header controls and eight corresponding native
+  declarations; four genuinely type-valued stopped native traversals retain no
+  terminal-sort eligibility. Coverage includes all four annotation wrappers with
+  nonuniform equivalent universe chains, metadata barriers, dependent index domains,
+  zero/one/two/dependent parameters, differing mutual index counts, original/fresh/
+  reordered universes, registered/full-run environments, original/local/let contexts,
+  both safeties/primitive modes and post-parameter let/beta/metadata wrappers.
+  Runtime controls do not fabricate semantic contexts. No executable checker change,
+  new axiom or admitted proof is introduced.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
@@ -5010,7 +5056,8 @@ preserved semantic body. The additive
 typing on the existing extracted context/level schedule without a uniformity
 implication. Legacy spine APIs and their explicit uniformity premises remain
 available; the native index-allocation bridges are not automatically generalized
-by these new theorems.
+by these new theorems. The later `Verify.InductiveIndexCheckerClosure` applies them
+directly to actual recursor index traces in genuine reached checker models.
 
 The annotation translation fixture adds twenty-four proof controls and
 twenty-three runtime controls. All four wrappers support distinct but equivalent
