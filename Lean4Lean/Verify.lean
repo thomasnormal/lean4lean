@@ -198,6 +198,7 @@ import Lean4Lean.Verify.InductiveHeaderRecursorTransport
 import Lean4Lean.Verify.InductiveHeaderReductionTransport
 import Lean4Lean.Verify.InductiveHeaderWHNFCoreTransport
 import Lean4Lean.Verify.InductiveHeaderWHNFTransport
+import Lean4Lean.Verify.InductiveHeaderWHNFMethodTransport
 import Lean4Lean.Verify.InductiveHeaderInferenceTransport
 import Lean4Lean.Verify.InductiveHeaderTelescopeTransport
 import Lean4Lean.Verify.InductiveHeaderProjectionTransport
