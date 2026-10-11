@@ -555,8 +555,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   type formation: `Nat.zero` passes that source call but is rejected as a
   constructor type by the complete constructor checker. The checker-model
   module below recovers constructor WF for binder sources and complete
-  parameterized batches; binder-free sources still require semantic header-kind
-  and return-application typing.
+  parameterized batches; binder-free sources use the return-typing theorem below,
+  with exact semantic header-kind receipts still explicit.
   Positivity/recursor equations, semantic inductive registration and full
   inductive/frontend/prelude soundness remain open.
   The fixture exhaustively audits all 32 owned declarations, including generated
@@ -604,17 +604,19 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   proves WF for every translated constructor in the complete declaration when
   `stats.params.size > 0`, with no caller-supplied constructor translations or
   per-constructor binder/typehood premises.
-  Binder-free constructors of zero-parameter families still need semantic
-  header-kind/arity and saturated return-application typing. Semantic positivity,
+  Binder-free constructors of zero-parameter families still need automatic
+  semantic header-kind/arity extraction; saturated return-application typing is
+  proved below. Semantic positivity,
   recursor equations, complete inductive registration and full frontend/prelude
   soundness remain open; this is not a full inductive soundness theorem.
-  `AcceptedConstructorTrace.zeroParameterKind` now reconstructs the complete
-  semantic sort arity of a zero-parameter constructor spine from a terminal
-  sort-arity anchor, using the actual fresh-field opening, context transport and
-  body equalities. `TrConstructor.sortArityWF` converts a closed zero-arity
-  receipt into constructor `VConstant.WF`. The remaining composition is the
-  terminal anchor for saturated valid inductive return applications; no caller
-  may replace that anchor with checked inference or a weakened checker context.
+  The conditional `AcceptedConstructorTrace.zeroParameterKind` reconstructs
+  sort arity from a sort-arity anchor, and `TrConstructor.sortArityWF` converts
+  a closed zero-arity receipt into `VConstant.WF`. These cannot supply ordinary
+  constructor-return anchors: an inductive type such as `Nat` has a sort as its
+  type, but is not itself definitionally a sort. The return-typing module below
+  instead derives `IsType` from the sort arity of the header's type. No caller
+  may replace strict translation with unchecked inference or a weakened checker
+  context.
   Strong initial `VContext`/`TrEnv`, exact ordinary safety/primitive restrictions,
   genuine initial native parent closure and all executable checker behavior
   remain unchanged. The expanded semantic receipt fixture exercises the new
@@ -633,6 +635,50 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   interfaces, including the real no-metavariable/free-variable guard, rather
   than using the admission-free raw native transport baseline. No new axiom or
   admitted proof is added.
+- `Verify.InductiveReturnTyping` derives semantic typehood of saturated
+  inductive return applications from exact semantic header-kind receipts.
+  `SortArity.apply` consumes one binder of the function's type using unique
+  typing, forall injectivity, context conversion and typed substitution.
+  `typedIsType` converts a zero-arity receipt for the resulting type into
+  `IsType` of the applied expression; it does not assert that the expression
+  itself is a sort. `instL` specializes header kinds at the actual translated
+  universes, and `weak0` inserts closed header kinds into arbitrary contexts.
+  `TrExprS.constantKind` obtains the constant's actual type from its registered
+  semantic lookup, strictly translated universe list and generic header kind.
+  `saturatedIsType` follows every strictly translated application, retaining
+  the actual function and argument typing rather than using unchecked inference.
+  `isValidIndAppIdx.headerMatches` extracts the real head-equality and exact
+  parameter-plus-index argument count. `isValidIndAppIdx.isType` composes those
+  guards with the application theorem, including the native expression-equality
+  translation interface rather than pretending Boolean equality is syntactic
+  equality.
+  `AcceptedConstructorTrace.isType` now proves constructor-source typehood:
+  binder sources use their strict translation's existing sort-valued premises,
+  while binder-free sources use the accepted terminal guard and header kind.
+  `TrConstructor.typehoodWF` and `ConstructorSemanticReceipts.typesWF` close
+  constructor WF from these receipts. `typesWFOfHeaders` obtains every semantic
+  lookup automatically from the actual registered declaration and needs only
+  matching native header heads and semantic header sort arities, not translated
+  constructor inputs or constructor/return typehood assumptions.
+  Automatic exact header-kind/count extraction for every member of the accepted
+  batch remains open; the first-header kind theorem alone does not discharge
+  this obligation. Consequently full batch constructor WF is still conditional
+  on those header receipts, and full inductive soundness is not established.
+  No strong checker or native parent-closure contract is weakened, and no
+  executable checker behavior changes. The return fixture exercises eleven
+  formal contracts, audits all twenty-two sort-arity and seven return-typing owned
+  declarations plus the four constructor-WF compositions, and passes twenty-four
+  staging combinations in both actual and shadow environments. Nullary,
+  indexed, dependent-index, parameterized, parameter-plus-index and polymorphic
+  returns pass checked inference/type formation but reject sort-expression
+  formation; under/oversaturation rejects, while ill-typed structurally valid
+  indices fail checked inference. `ensureType` uses inference-only mode, so its
+  acceptance alone does not supply strict argument-typing eligibility.
+  Existing metatheory admissions remain inherited: the new theory lemmas use
+  only `propext`, `Quot.sound` and existing `sorryAx`; return saturation also
+  inherits `Classical.choice`, `Lean.Expr.eqv_eq` and
+  `Lean.Level.instLawfulBEqLevel` through existing translation interfaces.
+  No new axiom or admitted proof is added.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
