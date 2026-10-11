@@ -209,5 +209,6 @@ import Lean4Lean.Verify.InductiveHeaderDefEqCoreTransport
 import Lean4Lean.Verify.InductiveHeaderRecursiveTransport
 import Lean4Lean.Verify.InductiveConstructorTransport
 import Lean4Lean.Verify.InductiveConstructorContinuation
+import Lean4Lean.Verify.InductiveHeaderNativeMetadata
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveNestedRewrite
