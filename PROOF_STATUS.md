@@ -1047,8 +1047,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   complete runs under the unchanged strong entry checker/native-parent premises.
   It does not replace original parameter universes with the elimination universe,
   certify the selected name's freshness or elimination-sort eligibility, fabricate
-  a strong checker or `TrEnv` for the final actual inductive environment, or complete
-  normalized parameter/index aggregation and recursor/frontend closure.
+  a strong checker or `TrEnv` for the final actual inductive environment, or discharge
+  the remaining normalized-index support and recursor/frontend closure obligations.
   `tests/InductiveHeaderParameterUniverses.lean` checks 23 nominal-level, strict/
   conversion-aware translation, native mixed-context, model-WF, strong checker/reset,
   registered batch and complete-run contracts. Its exhaustive audit checks all 53
@@ -1064,6 +1064,41 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   substitutions and 480 contexts omitting original nominal universes. Runtime controls
   do not fabricate semantic contexts. No executable checker change, new axiom or
   admitted proof is introduced.
+- `Verify.InductiveHeaderIndexApplications` composes conversion-aware checked
+  header applications with the actual normalized recursor parameter/index trace.
+  `TypedParameterApplications.emptyResultEquality` and `consView` invert arbitrary
+  input-conversion chains, including zero arguments, without replacing genuine
+  domain typing by a free-variable or syntactic-argument assumption.
+  `RecursorIndexParameterPrefix.normalizedApplications` retains source-to-forall
+  conversion and transports the residual through every accepted parameter-opening
+  WHNF. `HeaderRecursorIndexModelEndpoint` fixes both source and result semantics,
+  so an already-typed partial parent feeds the translated index suffix directly.
+  The earlier syntactic endpoint embeds unchanged into this new endpoint.
+  Context, partial/head/constant application and sort-terminal typehood adapters
+  preserve the actual final native reader, translated mixed context and index array.
+  Strong-checker entry adapters derive original-header source alignment and all
+  parameter normalization support from accepted native WHNF. Whole-batch and actual
+  `mkRecInfos.loopArgs1` CPS adapters select the checked input and typed partial
+  parent automatically, then pass the complete parent parameter-plus-index
+  application to the continuation without caller-supplied head/domain typing.
+  They still require genuine checker/alignment/reset WF, reached annotation and
+  index-normalization support, reservation, initial normalization and parameter
+  completion/source arity; typehood additionally needs a sort terminal. They do not
+  fabricate a checker for the final actual environment or prove unconditional
+  normalized accepted-batch, recursor or inductive frontend closure.
+  `tests/InductiveHeaderIndexApplications.lean` checks 15 formal contracts, including
+  two explicit double-conversion controls. Its exhaustive audit checks all 15 owned
+  declarations against genuine earlier foundations, rejecting owned axioms. Generic
+  normalization inherits eight dependencies and checker/batch/CPS bridges 28,
+  including existing metatheory admissions. Its 1248 native controls compare exact
+  remaining-fuel suffixes, index arrays, name generators, every local declaration,
+  residual and saturated parent typing/typehood, with 768 parameter-opening WHNF
+  changes, 288 original-header changes and 864 rejected wrong-domain free-variable
+  arrays. They cover zero/one/two/dependent parameters, differing mutual index
+  counts, original/fresh/reordered universes, registered/full-run environments,
+  original/local/let contexts, both safeties/primitive modes and post-parameter
+  let/beta/metadata wrappers. Runtime controls do not fabricate semantic contexts.
+  No executable checker change, new axiom or admitted proof is introduced.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
