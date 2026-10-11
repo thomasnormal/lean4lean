@@ -50,5 +50,37 @@ theorem inferFVar.scopeWF {context : VContext} {state : VState} {name : FVarId} 
     change RecM.ScopeWF context state (liftM (inferFVar context.toContext name)) _
     exact RecM.ScopeWF.liftExcept inferFVar.WF
 
+theorem checkLevel.scopeWF {context : VContext} {state : VState} {level : Level}
+    (valid : level.hasMVar' = false) :
+    RecM.ScopeWF context state
+      (readThe Context >>= fun context => liftM (checkLevel context level))
+      (fun _ _ => ∃ level', VLevel.ofLevel context.lparams level = some level') := by
+  apply RecM.ScopeWF.readThe
+  change RecM.ScopeWF context state (liftM (checkLevel context.toContext level)) _
+  exact RecM.ScopeWF.liftExcept (checkLevel.WF valid)
+
+theorem envGet.scopeWF {context : VContext} {state : VState} {name : Name} :
+    RecM.ScopeWF context state
+      ((liftM TypeChecker.getEnv : RecM Environment) >>= fun environment =>
+        liftM (environment.get name))
+      (fun info _ => context.env.find? name = some info) := by
+  apply RecM.ScopeWF.getEnv
+  exact RecM.ScopeWF.liftExcept envGet.WF
+
+theorem inferConstant.scopeWF {context : VContext} {state : VState}
+    {name : Name} {levels : List Level} {inferOnly : Bool}
+    (validLevels : ∀ level ∈ levels, level.hasMVar' = false)
+    (validInference : inferOnly = true → ∃ expression,
+      context.TrExprS (.const name levels) expression) :
+    RecM.ScopeWF context state
+      (readThe Context >>= fun context =>
+        liftM (inferConstant context name levels inferOnly))
+      (fun type _ => ∃ expression semanticType,
+        context.TrTyping (.const name levels) type expression semanticType) := by
+  apply RecM.ScopeWF.readThe
+  change RecM.ScopeWF context state
+    (liftM (inferConstant context.toContext name levels inferOnly)) _
+  exact RecM.ScopeWF.liftExcept (inferConstant.WF validLevels validInference)
+
 end TypeChecker.Inner
 end Lean4Lean

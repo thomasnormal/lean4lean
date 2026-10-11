@@ -26,6 +26,32 @@ example {context : VContext} {state : VState} {name : FVarId} :
         context.TrTyping (.fvar name) type expression semanticType) :=
   Inner.inferFVar.scopeWF
 
+example {context : VContext} {state : VState} {level : Level}
+    (valid : level.hasMVar' = false) :
+    RecM.ScopeWF context state
+      (readThe Context >>= fun context => liftM (Inner.checkLevel context level))
+      (fun _ _ => ∃ level', VLevel.ofLevel context.lparams level = some level') :=
+  Inner.checkLevel.scopeWF valid
+
+example {context : VContext} {state : VState} {name : Name} :
+    RecM.ScopeWF context state
+      ((liftM TypeChecker.getEnv : RecM Kernel.Environment) >>= fun environment =>
+        liftM (environment.get name))
+      (fun info _ => context.env.find? name = some info) :=
+  Inner.envGet.scopeWF
+
+example {context : VContext} {state : VState} {name : Name} {levels : List Level}
+    {inferOnly : Bool}
+    (validLevels : ∀ level ∈ levels, level.hasMVar' = false)
+    (validInference : inferOnly = true → ∃ expression,
+      context.TrExprS (.const name levels) expression) :
+    RecM.ScopeWF context state
+      (readThe Context >>= fun context =>
+        liftM (Inner.inferConstant context name levels inferOnly))
+      (fun type _ => ∃ expression semanticType,
+        context.TrTyping (.const name levels) type expression semanticType) :=
+  Inner.inferConstant.scopeWF validLevels validInference
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.TypeChecker.ScopedInferType

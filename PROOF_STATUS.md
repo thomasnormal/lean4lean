@@ -148,9 +148,11 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `ensureForallCore.scopeWF` carry the scoped-head/cache invariant through the
   actual sort and forall checks, using the completed scoped WHNF contract and
   preserving the existing translated-expression and free-variable-below
-  results. `Inner.inferFVar.scopeWF` frames the real reader/lifted free-variable
-  lookup with the existing typing theorem and unchanged caches. The focused
-  `ScopedInferType` fixture checks all three contracts and audits seven owned
+  results. `Inner.inferFVar.scopeWF`, `checkLevel.scopeWF`, `envGet.scopeWF`,
+  and `inferConstant.scopeWF` frame the real reader/lifted free-variable,
+  universe-check, environment-lookup, and constant-inference actions with the
+  existing typing/lookup theorems and unchanged caches. The focused
+  `ScopedInferType` fixture checks all six contracts and audits ten owned
   declarations for theorem-backed proofs without adding an axiom. These are
   primitive inference frames only: lambda/forall/let telescopes, projections,
   applications, comparison and arbitrary-fuel method scope preservation remain
