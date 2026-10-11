@@ -63,6 +63,47 @@ theorem TypeChecker.VState.WF.mkLocalDecl {c : VContext} {m : MLCtx}
     trctx, inferTypeI_wf := inferCache valid.inferTypeI_wf, inferTypeC_wf := inferCache valid.inferTypeC_wf
     whnfCore_wf := whnfCache valid.whnfCore_wf, whnf_wf := whnfCache valid.whnf_wf, unfold_wf := valid.unfold_wf }
 
+theorem TypeChecker.VState.WF.mkLetDecl {c : VContext} {m : MLCtx}
+    [cwf : c.MLCWF m] {state : VState} {name : Name} {type value : Expr}
+    {type' value' : VExpr}
+    {cwf' : c.MLCWF (m.vlet ⟨state.ngen.curr⟩ name type value type' value')}
+    (valid : state.WF (c.withMLC m))
+    (typeTranslation : (c.withMLC m).TrExprS type type')
+    (valueTranslation : (c.withMLC m).TrExprS value value')
+    (valueType : (c.withMLC m).HasType value' type') :
+    state.next.WF (c.withMLC
+      (m.vlet ⟨state.ngen.curr⟩ name type value type' value') (wf := cwf')) := by
+  letI := cwf'
+  have h0 := state.ngen.next_reserves_self
+  have h1 := state.ngen.not_reserves_self
+  have le : state ≤ state.next := .next
+  have fresh := valid.find?_eq_none h1
+  let m' := m.vlet ⟨state.ngen.curr⟩ name type value type' value'
+  have trctx : (c.withMLC m').TrLCtx :=
+    valid.trctx.mkLetDecl fresh typeTranslation valueTranslation valueType
+  have inferCache {cache} (cacheWF : InferCache.WF (c.withMLC m) state cache) :
+      InferCache.WF (c.withMLC m') state.next cache :=
+    fun _ _ found => ((cacheWF found).fresh c.Ewf.ordered trctx.wf).mono le
+  have whnfCache {cache} (cacheWF : WHNFCache.WF (c.withMLC m) state cache) :
+      WHNFCache.WF (c.withMLC m') state.next cache :=
+    fun _ _ found => ((cacheWF found).fresh c.Ewf trctx.wf).mono le
+  exact {
+    ngen_wf := by
+      simp [m', VContext.withMLC]
+      exact ⟨h0, fun _ h => le.reservesV (valid.ngen_wf _ h)⟩
+    ectx := by
+      let ⟨_, _, a1, a2, a3, a4⟩ := valid.ectx
+      have values := List.append_subset.2 ⟨typeTranslation.fvarsList, valueTranslation.fvarsList⟩
+      refine
+        have b1 := ⟨a1, ?_, valueType.weak' c.Ewf.ordered a2.toCtx⟩
+        ⟨_, _, b1, a2.cons_fvar _ _ values,
+          a3.weak' c.Ewf (.skip_fvar _ _ .refl) b1,
+          fun _ h => by obtain _ | ⟨_, h⟩ := h <;> [exact h0; exact (a4 _ h).mono le]⟩
+      rintro _ _ ⟨⟩
+      exact ⟨mt (a4 _) h1, values.trans a2.fvars_sublist.subset⟩
+    trctx, inferTypeI_wf := inferCache valid.inferTypeI_wf, inferTypeC_wf := inferCache valid.inferTypeC_wf
+    whnfCore_wf := whnfCache valid.whnfCore_wf, whnf_wf := whnfCache valid.whnf_wf, unfold_wf := valid.unfold_wf }
+
 theorem TypeChecker.RecM.ScopeWF.withLocalDecl {c : VContext} {m : MLCtx}
     [cwf : c.MLCWF m] {state : VState} {continuation : Expr → RecM Result}
     {post : Result → VState → Prop} {name : Name} {domain : Expr} {domain' : VExpr}
@@ -111,6 +152,59 @@ theorem TypeChecker.RecM.ScopeWF.withLocalDecl {c : VContext} {m : MLCtx}
   have restoredCaches : HeadScopeCacheWF (c.withMLC m).lctx' updated.toState := by
     simpa [m', VContext.withMLC] using
       updatedCaches.leaveLocalDecl wellFormed.trctx.1 id fresh name domain binder
+  exact ⟨updated, equal, NameGenerator.LE.next.trans increasing, baseWF,
+    restoredCaches, resultPost⟩
+
+theorem TypeChecker.RecM.ScopeWF.withLetDecl {c : VContext} {m : MLCtx}
+    [cwf : c.MLCWF m] {state : VState} {continuation : Expr → RecM Result}
+    {post : Result → VState → Prop} {name : Name} {type value : Expr}
+    {type' value' : VExpr}
+    {cwf' : c.MLCWF (m.vlet ⟨state.ngen.curr⟩ name type value type' value')}
+    (typeTranslation : (c.withMLC m).TrExprS type type')
+    (valueTranslation : (c.withMLC m).TrExprS value value')
+    (valueType : (c.withMLC m).HasType value' type')
+    (valid : (continuation (.fvar ⟨state.ngen.curr⟩)).ScopeWF
+      (c.withMLC (m.vlet ⟨state.ngen.curr⟩ name type value type' value') (wf := cwf'))
+      state.next post) :
+    (withLetDecl name type value continuation).ScopeWF (c.withMLC m) state post := by
+  unfold TypeChecker.RecM.ScopeWF
+  intro methods callbacks caches wellFormed result finalState accepted
+  let id : FVarId := ⟨state.ngen.curr⟩
+  have fresh := wellFormed.find?_eq_none state.ngen.not_reserves_self
+  let m' := m.vlet id name type value type' value'
+  letI : c.MLCWF m' := cwf'
+  have extendedWF : state.next.WF (c.withMLC m') :=
+    TypeChecker.VState.WF.mkLetDecl wellFormed typeTranslation valueTranslation valueType
+  have extendedCaches : HeadScopeCacheWF (c.withMLC m').lctx' state.next.toState := by
+    simpa [m', VContext.withMLC, VState.next] using
+      caches.mkLetDecl wellFormed.trctx.1 wellFormed.localNames wellFormed.headCacheNames
+        name type value
+  change continuation (.fvar id) methods (c.withMLC m').toContext state.next.toState =
+    .ok (result, finalState) at accepted
+  have final := valid methods callbacks extendedCaches extendedWF result finalState accepted
+  obtain ⟨updated, equal, increasing, updatedWF, ⟨updatedCaches, resultPost⟩⟩ := final
+  have inferCache {cache} (cacheWF : InferCache.WF (c.withMLC m') updated cache) :
+      InferCache.WF (c.withMLC m) updated cache := by
+    intro expression type found
+    exact (cacheWF found).weakN_inv c.Ewf updatedWF.trctx.wf
+  have whnfCache {cache} (cacheWF : WHNFCache.WF (c.withMLC m') updated cache) :
+      WHNFCache.WF (c.withMLC m) updated cache := by
+    intro expression value found
+    exact (cacheWF found).weakN_inv c.Ewf updatedWF.trctx.wf
+  have baseWF : updated.WF (c.withMLC m) := by
+    let ⟨_, _, levelsWF, contextLift, managerWF, reserved⟩ := updatedWF.ectx
+    exact {
+      ngen_wf := (by simpa [VContext.withMLC] using updatedWF.ngen_wf :).2
+      ectx := ⟨_, _, levelsWF, .comp (.skip_fvar _ _ .refl) contextLift, managerWF, reserved⟩
+      trctx := wellFormed.trctx
+      inferTypeI_wf := inferCache updatedWF.inferTypeI_wf
+      inferTypeC_wf := inferCache updatedWF.inferTypeC_wf
+      whnfCore_wf := whnfCache updatedWF.whnfCore_wf
+      whnf_wf := whnfCache updatedWF.whnf_wf
+      unfold_wf := updatedWF.unfold_wf }
+  have restoredCaches : HeadScopeCacheWF (c.withMLC m).lctx' updated.toState := by
+    simpa [m', VContext.withMLC] using
+      updatedCaches.leaveLetDecl wellFormed.trctx.1 id fresh name type value
   exact ⟨updated, equal, NameGenerator.LE.next.trans increasing, baseWF,
     restoredCaches, resultPost⟩
 

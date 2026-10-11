@@ -21,6 +21,19 @@ example {context : VContext} {mlctx : MLCtx} [context.MLCWF mlctx]
         (mlctx.vlam ⟨state.ngen.curr⟩ name domain domain' binder) (wf := extendedWF)) :=
   TypeChecker.VState.WF.mkLocalDecl valid domainTranslation domainType
 
+example {context : VContext} {mlctx : MLCtx} [context.MLCWF mlctx]
+    {state : VState} {name : Name} {type value : Expr} {type' value' : VExpr}
+    {extendedWF : context.MLCWF
+      (mlctx.vlet ⟨state.ngen.curr⟩ name type value type' value')}
+    (valid : state.WF (context.withMLC mlctx))
+    (typeTranslation : (context.withMLC mlctx).TrExprS type type')
+    (valueTranslation : (context.withMLC mlctx).TrExprS value value')
+    (valueType : (context.withMLC mlctx).HasType value' type') :
+    state.next.WF
+      (context.withMLC
+        (mlctx.vlet ⟨state.ngen.curr⟩ name type value type' value') (wf := extendedWF)) :=
+  TypeChecker.VState.WF.mkLetDecl valid typeTranslation valueTranslation valueType
+
 example {locals : LocalContext} {state : TypeChecker.State}
     (stable : HeadScopeCacheWF locals state) :
     HeadScopeCacheWF locals { state with ngen := state.ngen.next } :=
@@ -47,6 +60,23 @@ example {context : VContext} {mlctx : MLCtx} [context.MLCWF mlctx]
     (withLocalDecl name binder domain continuation).ScopeWF
       (context.withMLC mlctx) state post :=
   TypeChecker.RecM.ScopeWF.withLocalDecl domainTranslation domainType valid
+
+example {context : VContext} {mlctx : MLCtx} [context.MLCWF mlctx]
+    {state : VState} {continuation : Expr → RecM Result}
+    {post : Result → VState → Prop} {name : Name} {type value : Expr}
+    {type' value' : VExpr}
+    {extendedWF : context.MLCWF
+      (mlctx.vlet ⟨state.ngen.curr⟩ name type value type' value')}
+    (typeTranslation : (context.withMLC mlctx).TrExprS type type')
+    (valueTranslation : (context.withMLC mlctx).TrExprS value value')
+    (valueType : (context.withMLC mlctx).HasType value' type')
+    (valid : (continuation (.fvar ⟨state.ngen.curr⟩)).ScopeWF
+      (context.withMLC
+        (mlctx.vlet ⟨state.ngen.curr⟩ name type value type' value') (wf := extendedWF))
+      state.next post) :
+    (withLetDecl name type value continuation).ScopeWF
+      (context.withMLC mlctx) state post :=
+  TypeChecker.RecM.ScopeWF.withLetDecl typeTranslation valueTranslation valueType valid
 
 example {context : VContext} {state : VState} {expression : Expr} {semantic : VExpr}
     (translated : context.TrExprS expression semantic) :
