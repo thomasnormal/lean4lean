@@ -361,6 +361,46 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   eligibility, automatic domain receipts, old-parent/constructor closure,
   constructor WF, semantic inductive registration and full inductive soundness
   remain open. Strong initial `VContext`/`TrEnv` and checker behavior are unchanged.
+- `Verify.InductiveHeaderInferenceTransport` transports the complete actual
+  `TypeChecker.Inner.inferType'` program, in both inference-only and checking
+  modes, from reached helper/callback receipts across header shadows. The raw
+  readers have equal local contexts, safety and universe parameters; eager flags
+  and fuel configurations may differ when the reached method contracts hold.
+  `NativeInferEntryReceipt` records the native loose-variable guard and selected
+  inference-cache miss. `NativeInferReachable` admits only cold metadata/source
+  children, checked function children, and checked arguments reached after the
+  actual accepted function-inference and forall-normalization prefixes.
+  `NativeInferCallbacks` separates inference-only applications from checked
+  applications, demands normalization only after accepted function inference and
+  only when the function type is not already a forall, and demands comparison
+  only after the actual accepted argument type/state. Eager comparison uses the
+  native argument-head/arity test and the scoped updated readers, preserving the
+  equivalence-manager insertion performed by the actual `isDefEq` wrapper.
+  Lambda/forall/let helper transport and projection helper transport remain
+  explicit obligations at their reached inputs; this theorem does not derive
+  telescope receipts or assume new-header projections work in an axiom shadow.
+  `NativeAppReachable`, `NativeAppCallbacks` and `NativeInferAppCallbacks` derive
+  complete native `inferApp` transport, including its actual argument-array
+  loop, delayed reverse-range instantiation, direct-forall steps and normalized
+  boundaries. The next normalization receipt is required only after an accepted
+  earlier boundary result/state; all index movement is the existing native loop.
+  Constant inference follows from header signatures and matching reader fields;
+  literal checks require only native signature presence, not equal ignored
+  constant records. `nativeInferBody` and `inferType'.entry_eq` factor the actual
+  computation without changing the executable checker. The original native
+  bound-variable panic fallback is retained rather than replacing it with a
+  different exception or using the expression-cache interface axiom to assert
+  it is unreachable. Every owned declaration excludes admissions and expression
+  or persistent-map interface axioms; no panic-freedom claim follows from this
+  raw transport theorem.
+  Native inference rejects loose variables before consulting either cache.
+  Closed cache hits bypass body checks, while every successful cold body inserts
+  into exactly the selected cache, retaining every other state field. Unlike
+  normalization, metadata wrappers are separately read and saved by inference;
+  an outer hit bypasses its child. Automatic telescope/projection receipts,
+  semantic cache/state WF, translated-input eligibility, general mutually
+  recursive `Methods.withFuel` transport and full inductive soundness remain
+  open. Strong initial `VContext`/`TrEnv` and checker behavior are unchanged.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6504,6 +6544,33 @@ product-projection, `Nat.rec`, local-proof `Eq.rec` and local-product `Prod.rec`
 applications in both views before full normalization. These imported-prelude
 tests are not semantic prelude translation or a general recursive-method
 transport proof. Run `lake env lean tests/InductiveHeaderWHNFTransport.lean`.
+
+`tests/InductiveHeaderInferenceTransport.lean` exhaustively audits all 145 owned
+production declarations, including generated declarations, permitting only
+`propext`, `Classical.choice` and `Quot.sound`. It rejects admissions, module-owned
+axioms and expression/persistent-map interface axioms. Native-accepted singleton
+and mutual header staging runs at both safety/primitive flags before future
+constructor registration, in default/seeded states and distinct sufficient
+method depths/fuel readers. Every cache, generator, equivalence-map/union-find,
+failure-set and unfolding field is compared. Scripted application cases cover
+empty/under/full application, dependent delayed substitution, normalized type
+boundaries, reset pending indices, callback counts and asymmetric rejection.
+Inference tests distinguish both caches, outer metadata hits, inner/wrapper
+insertion, stale callback insertion overwritten only in the selected mode,
+loose-variable rejection before seeded hits, closed metavariable/missing-local
+hits and cold failures. Checked applications cover direct and normalized forall
+types, accepted/false comparison, exact eager-head arity and outer-reader
+restoration. Different local types, undefined universe readers and incompatible
+safety readers demonstrate that header lookup agreement cannot replace the
+explicit reader premises. Literal signature-presence controls remove the
+native Nat/Char/String keys in both raw views, distinguishing inference-only
+success from checked rejection; these modified contexts are not semantic WF or
+native-accepted malformed declarations. Actual `Methods.withFuel` first checks
+complete lambda/forall/let, beta, product construction/projection, natural and
+eager-wrapper terms in both views, then tests cold and warm inference in both
+modes. These runtime controls do not derive the telescope/projection receipts,
+semantic prelude translation or a general mutually recursive transport theorem.
+Run `lake env lean tests/InductiveHeaderInferenceTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
