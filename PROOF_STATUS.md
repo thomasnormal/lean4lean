@@ -18,8 +18,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   normalization callbacks' native `Methods.HeadWF` contract; the generic
   worker interfaces also take an explicit recursor-helper cache frame, now
   discharged by the actual helper proofs below. They do not establish that
-  contract for arbitrary `Methods.withFuel`. Inference/comparison worker
-  framing remains open. This necessary syntactic property does not establish semantic WHNF
+  contract for arbitrary `Methods.withFuel`. Comparison worker framing remains
+  open. This necessary syntactic property does not establish semantic WHNF
   completeness, exclude local-let free-variable heads, or discharge accepted
   recursor parameter/index traversal and terminal-sort obligations. The
   existing conversion-only `Methods.WF` is not silently strengthened.
@@ -45,13 +45,32 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `Methods.withFuel.zero_headWF` proves the actual throwing zero-fuel base
   contract; `whnfCore_succ_headWF` and `whnf_succ_headWF` supply the two real
   normalizer successor steps from the prior-fuel four-method contract.
-  Arbitrary-fuel inference/comparison worker frames remain necessary for a
+  The remaining comparison worker frame is necessary for a
   full `Methods.withFuel.HeadWF` induction. This closes native reduction-helper
   cache framing, not semantic normalization completeness or frontend closure.
   `tests/RecursorHeadFrame.lean` audits every owned declaration against the
   unchanged logical/native representation foundations and uses actual typed
   Nat/K/structure/Prop/string/quotient terms with real methods, both safeties,
   eager modes, cheap flags, cold/warm caches and full-reduction endpoints.
+- `TypeChecker.Inner.inferType'.headWF` proves both clean WHNF caches survive
+  the actual inference worker, including inference-cache hits and insertions,
+  literal/constant/universe checks, recursive metadata and projections,
+  lambda/forall/let telescopes and fresh local scopes, infer-only application
+  loops, checked applications and the eager-reduction reader override.
+  Its bound-variable fallback is framed at the actual native pure default,
+  without adding a bound-variable representation axiom to the audit allowlist.
+  Projection framing reuses the proved equality with the actual projection
+  program, including parameter/field loops and dependent/Prop guards, rather
+  than supplying projection eligibility or a shadow checker receipt.
+  `Methods.withFuel.inferType_succ_headWF` is the third real successor step
+  under the prior-fuel four-method contract. The comparison successor step and
+  full arbitrary-fuel `Methods.withFuel.HeadWF` induction remain open; the
+  inference theorem asserts cache preservation, not semantic type correctness
+  or inductive frontend closure. `tests/InferenceHeadFrame.lean` exhaustively
+  audits the module's declarations against the unchanged foundation allowlist
+  and exercises actual cold/warm inference/checking with expected types,
+  local/let scopes, dependent/Prop projections, malformed/error guards and
+  poisoned-cache precondition controls.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
