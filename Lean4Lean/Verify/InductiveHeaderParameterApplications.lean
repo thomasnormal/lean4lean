@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.InductiveMutualHeaderTyping
 import Lean4Lean.Verify.InductiveParameterPrefixTyping
+import Lean4Lean.Verify.InductiveHeaderKinds
 
 namespace Lean4Lean.ElimNestedInductive
 open Lean hiding Environment Exception
@@ -119,7 +120,19 @@ private theorem liftedSkip (expression : VExpr) (count : Nat) :
     expression.lift' (.skipN .refl count) = expression.liftN count :=
   VExpr.lift'_consN_skipN (e := expression) (n := count) (k := 0)
 
-theorem CheckedHeaderTrace.parameterApplications
+theorem CheckedHeaderTrace.withoutParameters
+    {nparams index nindices finalIndices : Nat} {stats finalStats : InductiveStats}
+    {source terminal : Expr} {reader finalReader : Context}
+    (trace : CheckedHeaderTrace nparams stats source index nindices reader terminal finalStats finalIndices finalReader)
+    (complete : nparams ≤ index) :
+    CheckedHeaderTrace 0 stats source 0 nindices reader terminal finalStats finalIndices finalReader := by
+  induction trace with
+  | stop notBinder _ => exact .stop notBinder rfl
+  | freshParameter selected => exact False.elim (Nat.not_lt_of_ge complete selected)
+  | reusedParameter selected => exact False.elim (Nat.not_lt_of_ge complete selected)
+  | index _ normalized tail induction => exact .index (Nat.not_lt_zero _) normalized (induction complete)
+
+theorem CheckedHeaderTrace.parameterApplicationsWithKind
     {nparams index nindices finalIndices : Nat} {stats finalStats : InductiveStats}
     {source terminal sorted : Expr} {reader finalReader : Context}
     (trace : CheckedHeaderTrace nparams stats source index nindices reader terminal finalStats finalIndices finalReader)
@@ -140,7 +153,8 @@ theorem CheckedHeaderTrace.parameterApplications
       ParameterPrefix checker.mlctx finalChecker.mlctx identifiers ∧
       HeaderParameterModels finalStats finalChecker.vlctx ∧
       TypedParameterApplications checker.venv checker.lparams finalChecker.mlctx
-        (semantic.liftN identifiers.length) (finalStats.params.toList.drop index) values result := by
+        (semantic.liftN identifiers.length) (finalStats.params.toList.drop index) values result ∧
+      checker.venv.SortArity checker.lparams.length finalChecker.vlctx.toCtx (finalIndices - nindices) result := by
   induction trace generalizing checker semantic with
   | @stop stats source index nindices reader notBinder complete =>
     have bound : stats.params.size ≤ index := by rw [parameterCount]; split <;> omega
@@ -149,7 +163,8 @@ theorem CheckedHeaderTrace.parameterApplications
     exact ⟨checker, [], [], semantic, rfl, rfl, aligned, initialWF, .nil, parameters,
       by simpa only [List.length_nil, VExpr.liftN_zero, empty] using
         (TypedParameterApplications.nil (environment := checker.venv) (universes := checker.lparams)
-          (model := checker.mlctx) (result := semantic))⟩
+          (model := checker.mlctx) (result := semantic)),
+      by simpa only [Nat.sub_self] using acceptedHeaderSortKind checker reader aligned initialWF translated sortedCall⟩
   | @freshParameter stats name domain body binder index nindices reader normalized terminal finalStats finalIndices
       finalReader selected first normalizedCall tail induction =>
     obtain ⟨peeled, nextChecker, sameEnv, sameUniverses, nextModel, nextAligned, nextWF,
@@ -169,7 +184,7 @@ theorem CheckedHeaderTrace.parameterApplications
     have nextParameters := (parameters.mono head.insertion.fvars_sublist.subset).push
       ⟨reader.ngen.curr⟩ (by rw [head.fvars]; simp)
     obtain ⟨finalChecker, identifiers, values, result, finalEnv, finalUniverses, finalAligned, finalWF,
-      history, finalParameters, arguments⟩ := induction nextChecker nextAligned nextWF pushed.reserved
+      history, finalParameters, arguments, resultKind⟩ := induction nextChecker nextAligned nextWF pushed.reserved
         different (sameEnv ▸ constants) (sameEnv ▸ definitions)
         (by simpa [first] using parameterCount) nextParameters normalizedTranslated sortedCall
     have finalModelWF : finalChecker.mlctx.WF checker.venv checker.lparams := by
@@ -213,7 +228,8 @@ theorem CheckedHeaderTrace.parameterApplications
       finalUniverses.trans sameUniverses, finalAligned, finalWF,
       by simpa only [List.singleton_append] using head.trans history, finalParameters,
       by simpa only [List.length_cons, Nat.add_comm, drop, List.singleton_append]
-        using firstArgument.append arguments⟩
+        using firstArgument.append arguments,
+      by simpa only [sameEnv, sameUniverses] using resultKind⟩
   | @reusedParameter stats name domain body binder index nindices reader stored normalized terminal finalStats
       finalIndices finalReader selected notFirst storedCall equalCall normalizedCall tail induction =>
     have bound : index < stats.params.size := by simpa only [parameterCount, notFirst, if_false] using selected
@@ -230,7 +246,7 @@ theorem CheckedHeaderTrace.parameterApplications
       checker reader aligned initialWF (opened.trExpr checker.Ewf.ordered checker.Δwf)
       (by simpa only [equation] using normalizedCall)
     obtain ⟨finalChecker, identifiers, values, result, finalEnv, finalUniverses, finalAligned, finalWF,
-      history, finalParameters, arguments⟩ := induction checker aligned initialWF reserved different
+      history, finalParameters, arguments, resultKind⟩ := induction checker aligned initialWF reserved different
         constants definitions (by simpa only [notFirst, if_false] using parameterCount)
         parameters normalizedTranslated sortedCall
     have finalModelWF : finalChecker.mlctx.WF checker.venv checker.lparams := by
@@ -252,7 +268,7 @@ theorem CheckedHeaderTrace.parameterApplications
       rw [unchanged, List.drop_eq_getElem_cons (by simpa only [Array.length_toList] using bound)]
       simp only [← Array.getElem_toList, getElem!_pos stats.params index bound]
     exact ⟨finalChecker, identifiers, _, result, finalEnv, finalUniverses, finalAligned, finalWF,
-      history, finalParameters, by simpa only [drop, List.singleton_append] using firstArgument.append arguments⟩
+      history, finalParameters, by simpa only [drop, List.singleton_append] using firstArgument.append arguments, resultKind⟩
   | @index stats name domain body binder index nindices reader normalized terminal finalStats finalIndices
       finalReader notParameter normalizedCall tail induction =>
     have trace : CheckedHeaderTrace nparams stats (.forallE name domain body binder) index nindices reader
@@ -265,8 +281,39 @@ theorem CheckedHeaderTrace.parameterApplications
     have empty : finalStats.params.toList.drop index = [] := by
       rw [unchanged]
       exact List.drop_eq_nil_of_le (by simpa only [Array.length_toList] using bound)
+    have kind := (trace.withoutParameters (Nat.le_of_not_gt notParameter)).zeroParameterKind
+      checker aligned initialWF reserved different constants definitions translated sortedCall
+    have lifted := kind.weakN checker.Ewf.ordered (Ctx.liftN_iff_lift'.mpr history.insertion.toCtx)
     exact ⟨finalChecker, identifiers, [], semantic.liftN identifiers.length, finalEnv, finalUniverses,
-      finalAligned, finalWF, history, finalParameters, by rw [empty]; exact .nil⟩
+      finalAligned, finalWF, history, finalParameters, by rw [empty]; exact .nil, lifted⟩
+
+theorem CheckedHeaderTrace.parameterApplications
+    {nparams index nindices finalIndices : Nat} {stats finalStats : InductiveStats}
+    {source terminal sorted : Expr} {reader finalReader : Context}
+    (trace : CheckedHeaderTrace nparams stats source index nindices reader terminal finalStats finalIndices finalReader)
+    (checker : TypeChecker.VContext) (aligned : HeaderCheckerAligned checker reader)
+    (initialWF : ({} : TypeChecker.VState).WF checker)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (different : ({} : TypeChecker.VState).ngen.namePrefix ≠ reader.ngen.namePrefix)
+    (constants : CanonicalAnnotationConstants checker.venv)
+    (definitions : CanonicalAnnotationDefinitions checker.venv)
+    (parameterCount : stats.params.size = if stats.indConsts.isEmpty then index else nparams)
+    (parameters : HeaderParameterModels stats checker.vlctx)
+    {semantic : VExpr} (translated : checker.TrExprS source semantic)
+    (sortedCall : (monadLift (TypeChecker.ensureSort terminal) : M Expr) finalReader = .ok sorted) :
+    ∃ (finalChecker : TypeChecker.VContext) (identifiers : List FVarId)
+      (values : List VExpr) (result : VExpr),
+      finalChecker.venv = checker.venv ∧ finalChecker.lparams = checker.lparams ∧
+      HeaderCheckerAligned finalChecker finalReader ∧ ({} : TypeChecker.VState).WF finalChecker ∧
+      ParameterPrefix checker.mlctx finalChecker.mlctx identifiers ∧
+      HeaderParameterModels finalStats finalChecker.vlctx ∧
+      TypedParameterApplications checker.venv checker.lparams finalChecker.mlctx
+        (semantic.liftN identifiers.length) (finalStats.params.toList.drop index) values result := by
+  obtain ⟨finalChecker, identifiers, values, result, sameEnv, sameUniverses, finalAligned, finalWF,
+    history, finalParameters, arguments, _⟩ := trace.parameterApplicationsWithKind checker aligned initialWF
+      reserved different constants definitions parameterCount parameters translated sortedCall
+  exact ⟨finalChecker, identifiers, values, result, sameEnv, sameUniverses, finalAligned, finalWF,
+    history, finalParameters, arguments⟩
 
 structure HeaderParameterApplicationInput (environment : VEnv) (universes : List Name)
     (model : MLCtx) (stats : InductiveStats) (source : Expr) where
@@ -320,11 +367,55 @@ structure HeaderParameterApplicationReceipt (initial : TypeChecker.VContext)
   identifiers : List FVarId
   history : ParameterPrefix initial.mlctx checker.mlctx identifiers
   input : HeaderParameterApplicationInput initial.venv initial.lparams checker.mlctx stats source
+  indexArity : Nat
+  resultKind : initial.venv.SortArity initial.lparams.length checker.vlctx.toCtx indexArity input.result
 
 theorem HeaderParameterApplicationReceipt.modelWF
     (receipt : HeaderParameterApplicationReceipt initial stats reader source) :
     receipt.checker.mlctx.WF initial.venv initial.lparams := by
   simpa only [receipt.sameEnv, receipt.sameUniverses] using receipt.checker.mlctx_wf
+
+theorem CheckedHeaderTrace.parameterApplicationsFromSourceWithKind
+    {nparams finalIndices : Nat} {stats finalStats : InductiveStats}
+    {source normalized inferred terminal sorted : Expr} {name : Name} {reader finalReader : Context}
+    (trace : CheckedHeaderTrace nparams stats normalized 0 0 reader terminal finalStats finalIndices finalReader)
+    (checker : TypeChecker.VContext) (aligned : HeaderCheckerAligned checker reader)
+    (initialWF : ({} : TypeChecker.VState).WF checker)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (different : ({} : TypeChecker.VState).ngen.namePrefix ≠ reader.ngen.namePrefix)
+    (constants : CanonicalAnnotationConstants checker.venv)
+    (definitions : CanonicalAnnotationDefinitions checker.venv)
+    (parameterCount : stats.params.size = if stats.indConsts.isEmpty then 0 else nparams)
+    (parameters : HeaderParameterModels stats checker.vlctx)
+    (guarded : reader.env.checkNoMVarNoFVar name source = .ok ())
+    (checked : (monadLift (TypeChecker.checkType source) : M Expr) reader = .ok inferred)
+    (normalization : (monadLift (TypeChecker.whnf source) : M Expr) reader = .ok normalized)
+    (sortedCall : (monadLift (TypeChecker.ensureSort terminal) : M Expr) finalReader = .ok sorted) :
+    ∃ receipt : HeaderParameterApplicationReceipt checker finalStats finalReader source,
+      receipt.indexArity = finalIndices := by
+  have free := checkNoMVarNoFVar.WF reader.env name source () guarded
+  obtain ⟨semantic, translated⟩ := acceptedSourceTranslation checker reader aligned initialWF
+    (free.mono fun _ impossible => impossible.elim) checked
+  obtain ⟨normalizedSemantic, normalizedTranslated, equality⟩ := acceptedHeaderNormalization checker reader
+    aligned initialWF (translated.trExpr checker.Ewf.ordered checker.Δwf) normalization
+  obtain ⟨finalChecker, identifiers, values, result, sameEnv, sameUniverses, finalAligned, stateWF,
+    history, _, arguments, resultKind⟩ := trace.parameterApplicationsWithKind checker aligned initialWF reserved different
+      constants definitions parameterCount parameters normalizedTranslated sortedCall
+  have finalModelWF : finalChecker.mlctx.WF checker.venv checker.lparams := by
+    simpa only [sameEnv, sameUniverses] using finalChecker.mlctx_wf
+  have sourceTranslated := translated.weakFV' checker.Ewf.ordered history.insertion finalModelWF.tr.wf
+  have sourceEquality : checker.venv.IsDefEqU checker.lparams.length finalChecker.mlctx.vlctx.toCtx
+      (semantic.liftN identifiers.length) (normalizedSemantic.liftN identifiers.length) := by
+    simpa only [VExpr.lift'_consN_skipN] using
+      equality.symm.weak' checker.Ewf.ordered history.insertion.toCtx
+  exact ⟨{
+    checker := finalChecker, sameEnv, sameUniverses, aligned := finalAligned, stateWF, identifiers, history,
+    input := ⟨semantic.liftN identifiers.length,
+      by simpa only [VExpr.lift'_consN_skipN] using sourceTranslated,
+      values, result, by
+        simpa only [List.drop_zero, liftedSkip] using
+          TypedParameterApplications.convertInput sourceEquality arguments⟩,
+    indexArity := finalIndices, resultKind := by simpa only [Nat.sub_zero] using resultKind }, rfl⟩
 
 theorem CheckedHeaderTrace.parameterApplicationsFromSource
     {nparams finalIndices : Nat} {stats finalStats : InductiveStats}
@@ -343,28 +434,9 @@ theorem CheckedHeaderTrace.parameterApplicationsFromSource
     (normalization : (monadLift (TypeChecker.whnf source) : M Expr) reader = .ok normalized)
     (sortedCall : (monadLift (TypeChecker.ensureSort terminal) : M Expr) finalReader = .ok sorted) :
     Nonempty (HeaderParameterApplicationReceipt checker finalStats finalReader source) := by
-  have free := checkNoMVarNoFVar.WF reader.env name source () guarded
-  obtain ⟨semantic, translated⟩ := acceptedSourceTranslation checker reader aligned initialWF
-    (free.mono fun _ impossible => impossible.elim) checked
-  obtain ⟨normalizedSemantic, normalizedTranslated, equality⟩ := acceptedHeaderNormalization checker reader
-    aligned initialWF (translated.trExpr checker.Ewf.ordered checker.Δwf) normalization
-  obtain ⟨finalChecker, identifiers, values, result, sameEnv, sameUniverses, finalAligned, stateWF,
-    history, _, arguments⟩ := trace.parameterApplications checker aligned initialWF reserved different
-      constants definitions parameterCount parameters normalizedTranslated sortedCall
-  have finalModelWF : finalChecker.mlctx.WF checker.venv checker.lparams := by
-    simpa only [sameEnv, sameUniverses] using finalChecker.mlctx_wf
-  have sourceTranslated := translated.weakFV' checker.Ewf.ordered history.insertion finalModelWF.tr.wf
-  have sourceEquality : checker.venv.IsDefEqU checker.lparams.length finalChecker.mlctx.vlctx.toCtx
-      (semantic.liftN identifiers.length) (normalizedSemantic.liftN identifiers.length) := by
-    simpa only [VExpr.lift'_consN_skipN] using
-      equality.symm.weak' checker.Ewf.ordered history.insertion.toCtx
-  exact ⟨{
-    checker := finalChecker, sameEnv, sameUniverses, aligned := finalAligned, stateWF, identifiers, history,
-    input := ⟨semantic.liftN identifiers.length,
-      by simpa only [VExpr.lift'_consN_skipN] using sourceTranslated,
-      values, result, by
-        simpa only [List.drop_zero, liftedSkip] using
-          TypedParameterApplications.convertInput sourceEquality arguments⟩ }⟩
+  obtain ⟨receipt, _⟩ := trace.parameterApplicationsFromSourceWithKind checker aligned initialWF reserved different
+    constants definitions parameterCount parameters guarded checked normalization sortedCall
+  exact ⟨receipt⟩
 
 theorem checkInductiveTypes.loopInd.loop.withParameterApplications {resultType : Type}
     (nparams fuel : Nat) (stats : InductiveStats) (name : Name) (source normalized inferred : Expr)

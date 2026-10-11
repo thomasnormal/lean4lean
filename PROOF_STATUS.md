@@ -1145,6 +1145,55 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   both safeties/primitive modes and post-parameter let/beta/metadata wrappers.
   Runtime controls do not fabricate semantic contexts. No executable checker change,
   new axiom or admitted proof is introduced.
+- `Verify.InductiveHeaderResidualKinds` retains the semantic sort arity of checked
+  partial parent applications for every accepted header, including nonzero fresh
+  and reused parameters. `CheckedHeaderTrace.parameterApplicationsWithKind` proves
+  both the earlier conversion-aware application receipt and the remaining index
+  sort arity from the actual accepted terminal `ensureSort` call. After parameter
+  completion, an index-only view reuses the earlier kind proof without changing
+  native domains or normalization calls. Fresh and reused parameter branches
+  preserve the result kind; index-context growth transports it with the receipt.
+  `parameterApplicationsFromSourceWithKind` fixes the receipt's `indexArity` to the
+  actual native index count. Legacy application-producing theorem signatures remain
+  available as projections of these stronger proofs.
+  `CheckedHeaderContinuation.parameterApplicationKinds` now retains the paired
+  checked input/result kind for all parents, not just the earlier zero-parameter
+  whole-header kind fragment. The actual private header loop transports earlier
+  parents' kinds across later shared parameter/index context growth and records the
+  selected parent's exact count. Registered kinded batches and accepted complete-run
+  continuations derive typed partial parents and those kinds automatically, including
+  compatible fresh elimination/reordered universe contexts and exact native arrays.
+  Generic conversion-aware argument consumption and translated index traces reduce
+  sort arity through dependent instantiation, domain peeling and actual accepted WHNF.
+  `parentTypehoodOfKind` and `checkedHeaderBatchTypehood` derive saturated actual
+  parent typehood from the resulting zero-arity sort conversion, without a syntactic
+  native terminal-sort premise or caller-supplied head/domain typing.
+  The actual selected index count must still equal the stored native header index
+  count; unconditional normalized header/recursor count alignment, subsequent major/
+  motive/recursor closure and complete inductive frontend verification remain open.
+  These adapters preserve genuine checker/alignment/reset, reservation, canonical
+  annotation and original-normalization premises, and do not manufacture a strong
+  checker for the final actual inductive environment. Mere source typehood or an
+  unchecked stale count is not a kinded batch receipt.
+  `tests/InductiveHeaderResidualKinds.lean` checks 15 interface contracts plus an
+  explicit nonuniform-universe impossibility control. Its exhaustive audit covers
+  all 226 owned declarations in the two strengthened modules and the new bridge
+  (90 parameter-application, 125 continuation and 11 residual-kind declarations),
+  against genuine unchanged earlier foundations, rejecting owned axioms. Strong
+  trace kinds inherit 28 dependencies and accepted-source/complete-run adapters 31,
+  including existing metatheory admissions. Its 2208 native controls check exact
+  stored index counts, residual/saturated parent typing/typehood and native contexts,
+  with 1248 parameter-opening WHNF changes, 288 original-header changes and 960
+  stored-domain peelings. They reject 1920 typed underapplications at typehood,
+  1920 overapplications, 2208 unchecked stale-count traversals at count eligibility,
+  1536 wrong-domain free-variable arrays, 16 malformed/nonsort header controls and
+  eight corresponding native declarations. Four typed stopped traversals still
+  acquire no terminal-sort eligibility. Empty/constructor-free, zero/one/two/
+  dependent parameters, dependent indices, differing mutual counts, compatible
+  universes, registered/full-run environments, original/local/let contexts, both
+  safeties/primitive modes and all annotation/normalization wrappers are covered.
+  Runtime controls do not fabricate semantic contexts. No executable checker change,
+  new axiom or admitted proof is introduced.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
