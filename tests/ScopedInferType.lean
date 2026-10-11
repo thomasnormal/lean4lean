@@ -9,6 +9,18 @@ example {context : VContext} {state : VState} (valid : state.WF context) :
     state.next.WF context :=
   TypeChecker.VState.WF.next valid
 
+example {context : VContext} {mlctx : MLCtx} [context.MLCWF mlctx]
+    {state : VState} {name : Name} {domain : Expr} {domain' : VExpr} {binder : BinderInfo}
+    {extendedWF : context.MLCWF
+      (mlctx.vlam ⟨state.ngen.curr⟩ name domain domain' binder)}
+    (valid : state.WF (context.withMLC mlctx))
+    (domainTranslation : (context.withMLC mlctx).TrExprS domain domain')
+    (domainType : (context.withMLC mlctx).IsType domain') :
+    state.next.WF
+      (context.withMLC
+        (mlctx.vlam ⟨state.ngen.curr⟩ name domain domain' binder) (wf := extendedWF)) :=
+  TypeChecker.VState.WF.mkLocalDecl valid domainTranslation domainType
+
 example {locals : LocalContext} {state : TypeChecker.State}
     (stable : HeadScopeCacheWF locals state) :
     HeadScopeCacheWF locals { state with ngen := state.ngen.next } :=
@@ -19,6 +31,22 @@ example {context : VContext} {state : VState} {continuation : Name → RecM Resu
     (valid : ∀ name, (continuation name).ScopeWF context state.next post) :
     (withFreshId continuation).ScopeWF context state post :=
   TypeChecker.RecM.ScopeWF.withFreshId valid
+
+example {context : VContext} {mlctx : MLCtx} [context.MLCWF mlctx]
+    {state : VState} {continuation : Expr → RecM Result}
+    {post : Result → VState → Prop} {name : Name} {domain : Expr} {domain' : VExpr}
+    {binder : BinderInfo}
+    {extendedWF : context.MLCWF
+      (mlctx.vlam ⟨state.ngen.curr⟩ name domain domain' binder)}
+    (domainTranslation : (context.withMLC mlctx).TrExprS domain domain')
+    (domainType : (context.withMLC mlctx).IsType domain')
+    (valid : (continuation (.fvar ⟨state.ngen.curr⟩)).ScopeWF
+      (context.withMLC
+        (mlctx.vlam ⟨state.ngen.curr⟩ name domain domain' binder) (wf := extendedWF))
+      state.next post) :
+    (withLocalDecl name binder domain continuation).ScopeWF
+      (context.withMLC mlctx) state post :=
+  TypeChecker.RecM.ScopeWF.withLocalDecl domainTranslation domainType valid
 
 example {context : VContext} {state : VState} {expression : Expr} {semantic : VExpr}
     (translated : context.TrExprS expression semantic) :
