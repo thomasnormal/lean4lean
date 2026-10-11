@@ -174,6 +174,12 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   from both cache scopes on exit. The local-reader frame remains conditional
   on the existing translated domain/type and extended-context model; the
   corresponding let frame and recursive inference closure remain open.
+- `VState.WF.mkLetDecl` and `RecM.ScopeWF.withLetDecl` provide the matching
+  let-binder frame, including translated value/typehood, cached-name
+  reservation for the let value, extended reader/cache scope, model-state
+  weakening, and cache restoration on exit. The fixture now covers both local
+  and let reader frames; recursive lambda/forall/let inference still needs to
+  consume them explicitly.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
