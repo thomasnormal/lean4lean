@@ -815,7 +815,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   controls do not fabricate semantic contexts. Exhaustive owned-declaration
   audits use genuine earlier instantiation, constant-WF, mixed-context weakening,
   uniqueness, parameter application, field application and acceptance interfaces,
-  not the new input type itself; all 33 owned declarations are audited. Universal
+  not the new input type itself; all 34 owned declarations are audited. Universal
   batch inputs inherit 12 earlier dependencies, and both acceptance bridges
   retain the earlier 31-dependency checker/metatheory baseline. All existing
   metatheory admissions remain
@@ -895,8 +895,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   derives parameter completion from source arity rather than a caller-supplied
   final-index bound. This is a separate parameter-plus-index endpoint, preserving
   the earlier index-only application's meaning.
-  Universal compatible parent-header argument receipts, their fresh-elimination-
-  universe transport, reached annotation/index-normalization support and native
+  Compatible parent-header argument receipts are derived per accepted checking
+  trace by the following module. Their universal batch aggregation and fresh-
+  elimination-universe transport, reached annotation/index-normalization support and native
   sort-terminal eligibility for every accepted batch remain to be derived.
   The new adapters do not fabricate a strong checker for the final actual
   inductive environment, weaken the initial `VContext` interface, claim a final
@@ -919,6 +920,60 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   verified public preprocessing guard, not mistaken for a new full-frontend
   discrepancy. Runtime controls do not fabricate semantic contexts; no executable
   checker change, new axiom or admitted proof is introduced.
+- `Verify.InductiveHeaderParameterApplications` derives compatible parent-parameter
+  application inputs from actual accepted header checking, including both freshly
+  allocated first-header parameters and stored/reused parameters of later headers.
+  `TypedParameterApplications` adds genuine input-type definitional-equality
+  conversions to the earlier syntactic `TypedParameterArguments` representation;
+  the old representation embeds without changing its meaning. Application,
+  concatenation, environment extension and genuine mixed-context insertion retain
+  the actual argument expressions and semantic values. Conversion does not assume
+  a normalized function type is syntactically unchanged or justify arguments
+  merely from their free-variable names.
+  `CheckedHeaderTrace.parameterApplications` extracts arguments for every remaining
+  declared parameter, together with an actual reached strong checker, aligned
+  native reader, initial-state WF and chronological local-context extension. Fresh
+  parameter typing comes from the checked annotation-domain opening and its real
+  new local model; reused parameter typing comes from accepted stored-type and
+  definitional-equality calls. Actual parameter-opening WHNF equalities connect
+  successive function types. Index branches allocate their existing typed locals
+  but do not consume them as parameters. Parameter-array append preservation and
+  unchanged arrays after completion retain exact native order and count.
+  `parameterApplicationsFromSource` derives the original strict header translation
+  from the actual source guard/check, restores the original signature through its
+  initial WHNF equality, and returns a `HeaderParameterApplicationReceipt` with
+  no caller-supplied parameter-domain typing or source typehood. The CPS theorem
+  follows the actual header binder loop and terminal `ensureSort` before handing
+  this automatic receipt to its continuation. It supports every parameter count,
+  both first and reused headers, dependent domains, original source wrappers and
+  nonempty reached contexts under the unchanged strong checker interface.
+  `HeaderParameterApplicationInput` transports through semantic environment
+  extensions and reached mixed-context insertions. The registered signature
+  adapter `RecursorConstantInput.applyHeaderParameters` aligns its original source
+  type and applies the actual native parameter array without caller head typing.
+  These checking receipts still need to be retained for every parent through the
+  complete header/constructor-registration continuation, specialized to compatible
+  fresh elimination universes, and composed with normalized recursor parent traces.
+  No universal accepted-batch parameter/index eligibility, final actual `TrEnv`,
+  recursor equations or completed inductive frontend theorem is claimed.
+  `tests/InductiveHeaderParameterApplications.lean` checks 23 conversion-aware
+  application, prefix, strong checker, original-source, continuation, input
+  transport and registered-head contracts. It exhaustively audits all 83 owned
+  declarations against genuine earlier application/weakening, checked header
+  models/openings, accepted source/WHNF and native guard foundations. Generic
+  application inherits seven earlier dependencies, accepted trace derivation
+  inherits 28, and original-source/CPS bridges retain the earlier 31-dependency
+  checker/guard baseline, including existing metatheory admissions. Its 264 native
+  controls compare exact inferred partial parent application types with normalized
+  residual signatures and strictly check residual sort-valued typehood. Header-
+  registration/full-run environments, original/local/let contexts and both
+  safeties/primitive modes cover empty/constructor-free, zero/one/two/dependent/
+  polymorphic parameters, indexed/mutual families, convertible parameter domains
+  and post-parameter let/beta/metadata wrappers. There are 168 nonidentity
+  parameter-opening WHNF results and 216 rejected wrong-domain all-free-variable
+  arrays; incompatible reused-header domains reject in both kernels. Runtime
+  controls do not fabricate semantic contexts. No executable checker change,
+  new axiom or admitted proof is introduced.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
