@@ -6,6 +6,66 @@ open Lean4Lean Lean4Lean.AddInductive
 
 example (kind : VEnv.SortArity environment universes context (count + 1) functionType)
     (environmentWF : environment.WF) (contextWF : OnCtx context (environment.IsType universes))
+    (functionTyped : environment.HasType universes [] function functionType)
+    (applicationTyped : environment.HasType universes [] function (.forallE domain body))
+    (argumentTyped : environment.HasType universes [] argument domain) :
+    environment.SortArity universes context count (body.inst argument) :=
+  kind.applyClosed environmentWF contextWF functionTyped applicationTyped argumentTyped
+
+example (kind : VEnv.SortArity environment universes context 0 type)
+    (environmentWF : environment.WF) (contextWF : OnCtx context (environment.IsType universes))
+    (typed : environment.HasType universes [] semantic type) :
+    environment.IsType universes [] semantic :=
+  kind.closedTypedIsType environmentWF contextWF typed
+
+example (lookup : environment.constants name = some constant)
+    (contextWF : OnCtx kindContext (environment.IsType constant.uvars))
+    (kind : environment.SortArity constant.uvars kindContext count constant.type)
+    (translated : TrExprS environment universes [] (.const name levels) semantic) :
+    ∃ type context, environment.HasType universes.length [] semantic type ∧
+      OnCtx context (environment.IsType universes.length) ∧
+      environment.SortArity universes.length context count type :=
+  translated.contextualConstantKind lookup contextWF kind
+
+example (environmentWF : environment.WF)
+    (translated : TrExprS environment universes [] (function.mkAppList arguments) semantic)
+    (headKind : ∀ {functionSemantic}, TrExprS environment universes [] function functionSemantic →
+      ∃ functionType context, environment.HasType universes.length [] functionSemantic functionType ∧
+        OnCtx context (environment.IsType universes.length) ∧
+        environment.SortArity universes.length context arguments.length functionType) :
+    environment.IsType universes.length [] semantic :=
+  translated.saturatedIsTypeOfContextualKinds environmentWF headKind
+
+example (environmentWF : environment.WF) (accepted : isValidIndAppIdx stats source parent = true)
+    (translated : TrExprS environment universes [] source semantic)
+    (headerKind : ∀ {headerSemantic},
+      TrExprS environment universes [] stats.indConsts[parent]! headerSemantic →
+      ∃ headerType context, environment.HasType universes.length [] headerSemantic headerType ∧
+        OnCtx context (environment.IsType universes.length) ∧
+        environment.SortArity universes.length context
+          (stats.params.size + stats.nindices[parent]!) headerType) :
+    environment.IsType universes.length [] semantic :=
+  isValidIndAppIdx.isTypeOfContextualKinds environmentWF accepted translated headerKind
+
+example (trace : AcceptedConstructorTrace stats isUnsafe parent reader index type finalReader finalIndex terminal)
+    (environmentWF : environment.WF) (translated : TrExprS environment universes [] type semantic)
+    (headerKind : ∀ {headerSemantic},
+      TrExprS environment universes [] stats.indConsts[parent]! headerSemantic →
+      ∃ headerType context, environment.HasType universes.length [] headerSemantic headerType ∧
+        OnCtx context (environment.IsType universes.length) ∧
+        environment.SortArity universes.length context
+          (stats.params.size + stats.nindices[parent]!) headerType) :
+    environment.IsType universes.length [] semantic :=
+  trace.isTypeOfContextualKinds environmentWF translated headerKind
+
+example (stage : HeaderAxiomContinuation root original nparams types stats reader actual)
+    (receipts : ConstructorSemanticReceipts stage isUnsafe) :
+    ∀ header ∈ receipts.declaration.types, ∀ constructor ∈ header.ctors,
+      constructor.toVConstant.WF stage.semantic :=
+  receipts.constructorTypesWF
+
+example (kind : VEnv.SortArity environment universes context (count + 1) functionType)
+    (environmentWF : environment.WF) (contextWF : OnCtx context (environment.IsType universes))
     (functionTyped : environment.HasType universes context function functionType)
     (applicationTyped : environment.HasType universes context function (.forallE domain body))
     (argumentTyped : environment.HasType universes context argument domain) :
@@ -154,11 +214,19 @@ run_meta
   let returnAllowed := theoryAllowed ++ (← collectAxioms ``TrExprS.eqv)
   let theoryCount ← auditModule `Lean4Lean.Theory.SortArity theoryAllowed
   let returnCount ← auditModule `Lean4Lean.Verify.InductiveReturnTyping returnAllowed
+  let inputAllowed := returnAllowed ++ (← collectAxioms ``ConstructorSemanticReceipts)
+  let contextualAllowed := inputAllowed ++ (← collectAxioms ``TypeChecker.VContext.Δwf) ++
+    (← collectAxioms ``ConstructorSemanticReceipts.contextualHeaderKinds)
   for name in [``TrConstructor.typehoodWF, ``AcceptedConstructorTrace.isType,
-      ``ConstructorSemanticReceipts.typesWF, ``ConstructorSemanticReceipts.typesWFOfHeaders] do
-    let allowed := returnAllowed ++ (← collectAxioms ``ConstructorSemanticReceipts)
-    for dependency in ← collectAxioms name do
+      ``ConstructorSemanticReceipts.typesWF, ``ConstructorSemanticReceipts.typesWFOfHeaders,
+      ``AcceptedConstructorTrace.isTypeOfContextualKinds, ``ConstructorSemanticReceipts.constructorTypesWF] do
+    let allowed := if name == ``ConstructorSemanticReceipts.constructorTypesWF then
+      contextualAllowed
+      else inputAllowed
+    let axioms ← collectAxioms name
+    for dependency in axioms do
       unless allowed.contains dependency do throwError "constructor typehood unexpected {dependency} in {name}"
+    logInfo m!"{name}: {axioms.size} inherited constructor-WF dependencies = {repr axioms}"
   let sort := Expr.sort (.succ .zero)
   let natural := Expr.const ``Nat []
   let zero := Expr.const ``Nat.zero []
@@ -171,6 +239,6 @@ run_meta
   controls := controls + (← checkSaturation `ReturnParameterIndex
     (.forallE `carrier sort (.forallE `index natural sort .default) .implicit) #[zero] 1)
   controls := controls + (← checkSaturation `ReturnPolymorphic (.sort (.param `universe)) #[] 0 [`universe])
-  logInfo m!"{theoryCount} sort-arity / {returnCount} return-typing declarations and four constructor-WF lemmas audited; {controls} actual/shadow saturation controls distinguish typehood from sort expressions and structural acceptance from argument typing"
+  logInfo m!"{theoryCount} sort-arity / {returnCount} return-typing declarations and six constructor-WF lemmas audited; {controls} actual/shadow saturation controls distinguish typehood from sort expressions and structural acceptance from argument typing"
 
 end InductiveReturnTypingTest

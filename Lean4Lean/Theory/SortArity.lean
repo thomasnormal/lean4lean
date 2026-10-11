@@ -121,5 +121,27 @@ theorem weak0 (kind : environment.SortArity universes [] count type)
   simpa only [List.append_nil, closed.liftN_eq (Nat.zero_le _)] using
     kind.weakN environmentWF.ordered (.zero context)
 
+theorem applyClosed {function body : VExpr}
+    (kind : environment.SortArity universes context (count + 1) type)
+    (environmentWF : environment.WF) (contextWF : OnCtx context (environment.IsType universes))
+    (functionTyped : environment.HasType universes [] function type)
+    (applicationTyped : environment.HasType universes [] function (.forallE domain body))
+    (argumentTyped : environment.HasType universes [] argument domain) :
+    environment.SortArity universes context count (body.inst argument) :=
+  kind.apply environmentWF contextWF (functionTyped.weak0 environmentWF.ordered)
+    (applicationTyped.weak0 environmentWF.ordered) (argumentTyped.weak0 environmentWF.ordered)
+
+theorem closedTypedIsType {semantic : VExpr}
+    (kind : environment.SortArity universes context 0 type)
+    (environmentWF : environment.WF) (contextWF : OnCtx context (environment.IsType universes))
+    (typed : environment.HasType universes [] semantic type) :
+    environment.IsType universes [] semantic := by
+  have closed := typed.closedN environmentWF.ordered trivial
+  obtain ⟨level, contextualTyped⟩ := kind.typedIsType environmentWF contextWF (typed.weak0 environmentWF.ordered)
+  have insertion : Ctx.LiftN context.length 0 [] context := by
+    simpa only [List.append_nil] using (Ctx.LiftN.zero context : Ctx.LiftN context.length 0 [] (context ++ []))
+  refine ⟨level, (HasType.weakN_iff environmentWF contextWF insertion).mp ?_⟩
+  simpa only [List.append_nil, closed.liftN_eq (Nat.zero_le _), VExpr.liftN] using contextualTyped
+
 end VEnv.SortArity
 end Lean4Lean
