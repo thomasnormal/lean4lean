@@ -5,6 +5,21 @@ open Lean hiding Environment Exception
 open Lean4Lean
 open Lean4Lean.TypeChecker
 
+example {context : VContext} {state : VState} (valid : state.WF context) :
+    state.next.WF context :=
+  TypeChecker.VState.WF.next valid
+
+example {locals : LocalContext} {state : TypeChecker.State}
+    (stable : HeadScopeCacheWF locals state) :
+    HeadScopeCacheWF locals { state with ngen := state.ngen.next } :=
+  TypeChecker.HeadScopeCacheWF.next stable
+
+example {context : VContext} {state : VState} {continuation : Name → RecM Result}
+    {post : Result → VState → Prop}
+    (valid : ∀ name, (continuation name).ScopeWF context state.next post) :
+    (withFreshId continuation).ScopeWF context state post :=
+  TypeChecker.RecM.ScopeWF.withFreshId valid
+
 example {context : VContext} {state : VState} {expression : Expr} {semantic : VExpr}
     (translated : context.TrExprS expression semantic) :
     (Inner.ensureSortCore expression expression).ScopeWF context state (fun result _ =>

@@ -157,6 +157,14 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   primitive inference frames only: lambda/forall/let telescopes, projections,
   applications, comparison and arbitrary-fuel method scope preservation remain
   open, and the existing `inferProj.WF` admission is not hidden or widened.
+- `VState.WF.next` advances all model cache/type invariants through the actual
+  fresh-name generator transition, while `HeadScopeCacheWF.next` preserves
+  scoped cache heads under the unchanged caches. `RecM.ScopeWF.withFreshId`
+  then frames the real `mkFreshId`/state transition, carrying cache scope,
+  model WF, generator monotonicity, and the callback's postcondition. The
+  fixture now audits fourteen theorem-backed declarations without owned
+  axioms. Local-reader entry/exit for `withLocalDecl` and `withLetDecl`, and
+  recursive inference worker closure, remain open.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
