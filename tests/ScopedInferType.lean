@@ -48,6 +48,35 @@ example {context : VContext} {state : VState} {outerName innerName : Name}
         type semantic semanticType) :=
   Inner.inferLambda.scopeWF translated.fvarsIn (fun _ => ⟨_, translated⟩)
 
+example {context : VContext} {state : VState} {expression : Expr} {inferOnly : Bool}
+    (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars))
+    (translated : inferOnly = true → ∃ semantic, context.TrExprS expression semantic) :
+    (Inner.inferForall expression inferOnly).ScopeWF context state (fun type _ =>
+      ∃ semantic level, context.TrTyping expression type semantic (.sort level)) :=
+  Inner.inferForall.scopeWF freeVariables translated
+
+example {context : VContext} {state : VState} {outerName innerName : Name}
+    {outerDomain innerDomain body : Expr} {outerBinder innerBinder : BinderInfo}
+    (freeVariables : (Expr.forallE outerName outerDomain
+      (.forallE innerName innerDomain body innerBinder) outerBinder).FVarsIn (· ∈ context.vlctx.fvars)) :
+    (Inner.inferForall (.forallE outerName outerDomain
+      (.forallE innerName innerDomain body innerBinder) outerBinder) false).ScopeWF context state
+      (fun type _ => ∃ semantic level, context.TrTyping
+        (.forallE outerName outerDomain (.forallE innerName innerDomain body innerBinder) outerBinder)
+        type semantic (.sort level)) :=
+  Inner.inferForall.scopeWF freeVariables (by simp)
+
+example {context : VContext} {state : VState} {outerName innerName : Name}
+    {outerDomain innerDomain body : Expr} {outerBinder innerBinder : BinderInfo} {semantic : VExpr}
+    (translated : context.TrExprS
+      (.forallE outerName outerDomain (.forallE innerName innerDomain body innerBinder) outerBinder) semantic) :
+    (Inner.inferForall (.forallE outerName outerDomain
+      (.forallE innerName innerDomain body innerBinder) outerBinder) true).ScopeWF context state
+      (fun type _ => ∃ semantic level, context.TrTyping
+        (.forallE outerName outerDomain (.forallE innerName innerDomain body innerBinder) outerBinder)
+        type semantic (.sort level)) :=
+  Inner.inferForall.scopeWF translated.fvarsIn (fun _ => ⟨_, translated⟩)
+
 example {context : VContext} {state : VState} (valid : state.WF context) :
     state.next.WF context :=
   TypeChecker.VState.WF.next valid
@@ -173,12 +202,14 @@ run_meta
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.TypeChecker.ScopedInferType
     | throwError "scoped inference module absent"
   let inferenceBaseline ← collectAxioms ``Inner.inferLambda.WF
+  let forallBaseline ← collectAxioms ``Inner.inferForall.WF
   let normalizerBaseline ← collectAxioms ``Inner.whnf'.WF
   let native := #[``propext, ``Classical.choice, ``Quot.sound,
     ``Lean.Expr.eqv_eq, ``Lean.Level.instLawfulBEqLevel, ``Lean.Syntax.structEq_eq,
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
     ``Lean.PersistentArray.toList'_push]
   logInfo m!"existing semantic lambda baseline: {repr inferenceBaseline}"
+  logInfo m!"existing semantic forall baseline: {repr forallBaseline}"
   logInfo m!"existing semantic full-normalizer baseline: {repr normalizerBaseline}"
   let mut owned := 0
   for (name, information) in environment.constants do
@@ -187,11 +218,12 @@ run_meta
         throwError "owned scoped inference axiom {name}"
       let dependencies ← collectAxioms name
       for dependency in dependencies do
-        unless inferenceBaseline.contains dependency || normalizerBaseline.contains dependency ||
+        unless inferenceBaseline.contains dependency || forallBaseline.contains dependency ||
+            normalizerBaseline.contains dependency ||
             native.contains dependency do
           throwError "unexpected scoped inference dependency {dependency} in {name}"
       logInfo m!"{name}: {dependencies.size} inherited dependencies = {repr dependencies}"
       owned := owned + 1
-  logInfo m!"{owned} exhaustive owned scoped inference declarations audited against existing semantic lambda/WHNF baselines and native scope foundations; inherited admissions remain explicitly visible; no owned axioms"
+  logInfo m!"{owned} exhaustive owned scoped inference declarations audited against existing semantic lambda/forall/WHNF baselines and native scope foundations; inherited admissions remain explicitly visible; no owned axioms"
 
 end ScopedInferTypeTest
