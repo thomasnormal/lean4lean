@@ -285,7 +285,10 @@ structure HeaderAxiomContinuation (root : TypeChecker.VContext) (original : Cont
   shadow : Kernel.Environment
   semantic : VEnv
   registered : root.venv.addInductHeaders before.headers = some semantic
+  initialWF : reader.env.constants.WF
   actualWF : actual.constants.WF
+  actualRegistration : FreshRegistrationTrace HeaderRegistrationRecord reader.env actual
+  shadowRegistration : FreshRegistrationTrace HeaderAxiomRegistrationRecord reader.env shadow
   agreement : HeaderAxiomAgreement actual shadow
   lookups : HeaderAxiomLookupAgreement (fun name => ∃ type ∈ types, type.name = name) actual shadow
   constructorHeaders : ∀ type ∈ types, ∃ header,
@@ -324,8 +327,9 @@ theorem checkInductiveTypes.withHeaderAxiomContinuation
     exact currentSafety.trans (before.frame.safety.trans initialSafety.symm)
   apply Lean4Lean.AddInductive.bindHeaderResultWF
   intro actual declared
-  obtain ⟨shadow, semantic, registered, history, agreement, values, lookups, primitives⟩ :=
-    declareInductiveTypes.strongHeaderAxiomLookupView current stats nparams types numNested isUnsafe
+  obtain ⟨shadow, semantic, registered, history, agreement, values, lookups, primitives,
+    actualRegistration, shadowRegistration⟩ :=
+    declareInductiveTypes.strongHeaderAxiomRegistrationView current stats nparams types numNested isUnsafe
     (nativeEnv ▸ before.model.checker.trenv) (safety ▸ safetyBound) before.sizes.1
     (by simpa only [before.sameEnv, currentUniverses] using before.models)
     (by simpa only [before.sameEnv] using before.typesWF) actual declared
@@ -339,7 +343,8 @@ theorem checkInductiveTypes.withHeaderAxiomContinuation
   exact continuation stats current actual {
     before, shadow, semantic,
     registered := by simpa only [before.sameEnv] using registered,
-    actualWF, agreement, lookups,
+    initialWF := nativeEnv ▸ before.model.checker.trenv.map_wf,
+    actualWF, actualRegistration, shadowRegistration, agreement, lookups,
     constructorHeaders := by
       intro type member
       obtain ⟨index, bound, rfl⟩ := Array.mem_iff_getElem.mp member

@@ -152,16 +152,19 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `withHeaderAxiomContinuation` performs actual header registration, derives its
   separate strong axiom shadow, and extends this exact local model to the shadow
   with fresh-state WF and primitive/value frames. The stage also derives and
-  carries actual native map WF from successful header registration, rather than
-  inferring it from signature agreement with the shadow. No caller-provided
+  carries initial/actual native map WF and separate actual-header/shadow-axiom
+  fresh registration traces from successful header registration, rather than
+  inferring these from signature agreement with the shadow. No caller-provided
   parameter model, header model, or header type-WF evidence is required.
   `constructorAxiomContinuation` packages this proved shadow model with successful
   actual constructor checking and the accepted native constructor traces at the
   same staging checkpoint. The complete runner projects this package for
   ordinary safe/unsafe runs, excluding `.partial` checker safety and primitive
   declarations explicitly. The shadow model now supplies the existing constructor
-  domain-receipt theorem's parameter/ambient premises, but acceptance in the
-  actual checker is not yet transported to the shadow checker. These results
+  domain-receipt theorem's parameter/ambient premises. Actual constructor
+  acceptance is transported below under a native metadata frame, now derived
+  from those registration traces and explicit initial native parent closure.
+  These results
   retain the strong initial `VContext`/`TrEnv`, canonical annotation contracts,
   disjoint generator prefixes, and inherited checker/metatheory admissions;
   they are not semantic constructor WF, positivity, or inductive soundness.
@@ -214,8 +217,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `sorryAx` and do not establish semantic cache WF. Arbitrary-expression and
   metadata-sensitive recursive transport is composed below under explicit native
   environmental eligibility. Accepted constructor-check transport is composed
-  below under that native frame; its automatic staged eligibility, automatic
-  shadow domain receipts, and constructor WF remain open. The strong
+  below under that native frame; staged eligibility is derived below from
+  initial native parent closure. Automatic shadow domain receipts and constructor
+  WF remain open. The strong
   initial `VContext`/`TrEnv` is unchanged; no substitute `CheckerEnv` assumption or
   broader checker admission is introduced.
 - `Verify.TypeChecker.Transport` supplies directional accepted-result
@@ -242,8 +246,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   declarations exclude `sorryAx`; these are real native compositional lemmas with
   explicit reached-callback obligations, not an unrestricted theorem about
   `Methods.withFuel`. The recursive module below composes these helper receipts;
-  automatic staged recursor/structure metadata eligibility, semantic native-state
-  WF, automatic domain receipts, constructor WF, and full inductive soundness
+  initial native parent-closure eligibility, semantic native-state WF,
+  automatic domain receipts, constructor WF, and full inductive soundness
   remain open. The constructor module below composes accepted strong-shadow
   constructor checking under the native frame. No executable checker
   behavior or initial strong `VContext`/`TrEnv` invariant changes.
@@ -385,9 +389,11 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `NativeRecursorParentFrame.ofNativeOrigins` derives the uniform parent frame
   from initial native recursor-parent closure, actual native recursor-origin
   receipts and retained native shadow inductive lookups. Initial native closure
-  and staging origins/retention are not inferred from a semantic context,
-  canonical map lookups, a value frame or imported-prelude execution. Their
-  accepted-header-stage derivation remains open at this raw audit boundary.
+  is not inferred from a semantic context or imported-prelude execution. The
+  native metadata module derives staging origins and retention from actual fresh
+  registration traces, explicitly retaining existing persistent-map lookup and
+  insertion interfaces; these dependencies are not imported into the clean raw
+  audit boundary.
   The frame cannot cover registered new-parent recursors across their axiom
   shadows. Constructor freshness remains required for inference/unit metadata
   in the eventual before-constructor bridge. Strong initial `VContext`/`TrEnv`,
@@ -418,9 +424,11 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   recursor shadow-parent lookups remain explicit. Registered new-parent
   constructors/recursors across axiom shadows do not satisfy this frame.
   This is directional accepted-computation transport, not equality of errors or
-  a semantic state/cache WF theorem. Initial/staged native closure and lookup
-  eligibility still need to be obtained from the strong declaration history and
-  actual accepted staging trace. This result does not substitute a weaker
+  a semantic state/cache WF theorem. The native metadata module derives staged
+  native closure and lookup eligibility from explicit initial native closure and
+  the actual accepted registration traces. Initial native parent closure remains
+  an eligibility input, not an asserted consequence of the strong semantic
+  history alone. This result does not substitute a weaker
   `CheckerEnv` for initial `VContext`/`TrEnv`, derive translated constructor inputs
   or strong shadow cache/state WF, or yet compose accepted constructor checking
   with semantic constructor WF. Positivity, recursor equations, semantic
@@ -455,8 +463,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   composition theorem inherits `sorryAx` through its existing `VContext` and
   `HeaderAxiomContinuation` input types, not through the raw transport proof; its
   exhaustive audit permits only the dependencies already present in that strong
-  input. Automatic derivation of native metadata eligibility from the initial
-  strong history and accepted staging trace remains open. This is not a semantic
+  input. The native metadata module derives the staged metadata premises from
+  actual registration and explicit initial native parent closure. This is not a semantic
   constructor WF, positivity/recursor equation, registration or full frontend
   soundness theorem; translated-input eligibility and shadow reader/state/cache
   WF still need semantic composition. No weaker `CheckerEnv`, checker algorithm
@@ -473,6 +481,44 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   names and source metavariables/free variables. Expected nonempty successes also
   pass the native kernel. These executable metadata-stage checks are not proofs
   of the remaining staged native eligibility or semantic constructor WF.
+- `Verify.InductiveHeaderNativeMetadata` closes the actual staged native metadata
+  frame under initial native constructor-parent membership and recursor-parent
+  closure. `strongHeaderAxiomRegistrationView` derives actual inductive-header
+  and shadow header-axiom fresh registration traces from the real accepted
+  `checkName`/insertion program, preserving the previous lookup/view contracts
+  as projections. The strong staged continuation carries these exact traces and
+  initial native map WF. Trace lookup origin excludes newly introduced
+  constructors/recursors, and native lookup retention preserves all old parents
+  and constructor-name membership. Both traces preserve quotient initialization
+  directly. `HeaderAxiomContinuation.nativeFrame` derives the recursive frame;
+  no caller supplies staged constructor closure, recursor shadow-parent lookups,
+  quotient alignment or a method/helper transport callback. The checked prefix
+  and complete `AddInductive.run.nativeConstructorAxiomContinuation` derive
+  constructor freshness from actual later registration and package the derived
+  native frame, accepted actual/shadow constructor checking and shadow traces
+  with the unchanged strong initial `VContext`/`TrEnv` contracts.
+  Native trace lookup/retention explicitly retains the existing interfaces
+  `Lean.PersistentHashMap.findAux_isSome`, `Lean.PersistentHashMap.WF.find?_eq`
+  and `Lean.PersistentHashMap.WF.toList'_insert`, inherited from
+  `FreshRegistrationTrace.lookup`/`preserves`. Generic native lemmas permit only
+  these interfaces and the three standard logical axioms;
+  strong stage theorems additionally inherit their input-type admissions, and
+  prefix/run composition retains existing source-pipeline dependencies.
+  Initial native parent closure is still an explicit native eligibility input;
+  it is not inferred from a weaker `CheckerEnv`, signature/value agreement or
+  runtime prelude scans. Translated constructor-input eligibility, semantic
+  shadow domain receipts and constructor WF, positivity/recursor equations,
+  semantic registration and full frontend/prelude soundness remain open.
+  The native metadata fixture exhaustively audits all ten owned declarations
+  against their exact native-interface, strong-input or existing source-pipeline
+  baselines. Twenty-eight metadata-stage/constructor/full-run combinations cover
+  empty/constructor-free, recursive/higher-order, parameterized, indexed and
+  genuinely mutual batches, both safety/primitive settings, nonzero nested
+  metadata and initialized/uninitialized quotient environments. It checks native
+  constructor/recursor origins, all old inductive parent fields, constructor-name
+  membership and both accepted constructor checkers; expected nonempty types also
+  pass the native kernel. Runtime prelude closure checks are controls, not proofs
+  that the strong semantic history implies the initial native closure premises.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
@@ -511,7 +557,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   into exactly the selected cache, retaining every other state field. Unlike
   normalization, metadata wrappers are separately read and saved by inference;
   an outer hit bypasses its child. The recursive module discharges these method
-  and projection receipts under its native frame. Staged metadata eligibility,
+  and projection receipts under its native frame. Initial native parent-closure eligibility,
   semantic cache/state WF, translated-input eligibility and full inductive soundness remain
   open. Strong initial `VContext`/`TrEnv` and checker behavior are unchanged.
 - `Verify.InductiveHeaderTelescopeTransport` derives transport of the complete
@@ -656,7 +702,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   with shared raw constructor records; these metadata barriers remain explicit.
   All owned declarations exclude admissions and implementation-interface axioms.
   The recursive module closes method receipts under its native frame. Semantic
-  state/cache WF, translated-input/staged metadata eligibility and full inductive
+  state/cache WF, translated-input/initial native eligibility and full inductive
   soundness remain open; the constructor module composes accepted strong-shadow
   checking under that frame. Strong initial `VContext`/`TrEnv`, inherited
   semantic/checker admission boundaries, imported-prelude translation and the
