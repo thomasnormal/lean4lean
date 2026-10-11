@@ -766,6 +766,58 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   dependencies, including `sorryAx`. Registration inherits 15 earlier dependencies
   and the checked-prefix/full-run bridges retain the earlier 31-dependency
   checker/metatheory baseline.
+- `Verify.InductiveRecursorSignatureInputs` derives the semantic constant inputs
+  needed by recursor parent/constructor applications from accepted constructor
+  registration, without caller-supplied source typehood or constant-head typing.
+  `RecursorConstantInput` records strict source translation and sort-valued
+  typehood, strict constant translation and typing at that same semantic source.
+  `headerInput` and `constructorInput` supply it for every registered parent and
+  constructor, at any exactly translated native universe list of the original
+  arity and in any well-formed reached mixed context. This includes added
+  elimination universes, reordered or concrete instantiations, original
+  parameters, dependent locals and lets; no universe-Nodup, zero-parameter or
+  empty-reached-context restriction is added. The proof specializes the closed
+  source translation and registered constant type at the actual translated
+  levels, weakens both into the same mixed context, and aligns the strict
+  source's recovered semantic type by the existing definitional-equality
+  interface. It does not confuse checked inference with type formation or
+  assume the instantiated semantic signature is syntactically unchanged.
+  `alignedType` supplies constant typing at an existing exact source translation;
+  `applyParameters` composes genuine per-domain typed argument receipts rather
+  than assuming parameter names alone imply universe/domain compatibility.
+  The field-trace initial-source lemma and `registeredConstructorApplication`
+  directly derive the earlier constructor-field application's head-translation
+  and head-typing premises from registration and its reached typed endpoint.
+  `RecursorSignatureInputs` collects these universal parent/constructor inputs
+  for the full batch. Checked-prefix and complete-run acceptance bridges derive
+  it with the original strong context, canonical-annotation, primitive/safety and
+  native parent-closure contracts unchanged. The semantic environment remains
+  the reached signature-registration stage, not a claimed final actual `TrEnv`.
+  Signature eligibility is now automatic for all parameter counts, but accepted
+  parameter-consuming field/index trace translation, their reached normalization
+  and annotation support, motive/IH/minor domain formation, recursor equations
+  and final inductive registration remain separate obligations. In particular,
+  the existing field-only endpoint representation is not silently treated as a
+  nonzero-parameter recursor proof. No executable checker change, new axiom or
+  admitted proof is introduced.
+  `tests/InductiveRecursorSignatureInputs.lean` checks 15 formal contracts,
+  including all input proof fields, parameter application, endpoint composition,
+  universal batch eligibility and both acceptance bridges. Its native controls
+  check 472 exact inferred parent/constructor types and sort-valued source/residual
+  typehood in both constructor-registered and complete-run environments, both
+  safeties, and original/dependent-local/let contexts. Empty/constructor-free,
+  recursive/higher-order, multiple/dependent-parameter, polymorphic-parameter,
+  mutual mixed 1/0/2-index and two-universe batches cover original, elimination,
+  concrete and reversed universe lists. Wrong universe arity, unbound universes
+  and incompatible original-parameter instantiations are rejected. Runtime
+  controls do not fabricate semantic contexts. Exhaustive owned-declaration
+  audits use genuine earlier instantiation, constant-WF, mixed-context weakening,
+  uniqueness, parameter application, field application and acceptance interfaces,
+  not the new input type itself; all 33 owned declarations are audited. Universal
+  batch inputs inherit 12 earlier dependencies, and both acceptance bridges
+  retain the earlier 31-dependency checker/metatheory baseline. All existing
+  metatheory admissions remain
+  inherited, with no additional caller typehood or head-typing premise.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
