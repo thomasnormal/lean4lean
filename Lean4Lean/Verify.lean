@@ -223,6 +223,8 @@ import Lean4Lean.Verify.InductiveHeaderParameterUniverses
 import Lean4Lean.Verify.InductiveHeaderIndexApplications
 import Lean4Lean.Verify.InductiveIndexCheckerClosure
 import Lean4Lean.Verify.InductiveHeaderResidualKinds
+import Lean4Lean.Verify.InductiveParentCheckerClosure
+import Lean4Lean.Verify.InductiveParentPassCheckerClosure
 import Lean4Lean.Verify.InductiveHeaderKinds
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveNestedRewrite

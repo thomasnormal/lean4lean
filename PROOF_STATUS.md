@@ -1194,6 +1194,49 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   safeties/primitive modes and all annotation/normalization wrappers are covered.
   Runtime controls do not fabricate semantic contexts. No executable checker change,
   new axiom or admitted proof is introduced.
+- `Verify.InductiveParentCheckerClosure` derives actual major and motive binder
+  models from accepted kinded parent applications, including nonzero fresh/reused
+  parameters and normalized dependent index domains. `RecursorMajorOpening.ofTypehood`
+  uses unrestricted typed annotation peeling, without a uniform-universe premise.
+  `HeaderRecursorIndexCheckerEndpoint.parentModelStepOfKind` obtains parent typehood
+  from the residual semantic sort arity, then derives the exact native major domain,
+  selected-index/major motive abstraction and both typed binder models automatically.
+  No caller-supplied head/domain typing, literal terminal sort or model support
+  predicate is required. `parentCheckerOfKind` and `checkedHeaderParent` retain the
+  genuine index checker and build a genuine final `VContext` aligned with the actual
+  motive reader, including its existing native/semantic environment correspondence,
+  well-formed mixed context, exact native allocations and a cold reset state.
+  Generator-prefix preservation discharges fresh reset namespace reservations;
+  selected identifiers are exactly the native index array followed by major/motive.
+- `Verify.InductiveParentPassCheckerClosure` transports every checked input, partial
+  parent typing and residual kind through actual index/major/motive mixed-context
+  extensions. `RecursorParentPassTrace.checkedModels` consequently derives a genuine
+  final checker for the complete actual parent pass and preserves the whole kinded
+  header batch for later parents/recursor work, including empty and mutual batches.
+  It needs only numeric parameter-completion/index-count alignment for each reached
+  traversal, not the older zero-parameter annotation/normalization/typing support
+  predicates. `RecursorParentPassCountAlignment` records precisely those remaining
+  numeric obligations; it does not prove them or manufacture normalized traversals.
+  Unconditional normalized header/recursor count alignment remains open: the existing
+  WHNF correctness interface proves conversion, not head-normal-form completeness,
+  so a stopped non-forall traversal cannot be identified with a terminal sort from
+  that interface alone. This is not a kernel discrepancy. Elimination-level mapping,
+  entry checker/alignment/reset WF, reservation/canonical annotations and the actual/
+  shadow environment boundary remain explicit; no strong checker is fabricated for
+  the final actual inductive environment. Minor/recursor/frontend closure remains open.
+  `tests/InductiveParentCheckerClosure.lean` checks eight contracts and exhaustively
+  audits all 24 declarations owned by the new modules (10 single-parent, 14 parent-pass)
+  against unchanged earlier foundations, rejecting owned axioms. Single-parent and
+  whole-pass checked adapters inherit 28 dependencies, including existing metatheory
+  admissions, without introducing new ones. Extended residual-kind native controls
+  check 2208 actual major domains/allocations and 4416 motive domains/allocations and
+  saturated applications at zero/fresh elimination levels, with exact native readers,
+  dependent index arrays and rejected unmapped universes. 4224 complete native parent passes
+  additionally preserve every original partial/saturated parent and all motives in
+  the final reader, and reject wrong-domain majors. The previous stale-count,
+  under/overapplication, wrong-parameter and malformed/nonsort controls remain.
+  Runtime controls do not fabricate semantic contexts. No executable checker change,
+  new axiom or admitted proof is introduced.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw

@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveHeaderResidualKinds
+import Lean4Lean.Verify.InductiveParentPassCheckerClosure
 import Lean.Util.CollectAxioms
 
 namespace InductiveHeaderResidualKindsTest
@@ -260,7 +260,7 @@ private def localDeclarations (context : LocalContext) : Array LocalDecl :=
   context.foldl (fun declarations declaration => declarations.push declaration) #[]
 
 private def checkBatch (types : Array InductiveType) (parameters : Nat) (originalUniverses : List Name := []) :
-    MetaM (Nat × Nat × Nat × Nat × Nat × Nat × Nat × Nat) := do
+    MetaM (Nat × Nat × Nat × Nat × Nat × Nat × Nat × Nat × Nat) := do
   let host ← getEnv
   let mut passed := 0
   let mut changed := 0
@@ -270,6 +270,7 @@ private def checkBatch (types : Array InductiveType) (parameters : Nat) (origina
   let mut underapplied := 0
   let mut overapplied := 0
   let mut staleCounts := 0
+  let mut parentPasses := 0
   let elimination := `freshElimination
   for isUnsafe in [false, true] do
     unless types.isEmpty || (host.addDeclCore 0 (.inductDecl originalUniverses parameters types.toList isUnsafe) none).isOk do
@@ -301,6 +302,35 @@ private def checkBatch (types : Array InductiveType) (parameters : Nat) (origina
             let reached := { context with lparams := universes }
             if ({} : TypeChecker.State).ngen.namePrefix == reached.ngen.namePrefix then
               throwError "residual kinds actual reader aliases the reset checker namespace"
+            for elimLevel in [.zero, .param elimination] do
+              let parentReader := if elimLevel.isParam && !reached.lparams.contains elimination then
+                  { reached with lparams := getRecLevelParams elimLevel reached.lparams }
+                else reached
+              let captureInfos : Array RecInfo → M (Array RecInfo × Context) :=
+                fun infos => do return (infos, ← readThe Context)
+              let .ok (infos, finished) := mkRecInfos.loopInd1 stats types elimLevel 0 #[] captureInfos parentReader
+                | throwError "actual whole parent/motive pass failed"
+              unless infos.size == types.size do throwError "actual whole parent pass has wrong native record count"
+              for parent in [:types.size] do
+                let info := infos[parent]!
+                unless info.indices.size == stats.nindices[parent]! && info.minors.isEmpty do
+                  throwError "actual whole parent pass acquired stale index/minor eligibility"
+                let partialParent := mkAppN stats.indConsts[parent]! stats.params
+                unless ((monadLift (TypeChecker.checkType partialParent) : M Expr) finished).isOk do
+                  throwError "actual whole parent pass did not preserve checked parameter applications"
+                let .ok parentKind := (monadLift (TypeChecker.checkType (mkAppN partialParent info.indices)) : M Expr) finished
+                  | throwError "actual whole parent pass did not preserve saturated parent typing"
+                unless ((monadLift (TypeChecker.ensureSort parentKind) : M Expr) finished).isOk do
+                  throwError "actual whole parent pass did not preserve saturated parent typehood"
+                let .ok resultKind := (monadLift (TypeChecker.checkType
+                    (.app (mkAppN info.motive info.indices) info.major)) : M Expr) finished
+                  | throwError "actual whole parent pass motive lost its exact arguments"
+                let .ok true := (monadLift (TypeChecker.isDefEq resultKind (.sort elimLevel)) : M Bool) finished
+                  | throwError "actual whole parent pass motive lost its elimination universe"
+                if ((monadLift (TypeChecker.checkType
+                    (.app (mkAppN info.motive info.indices) (.lit (.natVal 0)))) : M Expr) finished).isOk then
+                  throwError "actual whole parent pass motive accepted a wrong-domain major"
+              parentPasses := parentPasses + 1
             for parent in [:types.size] do
               let source := types[parent]!.type
               let .ok normalized := (monadLift (TypeChecker.whnf source) : M Expr) reached
@@ -344,6 +374,44 @@ private def checkBatch (types : Array InductiveType) (parameters : Nat) (origina
                 | throwError "residual kinds full application differs from actual normalized terminal"
               unless ((monadLift (TypeChecker.ensureSort appliedType) : M Expr) finalReader).isOk do
                 throwError "residual kinds full parent is not a type"
+              let majorDomain := recursorMajorDomain stats parent indices
+              let .ok majorKind := (monadLift (TypeChecker.checkType majorDomain) : M Expr) finalReader
+                | throwError "actual parent major domain checking failed"
+              unless ((monadLift (TypeChecker.ensureSort majorKind) : M Expr) finalReader).isOk do
+                throwError "actual parent major domain is not a type"
+              let captureBinder : Expr → M (Expr × Context) := fun value => do return (value, ← readThe Context)
+              let .ok (major, majorReader) := withLocalDecl `t .default majorDomain captureBinder finalReader
+                | throwError "actual parent major allocation failed"
+              let expectedMajor := recursorIndexContext finalReader `t .default majorDomain
+              unless major == .fvar ⟨finalReader.ngen.curr⟩ && majorReader.ngen == expectedMajor.ngen &&
+                  localDeclarations majorReader.lctx == localDeclarations expectedMajor.lctx do
+                throwError "actual major reader or allocation differs from semantic parent model step"
+              for elimLevel in [.zero, .param elimination] do
+                let motiveBase := if elimLevel.isParam && !majorReader.lparams.contains elimination then
+                    { majorReader with lparams := getRecLevelParams elimLevel majorReader.lparams }
+                  else majorReader
+                let motiveDomain := recursorMotiveDomain elimLevel indices major motiveBase
+                let .ok motiveKind := (monadLift (TypeChecker.checkType motiveDomain) : M Expr) motiveBase
+                  | throwError "actual parent motive domain checking failed"
+                unless ((monadLift (TypeChecker.ensureSort motiveKind) : M Expr) motiveBase).isOk do
+                  throwError "actual parent motive domain is not a type"
+                let name := recursorMotiveName types parent
+                let .ok (motive, motiveReader) := withLocalDecl name .default motiveDomain captureBinder motiveBase
+                  | throwError "actual parent motive allocation failed"
+                let expectedMotive := recursorMotiveContext stats parent indices
+                  { finalReader with lparams := motiveBase.lparams } elimLevel name
+                unless motive == .fvar ⟨majorReader.ngen.curr⟩ && motiveReader.ngen == expectedMotive.ngen &&
+                    motiveReader.lparams == expectedMotive.lparams &&
+                    localDeclarations motiveReader.lctx == localDeclarations expectedMotive.lctx do
+                  throwError "actual motive reader or allocation differs from semantic parent model step"
+                let .ok motiveResult := (monadLift (TypeChecker.checkType
+                    (.app (mkAppN motive indices) major)) : M Expr) motiveReader
+                  | throwError "actual parent motive rejected its exact indices and major"
+                let .ok true := (monadLift (TypeChecker.isDefEq motiveResult (.sort elimLevel)) : M Bool) motiveReader
+                  | throwError "actual parent motive application lost its elimination sort"
+                let badDomain := recursorMotiveDomain (.param `unmappedElimination) indices major motiveBase
+                if ((monadLift (TypeChecker.checkType badDomain) : M Expr) motiveBase).isOk then
+                  throwError "unmapped elimination universe acquired motive domain eligibility"
               unless indices.isEmpty do
                 let .ok partialKind := (monadLift (TypeChecker.checkType
                     (mkAppN partialParent (indices.extract 0 (indices.size - 1)))) : M Expr) finalReader
@@ -370,7 +438,7 @@ private def checkBatch (types : Array InductiveType) (parameters : Nat) (origina
                     (mkAppN (mkAppN stats.indConsts[parent]! wrongStats.params) wrongIndices)) : M Expr) wrongFinal).isOk then
                   throwError "wrong-domain free-variable parameters acquired typed application eligibility"
                 rejected := rejected + 1
-  return (passed, changed, rejected, initialChanges, peeled, underapplied, overapplied, staleCounts)
+  return (passed, changed, rejected, initialChanges, peeled, underapplied, overapplied, staleCounts, parentPasses)
 
 private def rejectionControls : MetaM (Nat × Nat × Nat) := do
   let host ← getEnv
@@ -446,6 +514,7 @@ run_meta
   let mut underapplied := 0
   let mut overapplied := 0
   let mut staleCounts := 0
+  let mut parentPasses := 0
   for (types, parameters, universes) in [
       (#[], 0, []),
       (#[{ name := `ResidualKindNoConstructors, type := sortType, ctors := [] }], 0, []),
@@ -471,7 +540,7 @@ run_meta
           family `ResidualKindMutualAnnotatedSecond 2 2 2 true [] 2], 2, []),
       (#[dependentIndices `ResidualKindDependentIndicesZero 0], 0, []),
       (#[dependentIndices `ResidualKindDependentIndicesTwo 2], 2, [])] do
-    let (accepted, conversions, failed, initial, peelings, under, over, stale) ← checkBatch types parameters universes
+    let (accepted, conversions, failed, initial, peelings, under, over, stale, passes) ← checkBatch types parameters universes
     passed := passed + accepted
     changed := changed + conversions
     rejected := rejected + failed
@@ -480,9 +549,11 @@ run_meta
     underapplied := underapplied + under
     overapplied := overapplied + over
     staleCounts := staleCounts + stale
+    parentPasses := parentPasses + passes
   unless changed > 0 && initialChanges > 0 && rejected > 0 && peeled > 0 && underapplied > 0 && overapplied > 0 do
     throwError "residual kinds controls missed conversions, zero-parameter input normalization, or rejection"
   let (malformed, nativeMalformed, nonsort) ← rejectionControls
-  logInfo m!"{passed} accepted residual-kind parent applications passed with exact native index counts; {underapplied} typed underapplications fail typehood, {overapplied} overapplications reject and {staleCounts} unchecked stale-count traversals fail numeric arity eligibility; {changed} parameter-opening WHNF changes, {initialChanges} original-header changes, {peeled} actually peeled stored index domains and {rejected} unchecked wrong-domain free-variable arrays rejected; {malformed} malformed/nonsort header controls and {nativeMalformed} corresponding native declarations rejected; {nonsort} genuinely type-valued unchecked stopped traversals retain no terminal-sort eligibility; zero/one/two/dependent parameters, differing mutual index counts, original/fresh/reordered universes, registered/full-run environments, original/local/let contexts, both safeties/primitive modes, let/beta/metadata wrappers, nonuniform nested outParam/semiOutParam/optParam/autoParam chains, metadata barriers and dependent index domains checked; exact remaining fuel, index arrays, name generators, local declarations, residual and full-application typehood agree; runtime controls do not fabricate semantic contexts"
+  logInfo m!"{parentPasses} actual complete parent/motive passes preserve every original partial/saturated parent and all checked motives in the final native reader; wrong-domain majors reject; empty and differing-count mutual batches included"
+  logInfo m!"{passed} accepted residual-kind parent applications and major allocations passed with exact native index counts; {passed * 2} actual motive domains, allocations and saturated applications passed at zero/fresh elimination levels and reject unmapped universes; {underapplied} typed underapplications fail typehood, {overapplied} overapplications reject and {staleCounts} unchecked stale-count traversals fail numeric arity eligibility; {changed} parameter-opening WHNF changes, {initialChanges} original-header changes, {peeled} actually peeled stored index domains and {rejected} unchecked wrong-domain free-variable arrays rejected; {malformed} malformed/nonsort header controls and {nativeMalformed} corresponding native declarations rejected; {nonsort} genuinely type-valued unchecked stopped traversals retain no terminal-sort eligibility; zero/one/two/dependent parameters, differing mutual index counts, original/fresh/reordered universes, registered/full-run environments, original/local/let contexts, both safeties/primitive modes, let/beta/metadata wrappers, nonuniform nested outParam/semiOutParam/optParam/autoParam chains, metadata barriers and dependent index domains checked; exact remaining fuel, index arrays, name generators, local declarations, residual and full-application typehood agree; runtime controls do not fabricate semantic contexts"
 
 end InductiveHeaderResidualKindsTest
