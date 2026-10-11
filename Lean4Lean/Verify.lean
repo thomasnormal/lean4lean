@@ -200,5 +200,6 @@ import Lean4Lean.Verify.InductiveHeaderWHNFCoreTransport
 import Lean4Lean.Verify.InductiveHeaderWHNFTransport
 import Lean4Lean.Verify.InductiveHeaderInferenceTransport
 import Lean4Lean.Verify.InductiveHeaderTelescopeTransport
+import Lean4Lean.Verify.InductiveHeaderProjectionTransport
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveNestedRewrite
