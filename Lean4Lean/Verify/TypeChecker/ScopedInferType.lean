@@ -541,5 +541,136 @@ theorem inferForall.scopeWF {context : VContext} {state : VState}
   (context.withMLC_self ▸ inferForall.loop.scopeWF (Nat.zero_le _) rfl rfl rfl rfl
     freeVariables .nil .nil rfl) translated
 
+theorem inferLet.loop.scopeWF_inferOnly {context : VContext} {state : VState}
+    {initialExpression : Expr} {locals : MLCtx} [localsWF : context.MLCWF locals]
+    {binderCount : Nat} {declarations : List (Option Bool)}
+    (countBound : binderCount ≤ locals.length)
+    (declarationsBound : declarations.length = binderCount)
+    (dropped : locals.dropN binderCount countBound = context.mlctx)
+    (arguments : args.toList.reverse = (locals.fvarRevList binderCount countBound).map .fvar)
+    (initial : initialExpression = locals.mkLet binderCount countBound declarations declarationsBound instantiated)
+    (instantiation : expression.instantiateList
+      ((locals.fvarRevList binderCount countBound).map .fvar) = instantiated)
+    (below : ∀ predicate, IsFVarUpSet predicate context.vlctx → FVarsIn predicate initialExpression →
+      IsFVarUpSet (AllAbove context.vlctx predicate) locals.vlctx ∧
+      FVarsIn (AllAbove context.vlctx predicate) instantiated ∧
+      ∀ type, FVarsIn (AllAbove context.vlctx predicate) type →
+        FVarsIn (AllAbove context.vlctx predicate) (locals.mkForall binderCount countBound type))
+    (freeVariables : expression.FVarsIn (· ∈ locals.vlctx.fvars))
+    (translated : ∃ semantic, (context.withMLC locals).TrExprS instantiated semantic) :
+    (inferLet.loop true args expression).ScopeWF (context.withMLC locals) state
+      fun type _ => ∃ semantic semanticType, context.TrTyping initialExpression type semantic semanticType := by
+  refine RecM.ScopeWF.stateWF fun wellFormed => ?_
+  unfold inferLet.loop
+  generalize variablesEq : (locals.fvarRevList binderCount countBound).map Expr.fvar = variables at *
+  have closed : ∀ value ∈ variables, value.looseBVarRange' = 0 := by
+    intro value member
+    rw [← variablesEq] at member
+    obtain ⟨identifier, _, rfl⟩ := List.mem_map.mp member
+    rfl
+  have many (value : Expr) (depth : Nat) :=
+    Expr.instantiateMany_eq_instantiateList value variables depth closed
+  simp [arguments, many, -bind_pure_comp]
+  split
+  · rename_i name domain value body declaration
+    rw [Expr.instantiateList_letE] at instantiation
+    subst instantiated
+    let ⟨_, .letE (ty' := domain') (val' := value') (body' := body')
+      valueType domainTranslation valueTranslation bodyTranslation⟩ := translated
+    let identifier : FVarId := ⟨state.ngen.curr⟩
+    let extended := locals.vlet identifier name (domain.instantiateList variables)
+      (value.instantiateList variables) domain' value'
+    have extendedWF : context.MLCWF extended :=
+      ⟨localsWF.1, wellFormed.find?_eq_none state.ngen.not_reserves_self,
+        domainTranslation, valueTranslation, valueType⟩
+    letI : context.MLCWF extended := extendedWF
+    refine RecM.ScopeWF.withLetDecl (cwf' := extendedWF) domainTranslation valueTranslation valueType ?_
+    have commute := @Expr.instantiateList_instantiate1_comm body variables (.fvar identifier) (by trivial)
+    refine inferLet.loop.scopeWF_inferOnly (declarations := some declaration :: declarations)
+      (Nat.succ_le_succ countBound) (by simp [declarationsBound]) (by simp [dropped])
+      (by simp [variablesEq, arguments]) ?_ (by simp [variablesEq]; rfl) ?_
+      (freeVariables.2.2.mono fun _ => .tail _) ?_
+    · rw [initial, ← commute]
+      have step :
+          (MLCtx.vlet identifier name (domain.instantiateList variables)
+            (value.instantiateList variables) domain' value' locals).mkLet
+              (Nat.succ binderCount) (Nat.succ_le_succ countBound)
+              (some declaration :: declarations) (by simp [declarationsBound])
+              ((body.instantiateList variables 1).instantiate1' (.fvar identifier)) =
+            locals.mkLet binderCount countBound declarations declarationsBound
+              (MLCtx.mkLetArg identifier name (domain.instantiateList variables)
+                (value.instantiateList variables) declaration
+                ((body.instantiateList variables 1).instantiate1' (.fvar identifier))) := by
+        rfl
+      dsimp [extended, identifier]
+      calc
+        _ = locals.mkLet binderCount countBound declarations declarationsBound
+            (MLCtx.mkLetArg identifier name (domain.instantiateList variables)
+              (value.instantiateList variables) declaration
+              ((body.instantiateList variables 1).instantiate1' (.fvar identifier))) := by
+          simp [MLCtx.mkLetArg]
+          congr 2
+          refine (FVarsIn.abstract_instantiate1 ((freeVariables.2.2.instantiateList ?_ _).mono ?_)).symm
+          · simp [← variablesEq, FVarsIn]
+            exact locals.fvarRevList_prefix.subset
+          · rintro _ member rfl
+            exact (extendedWF.1.tr.wf.2.1 _ _ rfl).1 member
+        _ = _ := step.symm
+    · intro predicate upSet inputScope
+      have ⟨upSet', inputScope', typeBelow⟩ := below _ upSet inputScope
+      refine ⟨⟨upSet', fun _ => ?_⟩, ?_, fun type typeScope => ?_⟩
+      · simp [or_imp, forall_and]
+        exact ⟨(fvarsIn_iff.1 inputScope'.1).1, (fvarsIn_iff.1 inputScope'.2.1).1⟩
+      · have bodyScope := inputScope'.2.2
+        have fvarScope : FVarsIn (AllAbove context.vlctx predicate) (.fvar identifier) := by
+          intro member
+          exact state.ngen.not_reserves_self.elim (wellFormed.ngen_wf _
+            (locals.dropN_fvars_subset binderCount countBound (dropped ▸ member)))
+        have bodyScope' := bodyScope.instantiate1 fvarScope
+        exact commute ▸ bodyScope'
+      · simp
+        split <;> rename_i hasBinder
+        · exact typeBelow _ ⟨inputScope'.1, inputScope'.2.1, typeScope.abstract1⟩
+        · rw [Expr.lowerLooseBVars_eq_instantiate (v := .sort .zero) (by simpa using hasBinder)]
+          exact typeBelow _ (typeScope.abstract1.instantiate1 rfl)
+    · have bodyTranslation' := bodyTranslation.inst_fvar context.Ewf.ordered extendedWF.1.tr.wf
+      refine ⟨body', ?_⟩
+      simpa [commute, identifier, extended] using bodyTranslation'
+  · subst instantiated
+    refine (inferType.scopeWF ?_ (fun _ => translated)).bind fun type _ _
+      ⟨semantic, semanticType, bodyBelow, expressionTranslation, typeTranslation, typing⟩ => ?_
+    · apply freeVariables.instantiateList
+      simp [← variablesEq]
+      exact locals.fvarRevList_prefix.subset
+    refine RecM.ScopeWF.stateWF fun wellFormed => RecM.ScopeWF.getLCtx <| RecM.ScopeWF.pure ?_
+    have ⟨_, reducedTranslation, reductionEquality⟩ := typeTranslation.trExpr context.Ewf.ordered wellFormed.trctx.wf
+      |>.cheapBetaReduce context.Ewf wellFormed.trctx.wf locals.noBV
+    have typing := typing.defeqU_r context.Ewf localsWF.1.tr.wf.toCtx reductionEquality.symm
+    let ⟨wholeTranslation, wholeTyping⟩ := localsWF.1.mkLet_trS context.Ewf expressionTranslation typing
+      binderCount countBound declarations declarationsBound
+    let ⟨forallTranslation, forallTyping⟩ := localsWF.1.mkForall_trS context.Ewf reducedTranslation
+      (typing.isType context.Ewf localsWF.1.tr.wf.toCtx) binderCount countBound
+    simp [dropped] at wholeTranslation wholeTyping forallTranslation forallTyping
+    refine localsWF.1.mkForall_eq _ _ (variablesEq ▸ arguments)
+      (locals.noBV ▸ reducedTranslation.closed).looseBVarRange_zero ▸
+      ⟨_, _, fun predicate upSet inputScope => ?_, initial ▸ wholeTranslation,
+        forallTranslation, wholeTyping⟩
+    have ⟨upSet', inputScope', typeBelow⟩ := below _ upSet inputScope
+    have typeScope := FVarsBelow.cheapBetaReduce (locals.noBV ▸ typeTranslation.closed) _ upSet' <|
+      bodyBelow _ upSet' inputScope'
+    exact (typeBelow _ typeScope).mp (fun _ => id) forallTranslation.fvarsIn
+
+theorem inferLet.scopeWF_inferOnly {context : VContext} {state : VState}
+    (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars))
+    (translated : context.TrExprS expression semantic) :
+    (inferLet expression true).ScopeWF context state
+      fun type _ => ∃ semantic semanticType, context.TrTyping expression type semantic semanticType := by
+  refine RecM.ScopeWF.stateWF fun wellFormed => ?_
+  refine context.withMLC_self ▸ inferLet.loop.scopeWF_inferOnly (declarations := [])
+    (Nat.zero_le _) rfl rfl rfl rfl rfl ?_ freeVariables ⟨_, translated⟩
+  exact fun predicate upSet inputScope =>
+    ⟨(AllAbove.wf wellFormed.trctx.wf.fvwf).2 upSet,
+      inputScope.mono fun _ member _ => member, fun _ => id⟩
+
 end TypeChecker.Inner
 end Lean4Lean

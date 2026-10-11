@@ -180,8 +180,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   let-binder frame, including translated value/typehood, cached-name
   reservation for the let value, extended reader/cache scope, model-state
   weakening, and cache restoration on exit. The fixture now covers both local
-  and let reader frames; the recursive lambda contract below consumes the
-  local frame, while recursive let inference remains open.
+  and let reader frames; the recursive lambda and infer-only let contracts
+  below consume the local/let frames. Checking-mode recursive let inference
+  still requires a scoped comparison worker.
 - `Inner.inferType.scopeWF` exposes the original typed callback contract for
   both infer-only and checking modes, while `Inner.checkType.scopeWF` supplies
   the false-`inferOnly` specialization. These frames preserve the scoped
@@ -210,6 +211,14 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   the existing semantic forall baseline. Recursive let inference, projections,
   applications, comparison, arbitrary-fuel methods, and terminal frontend
   closure remain open.
+- `Inner.inferLet.loop.scopeWF_inferOnly` and
+  `Inner.inferLet.scopeWF_inferOnly` prove the actual recursive let telescope
+  in infer-only mode. They consume `withLetDecl`, preserve the let-value
+  translation and body free-variable frame, carry the real cached-name/fresh
+  state transition, and construct the terminal forall typing result. The
+  fixture checks generic and one-let contracts. The checking-mode branch is
+  intentionally not claimed: it calls `isDefEq`, whose scoped comparison
+  worker remains open.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
