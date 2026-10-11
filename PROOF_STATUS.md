@@ -182,7 +182,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   weakening, and cache restoration on exit. The fixture now covers both local
   and let reader frames; the recursive lambda and infer-only let contracts
   below consume the local/let frames. Checking-mode recursive let inference
-  still requires consumption of the scoped comparison worker below.
+  consumes the scoped comparison worker below.
 - `Inner.inferType.scopeWF` exposes the original typed callback contract for
   both infer-only and checking modes, while `Inner.checkType.scopeWF` supplies
   the false-`inferOnly` specialization. These frames preserve the scoped
@@ -217,15 +217,23 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   translation and body free-variable frame, carry the real cached-name/fresh
   state transition, and construct the terminal forall typing result. The
   fixture checks generic and one-let contracts. The checking-mode branch is
-  intentionally not claimed: it still needs to consume the scoped comparison
-  worker below.
+  covered by the checking-mode contract below.
+- `Inner.inferLet.loop.scopeWF` and `Inner.inferLet.scopeWF` prove the actual
+  checking-mode recursive let telescope. They frame domain sorting, value
+  checking, successful `isDefEq` comparison, mismatch failure, and the real
+  `withLetDecl` transition before reusing the terminal forall construction.
+  The comparison may advance the equivalence manager before let allocation, so
+  the proof re-enters through the reached state and its fresh-name invariant.
+  The fixture checks generic and one-let checking contracts. This closes the
+  recursive let worker only under the existing scoped callback contracts; it
+  does not close projections, applications, arbitrary-fuel methods, semantic
+  WHNF completeness, terminal-sort acceptance, or the frontend theorem.
 - `Inner.addEquiv.scopeWF`, `Inner.isDefEqCore.scopeWF`, and
   `Inner.isDefEq.scopeWF` preserve the scoped WHNF caches through equivalence-
   manager updates and transport successful comparison results to the semantic
   `IsDefEqU` relation. The comparison contracts reuse the existing semantic
   equivalence-manager proof and require the typed `Methods.ScopeWF` callback;
-  they do not yet close arbitrary-fuel `Methods.ScopeWF` or checking-mode let
-  inference.
+  they do not yet close arbitrary-fuel `Methods.ScopeWF`.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
