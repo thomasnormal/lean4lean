@@ -265,6 +265,64 @@ theorem TypeChecker.M.HeadScopeWF.bind {action : TypeChecker.M First}
       initial.2.1 initial.2.2 result finalState accepted
     exact ⟨initial.1.trans final.1, final.2⟩
 
+theorem TypeChecker.M.HeadScopeWF.get {continuation : TypeChecker.State → TypeChecker.M Result}
+    (valid : ∀ state, (continuation state).HeadScopeWF) :
+    (get >>= continuation).HeadScopeWF := by
+  intro context state wellFormed reserved stable names result finalState accepted
+  exact valid state context state wellFormed reserved stable names result finalState accepted
+
+theorem TypeChecker.M.HeadScopeWF.getEnv {continuation : Kernel.Environment → TypeChecker.M Result}
+    (valid : ∀ environment, (continuation environment).HeadScopeWF) :
+    (TypeChecker.getEnv >>= continuation).HeadScopeWF := by
+  intro context state wellFormed reserved stable names result finalState accepted
+  exact valid context.env context state wellFormed reserved stable names result finalState accepted
+
+theorem TypeChecker.M.HeadScopeWF.modify (update : TypeChecker.State → TypeChecker.State)
+    (preserves : ∀ locals state, TypeChecker.HeadScopeCacheWF locals state → TypeChecker.HeadCacheNamesWF state →
+      state.ngen ≤ (update state).ngen ∧ TypeChecker.HeadScopeCacheWF locals (update state) ∧
+        TypeChecker.HeadCacheNamesWF (update state)) :
+    (modify update : TypeChecker.M Unit).HeadScopeWF := by
+  intro context state wellFormed reserved stable names result finalState accepted
+  cases accepted
+  exact preserves context.lctx state stable names
+
+theorem TypeChecker.Inner.unfoldDefinitionCore.headScopeWF (expression : Expr) (methods : TypeChecker.Methods) :
+    (unfoldDefinitionCore expression methods).HeadScopeWF := by
+  unfold unfoldDefinitionCore
+  simp only [pure_bind]
+  cases expression <;> try exact TypeChecker.M.HeadScopeWF.pure _
+  rename_i name levels
+  dsimp only [Bind.bind, ReaderT.bind]
+  apply TypeChecker.M.HeadScopeWF.getEnv
+  intro environment
+  cases isDelta environment (Expr.const name levels) with
+  | none => exact TypeChecker.M.HeadScopeWF.pure _
+  | some definition =>
+    dsimp only
+    split
+    · split
+      · dsimp only [Bind.bind, ReaderT.bind]
+        apply TypeChecker.M.HeadScopeWF.get
+        intro state
+        cases state.unfold[Expr.const name levels]? with
+        | some value => exact TypeChecker.M.HeadScopeWF.pure _
+        | none =>
+          dsimp only [Bind.bind, ReaderT.bind]
+          exact (TypeChecker.M.HeadScopeWF.modify (fun state : TypeChecker.State =>
+            { state with unfold := state.unfold.insert (.const name levels) (definition.instantiateValueLevelParams! levels) })
+              (fun _ _ stable names => ⟨.rfl, stable, names⟩)).bind fun _ => .pure _
+      · exact TypeChecker.M.HeadScopeWF.pure _
+    · exact TypeChecker.M.HeadScopeWF.pure _
+
+theorem TypeChecker.Inner.unfoldDefinition.headScopeWF (expression : Expr) (methods : TypeChecker.Methods) :
+    (unfoldDefinition expression methods).HeadScopeWF := by
+  unfold unfoldDefinition
+  split
+  · dsimp only [Bind.bind, ReaderT.bind]
+    refine (unfoldDefinitionCore.headScopeWF _ methods).bind fun unfolded => ?_
+    cases unfolded <;> exact TypeChecker.M.HeadScopeWF.pure _
+  · exact unfoldDefinitionCore.headScopeWF _ methods
+
 theorem TypeChecker.M.HeadScopeWF.withFreshId {continuation : Name → TypeChecker.M Result}
     (valid : ∀ name, (continuation name).HeadScopeWF) :
     (withFreshId continuation).HeadScopeWF := by
