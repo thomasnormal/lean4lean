@@ -182,7 +182,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   weakening, and cache restoration on exit. The fixture now covers both local
   and let reader frames; the recursive lambda and infer-only let contracts
   below consume the local/let frames. Checking-mode recursive let inference
-  still requires a scoped comparison worker.
+  still requires consumption of the scoped comparison worker below.
 - `Inner.inferType.scopeWF` exposes the original typed callback contract for
   both infer-only and checking modes, while `Inner.checkType.scopeWF` supplies
   the false-`inferOnly` specialization. These frames preserve the scoped
@@ -217,8 +217,15 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   translation and body free-variable frame, carry the real cached-name/fresh
   state transition, and construct the terminal forall typing result. The
   fixture checks generic and one-let contracts. The checking-mode branch is
-  intentionally not claimed: it calls `isDefEq`, whose scoped comparison
-  worker remains open.
+  intentionally not claimed: it still needs to consume the scoped comparison
+  worker below.
+- `Inner.addEquiv.scopeWF`, `Inner.isDefEqCore.scopeWF`, and
+  `Inner.isDefEq.scopeWF` preserve the scoped WHNF caches through equivalence-
+  manager updates and transport successful comparison results to the semantic
+  `IsDefEqU` relation. The comparison contracts reuse the existing semantic
+  equivalence-manager proof and require the typed `Methods.ScopeWF` callback;
+  they do not yet close arbitrary-fuel `Methods.ScopeWF` or checking-mode let
+  inference.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
