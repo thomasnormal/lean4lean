@@ -555,11 +555,12 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   type formation: `Nat.zero` passes that source call but is rejected as a
   constructor type by the complete constructor checker. The checker-model
   module below recovers constructor WF for binder sources and complete
-  parameterized batches; binder-free sources use the return-typing theorem below,
-  with exact semantic header-kind receipts still explicit.
+  parameterized batches; binder-free sources use the return-typing theorem below
+  with automatically derived contextual header kinds. The combined
+  `constructorTypesWF` theorem supplies full batch constructor type WF.
   Positivity/recursor equations, semantic inductive registration and full
   inductive/frontend/prelude soundness remain open.
-  The fixture exhaustively audits all 32 owned declarations, including generated
+  The fixture exhaustively audits all 33 owned declarations, including generated
   receipt declarations. List membership/signature lemmas use only logical
   axioms; strong receipt types inherit existing `sorryAx`; translation, domain
   and prefix/run proofs retain the existing checker/metatheory baseline of 31
@@ -592,7 +593,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   fields do, with their actual fresh identifiers. Source typehood is preserved
   through every real opening to the final translated return expression.
   `TypedConstructorReceipts` combines complete input/domain receipts with these
-  reader models for every accepted constructor. The strong shadow, actual-stage,
+  reader models and automatic constant WF for every accepted constructor.
+  The strong shadow, actual-stage,
   checked-prefix and complete `AddInductive.run.typedConstructorAxiomContinuation`
   bridges derive them from real acceptance and later registration freshness.
   Canonical annotation signatures and definitions are inherited from the root
@@ -604,9 +606,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   proves WF for every translated constructor in the complete declaration when
   `stats.params.size > 0`, with no caller-supplied constructor translations or
   per-constructor binder/typehood premises.
-  Binder-free constructors of zero-parameter families still need closed-context
-  semantic header kinds; automatic contextual batch kinds and saturated
-  return-application typing are proved below. Semantic positivity,
+  Binder-free constructors of zero-parameter families now obtain typehood from
+  automatic contextual batch kinds and saturated return-application typing,
+  as proved below. Semantic positivity,
   recursor equations, complete inductive registration and full frontend/prelude
   soundness remain open; this is not a full inductive soundness theorem.
   The conditional `AcceptedConstructorTrace.zeroParameterKind` reconstructs
@@ -621,9 +623,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   genuine initial native parent closure and all executable checker behavior
   remain unchanged. The expanded semantic receipt fixture exercises the new
   opening, final-context/field-count/typehood, parameterized WF, actual-stage and
-  full-run contracts through 21 formal examples. It audits all 34 new owned
-  declarations, both factored shared helpers and the 32 earlier input-receipt
-  declarations, and passes 32 native source/constructor/full-run controls.
+  full-run contracts through 27 formal examples. It audits all 47 owned
+  reader-model declarations, both factored shared helpers and the 33 input-receipt
+  declarations, and passes 36 native source/constructor/full-run controls.
   Canonical annotation extension lemmas have no axiom dependencies. Binder and
   parameterized constructor-WF extraction retain the existing semantic input
   baseline of four dependencies, including `sorryAx` through the existing
@@ -671,13 +673,34 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   receipts to every corresponding complete declaration member in the registered
   semantic environment without changing constructor lists or assuming equality
   of entire headers. These are contextual kinds, not empty-context kinds.
-  Generic sort-arity strengthening through head reduction would additionally
-  require the metatheory's reduction-pattern `VEnv.Params`, not merely `VEnv.WF`;
-  no such additional assumption is imposed on the checker. Specializing these
-  contextual receipts to translated header universes and strengthening the
-  resulting constructor typehood remains open. Consequently full batch
-  constructor WF is still conditional on those header receipts, and full
-  inductive soundness is not established.
+  `TrExprS.contextualConstantKind` specializes both the generic header kind and
+  its well-formed auxiliary context at the actual strictly translated universe
+  list. `SortArity.applyClosed` consumes the closed strict application spine
+  in that context using ordinary typing weakening. `closedTypedIsType`
+  strengthens only the resulting sort-valued typing back to the empty context;
+  existential header-kind witnesses need not be strengthened. The saturated
+  application, accepted return and constructor-trace contextual variants
+  preserve strict function/argument typing throughout. Finally
+  `ConstructorSemanticReceipts.constructorTypesWF` automatically proves
+  constant WF for every constructor in the complete declaration, for all
+  parameter counts and empty/nonempty batches, without caller-supplied header
+  kinds, constructor translations or return/constructor typehood. It combines
+  the existing positive-parameter result with the exact automatic zero-parameter
+  receipts and the accepted trace. No reduction-pattern `VEnv.Params` premise
+  or empty-context header-kind assumption is introduced. `TypedConstructorReceipts`
+  retains this automatic WF proof, so its existing shadow, actual-stage, checked
+  prefix and complete-run bridges now supply it without extra caller premises.
+  Complete run fixtures also compose the theorem with the existing derived
+  semantic receipts. The return fixture checks 18 formal contracts and audits
+  24 sort-arity and ten return-typing declarations plus six constructor-WF
+  compositions. Automatic batch WF inherits nine existing dependencies,
+  including native local-context array/hash interfaces through `VContext.Δwf`;
+  its audit uses that genuine earlier context-WF baseline as well as the
+  contextual header receipts, not just the smaller `TrConstructor` input type.
+  The semantic fixture additionally checks polymorphic nullary constructors in
+  a mixed 1/0/2-index batch and verifies sort-valued inferred types for every
+  accepted constructor while retaining the `Nat.zero` non-type control. Semantic
+  positivity, recursor equations and complete inductive soundness remain open.
   No strong checker or native parent-closure contract is weakened, and no
   executable checker behavior changes. The return fixture exercises eleven
   formal contracts, audits all twenty-two sort-arity and seven return-typing owned
