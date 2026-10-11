@@ -1,8 +1,89 @@
-import Lean4Lean.Verify.InductiveConstructorSemanticReceipts
+import Lean4Lean.Verify.InductiveConstructorCheckerModels
 
 namespace InductiveConstructorSemanticReceiptsTest
 open Lean hiding Environment Exception
 open Lean4Lean Lean4Lean.AddInductive
+
+example (translated : TrConstructor environment universes constructor semantic)
+    (binder : constructor.type.isForall = true) : semantic.toVConstant.WF environment :=
+  translated.forallWF binder
+
+example (stage : HeaderAxiomContinuation root original nparams types stats reader actual)
+    (receipts : ConstructorSemanticReceipts stage isUnsafe) (positive : 0 < stats.params.size) :
+    ∀ header ∈ receipts.declaration.types, ∀ constructor ∈ header.ctors,
+      constructor.toVConstant.WF stage.semantic :=
+  receipts.parameterizedTypesWF positive
+
+example (stage : HeaderAxiomContinuation root original nparams types stats reader actual) :
+    ElimNestedInductive.ContextReserved reader.lctx reader.ngen ∧
+      ({} : TypeChecker.VState).ngen.namePrefix ≠ reader.ngen.namePrefix :=
+  ⟨stage.before.readerReserved, stage.before.readerDifferent⟩
+
+example (checker : TypeChecker.VContext) (reader : Context)
+    (aligned : HeaderCheckerAligned checker reader) (initialWF : ({} : TypeChecker.VState).WF checker)
+    (translated : checker.TrExprS domain semantic)
+    (accepted : (monadLift (TypeChecker.ensureType domain) : M Expr) reader = .ok sort) :
+    ∃ level semanticLevel, sort = .sort level ∧ VLevel.ofLevel checker.lparams level = some semanticLevel ∧
+      checker.HasType semantic (.sort semanticLevel) :=
+  acceptedConstructorDomainSort checker reader aligned initialWF translated accepted
+
+example (trace : AcceptedConstructorTrace stats isUnsafe parent reader index type finalReader finalIndex terminal)
+    (checker : TypeChecker.VContext) (aligned : HeaderCheckerAligned checker reader)
+    (initialWF : ({} : TypeChecker.VState).WF checker)
+    (reserved : ElimNestedInductive.ContextReserved reader.lctx reader.ngen)
+    (different : ({} : TypeChecker.VState).ngen.namePrefix ≠ reader.ngen.namePrefix)
+    (constants : CanonicalAnnotationConstants checker.venv)
+    (definitions : CanonicalAnnotationDefinitions checker.venv)
+    (parameters : HeaderParameterModels stats checker.vlctx) (translated : checker.TrExprS type semantic) :
+    ConstructorReaderModels checker semantic stats index finalReader finalIndex terminal :=
+  trace.checkerModels checker aligned initialWF reserved different constants definitions parameters translated
+
+example (models : ConstructorReaderModels initial sourceSemantic stats index reader finalIndex terminal)
+    (typed : initial.IsType sourceSemantic) :
+    ∃ checker identifiers semantic,
+      HeaderCheckerAligned checker reader ∧ ({} : TypeChecker.VState).WF checker ∧
+      ElimNestedInductive.ParameterPrefix initial.mlctx checker.mlctx identifiers ∧
+      identifiers.length = (finalIndex - stats.params.size) - (index - stats.params.size) ∧
+      checker.TrExprS terminal semantic ∧ checker.IsType semantic := by
+  obtain ⟨checker, identifiers, semantic, _, _, aligned, stateWF, history, count, translated, preserved⟩ := models
+  exact ⟨checker, identifiers, semantic, aligned, stateWF, history, count, translated, preserved typed⟩
+
+example (stage : HeaderAxiomContinuation root original nparams types stats reader actual)
+    (receipts : TypedConstructorReceipts stage isUnsafe) :
+    TrInductDecl root.venv stage.semantic root.lparams nparams types.toList receipts.inputs.declaration :=
+  receipts.inputs.translated
+
+example (checker : TypeChecker.VContext) (reader : Context)
+    (aligned : HeaderCheckerAligned checker reader) (initialWF : ({} : TypeChecker.VState).WF checker)
+    (reserved : ElimNestedInductive.ContextReserved reader.lctx reader.ngen)
+    (different : ({} : TypeChecker.VState).ngen.namePrefix ≠ reader.ngen.namePrefix)
+    (constants : CanonicalAnnotationConstants checker.venv)
+    (definitions : CanonicalAnnotationDefinitions checker.venv)
+    (translated : checker.TrExprS (.forallE name domain body binder) semantic) :
+    ∃ peeled nextChecker,
+      nextChecker.venv = checker.venv ∧ nextChecker.lparams = checker.lparams ∧
+      nextChecker.mlctx = .vlam ⟨reader.ngen.curr⟩ name (peelTypeAnnotations domain) peeled binder checker.mlctx ∧
+      HeaderCheckerAligned nextChecker (recursorIndexContext reader name binder (peelTypeAnnotations domain)) ∧
+      ({} : TypeChecker.VState).WF nextChecker ∧
+      ∃ nextSemantic, nextChecker.TrExprS (body.instantiate1 (.fvar ⟨reader.ngen.curr⟩)) nextSemantic ∧
+        nextChecker.IsType nextSemantic :=
+  translatedHeaderOpening checker reader aligned initialWF reserved different constants definitions translated
+
+example (stage : HeaderAxiomContinuation root original nparams types stats reader actual)
+    (empty : root.mlctx = .nil) (constants : CanonicalAnnotationConstants root.venv)
+    (definitions : CanonicalAnnotationDefinitions root.venv) (isUnsafe : Bool)
+    (accepted : checkConstructors types stats isUnsafe { reader with env := stage.shadow } = .ok ()) :
+    Nonempty (TypedConstructorReceipts stage isUnsafe) :=
+  stage.shadowTypedConstructors empty constants definitions isUnsafe accepted
+
+example (stage : HeaderAxiomContinuation root original nparams types stats reader actual)
+    (empty : root.mlctx = .nil) (constants : CanonicalAnnotationConstants root.venv)
+    (definitions : CanonicalAnnotationDefinitions root.venv) (isUnsafe : Bool) (fresh : ConstructorsFresh actual types)
+    (constructors : NativeConstructorParentClosure original.env)
+    (recursors : NativeRecursorParentsClosed original.env)
+    (accepted : checkConstructors types stats isUnsafe { reader with env := actual } = .ok ()) :
+    Nonempty (TypedConstructorReceipts stage isUnsafe) :=
+  stage.typedConstructors empty constants definitions isUnsafe fresh constructors recursors () accepted
 
 example (model : TypedHeaderReader base stats reader) (constructor : Constructor) (result : Expr)
     (guarded : reader.env.checkNoMVarNoFVar constructor.name constructor.type = .ok ())
@@ -95,6 +176,21 @@ example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
   run.semanticConstructorAxiomContinuation nparams types numNested root reader aligned empty different
     constants definitions ordinary ordinarySafety constructors recursors
 
+example (nparams : Nat) (types : List InductiveType) (numNested : Nat)
+    (root : TypeChecker.VContext) (reader : Context) (aligned : HeaderCheckerAligned root reader)
+    (empty : root.mlctx = .nil)
+    (different : ({} : TypeChecker.VState).ngen.namePrefix ≠ reader.ngen.namePrefix)
+    (constants : CanonicalAnnotationConstants root.venv)
+    (definitions : CanonicalAnnotationDefinitions root.venv)
+    (ordinary : reader.allowPrimitive = false) (ordinarySafety : root.safety ≠ .partial)
+    (constructors : NativeConstructorParentClosure reader.env)
+    (recursors : NativeRecursorParentsClosed reader.env) :
+    (run nparams types numNested reader).WF fun _ => ∃ stats current actual final,
+      ∃ stage : HeaderAxiomContinuation root reader nparams types.toArray stats current actual,
+        NativeValueFrame actual final ∧ Nonempty (TypedConstructorReceipts stage (reader.safety != .safe)) :=
+  run.typedConstructorAxiomContinuation nparams types numNested root reader aligned empty different
+    constants definitions ordinary ordinarySafety constructors recursors
+
 private def sortType : Expr := .sort (.succ .zero)
 private def natural : Expr := .const ``Nat []
 
@@ -115,6 +211,13 @@ private def polymorphicFamily : InductiveType :=
   { name := `SemanticPoly, type := close (.sort (.param `universe))
     ctors := [⟨`SemanticPoly.base, close (parent 0)⟩,
       ⟨`SemanticPoly.step, close (.forallE `child (parent 0) (parent 1) .default)⟩] }
+
+private def dependentFields : InductiveType :=
+  let level := Level.succ (.succ .zero)
+  let annotated := mkApp (.const ``outParam [level]) sortType
+  { name := `SemanticDependentFields, type := .sort level,
+    ctors := [⟨`SemanticDependentFields.mk, .forallE `carrier annotated
+      (.forallE `value (.bvar 0) (.const `SemanticDependentFields []) .default) .default⟩] }
 
 private def checkBatch (types : Array InductiveType) (parameters : Nat := 0)
     (universes : List Name := []) : MetaM Nat := do
@@ -198,13 +301,58 @@ private def auditModule : MetaM Unit := do
       count := count + 1
   logInfo m!"semantic receipts: {count} exhaustive production declarations audited against logical, existing source/domain, strong-stage and native-prefix/run baselines"
 
+private def auditReaderModels : MetaM Unit := do
+  let environment ← getEnv
+  let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveConstructorCheckerModels |
+    throwError "constructor reader-model module absent"
+  let logicalAllowed := #[``propext, ``Classical.choice, ``Quot.sound]
+  let strongAllowed := logicalAllowed ++ (← collectAxioms ``HeaderAxiomContinuation)
+  let constructorInputAllowed := logicalAllowed ++ (← collectAxioms ``TrConstructor)
+  let checkerAllowed := strongAllowed ++ (← collectAxioms ``TypeChecker.ensureType.WF) ++
+    (← collectAxioms ``TrExprS.uniq) ++ (← collectAxioms ``CheckedHeaderTrace.checkerModels) ++
+    (← collectAxioms ``acceptedSourceTranslation) ++ (← collectAxioms ``checkNoMVarNoFVar.WF)
+  let stageAllowed := checkerAllowed ++ (← collectAxioms ``HeaderAxiomContinuation.shadowConstructorSemantics)
+  let actualAllowed := stageAllowed ++ (← collectAxioms ``HeaderAxiomContinuation.acceptedConstructorsFromInitial)
+  let prefixAllowed := stageAllowed ++ (← collectAxioms ``checkInductiveTypes.nativeConstructorAxiomContinuation)
+  let runAllowed := stageAllowed ++ (← collectAxioms ``run.nativeConstructorAxiomContinuation)
+  let mut count := 0
+  for (name, information) in environment.constants do
+    if environment.getModuleIdxFor? name == some moduleIndex then
+      if information matches .axiomInfo _ then throwError "constructor reader-model owned axiom {name}"
+      let text := name.toString
+      let allowed := if name == ``TrConstructor.forallWF then constructorInputAllowed
+        else if name == ``CanonicalAnnotationConstants.mono || name == ``CanonicalAnnotationDefinitions.mono then logicalAllowed
+        else if name == ``CheckedConstructorDomainReceipts.requiresBinder ||
+          text.startsWith "Lean4Lean.AddInductive.CheckedConstructorDomainReceipts.requiresBinder." ||
+          name == ``ConstructorSemanticReceipts.parameterizedTypesWF ||
+          name == ``ConstructorReaderModels || name == ``TypedConstructorReceipts ||
+          text.startsWith "Lean4Lean.AddInductive.TypedConstructorReceipts." then strongAllowed
+        else if name == ``checkInductiveTypes.typedConstructorAxiomContinuation then prefixAllowed
+        else if name == ``run.typedConstructorAxiomContinuation then runAllowed
+        else if name == ``HeaderAxiomContinuation.typedConstructors then actualAllowed
+        else if name == ``HeaderAxiomContinuation.shadowTypedConstructors then stageAllowed
+        else checkerAllowed
+      let axioms ← collectAxioms name
+      for dependency in axioms do
+        unless allowed.contains dependency do throwError "constructor reader-model unexpected {dependency} in {name}"
+      logInfo m!"{name}: {axioms.size} inherited dependencies = {repr axioms}"
+      count := count + 1
+  for name in [``translatedHeaderOpening, ``translatedReusedHeaderParameterOpening] do
+    let axioms ← collectAxioms name
+    for dependency in axioms do
+      unless checkerAllowed.contains dependency do throwError "shared typed-opening unexpected {dependency} in {name}"
+    logInfo m!"{name}: {axioms.size} inherited typed-opening dependencies = {repr axioms}"
+  logInfo m!"constructor reader models: {count} exhaustive owned declarations and both shared typed openings audited"
+
 run_meta
   auditModule
+  auditReaderModels
   let mut outcomes ← checkBatch #[]
   outcomes := outcomes + (← checkBatch #[{ name := `SemanticEmpty, type := sortType, ctors := [] }])
   outcomes := outcomes + (← checkBatch #[family `SemanticSingle])
   outcomes := outcomes + (← checkBatch #[family `SemanticParameters 2] 2)
   outcomes := outcomes + (← checkBatch #[polymorphicFamily] 1 [`universe])
+  outcomes := outcomes + (← checkBatch #[dependentFields])
   outcomes := outcomes + (← checkBatch #[{
     name := `SemanticIndexed, type := .forallE `index natural sortType .default,
     ctors := [⟨`SemanticIndexed.base, mkApp (.const `SemanticIndexed []) (.const ``Nat.zero [])⟩] }])
