@@ -136,6 +136,25 @@ theorem ConstructorsFresh.inShadow (fresh : ConstructorsFresh actual types)
   fun type member constructor present => (agreement.none_iff constructor.name).mp
     (fresh type member constructor present)
 
+theorem _root_.Lean4Lean.HeaderAxiomLookupAgreement.missingChangedHeader
+    (agreement : HeaderAxiomLookupAgreement (fun name => ∃ type ∈ types, type.name = name) actual shadow)
+    (constructorHeaders : ∀ type ∈ types, ∃ header,
+      actual.find? type.name = some (.inductInfo header) ∧ header.ctors = type.ctors.map Constructor.name)
+    (fresh : ConstructorsFresh actual types) (name : Name) (header : InductiveVal)
+    (lookup : actual.find? name = some (.inductInfo header))
+    (different : actual.find? name ≠ shadow.find? name) :
+    ∀ constructor ∈ header.ctors, actual.find? constructor = none := by
+  rcases agreement name with same | ⟨⟨type, member, key⟩, _⟩
+  · exact False.elim (different same)
+  · obtain ⟨source, sourceLookup, constructors⟩ := constructorHeaders type member
+    rw [key] at sourceLookup
+    have equal : source = header := ConstantInfo.inductInfo.inj (Option.some.inj (sourceLookup.symm.trans lookup))
+    subst source
+    intro name present
+    rw [constructors] at present
+    obtain ⟨constructor, constructorMember, rfl⟩ := List.mem_map.mp present
+    exact fresh type member constructor constructorMember
+
 private theorem registerConstructorFreshness (constructors : List Constructor) (index : Nat)
     (env : Kernel.Environment) (allowPrimitive : Bool)
     (makeInfo : Nat → Constructor → ConstructorVal)

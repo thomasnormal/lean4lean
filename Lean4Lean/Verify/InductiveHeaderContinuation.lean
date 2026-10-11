@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.InductiveHeaderAxiomView
+import Lean4Lean.Verify.InductiveMetadata
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
@@ -286,6 +287,9 @@ structure HeaderAxiomContinuation (root : TypeChecker.VContext) (original : Cont
   registered : root.venv.addInductHeaders before.headers = some semantic
   actualWF : actual.constants.WF
   agreement : HeaderAxiomAgreement actual shadow
+  lookups : HeaderAxiomLookupAgreement (fun name => ∃ type ∈ types, type.name = name) actual shadow
+  constructorHeaders : ∀ type ∈ types, ∃ header,
+    actual.find? type.name = some (.inductInfo header) ∧ header.ctors = type.ctors.map Constructor.name
   values : NativeValueFrame reader.env shadow
   primitives : NativePrimitiveFrame reader.env shadow
   model : TypedHeaderReader root.mlctx stats { reader with env := shadow }
@@ -320,20 +324,27 @@ theorem checkInductiveTypes.withHeaderAxiomContinuation
     exact currentSafety.trans (before.frame.safety.trans initialSafety.symm)
   apply Lean4Lean.AddInductive.bindHeaderResultWF
   intro actual declared
-  obtain ⟨shadow, semantic, registered, history, agreement, values, primitives⟩ :=
-    declareInductiveTypes.strongHeaderAxiomView current stats nparams types numNested isUnsafe
+  obtain ⟨shadow, semantic, registered, history, agreement, values, lookups, primitives⟩ :=
+    declareInductiveTypes.strongHeaderAxiomLookupView current stats nparams types numNested isUnsafe
     (nativeEnv ▸ before.model.checker.trenv) (safety ▸ safetyBound) before.sizes.1
     (by simpa only [before.sameEnv, currentUniverses] using before.models)
     (by simpa only [before.sameEnv] using before.typesWF) actual declared
   have actualWF := (declareInductiveTypes.preservesValues current stats nparams types numNested isUnsafe
     (nativeEnv ▸ before.model.checker.trenv.map_wf) actual declared).map_wf
+  have metadata := (declareInductiveTypes.metadata stats nparams types numNested isUnsafe current
+    (nativeEnv ▸ before.model.checker.trenv.map_wf) before.sizes.1 actual declared).2.2
   have primitiveFrame := primitives (before.frame.allowPrimitive.trans ordinary)
   have modelPrimitiveFrame : NativePrimitiveFrame before.model.checker.env shadow := nativeEnv.symm ▸ primitiveFrame
   have increase := VEnv.addInductHeaders.le registered
   exact continuation stats current actual {
     before, shadow, semantic,
     registered := by simpa only [before.sameEnv] using registered,
-    actualWF, agreement, values, primitives := primitiveFrame,
+    actualWF, agreement, lookups,
+    constructorHeaders := by
+      intro type member
+      obtain ⟨index, bound, rfl⟩ := Array.mem_iff_getElem.mp member
+      exact ⟨_, metadata index bound, rfl⟩,
+    values, primitives := primitiveFrame,
     model := before.model.inHeaderAxiomView shadow semantic increase history modelPrimitiveFrame,
     semantic_eq := rfl }
 
