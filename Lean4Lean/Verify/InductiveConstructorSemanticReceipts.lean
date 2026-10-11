@@ -117,6 +117,8 @@ structure ConstructorSemanticReceipts
   declaration : VInductDecl
   translated : TrInductDecl root.venv stage.semantic root.lparams nparams types.toList declaration
   registered : root.venv.addInductHeaders declaration.types = some stage.semantic
+  headerSignatures : List.Forall₂ (fun complete header : VInductiveType =>
+    complete.toVConstVal = header.toVConstVal) declaration.types stage.before.headers
   headersWF : declaration.HeadersWF root.venv
   domains : ∀ parent, ∀ bound : parent < types.size, ∀ constructor ∈ types[parent].ctors,
     ∃ finalReader finalIndex terminal finalTarget,
@@ -155,6 +157,7 @@ theorem HeaderAxiomContinuation.shadowConstructorSemantics
     declaration := { uvars := root.lparams.length, nparams, types := complete }
     translated := ⟨rfl, rfl, by simpa only [stage.semantic_eq] using completed⟩
     registered := registered
+    headerSignatures := signatures
     headersWF := ?_
     domains := ?_ }⟩
   · intro header member
