@@ -376,9 +376,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   only after the actual accepted argument type/state. Eager comparison uses the
   native argument-head/arity test and the scoped updated readers, preserving the
   equivalence-manager insertion performed by the actual `isDefEq` wrapper.
-  Lambda/forall/let helper transport and projection helper transport remain
-  explicit obligations at their reached inputs; this theorem does not derive
-  telescope receipts or assume new-header projections work in an axiom shadow.
+  Lambda/forall/let helper transport and projection helper transport are
+  explicit obligations at their reached inputs; the telescope module below
+  derives the former from reached method receipts. Neither theorem assumes
+  new-header projections work in an axiom shadow.
   `NativeAppReachable`, `NativeAppCallbacks` and `NativeInferAppCallbacks` derive
   complete native `inferApp` transport, including its actual argument-array
   loop, delayed reverse-range instantiation, direct-forall steps and normalized
@@ -397,10 +398,41 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   Closed cache hits bypass body checks, while every successful cold body inserts
   into exactly the selected cache, retaining every other state field. Unlike
   normalization, metadata wrappers are separately read and saved by inference;
-  an outer hit bypasses its child. Automatic telescope/projection receipts,
+  an outer hit bypasses its child. Automatic recursive method/projection receipts,
   semantic cache/state WF, translated-input eligibility, general mutually
   recursive `Methods.withFuel` transport and full inductive soundness remain
   open. Strong initial `VContext`/`TrEnv` and checker behavior are unchanged.
+- `Verify.InductiveHeaderTelescopeTransport` derives transport of the complete
+  native `inferLambda`, `inferForall` and `inferLet` helpers, including their
+  actual telescope loops, from reached method callbacks. Raw allocation
+  equations preserve the native fresh ID, generator increment and scoped local
+  reader update of `withLocalDecl` and `withLetDecl`; final state effects remain
+  observable after the scoped reader is restored. `NativeLambdaReachable`,
+  `NativeForallReachable` and `NativeLetReachable` extend only after an accepted
+  actual checking prefix, allocating from its final generator state and
+  recording the instantiated domain/value, pushed fvar and accumulated levels.
+  Lambda/let domain checks occur only in checked mode; forall domain checks
+  occur in both modes. `NativeSortCallbacks` demands normalization only after
+  accepted inference whose result is not already a sort. Checked let receipts
+  demand value inference only after accepted domain sorting, and comparison
+  only after accepted value inference. The existing `isDefEq` wrapper retains
+  its equivalence-manager insertion; a false result never opens the next binder.
+  Lambda/let terminal inference retains native reverse instantiation,
+  `cheapBetaReduce` and `LocalContext.mkForall`, including retained dependent
+  let wrappers and dropped unused lets. The source let nondependent flag does
+  not replace the native local-let allocation default. Forall terminal sorting
+  preserves the native source expression and right-folded `mkLevelIMax'`.
+  `NativeInferMethodCallbacks.toCallbacks` discharges the three previous
+  whole-helper obligations, and `inferType'.headerAxiomMethodTransport` composes
+  them with the complete inference theorem. Projection transport remains an
+  explicit reached helper obligation. All owned declarations use only standard
+  logical axioms, without admissions or expression/persistent-map interface
+  axioms. Equal initial local readers remain explicit where closure needs them;
+  no semantic fresh-name, local-context, cache or state WF follows from these
+  raw equations. Automatic recursive method receipts, projection receipts,
+  translated-input eligibility, general `Methods.withFuel` transport and full
+  inductive soundness remain open. Strong initial `VContext`/`TrEnv` and the
+  executable checker are unchanged.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6571,6 +6603,27 @@ eager-wrapper terms in both views, then tests cold and warm inference in both
 modes. These runtime controls do not derive the telescope/projection receipts,
 semantic prelude translation or a general mutually recursive transport theorem.
 Run `lake env lean tests/InductiveHeaderInferenceTransport.lean`.
+
+`tests/InductiveHeaderTelescopeTransport.lean` exhaustively audits all 125 owned
+production declaration, including generated declarations, permitting only
+`propext`, `Classical.choice` and `Quot.sound`. Native-accepted singleton/mutual
+header staging covers both safety/primitive flags before future constructor
+registration, default/seeded states, existing outer local declarations,
+distinct eager/fuel readers and sufficient method depths. Raw allocation checks
+verify fresh IDs, binder/value metadata, the native let nondependent default and
+outer-reader restoration. Scripted dependent telescopes compare all cache,
+generator, equivalence-map/union-find, failure-set and unfolding fields. They
+exercise post-check fresh names, both inference modes, direct/normalized sort
+checks, empty telescopes, terminal reverse instantiation/beta reduction,
+accumulated forall levels, used/unused let closure, comparison insertion,
+deliberately failing unreached callbacks and rejected domain/comparison controls.
+The forall terminal error retains its native uninstantiated source expression
+and reached local reader. Complete
+native methods and whole inference entries check implicit lambda, forall, let,
+dependent let closure and newly staged parent domains/local witnesses in both
+views. The runtime fixtures do not construct
+semantic prelude translation, semantic state WF or automatic recursive method
+receipts. Run `lake env lean tests/InductiveHeaderTelescopeTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
