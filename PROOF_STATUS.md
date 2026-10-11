@@ -550,10 +550,11 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   constructor freshness from later accepted registration. Strong initial
   `VContext`/`TrEnv`, ordinary primitive/safety restrictions and exact fuel,
   scope and generator contracts remain unchanged.
-  These receipts alone do not establish that translated constructor types are
-  `IsType`. The executable `checkType` is checked inference, not sort-valued
+  Source translation alone does not establish that translated constructor types
+  are `IsType`. The executable `checkType` is checked inference, not sort-valued
   type formation: `Nat.zero` passes that source call but is rejected as a
-  constructor type by the complete constructor checker. The checker-model
+  constructor type by the complete constructor checker. The complete receipts
+  do imply constructor WF through the checker-model
   module below recovers constructor WF for binder sources and complete
   parameterized batches; binder-free sources use the return-typing theorem below
   with automatically derived contextual header kinds. The combined
@@ -702,9 +703,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   accepted constructor while retaining the `Nat.zero` non-type control. Semantic
   positivity, recursor equations and complete inductive soundness remain open.
   No strong checker or native parent-closure contract is weakened, and no
-  executable checker behavior changes. The return fixture exercises eleven
-  formal contracts, audits all twenty-two sort-arity and seven return-typing owned
-  declarations plus the four constructor-WF compositions, and passes twenty-four
+  executable checker behavior changes. The return fixture passes twenty-four
   staging combinations in both actual and shadow environments. Nullary,
   indexed, dependent-index, parameterized, parameter-plus-index and polymorphic
   returns pass checked inference/type formation but reject sort-expression
@@ -716,6 +715,57 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   inherits `Classical.choice`, `Lean.Expr.eqv_eq` and
   `Lean.Level.instLawfulBEqLevel` through existing translation interfaces.
   No new axiom or admitted proof is added.
+- `Verify.InductiveConstructorRegistration` connects those automatic constructor
+  WF receipts to fresh semantic constant registration and exact native constructor
+  metadata. `VInductDecl.constructorHeaders` flattens the complete declaration;
+  `TrInductDecl.constructorModels` and `constructorNames` retain each source
+  constructor's translation and exact name correspondence. Strong parameter-prefix
+  models imply that every native parameter is an FVar and the parameter list is
+  duplicate-free. `ConstructorSemanticReceipts.constantsFresh` transports missing
+  actual/shadow native constructors through the existing strong shadow `TrEnv`,
+  rather than assuming a weaker environment interface.
+  `VEnv.addConstructorHeaders.exists` constructs a successful semantic extension
+  from fresh, globally distinct names. `registeredConstants` derives those facts
+  from accepted native registration, combines automatic constructor type WF with
+  the existing semantic registration WF theorem, and derives exact native metadata
+  using checked arities and the model's parameter facts. No caller-supplied
+  constructor typehood, semantic freshness, name distinctness or arity premise is
+  added. `ConstructorConstantRegistration` retains the exact semantic registration,
+  semantic WF/ordering and monotone extension, unchanged definitional equations,
+  native map WF, exact old-value preservation, and native constructor metadata at
+  the original universe list. `constructorConstant` pairs each accepted source's
+  exact `.ctorInfo` lookup with the matching semantic constant lookup and its
+  `TrConstant` proof in the extended semantic environment.
+  The checked-prefix `constructorConstantContinuation` and complete
+  `AddInductive.run.constructorConstantContinuation` supply these receipts without
+  extra semantic-WF assumptions, preserving the original strong initial context,
+  canonical-annotation, primitive/safety and native parent-closure restrictions.
+  The complete-run theorem records the reached constructor-registration stage;
+  it does not assert that the final recursor-extended environment satisfies a full
+  `TrEnv`, nor invent inductive histories while the existing `AddInduct` relation
+  remains uninhabited. Semantic positivity, recursor types/equations and complete
+  inductive/frontend/prelude soundness remain open. No executable checker changes,
+  new axioms or admitted proofs are introduced.
+  `tests/InductiveConstructorRegistration.lean` checks 21 generic registration,
+  parameter/model/name contracts, all receipt fields, paired native/semantic
+  lookup and both acceptance bridges; nine concrete `Bool`/`Nat` semantic controls
+  retain exact lookup, unchanged equations and rejection of repeated registration.
+  Forty native staging controls inspect every constructor metadata field, exact old definitions,
+  old constructors and inductive headers, distinct FVar parameters, actual/shadow
+  freshness and full runs. They cover empty/constructor-free, recursive/higher-order,
+  dependent-field, dependent/multiple-parameter, parameter-plus-index, polymorphic
+  parameter and mutual mixed 1/0/2-index batches in both safeties and primitive
+  modes. Existing-name, own/other-header and cross-parent duplicate collisions
+  pass checking but reject registration; within-parent duplicates reject checking
+  as well. Runtime controls do not fabricate semantic contexts. Exhaustive owned
+  declaration audits compare against genuine earlier context, constructor-WF,
+  metadata, freshness, arity and acceptance interfaces, not the new receipts
+  themselves: all 18 theory and 39 registration-module owned declarations are
+  audited. The new existence proof uses only `propext` and `Quot.sound`;
+  structural list/model/name lemmas inherit the existing four translation-type
+  dependencies, including `sorryAx`. Registration inherits 15 earlier dependencies
+  and the checked-prefix/full-run bridges retain the earlier 31-dependency
+  checker/metatheory baseline.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
