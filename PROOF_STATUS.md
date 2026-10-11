@@ -500,8 +500,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   factorization does not rely on cached-expression interface axioms. All owned
   declarations exclude admissions and implementation-interface axioms. The
   remaining non-delta helpers are derived in the following helper module;
-  lazy-delta helpers, complete `isDefEqCore'` and recursive `Methods.withFuel`
-  transport remain open.
+  lazy-delta step/loop transport is derived in the following lazy-delta module;
+  complete `isDefEqCore'` and recursive `Methods.withFuel` transport remain open.
   These raw transport proofs do not establish semantic cache/state WF,
   translated-input eligibility, accepted strong-shadow constructor checking or
   full inductive soundness. Strong initial `VContext`/`TrEnv`, inherited admission
@@ -540,11 +540,43 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   can activate actual unit/eta comparison while the axiom shadow rejects, even
   with shared raw constructor records; these metadata barriers remain explicit.
   All owned declarations exclude admissions and implementation-interface axioms.
-  Lazy-delta helpers, complete `isDefEqCore'`, recursive `Methods.withFuel`
+  Complete `isDefEqCore'`, recursive `Methods.withFuel`
   transport, semantic state/cache WF, translated-input/metadata eligibility,
   accepted strong-shadow constructor checking and full inductive soundness remain
   open. Strong initial `VContext`/`TrEnv`, inherited semantic/checker admission
   boundaries, imported-prelude translation and the executable checker are unchanged.
+- `Verify.InductiveHeaderLazyDeltaTransport` derives the actual native lazy-delta
+  step and complete fuelled loop transport. The pure dispatch policy preserves
+  exact delta option records, reducibility-hint order, application tags, native
+  constant-record pointer equality, regularity and the symmetric failure-cache
+  guard. Its factorization is proved equal to the executable step, not substituted
+  into the checker. A single delta side first tries the other projection-headed
+  application; a projection miss continues from that callback's returned state.
+  Definition unfolding retains its exact optional result and `get!` fallback,
+  then calls the reached method with `cheapRec := false`, `cheapProj := true`.
+  Equal-hint fast argument comparison additionally requires equivalent universe
+  lists; success terminates immediately. Rejection inserts the failure only after
+  the actual argument callback's returned state, then unfolds first and second
+  in order. Unequal universe lists insert failure without comparing arguments.
+  Continuation performs the native quick probe with `useHash := false`; body
+  callbacks are demanded only after a false probe, in that probe's returned state.
+  Native argument/binder receipts derive helper transport instead of assuming
+  whole-helper equality. `NativeLazyDeltaReachable` records only actual accepted
+  continuing rounds. The round factorization and decreasing-fuel induction
+  preserve zero-fuel failure before all helpers, offset priority, first/second
+  natural operand normalization and raw comparison calls, native reduction/error
+  priority, and terminal versus continuing statuses. Only a continue status
+  decrements fuel. Shadow fuel may be larger; reader eager-reduction policy must
+  align, because environment agreement alone does not align the natural gate.
+  Natural receipts expose only the reached successor/binary WHNF method calls.
+  All owned declarations exclude admissions and implementation-interface axioms.
+  These are raw result/complete-state proofs, not semantic cache/state WF,
+  translated-input/metadata eligibility or automatic recursive method receipts.
+  Complete `isDefEqCore'`, recursive `Methods.withFuel`, accepted strong-shadow
+  constructor checking, constructor WF, positivity/recursor equations, semantic
+  registration and full inductive soundness remain open. Strong initial
+  `VContext`/`TrEnv`, inherited admission boundaries, imported-prelude translation
+  obligations and executable checker behavior remain unchanged.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6805,6 +6837,33 @@ constructors returns false. Sharing raw constructor records does not assert
 semantic WF or native acceptance of that shadow. These fixtures do not construct
 semantic prelude translation, semantic state/cache WF or automatic recursive
 method receipts. Run `lake env lean tests/InductiveHeaderComparisonHelperTransport.lean`.
+
+`tests/InductiveHeaderLazyDeltaTransport.lean` exhaustively audits all 213 owned
+production declarations, including private/generated declarations, allowing only
+standard logical axioms. Twelve native-accepted singleton/mutual/nonzero-index
+header staging combinations cover both checker safety modes and primitive
+authorization settings, each with default/seeded complete states and distinct
+method-depth/lazy-delta readers. Seven native-accepted definition fixtures cover
+regular hint order, equal-height distinct records, same-record application fast
+paths, abbreviation/opaque regularity rejection and differing universe lists.
+Scripts compare actual/shadow complete states and exact callback input, order,
+cheap flags and local-reader traces; they also replay both proved factorizations.
+Projection success takes priority without unfolding the delta side; projection
+miss preserves the normalization callback's state before the opposite unfold.
+Argument success skips all unfolding/failure insertion; rejection retains the
+callback state before symmetric failure caching and ordered unfolding. Distinct
+same-hint records reject the pointer guard without inserting a universe failure;
+a cached quick hit across distinct expression hashes skips the body, pinning
+`useHash := false`. Tests pin
+quick true/false/undefined outcomes, `mdata` body core calls, native recursive
+methods, zero/one/larger fuel, offset priority, both natural sides, open/closed
+natural gates, reader-policy mismatch and unsupported native-reducer errors.
+Directional failure controls allow shadow success where the actual callback or
+budget rejects; error-action equality is not asserted. Malformed universe arity
+can still reach the native `get!` fallback, whose unreachability is not assumed
+or established by a panic-producing passing fixture. Runtime prelude imports do
+not provide semantic prelude translation, semantic state/cache WF or automatic
+recursive method receipts. Run `lake env lean tests/InductiveHeaderLazyDeltaTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
