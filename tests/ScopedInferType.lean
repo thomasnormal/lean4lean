@@ -115,6 +115,12 @@ example {context : VContext} {state : VState} {first second : Expr}
       (fun equal _ => equal → context.IsDefEqU firstSemantic secondSemantic) :=
   Inner.isDefEq.scopeWF firstTranslation secondTranslation
 
+example {context : VContext} {state : VState} {expression : Expr} {semantic : VExpr}
+    (translated : context.TrExprS expression semantic) :
+    (Inner.inferApp expression).ScopeWF context state
+      (fun type _ => ∃ typeSemantic, context.TrTyping expression type semantic typeSemantic) :=
+  Inner.inferApp.scopeWF translated
+
 example {context : VContext} {state : VState} {name : Name}
     {domain value body : Expr} {nondependent : Bool} {semantic : VExpr}
     (translated : context.TrExprS (.letE name domain value body nondependent) semantic) :
@@ -252,7 +258,8 @@ run_meta
   let normalizerBaseline ← collectAxioms ``Inner.whnf'.WF
   let native := #[``propext, ``Classical.choice, ``Quot.sound,
     ``Lean.Expr.eqv_eq, ``Lean.Level.instLawfulBEqLevel, ``Lean.Syntax.structEq_eq,
-    ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
+    ``Lean.Expr.instantiateRevRange_eq, ``Lean.PersistentHashMap.WF.find?_eq,
+    ``Lean.PersistentHashMap.WF.toList'_insert,
     ``Lean.PersistentArray.toList'_push]
   logInfo m!"existing semantic lambda baseline: {repr inferenceBaseline}"
   logInfo m!"existing semantic forall baseline: {repr forallBaseline}"

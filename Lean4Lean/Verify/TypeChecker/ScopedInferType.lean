@@ -817,5 +817,92 @@ theorem inferLet.scopeWF {context : VContext} {state : VState}
     ⟨(AllAbove.wf wellFormed.trctx.wf.fvwf).2 upSet,
       inputScope.mono fun _ member _ => member, fun _ => id⟩
 
+theorem inferApp.loop.scopeWF {context : VContext} {state : VState}
+    {ll lm lr : List _}
+    (stack : AppStack context.venv context.lparams context.vlctx (.mkAppRevList e lm) e' lr)
+    (below : FVarsBelow context.vlctx e fType)
+    (functionType : context.TrExpr (fType.instantiateList lm) functionSemantic)
+    (expressionType : context.HasType e' functionSemantic)
+    (arguments : args = ll ++ lm.reverse ++ lr)
+    (headIndex : j = ll.length) (pendingIndex : i = ll.length + lm.length) :
+    (inferApp.loop e₀ ⟨args⟩ fType j i).ScopeWF context state (fun type _ =>
+      ∃ resultSemantic resultType, context.TrTyping
+        (e.mkAppRevList lm |>.mkAppList lr) type resultSemantic resultType) := by
+  subst i j
+  rw [inferApp.loop.eq_def]
+  have closed := Expr.mkAppRevList_args_noLooseBVars e lm
+    (context.mlctx.noBV ▸ stack.tr.closed).looseBVarRange_zero
+  have many (expression : Expr) (depth : Nat) :=
+    Expr.instantiateMany_eq_instantiateList expression lm depth closed
+  simp [arguments]
+  cases lr with simp
+  | cons argument lr =>
+    let .app functionTypeTyping argumentTypeTyping functionTranslation argumentTranslation stack := stack
+    have uniqueFunction := functionTypeTyping.uniqU context.Ewf context.Δwf expressionType
+    split
+    · rw [Expr.instantiateList_forallE] at functionType
+      let ⟨_, .forallE _ _ domainTranslation bodyTranslation, functionTypeEq⟩ := functionType
+      have ⟨⟨_, domainLevel⟩, _, bodyLevel⟩ :=
+        functionTypeEq.trans context.Ewf context.Δwf uniqueFunction.symm |>.forallE_inv context.Ewf context.Δwf
+      refine inferApp.loop.scopeWF (lm := argument :: lm) stack ?_ ?_ (.app functionTypeTyping argumentTypeTyping)
+        (by simp) rfl rfl
+      · exact fun _ predicate member => (below _ predicate member).2
+      · have closedArgument := context.mlctx.noBV ▸ argumentTranslation.closed
+        simp [← Expr.instantiateList_instantiate1_comm closedArgument.looseBVarRange_zero]
+        exact .inst context.Ewf context.Δwf
+          (argumentTypeTyping.defeqU_r context.Ewf context.Δwf ⟨_, domainLevel.symm⟩)
+          ⟨_, bodyTranslation, _, bodyLevel⟩ (argumentTranslation.trExpr context.Ewf context.Δwf)
+    · simp [Nat.add_sub_cancel_left, many]
+      let ⟨_, functionTypeTranslation, functionTypeEq⟩ := functionType
+      refine (ensureForallCore.scopeWF functionTypeTranslation).bind fun normalized _ _
+        ⟨normalizedBelow, normalizedTranslation, forallShape⟩ => ?_
+      obtain ⟨name, domain, body, binder, normalizedEq⟩ := forallShape
+      subst normalizedEq
+      simp [Expr.bindingBody!]
+      let ⟨_, forallTypeTranslation, forallTypeEq⟩ := normalizedTranslation
+      let .forallE _ _ domainTranslation bodyTranslation := forallTypeTranslation
+      have uniqueForall := forallTypeEq.trans context.Ewf context.Δwf <|
+        functionTypeEq.trans context.Ewf context.Δwf uniqueFunction.symm
+      have ⟨⟨_, domainLevel⟩, _, bodyLevel⟩ :=
+        uniqueForall.forallE_inv context.Ewf context.Δwf
+      refine inferApp.loop.scopeWF (ll := ll ++ lm.reverse) (lm := [argument]) stack ?_ ?_
+        (.app functionTypeTyping argumentTypeTyping) (by simp) (by simp) (by simp)
+      · intro _ predicate member
+        have ⟨headMember, argumentMembers⟩ := FVarsIn.appRevList.1 member
+        exact (normalizedBelow _ predicate <| (below _ predicate headMember).instantiateList argumentMembers).2
+      · exact .inst context.Ewf context.Δwf
+          (argumentTypeTyping.defeqU_r context.Ewf context.Δwf ⟨_, domainLevel.symm⟩)
+          ⟨_, bodyTranslation, _, bodyLevel⟩ (argumentTranslation.trExpr context.Ewf context.Δwf)
+  | nil =>
+    rw [← List.length_reverse, List.take_length]
+    simp only [List.reverse_reverse, many]
+    let ⟨functionTypeSemantic, functionTypeTranslation, functionTypeEq⟩ := functionType
+    exact RecM.ScopeWF.pure ⟨_, _, fun _ predicate member => by
+        have ⟨headMember, argumentMembers⟩ := FVarsIn.appRevList.1 member
+        exact (below _ predicate headMember).instantiateList argumentMembers,
+      stack.tr, functionTypeTranslation, expressionType.defeqU_r context.Ewf context.Δwf functionTypeEq.symm⟩
+termination_by lr.length
+
+
+theorem inferApp.scopeWF {context : VContext} {state : VState} {expression : Expr} {semantic : VExpr}
+    (translated : context.TrExprS expression semantic) :
+    (inferApp expression).ScopeWF context state
+      (fun type _ => ∃ typeSemantic, context.TrTyping expression type semantic typeSemantic) := by
+  rw [inferApp, Expr.withApp_eq, Expr.getAppArgs_eq]
+  have ⟨_, stack⟩ := AppStack.build <| expression.mkAppList_getAppArgsList ▸ translated
+  refine (inferType.scopeWF stack.tr.fvarsIn (fun _ => ⟨_, stack.tr⟩)).bind fun type _ _
+    ⟨_, typeSemanticType, typeBelow, expressionTranslation, typeTranslation, typeTyping⟩ => ?_
+  have equal := expressionTranslation.uniq context.Ewf (.refl context.Ewf context.Δwf) stack.tr
+  have typeTyping := typeTyping.defeqU_l context.Ewf context.Δwf equal
+  have environmentWF := context.Ewf
+  have contextWF := context.Δwf
+  refine (inferApp.loop.scopeWF (ll := []) (lm := []) stack typeBelow
+      (typeTranslation.trExpr environmentWF contextWF) typeTyping rfl rfl rfl).mono
+    fun _ _ _ ⟨resultSemantic, resultType, below, expressionTranslation, typeTranslation, typing⟩ => ?_
+  have unique := (expression.mkAppList_getAppArgsList ▸ expressionTranslation).uniq environmentWF
+    (.refl environmentWF contextWF) translated
+  exact ⟨resultType, expression.mkAppList_getAppArgsList ▸ below, translated,
+    typeTranslation, typing.defeqU_l environmentWF contextWF unique⟩
+
 end TypeChecker.Inner
 end Lean4Lean
