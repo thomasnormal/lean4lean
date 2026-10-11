@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.InductiveConstructorRegistration
 import Lean4Lean.Verify.InductiveMinorTranslation
+import Lean4Lean.Verify.InductiveHeaderParameterApplications
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
@@ -110,6 +111,15 @@ theorem RecursorConstantInput.applyParameters
     environment.HasType universes.length model.vlctx.toCtx
       (ElimNestedInductive.applyParameterArguments input.semanticValue semantics) resultType :=
   arguments.apply input.valueTranslated input.valueTyped
+
+theorem RecursorConstantInput.applyHeaderParameters
+    (input : RecursorConstantInput environment universes model.vlctx name levels source)
+    (parameters : HeaderParameterApplicationInput environment universes model stats source)
+    (environmentWF : environment.WF) (modelWF : model.WF environment universes) :
+    ∃ value, TrExprS environment universes model.vlctx (mkAppN (.const name levels) stats.params) value ∧
+      environment.HasType universes.length model.vlctx.toCtx value parameters.result :=
+  parameters.application environmentWF modelWF input.valueTranslated
+    (input.alignedType environmentWF modelWF.tr.wf parameters.sourceTranslated)
 
 theorem TranslatedRecursorCtorFieldTrace.initialTranslation
     {environment : VEnv} {universes : List Name} {stats : InductiveStats}
