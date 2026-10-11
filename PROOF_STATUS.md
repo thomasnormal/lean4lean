@@ -144,6 +144,17 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   remains audited without checker/metatheory admissions. No new admission or
   axiom is added. Neither the scoped-head invariant nor conversion preservation
   establishes semantic WHNF completeness or terminal-sort acceptance.
+- `TypeChecker.Inner.ensureSortCore.scopeWF` and
+  `ensureForallCore.scopeWF` carry the scoped-head/cache invariant through the
+  actual sort and forall checks, using the completed scoped WHNF contract and
+  preserving the existing translated-expression and free-variable-below
+  results. `Inner.inferFVar.scopeWF` frames the real reader/lifted free-variable
+  lookup with the existing typing theorem and unchanged caches. The focused
+  `ScopedInferType` fixture checks all three contracts and audits seven owned
+  declarations for theorem-backed proofs without adding an axiom. These are
+  primitive inference frames only: lambda/forall/let telescopes, projections,
+  applications, comparison and arbitrary-fuel method scope preservation remain
+  open, and the existing `inferProj.WF` admission is not hidden or widened.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
