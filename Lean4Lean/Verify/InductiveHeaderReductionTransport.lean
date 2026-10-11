@@ -49,10 +49,130 @@ structure NativeRecursorEntryReceipt (context : TypeChecker.Context) (expression
 
 structure NativeRecursorMajorReceipt (methods : TypeChecker.Methods) (context : TypeChecker.Context)
     (state : TypeChecker.State) (expression : Expr) (info : RecursorVal) (major adapted : Expr)
-    (adaptedState : TypeChecker.State) : Prop extends NativeRecursorEntryReceipt context expression info major where
+    (adaptedState : TypeChecker.State) (normalize : Expr → TypeChecker.RecM Expr := TypeChecker.Inner.whnf) :
+    Prop extends NativeRecursorEntryReceipt context expression info major where
   adaptation : ((if info.k then
-      toCtorWhenK context.env TypeChecker.Inner.whnf TypeChecker.Inner.inferType TypeChecker.Inner.isDefEq info major
+      toCtorWhenK context.env normalize TypeChecker.Inner.inferType TypeChecker.Inner.isDefEq info major
     else pure major) methods) context state = .ok (adapted, adaptedState)
+
+theorem inductiveReduceRec.headerAxiomNormalizationTransport
+    (normalize : Expr → TypeChecker.RecM Expr)
+    (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
+    (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
+    (state : TypeChecker.State) (expression : Expr)
+    (parents : ∀ info major, NativeRecursorEntryReceipt actualContext expression info major →
+      actualContext.env.find? info.getMajorInduct = shadowContext.env.find? info.getMajorInduct)
+    (kTypes : ∀ info major, NativeRecursorEntryReceipt actualContext expression info major →
+      info.k = true → TypeChecker.M.SuccessTransport
+        ((do normalize (← TypeChecker.Inner.inferType major true)) actualMethods)
+        ((do normalize (← TypeChecker.Inner.inferType major true)) shadowMethods) actualContext shadowContext state)
+    (kComparisons : ∀ info major, NativeRecursorEntryReceipt actualContext expression info major →
+      info.k = true → ∀ type finalState constructor,
+      ((do normalize (← TypeChecker.Inner.inferType major true)) actualMethods) actualContext state = .ok (type, finalState) →
+      type.getAppFn.constName! = info.getMajorInduct → mkNullaryCtor actualContext.env type info.numParams = some constructor →
+      TypeChecker.M.SuccessTransport
+        (do TypeChecker.Inner.isDefEq type (← actualMethods.inferType constructor true) actualMethods)
+        (do TypeChecker.Inner.isDefEq type (← shadowMethods.inferType constructor true) shadowMethods)
+        actualContext shadowContext finalState)
+    (normalization : ∀ info major adapted adaptedState,
+      NativeRecursorMajorReceipt (normalize := normalize) actualMethods actualContext state expression info major adapted adaptedState →
+      TypeChecker.M.SuccessTransport (normalize adapted actualMethods) (normalize adapted shadowMethods)
+        actualContext shadowContext adaptedState)
+    (strings : ∀ info major adapted adaptedState text normalizedState,
+      NativeRecursorMajorReceipt (normalize := normalize) actualMethods actualContext state expression info major adapted adaptedState →
+      normalize adapted actualMethods actualContext adaptedState = .ok (.lit (.strVal text), normalizedState) →
+      TypeChecker.M.SuccessTransport (normalize (.strLitToConstructor text) actualMethods)
+        (normalize (.strLitToConstructor text) shadowMethods) actualContext shadowContext normalizedState)
+    (structureTypes : ∀ info major adapted adaptedState normalized normalizedState,
+      NativeRecursorMajorReceipt (normalize := normalize) actualMethods actualContext state expression info major adapted adaptedState →
+      normalize adapted actualMethods actualContext adaptedState = .ok (normalized, normalizedState) →
+      normalized.isLit = false → actualContext.env.isStructureLike info.getMajorInduct = true →
+      (normalized.isConstructorApp?' actualContext.env).isSome = false → TypeChecker.M.SuccessTransport
+        ((do normalize (← TypeChecker.Inner.inferType normalized true)) actualMethods)
+        ((do normalize (← TypeChecker.Inner.inferType normalized true)) shadowMethods) actualContext shadowContext normalizedState)
+    (structureSorts : ∀ info major adapted adaptedState normalized normalizedState,
+      NativeRecursorMajorReceipt (normalize := normalize) actualMethods actualContext state expression info major adapted adaptedState →
+      normalize adapted actualMethods actualContext adaptedState = .ok (normalized, normalizedState) →
+      normalized.isLit = false → actualContext.env.isStructureLike info.getMajorInduct = true →
+      (normalized.isConstructorApp?' actualContext.env).isSome = false → ∀ type finalState,
+      ((do normalize (← TypeChecker.Inner.inferType normalized true)) actualMethods) actualContext normalizedState = .ok (type, finalState) →
+      type.getAppFn.isConstOf info.getMajorInduct = true → TypeChecker.M.SuccessTransport
+        ((do normalize (← TypeChecker.Inner.inferType type true)) actualMethods)
+        ((do normalize (← TypeChecker.Inner.inferType type true)) shadowMethods) actualContext shadowContext finalState) :
+    TypeChecker.M.SuccessTransport
+      (inductiveReduceRec actualContext.env expression normalize TypeChecker.Inner.inferType
+        TypeChecker.Inner.isDefEq actualMethods)
+      (inductiveReduceRec shadowContext.env expression normalize TypeChecker.Inner.inferType
+        TypeChecker.Inner.isDefEq shadowMethods) actualContext shadowContext state := by
+  unfold inductiveReduceRec
+  cases head : expression.getAppFn <;> try exact TypeChecker.M.SuccessTransport.pure _ _ _ _
+  rename_i recursorName levels
+  dsimp only
+  rcases agreement recursorName with same | ⟨_, header, actualLookup, shadowLookup⟩
+  · rw [← same]
+    cases found : actualContext.env.find? recursorName with
+    | none => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
+    | some information =>
+      cases information <;> try exact TypeChecker.M.SuccessTransport.pure _ _ _ _
+      rename_i info
+      have recursor : actualContext.env.find? expression.getAppFn.constName! = some (.recInfo info) := by
+        simpa only [head, Expr.constName!] using found
+      dsimp only
+      cases selected : expression.getAppArgs[info.getMajorIdx]? with
+      | none => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
+      | some major =>
+        have entry : NativeRecursorEntryReceipt actualContext expression info major :=
+          ⟨by simp only [head, Expr.isConst], recursor, selected⟩
+        simp only [pure_bind]
+        dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
+        by_cases isK : info.k = true
+        case' pos =>
+          simp only [isK, if_true]
+          dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
+          apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
+            (toCtorWhenK.headerAxiomNormalizationTransport normalize actualMethods shadowMethods actualContext shadowContext agreement
+              state info major isK (parents info major entry) (kTypes info major entry isK)
+              (kComparisons info major entry isK))
+          intro adapted adaptedState accepted
+          have receipt : NativeRecursorMajorReceipt (normalize := normalize) actualMethods actualContext state expression info major adapted adaptedState :=
+            ⟨entry, by simpa only [isK, if_true] using accepted⟩
+        case' neg =>
+          have noK := Bool.eq_false_iff.mpr isK
+          simp only [noK, Bool.false_eq_true, if_false]
+          let adapted := major
+          let adaptedState := state
+          have receipt : NativeRecursorMajorReceipt (normalize := normalize) actualMethods actualContext state expression info major adapted adaptedState :=
+            ⟨entry, by simp only [noK, Bool.false_eq_true, if_false]; rfl⟩
+        all_goals
+          try dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
+          apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _ (normalization info major adapted adaptedState receipt)
+          intro normalized normalizedState normalizedAccepted
+          cases normalized with
+          | lit literal =>
+            cases literal with
+            | natVal value =>
+              dsimp only
+              cases rule : getRecRuleFor info (.natLitToConstructor value) <;>
+                repeat' first | exact TypeChecker.M.SuccessTransport.pure _ _ _ _ | dsimp only | split
+            | strVal text =>
+              dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
+              apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
+                (strings info major adapted adaptedState text normalizedState receipt normalizedAccepted)
+              intro expanded expandedState _
+              cases rule : getRecRuleFor info expanded <;>
+                repeat' first | exact TypeChecker.M.SuccessTransport.pure _ _ _ _ | dsimp only | split
+          | _ =>
+            dsimp only [Bind.bind, ReaderT.bind]
+            apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
+              (toCtorWhenStruct.headerAxiomNormalizationTransport normalize actualMethods shadowMethods actualContext shadowContext agreement
+                normalizedState info.getMajorInduct _ (parents info major entry)
+                (structureTypes info major adapted adaptedState _ normalizedState receipt normalizedAccepted rfl)
+                (structureSorts info major adapted adaptedState _ normalizedState receipt normalizedAccepted rfl))
+            intro expanded expandedState _
+            cases rule : getRecRuleFor info expanded <;>
+              repeat' first | exact TypeChecker.M.SuccessTransport.pure _ _ _ _ | dsimp only | split
+  · rw [actualLookup, shadowLookup]
+    exact TypeChecker.M.SuccessTransport.pure _ _ _ _
 
 theorem inductiveReduceRec.headerAxiomTransport
     (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
@@ -101,76 +221,10 @@ theorem inductiveReduceRec.headerAxiomTransport
       (inductiveReduceRec actualContext.env expression TypeChecker.Inner.whnf TypeChecker.Inner.inferType
         TypeChecker.Inner.isDefEq actualMethods)
       (inductiveReduceRec shadowContext.env expression TypeChecker.Inner.whnf TypeChecker.Inner.inferType
-        TypeChecker.Inner.isDefEq shadowMethods) actualContext shadowContext state := by
-  unfold inductiveReduceRec
-  cases head : expression.getAppFn <;> try exact TypeChecker.M.SuccessTransport.pure _ _ _ _
-  rename_i recursorName levels
-  dsimp only
-  rcases agreement recursorName with same | ⟨_, header, actualLookup, shadowLookup⟩
-  · rw [← same]
-    cases found : actualContext.env.find? recursorName with
-    | none => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
-    | some information =>
-      cases information <;> try exact TypeChecker.M.SuccessTransport.pure _ _ _ _
-      rename_i info
-      have recursor : actualContext.env.find? expression.getAppFn.constName! = some (.recInfo info) := by
-        simpa only [head, Expr.constName!] using found
-      dsimp only
-      cases selected : expression.getAppArgs[info.getMajorIdx]? with
-      | none => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
-      | some major =>
-        have entry : NativeRecursorEntryReceipt actualContext expression info major :=
-          ⟨by simp only [head, Expr.isConst], recursor, selected⟩
-        simp only [pure_bind]
-        dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
-        by_cases isK : info.k = true
-        case' pos =>
-          simp only [isK, if_true]
-          dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
-          apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
-            (toCtorWhenK.headerAxiomTransport actualMethods shadowMethods actualContext shadowContext agreement
-              state info major isK (parents info major entry) (kTypes info major entry isK)
-              (kComparisons info major entry isK))
-          intro adapted adaptedState accepted
-          have receipt : NativeRecursorMajorReceipt actualMethods actualContext state expression info major adapted adaptedState :=
-            ⟨entry, by simpa only [isK, if_true] using accepted⟩
-        case' neg =>
-          have noK := Bool.eq_false_iff.mpr isK
-          simp only [noK, Bool.false_eq_true, if_false]
-          let adapted := major
-          let adaptedState := state
-          have receipt : NativeRecursorMajorReceipt actualMethods actualContext state expression info major adapted adaptedState :=
-            ⟨entry, by simp only [noK, Bool.false_eq_true, if_false]; rfl⟩
-        all_goals
-          try dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
-          apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _ (normalization info major adapted adaptedState receipt)
-          intro normalized normalizedState normalizedAccepted
-          cases normalized with
-          | lit literal =>
-            cases literal with
-            | natVal value =>
-              dsimp only
-              cases rule : getRecRuleFor info (.natLitToConstructor value) <;>
-                repeat' first | exact TypeChecker.M.SuccessTransport.pure _ _ _ _ | dsimp only | split
-            | strVal text =>
-              dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
-              apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
-                (strings info major adapted adaptedState text normalizedState receipt normalizedAccepted)
-              intro expanded expandedState _
-              cases rule : getRecRuleFor info expanded <;>
-                repeat' first | exact TypeChecker.M.SuccessTransport.pure _ _ _ _ | dsimp only | split
-          | _ =>
-            dsimp only [Bind.bind, ReaderT.bind]
-            apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
-              (toCtorWhenStruct.headerAxiomTransport actualMethods shadowMethods actualContext shadowContext agreement
-                normalizedState info.getMajorInduct _ (parents info major entry)
-                (structureTypes info major adapted adaptedState _ normalizedState receipt normalizedAccepted rfl)
-                (structureSorts info major adapted adaptedState _ normalizedState receipt normalizedAccepted rfl))
-            intro expanded expandedState _
-            cases rule : getRecRuleFor info expanded <;>
-              repeat' first | exact TypeChecker.M.SuccessTransport.pure _ _ _ _ | dsimp only | split
-  · rw [actualLookup, shadowLookup]
-    exact TypeChecker.M.SuccessTransport.pure _ _ _ _
+        TypeChecker.Inner.isDefEq shadowMethods) actualContext shadowContext state :=
+  inductiveReduceRec.headerAxiomNormalizationTransport TypeChecker.Inner.whnf
+    actualMethods shadowMethods actualContext shadowContext agreement state expression
+    parents kTypes kComparisons normalization strings structureTypes structureSorts
 
 theorem quotReduceRec.transport
     (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)

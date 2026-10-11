@@ -361,6 +361,36 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   eligibility, automatic domain receipts, old-parent/constructor closure,
   constructor WF, semantic inductive registration and full inductive soundness
   remain open. Strong initial `VContext`/`TrEnv` and checker behavior are unchanged.
+- `Verify.InductiveHeaderWHNFMethodTransport` derives the normalization half of
+  the recursive-method successor step from the four smaller-depth method
+  receipts, uniformly over complete reached states. `NativeMethodTransport`
+  contains only raw method transports: no recursor, projection, natural
+  reduction, core or full-normalization helper obligations remain in this step.
+  The recursor proofs now support an arbitrary literal normalization callback,
+  with the previous full-WHNF theorems retained as specializations. This covers
+  the actual cheap-rec policy throughout K adaptation, major/string
+  normalization and structure type/sort normalization, without replacing the
+  method record or changing panic fallbacks. Projection and natural callbacks
+  are likewise derived from the four method receipts; complete native core and
+  full-normalization callbacks follow, including all cheap-rec/cheap-proj
+  combinations and larger shadow normalization budgets.
+  `Methods.withFuel.zeroTransport` proves the simultaneous vacuous base case;
+  `normalizationStep` derives both normalization fields at successor depth, and
+  `normalizationDepthOne` discharges its smaller-depth premise. This is not yet
+  simultaneous recursive closure: successor inference and comparison, scoped
+  readers and eager comparison readers still need to be derived before the
+  all-depth induction can close.
+  `NativeRecursorParentFrame.ofNativeOrigins` derives the uniform parent frame
+  from initial native recursor-parent closure, actual native recursor-origin
+  receipts and retained native shadow inductive lookups. Initial native closure
+  and staging origins/retention are not inferred from a semantic context,
+  canonical map lookups, a value frame or imported-prelude execution. Their
+  accepted-header-stage derivation remains open at this raw audit boundary.
+  The frame cannot cover registered new-parent recursors across their axiom
+  shadows. Constructor freshness remains required for inference/unit metadata
+  in the eventual before-constructor bridge. Strong initial `VContext`/`TrEnv`,
+  semantic state/cache WF and all inductive soundness boundaries are unchanged;
+  no checker algorithm, axiom or admission is added.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
@@ -6752,6 +6782,28 @@ product-projection, `Nat.rec`, local-proof `Eq.rec` and local-product `Prod.rec`
 applications in both views before full normalization. These imported-prelude
 tests are not semantic prelude translation or a general recursive-method
 transport proof. Run `lake env lean tests/InductiveHeaderWHNFTransport.lean`.
+
+`tests/InductiveHeaderWHNFMethodTransport.lean` exhaustively audits the owned
+recursor, reduction and normalization-method-step declarations. All new and
+generalized declarations allow only `propext`, `Classical.choice` and
+`Quot.sound`; the unchanged original-parent bridge retains its pre-existing
+`Lean.PersistentHashMap.findAux_isSome` exception, which is not used by the new
+raw module. Proof fixtures apply the literal
+arbitrary-normalizer theorem, the successor step and its discharged depth-one
+specialization. Native-accepted singleton/mutual header batches exercise both
+safety modes and primitive policies, default/seeded complete states, different
+eager flags, selected normalization budgets and recursion reader budgets.
+State-mutating callback controls pin every K/non-K, true/false comparison and
+cheap-rec/cheap-proj combination, exact callback counts and all ordered method
+tags, including K type normalization; all state fields are compared. Further
+controls cover beta, zeta, projections, successor/binary arithmetic, native recursive results,
+depth-zero errors and shallow normalization. Actual header-stage recursor
+records retain their native origins and old inductive parents; a raw inserted
+new-parent recursor still has differing inductive/axiom parent tags. Synthetic
+record/callback controls and imported native execution do not establish semantic
+metadata or cache/state WF, prelude translation, or the missing simultaneous
+inference/comparison successor steps.
+Run `lake env lean tests/InductiveHeaderWHNFMethodTransport.lean`.
 
 `tests/InductiveHeaderInferenceTransport.lean` exhaustively audits all 145 owned
 production declarations, including generated declarations, permitting only
