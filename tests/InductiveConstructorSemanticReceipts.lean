@@ -8,6 +8,32 @@ example (translated : TrConstructor environment universes constructor semantic)
     (binder : constructor.type.isForall = true) : semantic.toVConstant.WF environment :=
   translated.forallWF binder
 
+example (translated : TrConstructor environment universes constructor semantic)
+    (environmentWF : environment.WF)
+    (kind : environment.SortArity universes.length [] 0 semantic.type) :
+    semantic.toVConstant.WF environment :=
+  translated.sortArityWF environmentWF kind
+
+example
+    (trace : AcceptedConstructorTrace stats isUnsafe parent reader index type finalReader finalIndex terminal)
+    (zero : stats.params = #[])
+    (checker : TypeChecker.VContext) (aligned : HeaderCheckerAligned checker reader)
+    (initialWF : ({} : TypeChecker.VState).WF checker)
+    (reserved : ElimNestedInductive.ContextReserved reader.lctx reader.ngen)
+    (different : ({} : TypeChecker.VState).ngen.namePrefix ≠ reader.ngen.namePrefix)
+    (constants : CanonicalAnnotationConstants checker.venv)
+    (definitions : CanonicalAnnotationDefinitions checker.venv)
+    (parameters : HeaderParameterModels stats checker.vlctx)
+    {semantic : VExpr} (translated : checker.TrExprS type semantic)
+    (anchor : ∀ {anchorChecker : TypeChecker.VContext} {anchorReader : Context},
+      HeaderCheckerAligned anchorChecker anchorReader →
+      ({} : TypeChecker.VState).WF anchorChecker →
+      {anchorSemantic : VExpr} → anchorChecker.TrExprS terminal anchorSemantic →
+      anchorChecker.venv.SortArity anchorChecker.lparams.length anchorChecker.vlctx.toCtx 0 anchorSemantic) :
+    checker.venv.SortArity checker.lparams.length checker.vlctx.toCtx (finalIndex - index) semantic :=
+  trace.zeroParameterKind zero checker aligned initialWF reserved different constants definitions parameters
+    translated anchor
+
 example (stage : HeaderAxiomContinuation root original nparams types stats reader actual)
     (receipts : ConstructorSemanticReceipts stage isUnsafe) (positive : 0 < stats.params.size) :
     ∀ header ∈ receipts.declaration.types, ∀ constructor ∈ header.ctors,

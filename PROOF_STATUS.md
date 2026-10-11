@@ -608,6 +608,13 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   header-kind/arity and saturated return-application typing. Semantic positivity,
   recursor equations, complete inductive registration and full frontend/prelude
   soundness remain open; this is not a full inductive soundness theorem.
+  `AcceptedConstructorTrace.zeroParameterKind` now reconstructs the complete
+  semantic sort arity of a zero-parameter constructor spine from a terminal
+  sort-arity anchor, using the actual fresh-field opening, context transport and
+  body equalities. `TrConstructor.sortArityWF` converts a closed zero-arity
+  receipt into constructor `VConstant.WF`. The remaining composition is the
+  terminal anchor for saturated valid inductive return applications; no caller
+  may replace that anchor with checked inference or a weakened checker context.
   Strong initial `VContext`/`TrEnv`, exact ordinary safety/primitive restrictions,
   genuine initial native parent closure and all executable checker behavior
   remain unchanged. The expanded semantic receipt fixture exercises the new
