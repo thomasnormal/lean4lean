@@ -795,8 +795,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   the reached signature-registration stage, not a claimed final actual `TrEnv`.
   Signature eligibility is now automatic for all parameter counts. The following
   parameter-prefix module supplies compatible arguments and nonzero-parameter
-  field endpoints at the original source universes; parameter-consuming index
-  translation, universe-reindexed parameter applications, reached normalization
+  field endpoints at the original source universes; universal parameterized
+  parent/index eligibility, universe-reindexed parameter applications, reached normalization
   and annotation support, motive/IH/minor domain formation, recursor equations
   and final inductive registration remain separate obligations. In particular,
   the existing field-only endpoint representation is not silently treated as a
@@ -843,8 +843,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   constant input. This is a separate parameter-plus-field endpoint, not a change
   to the earlier field-only application's meaning. All accepted parameter counts
   are supported at the original source universes. Reindexing compatible parameter
-  applications into fresh elimination universes, parameter-consuming index
-  normalization, reached annotation support, motive/IH/minor formation, recursor
+  applications into fresh elimination universes, automatic parent-header
+  parameter receipts, reached annotation support, complete motive/IH/minor formation, recursor
   equations and final actual inductive histories remain open. The strong initial
   checker interface and actual/shadow boundary are unchanged; no final actual
   `TrEnv`, executable checker change, new axiom or admitted proof is introduced.
@@ -859,6 +859,66 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   dependent/polymorphic, parameter-plus-index and mutual batches run under both
   safeties and primitive modes. Unchecked incomplete prefixes retain no accepted
   constructor eligibility; runtime controls do not fabricate semantic contexts.
+- `Verify.InductiveRecursorIndexParameters` handles the actual parameter-consuming
+  recursor index prefix, including each native parameter-opening WHNF call, then
+  composes the existing typed index-only suffix. `RecursorIndexParameterPrefix`
+  retains the exact intermediate normalized expressions and unchanged reader;
+  completion reaches `max initialIndex stats.params.size`. A completed native
+  trace supplies its prefix. `completeParameters` also derives completion from
+  the real raw leading-binder bound and free-variable parameter receipts, using
+  the existing native WHNF/instantiation arity bounds rather than assuming an
+  unchecked early stop consumed all parameters. Annotation and index-normalization
+  receipts are restricted to the actual remaining suffix without reallocating
+  any index or changing the source reader.
+  `IndexParameterNormalizationSupport` supplies the missing parameter-opening
+  normalization semantics: the older index-normalization receipt deliberately
+  skips those heads and is not silently treated as sufficient. An aligned strong
+  checker with its actual initial-state WF derives the new support from accepted
+  WHNF calls; sort telescopes have a separate structural derivation. The generic
+  proof is not restricted to identity WHNF, sort telescopes, zero parameters or
+  empty contexts. `normalizedTranslation` consumes genuine
+  `TypedParameterArguments`, uses earlier forall injectivity to align parameter
+  domains through definitional equality, and retains residual strict translation
+  and its equality to the original typed application result. It does not assume
+  the intermediate semantic type stays syntactically unchanged.
+  `ParameterizedRecursorIndexModelEndpoint` retains the normalized parameter
+  prefix, original typed argument application, actual translated index suffix,
+  final model WF/native agreement and index abstraction extension. Application
+  types the exact `mkAppN (mkAppN head stats.params) indices`. A translated native
+  sort terminal yields saturated parent `IsType`; registered constant inputs
+  remove caller head-translation/typing assumptions. Exact terminal universe
+  mapping and the existing annotation-universe support compose a genuine
+  `RecursorMajorOpening`; its existing mixed-context/index abstraction machinery
+  now also forms the actual motive domain through the parameterized endpoint.
+  No zero-parameter restriction is retained on these new major/motive adapters.
+  The strong-checker CPS theorem covers the actual `loopArgs1` continuation and
+  derives parameter completion from source arity rather than a caller-supplied
+  final-index bound. This is a separate parameter-plus-index endpoint, preserving
+  the earlier index-only application's meaning.
+  Universal compatible parent-header argument receipts, their fresh-elimination-
+  universe transport, reached annotation/index-normalization support and native
+  sort-terminal eligibility for every accepted batch remain to be derived.
+  The new adapters do not fabricate a strong checker for the final actual
+  inductive environment, weaken the initial `VContext` interface, claim a final
+  actual `TrEnv`, or complete recursor equations/inductive histories.
+  `tests/InductiveRecursorIndexParameters.lean` checks 22 native/semantic prefix,
+  strong checker/CPS, endpoint application/typehood, index abstraction and
+  major/motive formation contracts, and exhaustively audits all 57 owned
+  declarations against genuine earlier WHNF, forall injectivity, typed
+  application, mixed context, annotation and motive foundations. Its 88 native
+  controls cover empty and constructor-free batches, zero/one/two/dependent/
+  polymorphic parameters, indexed and mutual families, and let/beta/metadata
+  wrappers after the final explicit parameter. Both safeties/primitive modes and
+  initial/reached actual motive readers compare exact remaining fuel, index
+  arrays, name generators, every local declaration, residual typehood and
+  saturated parent application typing, including 56 nonidentity parameter-opening
+  WHNF reductions. All 72 wrong-domain parameter arrays remain entirely free
+  variables and complete unchecked native traversal, but reject typed application
+  eligibility. Unchecked early stops retain no complete-prefix/header eligibility.
+  Wrappers hiding a declared raw parameter binder remain excluded by the previously
+  verified public preprocessing guard, not mistaken for a new full-frontend
+  discrepancy. Runtime controls do not fabricate semantic contexts; no executable
+  checker change, new axiom or admitted proof is introduced.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
