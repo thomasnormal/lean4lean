@@ -270,10 +270,37 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   checker state, including early exits. These raw contracts exclude `sorryAx`;
   only original-parent lookup conversion uses the existing persistent-map lookup
   interface. They do not derive old recursor parent/constructor closure merely
-  from lookup classification, or prove general `inductiveReduceRec`, recursive
+  from lookup classification, or unconditionally transport `inductiveReduceRec`, recursive
   `Methods.withFuel` transport, semantic state WF, accepted constructor-check
   transport, constructor WF, or full inductive soundness. Strong initial
   `VContext`/`TrEnv` and executable behavior remain unchanged.
+- `Verify.InductiveHeaderReductionTransport` composes the native K and structure
+  helpers through the entire successful `inductiveReduceRec` program. Raw
+  `NativeRecursorEntryReceipt` and `NativeRecursorMajorReceipt` record the actual
+  constant head, recursor lookup, in-bounds major selection, and accepted optional
+  K-adaptation result/state. Parent metadata stability is required only at a
+  reached recursor entry; normalization, literal-string expansion, and structure
+  type/sort prefixes are indexed by the exact accepted earlier results/states.
+  K inference and comparison obligations also receive the reached entry and K
+  flag. The proof covers native natural/string literal handling, structure
+  expansion, missing rules, field and universe-arity guards, level substitution,
+  parameter/motive/minor application, trailing major fields, and overapplication.
+  It preserves the entire accepted state across distinct methods and readers,
+  not merely the final expression or selected caches.
+  `quotReduceRec.transport` separately preserves the actual quotient helper from
+  its reached lift/ind major-normalization callbacks. The outer
+  `TypeChecker.Inner.reduceRecursor.headerAxiomTransport` preserves quotient-first
+  dispatch and both cheap flags, requiring equality of the quotient gate and
+  native inductive transport only after an accepted quotient miss (or bypass).
+  Successful native header registration and the axiom view both preserve
+  `quotInit`, so that gate equality follows from their shared original environment;
+  lookup classification alone is not used to infer it. All module-owned raw
+  declarations exclude admissions and persistent-map axioms. Callback transport
+  and old-parent closure remain explicit obligations, not consequences of name
+  freshness. These proofs do not derive semantic cache/state WF, automatic old
+  recursor parent/constructor closure, general mutually recursive method
+  transport, accepted constructor-check transport, constructor WF, or full
+  inductive soundness. Strong initial `VContext`/`TrEnv` remains unchanged.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6363,6 +6390,34 @@ or a native-accepted malformed declaration. The fixture does not execute the
 unreachable structure fallback, construct semantic prelude translation, or prove
 unrestricted recursive transport. Run
 `lake env lean tests/InductiveHeaderRecursorTransport.lean`.
+
+`tests/InductiveHeaderReductionTransport.lean` exhaustively audits the new raw
+module and checks native-accepted singleton/mutual header checkpoints across both
+safety and primitive flags, before constructor registration. It derives the
+quotient-gate equality from native registration and axiom-view preservation and
+projects stable parents from original-parent closure and the existing value
+frame. Stateful callbacks update every cache, generator, equivalence map/union
+find, failure set and unfolding cache; default/seeded states and distinct readers
+compare every final field. Raw synthetic recursor records exercise exact field
+and universe guards, missing rules, level substitution, skipped parameter/index
+arguments, trailing fields and overapplication, K true/false comparisons,
+natural/string literals, structure expansion, proposition rejection and parent
+mismatch. These deliberately raw records and manually varied quotient gates are
+control-flow fixtures, not claims of native-accepted malformed declarations or
+kernel discrepancies. A deliberately mismatched quotient-gate control produces
+different wrapper results despite unchanged constant lookups, and an actual
+callback rejection can coexist with a successful shadow without violating the
+directional contract. Quotient lift/ind fixtures cover saturation, constructor
+arity, trailing arguments, exhausted callbacks and quotient-first dispatch;
+distinguishable full/core callbacks verify cheap flags are forwarded and that
+quotient normalization remains full. Actual `Methods.withFuel` reduces native
+`Nat.rec`, local-proof `Eq.rec`, and local-product `Prod.rec`, both directly and
+through the wrapper at all four cheap-flag combinations. The real native methods
+first check each complete application with `inferOnly := false` in both views.
+Subsequent normalization
+checks their expected results. Imported-prelude fixtures do not supply semantic
+prelude translation, and raw state equality is not semantic state WF. Run
+`lake env lean tests/InductiveHeaderReductionTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
