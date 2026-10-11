@@ -17,9 +17,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   core/full insertions preserve it. The worker theorems still require the
   normalization callbacks' native `Methods.HeadWF` contract; the generic
   worker interfaces also take an explicit recursor-helper cache frame, now
-  discharged by the actual helper proofs below. They do not establish that
-  contract for arbitrary `Methods.withFuel`. Comparison worker framing remains
-  open. This necessary syntactic property does not establish semantic WHNF
+  discharged by the actual helper proofs below. The actual arbitrary-fuel
+  callback contract is now proved by the four-method induction below.
+  This necessary syntactic property does not establish semantic WHNF
   completeness, exclude local-let free-variable heads, or discharge accepted
   recursor parameter/index traversal and terminal-sort obligations. The
   existing conversion-only `Methods.WF` is not silently strengthened.
@@ -45,8 +45,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `Methods.withFuel.zero_headWF` proves the actual throwing zero-fuel base
   contract; `whnfCore_succ_headWF` and `whnf_succ_headWF` supply the two real
   normalizer successor steps from the prior-fuel four-method contract.
-  The remaining comparison worker frame is necessary for a
-  full `Methods.withFuel.HeadWF` induction. This closes native reduction-helper
+  The comparison worker frame and full `Methods.withFuel.HeadWF` induction
+  are supplied below. This closes native reduction-helper
   cache framing, not semantic normalization completeness or frontend closure.
   `tests/RecursorHeadFrame.lean` audits every owned declaration against the
   unchanged logical/native representation foundations and uses actual typed
@@ -64,13 +64,39 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   than supplying projection eligibility or a shadow checker receipt.
   `Methods.withFuel.inferType_succ_headWF` is the third real successor step
   under the prior-fuel four-method contract. The comparison successor step and
-  full arbitrary-fuel `Methods.withFuel.HeadWF` induction remain open; the
+  full arbitrary-fuel induction are now supplied below; the
   inference theorem asserts cache preservation, not semantic type correctness
   or inductive frontend closure. `tests/InferenceHeadFrame.lean` exhaustively
   audits the module's declarations against the unchanged foundation allowlist
   and exercises actual cold/warm inference/checking with expected types,
   local/let scopes, dependent/Prop projections, malformed/error guards and
   poisoned-cache precondition controls.
+- `TypeChecker.Inner.isDefEqCore'.headWF` proves the actual comparison worker
+  preserves both clean WHNF caches. It covers binder/argument comparison,
+  the actual equivalence probe and failure-cache updates, lambda/structure
+  eta, proof irrelevance, unit-like and string guards, offsets, projection
+  unfolding, every lazy-delta plan and its bounded rounds, both native/Nat
+  reduction tails, cheap/full normalization and all comparison fallbacks.
+  Existing exact implementing-program equalities expose these paths; no
+  metadata alignment, semantic eligibility or separate helper-frame receipt
+  is required. `Methods.withFuel.isDefEqCore_succ_headWF` supplies the fourth
+  successor step, and `Methods.withFuel.headWF` proves the complete native
+  four-method cache/head contract for every fuel, with no callback premise.
+  `RecM.run_headWF` lifts this to the actual configured public normalization,
+  inference/checking and comparison entries. Successful normalizations have
+  no metadata/let outer node and every successful entry preserves initially
+  clean WHNF caches. This is partial correctness: zero/exhausted budgets may
+  throw and warm-state entry framing still requires initial cache cleanliness.
+  `M.HeadWF.fromEmpty` and `M.HeadWF.run` discharge initialization for the
+  actual cold `M.run` API, giving its successful normalizations clean heads
+  without a caller-supplied cache or callback contract. Semantic WHNF
+  completeness, inference/comparison soundness and inductive frontend closure
+  are not established by this syntactic/cache invariant. The audit retains
+  exactly the existing six logical/native representation foundations, with
+  no inherited checker/metatheory admissions. `tests/ComparisonHeadFrame.lean`
+  audits every owned declaration and exercises actual typed bidirectional
+  comparisons, all configured entries, cold/warm states, real proof/eta/unit
+  helpers, resource failures and poisoned-cache preconditions.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
