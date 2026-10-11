@@ -67,7 +67,8 @@ theorem HeaderAxiomLookupAgreement.structureExpansion
     · rw [actualLookup, shadowLookup]
       rfl
 
-theorem toCtorWhenStruct.headerAxiomTransport
+theorem toCtorWhenStruct.headerAxiomNormalizationTransport
+    (normalize : Expr → TypeChecker.RecM Expr)
     (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
     (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
     (state : TypeChecker.State) (parent : Name) (expression : Expr)
@@ -75,17 +76,17 @@ theorem toCtorWhenStruct.headerAxiomTransport
     (typeNormalization : actualContext.env.isStructureLike parent = true →
       (expression.isConstructorApp?' actualContext.env).isSome = false →
       TypeChecker.M.SuccessTransport
-        (do actualMethods.whnf (← actualMethods.inferType expression true))
-        (do shadowMethods.whnf (← shadowMethods.inferType expression true)) actualContext shadowContext state)
+        ((do normalize (← TypeChecker.Inner.inferType expression true)) actualMethods)
+        ((do normalize (← TypeChecker.Inner.inferType expression true)) shadowMethods) actualContext shadowContext state)
     (sortNormalization : actualContext.env.isStructureLike parent = true →
       (expression.isConstructorApp?' actualContext.env).isSome = false → ∀ type finalState,
-      (do actualMethods.whnf (← actualMethods.inferType expression true)) actualContext state = .ok (type, finalState) →
+      ((do normalize (← TypeChecker.Inner.inferType expression true)) actualMethods) actualContext state = .ok (type, finalState) →
       type.getAppFn.isConstOf parent = true → TypeChecker.M.SuccessTransport
-        (do actualMethods.whnf (← actualMethods.inferType type true))
-        (do shadowMethods.whnf (← shadowMethods.inferType type true)) actualContext shadowContext finalState) :
+        ((do normalize (← TypeChecker.Inner.inferType type true)) actualMethods)
+        ((do normalize (← TypeChecker.Inner.inferType type true)) shadowMethods) actualContext shadowContext finalState) :
     TypeChecker.M.SuccessTransport
-      (toCtorWhenStruct actualContext.env TypeChecker.Inner.whnf TypeChecker.Inner.inferType parent expression actualMethods)
-      (toCtorWhenStruct shadowContext.env TypeChecker.Inner.whnf TypeChecker.Inner.inferType parent expression shadowMethods)
+      (toCtorWhenStruct actualContext.env normalize TypeChecker.Inner.inferType parent expression actualMethods)
+      (toCtorWhenStruct shadowContext.env normalize TypeChecker.Inner.inferType parent expression shadowMethods)
       actualContext shadowContext state := by
   have structureSame := agreement.structureLike parent stable
   have constructorSame := agreement.constructorApp expression
@@ -125,26 +126,50 @@ theorem toCtorWhenStruct.headerAxiomTransport
     simp only [notStructure, Bool.not_false, Bool.true_or, if_true]
     exact TypeChecker.M.SuccessTransport.pure _ _ _ _
 
-theorem toCtorWhenK.headerAxiomTransport
+theorem toCtorWhenStruct.headerAxiomTransport
+    (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
+    (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
+    (state : TypeChecker.State) (parent : Name) (expression : Expr)
+    (stable : actualContext.env.find? parent = shadowContext.env.find? parent)
+    (typeNormalization : actualContext.env.isStructureLike parent = true →
+      (expression.isConstructorApp?' actualContext.env).isSome = false →
+      TypeChecker.M.SuccessTransport
+        (do actualMethods.whnf (← actualMethods.inferType expression true))
+        (do shadowMethods.whnf (← shadowMethods.inferType expression true)) actualContext shadowContext state)
+    (sortNormalization : actualContext.env.isStructureLike parent = true →
+      (expression.isConstructorApp?' actualContext.env).isSome = false → ∀ type finalState,
+      (do actualMethods.whnf (← actualMethods.inferType expression true)) actualContext state = .ok (type, finalState) →
+      type.getAppFn.isConstOf parent = true → TypeChecker.M.SuccessTransport
+        (do actualMethods.whnf (← actualMethods.inferType type true))
+        (do shadowMethods.whnf (← shadowMethods.inferType type true)) actualContext shadowContext finalState) :
+    TypeChecker.M.SuccessTransport
+      (toCtorWhenStruct actualContext.env TypeChecker.Inner.whnf TypeChecker.Inner.inferType parent expression actualMethods)
+      (toCtorWhenStruct shadowContext.env TypeChecker.Inner.whnf TypeChecker.Inner.inferType parent expression shadowMethods)
+      actualContext shadowContext state :=
+  toCtorWhenStruct.headerAxiomNormalizationTransport TypeChecker.Inner.whnf
+    actualMethods shadowMethods actualContext shadowContext agreement state parent expression stable typeNormalization sortNormalization
+
+theorem toCtorWhenK.headerAxiomNormalizationTransport
+    (normalize : Expr → TypeChecker.RecM Expr)
     (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
     (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
     (state : TypeChecker.State) (info : RecursorVal) (expression : Expr)
     (isK : info.k = true)
     (stable : actualContext.env.find? info.getMajorInduct = shadowContext.env.find? info.getMajorInduct)
     (typeNormalization : TypeChecker.M.SuccessTransport
-      (do actualMethods.whnf (← actualMethods.inferType expression true))
-      (do shadowMethods.whnf (← shadowMethods.inferType expression true)) actualContext shadowContext state)
+      ((do normalize (← TypeChecker.Inner.inferType expression true)) actualMethods)
+      ((do normalize (← TypeChecker.Inner.inferType expression true)) shadowMethods) actualContext shadowContext state)
     (constructorComparison : ∀ type finalState constructor,
-      (do actualMethods.whnf (← actualMethods.inferType expression true)) actualContext state = .ok (type, finalState) →
+      ((do normalize (← TypeChecker.Inner.inferType expression true)) actualMethods) actualContext state = .ok (type, finalState) →
       type.getAppFn.constName! = info.getMajorInduct → mkNullaryCtor actualContext.env type info.numParams = some constructor →
       TypeChecker.M.SuccessTransport
         (do TypeChecker.Inner.isDefEq type (← actualMethods.inferType constructor true) actualMethods)
         (do TypeChecker.Inner.isDefEq type (← shadowMethods.inferType constructor true) shadowMethods)
         actualContext shadowContext finalState) :
     TypeChecker.M.SuccessTransport
-      (toCtorWhenK actualContext.env TypeChecker.Inner.whnf TypeChecker.Inner.inferType TypeChecker.Inner.isDefEq
+      (toCtorWhenK actualContext.env normalize TypeChecker.Inner.inferType TypeChecker.Inner.isDefEq
         info expression actualMethods)
-      (toCtorWhenK shadowContext.env TypeChecker.Inner.whnf TypeChecker.Inner.inferType TypeChecker.Inner.isDefEq
+      (toCtorWhenK shadowContext.env normalize TypeChecker.Inner.inferType TypeChecker.Inner.isDefEq
         info expression shadowMethods) actualContext shadowContext state := by
   unfold toCtorWhenK
   simp only [isK, if_true, pure_bind, ← bind_assoc]
@@ -203,5 +228,29 @@ theorem toCtorWhenK.headerAxiomTransport
   · have different : (parent != info.getMajorInduct) = true := by simpa only [bne_iff_ne] using matching
     simp only [different, if_true]
     exact TypeChecker.M.SuccessTransport.pure _ _ _ _
+
+theorem toCtorWhenK.headerAxiomTransport
+    (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
+    (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
+    (state : TypeChecker.State) (info : RecursorVal) (expression : Expr)
+    (isK : info.k = true)
+    (stable : actualContext.env.find? info.getMajorInduct = shadowContext.env.find? info.getMajorInduct)
+    (typeNormalization : TypeChecker.M.SuccessTransport
+      (do actualMethods.whnf (← actualMethods.inferType expression true))
+      (do shadowMethods.whnf (← shadowMethods.inferType expression true)) actualContext shadowContext state)
+    (constructorComparison : ∀ type finalState constructor,
+      (do actualMethods.whnf (← actualMethods.inferType expression true)) actualContext state = .ok (type, finalState) →
+      type.getAppFn.constName! = info.getMajorInduct → mkNullaryCtor actualContext.env type info.numParams = some constructor →
+      TypeChecker.M.SuccessTransport
+        (do TypeChecker.Inner.isDefEq type (← actualMethods.inferType constructor true) actualMethods)
+        (do TypeChecker.Inner.isDefEq type (← shadowMethods.inferType constructor true) shadowMethods)
+        actualContext shadowContext finalState) :
+    TypeChecker.M.SuccessTransport
+      (toCtorWhenK actualContext.env TypeChecker.Inner.whnf TypeChecker.Inner.inferType TypeChecker.Inner.isDefEq
+        info expression actualMethods)
+      (toCtorWhenK shadowContext.env TypeChecker.Inner.whnf TypeChecker.Inner.inferType TypeChecker.Inner.isDefEq
+        info expression shadowMethods) actualContext shadowContext state :=
+  toCtorWhenK.headerAxiomNormalizationTransport TypeChecker.Inner.whnf
+    actualMethods shadowMethods actualContext shadowContext agreement state info expression isK stable typeNormalization constructorComparison
 
 end Lean4Lean
