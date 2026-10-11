@@ -77,6 +77,21 @@ example {context : VContext} {state : VState} {outerName innerName : Name}
         type semantic (.sort level)) :=
   Inner.inferForall.scopeWF translated.fvarsIn (fun _ => ⟨_, translated⟩)
 
+example {context : VContext} {state : VState} {expression : Expr} {semantic : VExpr}
+    (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars))
+    (translated : context.TrExprS expression semantic) :
+    (Inner.inferLet expression true).ScopeWF context state (fun type _ =>
+      ∃ semantic' semanticType, context.TrTyping expression type semantic' semanticType) :=
+  Inner.inferLet.scopeWF_inferOnly freeVariables translated
+
+example {context : VContext} {state : VState} {name : Name}
+    {domain value body : Expr} {nondependent : Bool} {semantic : VExpr}
+    (translated : context.TrExprS (.letE name domain value body nondependent) semantic) :
+    (Inner.inferLet (.letE name domain value body nondependent) true).ScopeWF context state
+      (fun type _ => ∃ semantic' semanticType, context.TrTyping
+        (.letE name domain value body nondependent) type semantic' semanticType) :=
+  Inner.inferLet.scopeWF_inferOnly translated.fvarsIn translated
+
 example {context : VContext} {state : VState} (valid : state.WF context) :
     state.next.WF context :=
   TypeChecker.VState.WF.next valid
