@@ -5,6 +5,32 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 ## What is proved
 
+- `TypeChecker.Inner.whnfCore'.headWF` and `whnf'.headWF` prove a native
+  head/cache invariant through the actual normalizer workers: successful
+  outputs have neither a metadata nor a let-expression as the outermost node,
+  and both WHNF caches retain that property. The proof includes the actual
+  beta worker, local-let lookup, projection helper, all native natural-number
+  reducers, delta-unfold cache updates, full-WHNF fuel loop and final cache
+  insertion. Native reductions are proved to return no successful reduction
+  rather than assuming an arbitrary native result has a clean head.
+  `HeadCacheWF.empty` supplies the cold initial cache invariant, and clean
+  core/full insertions preserve it. The worker theorems still require the
+  normalization callbacks' native `Methods.HeadWF` contract and an explicit
+  recursor-helper cache frame; they do not establish that contract for
+  `Methods.withFuel`. Inference/comparison and recursor callback framing remain
+  open. This necessary syntactic property does not establish semantic WHNF
+  completeness, exclude local-let free-variable heads, or discharge accepted
+  recursor parameter/index traversal and terminal-sort obligations. The
+  existing conversion-only `Methods.WF` is not silently strengthened.
+  `tests/WHNFHeadShape.lean` audits every owned declaration without inherited
+  checker/metatheory admissions; cache-insertion proofs retain exactly the
+  existing native representation assumptions `Lean.Expr.eqv_eq`,
+  `Lean.Level.instLawfulBEqLevel` and `Lean.Syntax.structEq_eq`, in addition to
+  the three logical foundations. The fixture exercises actual cold/warm workers,
+  both safeties/eager modes and all cheap flags. Poisoned-cache negative
+  controls demonstrate why the initial cache invariant is necessary; these
+  deliberately invalid states are not kernel discrepancies or positive
+  checker receipts.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
