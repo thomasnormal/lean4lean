@@ -149,6 +149,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   and semantic WF, native header sizes/counts, and unchanged environment,
   universe, safety, primitive-authorization, and fuel fields. It supports empty
   arrays without selecting a default source header.
+  The continuation also retains conversion-aware compatible parameter inputs for
+  every parent at this exact final mixed context, deriving each from its actual
+  checked header trace and weakening earlier inputs through later index locals.
+  Nonempty batches retain the exact original universe-level array.
   `withHeaderAxiomContinuation` performs actual header registration, derives its
   separate strong axiom shadow, and extends this exact local model to the shadow
   with fresh-state WF and primitive/value frames. The stage also derives and
@@ -896,8 +900,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   final-index bound. This is a separate parameter-plus-index endpoint, preserving
   the earlier index-only application's meaning.
   Compatible parent-header argument receipts are derived per accepted checking
-  trace by the following module. Their universal batch aggregation and fresh-
-  elimination-universe transport, reached annotation/index-normalization support and native
+  trace by the following module, with original-universe batch aggregation derived
+  below. Fresh-elimination-universe transport, reached annotation/index-normalization support and native
   sort-terminal eligibility for every accepted batch remain to be derived.
   The new adapters do not fabricate a strong checker for the final actual
   inductive environment, weaken the initial `VContext` interface, claim a final
@@ -951,14 +955,15 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   extensions and reached mixed-context insertions. The registered signature
   adapter `RecursorConstantInput.applyHeaderParameters` aligns its original source
   type and applies the actual native parameter array without caller head typing.
-  These checking receipts still need to be retained for every parent through the
-  complete header/constructor-registration continuation, specialized to compatible
-  fresh elimination universes, and composed with normalized recursor parent traces.
-  No universal accepted-batch parameter/index eligibility, final actual `TrEnv`,
+  `withStats` transports the input across metadata updates with the unchanged
+  parameter array. The following batch module retains these inputs through the
+  complete header/constructor-registration continuation. Specialization to compatible
+  fresh elimination universes and composition with normalized recursor parent traces
+  remain. No universal fresh-universe parameter/index eligibility, final actual `TrEnv`,
   recursor equations or completed inductive frontend theorem is claimed.
   `tests/InductiveHeaderParameterApplications.lean` checks 23 conversion-aware
   application, prefix, strong checker, original-source, continuation, input
-  transport and registered-head contracts. It exhaustively audits all 83 owned
+  transport and registered-head contracts. It exhaustively audits all 85 owned
   declarations against genuine earlier application/weakening, checked header
   models/openings, accepted source/WHNF and native guard foundations. Generic
   application inherits seven earlier dependencies, accepted trace derivation
@@ -973,6 +978,49 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   parameter-opening WHNF results and 216 rejected wrong-domain all-free-variable
   arrays; incompatible reused-header domains reject in both kernels. Runtime
   controls do not fabricate semantic contexts. No executable checker change,
+  new axiom or admitted proof is introduced.
+- `Verify.InductiveHeaderApplicationBatch` closes original-universe compatible
+  parent-parameter aggregation through accepted complete header and constructor
+  registration. The existing `CheckedHeaderContinuation` now retains strict
+  original-source, genuinely typed parameter inputs for every parent in its
+  actual final mixed model, including fresh first-header parameters, reused later
+  parameters, dependent domains and accumulated indices. Its traversal selects
+  the checker delivered by the application receipt; native context alignment
+  identifies allocated identifiers without assuming two semantic checkers equal.
+  First-header parameter/ambient separation and all earlier strong reader/state,
+  chronological history, source-WF, count, kind and shadow interfaces remain.
+  `ConstructorConstantRegistration.parentParameterInput` monotonically extends
+  these automatic inputs to the registered semantic environment, and
+  `parentParameterModelWF` derives their model WF there.
+  `parentParameterApplications` constructs genuine registered parent heads and
+  proves every actual `mkAppN stats.indConsts[parent]! stats.params` translated
+  and typed at its conversion-aware residual. No caller-provided argument/domain
+  typing, source typehood, original-level mapping or head typing is required.
+  Canonical native universe substitution can normalize level syntax, so the head
+  adapter does not assert that original-level substitution is syntactically the
+  identity. It instead proves original nominal-level translation/instantiation
+  invariance and rebuilds the original source translation under semantic level
+  instantiation, including the genuine existing projection-instantiation boundary.
+  The accepted helper-program and complete-run bridges automatically package this
+  entire `HeaderParameterApplicationBatch` alongside actual registration receipts
+  under their unchanged strong entry checker, ordinary-safety and native-parent
+  closure premises. Empty batches are vacuous; exact canonical levels are retained
+  only when a parent exists, including the earlier empty-batch default path.
+  Compatible fresh-elimination-universe transport, normalized recursor parameter/
+  index composition, terminal sort eligibility and full recursor/frontend closure
+  remain. No final actual `TrEnv` is fabricated or weaker checker substituted.
+  `tests/InductiveHeaderApplicationBatch.lean` checks 11 formal contracts and audits
+  all 119 continuation and 12 new batch-module declarations against genuine earlier
+  foundations. Registered batch application inherits seven dependencies; accepted
+  traversal and complete-program bridges retain the earlier 31-dependency baseline,
+  including existing metatheory admissions. Its 240 native controls cover exact
+  constructor-registered/full-run parent application types, strict residual typehood,
+  original/local/let contexts, both safeties/primitive modes, differing accumulated
+  mutual index counts, dependent/polymorphic parameters and convertible wrapped
+  domains. It exercises 144 nonidentity parameter-opening normalizations, a genuinely
+  nonidentity original-universe self substitution, and 192 rejected incompatible
+  all-free-variable arrays; incompatible later-header domains reject in both kernels.
+  Runtime controls do not fabricate semantic contexts. No executable checker change,
   new axiom or admitted proof is introduced.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
