@@ -473,6 +473,39 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `TrEnv`, translated-input eligibility, inherited semantic/checker admissions
   and imported-prelude translation obligations remain unchanged. Full inductive
   soundness is still open; the executable checker is unchanged.
+- `Verify.InductiveHeaderComparisonTransport` derives transport of the complete
+  native lambda/forall comparison spines, quick comparison, right-to-left
+  application-argument comparison and head-first, left-to-right application
+  comparison. The shared binder-step factorization is proved equal to the
+  original helpers. Equal domains skip comparison; unequal domains require only
+  the reached reverse-instantiated method call. A false domain comparison exits
+  without opening the body. Accepted domain prefixes retain equivalence-cache
+  insertion before allocating the native fresh local. Loose bodies open the
+  second binder's name, binder information and instantiated domain; closed bodies
+  push the native default without allocation. Terminal callbacks use the exact
+  accumulated substitution. `NativeBinderComparisonReachable` tracks actual
+  accepted prefixes and both scoped readers, including arbitrary initial
+  substitutions; it does not assert semantic fresh-name or local-context WF.
+  Quick comparison preserves the complete native equivalence-manager query and
+  its state effects, including the hash guard and cached-hit bypass. Its callback
+  receipt is demanded only after an actual false query, in that query's returned
+  state. The exact metavariable panic fallback is retained, not proved unreachable
+  using an interface axiom. The original native application loop is transported
+  directly by its decreasing remaining count. Its receipts cover only successful
+  earlier argument comparisons, preserving early false completion and native
+  equivalence insertion. Argument-spine comparison ignores nonapplication heads
+  and can compare a trailing argument before discovering unequal arity;
+  application comparison checks both application tags and complete arity before
+  comparing heads and arguments in the opposite order. Structural `withApp`
+  factorization does not rely on cached-expression interface axioms. All owned
+  declarations exclude admissions and implementation-interface axioms. Remaining
+  eta/proof-irrelevance/string/offset, structural metadata and lazy-delta helpers,
+  complete `isDefEqCore'` and recursive `Methods.withFuel` transport remain open.
+  These raw transport proofs do not establish semantic cache/state WF,
+  translated-input eligibility, accepted strong-shadow constructor checking or
+  full inductive soundness. Strong initial `VContext`/`TrEnv`, inherited admission
+  boundaries and imported-prelude translation obligations remain unchanged;
+  the executable checker is unchanged.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6686,6 +6719,29 @@ projection even with identical retained constructor signatures. Those controls
 are not native-accepted malformed environments or semantic-WF claims. These
 fixtures do not construct semantic prelude translation or automatic recursive
 method receipts. Run `lake env lean tests/InductiveHeaderProjectionTransport.lean`.
+
+`tests/InductiveHeaderComparisonTransport.lean` exhaustively audits all 182 owned
+production declarations, including generated and private declarations, permitting
+only `propext`, `Classical.choice` and `Quot.sound`. Native-accepted singleton,
+mutual and nonzero-index staging and explicit parent-typed identity definitions
+cover safe/unsafe and primitive flags, default/seeded complete states, existing
+outer locals and distinct eager/fuel readers and method depths. Stateful scripts
+pin same/unequal domains, rejected domains, dependent and closed bodies, nested
+dependent binder types, nonempty initial substitutions, mismatched binder tags
+and reader restoration. Traces check exact instantiated inputs, fresh-local types,
+scope and callback/allocation counts while comparing every state field. Quick
+tests cover both hash modes, cache hits, stateful misses, hash-guard bypass of a
+stored equivalence, sort/literal/undefined results and reached lambda/forall/
+metadata callbacks. A same-ID metavariable hit avoids the retained panic fallback;
+no distinct-metavariable panic path is evaluated or claimed impossible. Native
+argument comparison runs right-to-left and omits head comparison, while native
+application comparison checks heads then arguments left-to-right. False prefixes,
+unequal arities, nonapplications, empty/exhausted native loops and deliberately
+unusable unreached methods preserve their original branch policy. Actual recursive
+methods compare beta-reduced dependent lambdas, forall-body let aliases,
+applications, metadata and staged parent domains. These runtime fixtures do not
+construct semantic prelude translation, semantic state WF or automatic recursive
+method receipts. Run `lake env lean tests/InductiveHeaderComparisonTransport.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
