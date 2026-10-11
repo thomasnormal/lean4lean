@@ -151,8 +151,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   arrays without selecting a default source header.
   `withHeaderAxiomContinuation` performs actual header registration, derives its
   separate strong axiom shadow, and extends this exact local model to the shadow
-  with fresh-state WF and primitive/value frames. No caller-provided parameter
-  model, header model, or header type-WF evidence is required.
+  with fresh-state WF and primitive/value frames. The stage also derives and
+  carries actual native map WF from successful header registration, rather than
+  inferring it from signature agreement with the shadow. No caller-provided
+  parameter model, header model, or header type-WF evidence is required.
   `constructorAxiomContinuation` packages this proved shadow model with successful
   actual constructor checking and the accepted native constructor traces at the
   same staging checkpoint. The complete runner projects this package for
@@ -163,6 +165,32 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   retain the strong initial `VContext`/`TrEnv`, canonical annotation contracts,
   disjoint generator prefixes, and inherited checker/metatheory admissions;
   they are not semantic constructor WF, positivity, or inductive soundness.
+- `Verify.InductiveConstructorFreshness` derives absence of every source
+  constructor name at the actual header checkpoint and global constructor-name
+  distinctness, including across mutual parents, from successful eventual
+  constructor registration. The raw registration theorem requires native map WF
+  but no constructor typing or arity model. Exact old-record preservation
+  transports absence backwards, and header/axiom signature agreement transports
+  it into the separate shadow. The native-only complete-run receipt includes
+  installed header metadata, accepted actual constructor checking, and the
+  registration value frame; the ordinary safe/unsafe shadow receipt pairs both
+  absence facts with the already derived typed continuation without additional
+  caller models. Constructor checking alone does not imply freshness: valid
+  constructor types can still collide with existing names, their own or another
+  mutual header, or a constructor registered earlier in the batch.
+  The native projection barrier rules out successful projection inference when
+  the normalized parent header's constructors are missing. The raw structure-eta
+  barrier excludes a missing constructor head; the raw unit-like barrier excludes
+  the constructor lookup of an otherwise qualifying nonrecursive singleton
+  parent with no indices. All three support arbitrary native methods and checker
+  state, conditional only on their explicit native lookup/normalization evidence.
+  These results do not establish unrestricted checker transport.
+  Header-only `isStructureLike` can
+  already be true, whereas it is false in the axiom shadow; the unit-like helper
+  can fail on a missing actual constructor while returning false in the shadow.
+  Raw freshness and metadata-barrier contracts exclude `sorryAx`; typed shadow
+  receipts retain the inherited checker/metatheory admissions. Constructor WF,
+  positivity, recursor equations, and full inductive soundness remain open.
 - `boolInductDecl.hasPrimitives` and `natInductDecl.hasPrimitives` derive the
   semantic primitive interface after complete header/constructor registration.
   The literal-availability/signature component is rebuilt from installed
@@ -6139,6 +6167,30 @@ invalid constructor returns, captured headers, later parameter-domain mismatch,
 duplicate headers, and zero fuel reject. Runtime fixtures use the imported
 prelude and do not construct its missing semantic translation. Run
 `lake env lean tests/InductiveHeaderContinuation.lean`.
+
+`tests/InductiveConstructorFreshness.lean` checks backwards absence, shadow
+absence, registration freshness/distinctness, installed-header exclusions,
+native-only and typed-shadow complete-run receipts, and the native projection,
+structure-eta, and unit-like barriers. Its exhaustive production-module audit
+rejects module-owned axioms, unexpected inherited dependencies, and `sorryAx` outside the two typed shadow
+receipts. Seven native-accepted fixtures cover single/multiple constructors,
+mutual parents, zero/one/two shared parameters, dependent parameters, and
+indices under both safeties. They inspect the actual pre-constructor checkpoint,
+confirm every constructor name absent in both stages and globally distinct,
+then validate exact old definitions, actual registration, exact constructor
+metadata, and full recursor registration. Existing-name, own-header,
+other-mutual-header, and repeated-name
+controls, including repetition across parents, distinguish successful checking
+from rejected registration. Repetition within one parent already rejects during
+constructor checking. Empty registration preserves the base.
+A local-variable projection fails in both
+header stages but succeeds after actual constructor registration; the separate
+header-only structure predicate and unit-like helper controls expose remaining
+metadata distinctions. Structure-eta and unit-like helpers become available only
+after actual constructor registration in their positive controls. These staging
+differences are not kernel discrepancies.
+Runtime fixtures use the imported prelude without its missing semantic
+translation. Run `lake env lean tests/InductiveConstructorFreshness.lean`.
 
 `tests/InductiveHeaderAxiomView.lean` checks the exact header signature/value
 bridge, absence and optional-value agreement, empty shadow history, strong
