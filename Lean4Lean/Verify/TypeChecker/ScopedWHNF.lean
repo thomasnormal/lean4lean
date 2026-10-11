@@ -165,6 +165,57 @@ theorem TypeChecker.RecM.ScopeWF.fromHeadScopeWF {context : VContext} {state : V
   rw [← context.lctx_eq, ← equal] at finalCaches
   exact ⟨semanticState, equal, increasing, semanticWellFormed, finalCaches, semanticPost⟩
 
+theorem TypeChecker.Inner.addEquiv.scopeWF {context : VContext} {state : VState}
+    {first second : Expr} {semantic : VExpr}
+    (firstTranslation : context.TrExprS first semantic)
+    (secondTranslation : context.TrExpr second semantic) :
+    (modify fun st => { st with eqvManager := st.eqvManager.addEquiv first second } : RecM Unit).ScopeWF
+      context state (fun _ _ => True) := by
+  intro methods callbacks caches
+  rintro wellFormed _ _ ⟨⟩
+  let ⟨_, _, levelsWF, contextLift, managerWF, reserved⟩ := wellFormed.ectx
+  refine ⟨{ state with toState := _ }, rfl, .rfl,
+    { wellFormed with ectx := ⟨_, _, levelsWF, contextLift, ?_, reserved⟩ }, ?_⟩
+  · simp [EquivManager.addEquiv]
+    split
+    · rename_i firstNode
+      split
+      · rename_i secondNode
+        have ⟨managerWF, firstNodeMap, firstNodeEquiv⟩ :=
+          EquivManager.toNode.WF managerWF firstNode
+        have ⟨managerWF, secondNodeMap, secondNodeEquiv⟩ :=
+          EquivManager.toNode.WF managerWF secondNode
+        refine (EquivManager.merge.WF managerWF ?_ (secondNodeMap.toNodeMap firstNodeEquiv)
+          secondNodeEquiv).1
+        exact .defeq (firstTranslation.weakFV' context.Ewf contextLift levelsWF)
+          (secondTranslation.weakFV' context.Ewf contextLift levelsWF)
+  · constructor
+    · simpa [TypeChecker.VState.toState] using caches
+    · trivial
+
+theorem TypeChecker.Inner.isDefEqCore.scopeWF {context : VContext} {state : VState}
+    {first second : Expr} {firstSemantic secondSemantic : VExpr}
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (isDefEqCore first second).ScopeWF context state
+      (fun equal _ => equal → context.IsDefEqU firstSemantic secondSemantic) := by
+  intro methods callbacks
+  exact callbacks.isDefEqCore firstTranslation secondTranslation
+
+theorem TypeChecker.Inner.isDefEq.scopeWF {context : VContext} {state : VState}
+    {first second : Expr} {firstSemantic secondSemantic : VExpr}
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (isDefEq first second).ScopeWF context state
+      (fun equal _ => equal → context.IsDefEqU firstSemantic secondSemantic) := by
+  unfold isDefEq
+  refine (isDefEqCore.scopeWF firstTranslation secondTranslation).bind fun equal _ _ equalProof => ?_
+  split
+  · refine (addEquiv.scopeWF firstTranslation
+      ⟨_, secondTranslation, (equalProof ‹_›).symm⟩).bind fun _ _ _ _ => ?_
+    exact RecM.ScopeWF.pure equalProof
+  · exact RecM.ScopeWF.pure equalProof
+
 theorem TypeChecker.Inner.unfoldDefinition.scopeWF {context : VContext} {state : VState}
     (translated : context.TrExprS expression semantic) :
     (Inner.unfoldDefinition expression).ScopeWF context state fun result _ =>

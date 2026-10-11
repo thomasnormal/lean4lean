@@ -84,6 +84,22 @@ example {context : VContext} {state : VState} {expression : Expr} {semantic : VE
       ∃ semantic' semanticType, context.TrTyping expression type semantic' semanticType) :=
   Inner.inferLet.scopeWF_inferOnly freeVariables translated
 
+example {context : VContext} {state : VState} {first second : Expr}
+    {firstSemantic secondSemantic : VExpr}
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (Inner.isDefEqCore first second).ScopeWF context state
+      (fun equal _ => equal → context.IsDefEqU firstSemantic secondSemantic) :=
+  Inner.isDefEqCore.scopeWF firstTranslation secondTranslation
+
+example {context : VContext} {state : VState} {first second : Expr}
+    {firstSemantic secondSemantic : VExpr}
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (Inner.isDefEq first second).ScopeWF context state
+      (fun equal _ => equal → context.IsDefEqU firstSemantic secondSemantic) :=
+  Inner.isDefEq.scopeWF firstTranslation secondTranslation
+
 example {context : VContext} {state : VState} {name : Name}
     {domain value body : Expr} {nondependent : Bool} {semantic : VExpr}
     (translated : context.TrExprS (.letE name domain value body nondependent) semantic) :
