@@ -228,6 +228,14 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   recursive let worker only under the existing scoped callback contracts; it
   does not close projections, applications, arbitrary-fuel methods, semantic
   WHNF completeness, terminal-sort acceptance, or the frontend theorem.
+- `Inner.inferApp.loop.scopeWF` and `Inner.inferApp.scopeWF` prove the actual
+  application-spine inference worker. They preserve the `AppStack` typing
+  relation across saturated and partially saturated forall steps, consume the
+  scoped forall-normalization callback, and transport the final head typing
+  relation back to the original application. The fixture covers the generic
+  application contract and explicitly records the pre-existing
+  `Lean.Expr.instantiateRevRange_eq` representation axiom used by the source
+  application reconstruction. Projection inference remains open.
 - `Inner.addEquiv.scopeWF`, `Inner.isDefEqCore.scopeWF`, and
   `Inner.isDefEq.scopeWF` preserve the scoped WHNF caches through equivalence-
   manager updates and transport successful comparison results to the semantic
