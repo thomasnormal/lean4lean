@@ -901,7 +901,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   the earlier index-only application's meaning.
   Compatible parent-header argument receipts are derived per accepted checking
   trace by the following module, with original-universe batch aggregation derived
-  below. Fresh-elimination-universe transport, reached annotation/index-normalization support and native
+  below, including compatible fresh-elimination-universe transport. Reached annotation/
+  index-normalization support and native
   sort-terminal eligibility for every accepted batch remain to be derived.
   The new adapters do not fabricate a strong checker for the final actual
   inductive environment, weaken the initial `VContext` interface, claim a final
@@ -957,9 +958,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   type and applies the actual native parameter array without caller head typing.
   `withStats` transports the input across metadata updates with the unchanged
   parameter array. The following batch module retains these inputs through the
-  complete header/constructor-registration continuation. Specialization to compatible
-  fresh elimination universes and composition with normalized recursor parent traces
-  remain. No universal fresh-universe parameter/index eligibility, final actual `TrEnv`,
+  complete header/constructor-registration continuation, with compatible fresh-universe
+  transport derived below. Composition with normalized recursor parent traces remains.
+  No universal fresh-universe normalized-index eligibility, final actual `TrEnv`,
   recursor equations or completed inductive frontend theorem is claimed.
   `tests/InductiveHeaderParameterApplications.lean` checks 23 conversion-aware
   application, prefix, strong checker, original-source, continuation, input
@@ -1006,9 +1007,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   under their unchanged strong entry checker, ordinary-safety and native-parent
   closure premises. Empty batches are vacuous; exact canonical levels are retained
   only when a parent exists, including the earlier empty-batch default path.
-  Compatible fresh-elimination-universe transport, normalized recursor parameter/
-  index composition, terminal sort eligibility and full recursor/frontend closure
-  remain. No final actual `TrEnv` is fabricated or weaker checker substituted.
+  Compatible fresh-elimination-universe transport is derived by the following module.
+  Normalized recursor parameter/index composition, terminal sort eligibility and full
+  recursor/frontend closure remain. No final actual `TrEnv` is fabricated or weaker
+  checker substituted.
   `tests/InductiveHeaderApplicationBatch.lean` checks 11 formal contracts and audits
   all 119 continuation and 12 new batch-module declarations against genuine earlier
   foundations. Registered batch application inherits seven dependencies; accepted
@@ -1022,6 +1024,46 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   all-free-variable arrays; incompatible later-header domains reject in both kernels.
   Runtime controls do not fabricate semantic contexts. No executable checker change,
   new axiom or admitted proof is introduced.
+- `Verify.InductiveHeaderParameterUniverses` transports compatible checked parent
+  parameter inputs and applications into the actual `getRecLevelParams` universe
+  context, including prepended fresh elimination parameters and the unchanged
+  nonparameter-elimination branch. `UniverseNameExtension` records genuine nominal
+  name inclusion, and derives the semantic level mapping and its WF from native
+  parameter lookup. Strict and conversion-aware source translations reindex semantic
+  universes without changing the native source, native constant levels or parameter
+  arrays; no syntactic universe-substitution identity is asserted. The generic
+  transport also supports reordered and extended name lists without adding a
+  universe-distinctness premise.
+  `MLCtx.reindexLevels` preserves exact native local declarations, names, dependent
+  domains and let values while instantiating their semantic counterparts. It derives
+  target model WF; `TypedParameterApplications`, header inputs and entire registered
+  batches transport with genuine typing and all input conversions preserved.
+  Existing strong `VContext`s reindex at the same native/semantic environment,
+  retaining their real `TrEnv`, safety, primitive contracts and fuel. Reader alignment
+  and reset-state WF follow automatically; warm caches are not transported or assumed.
+  Registered whole-batch application/model-WF adapters specialize to every selected
+  elimination level, and `run.headerParameterUniverseContinuation` derives these
+  receipts for every parent and every recursor universe context from accepted ordinary
+  complete runs under the unchanged strong entry checker/native-parent premises.
+  It does not replace original parameter universes with the elimination universe,
+  certify the selected name's freshness or elimination-sort eligibility, fabricate
+  a strong checker or `TrEnv` for the final actual inductive environment, or complete
+  normalized parameter/index aggregation and recursor/frontend closure.
+  `tests/InductiveHeaderParameterUniverses.lean` checks 23 nominal-level, strict/
+  conversion-aware translation, native mixed-context, model-WF, strong checker/reset,
+  registered batch and complete-run contracts. Its exhaustive audit checks all 53
+  owned declarations against genuine earlier level-instantiation, model, reset,
+  application and accepted-run foundations, rejecting owned axioms. Generic semantic
+  transport inherits four dependencies, strong reset ten, and accepted complete runs
+  retain the earlier 31-dependency baseline, including existing metatheory admissions.
+  Its 480 native controls compare exact partial-parent inferred types and strictly
+  check residual typehood under original, fresh-prefix, appended and reordered
+  universe contexts, constructor-registered/full-run environments, original/local/
+  let contexts, both safeties/primitive modes, dependent parameters and differing
+  accumulated mutual indices. They reject 288 incompatible elimination-universe
+  substitutions and 480 contexts omitting original nominal universes. Runtime controls
+  do not fabricate semantic contexts. No executable checker change, new axiom or
+  admitted proof is introduced.
 - `Verify.InductiveHeaderInferenceTransport` transports the complete actual
   `TypeChecker.Inner.inferType'` program, in both inference-only and checking
   modes, from reached helper/callback receipts across header shadows. The raw
