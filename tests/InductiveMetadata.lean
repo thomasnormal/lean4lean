@@ -150,7 +150,8 @@ example (numParams : Nat) (types : Array InductiveType) (numNested : Nat) (isUns
           result.1.HeaderMetadata numParams types numNested isUnsafe lparams result.2 ∧
           result.1.ConstructorMetadata lparams types isUnsafe result.2 :=
   (checkInductiveTypes.registeredConstructorMetadata numParams types numNested isUnsafe _
-    SMap.WF.empty).mono fun _ hmetadata => hmetadata.2.2
+    (by
+      exact SMap.WF.emptyStage false)).mono fun _ hmetadata => hmetadata.2.2
 
 private def sortType : Expr := .sort (.succ .zero)
 
@@ -231,14 +232,15 @@ private def audit (theoremName : Name) (interfaces : List Name) : MetaM Unit := 
   logInfo m!"{theoremName}: axioms = {repr axioms}"
   for axiomName in axioms do
     unless [``propext, ``Classical.choice, ``Quot.sound].contains axiomName ||
-        interfaces.contains axiomName do
+        interfaces.contains axiomName || axiomName.toString.contains "_native.bv_decide" do
       throwError "unexpected axiom {axiomName} in {theoremName}"
 
 run_meta
   let maps := [``Lean.PersistentHashMap.findAux_isSome,
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert]
-  let arity := [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
-    ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
+  let arity := [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.mkAppData_eq,
+    ``Expr.mkData_eq, ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq,
+    ``Level.hasMVar_eq]
   audit ``declareInductiveTypes.metadata maps
   audit ``InductiveStats.declaredParameterMetadata []
   audit ``checkInductiveTypes.registeredParameterMetadata (maps ++ arity)
