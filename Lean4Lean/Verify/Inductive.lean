@@ -77,4 +77,18 @@ theorem Environment.checkPrimitiveInductive.toVDecl
         TrInductDecl venv venv' lparams nparams types decl :=
   ((checkPrimitiveInductive.eq_true_iff env lparams nparams types isUnsafe).mp hcheck).toVDecl venv
 
+theorem Environment.checkPrimitiveInductive.toVDecl_WF
+    (env : Kernel.Environment) (venv : VEnv)
+    (lparams : List Name) (nparams : Nat) (types : List InductiveType) (isUnsafe : Bool) :
+    (checkPrimitiveInductive env lparams nparams types isUnsafe).WF fun isPrimitive =>
+      isPrimitive = true → ∃ decl, (decl = boolInductDecl ∨ decl = natInductDecl) ∧
+        decl.HeadersWF venv ∧
+        ∀ venv', venv.addInductHeaders decl.types = some venv' →
+          TrInductDecl venv venv' lparams nparams types decl := by
+  intro isPrimitive result
+  intro hprimitive
+  have checked : checkPrimitiveInductive env lparams nparams types isUnsafe = .ok true := by
+    simpa [hprimitive] using result
+  exact checkPrimitiveInductive.toVDecl env venv checked
+
 end Lean4Lean

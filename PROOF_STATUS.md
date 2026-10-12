@@ -206,6 +206,12 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   No caller premise or statement of an existing theorem changes. The native
   fixture includes actual proposition-induction reduction with an explicit
   motive, not a claim that native reduction erases the induction application.
+- `Environment.checkPrimitiveInductive.toVDecl_WF` packages the checked
+  primitive-inductive success result with its existing Bool/Nat declaration,
+  header-well-formedness, and `TrInductDecl` translation receipt. This is a
+  checked-inductive frontend boundary only; it does not admit general
+  `addInductive` registration or alter the unsupported inductive branch of
+  `addDeclVerified`.
 - `TypeChecker.Inner.reduceProj.none_of_translation` proves that the actual
   projection reduction helper cannot return a field in the current `TrEnv`
   fragment. Both normalization choices and string-constructor expansion retain
