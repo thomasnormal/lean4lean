@@ -54,8 +54,6 @@ private theorem header_loop_morphism (nparams fuel : Nat) (stats : InductiveStat
           intro equal
           split
           · apply bind_morphism
-            intro _
-            apply bind_morphism
             intro normalized
             exact ih _ normalized _ _ ctx
           · rfl
@@ -91,14 +89,10 @@ private theorem header_loopInd_morphism (nparams : Nat) (types : Array Inductive
     intro sort
     split
     · apply read_morphism
-      apply bind_morphism
-      intro _
       exact header_loopInd_morphism nparams types next collect resume (index + 1) _ current hnext
     · split
       · rfl
-      · apply bind_morphism
-        intro _
-        exact header_loopInd_morphism nparams types next collect resume (index + 1) _ current hnext
+      · exact header_loopInd_morphism nparams types next collect resume (index + 1) _ current hnext
   · apply read_morphism
     exact hnext _ ctx
 termination_by types.size - index
