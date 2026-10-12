@@ -283,6 +283,18 @@ theorem TypeChecker.RecM.forInRange_scopeWF {context : VContext} {state : VState
   rw [Std.Legacy.Range.forIn_eq_forIn_range']
   exact forInList_scopeWF _ _ _ framed
 
+theorem TypeChecker.Inner.nativeProjectionParameters.scopeWF {context : VContext} {state : VState}
+    (environment : Kernel.Environment) (source : Expr) (arguments : Array Expr) (parameters : Nat)
+    (initial : Expr)
+    (translations : ∀ (index : Nat) (current : Expr), ∃ semantic, context.TrExprS current semantic) :
+    (nativeProjectionParameters environment source arguments parameters initial).ScopeWF context state
+      (fun _ _ => True) := by
+  unfold nativeProjectionParameters
+  apply TypeChecker.RecM.forInRange_scopeWF
+  intro _ index current
+  obtain ⟨semantic, translated⟩ := translations index current
+  exact nativeProjectionParameter.scopeWF environment source arguments index current translated
+
 def NativeOptionalHeadScoped (locals : LocalContext) : Option Expr → Prop
   | none => True
   | some expression => NativeHeadScoped locals expression
