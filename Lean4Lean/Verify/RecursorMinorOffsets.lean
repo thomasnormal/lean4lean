@@ -86,8 +86,15 @@ private theorem forIn'_offsets (start count : Nat) (initial : Kernel.Environment
     dsimp only at hyield hstate
     subst result
     subst nextState
-    refine (ih (start + 1) next (fun index hmem env => step index (by simp [hmem]) env)
-      hnext (fun index hmem env hwf => hstep index (by simp [hmem]) env hwf)).mono ?_
+    refine (ih (start + 1) next (fun index hmem env => step index (by
+      rcases List.mem_range'.mp hmem with ⟨offset, hbound, rfl⟩
+      apply List.mem_range'.mpr
+      exact ⟨offset + 1, by omega, by omega⟩) env) hnext (fun index hmem env hwf => hstep index (by
+      rcases List.mem_range'.mp hmem with ⟨offset, hbound, rfl⟩
+      simp only [List.mem_cons]
+      right
+      apply List.mem_range'.mpr
+      exact ⟨offset, hbound, by omega⟩) env hwf)).mono ?_
     rintro result ⟨hfinal, hrest, hitems, hstate⟩
     refine ⟨hfinal, fun name info hold => hrest name info (hkeep name info hold), ?_, ?_⟩
     · intro index hindex
@@ -126,13 +133,13 @@ theorem declareRecursors.offsetMetadata (stats : InductiveStats) (types : Array 
         rw [recursorMinorOffset.succ types index hbound]
         exact (mkRecRules.shape types elimLevel stats index (infos.map (·.motive))
           (infos.flatMap (·.minors)) (recursorMinorOffset types index) ctx _ hsource).stateAdvance
-      refine Lean4Lean.AddInductive.stateExceptBindWF (Lean4Lean.checkName.WF env
+      refine Lean4Lean.AddInductive.stateExceptBindWF (Lean4Lean.checkName.WF henv
         (mkRecName types[index].name) ctx.allowPrimitive) ?_
       rintro _ ⟨hfresh, _⟩
       let record := metadataVal stats types elimLevel infos lparams lctx isK isUnsafe index rules
       have hfreshRecord : env.constants.find? (ConstantInfo.recInfo record).name = none := by
-        simpa only [record, metadataVal, ConstantInfo.name, ConstantInfo.toConstantVal,
-          getElem!_pos, hbound] using hfresh
+        simpa only [Kernel.Environment.find?, henv.find?'_eq_find?, record, metadataVal,
+          ConstantInfo.name, ConstantInfo.toConstantVal, getElem!_pos, hbound] using hfresh
       obtain ⟨hnext, hself, hkeep⟩ := Lean4Lean.AddInductive.addFresh env (.recInfo record) henv hfreshRecord
       refine .pure ⟨_, rfl, ?_, ?_, ⟨rules, ?_, ?_⟩, hadvance⟩
       · simpa only [record, metadataVal, getElem!_pos, hbound] using hnext
@@ -187,7 +194,6 @@ theorem run.safeMinorOffsets (nparams : Nat) (types : List InductiveType)
   dsimp only
   rw [hsafety]
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.bindWF
   intro _
   apply checkInductiveTypes.safeConstructorRegistration nparams types.toArray numNested _ ctx hwf
@@ -200,7 +206,6 @@ theorem run.safeMinorOffsets (nparams : Nat) (types : List InductiveType)
   apply Lean4Lean.AddInductive.bindWF
   intro isK
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   obtain ⟨_, _, _, _, hroot, _⟩ := hregistration.traces
   have hsafety : current.safety = .safe := hframe.safety.trans (hroot.safety.trans hsafety)
   rw [hsafety]
