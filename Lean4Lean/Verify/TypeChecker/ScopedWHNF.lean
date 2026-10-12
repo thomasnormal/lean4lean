@@ -240,6 +240,30 @@ theorem TypeChecker.Methods.withFuel.zero_scopeWF : (withFuel 0).ScopeWF := by
   · constructor <;> intros <;> exact M.WF.throw
   all_goals intros; intro caches; exact M.WF.throw
 
+theorem TypeChecker.RecM.forInList_scopeWF {context : VContext} {state : VState}
+    (elements : List Element) (initial : Value)
+    (body : Element → Value → TypeChecker.RecM (ForInStep Value))
+    (framed : ∀ {state : VState} element value,
+      (body element value).ScopeWF context state (fun _ _ => True)) :
+    (forIn elements initial body).ScopeWF context state (fun _ _ => True) := by
+  induction elements generalizing state initial with
+  | nil => exact RecM.ScopeWF.pure trivial
+  | cons element elements inductionHypothesis =>
+    rw [List.forIn_cons]
+    refine (framed element initial).bind fun step middleState _ _ => ?_
+    cases step
+    · exact RecM.ScopeWF.pure trivial
+    · exact inductionHypothesis (state := middleState) _
+
+theorem TypeChecker.RecM.forInRange_scopeWF {context : VContext} {state : VState}
+    (range : Std.Legacy.Range) (initial : Value)
+    (body : Nat → Value → TypeChecker.RecM (ForInStep Value))
+    (framed : ∀ {state : VState} index value,
+      (body index value).ScopeWF context state (fun _ _ => True)) :
+    (forIn range initial body).ScopeWF context state (fun _ _ => True) := by
+  rw [Std.Legacy.Range.forIn_eq_forIn_range']
+  exact forInList_scopeWF _ _ _ framed
+
 def NativeOptionalHeadScoped (locals : LocalContext) : Option Expr → Prop
   | none => True
   | some expression => NativeHeadScoped locals expression
