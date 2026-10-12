@@ -74,6 +74,13 @@ theorem TypeChecker.RecM.ScopeWF.mono {context : VContext} {state : VState}
 theorem TypeChecker.RecM.ScopeWF.throw {context : VContext} {state : VState} {error : Exception} {post} :
     (throw error : RecM Result).ScopeWF context state post := fun _ _ _ => M.WF.throw
 
+theorem TypeChecker.RecM.ScopeWF.of_rejects {context : VContext} {state : VState}
+    {action : RecM Result} {post : Result → VState → Prop}
+    (rejected : action.WF context state (fun _ _ => False)) :
+    action.ScopeWF context state post := by
+  intro methods valid caches
+  exact (rejected methods valid.base).mono fun _ _ _ impossible => impossible.elim
+
 theorem TypeChecker.RecM.ScopeWF.get {context : VContext} {state : VState}
     {continuation : State → RecM Result} {post}
     (valid : (continuation state.toState).ScopeWF context state post) :

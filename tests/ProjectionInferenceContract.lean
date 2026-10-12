@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.TypeChecker.InferType
+import Lean4Lean.Verify.TypeChecker.ScopedInferType
 import Lean.Util.CollectAxioms
 
 namespace ProjectionInferenceContractTest
@@ -11,6 +11,45 @@ private structure DependentPair where
   proof : value = value
 
 private def dependentValue : DependentPair := ⟨7, rfl⟩
+
+private def ignoredHeader : InductiveVal := {
+  name := `IgnoredProjectionHeader
+  levelParams := []
+  type := .sort (.succ .zero)
+  numParams := 0
+  numIndices := 0
+  numNested := 0
+  all := [`IgnoredProjectionHeader]
+  ctors := []
+  isRec := false
+  isReflexive := false
+  isUnsafe := true }
+
+private theorem ignoredInductiveSupported :
+    TrEnv' .safe (({} : ConstMap).insert ignoredHeader.name (.inductInfo ignoredHeader))
+      false VEnv.empty :=
+  .ignoreConst (C := {}) (ci := .inductInfo ignoredHeader)
+    (by simp [SMap.find?]) (by decide) .empty
+
+example : ({} : VEnv).constants ignoredHeader.name = none := rfl
+
+example (valid : TrEnv safety native environment)
+    (found : native.find? name = some (.inductInfo header)) : ¬environment.contains name :=
+  valid.inductiveNotInModel found
+
+example {context : VContext} {state : VState} {parent : Name} {index : Nat}
+    {source suppliedType : Expr} {semanticType : VExpr}
+    (translated : context.TrExprS suppliedType semanticType) :
+    (Inner.inferProj parent index source suppliedType).WF context state (fun _ _ => False) :=
+  Inner.inferProj.rejects translated
+
+example {context : VContext} {state : VState} {parent : Name} {index : Nat}
+    {source suppliedType : Expr} {semantic semanticType : VExpr}
+    (typed : context.TrTyping source suppliedType semantic semanticType) :
+    (Inner.inferProj parent index source suppliedType).ScopeWF context state
+      (fun inferred _ => ∃ projected resultType,
+        context.TrTyping (.proj parent index source) inferred projected resultType) :=
+  Inner.inferProj.scopeWF typed
 
 theorem projectionContract {context : VContext} {state : VState}
     {parent : Name} {index : Nat} {source suppliedType : Expr} {semantic semanticType : VExpr}
@@ -128,17 +167,34 @@ run_meta
   nativeControls
 
 run_meta
-  let admitted ← collectAxioms ``Inner.inferProj.WF
-  unless admitted.contains ``sorryAx do
-    throwError "projection admission baseline unexpectedly changed"
+  let environment ← getEnv
+  let baseline ← collectAxioms ``Inner.inferType'.WF
+  for theoremName in #[``TrEnv'.inductiveLookupRejected, ``TrEnv.inductiveLookupRejected,
+      ``TrEnv.inductiveNotInModel, ``Inner.inferProj.rejects, ``Inner.inferProj.WF,
+      ``Inner.inferProj.scopeWF, ``RecM.ScopeWF.of_rejects] do
+    let information ← getConstInfo theoremName
+    if information matches .axiomInfo _ then throwError "projection axiom {theoremName}"
+    let some proof := information.value? | throwError "projection proof absent {theoremName}"
+    if proof.hasSorry then throwError "projection proof admission {theoremName}"
+    let dependencies ← collectAxioms theoremName
+    for dependency in dependencies do
+      unless baseline.contains dependency do
+        throwError "unexpected projection dependency {dependency} in {theoremName}"
+  let some modelModule := environment.getModuleIdx? `Lean4Lean.Verify.Environment.Lemmas
+    | throwError "projection environment module absent"
+  for (theoremName, information) in environment.constants do
+    if environment.getModuleIdxFor? theoremName == some modelModule then
+      if information matches .axiomInfo _ then throwError "owned environment axiom {theoremName}"
+      if let some proof := information.value? then
+        if proof.hasSorry then throwError "owned environment admission {theoremName}"
   for theoremName in #[``projectionContract, ``projectionTypeAlignment] do
     let dependencies ← collectAxioms theoremName
     for dependency in dependencies do
-      unless admitted.contains dependency do
+      unless baseline.contains dependency do
         throwError "projection contract added dependency {dependency}"
   let scopeDependencies ← collectAxioms ``closedSourceCannotIntroduceLocal
   unless scopeDependencies.isEmpty do
     throwError "native dependency counterexample uses axioms: {repr scopeDependencies}"
-  logInfo m!"projection inference remains admitted: {repr admitted}; corrected contract adds no dependencies"
+  logInfo m!"projection inference is proved by rejection in the current TrEnv fragment; owned proof bodies have no admissions; inherited semantic/native baseline remains explicit: {repr baseline}"
 
 end ProjectionInferenceContractTest
