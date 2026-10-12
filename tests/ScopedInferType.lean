@@ -263,6 +263,13 @@ example {context : VContext} {state : VState} {environment : Kernel.Environment}
   Inner.nativeProjectionParameter.scopeWF environment source arguments index current translated
 
 example {context : VContext} {state : VState} {environment : Kernel.Environment}
+    {source initial : Expr} {arguments : Array Expr} {parameters : Nat}
+    (translations : ∀ (index : Nat) (current : Expr), ∃ semantic, context.TrExprS current semantic) :
+    (Inner.nativeProjectionParameters environment source arguments parameters initial).ScopeWF
+      context state (fun _ _ => True) :=
+  Inner.nativeProjectionParameters.scopeWF environment source arguments parameters initial translations
+
+example {context : VContext} {state : VState} {environment : Kernel.Environment}
     {source structureExpr current : Expr} {parent : Name} {propositional : Bool} {index : Nat}
     {semantic : VExpr} (translated : context.TrExprS current semantic) :
     (Inner.nativeProjectionField environment source parent structureExpr propositional index current).ScopeWF
