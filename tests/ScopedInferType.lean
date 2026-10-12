@@ -264,10 +264,91 @@ example {context : VContext} {state : VState} {environment : Kernel.Environment}
 
 example {context : VContext} {state : VState} {environment : Kernel.Environment}
     {source initial : Expr} {arguments : Array Expr} {parameters : Nat}
-    (translations : ∀ (index : Nat) (current : Expr), ∃ semantic, context.TrExprS current semantic) :
+    {semantic result : VExpr} {replacements : List Expr} {semantics : List VExpr}
+    (typed : ElimNestedInductive.TypedParameterArguments context.venv context.lparams context.mlctx
+      semantic replacements semantics result)
+    (translated : context.TrExpr initial semantic) (suffix : List Expr)
+    (aligned : arguments.toList = replacements ++ suffix) (count : replacements.length = parameters) :
     (Inner.nativeProjectionParameters environment source arguments parameters initial).ScopeWF
-      context state (fun _ _ => True) :=
-  Inner.nativeProjectionParameters.scopeWF environment source arguments parameters initial translations
+      context state (fun final _ => context.TrExpr final result) :=
+  Inner.nativeProjectionParameters.scopeWF environment source arguments parameters
+    typed translated suffix aligned count
+
+example {context : VContext} {state : VState} {environment : Kernel.Environment} {source : Expr} :
+    (Inner.nativeProjectionParameters environment source #[] 0 (.sort .zero)).ScopeWF
+      context state (fun final _ => context.TrExpr final (.sort .zero)) := by
+  have translated : context.TrExprS (.sort .zero) (.sort .zero) :=
+    .sort (by simp [VLevel.ofLevel])
+  exact Inner.nativeProjectionParameters.scopeWF environment source #[] 0
+    .nil (translated.trExpr context.Ewf context.Δwf) [] rfl rfl
+
+private theorem dependentParameterTranslation (context : VContext) :
+    context.TrExprS (.forallE `A (.sort (.succ .zero)) (.bvar 0) .default)
+      (.forallE (.sort (.succ .zero)) (.bvar 0)) :=
+  .forallE ⟨_, .sort (by trivial)⟩ ⟨_, .bvar .zero⟩
+    (.sort (by simp [VLevel.ofLevel])) (.bvar rfl)
+
+private theorem dependentParameterArguments (context : VContext) :
+    ElimNestedInductive.TypedParameterArguments context.venv context.lparams context.mlctx
+      (.forallE (.sort (.succ .zero)) (.bvar 0)) [.sort .zero] [.sort .zero] (.sort .zero) :=
+  .cons (.sort (by simp [VLevel.ofLevel])) (.sort (by trivial)) .nil
+
+private theorem twoDependentParameterTranslation (context : VContext) :
+    context.TrExprS
+      (.forallE `A (.sort (.succ (.succ .zero)))
+        (.forallE `a (.bvar 0) (.bvar 1) .default) .default)
+      (.forallE (.sort (.succ (.succ .zero))) (.forallE (.bvar 0) (.bvar 1))) :=
+  .forallE ⟨_, .sort (by trivial)⟩
+    ⟨_, .forallE (.bvar .zero) (.bvar (.succ .zero))⟩
+    (.sort (by simp [VLevel.ofLevel]))
+    (.forallE ⟨_, .bvar .zero⟩ ⟨_, .bvar (.succ .zero)⟩ (.bvar rfl) (.bvar rfl))
+
+private theorem twoDependentParameterArguments (context : VContext) :
+    ElimNestedInductive.TypedParameterArguments context.venv context.lparams context.mlctx
+      (.forallE (.sort (.succ (.succ .zero))) (.forallE (.bvar 0) (.bvar 1)))
+      [.sort (.succ .zero), .sort .zero] [.sort (.succ .zero), .sort .zero]
+      (.sort (.succ .zero)) :=
+  .cons (.sort (by simp [VLevel.ofLevel])) (.sort (by trivial))
+    (.cons (.sort (by simp [VLevel.ofLevel])) (.sort (by trivial)) .nil)
+
+example {context : VContext} {state : VState} {environment : Kernel.Environment} {source : Expr} :
+    (Inner.nativeProjectionParameters environment source #[.sort (.succ .zero), .sort .zero] 2
+      (.forallE `A (.sort (.succ (.succ .zero)))
+        (.forallE `a (.bvar 0) (.bvar 1) .default) .default)).ScopeWF context state
+          (fun final _ => context.TrExpr final (.sort (.succ .zero))) := by
+  exact Inner.nativeProjectionParameters.scopeWF environment source _ 2
+    (twoDependentParameterArguments context)
+    ((twoDependentParameterTranslation context).trExpr context.Ewf context.Δwf)
+    [] rfl rfl
+
+example {context : VContext} {state : VState} {environment : Kernel.Environment} {source : Expr} :
+    (Inner.nativeProjectionParameters environment source #[.sort .zero, .mvar ⟨`unused⟩] 1
+      (.forallE `A (.sort (.succ .zero)) (.bvar 0) .default)).ScopeWF context state
+        (fun final _ => context.TrExpr final (.sort .zero)) := by
+  exact Inner.nativeProjectionParameters.scopeWF environment source _ 1
+    (dependentParameterArguments context)
+    ((dependentParameterTranslation context).trExpr context.Ewf context.Δwf)
+    [.mvar ⟨`unused⟩] rfl rfl
+
+example {context : VContext} {state : VState} {environment : Kernel.Environment} {source : Expr} :
+    (forIn (List.range' 1 1) (.forallE `A (.sort (.succ .zero)) (.bvar 0) .default)
+      (Inner.nativeProjectionParameter environment source #[.mvar ⟨`skipped⟩, .sort .zero])).ScopeWF
+        context state (fun final _ => context.TrExpr final (.sort .zero)) := by
+  exact Inner.nativeProjectionParameters.loop_scopeWF environment source _
+    (dependentParameterArguments context)
+    ((dependentParameterTranslation context).trExpr context.Ewf context.Δwf)
+    [.mvar ⟨`skipped⟩] [] rfl
+
+example (context : VContext) (identifier : MVarId) :
+    ¬ ∃ semantic, context.TrExprS (.mvar identifier) semantic := by
+  rintro ⟨semantic, translated⟩
+  cases translated
+
+example (context : VContext) :
+    ¬ (∀ (_index : Nat) (current : Expr), ∃ semantic, context.TrExprS current semantic) := by
+  intro translations
+  obtain ⟨semantic, translated⟩ := translations 0 (.mvar ⟨`untranslated⟩)
+  cases translated
 
 example {context : VContext} {state : VState} {environment : Kernel.Environment}
     {source structureExpr current : Expr} {parent : Name} {propositional : Bool} {index : Nat}
@@ -287,6 +368,8 @@ run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.TypeChecker.ScopedInferType
     | throwError "scoped inference module absent"
+  let some normalizerModuleIndex := environment.getModuleIdx? `Lean4Lean.Verify.TypeChecker.ScopedWHNF
+    | throwError "scoped normalizer module absent"
   let inferenceBaseline ← collectAxioms ``Inner.inferLambda.WF
   let forallBaseline ← collectAxioms ``Inner.inferForall.WF
   let normalizerBaseline ← collectAxioms ``Inner.whnf'.WF
@@ -300,7 +383,8 @@ run_meta
   logInfo m!"existing semantic full-normalizer baseline: {repr normalizerBaseline}"
   let mut owned := 0
   for (name, information) in environment.constants do
-    if environment.getModuleIdxFor? name == some moduleIndex then
+    if environment.getModuleIdxFor? name == some moduleIndex ||
+        environment.getModuleIdxFor? name == some normalizerModuleIndex then
       if information matches .axiomInfo _ then
         throwError "owned scoped inference axiom {name}"
       let dependencies ← collectAxioms name
@@ -311,6 +395,6 @@ run_meta
           throwError "unexpected scoped inference dependency {dependency} in {name}"
       logInfo m!"{name}: {dependencies.size} inherited dependencies = {repr dependencies}"
       owned := owned + 1
-  logInfo m!"{owned} exhaustive owned scoped inference declarations audited against existing semantic lambda/forall/WHNF baselines and native scope foundations; inherited admissions remain explicitly visible; no owned axioms"
+  logInfo m!"{owned} exhaustive owned scoped inference/WHNF declarations audited against existing semantic lambda/forall/WHNF baselines and native scope foundations; inherited admissions remain explicitly visible; no owned axioms"
 
 end ScopedInferTypeTest
