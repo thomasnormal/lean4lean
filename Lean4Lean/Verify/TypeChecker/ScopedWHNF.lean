@@ -240,6 +240,25 @@ theorem TypeChecker.Methods.withFuel.zero_scopeWF : (withFuel 0).ScopeWF := by
   · constructor <;> intros <;> exact M.WF.throw
   all_goals intros; intro caches; exact M.WF.throw
 
+theorem TypeChecker.Inner.nativeProjectionFailure.scopeWF {context : VContext} {state : VState}
+    {resultType : Type}
+    (environment : Kernel.Environment) (source : Expr) :
+    (nativeProjectionFailure (resultType := resultType) environment source).ScopeWF context state
+      (fun _ _ => True) := by
+  unfold nativeProjectionFailure
+  exact RecM.ScopeWF.getLCtx RecM.ScopeWF.throw
+
+theorem TypeChecker.Inner.nativeProjectionParameter.scopeWF {context : VContext} {state : VState}
+    (environment : Kernel.Environment) (source : Expr) (arguments : Array Expr) (index : Nat)
+    (current : Expr) (translated : context.TrExprS current semantic) :
+    (nativeProjectionParameter environment source arguments index current).ScopeWF context state
+      (fun _ _ => True) := by
+  unfold nativeProjectionParameter
+  dsimp only [Bind.bind, ReaderT.bind]
+  refine (Inner.whnf.scopeWF translated).bind fun normalized _ _ _ => ?_
+  cases normalized <;> try exact nativeProjectionFailure.scopeWF environment source
+  exact RecM.ScopeWF.pure (result := ForInStep.yield _) trivial
+
 theorem TypeChecker.RecM.forInList_scopeWF {context : VContext} {state : VState}
     (elements : List Element) (initial : Value)
     (body : Element → Value → TypeChecker.RecM (ForInStep Value))

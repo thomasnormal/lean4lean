@@ -255,6 +255,13 @@ example {context : VContext} {state : VState} {expression : Expr} {semantic : VE
       (fun result _ => result → context.HasType semantic (.sort .zero)) :=
   Inner.isProp.scopeWF translated
 
+example {context : VContext} {state : VState} {environment : Kernel.Environment}
+    {source current : Expr} {arguments : Array Expr} {index : Nat} {semantic : VExpr}
+    (translated : context.TrExprS current semantic) :
+    (Inner.nativeProjectionParameter environment source arguments index current).ScopeWF
+      context state (fun _ _ => True) :=
+  Inner.nativeProjectionParameter.scopeWF environment source arguments index current translated
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.TypeChecker.ScopedInferType
