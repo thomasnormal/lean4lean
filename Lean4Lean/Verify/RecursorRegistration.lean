@@ -58,10 +58,12 @@ theorem declareRecursors.preservesValues (stats : InductiveStats) (indTypes : Ar
       have hbound : index < indTypes.size := by simpa using hindex
       apply stateBindWF
       intro rules nextState
-      refine stateExceptBindWF (Lean4Lean.checkName.WF env
+      refine stateExceptBindWF (Lean4Lean.checkName.WF henv
         (mkRecName indTypes[index].name) ctx.allowPrimitive) ?_
       rintro _ ⟨hfresh, _⟩
-      exact .pure ⟨_, rfl, NativeValueFrame.addConst henv hfresh rfl⟩
+      exact .pure ⟨_, rfl, NativeValueFrame.addConst henv
+        (by simpa only [Kernel.Environment.find?, henv.find?'_eq_find?, ConstantInfo.name,
+          ConstantInfo.toConstantVal] using hfresh) rfl⟩
   · intro result hresult
     exact hresult
 
