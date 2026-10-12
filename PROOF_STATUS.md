@@ -174,7 +174,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   extracting the translated forall domain and consuming `isProp.scopeWF`.
   `Inner.nativeProjectionFinal.scopeWF` handles the terminal forall-domain
   check with the same translated-domain guard. The remaining parameter/field
-  loops still need those translations at every intermediate state.
+  loops still need those translations at every intermediate state;
+  `Inner.nativeProjectionParameters.scopeWF` now packages the parameter loop
+  under exactly that explicit per-step translation family.
 - `VState.WF.next` advances all model cache/type invariants through the actual
   fresh-name generator transition, while `HeadScopeCacheWF.next` preserves
   scoped cache heads under the unchanged caches. `RecM.ScopeWF.withFreshId`
