@@ -357,9 +357,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   cache-preserving short circuit, lambda/forall dispatch, sort equivalence,
   metadata recursion, literal comparison, untranslated metavariable exclusion,
   and undefined fallback. The equivalence-manager update leaves scoped WHNF
-  caches unchanged. The dedicated fixture exhaustively audits 64 owned
+  caches unchanged. The dedicated fixture exhaustively audits 74 owned
   declarations for direct admissions/axioms against the existing semantic
-  lambda/forall/quick-comparison and native baselines. It also checks generic
+  lambda/forall/quick-comparison/normalization and native baselines. It also checks generic
   telescope, empty-substitution, quick-comparison, and three-valued contracts,
   rejecting loose substitution values and metavariable translations. Its 480
   cold/warm bidirectional lambda/forall controls retain exact fresh-name counts
@@ -367,9 +367,37 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   both hash modes. Domain aliases/mismatches, dependent/unused/nested binders,
   body mismatches, sorts/literals/metadata, poisoned caches, and zero-fuel
   boundaries are covered. These workers still require `Methods.ScopeWF`;
-  argument/eta/proof/lazy-delta workers,
+  argument/function-eta/proof/lazy-delta workers,
   the actual `isDefEqCore'` dispatcher, arbitrary-fuel scoped methods, and full
   frontend closure remain open.
+- `TrEnv'.constructorLookupRejected`, `TrEnv.constructorLookupRejected`, and
+  `TrEnv.constructorNotInModel` expose the constructor case of the existing
+  inductive-family exclusion, including satisfiable ignored unsafe records.
+  `VContext.constAppHeadInModel` shares the structural application-head transport.
+  `Inner.tryEtaStructCore.false_of_translation` shows that structure eta cannot
+  successfully return true for a translated constructor-side expression in the
+  current environment relation. `Inner.isDefEqUnitLike.false_of_translation`
+  transports the inferred and normalized first operand type to its application
+  head and excludes the required inductive lookup. Both original semantic `WF`
+  contracts are now proved, removing their two admissions without stronger caller
+  premises. The shared environment-lookup fact moves from `InferType` to `Reduce`
+  so both inference and comparison use the same primitive contract.
+  `tryEtaStructCore.scopeFalse`, `tryEtaStructCore.scopeWF`,
+  `tryEtaStruct.scopeWF`, `isDefEqUnitLike.scopeFalse`, and
+  `isDefEqUnitLike.scopeWF` frame the actual early-exit workers and preserve scoped
+  caches through the unit-like inference/normalization callbacks. The boundary
+  fixture exhaustively audits 334 owned environment/comparison declarations with
+  no direct admissions or axioms, and runs 64 actual cold/warm negative guards
+  alongside 64 positive host structure-eta/unit-like controls outside the current
+  `TrEnv` fragment. It checks unread metavariables, symmetric eta, zero-fuel pure
+  exits, and the poisoned-cache premise. The complete scoped-comparison audit now
+  includes the existing normalization baseline for the new normalized-type worker;
+  its inherited lookup assumptions are not new axioms. This does not prove
+  successful inductive structure eta or unit-like semantics: actual checked
+  inductive registration will invalidate the rejection argument and require the
+  genuine constructor/field transport. Remaining function-eta/argument/proof/
+  lazy-delta scoped workers, arbitrary-fuel methods, semantic WHNF completeness,
+  and the full frontend theorem remain open.
 - `Inner.inferType'.scopeWF` proves the actual recursive inference dispatcher in
   checking and infer-only modes under the existing scoped method callbacks.
   Its premises mirror `inferType'.WF`: free-variable membership and, only in
