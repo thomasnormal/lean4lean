@@ -184,6 +184,20 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   completed quotient initialization. The theorem is the base equality for
   the still-open instantiated quotient reduction proof; it does not by itself
   prove the callback's translated result.
+- `Theory.Typing.QuotReduction` proves `VEnv.quotLift_beta` at arbitrary
+  well-formed universe instances and local contexts by instantiating the
+  registered equation through its six binders. `VEnv.quotMk_hasType` derives
+  constructor typing from the registered constant; `VEnv.quotInd_beta` derives
+  proposition-valued induction reduction by typing both sides and applying
+  proof irrelevance. The constructor and induction proofs do not depend on
+  metatheory admissions or choice; lift retains the existing unique-typing
+  dependencies. `QuotientReductionSemantics` checks initialized verified
+  contexts, typed trailing application transport, exhaustive module-owned
+  proof/dependency audits, and actual cold/warm quotient helper and dispatch
+  controls. These semantic equations use canonically aligned parameters;
+  alignment of merely convertible constructor/eliminator parameters and the
+  complete `quotReduceRec.WF`/`reduceRecursor.WF` contract remain open. No caller
+  premise or statement of an existing theorem changes.
 - `TypeChecker.Inner.reduceProj.none_of_translation` proves that the actual
   projection reduction helper cannot return a field in the current `TrEnv`
   fragment. Both normalization choices and string-constructor expansion retain
