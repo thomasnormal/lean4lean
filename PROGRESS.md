@@ -10,8 +10,10 @@ Our fork has substantial additional checker verification, primitive proofs,
 inductive staging work, and regression coverage. It is **not a completed
 verification of Lean's kernel**, and it is **not uniformly ahead of official
 lean4lean**. Upstream has independently proved ordinary declaration checking
-and added newer substitution, primitive, and universe-level results that our
-branch has not integrated through Git ancestry.
+and added newer primitive and universe-level results that our branch has not
+fully integrated. Its admission-free simultaneous substitution proof is now
+narrowly ported here; that is useful foundation integration, not completion of
+the frontend's soundness proof or a full upstream rebase.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.
@@ -19,29 +21,28 @@ Actual checked inductive/model registration and recursor semantics remain open.
 Our executable also deliberately differs from upstream; this is not just a
 proof-only patch set.
 
-## Comparison snapshot
+## Progress scorecard
 
-The measurements below compare committed source snapshots, not the moving tips
-after later documentation or proof commits.
+Progress means extending an actual semantic guarantee, removing an admission
+from its dependency chain, or repairing a demonstrated correctness obstruction.
+More modules, commits, lines of code, and passing scaffolding tests do not by
+themselves satisfy any of these goals.
 
-| | Our fork | Official lean4lean |
-| --- | --- | --- |
-| Repository | `thomasnormal/lean4lean` | `digama0/lean4lean` |
-| Branch | `poc-verified-noninductive` | `master` |
-| Source snapshot | `c0f993057a1a6b35f1441dc3dd15749dba5ce5e8` | `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` |
-| Snapshot date | 2026-10-12 | 2026-10-10 |
-| Lean toolchain | `v4.29.0` | `v4.33.0-rc2` |
-| Commits since the common ancestor | 319 branch-only | 49 upstream-only |
-| Lean modules under `Lean4Lean/Verify/` | 265 | 36 |
-| Lean modules under `Lean4Lean/Theory/` | 27 | 21 |
-| Lean fixtures under `tests/` | 184 | 0 in this directory |
+| Goal | Our demonstrated result | Official snapshot | What still blocks completion |
+| --- | --- | --- | --- |
+| Preserve well-formedness through actual non-inductive declaration checking | **Conditional contract proved:** `addDecl.WF_noninductive`, including quotients, arbitrary fuel, batches, and empty-environment contracts. | Ordinary `addDecl.WF` cases are also proved, including quotients and mutual definitions. | Our theorem still inherits `sorryAx`; this is not unconditional kernel soundness. |
+| Remove inherited admissions from the frontend | **Not complete.** Dependency audits identify the remaining trust gaps. | Foundational admissions also remain. | Must close the actual metatheory/checker dependencies, not add another wrapper around them. |
+| Supply simultaneous substitution for arbitrary typing/equality derivations | **Proved API now available:** `55b7b4d` ports strong/weak cross-substitution and audits its dependencies as only `propext` and `Quot.sound`. | Already proved upstream in `6ba54db`/`8223d22`. | Foundation integration, not a newly solved upstream obligation; the frontend's inherited admissions remain. |
+| Verify actual checked inductive registration | **Not complete.** Header/constructor checks and staging invariants are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, and prelude translation. |
+| Complete confluence and semantic reduction correctness | **Partial progress:** `7682b23` removes the constant-case confluence admission; `c0f9930` repairs the incompatible quotient-equation premise. | Confluence and related semantic obligations remain open. | Application/extra confluence, injectivity/strengthening, genuine projection semantics, and `reduceRecursor.WF`. |
+| Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
+| Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Behavior on its newer toolchain has not been tested. | Do not generalize the finding to other Lean versions or claim it proves logical unsoundness. |
 
-Common ancestor: `8865b155abbf68d3a827fb3568bf6839780163c2`, dated 2026-07-06
-(`feat: dynamic fuel config`). The tip-to-tip diff spans 529 files. These are
-ancestry and source-size measures, **not counts of unique improvements or a
-proof-completion percentage**. For example, our `15b263d` frontend-theorem
-statement is patch-equivalent to an upstream commit. The fixture count also does
-not imply upstream has no tests or CI elsewhere.
+Comparison anchors: our `poc-verified-noninductive` source at
+`55b7b4dd061f580c88d8552315f350f866f0501f` (2026-10-12), and official
+`digama0/lean4lean` master at `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`
+(2026-10-10). Our toolchain is Lean `v4.29.0`; official uses `v4.33.0-rc2`.
+These pins make the claims reviewable without treating source volume as progress.
 
 ## Verification workstreams
 
@@ -55,7 +56,7 @@ the entire dependency stack.
 | Universe levels | Verified total level machinery and comparison path. | Upstream added newer standard-library normalization/comparison proofs and a SAT-hardness result. Our full syntactic agreement with its normalizer is regression-tested, not proved. |
 | Primitive checking and arithmetic | Many primitive-extension and arithmetic contracts, with native regression receipts. | Upstream has newer primitive-table/guard proofs and refactorings. Our four disabled native operations and well-founded primitive-validation gap remain unfinished. |
 | Inductive declarations | Source preflight, header/constructor checks, scope and registration-stage invariants, and primitive-inductive receipts. | Neither snapshot completes the constructive `AddInduct` model. Staging receipts do not prove actual checked inductive registration or translate the Lean prelude. |
-| Metatheory and reductions | Recent quotient beta/alignment work, a proved constant confluence case, and the actual closed quotient equation's guarded pattern certificate. | Full confluence, injectivity/strengthening, genuine projection semantics, and recursor soundness remain open. Upstream's newer strong simultaneous substitution proofs deserve review. |
+| Metatheory and reductions | Recent quotient beta/alignment work, a proved constant confluence case, the actual closed quotient equation's guarded pattern certificate, and a targeted port of upstream's strong simultaneous substitution proof. | Full confluence, injectivity/strengthening, genuine projection semantics, and recursor soundness remain open. The substitution API does not itself remove these admissions. |
 
 ### Recent concrete progress
 
@@ -72,25 +73,49 @@ the entire dependency stack.
   real six-lambda quotient equation. The new guarded certificate is proved;
   arbitrary quotient-pattern soundness and a concrete quotient `Params`
   instance are not established.
+- `55b7b4d`: ported upstream's simultaneous substitution proof, with strong and
+  weak cross-substitution, typed context substitutions, and binder/identity
+  support. All 34 owned theorem audits exclude inherited admissions; this does
+  not change the frontend's existing `sorryAx` dependency.
 
 ## What upstream has that we should review
 
-The 49 upstream-only commits are not merely maintenance. Particularly relevant:
+Upstream's changes include substantive proofs and correctness fixes, not merely
+maintenance. Particularly relevant:
 
 - `67f63b0` (2026-10-10): compare primitive types up to metadata.
 - `6ba54db` and `8223d22` (2026-08-29): strong simultaneous substitution
-  (`substDF`) and closure of substitution admissions.
+  (`substDF`) and closure of substitution admissions. The foundational API is
+  now ported; the newer primitive consumers still need review.
 - `ac1498a`, `c195b64`, and related commits (2026-08-29): primitive checking
   invariants, clauses, and the inductive guard.
 - `4b60e53` (2026-08-14): compute the K-target flag where the kernel does.
 - The August level-normalization soundness/completeness work, lazy-delta and
   projection improvements, and stage-2 replay/toolchain updates.
 
-These are candidates for targeted comparison and porting, not evidence that
-their changes are already present here. No merge, rebase, cherry-pick, or
+Except for the explicitly noted substitution port, these are candidates for
+targeted comparison, not evidence their changes are present here. No merge, rebase, cherry-pick, or
 toolchain upgrade was performed for this status review. Review overlapping
 proofs before duplicating them; a wholesale integration needs compatibility
 work because our checker and toolchain have diverged.
+
+### Daily synchronization
+
+The user requested a rebase on official upstream **daily** on 2026-10-12.
+Before the first verification item each UTC day, fetch `origin/master`, rebase
+on its current tip (or confirm it is already an ancestor), and record the
+upstream hash, conflict resolution, build, regression, and trust-audit results.
+Integration is a maintenance requirement, not a semantic milestone by itself.
+
+This branch is published, so a nontrivial rebase requires a history-rewriting
+push. Permission to use `--force-with-lease` is pending; the existing no-force
+rule remains in effect until the user answers. Do not describe the branch as
+rebased or synchronized until the rebase and publication have actually succeeded.
+
+Preparation on 2026-10-12 fetched the official snapshot above. A non-mutating
+tip-to-tip merge preview reports conflicts across core checker and proof files;
+it is not evidence of a completed rebase. Preserve both upstream correctness
+fixes and this fork's verified contracts when resolving the integration.
 
 ## Behavioral differences and findings
 
@@ -111,7 +136,8 @@ precise boundaries and reproducers.
 ## Validation and admission accounting
 
 At our source snapshot, the full default `lake build` passes **405 jobs**.
-Seven focused fixtures also pass without warnings: `QuotientPatternEquation`,
+Ten focused fixtures also pass without warnings: `StrongSubstitution`,
+`NativeInstantiation`, `Reflection`, `QuotientPatternEquation`,
 `ConfluenceConstantReduction`, `NonInductiveDeclarationFrontend`, `Environment`,
 `QuotientReductionAlignment`, `QuotientReductionSemantics`, and
 `PrimitiveInductiveReceipt`. These fixtures are run separately from the default
@@ -146,7 +172,7 @@ dependency is the more important signal.
 
 Update this document at meaningful checkpoints, alongside the detailed
 `PROOF_STATUS.md`: pin both source hashes and the review date, refresh the
-workstream boundaries, and record validation and dependency-audit changes.
+scorecard and workstream boundaries, and record validation and dependency-audit changes.
 Do not change a conditional or staging result to “complete” solely because
 the default build passes.
 
