@@ -890,3 +890,87 @@ theorem IsDefEq.instDF
       .trans (.appDF (.lamDF hA hf) ha) <|
       .defeqDF (.symm hi) (.beta hf.hasType.2 ha.hasType.2)
   H2 hf <| H2 hB (HasType.sort (hB.sort_r henv (Γ := _::_) ⟨hΓ, _, hA⟩))
+
+inductive Ctx.SubstEq (environment : VEnv) (universes : Nat) (targetContext : List VExpr) :
+    VExpr.Subst → VExpr.Subst → List VExpr → Prop where
+  | nil : Ctx.SubstEq environment universes targetContext leftSubstitution rightSubstitution []
+  | cons : Ctx.SubstEq environment universes targetContext leftSubstitution.tail rightSubstitution.tail sourceContext →
+    environment.HasType universes sourceContext domain (.sort domainLevel) →
+    environment.IsDefEq universes targetContext leftSubstitution.head rightSubstitution.head (domain.subst leftSubstitution.tail) →
+    Ctx.SubstEq environment universes targetContext leftSubstitution rightSubstitution (domain :: sourceContext)
+
+theorem Ctx.SubstEq.left (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution rightSubstitution sourceContext) : Ctx.SubstEq environment universes targetContext leftSubstitution leftSubstitution sourceContext := by
+  induction contextSubstitution with
+  | nil => exact .nil
+  | cons _ hA hhead ih => exact .cons ih hA hhead.hasType.1
+
+theorem Ctx.SubstEq.lookup (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution rightSubstitution sourceContext) :
+    Lookup sourceContext index domain → environment.IsDefEq universes targetContext (leftSubstitution index) (rightSubstitution index) (domain.subst leftSubstitution) := by
+  intro proof
+  induction contextSubstitution generalizing index domain with
+  | nil => nomatch proof
+  | cons tailSubstitution hA' hhead ih =>
+    cases proof with
+    | zero => rw [lift_subst]; exact hhead
+    | @succ remainingContext count ty codomain tailProof => rw [lift_subst]; exact ih tailProof
+
+variable! (henv : Ordered environment) in
+
+theorem Ctx.SubstEq.skip (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution rightSubstitution sourceContext) :
+    Ctx.SubstEq environment universes (codomain :: targetContext) (leftSubstitution.lift_r (.skip .refl)) (rightSubstitution.lift_r (.skip .refl)) sourceContext := by
+  induction contextSubstitution with
+  | nil => exact .nil
+  | @cons _ _ _ _ _ _ hA' hhead ih =>
+    refine .cons (Subst.lift_r_tail ▸ Subst.lift_r_tail ▸ ih) hA' ?_
+    rw [Subst.lift_r_tail]
+    have := hhead.weak' henv (Ctx.Lift'.skip (A := codomain) .refl)
+    rwa [lift'_subst] at this
+
+variable! (henv : Ordered environment) in
+
+theorem Ctx.SubstEq.lift (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution rightSubstitution sourceContext)
+    (hA : environment.HasType universes sourceContext domain (.sort domainLevel)) :
+    Ctx.SubstEq environment universes (domain.subst leftSubstitution :: targetContext) leftSubstitution.lift rightSubstitution.lift (domain :: sourceContext) := by
+  have htail : leftSubstitution.lift.tail = leftSubstitution.lift_r (.skip .refl) := by
+    funext index; simp [VExpr.Subst.tail, VExpr.Subst.lift, VExpr.Subst.lift_r, lift_eq_lift']
+  have htail' : rightSubstitution.lift.tail = rightSubstitution.lift_r (.skip .refl) := by
+    funext index; simp [VExpr.Subst.tail, VExpr.Subst.lift, VExpr.Subst.lift_r, lift_eq_lift']
+  refine .cons (htail ▸ htail' ▸ contextSubstitution.skip henv) hA ?_
+  show environment.IsDefEq universes (domain.subst leftSubstitution :: targetContext) _ _ (domain.subst leftSubstitution.lift.tail)
+  rw [htail, show domain.subst (leftSubstitution.lift_r (.skip .refl)) = (domain.subst leftSubstitution).lift' (.skip .refl) from
+    (lift'_subst (e := domain) (σ := leftSubstitution) (ρ := .skip .refl)).symm]
+  exact .bvar (lift_eq_lift' ▸ Lookup.zero)
+
+variable! (henv : Ordered environment) in
+
+theorem Ctx.SubstEq.lift_at (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution rightSubstitution sourceContext)
+    (hA : environment.HasType universes sourceContext domain (.sort domainLevel))
+    (hAX : environment.IsDefEq universes targetContext (domain.subst leftSubstitution) targetDomain (.sort domainLevel)) :
+    Ctx.SubstEq environment universes (targetDomain :: targetContext) leftSubstitution.lift rightSubstitution.lift (domain :: sourceContext) := by
+  have htail : leftSubstitution.lift.tail = leftSubstitution.lift_r (.skip .refl) := by
+    funext index; simp [VExpr.Subst.tail, VExpr.Subst.lift, VExpr.Subst.lift_r, lift_eq_lift']
+  have htail' : rightSubstitution.lift.tail = rightSubstitution.lift_r (.skip .refl) := by
+    funext index; simp [VExpr.Subst.tail, VExpr.Subst.lift, VExpr.Subst.lift_r, lift_eq_lift']
+  refine .cons (htail ▸ htail' ▸ contextSubstitution.skip henv) hA ?_
+  show environment.IsDefEq universes (targetDomain :: targetContext) _ _ (domain.subst leftSubstitution.lift.tail)
+  rw [htail, show domain.subst (leftSubstitution.lift_r (.skip .refl)) = (domain.subst leftSubstitution).lift' (.skip .refl) from
+    (lift'_subst (e := domain) (σ := leftSubstitution) (ρ := .skip .refl)).symm]
+  exact .defeqDF (hAX.symm.weak' henv (.skip .refl)) (.bvar (lift_eq_lift' ▸ Lookup.zero))
+
+theorem Ctx.SubstEq.wf (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution rightSubstitution sourceContext) : OnCtx sourceContext (environment.IsType universes) := by
+  induction contextSubstitution with
+  | nil => trivial
+  | cons _ hA _ ih => exact ⟨ih, _, hA⟩
+
+variable! (henv : Ordered environment) in
+
+theorem Ctx.SubstEq.id : ∀ {sourceContext}, OnCtx sourceContext (environment.IsType universes) → Ctx.SubstEq environment universes sourceContext .id .id sourceContext
+  | [], _ => .nil
+  | domain::sourceContext, ⟨hΓ, _, hA⟩ => by
+    refine .cons (by
+      have := (id hΓ).skip (codomain := domain) henv
+      rwa [show VExpr.Subst.id.lift_r (.skip .refl) = VExpr.Subst.id.tail from rfl] at this) hA ?_
+    rw [show domain.subst VExpr.Subst.id.tail = domain.lift from by
+      rw [show VExpr.Subst.id.tail = VExpr.Subst.id.lift_r (.skip .refl) from rfl,
+        ← lift'_subst, subst_id, ← lift_eq_lift']]
+    exact .bvar .zero

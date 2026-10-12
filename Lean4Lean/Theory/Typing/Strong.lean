@@ -937,3 +937,253 @@ theorem HasTypeStratified.isType (H : HasTypeStratified env U Γ e A b n) :
   | @sort' _ l _ _ _ h _ => exact ⟨_, .base (.sort' (l := l.succ) (l' := l.succ) h h rfl)⟩
   | @forallE _ _ u _ _ v h1 h2 =>
     exact ⟨_, .base (.sort' (l := .imax u v) (l' := .imax u v) ⟨h1, h2⟩ ⟨h1, h2⟩ rfl)⟩
+
+theorem IsDefEqStrong.substEq' (henv : Ordered environment)
+    (hΓ : CtxStrong environment universes sourceContext) (hΓ₀ : CtxStrong environment universes targetContext)
+    (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution rightSubstitution sourceContext) (equation : environment.IsDefEqStrong universes sourceContext e1 e2 domain) :
+    environment.IsDefEqStrong universes targetContext (e1.subst leftSubstitution) (e1.subst rightSubstitution) (domain.subst leftSubstitution) ∧
+    environment.IsDefEqStrong universes targetContext (e2.subst leftSubstitution) (e2.subst rightSubstitution) (domain.subst leftSubstitution) ∧
+    environment.IsDefEqStrong universes targetContext (e1.subst leftSubstitution) (e2.subst rightSubstitution) (domain.subst leftSubstitution) := by
+  induction equation generalizing targetContext leftSubstitution rightSubstitution with
+  | bvar proof _ _ =>
+    have variableEquation := (contextSubstitution.lookup proof).strong henv hΓ₀.defeq; exact ⟨variableEquation, variableEquation, variableEquation⟩
+  | sortDF hw hw' proof =>
+    have baseEquation : environment.IsDefEqStrong universes targetContext (.sort _) (.sort _) (.sort _) := .sortDF hw hw' proof
+    exact ⟨baseEquation.hasType.1, baseEquation.hasType.2, baseEquation⟩
+  | symm _ ih => let ⟨leftDiagonal, rightDiagonal, constantName⟩ := ih hΓ hΓ₀ contextSubstitution; exact ⟨rightDiagonal, leftDiagonal, (rightDiagonal.trans constantName.symm).trans leftDiagonal⟩
+  | trans _ _ ih1 ih2 =>
+    let ⟨l1, _, c1⟩ := ih1 hΓ hΓ₀ contextSubstitution
+    let ⟨l2, r2, c2⟩ := ih2 hΓ hΓ₀ contextSubstitution
+    exact ⟨l1, r2, c1.trans (l2.symm.trans c2)⟩
+  | defeqDF hu _ _ ih1 ih2 =>
+    have hty := (ih1 hΓ hΓ₀ contextSubstitution.left).2.2
+    let ⟨l2, r2, c2⟩ := ih2 hΓ hΓ₀ contextSubstitution
+    exact ⟨.defeqDF hu hty l2, .defeqDF hu hty r2, .defeqDF hu hty c2⟩
+  | proofIrrel _ _ _ ih1 ih2 ih3 =>
+    let ⟨ihp, _, _⟩ := ih1 hΓ hΓ₀ contextSubstitution
+    let ⟨ihh, _, _⟩ := ih2 hΓ hΓ₀ contextSubstitution
+    let ⟨ihh', _, _⟩ := ih3 hΓ hΓ₀ contextSubstitution
+    exact ⟨ihh, ihh', .proofIrrel ihp.hasType.1 ihh.hasType.1 ihh'.hasType.2⟩
+  | @constDF constantName ci ls ls' domainLevel _ h1 hWls hWls' hlen hFf hu hcty _ _ _ =>
+    have hcl : (VExpr.instL ls ci.type).ClosedN 0 := (henv.closedC h1).instL
+    rw [show (VExpr.instL ls ci.type).subst leftSubstitution = VExpr.instL ls ci.type from hcl.subst_eq .zero]
+    have baseEquation : environment.IsDefEqStrong universes targetContext (.const constantName ls) (.const constantName ls') (VExpr.instL ls ci.type) :=
+      .constDF h1 hWls hWls' hlen hFf hu hcty (hcty.weak0 henv)
+    exact ⟨baseEquation.hasType.1, baseEquation.hasType.2, baseEquation⟩
+  | @appDF sourceTail domain domainLevel codomain codomainLevel _ _ _ _ hu hv hA hB _ _ _ ihA ihB ihf iha ihBinst =>
+    have hA' := (ihA hΓ hΓ₀ contextSubstitution.left).1
+    have hΓ_A : CtxStrong environment universes (domain.subst leftSubstitution :: targetContext) := ⟨hΓ₀, _, hA'⟩
+    have hΓ_A_src : CtxStrong environment universes (domain :: sourceTail) := ⟨hΓ, _, hA⟩
+    have W_A : Ctx.SubstEq environment universes (domain.subst leftSubstitution :: targetContext) leftSubstitution.lift leftSubstitution.lift (domain :: sourceTail) :=
+      contextSubstitution.left.lift henv hA.defeq
+    have hB' := (ihB hΓ_A_src hΓ_A W_A).1
+    have ⟨ihf_l, ihf_r, ihf_c⟩ := ihf hΓ hΓ₀ contextSubstitution
+    have ⟨iha_l, iha_r, iha_c⟩ := iha hΓ hΓ₀ contextSubstitution
+    have ⟨_, _, iha_cleft⟩ := iha hΓ hΓ₀ contextSubstitution.left
+    have ih2_cons : ∀ {leftValue rightValue : VExpr}, environment.IsDefEqStrong universes targetContext leftValue rightValue (domain.subst leftSubstitution) →
+        environment.IsDefEqStrong universes targetContext ((codomain.subst leftSubstitution.lift).inst leftValue) ((codomain.subst leftSubstitution.lift).inst rightValue) (.sort codomainLevel) := by
+      intro leftValue rightValue hxy
+      have W_cons : Ctx.SubstEq environment universes targetContext (leftSubstitution.cons leftValue) (leftSubstitution.cons rightValue) (domain :: sourceTail) := by
+        refine .cons (by simpa using contextSubstitution.left) hA.defeq (by simpa using hxy.defeq)
+      have := (ihB hΓ_A_src hΓ₀ W_cons).1
+      rwa [← inst_lift_cons, ← inst_lift_cons] at this
+    refine subst_inst ▸ ⟨?_, .defeqDF hv (ih2_cons iha_cleft.symm) ?_, ?_⟩
+    · exact .appDF hu hv hA' hB' ihf_l iha_l (ih2_cons iha_l)
+    · exact .appDF hu hv hA' hB' ihf_r iha_r (ih2_cons iha_r)
+    · exact .appDF hu hv hA' hB' ihf_c iha_c (ih2_cons iha_c)
+  | @lamDF sourceTail domain otherDomain domainLevel codomain codomainLevel _ _ hu hv h1 _ _ _ _ ihA ihB ihB' ihbody ihbody' =>
+    let ⟨ihA_l, ihA_r, ihA_c⟩ := ihA hΓ hΓ₀ contextSubstitution
+    have hA_in_Γ := h1.hasType.1
+    have hA'_in_Γ := h1.hasType.2
+    have hA_subst := ihA_l.hasType.1
+    have hA_σ'_subst := ihA_l.hasType.2
+    have hA'_subst := ihA_r.hasType.1
+    have hA'_σ'_subst := ihA_r.hasType.2
+    have hΓ_A_subst : CtxStrong environment universes (domain.subst leftSubstitution :: targetContext) := ⟨hΓ₀, _, hA_subst⟩
+    have hΓ_A_σ'_subst : CtxStrong environment universes (domain.subst rightSubstitution :: targetContext) := ⟨hΓ₀, _, hA_σ'_subst⟩
+    have hΓ_A'_subst : CtxStrong environment universes (otherDomain.subst leftSubstitution :: targetContext) := ⟨hΓ₀, _, hA'_subst⟩
+    have hΓ_A'_σ'_subst : CtxStrong environment universes (otherDomain.subst rightSubstitution :: targetContext) := ⟨hΓ₀, _, hA'_σ'_subst⟩
+    have hΓ_A_src : CtxStrong environment universes (domain :: sourceTail) := ⟨hΓ, _, hA_in_Γ⟩
+    have hΓ_A'_src : CtxStrong environment universes (otherDomain :: sourceTail) := ⟨hΓ, _, hA'_in_Γ⟩
+    have hAA'_σ := (ihA hΓ hΓ₀ contextSubstitution.left).2.2
+    have W_A := contextSubstitution.lift henv hA_in_Γ.defeq
+    have W_A_σ' := contextSubstitution.lift_at henv hA_in_Γ.defeq ihA_l.defeq
+    have W_A' := contextSubstitution.lift henv hA'_in_Γ.defeq
+    have W_A'_σ' := contextSubstitution.lift_at henv hA'_in_Γ.defeq ihA_r.defeq
+    have W_A_to_A'rightSubstitution := contextSubstitution.lift_at henv hA_in_Γ.defeq ihA_c.defeq
+    have W_left_A'leftSubstitution := contextSubstitution.left.lift_at henv hA_in_Γ.defeq hAA'_σ.defeq
+
+    have B_Aσ := (ihB hΓ_A_src hΓ_A_subst W_A).1.hasType.1
+    have B_Aσ' := (ihB hΓ_A_src hΓ_A_σ'_subst W_A_σ').1.hasType.1
+    have B_A'leftSubstitution := (ihB hΓ_A_src hΓ_A'_subst W_left_A'leftSubstitution).1.hasType.1
+    have B_A'rightSubstitution := (ihB hΓ_A_src hΓ_A'_σ'_subst W_A_to_A'rightSubstitution).1.hasType.1
+
+    have body_Aσ := (ihbody hΓ_A_src hΓ_A_subst W_A).1
+    have body_Aσ' := (ihbody hΓ_A_src hΓ_A_σ'_subst W_A_σ').1
+    have body_cross_Aσ := (ihbody hΓ_A_src hΓ_A_subst W_A).2.2
+    have body_cross_A'rightSubstitution := (ihbody hΓ_A_src hΓ_A'_σ'_subst W_A_to_A'rightSubstitution).2.2
+    have body'_A'leftSubstitution := (ihbody' hΓ_A'_src hΓ_A'_subst W_A').2.1
+    have body'_A'rightSubstitution := (ihbody' hΓ_A'_src hΓ_A'_σ'_subst W_A'_σ').2.1
+    refine ⟨?_, .defeqDF (u := domainLevel.imax codomainLevel) ⟨hu, hv⟩
+      (.forallEDF hu hv hAA'_σ.symm B_A'leftSubstitution B_Aσ) ?_, ?_⟩
+    · exact .lamDF hu hv ihA_l B_Aσ B_Aσ' body_Aσ body_Aσ'
+    · exact .lamDF hu hv ihA_r B_A'leftSubstitution B_A'rightSubstitution body'_A'leftSubstitution body'_A'rightSubstitution
+    · exact .lamDF hu hv ihA_c B_Aσ B_A'rightSubstitution body_cross_Aσ body_cross_A'rightSubstitution
+  | @forallEDF sourceTail domain otherDomain domainLevel _ _ codomainLevel hu hv h1 _ _ ihA ihbody ihbody' =>
+    let ⟨ihA_l, ihA_r, ihA_c⟩ := ihA hΓ hΓ₀ contextSubstitution
+    have hA_in_Γ := h1.hasType.1
+    have hA'_in_Γ := h1.hasType.2
+    have hA_subst := ihA_l.hasType.1
+    have hA_σ'_subst := ihA_l.hasType.2
+    have hA'_subst := ihA_r.hasType.1
+    have hA'_σ'_subst := ihA_r.hasType.2
+    have hΓ_A_subst : CtxStrong environment universes (domain.subst leftSubstitution :: targetContext) := ⟨hΓ₀, _, hA_subst⟩
+    have hΓ_A_σ'_subst : CtxStrong environment universes (domain.subst rightSubstitution :: targetContext) := ⟨hΓ₀, _, hA_σ'_subst⟩
+    have hΓ_A'_subst : CtxStrong environment universes (otherDomain.subst leftSubstitution :: targetContext) := ⟨hΓ₀, _, hA'_subst⟩
+    have hΓ_A'_σ'_subst : CtxStrong environment universes (otherDomain.subst rightSubstitution :: targetContext) := ⟨hΓ₀, _, hA'_σ'_subst⟩
+    have hΓ_A_src : CtxStrong environment universes (domain :: sourceTail) := ⟨hΓ, _, hA_in_Γ⟩
+    have hΓ_A'_src : CtxStrong environment universes (otherDomain :: sourceTail) := ⟨hΓ, _, hA'_in_Γ⟩
+    have W_A := contextSubstitution.lift henv hA_in_Γ.defeq
+    have W_A_σ' := contextSubstitution.lift_at henv hA_in_Γ.defeq ihA_l.defeq
+    have W_A' := contextSubstitution.lift henv hA'_in_Γ.defeq
+    have W_A'_σ' := contextSubstitution.lift_at henv hA'_in_Γ.defeq ihA_r.defeq
+    have W_A_to_A'rightSubstitution := contextSubstitution.lift_at henv hA_in_Γ.defeq ihA_c.defeq
+    have body_Aσ := (ihbody hΓ_A_src hΓ_A_subst W_A).1
+    have body_Aσ' := (ihbody hΓ_A_src hΓ_A_σ'_subst W_A_σ').1
+    have body_cross_Aσ := (ihbody hΓ_A_src hΓ_A_subst W_A).2.2
+    have body_cross_A'rightSubstitution := (ihbody hΓ_A_src hΓ_A'_σ'_subst W_A_to_A'rightSubstitution).2.2
+    have body'_A'leftSubstitution := (ihbody' hΓ_A'_src hΓ_A'_subst W_A').2.1
+    have body'_A'rightSubstitution := (ihbody' hΓ_A'_src hΓ_A'_σ'_subst W_A'_σ').2.1
+    exact ⟨.forallEDF hu hv ihA_l body_Aσ body_Aσ',
+      .forallEDF hu hv ihA_r body'_A'leftSubstitution body'_A'rightSubstitution,
+      .forallEDF hu hv ihA_c body_cross_Aσ body_cross_A'rightSubstitution⟩
+  | @beta sourceTail domain domainLevel codomain codomainLevel expression argument hu hv hA _ _ _ _ _ ihA ihB ihe ihe' _ iheinst =>
+    have hA'leftSubstitution := (ihA hΓ hΓ₀ contextSubstitution.left).1
+    have hΓ_A_src : CtxStrong environment universes (domain :: sourceTail) := ⟨hΓ, _, hA⟩
+    have hΓ_A_subst : CtxStrong environment universes (domain.subst leftSubstitution :: targetContext) := ⟨hΓ₀, _, hA'leftSubstitution⟩
+    have hA_σ'_subst := (ihA hΓ hΓ₀ contextSubstitution).1.hasType.2
+    have hΓ_A_σ'_subst : CtxStrong environment universes (domain.subst rightSubstitution :: targetContext) := ⟨hΓ₀, _, hA_σ'_subst⟩
+    have W_A_left := contextSubstitution.left.lift henv hA.defeq
+    have W_A := contextSubstitution.lift henv hA.defeq
+    have W_A_σ' := contextSubstitution.lift_at henv hA.defeq (ihA hΓ hΓ₀ contextSubstitution).1.defeq
+    have hBσ := (ihB hΓ_A_src hΓ_A_subst W_A_left).1
+    have heσ := (ihe hΓ_A_src hΓ_A_subst W_A_left).1
+    have he'leftSubstitution := (ihe' hΓ hΓ₀ contextSubstitution.left).1
+
+    have ih2_cons : ∀ {leftValue rightValue : VExpr}, environment.IsDefEqStrong universes targetContext leftValue rightValue (domain.subst leftSubstitution) →
+        environment.IsDefEqStrong universes targetContext ((codomain.subst leftSubstitution.lift).inst leftValue) ((codomain.subst leftSubstitution.lift).inst rightValue) (.sort codomainLevel) := by
+      intro leftValue rightValue hxy
+      have W_cons : Ctx.SubstEq environment universes targetContext (leftSubstitution.cons leftValue) (leftSubstitution.cons rightValue) (domain :: sourceTail) := by
+        refine .cons (by simpa using contextSubstitution.left) hA.defeq (by simpa using hxy.defeq)
+      have := (ihB hΓ_A_src hΓ₀ W_cons).1
+      rwa [← inst_lift_cons, ← inst_lift_cons] at this
+
+    have H_σ : environment.IsDefEqStrong universes targetContext ((VExpr.app (VExpr.lam domain expression) argument).subst leftSubstitution)
+        ((expression.inst argument).subst leftSubstitution) ((codomain.inst argument).subst leftSubstitution) := by
+      show environment.IsDefEqStrong universes targetContext
+        (VExpr.app (VExpr.lam (domain.subst leftSubstitution) (expression.subst leftSubstitution.lift)) (argument.subst leftSubstitution)) _ _
+      rw [show ((expression.inst argument).subst leftSubstitution) = (expression.subst leftSubstitution.lift).inst (argument.subst leftSubstitution) from subst_inst,
+          show ((codomain.inst argument).subst leftSubstitution) = (codomain.subst leftSubstitution.lift).inst (argument.subst leftSubstitution) from subst_inst]
+      exact .beta hu hv hA'leftSubstitution hBσ heσ he'leftSubstitution (ih2_cons he'leftSubstitution)
+        (subst_inst ▸ subst_inst ▸ (iheinst hΓ hΓ₀ contextSubstitution.left).1)
+    have rightEquation := (iheinst hΓ hΓ₀ contextSubstitution).1
+
+    have B_Aσ := (ihB hΓ_A_src hΓ_A_subst W_A).1.hasType.1
+    have B_Aσ' := (ihB hΓ_A_src hΓ_A_σ'_subst W_A_σ').1.hasType.1
+    have e_Aσ := (ihe hΓ_A_src hΓ_A_subst W_A).1
+    have e_Aσ' := (ihe hΓ_A_src hΓ_A_σ'_subst W_A_σ').1
+    have ⟨iha_l, _, _⟩ := ihA hΓ hΓ₀ contextSubstitution
+    have ⟨ihe'_l, _, _⟩ := ihe' hΓ hΓ₀ contextSubstitution
+    have leftEquation : environment.IsDefEqStrong universes targetContext ((VExpr.app (VExpr.lam domain expression) argument).subst leftSubstitution)
+        ((VExpr.app (VExpr.lam domain expression) argument).subst rightSubstitution) ((codomain.inst argument).subst leftSubstitution) := by
+      show environment.IsDefEqStrong universes targetContext
+        (VExpr.app (VExpr.lam (domain.subst leftSubstitution) (expression.subst leftSubstitution.lift)) (argument.subst leftSubstitution)) _ _
+      rw [show ((codomain.inst argument).subst leftSubstitution) = (codomain.subst leftSubstitution.lift).inst (argument.subst leftSubstitution) from subst_inst]
+      exact .appDF hu hv hA'leftSubstitution hBσ (.lamDF hu hv iha_l B_Aσ B_Aσ' e_Aσ e_Aσ') ihe'_l
+        (ih2_cons ihe'_l)
+    exact ⟨leftEquation, rightEquation, H_σ.trans rightEquation⟩
+  | @eta sourceTail domain domainLevel codomain codomainLevel expression hu hv hA hB _ he _ _ ihA ihB _ ihe _ _ =>
+
+    have h_lam_eq : ∀ substitution : VExpr.Subst,
+        (VExpr.lam domain (.app expression.lift (.bvar 0))).subst substitution =
+          .lam (domain.subst substitution) (.app (expression.subst substitution).lift (.bvar 0)) := by
+      intro substitution
+      show VExpr.lam (domain.subst substitution) (.app (expression.lift.subst substitution.lift) ((VExpr.bvar 0).subst substitution.lift)) = _
+      rw [lift_subst_lift]; rfl
+    have hΓ_A_src : CtxStrong environment universes (domain :: sourceTail) := ⟨hΓ, _, hA⟩
+    have iha_l := (ihA hΓ hΓ₀ contextSubstitution).1
+
+    have hA_σ := (ihA hΓ hΓ₀ contextSubstitution).1.hasType.1
+    have hΓ_A_subst : CtxStrong environment universes (domain.subst leftSubstitution :: targetContext) := ⟨hΓ₀, _, hA_σ⟩
+    have W_A_σ := contextSubstitution.left.lift henv hA.defeq
+    have W_A_cross := contextSubstitution.lift henv hA.defeq
+    have hB_σ := (ihB hΓ_A_src hΓ_A_subst W_A_σ).1.hasType.1
+    have he_σ := (ihe hΓ hΓ₀ contextSubstitution).1.hasType.1
+    have H_σ : environment.IsDefEqStrong universes targetContext
+        ((VExpr.lam domain (.app expression.lift (.bvar 0))).subst leftSubstitution) (expression.subst leftSubstitution) ((domain.forallE codomain).subst leftSubstitution) :=
+      (h_lam_eq leftSubstitution) ▸ .eta hu hv hA_σ hB_σ (hB_σ.weakN henv (.succ .one))
+        he_σ (he_σ.weakN henv .one) (hA_σ.weakN henv .one)
+    have rightEquation := (ihe hΓ hΓ₀ contextSubstitution).1
+
+    have hA_σ' := iha_l.hasType.2
+    have hΓ_A_σ'_subst : CtxStrong environment universes (domain.subst rightSubstitution :: targetContext) := ⟨hΓ₀, _, hA_σ'⟩
+    have W_A_σ' := contextSubstitution.lift_at henv hA.defeq iha_l.defeq
+    have hB_cross_Aσ := (ihB hΓ_A_src hΓ_A_subst W_A_cross).2.2
+    have hB_cross_Aσ' := (ihB hΓ_A_src hΓ_A_σ'_subst W_A_σ').2.2
+    have hB_σ' := (ihB hΓ_A_src hΓ_A_σ'_subst W_A_σ').1.hasType.2
+
+    have hTeq := IsDefEqStrong.forallEDF hu hv iha_l hB_cross_Aσ hB_cross_Aσ'
+    have he_σ' := IsDefEqStrong.defeqDF (u := domainLevel.imax codomainLevel) ⟨hu, hv⟩ hTeq (ihe hΓ hΓ₀ contextSubstitution).1.hasType.2
+    have H_σ' : environment.IsDefEqStrong universes targetContext
+        ((VExpr.lam domain (.app expression.lift (.bvar 0))).subst rightSubstitution) (expression.subst rightSubstitution) ((domain.forallE codomain).subst rightSubstitution) :=
+      (h_lam_eq rightSubstitution) ▸ .eta hu hv hA_σ' hB_σ' (hB_σ'.weakN henv (.succ .one))
+        he_σ' (he_σ'.weakN henv .one) (hA_σ'.weakN henv .one)
+    exact ⟨H_σ.trans (rightEquation.trans
+        (IsDefEqStrong.defeqDF (u := domainLevel.imax codomainLevel) ⟨hu, hv⟩ hTeq.symm H_σ'.symm)),
+      rightEquation, H_σ.trans rightEquation⟩
+  | @extra df ls domainLevel _ h1 hWls hlen hu htype hlhs hrhs _ _ _ _ _ _ _ =>
+    have et : ∀ substitution, (VExpr.instL ls df.type).subst substitution = VExpr.instL ls df.type :=
+      fun _ => (htype.defeq.closedN henv ⟨⟩).subst_eq .zero
+    have el : ∀ substitution, (VExpr.instL ls df.lhs).subst substitution = VExpr.instL ls df.lhs :=
+      fun _ => (hlhs.defeq.closedN henv ⟨⟩).subst_eq .zero
+    have er : ∀ substitution, (VExpr.instL ls df.rhs).subst substitution = VExpr.instL ls df.rhs :=
+      fun _ => (hrhs.defeq.closedN henv ⟨⟩).subst_eq .zero
+    simp only [et, el, er]
+    have baseEquation : environment.IsDefEqStrong universes targetContext (VExpr.instL ls df.lhs) (VExpr.instL ls df.rhs)
+        (VExpr.instL ls df.type) :=
+      .extra h1 hWls hlen hu htype hlhs hrhs (hlhs.weak0 henv) (hrhs.weak0 henv)
+    exact ⟨baseEquation.hasType.1, baseEquation.hasType.2, baseEquation⟩
+
+theorem IsDefEqStrong.subst (henv : Ordered environment)
+    (hΓ : CtxStrong environment universes sourceContext) (hΓ₀ : CtxStrong environment universes targetContext)
+    (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution rightSubstitution sourceContext) (equation : environment.IsDefEqStrong universes sourceContext e1 e2 domain) :
+    environment.IsDefEqStrong universes targetContext (e1.subst leftSubstitution) (e2.subst rightSubstitution) (domain.subst leftSubstitution) :=
+  (equation.substEq' henv hΓ hΓ₀ contextSubstitution).2.2
+
+theorem IsDefEq.substDF (henv : Ordered environment)
+    (hΓ : OnCtx sourceContext (environment.IsType universes)) (hΓ₀ : OnCtx targetContext (environment.IsType universes))
+    (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution rightSubstitution sourceContext) (equation : environment.IsDefEq universes sourceContext e1 e2 domain) :
+    environment.IsDefEq universes targetContext (e1.subst leftSubstitution) (e2.subst rightSubstitution) (domain.subst leftSubstitution) :=
+  ((equation.strong henv hΓ).subst henv (.strong henv hΓ) (.strong henv hΓ₀) contextSubstitution).defeq
+
+variable! (henv : Ordered environment) in
+theorem IsDefEq.subst (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution leftSubstitution sourceContext)
+    (equation : environment.IsDefEq universes sourceContext e1 e2 domain) (hΓ₀ : OnCtx targetContext (environment.IsType universes) := by trivial) :
+    environment.IsDefEq universes targetContext (e1.subst leftSubstitution) (e2.subst leftSubstitution) (domain.subst leftSubstitution) := equation.substDF henv contextSubstitution.wf hΓ₀ contextSubstitution
+
+variable! (henv : Ordered environment) in
+theorem HasType.subst (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution leftSubstitution sourceContext)
+    (equation : environment.HasType universes sourceContext expression domain) (hΓ₀ : OnCtx targetContext (environment.IsType universes) := by trivial) :
+    environment.HasType universes targetContext (expression.subst leftSubstitution) (domain.subst leftSubstitution) := equation.substDF henv contextSubstitution.wf hΓ₀ contextSubstitution
+
+variable! (henv : Ordered environment) in
+theorem IsDefEqU.subst (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution leftSubstitution sourceContext)
+    (equation : environment.IsDefEqU universes sourceContext e1 e2) (hΓ₀ : OnCtx targetContext (environment.IsType universes) := by trivial) :
+    environment.IsDefEqU universes targetContext (e1.subst leftSubstitution) (e2.subst leftSubstitution) :=
+  let ⟨_, proof⟩ := equation; ⟨_, proof.substDF henv contextSubstitution.wf hΓ₀ contextSubstitution⟩
+
+variable! (henv : Ordered environment) in
+theorem IsType.subst (contextSubstitution : Ctx.SubstEq environment universes targetContext leftSubstitution leftSubstitution sourceContext)
+    (equation : environment.IsType universes sourceContext domain) (hΓ₀ : OnCtx targetContext (environment.IsType universes) := by trivial) :
+    environment.IsType universes targetContext (domain.subst leftSubstitution) :=
+  let ⟨_, proof⟩ := equation; ⟨_, proof.substDF henv contextSubstitution.wf hΓ₀ contextSubstitution⟩

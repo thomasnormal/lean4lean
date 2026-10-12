@@ -793,3 +793,67 @@ theorem lift_r_one (e : VExpr) (ρ : Lift) :
 theorem lift'_inst_hi (e1 e2 : VExpr) (ρ : Lift) :
     lift' (e1.inst e2) ρ = (lift' e1 ρ.cons).inst (lift' e2 ρ) := by
   simp [subst_lift', lift'_subst, lift_r_one, inst_eq]
+
+@[simp] theorem subst_bvar (index) (leftSubstitution : Subst) : (VExpr.bvar index).subst leftSubstitution = leftSubstitution index := rfl
+@[simp] theorem subst_sort (domainLevel) (leftSubstitution : Subst) : (VExpr.sort domainLevel).subst leftSubstitution = .sort domainLevel := rfl
+@[simp] theorem subst_const (constantName us) (leftSubstitution : Subst) : (VExpr.const constantName us).subst leftSubstitution = .const constantName us := rfl
+@[simp] theorem subst_app (e1 e2 : VExpr) (leftSubstitution : Subst) :
+    (e1.app e2).subst leftSubstitution = (e1.subst leftSubstitution).app (e2.subst leftSubstitution) := rfl
+
+def Subst.comp (leftSubstitution rightSubstitution : Subst) : Subst := fun leftValue => (leftSubstitution leftValue).subst rightSubstitution
+
+theorem Subst.comp_lift {leftSubstitution rightSubstitution : Subst} : (leftSubstitution.comp rightSubstitution).lift = leftSubstitution.lift.comp rightSubstitution.lift := by
+  funext index; cases index <;> simp! [comp, Subst.lift]
+  rw [lift_eq_lift', lift_eq_lift', lift'_subst, subst_lift']
+  congr 1; funext index; simp [Subst.lift_r, Subst.lift_l, Subst.lift, lift_eq_lift']
+
+theorem subst_subst {expression : VExpr} : (expression.subst leftSubstitution).subst rightSubstitution = subst expression (.comp leftSubstitution rightSubstitution) := by
+  induction expression generalizing leftSubstitution rightSubstitution <;> simp! [*, Subst.comp, Subst.comp_lift]
+
+@[simp] theorem Subst.cons_head (leftSubstitution : Subst) (expression) : (leftSubstitution.cons expression).head = expression := rfl
+@[simp] theorem Subst.cons_tail (leftSubstitution : Subst) (expression) : (leftSubstitution.cons expression).tail = leftSubstitution := rfl
+
+@[simp] theorem Subst.lift_l_refl {leftSubstitution : Subst} : Subst.lift_l .refl leftSubstitution = leftSubstitution := rfl
+@[simp] theorem Subst.lift_l_skip {liftMap : Lift} {leftSubstitution : Subst} :
+    Subst.lift_l (.skip liftMap) leftSubstitution = Subst.lift_l liftMap leftSubstitution.tail := rfl
+
+@[simp] theorem lift_subst {expression : VExpr} {leftSubstitution : Subst} : expression.lift.subst leftSubstitution = expression.subst leftSubstitution.tail := by
+  rw [lift_eq_lift', subst_lift']; rfl
+
+theorem Subst.tail_eq_lift_l {leftSubstitution : Subst} : leftSubstitution.tail = leftSubstitution.lift_l Lift.refl.skip := rfl
+
+theorem Subst.lift_r_tail {leftSubstitution : Subst} {liftMap : Lift} :
+    (leftSubstitution.lift_r liftMap).tail = leftSubstitution.tail.lift_r liftMap := by funext index; rfl
+
+def Subst.Fixes (leftSubstitution : Subst) (count : Nat) := ∀ index < count, leftSubstitution index = .bvar index
+
+theorem Subst.Fixes.zero : Fixes leftSubstitution 0 := nofun
+
+theorem Subst.Fixes.lift {leftSubstitution : Subst} (equation : leftSubstitution.Fixes count) : leftSubstitution.lift.Fixes (count + 1) := fun
+  | 0, _ => rfl
+  | count+1, proof => by simp [Subst.lift, equation _ (Nat.lt_of_succ_lt_succ proof), VExpr.lift, VExpr.liftN]
+
+theorem ClosedN.subst_eq {expression : VExpr} (self : ClosedN expression cutoff) (proof : leftSubstitution.Fixes cutoff) : expression.subst leftSubstitution = expression := by
+  induction expression generalizing cutoff leftSubstitution with (simp [ClosedN] at self; simp [*, VExpr.subst])
+  | bvar index => exact proof _ self
+  | app _ _ ih1 ih2 => exact ⟨ih1 self.1 proof, ih2 self.2 proof⟩
+  | lam _ _ ih1 ih2 | forallE _ _ ih1 ih2 => exact ⟨ih1 self.1 proof, ih2 self.2 proof.lift⟩
+
+theorem lift_subst_cons {expression : VExpr} : expression.lift.subst (leftSubstitution.cons value) = expression.subst leftSubstitution := by
+  rw [lift_subst, Subst.cons_tail]
+
+theorem lift_subst_lift {expression : VExpr} {leftSubstitution : Subst} : expression.lift.subst leftSubstitution.lift = (expression.subst leftSubstitution).lift := by
+  rw [lift_eq_lift', subst_lift', lift_eq_lift', lift'_subst]
+  congr 1; funext leftValue
+  simp [Subst.lift_l, Subst.lift_r, Subst.lift, lift_eq_lift']
+
+theorem subst_inst {expression : VExpr} : (expression.inst argumentValue).subst leftSubstitution = (expression.subst leftSubstitution.lift).inst (argumentValue.subst leftSubstitution) := by
+  rw [inst_eq, inst_eq, subst_subst, subst_subst]; congr 1
+  funext index; obtain _|index := index <;> simp [Subst.comp, Subst.lift]
+  · simp [Subst.one, Subst.cons]
+  · simp [Subst.one, Subst.cons, Subst.id]
+
+theorem inst_lift_cons {expression : VExpr} {leftSubstitution : Subst} :
+    (expression.subst leftSubstitution.lift).inst leftValue = expression.subst (leftSubstitution.cons leftValue) := by
+  rw [inst_eq, subst_subst, Subst.one]; congr 1
+  funext index; obtain _|index := index <;> simp [Subst.comp, Subst.lift, Subst.cons]
