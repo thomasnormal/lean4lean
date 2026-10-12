@@ -410,9 +410,9 @@ theorem inferLet.WF
   exact fun P hP he => ⟨(AllAbove.wf wf.trctx.wf.fvwf).2 hP, he.mono fun _ h _ => h, fun _ => id⟩
 
 theorem inferProj.WF
-    (he : c.TrExprS e e') (hty : c.TrExprS ety ety') (hasty : c.HasType e' ty') :
+    (typed : c.TrTyping e ety e' ety') :
     (inferProj st i e ety).WF c s fun ty _ =>
-      ∃ ty', c.TrTyping (.proj st i e) ty e' ty' := sorry
+      ∃ projected ty', c.TrTyping (.proj st i e) ty projected ty' := sorry
 
 theorem literal_is_primitive (H : n = ``Nat ∨ n = ``Char.ofNat ∨ n = ``String.ofList)  :
     Environment.primitives.contains n := by
@@ -481,7 +481,7 @@ theorem inferType'.WF
     exact hF ⟨hb, .mdata h1, h⟩
   · refine (inferType'.WF (by exact h1) ?_).bind fun _ _ _ ⟨_, _, hb, h1, h2, h3⟩ => ?_
     · exact fun h => let ⟨_, .proj h ..⟩ := hinf h; ⟨_, h⟩
-    exact (inferProj.WF h1 h2 h3).bind fun ty _ _ ⟨ty', h⟩ => hF h
+    exact (inferProj.WF ⟨hb, h1, h2, h3⟩).bind fun ty _ _ ⟨projected, ty', h⟩ => hF h
   · exact .readThe <| (M.WF.liftExcept inferFVar.WF).lift.bind fun _ _ _ ⟨_, _, h⟩ => hF h
   · exact .throw
   · rename_i h _; simp [Expr.hasLooseBVars, Expr.looseBVarRange'] at h

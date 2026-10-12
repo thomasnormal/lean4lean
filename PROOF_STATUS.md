@@ -280,6 +280,25 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   The next projection step therefore needs a semantic constructor-header
   transport (or an independently proved native cache-scope theorem), not a
   wrapper around the existing admission.
+- The admitted `inferProj.WF` contract now consumes the full `TrTyping` certificate
+  for the structure and supplied native type, including semantic type alignment
+  and native free-variable dependency preservation. It existentially returns
+  the projected semantic value rather than reusing the structure value. The
+  dispatcher supplies its complete inferred certificate and consumes both
+  returned witnesses. The old premises left the supplied type unrelated to the
+  structure's type and free-variable dependencies, and its postcondition assigned
+  the field's type to the structure itself. The dedicated
+  projection-contract fixture exercises ordinary, dependent, and Prop fields
+  with distinct source/result types, plus a trusted-worker type mismatch that
+  the full checker and native kernel reject. A definitionally equal local type
+  alias demonstrates why semantic alignment alone cannot establish native
+  dependency preservation; an axiom-free theorem rejects introducing a local
+  variable from a closed source. Compile-time controls reject both
+  the old semantic-value postcondition and unaligned typing premises. This
+  corrects the verification target; it does not prove projection inference or
+  remove its existing admission. The `TrProj` specification itself
+  (`Verify/Typing/Expr.lean:67`) and its semantic transports remain admitted;
+  those rules still need a justified projection expansion.
 - `Inner.addEquiv.scopeWF`, `Inner.isDefEqCore.scopeWF`, and
   `Inner.isDefEq.scopeWF` preserve the scoped WHNF caches through equivalence-
   manager updates and transport successful comparison results to the semantic
