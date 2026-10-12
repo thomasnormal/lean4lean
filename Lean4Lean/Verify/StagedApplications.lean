@@ -43,7 +43,8 @@ theorem RunWF.bind {context : RestrictedContext safety env venv}
     cases success
   | ok middle =>
     obtain ⟨middleValid, middlePost⟩ := firstWF initial initialValid middle firstSuccess
-    exact nextWF middle.1 middlePost middle.2 middleValid returned (by simpa [firstSuccess] using success)
+    exact nextWF middle.1 middlePost middle.2 middleValid returned
+      (by simpa only [firstSuccess, Except.bind] using success)
 
 theorem RunWF.mono {context : RestrictedContext safety env venv}
     {methods : Methods}
