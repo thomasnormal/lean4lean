@@ -367,7 +367,6 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   both hash modes. Domain aliases/mismatches, dependent/unused/nested binders,
   body mismatches, sorts/literals/metadata, poisoned caches, and zero-fuel
   boundaries are covered. These workers still require `Methods.ScopeWF`;
-  lazy-delta/string-expansion workers,
   the actual `isDefEqCore'` dispatcher, arbitrary-fuel scoped methods, and full
   frontend closure remain open.
 - `TrEnv'.constructorLookupRejected`, `TrEnv.constructorLookupRejected`, and
@@ -395,8 +394,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   its inherited lookup assumptions are not new axioms. This does not prove
   successful inductive structure eta or unit-like semantics: actual checked
   inductive registration will invalidate the rejection argument and require the
-  genuine constructor/field transport. Remaining lazy-delta/string-expansion
-  scoped workers, arbitrary-fuel methods, semantic WHNF completeness,
+  genuine constructor/field transport. The actual comparison dispatcher,
+  arbitrary-fuel scoped methods, semantic WHNF completeness,
   and the full frontend theorem remain open.
 - `Inner.inferType.scopeWF_of_translation` aligns the scoped inference result
   with the caller's existing semantic expression through translation uniqueness,
@@ -420,9 +419,40 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   argument controls intentionally return true for unequal heads to keep that
   theorem premise explicit; they are not checker discrepancies. These are
   worker contracts under the existing `Methods.ScopeWF`, not an arbitrary-fuel
-  method instance. Lazy-delta/string-expansion frames, the actual `isDefEqCore'`
+  method instance. The actual `isDefEqCore'`
   dispatcher, arbitrary-fuel scoped methods, semantic WHNF completeness, and
   unrestricted frontend closure remain open.
+- `Verify.TypeChecker.ScopedDelta` closes the remaining lazy-delta and string
+  worker frames under the existing scoped callbacks. `M.ScopeWF.lift` frames an
+  actual nonrecursive monadic action; `Inner.cacheFailure.scopeWF` updates the
+  failure set without changing either scoped WHNF cache. The projection-app
+  guard and Nat reducer retain their original optional-result semantic contracts.
+  `Inner.lazyDeltaReductionStep.scopeWF` covers unknown/continuing/Boolean
+  results, reduction-hint ordering, projection fallback, regular same-head
+  argument comparison, and failed-comparison caching before unfolding.
+  `Inner.isDefEqOffset.scopeWF` transports zero/successor comparisons.
+  `Inner.lazyDeltaReduction.loop.scopeWF` inducts on the actual lazy-delta budget
+  and transports normalized semantic operands across every continuing round;
+  its successful results exclude continuation. The configured reader wrapper
+  uses that theorem at its actual budget. Native reduction retains its existing
+  rejection contract, not a new success assumption. Both string-expansion
+  orientations preserve three-valued semantics and scoped caches. The fixture
+  audits all 48 owned declarations against original semantic worker/native
+  baselines without direct admissions or axioms. Its 224 typed cold/warm steps,
+  576 typed terminal loop/configured reductions, 144 string/offset controls,
+  16 false-string controls, and 48 projection-app guards pass. Controls cover
+  both safeties/eager modes, ordinary callback fuels 32/128, explicit lazy-delta
+  budgets 2/8, regular failure caching with equal/distinct unfolded bodies,
+  reduction hints, open projections, raw and ordinary `OfNat` numerals, and
+  symmetric string expansion. Ordinary numerals and successor applications
+  explicitly retain their intermediate continuing status before later phases;
+  they are not assumed to normalize in one step. Unequal strings compare false
+  at callback depth 1024 and exhaust depth 32, matching the existing bounded
+  recursion policy. Zero loop/callback budgets, one-round exhaustion, and the
+  poisoned-cache premise are negative controls. This proves worker frames, not
+  arbitrary-fuel `Methods.ScopeWF`, semantic WHNF completeness, successful
+  inductive reduction, or unrestricted frontend closure. The actual
+  `isDefEqCore'` dispatcher and scoped method/fuel closure remain next.
 - `Inner.inferType'.scopeWF` proves the actual recursive inference dispatcher in
   checking and infer-only modes under the existing scoped method callbacks.
   Its premises mirror `inferType'.WF`: free-variable membership and, only in
