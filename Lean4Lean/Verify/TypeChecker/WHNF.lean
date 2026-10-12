@@ -121,7 +121,6 @@ theorem quotReduceRec.fvarsBelow {context : VContext} {state : VState}
     dsimp only
     split
     · rename_i bound
-      simp only [pure_bind]
       dsimp only [Bind.bind, ReaderT.bind, whnf]
       obtain ⟨_, constructorTranslation⟩ :=
         quotTranslatedApplicationArgument (context := context) translated ‹_›
@@ -194,10 +193,10 @@ theorem whnfFVar.WF {c : VContext} {s : VState} (he : c.TrExprS (.fvar fv) e') :
 
 theorem reduceProj.none_of_translation {context : VContext} {state : VState}
     (translated : context.TrExprS source semantic) :
-    (reduceProj index source cheapRec cheapProj).WF context state
+    (reduceProj index source cheapProj).WF context state
       (fun outcome _ => outcome = none) := by
   unfold reduceProj
-  have initial : (if cheapProj then whnfCore source cheapRec cheapProj else whnf source)
+  have initial : (if cheapProj then whnfCore source cheapProj else whnf source)
       |>.WF context state (fun normalized _ =>
         context.FVarsBelow source normalized ∧ context.TrExpr normalized semantic) := by
     cases cheapProj
@@ -220,23 +219,41 @@ theorem reduceProj.none_of_translation {context : VContext} {state : VState}
       refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ found => ?_
       cases information <;> try exact RecM.WF.pure rfl
       exact False.elim <| context.trenv.constructorNotInModel found inModel
-  split
-  · obtain ⟨_, structural, _⟩ := normalizedResult.2
-    cases structural with
-    | lit contains constructor =>
-      simpa only [pure_bind] using (whnf.WF constructor).bind
-        (fun _ _ _ result => by
+  unfold reduceProjCore
+  cases h : normalized <;> try exact RecM.WF.pure rfl
+  case const name levels =>
+    subst normalized
+    obtain ⟨_, structural, _⟩ := normalizedResult.2
+    change RecM.WF context _ ((Expr.const name levels).withApp _) _
+    exact finish structural
+  case app function argument =>
+    subst normalized
+    obtain ⟨_, structural, _⟩ := normalizedResult.2
+    change RecM.WF context _ ((function.app argument).withApp _) _
+    exact finish structural
+  case lit literal =>
+    subst normalized
+    cases literal with
+    | natVal value => exact RecM.WF.pure rfl
+    | strVal value =>
+      obtain ⟨_, structural, _⟩ := normalizedResult.2
+      cases structural with
+      | lit contains constructor =>
+        change RecM.WF context _
+          (do
+            let constructor ← whnf (Expr.strLitToConstructor value)
+            constructor.withApp _) _
+        exact (whnf.WF constructor).bind fun _ _ _ result => by
           obtain ⟨_, reducedTranslation, _⟩ := result.2
-          exact finish reducedTranslation)
-  · obtain ⟨_, structural, _⟩ := normalizedResult.2
-    simpa only [pure_bind] using finish structural
+          exact finish reducedTranslation
 
 theorem reduceProj.WF {c : VContext} {s : VState} (he : c.TrExprS (.proj n i e) e') :
-    RecM.WF c s (reduceProj i e cheapRec cheapProj) fun oe _ =>
+    RecM.WF c s (reduceProj i e cheapProj) fun oe _ =>
       ∀ e₁, oe = some e₁ → c.FVarsBelow (.proj n i e) e₁ ∧ c.TrExpr e₁ e' := by
   have .proj sourceTranslation _ := he
-  exact (reduceProj.none_of_translation sourceTranslation).mono
-    fun _ _ _ rejected _ successful => by cases rejected.symm.trans successful
+  refine (reduceProj.none_of_translation sourceTranslation).mono ?_
+  intro outcome state le rejected result successful
+  cases rejected.symm.trans successful
 theorem whnfCore'.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
     RecM.WF c s (whnfCore' e cheapProj) fun e₁ _ =>
       c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' := by
