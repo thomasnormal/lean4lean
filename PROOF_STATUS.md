@@ -194,10 +194,18 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   dependencies. `QuotientReductionSemantics` checks initialized verified
   contexts, typed trailing application transport, exhaustive module-owned
   proof/dependency audits, and actual cold/warm quotient helper and dispatch
-  controls. These semantic equations use canonically aligned parameters;
-  alignment of merely convertible constructor/eliminator parameters and the
-  complete `quotReduceRec.WF`/`reduceRecursor.WF` contract remain open. No caller
-  premise or statement of an existing theorem changes.
+  controls. `Theory.Typing.QuotReductionAlignment` proves `VEnv.quotMk_congr`
+  for convertible constructor universes, parameters and payloads, and extends
+  both semantic beta rules to a convertible major argument. Induction transports
+  its result to the original dependent motive rather than leaving the canonical
+  motive as a caller restriction. `QuotientReductionAlignment` checks these
+  contracts in arbitrary initialized verified contexts and exhaustively audits
+  owned declarations against the existing unique-typing dependencies.
+  Recovering parameter equalities from arbitrary quotient application typing
+  and the complete `quotReduceRec.WF`/`reduceRecursor.WF` contract remain open.
+  No caller premise or statement of an existing theorem changes. The native
+  fixture includes actual proposition-induction reduction with an explicit
+  motive, not a claim that native reduction erases the induction application.
 - `TypeChecker.Inner.reduceProj.none_of_translation` proves that the actual
   projection reduction helper cannot return a field in the current `TrEnv`
   fragment. Both normalization choices and string-constructor expansion retain
