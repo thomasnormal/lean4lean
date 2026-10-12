@@ -27,10 +27,10 @@ when a semantic contract, trust boundary, or correctness obstruction changes.
 
 | Signal | Current evidence | Interpretation |
 | --- | --- | --- |
-| Upstream synchronization | rebased stack through `df1d340`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `341` branch-only | Rebase integration is complete locally; commit counts measure history, not verification progress. |
-| Semantic work completed in this rebase | Nested-inductive guard, recursive primitive abstraction, annotation peeling/length, local-context defeq/nodup, inductive stats continuation, projection, primitive-interface, ordinary-interface, and staged-leaf compatibility proofs build on current upstream | These preserve existing theorem contracts while adapting to upstream APIs; they do not by themselves remove inherited trust. |
+| Upstream synchronization | rebased stack through `167ad0f`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `343` branch-only | Rebase integration is complete locally; commit counts measure history, not verification progress. |
+| Semantic work completed in this rebase | Nested-inductive guard, recursive primitive abstraction, annotation peeling/length, local-context defeq/nodup, inductive stats continuation, projection, primitive-interface, ordinary-interface, staged-leaf, and constructor-parameter compatibility proofs build on current upstream | These preserve existing theorem contracts while adapting to upstream APIs; they do not by themselves remove inherited trust. |
 | Admission boundary | `129` matching lines in `27` files; `133` whole-word `sorry`/`admit` occurrences under `Lean4Lean/` | The rebase introduced no new admissions and removed none; transitive `sorryAx` audits remain the meaningful trust signal. |
-| Build status | Focused staged-leaf build passes (135 jobs); default build reaches all `414` targets and fails in `Verify.ConstructorParams`, `Verify.InductiveNestedRewrite`, and `Verify.StagedApplications` | The checker, primitive-interface, and staged-leaf blockers are cleared; current API adaptation remains before a green default build. |
+| Build status | Focused constructor-parameter build passes (128 jobs), with `tests/ConstructorParams.lean` and `tests/ConstructorBatchArity.lean` passing; default build reaches all `414` targets and fails in `Verify.InductiveReturnTyping`, `Verify.ConstructorMetadata`, `Verify.InductiveNestedRewrite`, `Verify.InductivePositivity`, and `Verify.StagedApplications` | The checker, primitive-interface, and staged-leaf blockers are cleared; current API adaptation remains before a green default build. |
 | Publication and upstream contribution | Rebased history is not force-pushed; focused upstream PRs are deferred until the rebased stack is validated | Avoids publishing an unvalidated rewrite; next PRs should carry standalone semantic fixes, not progress metadata. |
 
 ## Progress scorecard
@@ -50,7 +50,7 @@ themselves satisfy any of these goals.
 | Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
 | Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Behavior on its newer toolchain has not been tested. | Do not generalize the finding to other Lean versions or claim it proves logical unsoundness. |
 
-Comparison anchor: rebased stack through `df1d340432b86b5789897f9b138efe99e1e89d6c`
+Comparison anchor: rebased stack through `167ad0fb38e1cc87258d392e4fc9f0455352badd`
 and official `origin/master` `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, both
 using Lean `v4.33.0-rc2`. These pins make the claims reviewable without treating
 source volume as progress.
@@ -143,12 +143,15 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-Focused `lake build Lean4Lean.Verify.StagedLeaves` passes (135 jobs),
-alongside the earlier ordinary-interface, nested-guard, `NestedInductiveParams`,
-and `InductiveParamContext` checks. The default `lake build` reaches all `414`
-targets before failing in `Verify.ConstructorParams`,
-`Verify.InductiveNestedRewrite`, and `Verify.StagedApplications`; runtime
-nested fixtures also require old kernel environment APIs. Validation runs on
+Focused `lake build Lean4Lean.Verify.ConstructorParams` passes (128 jobs), and
+`tests/ConstructorParams.lean` plus `tests/ConstructorBatchArity.lean` pass with
+explicit native-expression provenance allowances. Earlier ordinary-interface,
+staged-leaf, nested-guard, `NestedInductiveParams`, and `InductiveParamContext`
+checks also pass. The default `lake build` reaches all `414` targets before
+failing in `Verify.InductiveReturnTyping`, `Verify.ConstructorMetadata`,
+`Verify.InductiveNestedRewrite`, `Verify.InductivePositivity`, and
+`Verify.StagedApplications`; runtime nested fixtures also require old kernel
+environment APIs. Validation runs on
 the same `v4.33.0-rc2` toolchain pinned by upstream.
 
 | Whole-word `sorry` source census under `Lean4Lean/` | Our fork | Upstream |
