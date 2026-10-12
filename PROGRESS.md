@@ -27,10 +27,10 @@ when a semantic contract, trust boundary, or correctness obstruction changes.
 
 | Signal | Current evidence | Interpretation |
 | --- | --- | --- |
-| Upstream synchronization | rebased stack through `8a53d04`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `364` branch-only | Rebase integration is complete locally; commit counts measure history, not verification progress. |
-| Semantic work completed in this rebase | Nested-inductive guard, recursive primitive abstraction, annotation peeling/length, local-context defeq/nodup, inductive stats continuation, projection, primitive-interface, ordinary-interface, staged-leaf, constructor-parameter, inductive-return-typing, positivity/safe-constructor-spine, constructor-metadata, recursor-registration, inductive-header metadata, recursor metadata, safe-constructor-registration, safe-run preservation, safe-run metadata, and recursor-minor-offset compatibility proofs build on current upstream | These preserve existing theorem contracts while adapting to upstream APIs; they do not by themselves remove inherited trust. |
+| Upstream synchronization | rebased stack through `18d7bea`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `366` branch-only | Rebase integration is complete locally; commit counts measure history, not verification progress. |
+| Semantic work completed in this rebase | Nested-inductive guard, recursive primitive abstraction, annotation peeling/length, local-context defeq/nodup, inductive stats continuation, projection, primitive-interface, ordinary-interface, staged-leaf, constructor-parameter, inductive-return-typing, positivity/safe-constructor-spine, constructor-metadata, recursor-registration, inductive-header metadata, recursor metadata, safe-constructor-registration, safe-run preservation, safe-run metadata, recursor-minor-offset, and recursor-minor-indexing compatibility proofs build on current upstream | These preserve existing theorem contracts while adapting to upstream APIs; they do not by themselves remove inherited trust. |
 | Admission boundary | `129` matching lines in `27` files; `133` whole-word `sorry`/`admit` occurrences under `Lean4Lean/` | The rebase introduced no new admissions and removed none; transitive `sorryAx` audits remain the meaningful trust signal. |
-| Build status | Focused recursor-minor-offset build passes (140 jobs); default build reaches all `414` targets and fails in `Verify.InductiveNestedRewrite`, `Verify.StagedApplications`, and `Verify.RecursorMinorIndexing` | Constructor metadata, positivity, recursor registration, header metadata, recursor metadata, safe registration, run preservation, run metadata, and minor-offset blockers are cleared; three current-upstream API adaptation fronts remain before a green default build. |
+| Build status | Focused recursor-minor-indexing build passes (142 jobs); default build reaches all `414` targets and fails in `Verify.InductiveNestedRewrite`, `Verify.StagedApplications`, and `Verify.RecursorFieldScope` | Constructor metadata, positivity, recursor registration, header metadata, recursor metadata, safe registration, run preservation, run metadata, minor-offset, and minor-indexing blockers are cleared; three current-upstream API adaptation fronts remain before a green default build. |
 | Publication and upstream contribution | Rebased history is not force-pushed; focused upstream PRs are deferred until the rebased stack is validated | Avoids publishing an unvalidated rewrite; next PRs should carry standalone semantic fixes, not progress metadata. |
 
 ## Progress scorecard
@@ -143,7 +143,8 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-Focused `lake build Lean4Lean.Verify.RecursorMinorOffsets` passes (140 jobs);
+Focused `lake build Lean4Lean.Verify.RecursorMinorIndexing` passes (142 jobs);
+Earlier focused `lake build Lean4Lean.Verify.RecursorMinorOffsets` passes (140 jobs);
 The aggregate `tests/InductiveRunScope.lean` fixture is unavailable because
 `Verify.InductiveRunScope` remains downstream of the current blockers.
 Earlier focused `lake build Lean4Lean.Verify.InductiveRunMetadata` passes (138 jobs);
