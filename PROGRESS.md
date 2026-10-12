@@ -8,11 +8,11 @@ detailed theorem contracts, dependency audits, and regression evidence.
 
 The branch is locally rebased on official `origin/master` at
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, with no upstream-only commits.
-The stack restores and checks constructor, recursor, metadata, preservation, and
-field-scope contracts on the current upstream API, but it is **not a completed
-verification of Lean's kernel**. The default build still stops in four
-downstream proof files, and the frontend's dependency chain still contains
-`sorryAx`.
+The stack restores and checks constructor, recursor, metadata, preservation,
+field-scope, and non-nested frontend-scope contracts on the current upstream
+API, but it is **not a completed verification of Lean's kernel**. The default
+build still stops in five downstream proof files, and the frontend's dependency
+chain still contains `sorryAx`.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.
@@ -27,10 +27,10 @@ when a semantic contract, trust boundary, or correctness obstruction changes.
 
 | Signal | Current evidence | Interpretation |
 | --- | --- | --- |
-| Upstream synchronization | `HEAD` `9225270`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `368` branch-only | The local rebase is current; history counts are synchronization data, not verification progress. |
-| Semantic guarantees | Constructor/recursor metadata, registration, run-preservation, minor-indexing, and recursor field-scope contracts build and pass their focused audits | These preserve existing contracts on upstream's API; they do not remove inherited trust or complete inductive checking. |
+| Upstream synchronization | `HEAD` `9caa110`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `377` branch-only | The local rebase is current; history counts are synchronization data, not verification progress. |
+| Semantic guarantees | Constructor/recursor metadata, registration, run-preservation, minor-indexing, recursor field-scope, and non-nested frontend-scope contracts build; the frontend fixture exercises source, fuel, arity, freshness, universe, and reserved-prefix boundaries | These preserve executable contracts on upstream's API; they do not remove inherited trust or complete inductive checking. |
 | Admission boundary | `129` matching lines in `27` files; `133` whole-word `sorry`/`admit` occurrences under `Lean4Lean/` | No admission was added or removed by this compatibility checkpoint; transitive `sorryAx` audits remain the trust signal. |
-| Build status | `lake build Lean4Lean.Verify.RecursorFieldScope` passes (148 jobs); the default build reaches all `414` targets and fails in `Verify.InductiveNestedRewrite`, `Verify.StagedApplications`, `Verify.InductiveHeaderScope`, and `Verify.RecursorInfoIndices` | The field-scope contract is cleared; four current-upstream proof fronts remain before a green default build. |
+| Build status | `lake build Lean4Lean.Verify.InductiveFrontendScope` passes (158 jobs), and `tests/InductiveFrontendScope.lean` passes 10 public fixtures plus 16 failure controls; the default build reaches all `414` targets and fails in `Verify.InductiveNestedRewrite`, `Verify.InductiveCtorFieldTrace`, `Verify.InductiveIHTrace`, `Verify.InductiveFrontendRestoration`, and `Verify.InductiveHeaderTraces` | The non-nested frontend-scope contract is cleared; five current-upstream proof fronts remain before a green default build. |
 | Publication and upstream contribution | The rebased tip is not force-pushed; no upstream PR has been opened from this compatibility-only checkpoint | Keep the fork review branch intact until rewrite authorization is explicit; submit only focused semantic fixes once validated. |
 
 ## Progress scorecard
@@ -45,12 +45,12 @@ themselves satisfy any of these goals.
 | Preserve well-formedness through actual non-inductive declaration checking | **Conditional contract proved:** `addDecl.WF_noninductive`, including quotients, arbitrary fuel, batches, and empty-environment contracts. | Ordinary `addDecl.WF` cases are also proved, including quotients and mutual definitions. | Our theorem still inherits `sorryAx`; this is not unconditional kernel soundness. |
 | Remove inherited admissions from the frontend | **Not complete.** Dependency audits identify the remaining trust gaps. | Foundational admissions also remain. | Must close the actual metatheory/checker dependencies, not add another wrapper around them. |
 | Supply simultaneous substitution for arbitrary typing/equality derivations | **Proved API now available:** `55b7b4d` ports strong/weak cross-substitution and audits its dependencies as only `propext` and `Quot.sound`. | Already proved upstream in `6ba54db`/`8223d22`. | Foundation integration, not a newly solved upstream obligation; the frontend's inherited admissions remain. |
-| Verify actual checked inductive registration | **Not complete.** Header/constructor checks and staging invariants are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, and prelude translation. |
+| Verify actual checked inductive registration | **Not complete.** Header/constructor checks, staging invariants, and the non-nested frontend scope are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, nested restoration, and prelude translation. |
 | Complete confluence and semantic reduction correctness | **Partial progress:** `7682b23` removes the constant-case confluence admission; `c0f9930` repairs the incompatible quotient-equation premise. | Confluence and related semantic obligations remain open. | Application/extra confluence, injectivity/strengthening, genuine projection semantics, and `reduceRecursor.WF`. |
 | Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
 | Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Behavior on its newer toolchain has not been tested. | Do not generalize the finding to other Lean versions or claim it proves logical unsoundness. |
 
-Comparison anchor: rebased stack through `922527064734386083683326593fca48960da09b`
+Comparison anchor: rebased stack through `9caa1101aa14c10438113915933ff39d1e0eccfa`
 and official `origin/master` `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, both
 using Lean `v4.33.0-rc2`. These pins make the claims reviewable without treating
 source volume as progress.
@@ -74,6 +74,10 @@ the entire dependency stack.
 - Proved actual non-inductive frontend contracts, rather than relying only on
   restricted wrapper entry points; dependency audits still expose inherited
   admissions.
+- `9caa110`: threaded the upstream `checkNoNestedAux` preflight through the
+  non-nested frontend-scope proof and added regression controls for reserved
+  `_nested` constants and projections. This proves the scope contract for the
+  current executable path without treating the preflight as an assumption.
 - Repaired source-variable capture handling in inductive preprocessing through
   checks on the original source, before generated names can capture it.
 - Repaired the native-instantiation verification specification to model
@@ -143,20 +147,27 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
+Focused `lake build Lean4Lean.Verify.InductiveFrontendScope` passes (158 jobs),
+and `tests/InductiveFrontendScope.lean` passes 10 public fixtures plus 16
+failure controls, including reserved-prefix rejection. The existing
+`RecursorFieldScope` and direct metadata/registration audits also pass with
+exact generated-native provenance identities. The default `lake build` reaches
+all `414` targets before failing in `Verify.InductiveNestedRewrite`,
+`Verify.InductiveCtorFieldTrace`, `Verify.InductiveIHTrace`,
+`Verify.InductiveFrontendRestoration`, and `Verify.InductiveHeaderTraces`; the
+receipt is `/var/tmp/thomas-ahle/fleet2/logs/lean4lean-inductive-frontend-scope-full.log`.
+The aggregate
+`tests/InductiveReturnTyping.lean`, `tests/InductiveValueFrame.lean`, and
+later inductive frontend fixtures remain downstream of those blockers. Validation
+runs on the same `v4.33.0-rc2` toolchain pinned by upstream.
+
 Focused `lake build Lean4Lean.Verify.RecursorFieldScope` passes (148 jobs), and
 `tests/RecursorFieldScope.lean` passes its transitive axiom audits, retained-field
 lookup checks, failure controls, and scoped replay fixtures. The direct
 `tests/RecursorRegistration.lean`, `tests/SafeConstructorRegistration.lean`,
 `tests/InductiveMetadata.lean`, `tests/ConstructorMetadata.lean`, and
 `tests/InductiveRunPreservation.lean` audits also pass with exact generated-native
-provenance identities. The default `lake build` reaches all `414` targets before
-failing in `Verify.InductiveNestedRewrite`, `Verify.StagedApplications`,
-`Verify.InductiveHeaderScope`, and `Verify.RecursorInfoIndices`; the receipts are
-kept under `/var/tmp/thomas-ahle/fleet2/logs/`. The aggregate
-`tests/InductiveReturnTyping.lean`, `tests/InductiveValueFrame.lean`, and
-`tests/InductiveRunScope.lean` fixtures remain unavailable because their aggregate
-verification modules are downstream of those blockers. Validation runs on the
-same `v4.33.0-rc2` toolchain pinned by upstream.
+provenance identities.
 
 | Whole-word `sorry` source census under `Lean4Lean/` | Our fork | Upstream |
 | --- | --- | --- |
