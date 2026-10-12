@@ -11,6 +11,38 @@ This is a list of places where lean4lean deliberately has different behavior fro
 * [`Lean4Lean.TypeChecker.Inner.inferLambda`](Lean4Lean/TypeChecker.lean), `inferLet`: lean4lean does the `ensureSort` call before extending the context, while [`infer_lambda`](https://github.com/leanprover/lean4/blob/v4.26.0/src/kernel/type_checker.cpp#L124-L126) does it afterward. It's not clear whether this is actually unsound but it would require some very weird invariants to justify having unchecked things in the local context and hoping that they won't be used in the typing proof of that same expression.
 * [`Lean4Lean.checkConstantVal`](Lean4Lean/Environment.lean): The original implementation would call `check` which sets the level params and then unsets them afterward, and then `ensure_sort` would run in a context without any level params. In lean4lean the monad is parameterized over level params, so they remain the same across the two calls.
 
+## Closed quotient equation pattern boundary (repaired 2026-10-12)
+
+The former `Theory.Typing.ChurchRosser.Params.extra_pat` specification required
+every instantiated registered definitional equation to match a reduction pattern
+at its root. `Pattern.Matches` only has constant/application cases, but the
+actual `quotDefEq.lhs` is a six-lambda abstraction. Instantiating universe levels
+preserves that outer lambda. `quotDefEq.not_matches` proves this obstruction for
+every pattern and level instance, so the old premise excluded environments
+registering the quotient equation even if all confluence admissions were closed.
+This is a verification-specification mismatch, not a native kernel discrepancy.
+
+`Pattern.Equation` now permits a guarded registered root reduction under shared
+lambda binders. `Pattern.Equation.of_root` converts the exact former certificate,
+so existing root rules retain their proof contract. Its `parRed` theorem derives
+the actual parallel reduction using the existing rule and lambda constructors,
+without borrowing the admitted confluence theorem. The real extra-equation case
+of `IsDefEq.church_rosser` consumes the generalized certificate.
+
+`Theory.Typing.QuotPattern` derives this certificate for the unchanged actual
+quotient equation at arbitrary universe instances. Its `Quot.lift`/`Quot.mk`
+pattern retains domain and relation equality checks; the six shared binders
+supply both guards through real bound-variable typing. The equation/result
+representation and those proofs have no inherited metatheory admissions.
+Run `lake env lean tests/QuotientPatternEquation.lean` for the old root-match
+negative, legacy compatibility, concrete and generic universe instances, guarded
+quotient certificate, actual parallel-reduction contract and dependency audits.
+
+This does not prove arbitrary quotient redex soundness, construct a full quotient
+`Params` instance, close the remaining application/extra confluence admission,
+resolve injectivity or establish `reduceRecursor.WF`. The actual type checker,
+quotient registration worker and accepted declaration fragment are unchanged.
+
 ## Header parameter-normalization boundary (resolved 2026-10-08)
 
 `AddInductive.checkInductiveTypes` weak-head normalizes a datatype's source type
