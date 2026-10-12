@@ -4,6 +4,7 @@ namespace Lean4Lean
 open Lean4Lean TypeChecker
 open Lean hiding Environment Exception
 open Kernel
+open private Lean.Kernel.Environment.add from Lean.Environment
 
 theorem ConstantInfo.defnInfo_safety (v : DefinitionVal) :
     (ConstantInfo.defnInfo v).safety = v.safety := by
@@ -25,7 +26,7 @@ theorem NativeValueFrame.trans (first : NativeValueFrame before middle)
   ⟨second.map_wf, fun hfind => second.lookups (first.lookups hfind),
     fun hfind hvalue => first.values (second.values hfind hvalue) hvalue⟩
 
-theorem NativeValueFrame.addConst (hmap : env.constants.WF)
+theorem NativeValueFrame.addConst {ci : ConstantInfo} (hmap : env.constants.WF)
     (hfresh : env.constants.find? ci.name = none) (hvalue : ci.value? = none) :
     NativeValueFrame env (env.add ci) := by
   refine ⟨hmap.insert _ _ hfresh, ?_, ?_⟩
@@ -76,6 +77,8 @@ structure CheckerEnv (safety : DefinitionSafety) (env : Environment) (venv : VEn
   safeValues : ∀ {name ci value}, env.constants.find? name = some ci →
     safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
     TrExpr venv ci.levelParams [] value (.const ci.name (VLevel.params ci.levelParams.length))
+
+theorem CheckerEnv.map_wf (H : CheckerEnv safety env venv) : env.constants.WF := H.aligned.map_wf
 
 theorem checkName.WF (mapWF : env.constants.WF) (name : Name) (allowPrimitive : Bool) :
     (Environment.checkName env name allowPrimitive).WF fun _ =>
@@ -171,7 +174,7 @@ theorem CheckerEnv.addConst (H : CheckerEnv safety env venv)
     (htr : TrConstant safety venv ci ci') (hvalue : ci.value? = none)
     (hconst : ci'.WF venv) (hadd : venv.addConst ci.name ci' = some venv') :
     CheckerEnv safety (env.add ci) venv' := by
-  refine H.of_valueFrame (NativeValueFrame.addConst (ci := ci) H.map_wf hfresh hvalue)
+  refine H.of_valueFrame (NativeValueFrame.addConst (ci := ci) H.aligned.map_wf hfresh hvalue)
     (VEnv.addConst_le hadd) ?_ (H.aligned.const hfresh htr hadd rfl)
   obtain ⟨decls, hdecls⟩ := H.wf
   exact ⟨_, hdecls.decl (.axiom
