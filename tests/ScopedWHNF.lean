@@ -185,7 +185,7 @@ private def nativeControls : MetaM Unit := do
   let timeout : TypeChecker.Context := { context with fuel := { whnf := 0, whnfEager := 0 } }
   unless !(TypeChecker.Inner.whnf' delta (TypeChecker.Methods.withFuel 32) timeout {}).isOk do
     throwError "actual zero-budget delta loop unexpectedly accepted"
-  logInfo m!"{coreCount} actual core and {fullCount} actual full normalizations retain expected scoped heads and caches; cold/warm, both safeties/eager modes, fuels 32/128, all cheap flags; local/let heads, metadata, beta spines, rebuilt heads, projections, delta, Nat/Bool and quotient lift/induction reductions; 32 actual string byte-array projections at callback/WHNF budget 1024 pass; poisoned local-let caches and resource boundaries are negative controls, not model/checker receipts; actual nonzero scoped callback/fuel closure remains open"
+  logInfo m!"{coreCount} actual core and {fullCount} actual full normalizations retain expected scoped heads and caches; cold/warm, both safeties/eager modes, fuels 32/128, all cheap flags; local/let heads, metadata, beta spines, rebuilt heads, projections, delta, Nat/Bool and quotient lift/induction reductions; 32 actual string byte-array projections at callback/WHNF budget 1024 pass; poisoned local-let caches and resource boundaries are negative controls, not model/checker receipts; arbitrary-fuel scoped method closure is proved and audited separately in ScopedMethods"
 
 run_meta
   let environment ← getEnv
