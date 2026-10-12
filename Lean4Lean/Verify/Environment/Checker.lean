@@ -89,6 +89,22 @@ theorem TrEnv.checkerEnv (H : TrEnv safety env venv) : CheckerEnv safety env ven
 
 theorem CheckerEnv.map_wf (H : CheckerEnv safety env venv) : env.constants.WF := H.aligned.map_wf
 
+theorem CheckerEnv.find?_iff (H : CheckerEnv safety env venv) :
+    (∃ ci, env.find? name = some ci ∧ safety ≤ ci.safety) ↔
+      ∃ ci, venv.constants name = some ci := by
+  conv => enter [1, 1, _, 1, 1]; apply H.map_wf.find?'_eq_find?
+  exact H.aligned.find?_iff
+
+theorem CheckerEnv.find? (H : CheckerEnv safety env venv)
+    (h : env.find? name = some ci) (hs : safety ≤ ci.safety) :
+    ∃ ci', venv.constants name = some ci' ∧ TrConstant safety venv ci ci' :=
+  H.aligned.find? (H.map_wf.find?'_eq_find? _ ▸ h) hs
+
+theorem CheckerEnv.find?_uniq (H : CheckerEnv safety env venv)
+    (h : env.find? name = some ci) (hs : venv.constants name = some ci') :
+    ci.name = name ∧ TrConstant safety venv ci ci' :=
+  H.aligned.find?_uniq (H.map_wf.find?'_eq_find? _ ▸ h) hs
+
 theorem checkName.WF (mapWF : env.constants.WF) (name : Name) (allowPrimitive : Bool) :
     (Environment.checkName env name allowPrimitive).WF fun _ =>
       env.find? name = none ∧ (Environment.primitives.contains name → allowPrimitive) := by
