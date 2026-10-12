@@ -10,8 +10,8 @@ private theorem read_bind (next : Environment → M α) (env : Environment) (sta
 private theorem get_bind (next : State → M α) (env : Environment) (state : State) :
     ((get >>= next) env state) = next state env state := rfl
 
-private theorem scanScope (items : List Nat) (initial : MProd Bool Bool)
-    (step : Nat → MProd Bool Bool → M (ForInStep (MProd Bool Bool)))
+private theorem scanScope (items : List Nat) (initial : Bool × Bool)
+    (step : Nat → Bool × Bool → M (ForInStep (Bool × Bool)))
     (property : Nat → Prop) (env : Environment) (state : State)
     (hstep : ∀ index flags state', (step index flags env state').WF fun returned =>
       ∃ next, returned.1 = .yield next ∧ returned.2 = state' ∧
@@ -62,10 +62,33 @@ theorem isNestedInductiveApp?.scope (type : Expr) (env : Environment) (state : S
           · exact .pure ⟨rfl, by simp⟩
           · simp only [Std.Legacy.Range.forIn_eq_forIn_range',
               Std.Legacy.Range.size, Nat.sub_zero, Nat.add_sub_cancel, Nat.div_one]
-            refine (scanScope _ _ _
+            let scanStep : Nat → Bool × Bool → M (ForInStep (Bool × Bool)) :=
+              fun index flags => do
+                if type.getAppArgs[index]!.hasLooseBVars = true then
+                  let newTypes := (← get).newTypes
+                  match Expr.find?
+                      (fun x => match x with
+                        | Expr.const t us => newTypes.any fun ty => t == ty.name
+                        | _ => false)
+                      type.getAppArgs[index]! with
+                  | some _ => pure (ForInStep.yield (true, true))
+                  | _ => pure (ForInStep.yield (flags.fst, true))
+                else
+                  let newTypes := (← get).newTypes
+                  match Expr.find?
+                      (fun x => match x with
+                        | Expr.const t us => newTypes.any fun ty => t == ty.name
+                        | _ => false)
+                      type.getAppArgs[index]! with
+                  | some _ => pure (ForInStep.yield (true, flags.snd))
+                  | _ => pure (ForInStep.yield (flags.fst, flags.snd))
+            change ((forIn (List.range' 0 info.numParams) (false, false) scanStep >>= _)
+              env state).WF _
+            refine (scanScope (items := List.range' 0 info.numParams)
+              (initial := (false, false)) scanStep
               (fun index => type.getAppArgs[index]!.hasLooseBVars = false) env state ?_).bind ?_
             · intro index flags state'
-              dsimp only
+              dsimp [scanStep]
               split
               · rw [get_bind]
                 generalize hfound : Expr.find? _ _ = found
