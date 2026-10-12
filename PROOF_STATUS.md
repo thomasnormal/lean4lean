@@ -155,9 +155,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `ScopedInferType` fixture checks all six contracts and audits ten owned
   declarations for theorem-backed proofs without adding an axiom. These are
   primitive inference frames. The recursive lambda and forall frames below
-  consume them; let telescopes, projections, applications, comparison and
-  arbitrary-fuel method scope preservation remain
-  open, and the existing `inferProj.WF` admission is not hidden or widened.
+  consume them; the later frames also cover let telescopes, applications,
+  comparison, and projection rejection in the current verified environment
+  fragment. The inference dispatcher and arbitrary-fuel method scope
+  preservation remain open.
 - `Inner.isProp.scopeWF` composes the scoped inference and WHNF frames for the
   actual proposition test. On a successful proposition result it transports
   the inferred expression back to the caller's semantic translation and
@@ -184,9 +185,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   and is removed. Concrete zero/one/two-dependent-parameter and nonzero-offset
   fixtures instantiate the replacement contract, permit unused metavariables
   outside the consumed prefix, and reject metavariable translations. The fixture
-  audits both scoped inference/WHNF modules (274 owned declarations) against the
+  audits both scoped inference/WHNF modules (276 owned declarations) against the
   existing semantic/native axiom baselines with no owned axioms. This does not
-  close semantic constructor-header transport, the field loop, or projection inference.
+  close semantic constructor-header transport or the field loop. Projection
+  rejection in the currently supported environment fragment is proved below.
 - `VState.WF.next` advances all model cache/type invariants through the actual
   fresh-name generator transition, while `HeadScopeCacheWF.next` preserves
   scoped cache heads under the unchanged caches. `RecM.ScopeWF.withFreshId`
@@ -264,23 +266,27 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   relation back to the original application. The fixture covers the generic
   application contract and explicitly records the pre-existing
   `Lean.Expr.instantiateRevRange_eq` representation axiom used by the source
-  application reconstruction. Projection inference remains open.
+  application reconstruction. Projection rejection in the current fragment is
+  proved below; successful inductive projection semantics remain open.
 - `RecM.forInList_scopeWF` and `RecM.forInRange_scopeWF` provide the reusable
   scoped cache/state frame for list and legacy-range loops, including yielded
   intermediate states. They are intended for the native projection parameter
   and field traversals, but do not themselves supply the missing semantic
   projection contract.
-- Projection framing is currently blocked at a precise boundary rather than
-  by loop preservation: `InferType.lean:421` still admits `inferProj.WF`, while
-  the native `inferProj.headWF` theorem provides only `HeadWF`. A scoped proof
-  of the native parameter/field walks must supply `TrExprS` translations for
-  each intermediate constructor type before invoking the `Methods.ScopeWF.whnf`
-  callback; `NativeHeadScoped` alone does not provide those translations, and
-  `RecM.ScopeWF.fromHeadScopeWF` requires the stronger `HeadScopeWF` contract.
-  The next projection step therefore needs a semantic constructor-header
-  transport (or an independently proved native cache-scope theorem), not a
-  wrapper around the existing admission.
-- The admitted `inferProj.WF` contract now consumes the full `TrTyping` certificate
+- `TrEnv'.inductiveLookupRejected` proves that native inductive headers in the
+  current environment relation must be ignored by the selected safety mode;
+  `TrEnv.inductiveNotInModel` excludes those header names from its semantic model.
+  The proof covers all ordinary declaration insertions, quotient registration,
+  and ignored unsafe constants, and eliminates the constructor-free `AddInduct`
+  case. It does not claim that native environments contain no inductive headers:
+  the fixture constructs a valid ignored unsafe header with an empty model.
+  `Inner.inferProj.rejects` transports the normalized source-type translation to
+  its application head and rules out the required inductive lookup before any
+  parameter/field traversal. Thus `inferProj.WF` is now proved, without its former
+  admission or any new premise. `RecM.ScopeWF.of_rejects` and
+  `Inner.inferProj.scopeWF` close its scoped failure frame using the actual
+  semantic callback contract, not the weaker native `HeadWF` theorem.
+- The corrected `inferProj.WF` contract consumes the full `TrTyping` certificate
   for the structure and supplied native type, including semantic type alignment
   and native free-variable dependency preservation. It existentially returns
   the projected semantic value rather than reusing the structure value. The
@@ -294,11 +300,14 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   alias demonstrates why semantic alignment alone cannot establish native
   dependency preservation; an axiom-free theorem rejects introducing a local
   variable from a closed source. Compile-time controls reject both
-  the old semantic-value postcondition and unaligned typing premises. This
-  corrects the verification target; it does not prove projection inference or
-  remove its existing admission. The `TrProj` specification itself
-  (`Verify/Typing/Expr.lean:67`) and its semantic transports remain admitted;
-  those rules still need a justified projection expansion.
+  the old semantic-value postcondition and unaligned typing premises. Its proof
+  closes projection inference only in the currently supported `TrEnv` fragment;
+  the positive native projection controls use a host environment outside that
+  relation. Implementing actual checked inductive registration will invalidate
+  the rejection argument and require genuine constructor-header transport and
+  projection semantics. The `TrProj` specification (`Verify/Typing/Expr.lean:67`)
+  and its semantic transports remain admitted; no successful inductive projection
+  expansion, arbitrary-fuel scoped methods, or full frontend theorem is claimed.
 - `Inner.addEquiv.scopeWF`, `Inner.isDefEqCore.scopeWF`, and
   `Inner.isDefEq.scopeWF` preserve the scoped WHNF caches through equivalence-
   manager updates and transport successful comparison results to the semantic
