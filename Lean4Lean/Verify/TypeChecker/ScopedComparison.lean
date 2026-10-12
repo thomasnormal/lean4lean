@@ -284,4 +284,61 @@ theorem quickIsDefEq.scopeWF {context : VContext} {state : VState}
     exact firstTranslation.uniq context.Ewf (.refl context.Ewf context.Δwf) secondTranslation
   · exact RecM.ScopeWF.pure nofun
 
+theorem tryEtaStructCore.scopeFalse {context : VContext} {state : VState}
+    (translated : context.TrExprS second semantic) :
+    (tryEtaStructCore first second).ScopeWF context state (fun equal _ => equal = false) := by
+  unfold tryEtaStructCore
+  cases headEq : second.getAppFn <;> try exact RecM.ScopeWF.pure rfl
+  case const name levels =>
+    have inModel := context.constAppHeadInModel translated headEq
+    refine RecM.ScopeWF.getEnv ?_
+    refine (RecM.ScopeWF.liftExcept envGet.WF).bind fun information _ _ found => ?_
+    cases information <;> try exact RecM.ScopeWF.pure rfl
+    exact False.elim <| context.trenv.constructorNotInModel found inModel
+
+theorem tryEtaStructCore.scopeWF {context : VContext} {state : VState}
+    (_firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (tryEtaStructCore first second).ScopeWF context state
+      (fun equal _ => equal → context.IsDefEqU firstSemantic secondSemantic) := by
+  exact (tryEtaStructCore.scopeFalse secondTranslation).mono fun _ _ _ rejected accepted => by
+    cases rejected
+    cases accepted
+
+theorem tryEtaStruct.scopeWF {context : VContext} {state : VState}
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (tryEtaStruct first second).ScopeWF context state
+      (fun equal _ => equal → context.IsDefEqU firstSemantic secondSemantic) := by
+  simp [tryEtaStruct, orM, toBool]
+  refine (tryEtaStructCore.scopeWF firstTranslation secondTranslation).bind fun _ _ _ compared => ?_
+  split
+  · exact RecM.ScopeWF.pure fun _ => compared rfl
+  · exact (tryEtaStructCore.scopeWF secondTranslation firstTranslation).mono
+      fun _ _ _ compared accepted => (compared accepted).symm
+
+theorem isDefEqUnitLike.scopeFalse {context : VContext} {state : VState}
+    (translated : context.TrExprS first semantic) :
+    (isDefEqUnitLike first second).ScopeWF context state (fun equal _ => equal = false) := by
+  unfold isDefEqUnitLike
+  refine (inferType.scopeWF translated.fvarsIn (fun _ => ⟨_, translated⟩)).bind
+    fun _ _ _ ⟨_, _, _, _, typeTranslation, _⟩ => ?_
+  refine (whnf.scopeWF typeTranslation).bind fun normalized _ _ ⟨_, ⟨_, structural, _⟩, _⟩ => ?_
+  cases headEq : normalized.getAppFn <;> try exact RecM.ScopeWF.pure rfl
+  case const name levels =>
+    have inModel := context.constAppHeadInModel structural headEq
+    refine RecM.ScopeWF.getEnv ?_
+    refine (RecM.ScopeWF.liftExcept envGet.WF).bind fun information _ _ found => ?_
+    cases information <;> try exact RecM.ScopeWF.pure rfl
+    exact False.elim <| context.trenv.inductiveNotInModel found inModel
+
+theorem isDefEqUnitLike.scopeWF {context : VContext} {state : VState}
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (_secondTranslation : context.TrExprS second secondSemantic) :
+    (isDefEqUnitLike first second).ScopeWF context state
+      (fun equal _ => equal = .true → context.IsDefEqU firstSemantic secondSemantic) := by
+  exact (isDefEqUnitLike.scopeFalse firstTranslation).mono fun _ _ _ rejected accepted => by
+    cases rejected
+    cases accepted
+
 end Lean4Lean.TypeChecker.Inner

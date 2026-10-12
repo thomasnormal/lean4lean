@@ -4,10 +4,23 @@ namespace Lean4Lean.TypeChecker.Inner
 open Lean hiding Environment Exception
 open Kernel
 
+theorem envGet.WF {context : VContext} :
+    (context.env.get name).WF fun information => context.env.find? name = some information := by
+  simp [Environment.get]
+  split <;> [refine .pure ‹_›; exact .throw]
+
 theorem reduceNative.WF :
     (reduceNative env e).WF fun oe => ∀ e₁, oe = some e₁ → False := by
   unfold reduceNative; split <;> [skip; exact .pure nofun]
   split <;> [exact .throw; skip]; split <;> [exact .throw; exact .pure nofun]
+
+theorem _root_.Lean4Lean.TypeChecker.VContext.constAppHeadInModel {context : VContext}
+    (translated : context.TrExprS expression semantic)
+    (headEq : expression.getAppFn = .const name levels) : context.venv.contains name := by
+  obtain ⟨_, stack⟩ := AppStack.build (expression.mkAppList_getAppArgsList ▸ translated)
+  have headTranslation := headEq ▸ stack.tr
+  let .const semanticLookup _ _ := headTranslation
+  exact ⟨_, semanticLookup⟩
 
 theorem _root_.Lean4Lean.inductiveReduceRec.eq_none {monad : Type → Type} [Monad monad]
     {context : VContext} (translated : context.TrExprS expression semantic)

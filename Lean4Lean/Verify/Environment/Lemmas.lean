@@ -284,6 +284,11 @@ theorem TrEnv'.recursorLookupRejected (valid : TrEnv' safety constants quotient 
     ¬safety ≤ (ConstantInfo.recInfo header).safety :=
   valid.inductiveFamilyLookupsRejected name _ found trivial
 
+theorem TrEnv'.constructorLookupRejected (valid : TrEnv' safety constants quotient environment)
+    (found : constants.find? name = some (.ctorInfo header)) :
+    ¬safety ≤ (ConstantInfo.ctorInfo header).safety :=
+  valid.inductiveFamilyLookupsRejected name _ found trivial
+
 theorem TrEnv.inductiveLookupRejected (valid : TrEnv safety native environment)
     (found : native.find? name = some (.inductInfo header)) :
     ¬safety ≤ (ConstantInfo.inductInfo header).safety :=
@@ -307,3 +312,15 @@ theorem TrEnv.recursorNotInModel (valid : TrEnv safety native environment)
     ¬environment.contains name := by
   rintro ⟨semantic, translated⟩
   exact valid.recursorLookupRejected found (valid.find?_uniq found translated).2.1
+
+theorem TrEnv.constructorLookupRejected (valid : TrEnv safety native environment)
+    (found : native.find? name = some (.ctorInfo header)) :
+    ¬safety ≤ (ConstantInfo.ctorInfo header).safety :=
+  TrEnv'.constructorLookupRejected valid (name := name)
+    (by rwa [← valid.map_wf.find?'_eq_find?])
+
+theorem TrEnv.constructorNotInModel (valid : TrEnv safety native environment)
+    (found : native.find? name = some (.ctorInfo header)) :
+    ¬environment.contains name := by
+  rintro ⟨semantic, translated⟩
+  exact valid.constructorLookupRejected found (valid.find?_uniq found translated).2.1
