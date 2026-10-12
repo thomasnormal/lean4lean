@@ -200,6 +200,28 @@ agreement only. All default targets and five candidate proof/runtime fixtures
 pass. The rebase stops cleanly before the module-region cleanup replay; final
 integration and publication remain unfinished.
 
+The module-region cleanup and Nat.add replay are now reconciled in the isolated
+candidate at `0af54e3` and `0fb93bc`. The cleanup preserves upstream's stronger
+`Replay.replayFromImports` lifetime fix: module-region handles are projected
+before `Environment.freeRegions`, avoiding dangling references during deferred
+decrements. The original primitive patch's historical `checkPrimitiveDef` was
+superseded by upstream's extracted typed local-probe clauses, so its obsolete
+wrapper edits are not mechanically reintroduced. The candidate retains the
+actual current Nat.add checker and adds the original recurrence/evaluation and
+reflection contract as `VEnv.NatAddSpec`, with direct proof-body audits and
+negative/positive lambda-domain controls.
+
+The Nat.add compatibility fixture validates literal evaluation and reflection
+from the two open equations, while `tests/Primitive.lean` checks that equation
+wrappers use well-typed lambda binders and reject forall-shaped or wrong-domain
+wrappers. The stronger current primitive clause proof remains the source of
+recognizer preservation; the compatibility contract is not a new admission-free
+kernel theorem. Its arithmetic proof inherits the existing `sorryAx`/classical
+typing baseline, which is recorded rather than hidden. All prior level,
+environment, frontend, quotient, and primitive fixtures continue to pass. The
+rebase is clean at deliberate break 15 of 327, before the primitive-frontend
+connection replay; final integration and publication remain unfinished.
+
 ### Upstream contributions
 
 After the initial rebase passes its full validation, submit one coherent,
