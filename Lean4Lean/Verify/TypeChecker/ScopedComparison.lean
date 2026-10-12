@@ -341,4 +341,169 @@ theorem isDefEqUnitLike.scopeWF {context : VContext} {state : VState}
     cases rejected
     cases accepted
 
+theorem isDefEqArgs.scopeWF {context : VContext} {state : VState}
+    (heads : ∃ firstHead, context.TrExprS first.getAppFn firstHead ∧
+      ∃ secondHead, context.TrExprS second.getAppFn secondHead ∧ context.IsDefEqU firstHead secondHead)
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (isDefEqArgs first second).ScopeWF context state
+      (fun equal _ => equal → context.IsDefEqU firstSemantic secondSemantic) := by
+  unfold isDefEqArgs
+  split <;> unfold Expr.getAppFn at heads
+  · let .app firstFunctionType firstArgumentType firstFunction firstArgument := firstTranslation
+    let .app _ _ secondFunction secondArgument := secondTranslation
+    refine (isDefEq.scopeWF firstArgument secondArgument).bind fun _ _ _ argumentsEqual => ?_
+    extract_lets remaining
+    split <;> [exact RecM.ScopeWF.pure nofun; rename_i accepted]
+    refine (isDefEqArgs.scopeWF heads firstFunction secondFunction).mono
+      fun _ _ _ functionsEqual equal => ?_
+    simp at accepted
+    exact ⟨_, .appDF ((functionsEqual equal).of_l context.Ewf context.Δwf firstFunctionType)
+      ((argumentsEqual accepted).of_l context.Ewf context.Δwf firstArgumentType)⟩
+  · exact RecM.ScopeWF.pure nofun
+  · exact RecM.ScopeWF.pure nofun
+  · refine RecM.ScopeWF.pure fun _ => ?_
+    simp_all
+    obtain ⟨_, firstHeadTranslation, _, secondHeadTranslation, equality⟩ := heads
+    have firstEquality := firstTranslation.uniq context.Ewf (.refl context.Ewf context.Δwf)
+      firstHeadTranslation
+    have secondEquality := secondTranslation.uniq context.Ewf (.refl context.Ewf context.Δwf)
+      secondHeadTranslation
+    exact firstEquality.trans context.Ewf context.Δwf equality
+      |>.trans context.Ewf context.Δwf secondEquality.symm
+
+theorem tryEtaExpansionCore.scopeWF {context : VContext} {state : VState}
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (tryEtaExpansionCore first second).ScopeWF context state
+      (fun equal _ => equal → context.IsDefEqU firstSemantic secondSemantic) := by
+  unfold tryEtaExpansionCore
+  split <;> [skip; exact RecM.ScopeWF.pure nofun]
+  refine (inferType.scopeWF_of_translation secondTranslation).bind
+    fun _ _ _ ⟨_, _, source, typeTranslation, typing⟩ => ?_
+  refine (whnf.scopeWF typeTranslation).bind
+    fun _ _ _ ⟨_, ⟨_, normalizedTranslation, normalization⟩, _⟩ => ?_
+  split <;> [skip; exact RecM.ScopeWF.pure nofun]
+  let .forallE (ty' := domainSemantic) domainType domainTranslation bodyType _ := normalizedTranslation
+  replace typing := typing.defeqU_r context.Ewf context.Δwf normalization.symm
+  refine (isDefEq.scopeWF firstTranslation (.lam domainType bodyType (.app
+    (typing.weak context.Ewf) (.bvar .zero)
+    (Expr.liftLooseBVars_eq_self (context.mlctx.noBV ▸ source.closed).looseBVarRange_le ▸
+      source.weakBV context.Ewf (.skip (.vlam domainSemantic) .refl)) (.bvar rfl)))).mono
+    fun _ _ _ compared accepted => ?_
+  exact (compared accepted).trans context.Ewf context.Δwf ⟨_, .eta typing⟩
+
+theorem tryEtaExpansion.scopeWF {context : VContext} {state : VState}
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (tryEtaExpansion first second).ScopeWF context state
+      (fun equal _ => equal → context.IsDefEqU firstSemantic secondSemantic) := by
+  simp [tryEtaExpansion, orM, toBool]
+  refine (tryEtaExpansionCore.scopeWF firstTranslation secondTranslation).bind
+    fun _ _ _ compared => ?_
+  split <;> [exact RecM.ScopeWF.pure fun _ => compared rfl; skip]
+  exact (tryEtaExpansionCore.scopeWF secondTranslation firstTranslation).mono
+    fun _ _ _ compared accepted => (compared accepted).symm
+
+theorem isDefEqApp.scopeWF {context : VContext} {state : VState}
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (isDefEqApp first second).ScopeWF context state
+      (fun equal _ => equal → context.IsDefEqU firstSemantic secondSemantic) := by
+  unfold isDefEqApp
+  extract_lets applicationWorker
+  split <;> [refine RecM.ScopeWF.pureBind ?_; exact RecM.ScopeWF.pure nofun]
+  unfold applicationWorker
+  rw [Expr.withApp_eq, Expr.withApp_eq]
+  split <;> [rename_i sameArity; exact RecM.ScopeWF.pure nofun]
+  obtain ⟨_, firstStack⟩ := AppStack.build (first.mkAppList_getAppArgsList ▸ firstTranslation)
+  obtain ⟨_, secondStack⟩ := AppStack.build (second.mkAppList_getAppArgsList ▸ secondTranslation)
+  refine (isDefEq.scopeWF firstStack.tr secondStack.tr).bind fun _ _ _ headsEqual => ?_
+  extract_lets argumentWorker
+  split <;> [refine RecM.ScopeWF.pureBind ?_; exact RecM.ScopeWF.pure nofun]
+  unfold argumentWorker
+  let rec loop.scopeWF {state argumentsFirst argumentsSecond functionFirst functionSecond
+      semanticFirst semanticSecond sameArity index} (prefixFirst suffixFirst prefixSecond suffixSecond)
+      (firstArguments : argumentsFirst.toList = prefixFirst ++ suffixFirst)
+      (firstIndex : prefixFirst.length = index)
+      (secondArguments : argumentsSecond.toList = prefixSecond ++ suffixSecond)
+      (secondIndex : prefixSecond.length = index)
+      (firstStack : AppStack context.venv context.lparams context.vlctx
+        (.mkAppList functionFirst prefixFirst) semanticFirst suffixFirst)
+      (secondStack : AppStack context.venv context.lparams context.vlctx
+        (.mkAppList functionSecond prefixSecond) semanticSecond suffixSecond)
+      (headsEqual : context.IsDefEqU semanticFirst semanticSecond) :
+      (loop argumentsFirst argumentsSecond sameArity index).ScopeWF context state
+        (fun equal _ => equal → ∀ firstSemantic,
+          context.TrExprS (functionFirst.mkAppList argumentsFirst.toList) firstSemantic →
+          ∀ secondSemantic, context.TrExprS (functionSecond.mkAppList argumentsSecond.toList)
+            secondSemantic → context.IsDefEqU firstSemantic secondSemantic) := by
+    unfold loop
+    split <;> rename_i inRange
+    · have firstNonempty : suffixFirst.length > 0 := by
+        simp [← Array.length_toList, firstArguments] at inRange
+        omega
+      have secondNonempty : suffixSecond.length > 0 := by
+        simp [sameArity, ← Array.length_toList, secondArguments] at inRange
+        omega
+      let .app (a := firstArgument) (as := suffixFirst) firstFunctionType firstArgumentType
+        _ firstArgumentTranslation firstRemaining := firstStack
+      let .app (a := secondArgument) (as := suffixSecond) _ _
+        _ secondArgumentTranslation secondRemaining := secondStack
+      simp [show argumentsFirst[index] = firstArgument by
+          cases argumentsFirst; cases firstArguments; simp [firstIndex],
+        show argumentsSecond[index] = secondArgument by
+          cases argumentsSecond; cases secondArguments; simp [secondIndex]]
+      refine (isDefEq.scopeWF firstArgumentTranslation secondArgumentTranslation).bind
+        fun _ _ _ argumentsEqual => ?_
+      split <;> [skip; exact RecM.ScopeWF.pure nofun]
+      have applicationEquality := (headsEqual.of_l context.Ewf context.Δwf firstFunctionType).appDF
+        ((argumentsEqual ‹_›).of_l context.Ewf context.Δwf firstArgumentType)
+      exact loop.scopeWF (prefixFirst ++ [firstArgument]) suffixFirst
+        (prefixSecond ++ [secondArgument]) suffixSecond
+        (by simp [firstArguments]) (by simp [firstIndex])
+        (by simp [secondArguments]) (by simp [secondIndex])
+        (by simp [firstRemaining]) (by simp [secondRemaining]) ⟨_, applicationEquality⟩
+    · have firstEmpty : suffixFirst.length = 0 := by
+        simp [← Array.length_toList, firstArguments] at inRange
+        omega
+      have secondEmpty : suffixSecond.length = 0 := by
+        simp [sameArity, ← Array.length_toList, secondArguments] at inRange
+        omega
+      simp at firstEmpty secondEmpty
+      subst suffixFirst suffixSecond
+      simp at firstArguments secondArguments
+      subst prefixFirst prefixSecond
+      refine RecM.ScopeWF.pure fun _ _ firstTranslation _ secondTranslation => ?_
+      have firstEquality := firstTranslation.uniq context.Ewf (.refl context.Ewf context.Δwf) firstStack.tr
+      have secondEquality := secondTranslation.uniq context.Ewf (.refl context.Ewf context.Δwf) secondStack.tr
+      exact firstEquality.trans context.Ewf context.Δwf headsEqual
+        |>.trans context.Ewf context.Δwf secondEquality.symm
+  refine (loop.scopeWF [] _ [] _ (index := 0) (by simp [Expr.getAppArgs_toList]) rfl
+    (by simp [Expr.getAppArgs_toList]) rfl firstStack secondStack (headsEqual ‹_›)).mono
+    fun _ _ _ compared accepted => ?_
+  simp [Expr.getAppArgs_toList, Expr.mkAppList_getAppArgsList] at compared
+  exact compared accepted _ firstTranslation _ secondTranslation
+
+theorem isDefEqProofIrrel.scopeWF {context : VContext} {state : VState}
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (isDefEqProofIrrel first second).ScopeWF context state
+      (fun equal _ => equal = .true → context.IsDefEqU firstSemantic secondSemantic) := by
+  unfold isDefEqProofIrrel
+  refine (inferType.scopeWF_of_translation firstTranslation).bind
+    fun _ _ _ ⟨_, _, _, firstTypeTranslation, firstTyping⟩ => ?_
+  extract_lets proofWorker
+  refine (isProp.scopeWF firstTypeTranslation).bind fun _ _ _ proposition => ?_
+  split <;> [exact RecM.ScopeWF.pure nofun; refine RecM.ScopeWF.pureBind ?_]
+  unfold proofWorker
+  rename_i accepted
+  simp at accepted
+  refine (inferType.scopeWF_of_translation secondTranslation).bind
+    fun _ _ _ ⟨_, _, _, secondTypeTranslation, secondTyping⟩ => ?_
+  refine RecM.ScopeWF.toLBoolM <| (isDefEq.scopeWF firstTypeTranslation secondTypeTranslation).mono
+    fun _ _ _ compared equal => ?_
+  exact ⟨_, .proofIrrel (proposition accepted) firstTyping
+    (secondTyping.defeqU_r context.Ewf context.Δwf (compared equal).symm)⟩
+
 end Lean4Lean.TypeChecker.Inner

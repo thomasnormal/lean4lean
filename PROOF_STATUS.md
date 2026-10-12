@@ -211,7 +211,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   and is removed. Concrete zero/one/two-dependent-parameter and nonzero-offset
   fixtures instantiate the replacement contract, permit unused metavariables
   outside the consumed prefix, and reject metavariable translations. The fixture
-  audits both scoped inference/WHNF modules (327 owned declarations) against the
+  audits both scoped inference/WHNF modules (329 owned declarations) against the
   existing semantic/native axiom baselines with no owned axioms. This does not
   close semantic constructor-header transport or the field loop. Projection
   rejection in the currently supported environment fragment is proved below.
@@ -357,7 +357,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   cache-preserving short circuit, lambda/forall dispatch, sort equivalence,
   metadata recursion, literal comparison, untranslated metavariable exclusion,
   and undefined fallback. The equivalence-manager update leaves scoped WHNF
-  caches unchanged. The dedicated fixture exhaustively audits 74 owned
+  caches unchanged. The dedicated fixture exhaustively audits 111 owned
   declarations for direct admissions/axioms against the existing semantic
   lambda/forall/quick-comparison/normalization and native baselines. It also checks generic
   telescope, empty-substitution, quick-comparison, and three-valued contracts,
@@ -367,7 +367,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   both hash modes. Domain aliases/mismatches, dependent/unused/nested binders,
   body mismatches, sorts/literals/metadata, poisoned caches, and zero-fuel
   boundaries are covered. These workers still require `Methods.ScopeWF`;
-  argument/function-eta/proof/lazy-delta workers,
+  lazy-delta/string-expansion workers,
   the actual `isDefEqCore'` dispatcher, arbitrary-fuel scoped methods, and full
   frontend closure remain open.
 - `TrEnv'.constructorLookupRejected`, `TrEnv.constructorLookupRejected`, and
@@ -395,9 +395,34 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   its inherited lookup assumptions are not new axioms. This does not prove
   successful inductive structure eta or unit-like semantics: actual checked
   inductive registration will invalidate the rejection argument and require the
-  genuine constructor/field transport. Remaining function-eta/argument/proof/
-  lazy-delta scoped workers, arbitrary-fuel methods, semantic WHNF completeness,
+  genuine constructor/field transport. Remaining lazy-delta/string-expansion
+  scoped workers, arbitrary-fuel methods, semantic WHNF completeness,
   and the full frontend theorem remain open.
+- `Inner.inferType.scopeWF_of_translation` aligns the scoped inference result
+  with the caller's existing semantic expression through translation uniqueness,
+  retaining the complete typing/cache contract. `Inner.isDefEqArgs.scopeWF`
+  follows the actual reverse argument traversal under the original explicit
+  head-equality premise. `Inner.isDefEqApp.scopeWF` frames the head comparison,
+  arity guard, and forward argument loop with a translated application-stack
+  invariant. `Inner.tryEtaExpansionCore.scopeWF` transports the inferred,
+  normalized dependent function type and the synthesized lambda, then closes the
+  semantic eta conversion. `Inner.tryEtaExpansion.scopeWF` handles both
+  orientations and the actual short circuit. `Inner.isDefEqProofIrrel.scopeWF`
+  combines proposition inference with the compared operand types, preserving
+  true/false/undefined results and both scoped WHNF caches. The auxiliary fixture
+  audits all 274 declarations in scoped inference/comparison against the
+  original semantic worker/native baselines without direct admissions or axioms.
+  Its 512 actual cold/warm argument/application/function-eta controls and 96
+  three-valued proof controls cover both safeties/eager modes, fuels 32/128,
+  dependent functions, head aliases/mismatches, arity/argument mismatches,
+  symmetric eta, normalized proposition aliases, zero-fuel guard/callback
+  boundaries, and poisoned caches. Raw
+  argument controls intentionally return true for unequal heads to keep that
+  theorem premise explicit; they are not checker discrepancies. These are
+  worker contracts under the existing `Methods.ScopeWF`, not an arbitrary-fuel
+  method instance. Lazy-delta/string-expansion frames, the actual `isDefEqCore'`
+  dispatcher, arbitrary-fuel scoped methods, semantic WHNF completeness, and
+  unrestricted frontend closure remain open.
 - `Inner.inferType'.scopeWF` proves the actual recursive inference dispatcher in
   checking and infer-only modes under the existing scoped method callbacks.
   Its premises mirror `inferType'.WF`: free-variable membership and, only in
@@ -407,7 +432,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   metavariable rejection, sorts, constants, lambda/forall/application/let workers,
   checked applications, ordinary/eager comparison, and mismatch errors. Inference
   cache insertion preserves both scoped WHNF caches unchanged. The scoped fixture
-  checks eight generic/mode/metadata/application/let contracts and audits all 327
+  checks eight generic/mode/metadata/application/let contracts and audits all 329
   owned scoped inference/WHNF declarations for direct proof admissions and axioms
   against the original semantic lambda/forall/dispatcher/WHNF and native baselines.
   The native inference-head fixture also passes its cold/warm cache controls in

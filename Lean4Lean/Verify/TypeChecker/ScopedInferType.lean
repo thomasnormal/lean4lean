@@ -238,6 +238,15 @@ theorem inferType.scopeWF {context : VContext} {state : VState}
   change (methods.inferType expression inferOnly).ScopeWF context state _
   exact callbacks.inferType freeVariables translated
 
+theorem inferType.scopeWF_of_translation {context : VContext} {state : VState}
+    (translated : context.TrExprS expression semantic) :
+    (inferType expression true).ScopeWF context state fun type _ =>
+      ∃ semanticType, context.TrTyping expression type semantic semanticType := by
+  refine (inferType.scopeWF translated.fvarsIn (fun _ => ⟨_, translated⟩)).mono
+    fun _ _ _ ⟨_, _, below, source, typeTranslation, typing⟩ => ?_
+  exact ⟨_, below, translated, typeTranslation, typing.defeqU_l context.Ewf context.Δwf
+    (source.uniq context.Ewf (.refl context.Ewf context.Δwf) translated)⟩
+
 theorem checkType.scopeWF {context : VContext} {state : VState}
     (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars)) :
     (inferType expression false).ScopeWF context state fun type _ =>
