@@ -318,6 +318,41 @@ theorem inferConstant.scopeWF {context : VContext} {state : VState}
     (liftM (inferConstant context.toContext name levels inferOnly)) _
   exact RecM.ScopeWF.liftExcept (inferConstant.WF validLevels validInference)
 
+theorem isProp.scopeWF {context : VContext} {state : VState}
+    (translated : context.TrExprS expression semantic) :
+    (isProp expression).ScopeWF context state
+      (fun result _ => result → context.HasType semantic (.sort .zero)) := by
+  unfold isProp
+  refine (inferType.scopeWF translated.fvarsIn (fun _ => ⟨_, translated⟩)).bind
+    fun type _ _ typeResult => ?_
+  obtain ⟨_, _, typing⟩ := typeResult
+  obtain ⟨_, expressionTranslation, typeTranslation, typing⟩ := typing
+  have expressionEquality := expressionTranslation.uniq context.Ewf
+    (.refl context.Ewf context.Δwf) translated
+  refine (Inner.whnf.scopeWF typeTranslation).bind
+    fun normalized _ _ normalizedResult => ?_
+  obtain ⟨_, normalizedTranslation, _⟩ := normalizedResult
+  by_cases proposition : normalized == Expr.prop
+  · have normalizedEq : normalized = .sort .zero := by
+      simpa [Expr.prop, Expr.eqv_sort] using proposition
+    subst normalized
+    have proposition : (Expr.sort .zero == Expr.prop) = true := by
+      simp [Expr.prop, Expr.eqv_sort]
+    rw [proposition]
+    exact RecM.ScopeWF.pure fun equal => by
+      cases equal
+      obtain ⟨_, source, equality⟩ := normalizedTranslation
+      cases source with
+      | sort level =>
+        simp [VLevel.ofLevel] at *
+        cases level
+        exact (typing.defeqU_l context.Ewf context.Δwf expressionEquality).defeqU_r
+          context.Ewf context.Δwf equality.symm
+  · have proposition : (normalized == Expr.prop) = false := by
+      cases h : normalized == Expr.prop <;> simp_all
+    rw [proposition]
+    exact RecM.ScopeWF.pure nofun
+
 theorem inferLambda.loop.scopeWF {context : VContext} {state : VState}
     {initialExpression : Expr} {locals : MLCtx} [localsWF : context.MLCWF locals]
     {binderCount : Nat} (countBound : binderCount ≤ locals.length)
