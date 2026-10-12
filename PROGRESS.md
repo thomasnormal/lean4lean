@@ -36,7 +36,7 @@ themselves satisfy any of these goals.
 | Verify actual checked inductive registration | **Not complete.** Header/constructor checks and staging invariants are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, and prelude translation. |
 | Complete confluence and semantic reduction correctness | **Partial progress:** `7682b23` removes the constant-case confluence admission; `c0f9930` repairs the incompatible quotient-equation premise. | Confluence and related semantic obligations remain open. | Application/extra confluence, injectivity/strengthening, genuine projection semantics, and `reduceRecursor.WF`. |
 | Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
-| Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Behavior on its newer toolchain has not been tested. | Do not generalize the finding to other Lean versions or claim it proves logical unsoundness. |
+| Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Native Lean 4.33.0-rc2 rejects this exact source constructor with `declHasFVars`, now regression-tested. | Version-bounded validation result, not a current native bug or a proof of logical unsoundness. |
 
 Comparison anchors: our `poc-verified-noninductive` source at
 `55b7b4dd061f580c88d8552315f350f866f0501f` (2026-10-12), and official
@@ -95,7 +95,7 @@ maintenance. Particularly relevant:
 
 Except for the explicitly noted substitution port, these are candidates for
 targeted comparison, not evidence their changes are present here. No merge, rebase, cherry-pick, or
-toolchain upgrade was performed for this status review. Review overlapping
+toolchain upgrade was performed for the published branch. Review overlapping
 proofs before duplicating them; a wholesale integration needs compatibility
 work because our checker and toolchain have diverged.
 
@@ -117,6 +117,29 @@ tip-to-tip merge preview reports conflicts across core checker and proof files;
 it is not evidence of a completed rebase. Preserve both upstream correctness
 fixes and this fork's verified contracts when resolving the integration.
 
+An actual rebase is now **in progress in an isolated detached worktree**, based
+on the same official tip. The published branch remains unchanged by that rebase.
+The integrated level layer passes its focused build on Lean 4.33.0-rc2; resolved
+environment translation/alignment layers and runtime environment also pass
+their focused builds. Integration preserves upstream's body-before-primitive
+checks, mutual-block model, and theorem-as-Prop-constant semantics. The declaration
+frontend replay remains unresolved: overlapping proof APIs and arbitrary-fuel
+contracts still need reconciliation. There is **no full candidate build or
+completed rebase**, and these maintenance checks remove no semantic admission.
+
+### Upstream contributions
+
+After the initial rebase passes its full validation, submit one coherent,
+reviewable proof or correctness fix upstream when it is ready; batch small
+dependent changes. Re-check official master, build on its current toolchain,
+include regression and transitive-axiom evidence, and keep fork-only status
+documents out of the PR. No PR has been opened for this integration checkpoint.
+
+First evaluate the closed quotient-equation pattern repair and the constant-case
+confluence proof. Do not submit the substitution port: it already came from
+upstream. Reassess the source-preflight contribution against upstream's own
+checks; the tested native capture input is already rejected by Lean 4.33.0-rc2.
+
 ## Behavioral differences and findings
 
 Our executable includes a restricted verified frontend, additional primitive
@@ -127,8 +150,9 @@ part of the unfinished work, not a completed optimization decision.
 
 [bugs-found.md](bugs-found.md) documents a native inductive source-variable
 capture reproducer on **Lean 4.29.0**. This is an input-validation bug, not a
-demonstration of logical unsoundness. Its status on upstream's newer toolchain
-has not been tested, and no upstream report has been submitted. The quotient
+demonstration of logical unsoundness. Native Lean **4.33.0-rc2 rejects this exact
+input**, as checked by `tests/NativeInductiveSourceRejection433.lean`; no upstream
+report has been submitted. The quotient
 equation-pattern and native-instantiation repairs are specification mismatches,
 not additional native kernel bugs. See [divergences.md](divergences.md) for the
 precise boundaries and reproducers.
@@ -141,7 +165,9 @@ Ten focused fixtures also pass without warnings: `StrongSubstitution`,
 `ConfluenceConstantReduction`, `NonInductiveDeclarationFrontend`, `Environment`,
 `QuotientReductionAlignment`, `QuotientReductionSemantics`, and
 `PrimitiveInductiveReceipt`. These fixtures are run separately from the default
-build. This review did not build upstream with its different toolchain.
+build. These receipts describe the published source, not the partially rebased
+candidate. Candidate focused builds and the version-specific native test above
+are separate integration evidence, not a full build of upstream or the candidate.
 
 | Whole-word `sorry` source census under `Lean4Lean/` | Our fork | Upstream |
 | --- | --- | --- |
@@ -158,8 +184,10 @@ dependency is the more important signal.
 
 ## Next priorities
 
-1. Review and selectively port valuable upstream fixes and proofs, especially
-   metadata comparison, K-target computation, substitution, and primitive work.
+1. Finish the actual upstream rebase, preserve verified contracts and upstream
+   fixes, validate it, and publish only with the required explicit lease permission.
+   Then submit focused, validated upstream contributions rather than rebuilding
+   a large divergent patch stack.
 2. Close semantic dependencies: the remaining application/extra confluence
    case, non-circular typing/injectivity foundations, genuine `TrProj`, and
    quotient/inductive `reduceRecursor.WF`.
