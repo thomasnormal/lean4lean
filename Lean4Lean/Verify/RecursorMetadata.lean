@@ -130,13 +130,13 @@ theorem declareRecursors.metadata (stats : InductiveStats) (types : Array Induct
       have hbound : index < types.size := by simpa using hindex
       apply stateBindResultWF
       intro rules nextState hsource
-      refine Lean4Lean.AddInductive.stateExceptBindWF (Lean4Lean.checkName.WF env
+      refine Lean4Lean.AddInductive.stateExceptBindWF (Lean4Lean.checkName.WF henv
         (mkRecName types[index].name) ctx.allowPrimitive) ?_
       rintro _ ⟨hfresh, _⟩
       let record := metadataVal stats types elimLevel infos lparams lctx isK isUnsafe index rules
       have hfreshRecord : env.constants.find? (ConstantInfo.recInfo record).name = none := by
-        simpa only [record, metadataVal, ConstantInfo.name, ConstantInfo.toConstantVal,
-          getElem!_pos, hbound] using hfresh
+        simpa only [Kernel.Environment.find?, henv.find?'_eq_find?, record, metadataVal,
+          ConstantInfo.name, ConstantInfo.toConstantVal, getElem!_pos, hbound] using hfresh
       obtain ⟨hnext, hself, hkeep⟩ :=
         Lean4Lean.AddInductive.addFresh env (.recInfo record) henv hfreshRecord
       refine .pure ⟨_, rfl, ?_, ?_, rules, state, nextState, hsource, ?_⟩
