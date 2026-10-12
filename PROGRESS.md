@@ -119,13 +119,22 @@ fixes and this fork's verified contracts when resolving the integration.
 
 An actual rebase is now **in progress in an isolated detached worktree**, based
 on the same official tip. The published branch remains unchanged by that rebase.
-The integrated level layer passes its focused build on Lean 4.33.0-rc2; resolved
-environment translation/alignment layers and runtime environment also pass
-their focused builds. Integration preserves upstream's body-before-primitive
-checks, mutual-block model, and theorem-as-Prop-constant semantics. The declaration
-frontend replay remains unresolved: overlapping proof APIs and arbitrary-fuel
-contracts still need reconciliation. There is **no full candidate build or
-completed rebase**, and these maintenance checks remove no semantic admission.
+The first environment/frontend replay is now reconciled at detached checkpoint
+`c83d6b01209f9320fed46d11cc1e187a8c84219e`. It retains upstream's
+body-before-primitive checks, mutual-block model, and theorem-as-Prop-constant
+semantics while recovering this fork's **actual non-inductive, arbitrary-fuel,
+batch, and empty-environment contracts**. The empty-model proof also accounts for
+upstream's stage-2 constant map instead of changing runtime defaults.
+
+That intermediate checkpoint passes **all default targets on Lean 4.33.0-rc2**
+(161 jobs), a 20-theorem direct-admission/dependency audit, and three actual
+checked runtime pipelines using different fuel configurations. The audit excludes
+dependency on the admitted whole `addDecl.WF` theorem, but still inherits
+`sorryAx` and the existing checker/native-interface axioms. No semantic admission
+has been removed by this integration. The remaining fork commits are **not yet
+replayed**: a green intermediate checkpoint is **not a completed rebase or
+validation of the final branch**. The live rebase stops cleanly before the next
+safe-definition replay so each bounded item can be journaled first.
 
 ### Upstream contributions
 

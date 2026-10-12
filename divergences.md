@@ -432,3 +432,23 @@ bridges admit only the existing
 general/reverse instantiation interfaces. Existing typing admissions, remaining
 native implementation bridges and full inductive frontend correctness remain
 separate obligations.
+
+## Upstream empty-environment stage compatibility (2026-10-12)
+
+During the local rebase onto official `67f63b0`, the existing empty translation
+constructor described only the default `SMap` stage-1 map, but upstream's actual
+`Kernel.Environment.empty` defaults to an empty stage-2 map. Both maps have no
+constants; their stage flag determines which storage receives later insertions.
+Merely changing the checker proof's fuel parameter does not restore the fork's
+empty-environment semantic contract across this difference.
+
+The isolated, validated replay checkpoint `c83d6b0` generalizes the empty
+`TrEnv'` and alignment constructors over the stage flag, proves empty lookup and
+well-formedness for both storage stages, and derives `VEnvs.WF.empty` for the
+actual upstream default. This is a translation-domain compatibility repair,
+**not a native kernel bug or a runtime acceptance change**. It does not switch
+upstream to stage 1, add an axiom, or claim inductive registration is verified.
+The actual non-inductive batch/from-empty proofs compile and pass their direct
+admission/dependency audit on Lean 4.33.0-rc2, with inherited checker admissions
+and native interfaces still present. This checkpoint is unpublished; the full
+rebase and final integration validation remain unfinished.
