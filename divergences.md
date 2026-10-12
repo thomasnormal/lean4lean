@@ -20,6 +20,38 @@ This is a list of places where lean4lean deliberately has different behavior fro
 * [`Lean4Lean.addDefinition`](Lean4Lean/Environment.lean) (`unsafe` branch), [`addMutual`](Lean4Lean/Environment.lean): an `unsafe`/`partial` definition may be recursive, so its body is checked in an environment that already contains the declaration. The C++ kernel adds `constant_info(d)` there -- the full definition, value included -- so the body can delta-unfold the very constant being defined. Lean4lean adds it as an axiom of the same type instead: the body may still *refer* to the block's constants, but cannot unfold them. So for example `unsafe def foo : Nat := (fun (_ : foo = 1) => 1) rfl` is accepted by the C++ kernel, but rejected by L4L: checking the argument requires `foo =?= 1`, which succeeds by unfolding `foo` to its own body and reducing. Read literally, that rule makes a typing fact about the constant available while establishing it, and implementing this in `IsDefEq` directly degenerates completely, allowing even things like `unsafe def bar : Nat := "hi"` by using the typing judgment to justify itself. The gap is confined to `unsafe`/`partial` code, which carries no logical content.
 * [`Lean4Lean.addMutual`](Lean4Lean/Environment.lean): lean4lean requires the declarations of a mutual block to carry the same universe parameters and to have distinct names. Both checks are in kernel PRs that are not yet released ([leanprover/lean4#14608](https://github.com/leanprover/lean4/pull/14608), [#14632](https://github.com/leanprover/lean4/pull/14632)); the released kernel checks only that the safety annotations agree. Lean4lean needs them rather than merely matching them: the block is checked under a single `M.run`, whose level parameters are fixed for the whole run, and the model adds the block's constants one at a time with `VEnv.addConsts`, which fails on a repeated name.
 
+## Closed quotient equation pattern boundary (repaired 2026-10-12)
+
+The former `Theory.Typing.ChurchRosser.Params.extra_pat` specification required
+every instantiated registered definitional equation to match a reduction pattern
+at its root. `Pattern.Matches` only has constant/application cases, but the
+actual `quotDefEq.lhs` is a six-lambda abstraction. Instantiating universe levels
+preserves that outer lambda. `quotDefEq.not_matches` proves this obstruction for
+every pattern and level instance, so the old premise excluded environments
+registering the quotient equation even if all confluence admissions were closed.
+This is a verification-specification mismatch, not a native kernel discrepancy.
+
+`Pattern.Equation` now permits a guarded registered root reduction under shared
+lambda binders. `Pattern.Equation.of_root` converts the exact former certificate,
+so existing root rules retain their proof contract. Its `parRed` theorem derives
+the actual parallel reduction using the existing rule and lambda constructors,
+without borrowing the admitted confluence theorem. The real extra-equation case
+of `IsDefEq.church_rosser` consumes the generalized certificate.
+
+`Theory.Typing.QuotPattern` derives this certificate for the unchanged actual
+quotient equation at arbitrary universe instances. Its `Quot.lift`/`Quot.mk`
+pattern retains domain and relation equality checks; the six shared binders
+supply both guards through real bound-variable typing. The equation/result
+representation and those proofs have no inherited metatheory admissions.
+Run `lake env lean tests/QuotientPatternEquation.lean` for the old root-match
+negative, legacy compatibility, concrete and generic universe instances, guarded
+quotient certificate, actual parallel-reduction contract and dependency audits.
+
+This does not prove arbitrary quotient redex soundness, construct a full quotient
+`Params` instance, close the remaining application/extra confluence admission,
+resolve injectivity or establish `reduceRecursor.WF`. The actual type checker,
+quotient registration worker and accepted declaration fragment are unchanged.
+
 ## Header parameter-normalization boundary (resolved 2026-10-08)
 
 `AddInductive.checkInductiveTypes` weak-head normalizes a datatype's source type

@@ -5,6 +5,20 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 ## What is proved
 
+- `Pattern.Equation` represents guarded registered pattern reductions under
+  lambda binders. `Pattern.Equation.of_root` preserves the old root-pattern
+  certificate, while `Pattern.Equation.parRed` derives the corresponding actual
+  parallel reduction without using admitted confluence. `Params.extra_pat`
+  now accepts these certificates and the real `IsDefEq.church_rosser` extra-rule
+  case consumes them. `quotDefEq.not_matches` proves that the former root-only
+  premise excluded the actual six-lambda quotient equation at every universe
+  instance. `Theory.Typing.QuotPattern` supplies its simple quotient-lift pattern,
+  parameter-equality guards, result expression, and an admission-free certificate
+  deriving those guards from the equation's bound variables. The fixture audits
+  the structural proofs, legacy compatibility, and reduction-bridge dependencies.
+  This repairs the closed-equation representation, not full quotient pattern
+  soundness, a concrete quotient `Params` instance, general confluence,
+  injectivity, or the checker callback's arbitrary-parameter alignment.
 - `NormalEq.parRed_constDF` proves the constant case of parallel reduction
   modulo universe conversion, including registered extra-reduction rules and
   their nontrivial equality checks. `EqUpToLevels.instL_of_levels` and
