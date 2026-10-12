@@ -136,15 +136,40 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   delta helpers preserve the actual scoped caches and name generator.
   `Methods.ScopeWF` retains the original semantic contract and adds scoped
   cache preservation at its typed four-method boundaries. Its actual zero-fuel
-  instance is proved; the stronger arbitrary-fuel induction and worker recursor
-  cache frames remain open. The inference dispatcher and comparison frames below
-  still consume scoped method callbacks. Worker recursor cache
-  frames are explicit premises, not silently assumed implementing results.
+  instance is proved; the stronger arbitrary-fuel induction remains open. The
+  inference dispatcher and comparison frames below still consume scoped method
+  callbacks. The recursor cache frame is now proved below, and neither normalizer
+  worker requires an independent recursor-frame premise.
   These model-aware proofs inherit the pre-existing checker/metatheory and
   representation dependencies of `whnf'.WF`; the separate native scope module
   remains audited without checker/metatheory admissions. No new admission or
   axiom is added. Neither the scoped-head invariant nor conversion preservation
   establishes semantic WHNF completeness or terminal-sort acceptance.
+- `TrEnv'.recursorLookupRejected`, `TrEnv.recursorLookupRejected`, and
+  `TrEnv.recursorNotInModel` extend the existing inductive-header exclusion to
+  recursor records by sharing a single inductive-family lookup invariant. The
+  invariant covers ordinary declarations, quotient registration, ignored unsafe
+  records, and the constructor-free `AddInduct` case. It does not prohibit native
+  recursor records: a fixture constructs a satisfiable ignored unsafe recursor.
+  `inductiveReduceRec.eq_none` derives the actual inductive reducer's `none`
+  result for any translated expression and arbitrary monadic callbacks, before
+  any major normalization, K/structure conversion, or rule expansion can run.
+  `quotReduceRec.scopeFrame` extracts the consumed major argument's translation
+  from the application stack and scopes the actual quotient normalization
+  callback. `Inner.reduceRecursor.scopeFrame` combines that frame with inductive
+  rejection for both quotient-initialization states and all cheap flags.
+  Consequently `whnfCore'.scopeWF` and `whnf'.scopeWF` no longer require a separate
+  recursor cache-frame hypothesis. Their semantic reduction dependencies,
+  including the existing `reduceRecursor.WF` admission, remain explicit. No new
+  admission or stronger caller premise is added. Checked inductive registration
+  will require replacing this fragment-specific rejection with actual recursor
+  semantics; arbitrary-fuel scoped comparison/method closure and the frontend
+  theorem remain open. The scoped WHNF fixture audits 166 owned declarations
+  without direct admissions or axioms and runs 896 actual core and 896 actual
+  full cold/warm scoped-cache controls, including quotient lift/induction, plus
+  32 string projection controls. Its quotient lift control independently
+  distinguishes the encoded numeral retained by core reduction from the native
+  literal produced by full normalization.
 - `TypeChecker.Inner.ensureSortCore.scopeWF` and
   `ensureForallCore.scopeWF` carry the scoped-head/cache invariant through the
   actual sort and forall checks, using the completed scoped WHNF contract and
@@ -186,7 +211,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   and is removed. Concrete zero/one/two-dependent-parameter and nonzero-offset
   fixtures instantiate the replacement contract, permit unused metavariables
   outside the consumed prefix, and reject metavariable translations. The fixture
-  audits both scoped inference/WHNF modules (321 owned declarations) against the
+  audits both scoped inference/WHNF modules (327 owned declarations) against the
   existing semantic/native axiom baselines with no owned axioms. This does not
   close semantic constructor-header transport or the field loop. Projection
   rejection in the currently supported environment fragment is proved below.
@@ -324,7 +349,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   metavariable rejection, sorts, constants, lambda/forall/application/let workers,
   checked applications, ordinary/eager comparison, and mismatch errors. Inference
   cache insertion preserves both scoped WHNF caches unchanged. The scoped fixture
-  checks eight generic/mode/metadata/application/let contracts and audits all 321
+  checks eight generic/mode/metadata/application/let contracts and audits all 327
   owned scoped inference/WHNF declarations for direct proof admissions and axioms
   against the original semantic lambda/forall/dispatcher/WHNF and native baselines.
   The native inference-head fixture also passes its cold/warm cache controls in

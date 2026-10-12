@@ -298,20 +298,24 @@ nonrec theorem TrEnv.of_value (H : TrEnv safety env venv) (h : env.find? name = 
     TrExpr venv ci.levelParams [] v (.const ci.name (VLevel.params ci.levelParams.length)) :=
   H.of_value (by rwa [← H.map_wf.find?'_eq_find?]) hs hci hv
 
+private def InductiveFamilyInfo : ConstantInfo → Prop
+  | .inductInfo _ | .ctorInfo _ | .recInfo _ => True
+  | _ => False
+
 private def InductiveLookupsRejected (safety : DefinitionSafety) (constants : ConstMap) : Prop :=
-  ∀ name header, constants.find? name = some (.inductInfo header) →
-    ¬safety ≤ (ConstantInfo.inductInfo header).safety
+  ∀ name information, constants.find? name = some information →
+    InductiveFamilyInfo information → ¬safety ≤ information.safety
 
 private theorem InductiveLookupsRejected.insert {constants : ConstMap} {information : ConstantInfo}
     (valid : constants.WF) (previous : InductiveLookupsRejected safety constants)
-    (inserted : ∀ header, information = .inductInfo header →
-      ¬safety ≤ (ConstantInfo.inductInfo header).safety) :
+    (inserted : InductiveFamilyInfo information → ¬safety ≤ information.safety) :
     InductiveLookupsRejected safety (constants.insert name information) := by
-  intro queried header found
+  intro queried queriedInformation found family
   rw [valid.find?_insert] at found
   split at found
-  · exact inserted header (Option.some.inj found)
-  · exact previous queried header found
+  · cases Option.some.inj found
+    exact inserted family
+  · exact previous queried queriedInformation found family
 
 private theorem InductiveLookupsRejected.addQuot1 {result : Prop}
     (continuation : ∀ constants environment, constants.WF →
@@ -321,7 +325,7 @@ private theorem InductiveLookupsRejected.addQuot1 {result : Prop}
     (added : AddQuot1 name kind semantic property constants environment) : result := by
   obtain ⟨levels, type, nextEnvironment, translated, fresh, installed, remaining⟩ := added
   exact continuation _ _ (valid.insert _ _ fresh)
-    (previous.insert valid (by intro header impossible; cases impossible)) remaining
+    (previous.insert valid (by intro impossible; cases impossible)) remaining
 
 private theorem InductiveLookupsRejected.addQuot
     (added : AddQuot initial final initialEnvironment finalEnvironment)
@@ -332,28 +336,34 @@ private theorem InductiveLookupsRejected.addQuot
   rintro _ _ _ rejected ⟨rfl, rfl⟩
   exact rejected
 
+private theorem TrEnv'.inductiveFamilyLookupsRejected
+    (valid : TrEnv' safety constants quotient environment) :
+    InductiveLookupsRejected safety constants := by
+  induction valid with
+  | empty => intro _ _ impossible; simp [SMap.find?] at impossible
+  | ignoreConst _ ignored previous inductionHypothesis =>
+    exact inductionHypothesis.insert previous.map_wf (fun _ => ignored)
+  | «axiom» _ _ _ _ previous inductionHypothesis
+  | defn _ _ _ _ previous inductionHypothesis
+  | thm _ _ _ _ previous inductionHypothesis
+  | «opaque» _ _ _ _ previous inductionHypothesis
+  | quotInfo _ _ _ _ previous inductionHypothesis =>
+    exact inductionHypothesis.insert previous.map_wf (by intro impossible; cases impossible)
+  | opaqueDefn _ _ _ _ _ previous inductionHypothesis =>
+    exact inductionHypothesis.insert previous.map_wf (by intro impossible; cases impossible)
+  | quot _ added previous inductionHypothesis =>
+    exact inductionHypothesis.addQuot added previous.map_wf
+  | induct _ impossible _ _ => cases impossible
+
 theorem TrEnv'.inductiveLookupRejected (valid : TrEnv' safety constants quotient environment)
     (found : constants.find? name = some (.inductInfo header)) :
-    ¬safety ≤ (ConstantInfo.inductInfo header).safety := by
-  have rejected : InductiveLookupsRejected safety constants := by
-    clear found
-    induction valid with
-    | empty => intro _ _ impossible; simp [SMap.find?] at impossible
-    | ignoreConst _ ignored previous inductionHypothesis =>
-      exact inductionHypothesis.insert previous.map_wf
-        (by intro _ same; exact same ▸ ignored)
-    | «axiom» _ _ _ _ previous inductionHypothesis
-    | defn _ _ _ _ previous inductionHypothesis
-    | thm _ _ _ _ previous inductionHypothesis
-    | «opaque» _ _ _ _ previous inductionHypothesis
-    | quotInfo _ _ _ _ previous inductionHypothesis =>
-      exact inductionHypothesis.insert previous.map_wf (by intro _ impossible; cases impossible)
-    | opaqueDefn _ _ _ _ _ previous inductionHypothesis =>
-      exact inductionHypothesis.insert previous.map_wf (by intro _ impossible; cases impossible)
-    | quot _ added previous inductionHypothesis =>
-      exact inductionHypothesis.addQuot added previous.map_wf
-    | induct _ impossible _ _ => cases impossible
-  exact rejected name header found
+    ¬safety ≤ (ConstantInfo.inductInfo header).safety :=
+  valid.inductiveFamilyLookupsRejected name _ found trivial
+
+theorem TrEnv'.recursorLookupRejected (valid : TrEnv' safety constants quotient environment)
+    (found : constants.find? name = some (.recInfo header)) :
+    ¬safety ≤ (ConstantInfo.recInfo header).safety :=
+  valid.inductiveFamilyLookupsRejected name _ found trivial
 
 theorem TrEnv.inductiveLookupRejected (valid : TrEnv safety native environment)
     (found : native.find? name = some (.inductInfo header)) :
@@ -366,3 +376,15 @@ theorem TrEnv.inductiveNotInModel (valid : TrEnv safety native environment)
     ¬environment.contains name := by
   rintro ⟨semantic, translated⟩
   exact valid.inductiveLookupRejected found (valid.find?_uniq found translated).2.1
+
+theorem TrEnv.recursorLookupRejected (valid : TrEnv safety native environment)
+    (found : native.find? name = some (.recInfo header)) :
+    ¬safety ≤ (ConstantInfo.recInfo header).safety :=
+  TrEnv'.recursorLookupRejected valid (name := name)
+    (by rwa [← valid.map_wf.find?'_eq_find?])
+
+theorem TrEnv.recursorNotInModel (valid : TrEnv safety native environment)
+    (found : native.find? name = some (.recInfo header)) :
+    ¬environment.contains name := by
+  rintro ⟨semantic, translated⟩
+  exact valid.recursorLookupRejected found (valid.find?_uniq found translated).2.1
