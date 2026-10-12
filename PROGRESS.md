@@ -27,10 +27,10 @@ when a semantic contract, trust boundary, or correctness obstruction changes.
 
 | Signal | Current evidence | Interpretation |
 | --- | --- | --- |
-| Upstream synchronization | rebased stack through `e4c7e47`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `347` branch-only | Rebase integration is complete locally; commit counts measure history, not verification progress. |
-| Semantic work completed in this rebase | Nested-inductive guard, recursive primitive abstraction, annotation peeling/length, local-context defeq/nodup, inductive stats continuation, projection, primitive-interface, ordinary-interface, staged-leaf, constructor-parameter, inductive-return-typing, and positivity/safe-constructor-spine compatibility proofs build on current upstream | These preserve existing theorem contracts while adapting to upstream APIs; they do not by themselves remove inherited trust. |
+| Upstream synchronization | rebased stack through `2f8dce0`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `349` branch-only | Rebase integration is complete locally; commit counts measure history, not verification progress. |
+| Semantic work completed in this rebase | Nested-inductive guard, recursive primitive abstraction, annotation peeling/length, local-context defeq/nodup, inductive stats continuation, projection, primitive-interface, ordinary-interface, staged-leaf, constructor-parameter, inductive-return-typing, positivity/safe-constructor-spine, and constructor-metadata compatibility proofs build on current upstream | These preserve existing theorem contracts while adapting to upstream APIs; they do not by themselves remove inherited trust. |
 | Admission boundary | `129` matching lines in `27` files; `133` whole-word `sorry`/`admit` occurrences under `Lean4Lean/` | The rebase introduced no new admissions and removed none; transitive `sorryAx` audits remain the meaningful trust signal. |
-| Build status | Focused inductive-positivity build passes (129 jobs), with positivity, constructor-batch, and registered-constructor regression fixtures passing; default build reaches all `414` targets and fails in `Verify.ConstructorMetadata`, `Verify.InductiveNestedRewrite`, and `Verify.StagedApplications` | The positivity blocker is cleared; three current-upstream API adaptation fronts remain before a green default build. |
+| Build status | Focused constructor-metadata build passes (129 jobs), with metadata, arity, and header regression fixtures passing; default build reaches all `414` targets and fails in `Verify.RecursorRegistration`, `Verify.InductiveMetadata`, `Verify.InductiveNestedRewrite`, and `Verify.StagedApplications` | Constructor metadata and positivity blockers are cleared; four current-upstream API adaptation fronts remain before a green default build. |
 | Publication and upstream contribution | Rebased history is not force-pushed; focused upstream PRs are deferred until the rebased stack is validated | Avoids publishing an unvalidated rewrite; next PRs should carry standalone semantic fixes, not progress metadata. |
 
 ## Progress scorecard
@@ -143,7 +143,10 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-Focused `lake build Lean4Lean.Verify.InductivePositivity` passes (129 jobs);
+Focused `lake build Lean4Lean.Verify.ConstructorMetadata` passes (129 jobs);
+`tests/ConstructorMetadata.lean`, `tests/ConstructorArity.lean`, and
+`tests/ConstructorHeaders.lean` pass with their axiom/provenance audits.
+Earlier focused `lake build Lean4Lean.Verify.InductivePositivity` passes (129 jobs);
 `tests/InductivePositivity.lean`, `tests/ConstructorBatchPositivity.lean`, and
 `tests/RegisteredConstructorPositivity.lean` pass with their axiom audits.
 The `tests/SafeConstructorRegistration.lean` fixture remains unavailable because
