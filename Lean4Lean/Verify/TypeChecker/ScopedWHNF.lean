@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.TypeChecker.HeadScope
 import Lean4Lean.Verify.TypeChecker.WHNF
+import Lean4Lean.Verify.InductiveParameterPrefixReplacement
 
 namespace Lean4Lean
 open Lean hiding Environment Exception
@@ -241,10 +242,10 @@ theorem TypeChecker.Methods.withFuel.zero_scopeWF : (withFuel 0).ScopeWF := by
   all_goals intros; intro caches; exact M.WF.throw
 
 theorem TypeChecker.Inner.nativeProjectionFailure.scopeWF {context : VContext} {state : VState}
-    {resultType : Type}
+    {resultType : Type} {post : resultType → VState → Prop}
     (environment : Kernel.Environment) (source : Expr) :
     (nativeProjectionFailure (resultType := resultType) environment source).ScopeWF context state
-      (fun _ _ => True) := by
+      post := by
   unfold nativeProjectionFailure
   exact RecM.ScopeWF.getLCtx RecM.ScopeWF.throw
 
@@ -283,17 +284,76 @@ theorem TypeChecker.RecM.forInRange_scopeWF {context : VContext} {state : VState
   rw [Std.Legacy.Range.forIn_eq_forIn_range']
   exact forInList_scopeWF _ _ _ framed
 
+theorem TypeChecker.Inner.nativeProjectionParameter.typed_scopeWF
+    {context : VContext} {state : VState}
+    (environment : Kernel.Environment) (source : Expr) (arguments : Array Expr) (index : Nat)
+    {current replacement : Expr} {domain codomain argument : VExpr}
+    (translated : context.TrExpr current (.forallE domain codomain))
+    (argumentTranslation : context.TrExprS replacement argument)
+    (argumentTyping : context.HasType argument domain)
+    (selected : arguments[index]! = replacement) :
+    (nativeProjectionParameter environment source arguments index current).ScopeWF context state
+      (fun step _ => ∃ next, step = .yield next ∧ context.TrExpr next (codomain.inst argument)) := by
+  unfold nativeProjectionParameter
+  dsimp only [Bind.bind, ReaderT.bind]
+  obtain ⟨_, currentTranslation, currentEquality⟩ := translated
+  refine (Inner.whnf.scopeWF currentTranslation).bind fun normalized _ _ normalizedWF => ?_
+  cases normalized <;> try exact nativeProjectionFailure.scopeWF environment source
+  let ⟨_, forallTranslation, normalizedEquality⟩ := normalizedWF.2.1
+  let .forallE _ _ domainTranslation bodyTranslation := forallTranslation
+  have forallEquality := normalizedEquality.trans context.Ewf context.Δwf currentEquality
+  have ⟨⟨_, domainEquality⟩, _, bodyEquality⟩ :=
+    forallEquality.forallE_inv context.Ewf context.Δwf
+  have instantiated := TrExpr.inst context.Ewf context.Δwf
+    (argumentTyping.defeqU_r context.Ewf context.Δwf ⟨_, domainEquality.symm⟩)
+    ⟨_, bodyTranslation, _, bodyEquality⟩
+    (argumentTranslation.trExpr context.Ewf context.Δwf)
+  dsimp only
+  rw [selected, Expr.instantiate1_eq]
+  exact RecM.ScopeWF.pure ⟨_, rfl, instantiated⟩
+
+theorem TypeChecker.Inner.nativeProjectionParameters.loop_scopeWF
+    {context : VContext} {state : VState}
+    (environment : Kernel.Environment) (source : Expr) (arguments : Array Expr)
+    {initial : Expr} {semantic result : VExpr} {replacements : List Expr} {semantics : List VExpr}
+    (typed : ElimNestedInductive.TypedParameterArguments context.venv context.lparams context.mlctx
+      semantic replacements semantics result)
+    (translated : context.TrExpr initial semantic) (preceding suffix : List Expr)
+    (aligned : arguments.toList = preceding ++ replacements ++ suffix) :
+    (forIn (List.range' preceding.length replacements.length) initial
+      (nativeProjectionParameter environment source arguments)).ScopeWF context state
+      (fun final _ => context.TrExpr final result) := by
+  induction typed generalizing state initial preceding with
+  | nil => exact RecM.ScopeWF.pure translated
+  | @cons replacement argument domain codomain replacements semantics result
+      argumentTranslation argumentTyping remaining inductionHypothesis =>
+    have selected : arguments[preceding.length]! = replacement := by
+      have bound : preceding.length < arguments.size := by
+        have lengths := congrArg List.length aligned
+        simp only [Array.length_toList, List.length_append, List.length_cons] at lengths
+        omega
+      simp [getElem!_pos, bound, ← Array.getElem_toList, aligned]
+    rw [List.length_cons, List.range'_succ, List.forIn_cons]
+    refine (nativeProjectionParameter.typed_scopeWF environment source arguments preceding.length
+      translated argumentTranslation argumentTyping selected).bind fun step middleState _ stepWF => ?_
+    obtain ⟨next, rfl, nextTranslation⟩ := stepWF
+    simpa only [List.length_append, List.length_singleton] using
+      inductionHypothesis (state := middleState) nextTranslation (preceding ++ [replacement])
+        (by simpa [List.append_assoc] using aligned)
+
 theorem TypeChecker.Inner.nativeProjectionParameters.scopeWF {context : VContext} {state : VState}
     (environment : Kernel.Environment) (source : Expr) (arguments : Array Expr) (parameters : Nat)
-    (initial : Expr)
-    (translations : ∀ (index : Nat) (current : Expr), ∃ semantic, context.TrExprS current semantic) :
+    {initial : Expr} {semantic result : VExpr} {replacements : List Expr} {semantics : List VExpr}
+    (typed : ElimNestedInductive.TypedParameterArguments context.venv context.lparams context.mlctx
+      semantic replacements semantics result)
+    (translated : context.TrExpr initial semantic) (suffix : List Expr)
+    (aligned : arguments.toList = replacements ++ suffix) (count : replacements.length = parameters) :
     (nativeProjectionParameters environment source arguments parameters initial).ScopeWF context state
-      (fun _ _ => True) := by
+      (fun final _ => context.TrExpr final result) := by
   unfold nativeProjectionParameters
-  apply TypeChecker.RecM.forInRange_scopeWF
-  intro _ index current
-  obtain ⟨semantic, translated⟩ := translations index current
-  exact nativeProjectionParameter.scopeWF environment source arguments index current translated
+  rw [Std.Legacy.Range.forIn_eq_forIn_range']
+  simpa [← count] using nativeProjectionParameters.loop_scopeWF environment source arguments
+    typed translated [] suffix aligned
 
 def NativeOptionalHeadScoped (locals : LocalContext) : Option Expr → Prop
   | none => True

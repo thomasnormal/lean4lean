@@ -173,10 +173,20 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   handles dependent body instantiation and the propositional-domain guard by
   extracting the translated forall domain and consuming `isProp.scopeWF`.
   `Inner.nativeProjectionFinal.scopeWF` handles the terminal forall-domain
-  check with the same translated-domain guard. The remaining parameter/field
-  loops still need those translations at every intermediate state;
-  `Inner.nativeProjectionParameters.scopeWF` now packages the parameter loop
-  under exactly that explicit per-step translation family.
+  check with the same translated-domain guard. The field loop still needs
+  translated types at intermediate states.
+  `Inner.nativeProjectionParameters.scopeWF` now proves a translation-carrying
+  parameter loop from an initial `TrExpr`, `TypedParameterArguments`, and an
+  aligned native argument prefix. Its typed single-step proof transports the
+  normalized forall's domain and body equalities through argument instantiation;
+  the offset loop derives each intermediate translation by induction. The old
+  universal per-step translation premise was vacuous (it included metavariables)
+  and is removed. Concrete zero/one/two-dependent-parameter and nonzero-offset
+  fixtures instantiate the replacement contract, permit unused metavariables
+  outside the consumed prefix, and reject metavariable translations. The fixture
+  audits both scoped inference/WHNF modules (274 owned declarations) against the
+  existing semantic/native axiom baselines with no owned axioms. This does not
+  close semantic constructor-header transport, the field loop, or projection inference.
 - `VState.WF.next` advances all model cache/type invariants through the actual
   fresh-name generator transition, while `HeadScopeCacheWF.next` preserves
   scoped cache heads under the unchanged caches. `RecM.ScopeWF.withFreshId`
