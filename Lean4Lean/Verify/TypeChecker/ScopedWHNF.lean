@@ -248,6 +248,80 @@ theorem TypeChecker.Methods.withFuel.zero_scopeWF : (withFuel 0).ScopeWF := by
   · constructor <;> intros <;> exact M.WF.throw
   all_goals intros; intro caches; exact M.WF.throw
 
+private theorem AppStack.translatedArgument
+    (stack : AppStack environment levels locals function functionSemantic arguments)
+    (member : argument ∈ arguments) :
+    ∃ semantic, TrExprS environment levels locals argument semantic := by
+  induction stack generalizing argument with
+  | head => cases member
+  | app functionTyping argumentTyping functionTranslation argumentTranslation tail inductionHypothesis =>
+    rcases List.mem_cons.mp member with same | remaining
+    · subst argument
+      exact ⟨_, argumentTranslation⟩
+    · exact inductionHypothesis remaining
+
+private theorem translatedApplicationArgument {context : VContext}
+    (translated : context.TrExprS expression semantic)
+    (bound : position < expression.getAppArgs.size) :
+    ∃ result, context.TrExprS expression.getAppArgs[position] result := by
+  obtain ⟨_, stack⟩ := AppStack.build (expression.mkAppList_getAppArgsList ▸ translated)
+  apply stack.translatedArgument
+  rw [← Expr.getAppArgs_toList]
+  exact Array.mem_toList_iff.mpr (Array.getElem_mem bound)
+
+theorem quotReduceRec.scopeFrame {context : VContext} {state : VState}
+    (translated : context.TrExprS expression semantic) :
+    (quotReduceRec expression Inner.whnf).ScopeWF context state (fun _ _ => True) := by
+  unfold quotReduceRec
+  cases expression.getAppFn <;> try exact RecM.ScopeWF.pure trivial
+  dsimp only
+  have continuation (constructorPosition argumentPosition : Nat) :
+      (do
+        let arguments := expression.getAppArgs
+        if bound : constructorPosition < arguments.size then
+          let constructor ← Inner.whnf arguments[constructorPosition]
+          if !constructor.isAppOfArity ``Quot.mk 3 then return none
+          let result := Expr.app arguments[argumentPosition]! constructor.appArg!
+          let arity := constructorPosition + 1
+          if arity < arguments.size then
+            return some (mkAppRange result arity arguments.size arguments)
+          else return some result
+        else return none).ScopeWF context state (fun _ _ => True) := by
+    dsimp only
+    split
+    · simp only [pure_bind]
+      obtain ⟨_, argumentTranslation⟩ := translatedApplicationArgument translated ‹_›
+      refine (Inner.whnf.scopeWF argumentTranslation).bind fun constructor _ _ _ => ?_
+      split
+      · exact RecM.ScopeWF.pure trivial
+      · split <;> exact RecM.ScopeWF.pure trivial
+    · exact RecM.ScopeWF.pure trivial
+  split
+  · exact continuation 5 3
+  · split
+    · exact continuation 4 3
+    · exact RecM.ScopeWF.pure trivial
+
+theorem TypeChecker.Inner.reduceRecursor.scopeFrame {context : VContext} {state : VState}
+    (translated : context.TrExprS expression semantic) :
+    (Inner.reduceRecursor expression cheapRec cheapProj).ScopeWF context state (fun _ _ => True) := by
+  unfold Inner.reduceRecursor
+  simp only [pure_bind]
+  refine RecM.ScopeWF.getEnv ?_
+  have inductiveFrame {state : VState} : (do
+      if let some reduced ← inductiveReduceRec context.env expression
+          (fun current => if cheapRec then Inner.whnfCore current cheapRec cheapProj else Inner.whnf current)
+          Inner.inferType Inner.isDefEq then return some reduced
+      return none).ScopeWF context state (fun _ _ => True) := by
+    rw [inductiveReduceRec.eq_none translated]
+    exact RecM.ScopeWF.pureBind (RecM.ScopeWF.pure trivial)
+  split
+  · refine (quotReduceRec.scopeFrame translated).bind fun reduced _ _ _ => ?_
+    cases reduced
+    · exact inductiveFrame
+    · exact RecM.ScopeWF.pure trivial
+  · exact inductiveFrame
+
 theorem TypeChecker.Inner.nativeProjectionFailure.scopeWF {context : VContext} {state : VState}
     {resultType : Type} {post : resultType → VState → Prop}
     (environment : Kernel.Environment) (source : Expr) :
@@ -559,10 +633,7 @@ theorem TypeChecker.Inner.reduceProj.scopeFrame {context : VContext} {state : VS
   · simpa only [pure_bind] using finish normalized
 
 theorem TypeChecker.Inner.whnfCore'.scopeWF {context : VContext} {state : VState}
-    (translated : context.TrExprS expression semantic)
-    (recursorFrame : ∀ {context : VContext} {state : VState} {expression : Expr} {semantic : VExpr}
-      (cheapRec cheapProj : Bool), context.TrExprS expression semantic →
-        (Inner.reduceRecursor expression cheapRec cheapProj).ScopeWF context state (fun _ _ => True)) :
+    (translated : context.TrExprS expression semantic) :
     (Inner.whnfCore' expression cheapRec cheapProj).ScopeWF context state fun normalized _ =>
       context.FVarsBelow expression normalized ∧ context.TrExpr normalized semantic ∧
       NativeHeadScoped context.lctx' normalized := by
@@ -578,7 +649,7 @@ theorem TypeChecker.Inner.whnfCore'.scopeWF {context : VContext} {state : VState
     any_goals exact identity (NativeHeadScoped.ofNotFVar ⟨rfl, rfl⟩ rfl)
     any_goals exact continuation rfl
     · let .mdata body := translated
-      exact (Inner.whnfCore'.scopeWF body recursorFrame).bind fun _ _ _ normalized =>
+      exact (Inner.whnfCore'.scopeWF body).bind fun _ _ _ normalized =>
         postEqual ▸ RecM.ScopeWF.pure normalized
     · refine RecM.ScopeWF.getLCtx ?_
       split
@@ -654,7 +725,7 @@ theorem TypeChecker.Inner.whnfCore'.scopeWF {context : VContext} {state : VState
       have below := expression.mkAppRevList_getAppArgsRevList ▸ headBelow.mkAppRevList
       exact save (below.trans (.betaReduce reduction) |>.trans result.1)
         (result.2.1.defeq context.Ewf context.Δwf bodyEqual) result.2.2
-    · refine ((recursorFrame cheapRec cheapProj translated).andWF
+    · refine ((Inner.reduceRecursor.scopeFrame translated).andWF
         (Inner.reduceRecursor.WF translated)).bind fun reduced finalState _ reduction => ?_
       split
       · obtain ⟨below, _, source, equal⟩ := reduction.2 _ rfl
@@ -702,10 +773,7 @@ theorem TypeChecker.Inner.whnfCore'.scopeWF {context : VContext} {state : VState
         (NativeHeadScoped.ofNotFVar ⟨rfl, rfl⟩ rfl)
 
 theorem TypeChecker.Inner.whnf'.scopeWF {context : VContext} {state : VState}
-    (translated : context.TrExprS expression semantic)
-    (recursorFrame : ∀ {context : VContext} {state : VState} {expression : Expr} {semantic : VExpr}
-      (cheapRec cheapProj : Bool), context.TrExprS expression semantic →
-        (Inner.reduceRecursor expression cheapRec cheapProj).ScopeWF context state (fun _ _ => True)) :
+    (translated : context.TrExprS expression semantic) :
     (Inner.whnf' expression).ScopeWF context state fun normalized _ =>
       context.FVarsBelow expression normalized ∧ context.TrExpr normalized semantic ∧
       NativeHeadScoped context.lctx' normalized := by
@@ -720,7 +788,7 @@ theorem TypeChecker.Inner.whnf'.scopeWF {context : VContext} {state : VState}
     any_goals exact identity (NativeHeadScoped.ofNotFVar ⟨rfl, rfl⟩ rfl)
     any_goals exact continuation
     · let .mdata body := translated
-      exact (Inner.whnf'.scopeWF body recursorFrame).bind fun _ _ _ normalized =>
+      exact (Inner.whnf'.scopeWF body).bind fun _ _ _ normalized =>
         postEqual ▸ RecM.ScopeWF.pure normalized
     · refine RecM.ScopeWF.getLCtx ?_
       split
@@ -748,7 +816,7 @@ theorem TypeChecker.Inner.whnf'.scopeWF {context : VContext} {state : VState}
     | zero => exact RecM.ScopeWF.throw
     | succ fuel inductionHypothesis =>
       refine RecM.ScopeWF.getEnv <|
-        (Inner.whnfCore'.scopeWF source recursorFrame).bind fun normalized middleState _ normalizedResult => ?_
+        (Inner.whnfCore'.scopeWF source).bind fun normalized middleState _ normalizedResult => ?_
       obtain ⟨below, ⟨_, structural, equal⟩, head⟩ := normalizedResult
       refine (RecM.ScopeWF.liftExcept Inner.reduceNative.WF).bind fun _ _ _ noNative => ?_
       extract_lets afterDelta afterNat
