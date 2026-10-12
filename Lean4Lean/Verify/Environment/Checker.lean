@@ -78,6 +78,15 @@ structure CheckerEnv (safety : DefinitionSafety) (env : Environment) (venv : VEn
     safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
     TrExpr venv ci.levelParams [] value (.const ci.name (VLevel.params ci.levelParams.length))
 
+theorem TrEnv.checkerEnv (H : TrEnv safety env venv) : CheckerEnv safety env venv :=
+  ⟨H.aligned, H.wf, by
+    intro name ci value hfind hs hsafe hv
+    have hdelta : ci.deltaValue? = some value := by
+      cases ci <;> simp [ConstantInfo.value?, ConstantInfo.deltaValue?] at hv ⊢ <;> assumption
+    have hfind' : env.find? name = some ci := by
+      simpa only [Kernel.Environment.find?, H.map_wf.find?'_eq_find?] using hfind
+    exact H.of_value hfind' hs hdelta⟩
+
 theorem CheckerEnv.map_wf (H : CheckerEnv safety env venv) : env.constants.WF := H.aligned.map_wf
 
 theorem checkName.WF (mapWF : env.constants.WF) (name : Name) (allowPrimitive : Bool) :
