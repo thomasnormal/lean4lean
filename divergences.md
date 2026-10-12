@@ -538,3 +538,23 @@ including the tree-map `all`/`any` specifications and native level operations.
 `Std.TreeMap.any_eq_any_toList` was already in the canonical-level proof
 baseline; it is not a newly added axiom or an excuse to claim the wider kernel
 dependency stack is admission-free. The final rebase is still unfinished.
+
+## Nat.add primitive compatibility during upstream rebase (2026-10-12)
+
+The isolated checkpoints `0af54e3` and `0fb93bc` retain the stronger upstream
+primitive architecture. The replay cleanup keeps the actual module-region
+projection before region release. The historical primitive commit's edits to an
+older monolithic `checkPrimitiveDef` are superseded by upstream's extracted
+typed local-probe clauses; no obsolete wrapper or arithmetic implementation is
+reintroduced just to reproduce historical source shape.
+
+The useful semantic part is retained as `VEnv.NatAddSpec`: open zero/successor
+equations imply literal evaluation and reflection after a checked definition is
+identified with the translated function. `tests/RebasedNatAdd.lean` audits the
+contract, and `tests/Primitive.lean` checks positive lambda wrappers plus
+negative forall and wrong-domain wrappers. The current primitive clauses and
+their `PrimitiveResult` remain the actual recognizer-preservation proof. The
+Nat.add compatibility lemmas have no direct admission or new axiom declarations,
+but their transitive typing/equation proof uses the existing `sorryAx`, classical,
+and quotient/interface baseline; it is not advertised as admission-free kernel
+soundness. No native binary arithmetic operation is re-enabled by this replay.
