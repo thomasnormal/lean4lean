@@ -76,6 +76,8 @@ theorem Environment.addInductive.safeStages (env : Environment) (lparams : List 
   unfold Environment.addInductive
   refine (Environment.checkInductiveSources.WF env types).bind ?_
   intro _ hsources
+  refine Except.WF.bind (Q := fun _ => True) (fun _ _ => trivial) ?_
+  intro _ _
   refine Except.WF.bind (Q := fun preprocessing =>
     inductivePreprocessing env lparams nparams types fuel = .ok preprocessing) (fun _ hpre => hpre) ?_
   intro preprocessing hpre
