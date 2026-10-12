@@ -72,6 +72,16 @@ private def liftControl : Nat :=
     (by intro first second related; exact related)
     (Quot.mk (fun first second : Nat => first = second) 5)
 
+private def inductionControl : True :=
+  Quot.ind (β := fun _ => True) (fun _ : Nat => True.intro)
+    (Quot.mk (fun first second : Nat => first = second) 5)
+
+private def dependentInductionControl :
+    Quot.mk (fun first second : Nat => first = second) 5 =
+      Quot.mk (fun first second : Nat => first = second) 5 :=
+  Quot.ind (β := fun quotient => quotient = quotient) (fun _ : Nat => rfl)
+    (Quot.mk (fun first second : Nat => first = second) 5)
+
 private def functionControl : Nat → Nat :=
   Quot.lift (fun value : Nat => fun argument : Nat => value + argument)
     (by intro first second related; cases related; rfl)
@@ -84,16 +94,19 @@ private def nativeControls : MetaM Unit := do
   let letId : FVarId := ⟨`quotientSemanticLet⟩
   let localValue := Expr.fvar localId
   let mut controls := 0
-  for declarationName in [``liftControl, ``functionControl] do
+  for declarationName in [``liftControl, ``inductionControl, ``dependentInductionControl,
+      ``functionControl] do
     let some (.defnInfo information) := environment.find? declarationName
       | throwError "quotient semantic control declaration absent: {declarationName}"
     let source := information.value
     let arguments := source.getAppArgs
-    let majorPosition := 5
+    let majorPosition := if source.isAppOfArity ``Quot.ind 5 then 4 else 5
     let major := arguments[majorPosition]!
     unless major.isAppOfArity ``Quot.mk 3 do
       throwError "quotient semantic control lost its constructor: {declarationName}"
     let openMajor := Expr.app major.appFn! localValue
+    let convertedMajor := mkAppN (.const ``Quot.mk [.max (.succ .zero) (.succ .zero)]) #[
+      .mdata {} natural, .mdata {} major.getAppArgs[1]!, localValue]
     let locals := ({} : LocalContext).mkLocalDecl localId `value natural .default
       |>.mkLetDecl letId `major (mkAppN (.const ``Quot [.succ .zero]) #[
         natural, major.getAppArgs[1]!]) openMajor
@@ -101,7 +114,7 @@ private def nativeControls : MetaM Unit := do
       (major, major.appArg!), (.mdata {} major, major.appArg!),
       (.app (.lam `ignored natural major .default) (.lit (.natVal 9)), major.appArg!),
       (.letE `ignored natural (.lit (.natVal 9)) major false, major.appArg!),
-      (openMajor, localValue), (.fvar letId, localValue)]
+      (openMajor, localValue), (.fvar letId, localValue), (convertedMajor, localValue)]
     for safety in [DefinitionSafety.safe, .unsafe] do
       for eager in [false, true] do
         for depth in [32, 128] do
@@ -115,7 +128,7 @@ private def nativeControls : MetaM Unit := do
               for _ in [:2] do
                 for (wrappedMajor, payload) in wrapped do
                   let canonical := mkAppN source.getAppFn (arguments.set! majorPosition wrappedMajor)
-                    let trailing : List (List Expr) := if declarationName == ``functionControl then
+                  let trailing : List (List Expr) := if declarationName == ``functionControl then
                     [[], [.lit (.natVal 7)]] else [[]]
                   for extraArguments in trailing do
                     let expression := canonical.mkAppList extraArguments
@@ -144,10 +157,19 @@ private def nativeControls : MetaM Unit := do
             | throwError "malformed quotient major control rejected"
           unless wrongHead.isNone do throwError "malformed quotient major control reduced"
     let context : Context := { env := environment, lctx := locals }
+    let checkedSource := mkAppN source.getAppFn (arguments.set! majorPosition convertedMajor)
+    let .ok (inferredType, typedState) := Inner.inferType checkedSource false
+        (Methods.withFuel 128) context {}
+      | throwError "convertible quotient constructor parameters failed checked inference: {declarationName}"
+    let expectedType := if declarationName == ``dependentInductionControl then
+      Expr.app arguments[2]! convertedMajor else information.type
+    let .ok (true, _) := Inner.isDefEq inferredType expectedType
+        (Methods.withFuel 128) context typedState
+      | throwError "convertible quotient constructor parameters changed the inferred type: {declarationName}"
     unless !(quotReduceRec source (fun argument => Inner.whnf argument (Methods.withFuel 0))
         context {}).isOk do
       throwError "zero-depth quotient normalization unexpectedly accepted"
-  logInfo m!"{controls} actual cold/warm quotient lift helper/dispatch pairs preserve constructor payloads and trailing applications; function-valued lift, metadata/beta/let majors and open/local-let payloads, both safeties/eager modes, depths 32/128 and all cheap flags; saturation, malformed-major and zero-depth guards pass; induction is covered by the typed proof above because native reduction erases its proposition result"
+  logInfo m!"{controls} actual cold/warm quotient helper/dispatch pairs preserve constructor payloads and trailing applications; lift, constant/dependent proposition induction, function-valued lift, metadata/beta/let majors and open/local-let payloads, both safeties/eager modes, depths 32/128 and all cheap flags; four universe/parameter-conversion controls also pass checked inference and type comparison; saturation, malformed-major and zero-depth guards pass"
 
 run_meta
   let environment ← getEnv

@@ -1,5 +1,5 @@
 import Lean4Lean.Verify.TypeChecker.Reduce
-import Lean4Lean.Theory.Typing.QuotReduction
+import Lean4Lean.Theory.Typing.QuotReductionAlignment
 
 namespace Lean4Lean.TypeChecker.Inner
 open Lean hiding Environment Exception
