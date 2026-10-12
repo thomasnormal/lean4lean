@@ -27,10 +27,10 @@ when a semantic contract, trust boundary, or correctness obstruction changes.
 
 | Signal | Current evidence | Interpretation |
 | --- | --- | --- |
-| Upstream synchronization | rebased stack through `c8fbb69`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `345` branch-only | Rebase integration is complete locally; commit counts measure history, not verification progress. |
-| Semantic work completed in this rebase | Nested-inductive guard, recursive primitive abstraction, annotation peeling/length, local-context defeq/nodup, inductive stats continuation, projection, primitive-interface, ordinary-interface, staged-leaf, constructor-parameter, and inductive-return-typing compatibility proofs build on current upstream | These preserve existing theorem contracts while adapting to upstream APIs; they do not by themselves remove inherited trust. |
+| Upstream synchronization | rebased stack through `e4c7e47`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `347` branch-only | Rebase integration is complete locally; commit counts measure history, not verification progress. |
+| Semantic work completed in this rebase | Nested-inductive guard, recursive primitive abstraction, annotation peeling/length, local-context defeq/nodup, inductive stats continuation, projection, primitive-interface, ordinary-interface, staged-leaf, constructor-parameter, inductive-return-typing, and positivity/safe-constructor-spine compatibility proofs build on current upstream | These preserve existing theorem contracts while adapting to upstream APIs; they do not by themselves remove inherited trust. |
 | Admission boundary | `129` matching lines in `27` files; `133` whole-word `sorry`/`admit` occurrences under `Lean4Lean/` | The rebase introduced no new admissions and removed none; transitive `sorryAx` audits remain the meaningful trust signal. |
-| Build status | Focused inductive-return-typing build passes (130 jobs); default build reaches all `414` targets and fails in `Verify.ConstructorMetadata`, `Verify.InductiveNestedRewrite`, `Verify.InductivePositivity`, and `Verify.StagedApplications` | The checker, primitive-interface, and staged-leaf blockers are cleared; current API adaptation remains before a green default build. |
+| Build status | Focused inductive-positivity build passes (129 jobs), with positivity, constructor-batch, and registered-constructor regression fixtures passing; default build reaches all `414` targets and fails in `Verify.ConstructorMetadata`, `Verify.InductiveNestedRewrite`, and `Verify.StagedApplications` | The positivity blocker is cleared; three current-upstream API adaptation fronts remain before a green default build. |
 | Publication and upstream contribution | Rebased history is not force-pushed; focused upstream PRs are deferred until the rebased stack is validated | Avoids publishing an unvalidated rewrite; next PRs should carry standalone semantic fixes, not progress metadata. |
 
 ## Progress scorecard
@@ -143,16 +143,20 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-Focused `lake build Lean4Lean.Verify.InductiveReturnTyping` passes (130 jobs);
+Focused `lake build Lean4Lean.Verify.InductivePositivity` passes (129 jobs);
+`tests/InductivePositivity.lean`, `tests/ConstructorBatchPositivity.lean`, and
+`tests/RegisteredConstructorPositivity.lean` pass with their axiom audits.
+The `tests/SafeConstructorRegistration.lean` fixture remains unavailable because
+`Verify.InductiveRegistration` is not built. Earlier focused
+`lake build Lean4Lean.Verify.InductiveReturnTyping` also passes (130 jobs);
 `tests/ConstructorParams.lean` and `tests/ConstructorBatchArity.lean` also pass
 with explicit native-expression provenance allowances. Earlier
 ordinary-interface, staged-leaf, nested-guard, `NestedInductiveParams`, and
 `InductiveParamContext` checks also pass. The default `lake build` reaches all
 `414` targets before failing in `Verify.ConstructorMetadata`,
-`Verify.InductiveNestedRewrite`, `Verify.InductivePositivity`, and
-`Verify.StagedApplications`; the `tests/InductiveReturnTyping.lean` fixture
-remains unavailable because `Verify.InductiveConstructorCheckerModels` is not
-built. Validation runs on
+`Verify.InductiveNestedRewrite`, and `Verify.StagedApplications`; the
+`tests/InductiveReturnTyping.lean` fixture remains unavailable because
+`Verify.InductiveConstructorCheckerModels` is not built. Validation runs on
 the same `v4.33.0-rc2` toolchain pinned by upstream.
 
 | Whole-word `sorry` source census under `Lean4Lean/` | Our fork | Upstream |
