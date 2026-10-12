@@ -172,8 +172,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   constructor-header typing. `Inner.nativeProjectionField.scopeWF` additionally
   handles dependent body instantiation and the propositional-domain guard by
   extracting the translated forall domain and consuming `isProp.scopeWF`.
-  The remaining parameter/field loops still need those translations at every
-  intermediate state.
+  `Inner.nativeProjectionFinal.scopeWF` handles the terminal forall-domain
+  check with the same translated-domain guard. The remaining parameter/field
+  loops still need those translations at every intermediate state.
 - `VState.WF.next` advances all model cache/type invariants through the actual
   fresh-name generator transition, while `HeadScopeCacheWF.next` preserves
   scoped cache heads under the unchanged caches. `RecM.ScopeWF.withFreshId`
