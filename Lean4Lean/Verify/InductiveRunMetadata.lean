@@ -52,7 +52,6 @@ theorem run.safeMetadata (nparams : Nat) (types : List InductiveType)
   dsimp only
   rw [hsafety]
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.bindWF
   intro _
   apply checkInductiveTypes.safeConstructorRegistration nparams types.toArray numNested _ ctx hwf
@@ -65,7 +64,6 @@ theorem run.safeMetadata (nparams : Nat) (types : List InductiveType)
   apply Lean4Lean.AddInductive.bindWF
   intro isK
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   obtain ⟨_, _, _, _, hroot, _⟩ := hregistration.traces
   have hsafety : current.safety = .safe := hframe.safety.trans (hroot.safety.trans hsafety)
   rw [hsafety]
