@@ -191,6 +191,51 @@ theorem whnfFVar.WF {c : VContext} {s : VState} (he : c.TrExprS (.fvar fv) e') :
   refine (TrExprS.fvar h1).uniq c.Ewf ?_ he
   exact .refl c.Ewf c.Δwf
 
+theorem reduceProj.none_of_translation {context : VContext} {state : VState}
+    (translated : context.TrExprS source semantic) :
+    (reduceProj index source cheapRec cheapProj).WF context state
+      (fun outcome _ => outcome = none) := by
+  unfold reduceProj
+  have initial : (if cheapProj then whnfCore source cheapRec cheapProj else whnf source)
+      |>.WF context state (fun normalized _ =>
+        context.FVarsBelow source normalized ∧ context.TrExpr normalized semantic) := by
+    cases cheapProj
+    · exact whnf.WF translated
+    · exact whnfCore.WF translated
+  refine initial.bind fun normalized _ _ normalizedResult => ?_
+  have finish {state : VState} {expression : Expr} {result : VExpr}
+      (expressionTranslation : context.TrExprS expression result) :
+      (expression.withApp fun head arguments => do
+        let .const name _ := head | return none
+        let environment ← getEnv
+        let .ctorInfo information ← environment.get name | return none
+        return arguments[information.numParams + index]? : RecM (Option Expr)).WF
+          context state (fun outcome _ => outcome = none) := by
+    rw [Expr.withApp_eq]
+    cases headEq : expression.getAppFn <;> try exact RecM.WF.pure rfl
+    case const name levels =>
+      have inModel := context.constAppHeadInModel expressionTranslation headEq
+      refine RecM.WF.getEnv ?_
+      refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ found => ?_
+      cases information <;> try exact RecM.WF.pure rfl
+      exact False.elim <| context.trenv.constructorNotInModel found inModel
+  split
+  · obtain ⟨_, structural, _⟩ := normalizedResult.2
+    cases structural with
+    | lit contains constructor =>
+      simpa only [pure_bind] using (whnf.WF constructor).bind
+        (fun _ _ _ result => by
+          obtain ⟨_, reducedTranslation, _⟩ := result.2
+          exact finish reducedTranslation)
+  · obtain ⟨_, structural, _⟩ := normalizedResult.2
+    simpa only [pure_bind] using finish structural
+
+theorem reduceProj.WF {c : VContext} {s : VState} (he : c.TrExprS (.proj n i e) e') :
+    RecM.WF c s (reduceProj i e cheapRec cheapProj) fun oe _ =>
+      ∀ e₁, oe = some e₁ → c.FVarsBelow (.proj n i e) e₁ ∧ c.TrExpr e₁ e' := by
+  have .proj sourceTranslation _ := he
+  exact (reduceProj.none_of_translation sourceTranslation).mono
+    fun _ _ _ rejected _ successful => by cases rejected.symm.trans successful
 theorem whnfCore'.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
     RecM.WF c s (whnfCore' e cheapProj) fun e₁ _ =>
       c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' := by

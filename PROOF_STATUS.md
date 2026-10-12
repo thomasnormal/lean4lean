@@ -184,6 +184,20 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   completed quotient initialization. The theorem is the base equality for
   the still-open instantiated quotient reduction proof; it does not by itself
   prove the callback's translated result.
+- `TypeChecker.Inner.reduceProj.none_of_translation` proves that the actual
+  projection reduction helper cannot return a field in the current `TrEnv`
+  fragment. Both normalization choices and string-constructor expansion retain
+  a translated result; a successful constructor lookup would contradict the
+  existing constructor exclusion. This replaces the `reduceProj.WF` admission
+  without changing its statement or adding callback/state premises. The
+  `ProjectionReductionSemantics` fixture audits both proofs against the existing
+  semantic/native baseline, checks generic, arbitrary-depth real-method and
+  cold-run contracts, and runs 1,536 actual cold/warm rejection controls and 128
+  native constructor-field controls. Native constructor/string positives remain
+  outside this fragment; invalid-cache and zero-depth controls preserve the
+  original state/callback boundary. Successful checked inductive registration
+  will require genuine constructor projection semantics; `TrProj` itself
+  remains admitted.
 - `TypeChecker.Inner.ensureSortCore.scopeWF` and
   `ensureForallCore.scopeWF` carry the scoped-head/cache invariant through the
   actual sort and forall checks, using the completed scoped WHNF contract and
