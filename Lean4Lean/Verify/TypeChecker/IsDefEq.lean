@@ -17,7 +17,7 @@ theorem isDefEqLambda.WF {c : VContext} {s : VState}
   unfold isDefEqLambda; let c' := c.withMLC m
   have hmany (expression : Expr) (depth : Nat) := Expr.instantiateMany_eq_instantiateList expression fvs depth hclosed
   split <;> [rename_i n₁ d₁ b₁ bi₁ n₂ d₂ b₂ bi₂; (simp [hsubst, hmany]; exact isDefEq.WF he₁ he₂)]
-  extract_lets F di₁ di₂ G; unfold G di₁ di₂
+  extract_lets F di₁ di₂; unfold di₁ di₂
   simp at he₁ he₂
   let .lam (ty' := t₁') (body' := b₁') ⟨_, a1⟩ a2 a3 := he₁
   let .lam (ty' := t₂') (body' := b₂') b1 b2 b3 := he₂
@@ -91,7 +91,7 @@ theorem isDefEqForall.WF {c : VContext} {s : VState}
   unfold isDefEqForall; let c' := c.withMLC m
   have hmany (expression : Expr) (depth : Nat) := Expr.instantiateMany_eq_instantiateList expression fvs depth hclosed
   split <;> [rename_i n₁ d₁ b₁ bi₁ n₂ d₂ b₂ bi₂; (simp [hsubst, hmany]; exact isDefEq.WF he₁ he₂)]
-  extract_lets F di₁ di₂ G; unfold G di₁ di₂
+  extract_lets F di₁ di₂; unfold di₁ di₂
   simp at he₁ he₂
   let .forallE (ty' := t₁') (body' := b₁') ⟨_, a1⟩ _ a2 a3 := he₁
   let .forallE (ty' := t₂') (body' := b₂') b1 ⟨_, bT⟩ b2 b3 := he₂
