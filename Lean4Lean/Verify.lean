@@ -205,6 +205,7 @@ import Lean4Lean.Verify.TypeChecker.ComparisonHeadFrame
 import Lean4Lean.Verify.TypeChecker.HeadScope
 import Lean4Lean.Verify.TypeChecker.ScopedWHNF
 import Lean4Lean.Verify.TypeChecker.ScopedInferType
+import Lean4Lean.Verify.TypeChecker.ScopedComparison
 import Lean4Lean.Verify.InductiveHeaderWHNFMethodTransport
 import Lean4Lean.Verify.InductiveHeaderInferenceTransport
 import Lean4Lean.Verify.InductiveHeaderTelescopeTransport
