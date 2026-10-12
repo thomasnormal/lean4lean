@@ -45,7 +45,15 @@ private theorem annotationLevels_singleton {universes : List Name} {levels : Lis
     (mapped : levels.mapM (VLevel.ofLevel universes) = some semanticLevels)
     (uniform : levels.mapM (VLevel.ofLevel universes) = some [level]) :
     ∃ sourceLevel, levels = [sourceLevel] ∧ semanticLevels = [level] ∧ level.WF universes.length := by
-  have lengths := (List.mapM_eq_some.mp uniform).length_eq
+  have uniform' := List.mapM_eq_some.mp uniform
+  have lengths' : ∀ (as : List Level) (bs : List VLevel),
+      List.Forall₂ (fun a b => VLevel.ofLevel universes a = some b) as bs →
+        as.length = bs.length := by
+    intro as bs h
+    induction h with
+    | nil => rfl
+    | cons _ _ ih => simp only [List.length_cons, ih]
+  have lengths := lengths' _ _ uniform'
   obtain ⟨sourceLevel, sourceLevels⟩ := List.length_eq_one_iff.mp
     (by simpa only [List.length_cons, List.length_nil] using lengths)
   exact ⟨sourceLevel, sourceLevels, Option.some.inj (mapped.symm.trans uniform),
