@@ -178,9 +178,27 @@ continues to use its previous behavior. All default targets and four candidate
 fixtures pass. Audited proof bodies introduce no direct admissions or new axioms,
 but still inherit `sorryAx` and the existing native/checker interfaces. These are
 preserved contracts and explicit remaining obligations, not an admission-free
-frontend milestone. The rebase is clean at a validation break before the
-original-level-normalization replay; final integration and publication remain
-unfinished.
+frontend milestone.
+
+The original-level-normalization replay is reconciled at
+`785d1daba69314c7b09f3bec90b806cfe2a2a714`. It restores the total
+flatten/sort/subsume helper and its named-valuation preservation proof **without
+replacing upstream's complete canonical comparison/equivalence checks with the
+older incomplete core-only path**. Sixteen level-contract audits exclude both
+direct admissions and inherited `sorryAx`; existing native level and tree-map
+interface axioms remain. The broader frontend still inherits admissions.
+
+Candidate regressions reproduce valid inequalities/equivalences that the native
+fast paths reject, and prove their acceptance using the actual public
+completeness contracts. The total helper matches the installed native normalizer
+on 3,280 small and 10,000 generated inputs; the complete fallback additionally
+accepts 2,216 comparisons and 207 equivalences in that generated corpus. These
+are controls against a semantic regression, not a proof of full syntactic
+agreement with the native normalizer. Completeness still requires successful
+`VLevel.ofLevel` translations; six metavariable controls establish syntax
+agreement only. All default targets and five candidate proof/runtime fixtures
+pass. The rebase stops cleanly before the module-region cleanup replay; final
+integration and publication remain unfinished.
 
 ### Upstream contributions
 

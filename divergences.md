@@ -508,3 +508,33 @@ model remains an inductive-registration obligation. Direct-admission and
 dependency audits pass, with inherited checker admissions and native interfaces
 unchanged; neither the full rebase nor admission-free kernel soundness is
 established by this checkpoint.
+
+## Level comparison compatibility during upstream rebase (2026-10-12)
+
+The isolated checkpoint `785d1da` keeps the official native-fast-path plus
+complete canonical `geq'`/`isEquiv'` APIs and their completeness proofs. The
+historical total flatten/sort/subsume normalizer and its evaluation theorem are
+restored alongside them, not used to overwrite those stronger public APIs.
+The separate native correspondence helper retains the `geqCoreStd` name, so
+neither comparator silently shadows the other.
+
+The old fixture required equality between native and fork acceptance. That is
+no longer the right contract: native fast paths are deliberately incomplete.
+New controls prove and exercise the actual complete checker on
+`max left (imax right left) ≡ imax right left` and
+`imax (max left right) condition ≥ imax left condition`, both rejected by the
+installed native fast path. Generated controls retain all native acceptances
+while allowing additional valid ones. This is preservation of already-upstream
+completeness, not a newly found native soundness bug or an original proof to send
+back upstream.
+
+The total helper's normal-form agreement remains regression evidence, not a
+universal syntactic theorem. Its evaluation theorem uses the existing
+named-valuation semantics; public virtual-level completeness requires a
+successful translation and does not include metavariables. Six metavariable
+controls check syntax only. Sixteen audited level contracts have no direct or
+inherited admissions, but still depend on existing named native interfaces,
+including the tree-map `all`/`any` specifications and native level operations.
+`Std.TreeMap.any_eq_any_toList` was already in the canonical-level proof
+baseline; it is not a newly added axiom or an excuse to claim the wider kernel
+dependency stack is admission-free. The final rebase is still unfinished.
