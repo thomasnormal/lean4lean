@@ -212,6 +212,18 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   checked-inductive frontend boundary only; it does not admit general
   `addInductive` registration or alter the unsupported inductive branch of
   `addDeclVerified`.
+- `addDecl.WF_noninductive` proves the actual checked `addDecl` frontend for
+  every non-inductive declaration, including its original unchecked quotient
+  registration worker, at arbitrary configured fuel. Its list-fold and
+  empty-environment wrappers preserve the same fragment and extension relation.
+  `checkEqType.no_success` derives quotient-bootstrap rejection from the current
+  `TrEnv` inductive lookup exclusion; `Environment.addQuot.WF` retains the actual
+  initialized quotient worker's identity result. No quotient exclusion, extra
+  registration premise, or alternate frontend is imposed on callers.
+  `NonInductiveDeclarationFrontend` audits these proofs against the existing
+  inherited checker/model dependencies. This does not eliminate those inherited
+  admissions or prove quotient bootstrap acceptance, terminal-sort completeness,
+  or genuine inductive registration; the global `addDecl.WF` admission remains.
 - `TypeChecker.Inner.reduceProj.none_of_translation` proves that the actual
   projection reduction helper cannot return a field in the current `TrEnv`
   fragment. Both normalization choices and string-constructor expansion retain
