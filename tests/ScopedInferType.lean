@@ -249,6 +249,12 @@ example {context : VContext} {state : VState} {name : Name} {levels : List Level
         context.TrTyping (.const name levels) type expression semanticType) :=
   Inner.inferConstant.scopeWF validLevels validInference
 
+example {context : VContext} {state : VState} {expression : Expr} {semantic : VExpr}
+    (translated : context.TrExprS expression semantic) :
+    (Inner.isProp expression).ScopeWF context state
+      (fun result _ => result → context.HasType semantic (.sort .zero)) :=
+  Inner.isProp.scopeWF translated
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.TypeChecker.ScopedInferType
