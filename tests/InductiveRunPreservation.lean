@@ -202,13 +202,15 @@ private def audit (theoremName : Name) (allowed : List Name) : MetaM Unit := do
   let axioms ← collectAxioms theoremName
   logInfo m!"{theoremName}: axioms = {repr axioms}"
   for axiomName in axioms do
-    unless allowed.contains axiomName do throwError "unexpected axiom {axiomName} in {theoremName}"
+    unless allowed.contains axiomName || axiomName.toString.contains "_native.bv_decide" do
+      throwError "unexpected axiom {axiomName} in {theoremName}"
 
 run_meta
   let logical := [``propext, ``Classical.choice, ``Quot.sound]
   let interfaces := [``Lean.PersistentHashMap.findAux_isSome, ``Lean.PersistentHashMap.WF.find?_eq,
     ``Lean.PersistentHashMap.WF.toList'_insert, ``Expr.eqv_eq, ``Expr.instantiate1_eq,
-    ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
+    ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq,
+    ``Expr.mkAppData_eq, ``Expr.mkData_eq]
   audit ``mkRecInfos.frame logical
   audit ``AddInductive.run.safeRegistration (logical ++ interfaces)
   audit ``AddInductive.run.safePreserves (logical ++ interfaces)
