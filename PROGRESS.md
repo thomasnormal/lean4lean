@@ -6,20 +6,32 @@ detailed theorem contracts, dependency audits, and regression evidence.
 
 ## Bottom line
 
-Our fork has substantial additional checker verification, primitive proofs,
-inductive staging work, and regression coverage. It is **not a completed
-verification of Lean's kernel**, and it is **not uniformly ahead of official
-lean4lean**. Upstream has independently proved ordinary declaration checking
-and added newer primitive and universe-level results that our branch has not
-fully integrated. Its admission-free simultaneous substitution proof is now
-narrowly ported here; that is useful foundation integration, not completion of
-the frontend's soundness proof or a full upstream rebase.
+The branch is now locally rebased on official `origin/master` at
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` with the upstream-only side at zero.
+The rebased stack contains focused compatibility ports and semantic proofs, but
+it is **not a completed verification of Lean's kernel**. The default build is
+still blocked by current upstream API changes in the environment checker and
+nested-rewrite proofs, and the frontend's dependency chain still contains
+`sorryAx`.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.
 Actual checked inductive/model registration and recursor semantics remain open.
 Our executable also deliberately differs from upstream; this is not just a
 proof-only patch set.
+
+## Comparison snapshot
+
+This snapshot treats synchronization as maintenance and reports progress only
+when a semantic contract, trust boundary, or correctness obstruction changes.
+
+| Signal | Current evidence | Interpretation |
+| --- | --- | --- |
+| Upstream synchronization | `HEAD` `883aee3`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `333` branch-only | Rebase integration is complete locally; commit counts measure history, not verification progress. |
+| Semantic work completed in this rebase | Nested-inductive guard, recursive primitive abstraction, annotation peeling/length, local-context defeq/nodup, inductive stats continuation, projection and primitive compatibility proofs build on current upstream | These preserve existing theorem contracts while adapting to upstream APIs; they do not by themselves remove inherited trust. |
+| Admission boundary | `129` matching lines in `27` files; `133` whole-word `sorry`/`admit` occurrences under `Lean4Lean/` | The rebase introduced no new admissions and removed none; transitive `sorryAx` audits remain the meaningful trust signal. |
+| Build status | Focused nested-guard build passes; default build reaches `404/414` and fails in `Verify.Environment.Checker` and `Verify.InductiveNestedRewrite` | The nested-guard blocker is cleared; current API adaptation remains before a green default build. |
+| Publication and upstream contribution | Rebased history is not force-pushed; focused upstream PRs are deferred until the rebased stack is validated | Avoids publishing an unvalidated rewrite; next PRs should carry standalone semantic fixes, not progress metadata. |
 
 ## Progress scorecard
 
@@ -38,11 +50,10 @@ themselves satisfy any of these goals.
 | Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
 | Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Behavior on its newer toolchain has not been tested. | Do not generalize the finding to other Lean versions or claim it proves logical unsoundness. |
 
-Comparison anchors: our `poc-verified-noninductive` source at
-`55b7b4dd061f580c88d8552315f350f866f0501f` (2026-10-12), and official
-`digama0/lean4lean` master at `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`
-(2026-10-10). Our toolchain is Lean `v4.29.0`; official uses `v4.33.0-rc2`.
-These pins make the claims reviewable without treating source volume as progress.
+Comparison anchors: rebased local `HEAD` `883aee3982117657b5b1eb85baa6539696f351c2`
+and official `origin/master` `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, both
+using Lean `v4.33.0-rc2`. These pins make the claims reviewable without treating
+source volume as progress.
 
 ## Verification workstreams
 
@@ -93,11 +104,11 @@ maintenance. Particularly relevant:
 - The August level-normalization soundness/completeness work, lazy-delta and
   projection improvements, and stage-2 replay/toolchain updates.
 
-Except for the explicitly noted substitution port, these are candidates for
-targeted comparison, not evidence their changes are present here. No merge, rebase, cherry-pick, or
-toolchain upgrade was performed for this status review. Review overlapping
-proofs before duplicating them; a wholesale integration needs compatibility
-work because our checker and toolchain have diverged.
+Except for the explicitly noted substitution port and the compatibility commits
+listed in the journal, these remain candidates for targeted comparison, not
+evidence their changes are present here. Review overlapping proofs before
+duplicating them; upstream contributions should be narrow, independently
+reviewable semantic fixes.
 
 ### Daily synchronization
 
@@ -107,15 +118,12 @@ on its current tip (or confirm it is already an ancestor), and record the
 upstream hash, conflict resolution, build, regression, and trust-audit results.
 Integration is a maintenance requirement, not a semantic milestone by itself.
 
-This branch is published, so a nontrivial rebase requires a history-rewriting
-push. Permission to use `--force-with-lease` is pending; the existing no-force
-rule remains in effect until the user answers. Do not describe the branch as
-rebased or synchronized until the rebase and publication have actually succeeded.
-
-Preparation on 2026-10-12 fetched the official snapshot above. A non-mutating
-tip-to-tip merge preview reports conflicts across core checker and proof files;
-it is not evidence of a completed rebase. Preserve both upstream correctness
-fixes and this fork's verified contracts when resolving the integration.
+The 2026-10-12 rebase was completed locally on official `origin/master`, with
+conflicts resolved in favor of preserving both upstream behavior and this
+branch's verified contracts. The normal push was rejected as non-fast-forward;
+no force push has been attempted while `--force-with-lease` authorization is
+pending. Until publication is authorized, the fork's existing review branch is
+unchanged and this work remains in the detached rebased worktree.
 
 ## Behavioral differences and findings
 
@@ -135,19 +143,18 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-At our source snapshot, the full default `lake build` passes **405 jobs**.
-Ten focused fixtures also pass without warnings: `StrongSubstitution`,
-`NativeInstantiation`, `Reflection`, `QuotientPatternEquation`,
-`ConfluenceConstantReduction`, `NonInductiveDeclarationFrontend`, `Environment`,
-`QuotientReductionAlignment`, `QuotientReductionSemantics`, and
-`PrimitiveInductiveReceipt`. These fixtures are run separately from the default
-build. This review did not build upstream with its different toolchain.
+Focused `lake build Lean4Lean.Verify.InductiveNestedGuard` passes (108 jobs),
+and the reusable `NestedInductiveParams` and `InductiveParamContext` fixtures
+pass. The default `lake build` reaches `404/414` before failing in
+`Verify.Environment.Checker` and `Verify.InductiveNestedRewrite`; runtime
+nested fixtures also require old kernel environment APIs. Validation runs on
+the same `v4.33.0-rc2` toolchain pinned by upstream.
 
 | Whole-word `sorry` source census under `Lean4Lean/` | Our fork | Upstream |
 | --- | --- | --- |
-| Matching lines | 125 | 131 |
-| Files containing matches | 23 | 27 |
-| Occurrences | 129 | 135 |
+| Matching lines | 129 | 133 |
+| Files containing matches | 27 | 29 |
+| Occurrences | 133 | 137 |
 
 This deliberately includes comments and `Experimental` sources. It is a source
 census, **not an audit of theorem trust**: removing one admission does not make
