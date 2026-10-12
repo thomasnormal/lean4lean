@@ -278,7 +278,6 @@ private theorem loopInd1_sources (stats : InductiveStats) (types : Array Inducti
     have hmajor : indexCtx.RecursorScopeFrame majorCtx :=
       Context.RecursorScopeFrame.push indexCtx hindices.wf hindices.reserved _ _ _
     apply Lean4Lean.AddInductive.getLCtxWF
-    dsimp only
     apply withIndexDeclWF
     let motiveCtx := recursorIndexContext majorCtx (recursorMotiveName types parent) .default
       (recursorMotiveDomain elimLevel indices (.fvar ⟨indexCtx.ngen.curr⟩) majorCtx)
@@ -291,7 +290,9 @@ private theorem loopInd1_sources (stats : InductiveStats) (types : Array Inducti
     · exact hframe.trans hnew
     · intro previous hprevious
       by_cases hlt : previous < infos.size
-      · simpa only [getElem!_pos, hlt, hprevious, Array.getElem_push_lt] using (hsources previous hlt).mono hnew
+      · simpa only [getElem!_pos, hlt, hprevious, Array.getElem_push_lt, motiveCtx, majorCtx,
+          recursorMotiveDomain, recursorMajorDomain, recursorMotiveName] using
+          (hsources previous hlt).mono hnew
       · have heq : previous = infos.size := by simp only [Array.size_push] at hprevious; omega
         subst previous
         simp only [getElem!_pos, Array.size_push, Nat.lt_add_one, Array.getElem_push_eq]
