@@ -118,6 +118,16 @@ private theorem registrationBind {action : InductiveRestorationM α} {next : α 
     ((action >>= next) env).WF fun result => RestoredRegistrationReceipt env (first ++ second) result.2 :=
   haction.bind fun result hfirst => (hnext result.1 result.2 hfirst.wf).mono fun _ hsecond => hfirst.trans hsecond
 
+private theorem checkNameFresh (env : Environment) (name : Name) (allowPrimitive : Bool) :
+    (env.checkName name allowPrimitive).WF fun _ => env.constants.find? name = none := by
+  intro _ h
+  have hn : env.contains name = false := by
+    cases hfind : env.contains name <;> [rfl; skip]
+    simp [Environment.checkName, hfind, (· >>= ·), Except.bind] at h
+  change env.constants.contains name = false at hn
+  rw [SMap.find?_isSome] at hn
+  cases hfind : env.constants.find? name <;> simp_all
+
 private theorem registerRestored.installed (info : ConstantInfo) (allowPrimitive : Bool)
     (env : Environment) (hwf : env.constants.WF) :
     (Lean4Lean.registerRestored info allowPrimitive env).WF fun result =>
@@ -125,8 +135,8 @@ private theorem registerRestored.installed (info : ConstantInfo) (allowPrimitive
   unfold Lean4Lean.registerRestored
   change ((liftM (env.checkName info.name allowPrimitive) >>= fun _ =>
     modify (fun current : Environment => current.add info) : InductiveRestorationM PUnit) env).WF _
-  refine Lean4Lean.restorationExceptBind (checkName.WF env info.name allowPrimitive) ?_
-  rintro _ ⟨hfresh, _⟩
+  refine Lean4Lean.restorationExceptBind (checkNameFresh env info.name allowPrimitive) ?_
+  rintro _ hfresh
   obtain ⟨hnext, hself, hkeep⟩ := AddInductive.restorationAddFresh env info hwf hfresh
   exact .pure ⟨hnext, hkeep, by simpa [RestoredRecordsInstalled] using hself⟩
 
@@ -364,6 +374,8 @@ theorem Environment.addInductive.safeRestorationStages (env : Environment) (lpar
   unfold Environment.addInductive
   refine (Environment.checkInductiveSources.WF env types).bind ?_
   intro _ hsources
+  refine Except.WF.bind (Q := fun _ => True) (fun _ _ => trivial) ?_
+  intro _ _
   refine Except.WF.bind (Q := fun preprocessing =>
     inductivePreprocessing env lparams nparams types fuel = .ok preprocessing) (fun _ hpre => hpre) ?_
   intro preprocessing hpre
@@ -396,8 +408,9 @@ theorem Environment.addInductive.safeRestorationStages (env : Environment) (lpar
         hcoverage env hmap).map (fun _ hreceipt => hreceipt) result hresult
     dsimp only [restoreInductiveEnvironment, restoreInductiveDatatype, restoreInductiveConstructor,
       restoreInductiveRecursor, Lean4Lean.registerRestored, StateT.run] at hrestored
-    simpa only [StateT.run, ConstantInfo.name, ConstantInfo.toConstantVal, List.mapM_pure, pure_bind,
-      panicWithPosWithDecl, panic, panicCore, bind_assoc, Bool.false_eq_true, if_false] using hrestored
+    simp only [StateT.run, ConstantInfo.name, ConstantInfo.toConstantVal, List.mapM_pure, pure_bind,
+      panicWithPosWithDecl, panic, panicCore, bind_assoc, Bool.false_eq_true, if_false] at hrestored ⊢
+    exact hrestored
 
 theorem addDecl.safeInductiveRestorationStages (env : Environment) (lparams : List Name)
     (nparams : Nat) (types : List InductiveType) (check : Bool) (fuel : FuelConfig)
