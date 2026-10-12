@@ -3,6 +3,14 @@ import Lean4Lean.Verify.TypeChecker.Reduce
 namespace Lean4Lean.TypeChecker.Inner
 open Lean hiding Environment Exception
 
+theorem _root_.Lean4Lean.TypeChecker.VContext.quotientDefEq (context : VContext)
+    (initialized : context.env.quotInit = true) (levels : List VLevel)
+    (levelsWF : ∀ level ∈ levels, level.WF context.lparams.length) :
+    context.IsDefEqU (quotDefEq.lhs.instL levels) (quotDefEq.rhs.instL levels) := by
+  have objects := context.trenv.quotientObjects initialized
+  have base := VEnv.IsDefEq.extra0 objects.1 (context.Ewf.ordered.defEqWF objects.1)
+  exact ⟨_, (base.instL levelsWF).weak0 context.Ewf.ordered⟩
+
 private theorem quotMkShape {expression : Expr}
     (shape : expression.isAppOfArity ``Quot.mk 3 = true) :
     ∃ levels : List Level, ∃ typeExpr relationExpr valueExpr,

@@ -179,6 +179,11 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   separate partial-correctness component: it does not yet establish the
   semantic `TrExpr` result required by `reduceRecursor.WF`, which remains the
   next quotient WHNF obligation.
+- `VContext.quotientDefEq` turns the registered quotient beta equation into
+  a verified semantic `IsDefEqU` relation whenever the native environment has
+  completed quotient initialization. The theorem is the base equality for
+  the still-open instantiated quotient reduction proof; it does not by itself
+  prove the callback's translated result.
 - `TypeChecker.Inner.ensureSortCore.scopeWF` and
   `ensureForallCore.scopeWF` carry the scoped-head/cache invariant through the
   actual sort and forall checks, using the completed scoped WHNF contract and
