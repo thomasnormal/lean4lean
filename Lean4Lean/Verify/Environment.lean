@@ -1738,13 +1738,84 @@ theorem addMutual.WF {ves : VEnvs} (wf : ves.WF env) (vs : List DefinitionVal)
 if `env` is well-formed and `addDecl env decl` (in checking mode) succeeds,
 then the resulting environment is also well-formed, and it extends `env`.
 
-The non-inductive frontend is covered by `addDeclVerified.WF` below. The
+The actual non-inductive frontend is covered by `addDecl.WF_noninductive` below. The
 unrestricted theorem still requires the missing inductive specification and
 its connection to the executable checker. -/
 theorem addDecl.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env) (decl : Declaration) :
     (addDecl env decl).WF fun env' =>
       ∃ ves' : VEnvs, ves'.WF env' ∧ ∀ safety, ves.venv safety ≤ ves'.venv safety :=
   sorry
+
+theorem checkEqType.no_success {ves : VEnvs} (wf : ves.WF env) :
+    (checkEqType env).WF fun _ => False := by
+  intro _ accepted
+  have ready : eqReady? env = true := by
+    cases decision : eqReady? env
+    · simp [checkEqType, decision] at accepted
+    · rfl
+  have recognized : ∃ info,
+      env.find? ``Eq = some (.inductInfo info) ∧ info.isUnsafe = false := by
+    unfold eqReady? at ready
+    repeat first | split at ready | simp_all
+  obtain ⟨info, found, safe⟩ := recognized
+  have safety : (ConstantInfo.inductInfo info).safety = .safe := by
+    simp [ConstantInfo.safety, ConstantInfo.isUnsafe, ConstantInfo.isPartial, safe]
+  exact (wf.tr (safety := .safe)).inductiveLookupRejected found
+    (by rw [safety]; exact DefinitionSafety.le_safe)
+
+theorem Environment.addQuot.WF {ves : VEnvs} (wf : ves.WF env) :
+    (Environment.addQuot env).WF fun env' =>
+      ∃ ves' : VEnvs, ves'.WF env' ∧ ∀ safety, ves.venv safety ≤ ves'.venv safety := by
+  unfold Environment.addQuot
+  split
+  · exact .pure ⟨ves, wf, fun _ => .rfl⟩
+  · refine (checkEqType.no_success wf).bind fun _ impossible => ?_
+    exact impossible.elim
+
+theorem addDecl.WF_noninductive {env : Environment} {ves : VEnvs} (wf : ves.WF env)
+    (decl : Declaration)
+    (notInductive : ∀ lparams nparams types isUnsafe,
+      decl ≠ .inductDecl lparams nparams types isUnsafe)
+    (fuel : FuelConfig := {}) :
+    (addDecl env decl true fuel).WF fun env' =>
+      ∃ ves' : VEnvs, VEnvs.WF env' ves' ∧
+        ∀ safety, ves.venv safety ≤ ves'.venv safety := by
+  cases decl with
+  | axiomDecl v => simpa [addDecl] using addAxiom.WF wf v fuel
+  | defnDecl v => simpa [addDecl] using addDefinition.WF wf v fuel
+  | thmDecl v => simpa [addDecl] using addTheorem.WF wf v fuel
+  | opaqueDecl v => simpa [addDecl] using addOpaque.WF wf v fuel
+  | mutualDefnDecl vs => simpa [addDecl] using addMutual.WF wf vs fuel
+  | quotDecl => simpa [addDecl] using Environment.addQuot.WF wf
+  | inductDecl lparams nparams types isUnsafe =>
+    exact (notInductive lparams nparams types isUnsafe rfl).elim
+
+theorem addDecl.foldlM_WF_noninductive {ves : VEnvs} (wf : ves.WF env)
+    (decls : List Declaration)
+    (notInductive : ∀ decl ∈ decls, ∀ lparams nparams types isUnsafe,
+      decl ≠ .inductDecl lparams nparams types isUnsafe)
+    (fuel : FuelConfig := {}) :
+    (decls.foldlM (fun env decl => addDecl env decl true fuel) env).WF fun env' =>
+      ∃ ves' : VEnvs, ves'.WF env' ∧ ∀ safety, ves.venv safety ≤ ves'.venv safety := by
+  induction decls generalizing env ves with
+  | nil => exact .pure ⟨ves, wf, fun _ => .rfl⟩
+  | cons decl remaining inductionHypothesis =>
+    simp only [List.foldlM_cons]
+    refine (addDecl.WF_noninductive wf decl (notInductive decl (by simp)) fuel).bind
+      fun next ⟨nextModels, nextWF, extension⟩ => ?_
+    exact (inductionHypothesis nextWF
+      (fun current member => notInductive current (by simp [member]))).mono
+      fun _ ⟨finalModels, finalWF, finalExtension⟩ =>
+        ⟨finalModels, finalWF, fun safety => (extension safety).trans (finalExtension safety)⟩
+
+theorem addDecl.fromEmpty_noninductive (mainModule : Name) (decls : List Declaration)
+    (notInductive : ∀ decl ∈ decls, ∀ lparams nparams types isUnsafe,
+      decl ≠ .inductDecl lparams nparams types isUnsafe)
+    (fuel : FuelConfig := {}) :
+    (decls.foldlM (fun env decl => addDecl env decl true fuel)
+      (Environment.empty mainModule)).WF fun env => ∃ ves : VEnvs, ves.WF env :=
+  (addDecl.foldlM_WF_noninductive (.empty mainModule) decls notInductive fuel).mono
+    fun _ ⟨ves, wf, _⟩ => ⟨ves, wf⟩
 
 theorem addDeclVerified.WF {ves : VEnvs} (wf : ves.WF env) (decl : Declaration)
     (fuel : FuelConfig := {}) :
