@@ -377,6 +377,27 @@ theorem nativeProjectionField.scopeWF {context : VContext} {state : VState}
         · exact RecM.ScopeWF.pure (result := ForInStep.yield _) trivial
     · exact RecM.ScopeWF.pure (result := ForInStep.yield _) trivial
 
+theorem nativeProjectionFinal.scopeWF {context : VContext} {state : VState}
+    (environment : Kernel.Environment) (source : Expr) (propositional : Bool) (current : Expr)
+    (translated : context.TrExprS current semantic) :
+    (nativeProjectionFinal environment source propositional current).ScopeWF context state
+      (fun _ _ => True) := by
+  unfold nativeProjectionFinal
+  dsimp only [Bind.bind, ReaderT.bind]
+  refine (Inner.whnf.scopeWF translated).bind fun normalized _ _ normalizedResult => ?_
+  obtain ⟨_, normalizedTranslation, _⟩ := normalizedResult
+  cases normalized <;> try exact nativeProjectionFailure.scopeWF environment source
+  case forallE name domain body binder =>
+    dsimp only
+    cases propositional <;> simp only [Bool.not_false, Bool.not_true, Bool.false_eq_true, if_true, if_false]
+    · exact RecM.ScopeWF.pure trivial
+    · obtain ⟨_, sourceTranslation, _⟩ := normalizedTranslation
+      let .forallE _ _ domainTranslation _ := sourceTranslation
+      refine (Inner.isProp.scopeWF domainTranslation).bind fun proposition _ _ _ => ?_
+      cases proposition <;> simp only [Bool.not_false, Bool.not_true, Bool.false_eq_true, if_true, if_false]
+      · exact nativeProjectionFailure.scopeWF environment source
+      · exact RecM.ScopeWF.pure trivial
+
 theorem inferLambda.loop.scopeWF {context : VContext} {state : VState}
     {initialExpression : Expr} {locals : MLCtx} [localsWF : context.MLCWF locals]
     {binderCount : Nat} (countBound : binderCount ≤ locals.length)

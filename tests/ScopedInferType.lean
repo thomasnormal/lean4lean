@@ -269,6 +269,13 @@ example {context : VContext} {state : VState} {environment : Kernel.Environment}
       context state (fun _ _ => True) :=
   Inner.nativeProjectionField.scopeWF environment source parent structureExpr propositional index current translated
 
+example {context : VContext} {state : VState} {environment : Kernel.Environment}
+    {source current : Expr} {propositional : Bool} {semantic : VExpr}
+    (translated : context.TrExprS current semantic) :
+    (Inner.nativeProjectionFinal environment source propositional current).ScopeWF
+      context state (fun _ _ => True) :=
+  Inner.nativeProjectionFinal.scopeWF environment source propositional current translated
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.TypeChecker.ScopedInferType
