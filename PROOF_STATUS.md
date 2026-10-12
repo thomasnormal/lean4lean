@@ -172,6 +172,13 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   32 string projection controls. Its quotient lift control independently
   distinguishes the encoded numeral retained by core reduction from the native
   literal produced by full normalization.
+- `quotReduceRec.fvarsBelow` proves the structural free-variable preservation
+  of both quotient lift and quotient induction reductions. It follows the
+  actual constructor-normalization callback, rejects malformed constructor
+  heads, and preserves the optional trailing application range. This is a
+  separate partial-correctness component: it does not yet establish the
+  semantic `TrExpr` result required by `reduceRecursor.WF`, which remains the
+  next quotient WHNF obligation.
 - `TypeChecker.Inner.ensureSortCore.scopeWF` and
   `ensureForallCore.scopeWF` carry the scoped-head/cache invariant through the
   actual sort and forall checks, using the completed scoped WHNF contract and
