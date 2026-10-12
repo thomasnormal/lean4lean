@@ -133,8 +133,26 @@ dependency on the admitted whole `addDecl.WF` theorem, but still inherits
 `sorryAx` and the existing checker/native-interface axioms. No semantic admission
 has been removed by this integration. The remaining fork commits are **not yet
 replayed**: a green intermediate checkpoint is **not a completed rebase or
-validation of the final branch**. The live rebase stops cleanly before the next
-safe-definition replay so each bounded item can be journaled first.
+validation of the final branch**.
+
+The next safe-definition replay is also reconciled at detached checkpoint
+`dc217549a0e08a2f7006ba32a865867bf589765f`. It keeps upstream's stronger
+primitive-extension proofs, metadata-aware type comparisons, and all fourteen
+binary native arithmetic/predicate branches instead of replaying the fork's
+historical temporary arithmetic removals. The fork's primitive-only extension
+contract is recovered from the actual, stronger declaration theorem.
+
+All default targets and both candidate fixtures pass. Actual fresh-slot checks
+for `Nat.add`, `Char.ofNat`, and `String.ofList` accept domain metadata, reject
+misplaced metadata and invalid safety/universe parameters, and check the String
+constructor dependencies. An ill-typed primitive body is rejected before
+recognizer probes. Direct native reductions pass without fallback unfolding.
+These runtime controls use a native prelude and are **not a proof of its model
+translation**; primitive proof audits still inherit the upstream checker trust
+baseline. This is compatibility/preservation evidence, not a newly completed
+primitive soundness milestone. The published branch's four disabled operations
+remain disabled until the full rebase is validated and published. The live
+rebase stops cleanly before the restricted-frontend replay.
 
 ### Upstream contributions
 
