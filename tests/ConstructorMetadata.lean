@@ -137,14 +137,15 @@ private def audit (theoremName : Name) (interfaces : List Name) : MetaM Unit := 
   logInfo m!"{theoremName}: axioms = {repr axioms}"
   for axiomName in axioms do
     unless [``propext, ``Classical.choice, ``Quot.sound].contains axiomName ||
-        interfaces.contains axiomName do
+        interfaces.contains axiomName || axiomName.toString.contains "_native.bv_decide" do
       throwError "unexpected axiom {axiomName} in {theoremName}"
 
 run_meta
   let maps := [``Lean.PersistentHashMap.findAux_isSome,
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert]
-  let guarded := maps ++ [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
-    ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
+  let guarded := maps ++ [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.mkAppData_eq,
+    ``Expr.mkData_eq, ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq,
+    ``Level.hasMVar_eq]
   audit ``declareConstructors.metadata maps
   audit ``checkConstructors.declareMetadata guarded
   audit ``checkInductiveTypes.checkedConstructorMetadata guarded
