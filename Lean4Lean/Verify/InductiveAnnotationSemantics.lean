@@ -115,7 +115,7 @@ theorem CanonicalAnnotationDefinitions.autoParam_isDefEq {environment : VEnv}
     List.getD_cons_zero, List.map_cons, List.map_nil] at delta
   have syntaxTyping : environment.HasType universeCount (.sort level :: context)
       (.const ``Lean.Syntax []) (.sort (.succ .zero)) := by
-    simpa only [VExpr.instL] using
+    simpa only [VExpr.instL, VLevel.inst] using
       VEnv.HasType.const definitions.syntaxConstant (by simp) rfl
   have bodyTyping : environment.HasType universeCount
       (.const ``Lean.Syntax [] :: .sort level :: context) (.bvar 1) (.sort level) :=
