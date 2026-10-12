@@ -340,7 +340,7 @@ private theorem TrEnv'.inductiveFamilyLookupsRejected
     (valid : TrEnv' safety constants quotient environment) :
     InductiveLookupsRejected safety constants := by
   induction valid with
-  | empty => intro _ _ impossible; simp [SMap.find?] at impossible
+  | empty => intro _ _ impossible; simp [SMap.find?_emptyStage] at impossible
   | ignore _ ignored previous inductionHypothesis =>
     exact inductionHypothesis.insert previous.map_wf (fun _ => ignored)
   | «axiom» _ _ _ _ previous inductionHypothesis
@@ -352,7 +352,9 @@ private theorem TrEnv'.inductiveFamilyLookupsRejected
     intro queried queriedInformation found family
     rcases insertDefs_find? previous.map_wf fresh distinct found with found | ⟨_, _, _, impossible⟩
     · exact inductionHypothesis queried queriedInformation found family
-    · cases impossible
+    · subst queriedInformation
+      have impossible : False := by simpa [InductiveFamilyInfo] using family
+      exact impossible.elim
   | quot _ added previous inductionHypothesis =>
     exact inductionHypothesis.addQuot added previous.map_wf
   | induct _ impossible _ _ => cases impossible
@@ -414,22 +416,21 @@ theorem TrEnv'.quotientObjects (valid : TrEnv' safety constants true environment
   generalize quotientEq : true = quotient at valid
   induction valid with
   | empty => cases quotientEq
-  | ignoreConst _ _ _ inductionHypothesis => exact inductionHypothesis quotientEq
+  | ignore _ _ _ inductionHypothesis => exact inductionHypothesis quotientEq
   | «axiom» _ _ _ added _ inductionHypothesis =>
     exact (inductionHypothesis quotientEq).mono (VEnv.addConst_le added)
   | defn _ _ _ added _ inductionHypothesis =>
     exact (inductionHypothesis quotientEq).mono
       ((VEnv.addConst_le added).trans VEnv.addDefEq_le)
-  | opaqueDefn _ _ _ _ added _ inductionHypothesis =>
-    exact (inductionHypothesis quotientEq).mono (VEnv.addConst_le added)
-  | quotInfo => cases quotientEq
-  | thm _ _ _ added _ inductionHypothesis =>
+  | mutualDef _ _ _ _ added _ _ inductionHypothesis =>
     exact (inductionHypothesis quotientEq).mono
-      ((VEnv.addConst_le added).trans VEnv.addDefEq_le)
+      ((VEnv.addConsts_le added).trans VEnv.addDefEqs_le)
+  | thm _ _ _ _ added _ inductionHypothesis =>
+    exact (inductionHypothesis quotientEq).mono (VEnv.addConst_le added)
   | «opaque» _ _ _ added _ inductionHypothesis =>
     exact (inductionHypothesis quotientEq).mono (VEnv.addConst_le added)
-  | quot _ added _ _ => exact VEnv.addQuot_objs added.to_addQuot
-  | induct _ unsupported => cases unsupported
+  | quot _ added _ inductionHypothesis => exact VEnv.addQuot_objs added.to_addQuot
+  | induct _ unsupported _ inductionHypothesis => cases unsupported
 
 theorem TrEnv.quotientObjects (valid : TrEnv safety native environment)
     (initialized : native.quotInit = true) :

@@ -914,7 +914,14 @@ theorem lambdaTelescope.loop.WF {c : VContext} {α} {k : Array Expr → Expr →
     revert hinv
     let .lam (ty' := domv) (body' := body') domty hdom hbody := Expr.instantiateList_lam ▸ he
     intro hinv
-    rw [Expr.instantiateRev_eq_instantiateList]
+    have hscope : ∀ replacement ∈ arr, replacement.looseBVarRange' = 0 := by
+      intro replacement member
+      have member' : replacement ∈ arr.toList := Array.mem_toList_iff.mpr member
+      have member'' : replacement ∈ arr.toList.reverse := List.mem_reverse.mpr member'
+      rw [harr] at member''
+      obtain ⟨_, _, rfl⟩ := List.mem_map.mp member''
+      rfl
+    rw [Expr.instantiateRev_eq_instantiateList hscope]
     refine M.WF.withLocalDecl hdom domty hs fun fv cwf' s' hs' _ => ?_
     have hinst : Expr.instantiateList body ((arr.push (Expr.fvar fv)).toList.reverse)
         = (Expr.instantiateList body arr.toList.reverse 1).instantiate1' (.fvar fv) := by
@@ -945,7 +952,14 @@ theorem lambdaTelescope.loop.WF {c : VContext} {α} {k : Array Expr → Expr →
         h.weakFV c.Ewf.ordered (.skip_fvar _ _ .refl) cwf'.wf.tr.wf)
     · exact hinv.lams
     · rw [hinst]; exact hbody.inst_fvar c.Ewf.ordered cwf'.wf.tr.wf
-  · simp only [Expr.instantiateRev_eq_instantiateList]
+  · have hscope : ∀ replacement ∈ arr, replacement.looseBVarRange' = 0 := by
+      intro replacement member
+      have member' : replacement ∈ arr.toList := Array.mem_toList_iff.mpr member
+      have member'' : replacement ∈ arr.toList.reverse := List.mem_reverse.mpr member'
+      rw [harr] at member''
+      obtain ⟨_, _, rfl⟩ := List.mem_map.mp member''
+      rfl
+    simp only [Expr.instantiateRev_eq_instantiateList hscope]
     rename_i hne
     exact H _ _ hn hs hdrop harr he₀ hinv
       (by rw [harity, Expr.lambdaArity_eq_zero hne]; rfl) he

@@ -120,7 +120,11 @@ theorem quotInd_beta {environment : VEnv} {locals : List VExpr} {universes : Nat
   simp [VExpr.inst_lift, VExpr.inst, VExpr.instVar] at inductionValue
   have minorValue := minorTyped.app valueTyped
   simp [VExpr.inst_lift, VExpr.inst, VExpr.instVar] at minorValue
-  exact .proofIrrel (by simpa only [VExpr.inst] using motiveTyped.app constructorValue)
-    inductionValue minorValue
+  have motiveType : environment.IsDefEq universes locals
+      (.app motive (.app (.app (.app (.const ``Quot.mk [sourceUniverse]) domain) relation) value))
+      (.app motive (.app (.app (.app (.const ``Quot.mk [sourceUniverse]) domain) relation) value))
+      (.sort .zero) := by
+    simpa only [VExpr.inst, VEnv.HasType] using motiveTyped.app constructorValue
+  exact VEnv.IsDefEq.proofIrrel motiveType inductionValue minorValue
 
 end Lean4Lean.VEnv

@@ -4,10 +4,6 @@ import Lean4Lean.Verify.TypeChecker.Basic
 namespace Lean4Lean.Environment
 open Lean hiding Environment Exception
 
-def checkPrimitiveInductive (env : Kernel.Environment) (lparams : List Name) (nparams : Nat)
-    (types : List InductiveType) (isUnsafe : Bool) : Except Kernel.Exception Bool :=
-  Primitive.checkInductive env lparams nparams types isUnsafe
-
 inductive PrimitiveInductiveDecl : List Name → Nat → List InductiveType → Bool → Prop where
   | bool : PrimitiveInductiveDecl [] 0 [{
       name := ``Bool
