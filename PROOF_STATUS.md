@@ -5,6 +5,19 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 ## What is proved
 
+- `NormalEq.parRed_constDF` proves the constant case of parallel reduction
+  modulo universe conversion, including registered extra-reduction rules and
+  their nontrivial equality checks. `EqUpToLevels.instL_of_levels` and
+  `Pattern.RHS.eqUpToLevels_const` derive structural universe transport without
+  inherited metatheory admissions; `NormalEq.of_eqUpToLevels` and
+  `Pattern.Check.OK.const_levels` supply the semantic transports. The actual
+  `NormalEq.parRed` proof now uses the proved constant case instead of its
+  former admission. `ConfluenceConstantReduction` checks both constant and
+  extra branches, transported equality guards, proof dependencies, and the
+  absence of circular dependence on the still-admitted application/extra case.
+  Semantic transports retain the existing typing/model dependencies. This
+  removes one admission, not the remaining confluence, injectivity, quotient
+  callback, or inductive registration obligations.
 - `TypeChecker.Inner.whnfCore'.headWF` and `whnf'.headWF` prove a native
   head/cache invariant through the actual normalizer workers: successful
   outputs have neither a metadata nor a let-expression as the outermost node,
