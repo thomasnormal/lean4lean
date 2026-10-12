@@ -27,7 +27,7 @@ when a semantic contract, trust boundary, or correctness obstruction changes.
 
 | Signal | Current evidence | Interpretation |
 | --- | --- | --- |
-| Upstream synchronization | `HEAD` `11592f6`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `339` branch-only | Rebase integration is complete locally; commit counts measure history, not verification progress. |
+| Upstream synchronization | rebased stack through `198dbd5`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `339` branch-only | Rebase integration is complete locally; commit counts measure history, not verification progress. |
 | Semantic work completed in this rebase | Nested-inductive guard, recursive primitive abstraction, annotation peeling/length, local-context defeq/nodup, inductive stats continuation, projection, primitive-interface, and ordinary-interface compatibility proofs build on current upstream | These preserve existing theorem contracts while adapting to upstream APIs; they do not by themselves remove inherited trust. |
 | Admission boundary | `129` matching lines in `27` files; `133` whole-word `sorry`/`admit` occurrences under `Lean4Lean/` | The rebase introduced no new admissions and removed none; transitive `sorryAx` audits remain the meaningful trust signal. |
 | Build status | Focused ordinary-interface build passes (134 jobs); default build reaches all `414` targets and fails in `Verify.StagedLeaves`, `Verify.ConstructorParams`, and `Verify.InductiveNestedRewrite` | The checker and primitive-interface blockers are cleared; current API adaptation remains before a green default build. |
@@ -50,7 +50,7 @@ themselves satisfy any of these goals.
 | Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
 | Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Behavior on its newer toolchain has not been tested. | Do not generalize the finding to other Lean versions or claim it proves logical unsoundness. |
 
-Comparison anchors: rebased local `HEAD` `11592f68d1b91fee684665539e07f198f612e8f8`
+Comparison anchor: rebased stack through `198dbd504faafa99c632e9a535aa38db1a2c60e7`
 and official `origin/master` `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, both
 using Lean `v4.33.0-rc2`. These pins make the claims reviewable without treating
 source volume as progress.
