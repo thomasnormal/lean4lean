@@ -7,10 +7,10 @@ open private Lean4Lean.AddInductive.forIn'_all Lean4Lean.AddInductive.bindInvari
   from Lean4Lean.Verify.ConstructorParams
 
 private theorem scanSome_eq (items : List Nat) (valid : Nat → Bool) :
-    (forIn (m := Option) items (⟨none, PUnit.unit⟩ : MProd (Option Nat) PUnit)
-      fun index _ => if valid index then pure (ForInStep.done ⟨some index, PUnit.unit⟩)
-        else pure (ForInStep.yield ⟨none, PUnit.unit⟩)) =
-      some ⟨items.find? valid, PUnit.unit⟩ := by
+    (forIn (m := Option) items (none, ())
+      fun index _ => if valid index then pure (ForInStep.done (some index, ()))
+        else pure (ForInStep.yield (none, ()))) =
+      some (items.find? valid, ()) := by
   induction items with
   | nil => rfl
   | cons index items ih =>
@@ -180,9 +180,7 @@ theorem checkConstructors.loop.safeTrace_of_whnf (stats : InductiveStats)
         apply Lean4Lean.AddInductive.bindWF
         intro equal
         split
-        · apply Lean4Lean.AddInductive.bindWF
-          intro _
-          refine (ih (body.instantiate1 param) (index + 1) ctx).mono ?_
+        · refine (ih (body.instantiate1 param) (index + 1) ctx).mono ?_
           rintro _ ⟨terminal, htrace⟩
           exact ⟨terminal, .parameter hparam htrace⟩
         · exact Except.WF.throw
@@ -266,8 +264,7 @@ theorem checkConstructors.safeTraces_of_whnf (indTypes : Array InductiveType)
       dsimp only
       split
       · exact Except.WF.throw
-      · simp only [pure_bind]
-        apply Lean4Lean.AddInductive.bindWF
+      · apply Lean4Lean.AddInductive.bindWF
         intro _
         apply Lean4Lean.AddInductive.bindWF
         intro checkedType
@@ -308,7 +305,6 @@ theorem checkInductiveTypes.registeredSafeConstructors (nparams : Nat)
         next stats) ctx).WF post := by
   apply checkInductiveTypes.frameHeaderSizesParamsCountDistinct
   intro stats current hsizes hcount hfvars hnodup hframe
-  dsimp only
   apply Lean4Lean.AddInductive.bindWF
   intro headers
   refine (checkConstructors.safeTraces indTypes stats { current with env := headers }).bind ?_
