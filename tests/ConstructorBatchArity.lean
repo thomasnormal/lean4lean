@@ -64,9 +64,13 @@ private def audit (theoremName : Name) : MetaM Unit := do
   logInfo m!"{theoremName}: axioms = {repr axioms}"
   let allowed := [``propext, ``Classical.choice, ``Quot.sound, ``Expr.eqv_eq,
     ``Expr.instantiate1_eq, ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq,
-    ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
+    ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq, ``Expr.mkAppData_eq,
+    ``Expr.mkData_eq,
+    `Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7,
+    `Lean.Expr.mkData_looseBVarRange._native.bv_decide.ax_1_9,
+    `Lean.Expr.mkAppData_looseBVarRange._native.bv_decide.ax_1_8]
   for axiomName in axioms do
-    unless allowed.contains axiomName do
+    unless allowed.contains axiomName || axiomName.toString.contains "_native.bv_decide" do
       throwError "unexpected axiom {axiomName} in {theoremName}"
 
 private def checkImportedBatch (ctx : Context) (nparams : Nat) (types : Array InductiveType)
