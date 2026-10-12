@@ -11,7 +11,15 @@ private theorem annotationLevels_ofArity {universes : List Name} {levels : List 
     (mapped : levels.mapM (VLevel.ofLevel universes) = some semanticLevels)
     (arity : levels.length = 1) :
     ∃ level, semanticLevels = [level] ∧ level.WF universes.length := by
-  have lengths := (List.mapM_eq_some.mp mapped).length_eq
+  have mapped' := List.mapM_eq_some.mp mapped
+  have lengths' : ∀ (as : List Level) (bs : List VLevel),
+      List.Forall₂ (fun a b => VLevel.ofLevel universes a = some b) as bs →
+        as.length = bs.length := by
+    intro as bs h
+    induction h with
+    | nil => rfl
+    | cons _ _ ih => simp only [List.length_cons, ih]
+  have lengths := lengths' _ _ mapped'
   obtain ⟨level, semanticSingleton⟩ := List.length_eq_one_iff.mp (lengths.symm.trans arity)
   exact ⟨level, semanticSingleton,
     VLevel.WF.of_mapM_ofLevel mapped level (by simp only [semanticSingleton, List.mem_singleton])⟩
@@ -46,7 +54,7 @@ theorem TrExprS.peeledDomain {env : VEnv} {universes : List Name} {context : VLC
           obtain ⟨peeled, peeledTranslated, carrierEquality⟩ :=
             carrierInduction carrierTranslated carrierTyping
           refine ⟨peeled, ?_, ?_⟩
-          · simpa only [AddInductive.peelTypeAnnotations, ↓reduceIte] using peeledTranslated
+          · simpa [AddInductive.peelTypeAnnotations] using peeledTranslated
           · exact ((definitions.outParam_isDefEq levelWF carrierTyping).trans
               carrierEquality).toU.of_l envWF contextWF typed
         · subst name
@@ -63,7 +71,7 @@ theorem TrExprS.peeledDomain {env : VEnv} {universes : List Name} {context : VLC
           obtain ⟨peeled, peeledTranslated, carrierEquality⟩ :=
             carrierInduction carrierTranslated carrierTyping
           refine ⟨peeled, ?_, ?_⟩
-          · simpa only [AddInductive.peelTypeAnnotations, ↓reduceIte] using peeledTranslated
+          · simpa [AddInductive.peelTypeAnnotations] using peeledTranslated
           · exact ((definitions.semiOutParam_isDefEq levelWF carrierTyping).trans
               carrierEquality).toU.of_l envWF contextWF typed
   | case2 name levels carrier unrecognized =>
@@ -94,7 +102,7 @@ theorem TrExprS.peeledDomain {env : VEnv} {universes : List Name} {context : VLC
             obtain ⟨peeled, peeledTranslated, carrierEquality⟩ :=
               carrierInduction carrierTranslated carrierTyping
             refine ⟨peeled, ?_, ?_⟩
-            · simpa only [AddInductive.peelTypeAnnotations, ↓reduceIte] using peeledTranslated
+            · simpa [AddInductive.peelTypeAnnotations] using peeledTranslated
             · exact ((definitions.optParam_isDefEq envWF.ordered levelWF carrierTyping
                 extraTyping).trans carrierEquality).toU.of_l envWF contextWF typed
           · subst name
@@ -115,7 +123,7 @@ theorem TrExprS.peeledDomain {env : VEnv} {universes : List Name} {context : VLC
             obtain ⟨peeled, peeledTranslated, carrierEquality⟩ :=
               carrierInduction carrierTranslated carrierTyping
             refine ⟨peeled, ?_, ?_⟩
-            · simpa only [AddInductive.peelTypeAnnotations, ↓reduceIte] using peeledTranslated
+            · simpa [AddInductive.peelTypeAnnotations] using peeledTranslated
             · exact ((definitions.autoParam_isDefEq envWF.ordered levelWF carrierTyping
                 extraTyping).trans carrierEquality).toU.of_l envWF contextWF typed
   | case4 name levels carrier extra unrecognized =>
