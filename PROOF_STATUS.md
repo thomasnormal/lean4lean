@@ -136,10 +136,11 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   delta helpers preserve the actual scoped caches and name generator.
   `Methods.ScopeWF` retains the original semantic contract and adds scoped
   cache preservation at its typed four-method boundaries. Its actual zero-fuel
-  instance is proved; the stronger arbitrary-fuel induction remains open. The
-  inference dispatcher and comparison frames below still consume scoped method
-  callbacks. The recursor cache frame is now proved below, and neither normalizer
-  worker requires an independent recursor-frame premise.
+  instance is proved; the stronger arbitrary-fuel induction is now supplied by
+  `ScopedMethods` below. The inference dispatcher and comparison worker frames
+  consume those derived scoped callbacks. The recursor cache frame is proved
+  below, and neither normalizer worker requires an independent recursor-frame
+  premise.
   These model-aware proofs inherit the pre-existing checker/metatheory and
   representation dependencies of `whnf'.WF`; the separate native scope module
   remains audited without checker/metatheory admissions. No new admission or
@@ -163,8 +164,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   including the existing `reduceRecursor.WF` admission, remain explicit. No new
   admission or stronger caller premise is added. Checked inductive registration
   will require replacing this fragment-specific rejection with actual recursor
-  semantics; arbitrary-fuel scoped comparison/method closure and the frontend
-  theorem remain open. The scoped WHNF fixture audits 166 owned declarations
+  semantics. Arbitrary-fuel scoped comparison/method closure is proved below;
+  the frontend theorem remains open. The scoped WHNF fixture audits 166 owned
+  declarations
   without direct admissions or axioms and runs 896 actual core and 896 actual
   full cold/warm scoped-cache controls, including quotient lift/induction, plus
   32 string projection controls. Its quotient lift control independently
@@ -183,8 +185,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   primitive inference frames. The recursive lambda and forall frames below
   consume them; the later frames also cover let telescopes, applications,
   comparison, and projection rejection in the current verified environment
-  fragment. The inference dispatcher is now proved below; arbitrary-fuel method
-  scope preservation remains open.
+  fragment. The inference dispatcher and arbitrary-fuel method scope preservation
+  are now proved below.
 - `Inner.isProp.scopeWF` composes the scoped inference and WHNF frames for the
   actual proposition test. On a successful proposition result it transports
   the inferred expression back to the caller's semantic translation and
@@ -257,17 +259,18 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   declarations against the existing semantic lambda/WHNF dependency baselines
   and native scope foundations. The proof inherits the existing
   semantic/metatheory admissions and requires `Methods.ScopeWF` callbacks;
-  it does not close recursive let/projection/application inference,
-  arbitrary-fuel methods, semantic WHNF completeness, or the frontend theorem.
+  the remaining recursive inference frames and arbitrary-fuel method closure
+  are proved below. Semantic WHNF completeness and the frontend theorem remain
+  open.
 - `Inner.inferForall.loop.scopeWF` and `Inner.inferForall.scopeWF` prove the
   corresponding scoped forall telescope. They preserve universe-list and
   sort-list witnesses, consume the local-declaration frame for each domain,
   carry the translated forall body through fresh context extension, and build
   the terminal sort typing result. The fixture covers generic mode and two-
   binder checking/infer-only contracts, while its dependency audit includes
-  the existing semantic forall baseline. Recursive let inference, projections,
-  applications, comparison, arbitrary-fuel methods, and terminal frontend
-  closure remain open.
+  the existing semantic forall baseline. Recursive let/application/comparison
+  frames, current-fragment projection rejection, and arbitrary-fuel methods are
+  proved below; terminal frontend closure remains open.
 - `Inner.inferLet.loop.scopeWF_inferOnly` and
   `Inner.inferLet.scopeWF_inferOnly` prove the actual recursive let telescope
   in infer-only mode. They consume `withLetDecl`, preserve the let-value
@@ -283,8 +286,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   the proof re-enters through the reached state and its fresh-name invariant.
   The fixture checks generic and one-let checking contracts. This closes the
   recursive let worker only under the existing scoped callback contracts; it
-  does not close projections, applications, arbitrary-fuel methods, semantic
-  WHNF completeness, terminal-sort acceptance, or the frontend theorem.
+  does not itself close the remaining inference/method frames proved below,
+  semantic WHNF completeness, terminal-sort acceptance, or the frontend theorem.
 - `Inner.inferApp.loop.scopeWF` and `Inner.inferApp.scopeWF` prove the actual
   application-spine inference worker. They preserve the `AppStack` typing
   relation across saturated and partially saturated forall steps, consume the
@@ -333,7 +336,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   the rejection argument and require genuine constructor-header transport and
   projection semantics. The `TrProj` specification (`Verify/Typing/Expr.lean:67`)
   and its semantic transports remain admitted; no successful inductive projection
-  expansion, arbitrary-fuel scoped methods, or full frontend theorem is claimed.
+  expansion or full frontend theorem is claimed; scoped method closure is proved
+  below.
 - `Inner.addEquiv.scopeWF`, `Inner.isDefEqCore.scopeWF`, and
   `Inner.isDefEq.scopeWF` preserve the scoped WHNF caches through equivalence-
   manager updates and transport successful comparison results to the semantic
@@ -366,9 +370,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   and scoped caches; 512 quick controls retain true/false/undefined results in
   both hash modes. Domain aliases/mismatches, dependent/unused/nested binders,
   body mismatches, sorts/literals/metadata, poisoned caches, and zero-fuel
-  boundaries are covered. These workers still require `Methods.ScopeWF`;
-  the actual `isDefEqCore'` dispatcher, arbitrary-fuel scoped methods, and full
-  frontend closure remain open.
+  boundaries are covered. Their `Methods.ScopeWF` callbacks are discharged for
+  actual arbitrary-fuel methods by `ScopedMethods` below. Full frontend closure
+  remains open.
 - `TrEnv'.constructorLookupRejected`, `TrEnv.constructorLookupRejected`, and
   `TrEnv.constructorNotInModel` expose the constructor case of the existing
   inductive-family exclusion, including satisfiable ignored unsafe records.
@@ -394,8 +398,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   its inherited lookup assumptions are not new axioms. This does not prove
   successful inductive structure eta or unit-like semantics: actual checked
   inductive registration will invalidate the rejection argument and require the
-  genuine constructor/field transport. The actual comparison dispatcher,
-  arbitrary-fuel scoped methods, semantic WHNF completeness,
+  genuine constructor/field transport. Semantic WHNF completeness
   and the full frontend theorem remain open.
 - `Inner.inferType.scopeWF_of_translation` aligns the scoped inference result
   with the caller's existing semantic expression through translation uniqueness,
@@ -418,10 +421,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   boundaries, and poisoned caches. Raw
   argument controls intentionally return true for unequal heads to keep that
   theorem premise explicit; they are not checker discrepancies. These are
-  worker contracts under the existing `Methods.ScopeWF`, not an arbitrary-fuel
-  method instance. The actual `isDefEqCore'`
-  dispatcher, arbitrary-fuel scoped methods, semantic WHNF completeness, and
-  unrestricted frontend closure remain open.
+  worker contracts under `Methods.ScopeWF`; the arbitrary-fuel method instance
+  and actual comparison dispatcher are proved in `ScopedMethods` below.
+  Semantic WHNF completeness and unrestricted frontend closure remain open.
 - `Verify.TypeChecker.ScopedDelta` closes the remaining lazy-delta and string
   worker frames under the existing scoped callbacks. `M.ScopeWF.lift` frames an
   actual nonrecursive monadic action; `Inner.cacheFailure.scopeWF` updates the
@@ -450,9 +452,42 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   at callback depth 1024 and exhaust depth 32, matching the existing bounded
   recursion policy. Zero loop/callback budgets, one-round exhaustion, and the
   poisoned-cache premise are negative controls. This proves worker frames, not
-  arbitrary-fuel `Methods.ScopeWF`, semantic WHNF completeness, successful
-  inductive reduction, or unrestricted frontend closure. The actual
-  `isDefEqCore'` dispatcher and scoped method/fuel closure remain next.
+  semantic WHNF completeness, successful inductive reduction, or unrestricted
+  frontend closure. The actual `isDefEqCore'` dispatcher and arbitrary-fuel
+  scoped method closure are proved in the following module.
+- `Verify.TypeChecker.ScopedMethods` proves the actual comparison dispatcher,
+  closes scoped callbacks for arbitrary `Methods.withFuel`, and frames configured
+  public entries and cold initialization. Its private dispatcher frame follows
+  the actual quick/Boolean shortcut, cheap normalization/recomparison,
+  proof-irrelevance, lazy-delta terminal cases, constant/free-variable/projection
+  fast paths, full-normalization retry, and application/eta/string/unit fallback.
+  `Inner.isDefEqCore'.scopeWF` combines that cache frame with the existing proved
+  semantic dispatcher contract, preserving its original translated operands.
+  `Methods.withFuel.scopeWF` structurally inducts on the actual callback depth;
+  the successor record applies all four completed workers to the preceding real
+  method record, with the existing `Methods.withFuel.WF` semantic base. No caller
+  scoped-method instance or strengthened cache/name premise is required.
+  `RecM.ScopeWF.run` consumes the actual reader-selected recursion depth.
+  The public `whnfCore`, `whnf`, `inferType`, `checkType`, and `isDefEq` scoped
+  contracts are now proved, and `M.ScopeWF.run` derives the actual cold initialized
+  result contract from `VEnvs.WF` and the proved empty scoped caches. Generic
+  arbitrary-depth, actual field/dispatcher/public, and cold normalized-head
+  contracts compile. The fixture audits all 27 owned declarations against the
+  original semantic arbitrary-fuel/native baseline without direct admissions or
+  axioms. Its 1728 typed cold/warm bidirectional dispatcher/method/public
+  comparisons, 1408 inference/checking/core/full entries, 232 cold initialized
+  comparisons, 56 cold initialized full heads, and 48 polymorphic cold/warm
+  comparisons pass in both safeties/eager modes at depths 32/128 and all cheap
+  flags, including the open-term Boolean shortcut policy and equivalent constant
+  universe levels. Zero-depth method fields, configured
+  public entries, and cold normalization reject; a real depth-one pure comparison
+  succeeds; poisoned caches retain the initial scoped-cache premise. These are
+  derived actual method instances, not fabricated callbacks or finite-budget
+  evidence substituted for the induction. They inherit the original semantic
+  checker/metatheory and native representation dependencies, including existing
+  admissions. Scoped-head/conversion preservation still does not establish
+  semantic WHNF completeness, terminal-sort acceptance, successful inductive
+  reduction, or the unrestricted non-inductive frontend theorem.
 - `Inner.inferType'.scopeWF` proves the actual recursive inference dispatcher in
   checking and infer-only modes under the existing scoped method callbacks.
   Its premises mirror `inferType'.WF`: free-variable membership and, only in
@@ -466,9 +501,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   owned scoped inference/WHNF declarations for direct proof admissions and axioms
   against the original semantic lambda/forall/dispatcher/WHNF and native baselines.
   The native inference-head fixture also passes its cold/warm cache controls in
-  both inference modes. This closes the scoped inference dispatcher, not the
-  arbitrary-fuel `Methods.ScopeWF` instances, successful inductive projection
-  semantics, semantic WHNF completeness, or the full non-inductive frontend.
+  both inference modes. Together with `ScopedMethods` this closes the scoped
+  inference dispatcher and actual arbitrary-fuel method instances, not successful
+  inductive projection semantics, semantic WHNF completeness, or the full
+  non-inductive frontend.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked
