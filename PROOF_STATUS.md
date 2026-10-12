@@ -136,8 +136,9 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   delta helpers preserve the actual scoped caches and name generator.
   `Methods.ScopeWF` retains the original semantic contract and adds scoped
   cache preservation at its typed four-method boundaries. Its actual zero-fuel
-  instance is proved; nonzero inference/comparison/recursor scope frames and
-  the stronger arbitrary-fuel induction remain open. Worker recursor cache
+  instance is proved; the stronger arbitrary-fuel induction and worker recursor
+  cache frames remain open. The inference dispatcher and comparison frames below
+  still consume scoped method callbacks. Worker recursor cache
   frames are explicit premises, not silently assumed implementing results.
   These model-aware proofs inherit the pre-existing checker/metatheory and
   representation dependencies of `whnf'.WF`; the separate native scope module
@@ -157,8 +158,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   primitive inference frames. The recursive lambda and forall frames below
   consume them; the later frames also cover let telescopes, applications,
   comparison, and projection rejection in the current verified environment
-  fragment. The inference dispatcher and arbitrary-fuel method scope
-  preservation remain open.
+  fragment. The inference dispatcher is now proved below; arbitrary-fuel method
+  scope preservation remains open.
 - `Inner.isProp.scopeWF` composes the scoped inference and WHNF frames for the
   actual proposition test. On a successful proposition result it transports
   the inferred expression back to the caller's semantic translation and
@@ -185,7 +186,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   and is removed. Concrete zero/one/two-dependent-parameter and nonzero-offset
   fixtures instantiate the replacement contract, permit unused metavariables
   outside the consumed prefix, and reject metavariable translations. The fixture
-  audits both scoped inference/WHNF modules (276 owned declarations) against the
+  audits both scoped inference/WHNF modules (321 owned declarations) against the
   existing semantic/native axiom baselines with no owned axioms. This does not
   close semantic constructor-header transport or the field loop. Projection
   rejection in the currently supported environment fragment is proved below.
@@ -314,6 +315,22 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `IsDefEqU` relation. The comparison contracts reuse the existing semantic
   equivalence-manager proof and require the typed `Methods.ScopeWF` callback;
   they do not yet close arbitrary-fuel `Methods.ScopeWF`.
+- `Inner.inferType'.scopeWF` proves the actual recursive inference dispatcher in
+  checking and infer-only modes under the existing scoped method callbacks.
+  Its premises mirror `inferType'.WF`: free-variable membership and, only in
+  infer-only mode, an existing semantic translation. The proof covers loose-bound-
+  variable rejection, selected inference-cache hits and typed insertion, literals,
+  metadata recursion, current-fragment projection rejection, free variables,
+  metavariable rejection, sorts, constants, lambda/forall/application/let workers,
+  checked applications, ordinary/eager comparison, and mismatch errors. Inference
+  cache insertion preserves both scoped WHNF caches unchanged. The scoped fixture
+  checks eight generic/mode/metadata/application/let contracts and audits all 321
+  owned scoped inference/WHNF declarations for direct proof admissions and axioms
+  against the original semantic lambda/forall/dispatcher/WHNF and native baselines.
+  The native inference-head fixture also passes its cold/warm cache controls in
+  both inference modes. This closes the scoped inference dispatcher, not the
+  arbitrary-fuel `Methods.ScopeWF` instances, successful inductive projection
+  semantics, semantic WHNF completeness, or the full non-inductive frontend.
 - `addDeclVerified.WF` preserves environment well-formedness and extension for
   successful checked declarations. Its entry point supports axioms, definitions,
   theorems, opaque declarations, unsafe/partial mutual definitions, and a checked

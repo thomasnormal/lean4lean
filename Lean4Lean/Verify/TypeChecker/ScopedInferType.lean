@@ -990,5 +990,133 @@ theorem inferApp.scopeWF {context : VContext} {state : VState} {expression : Exp
   exact ⟨resultType, expression.mkAppList_getAppArgsList ▸ below, translated,
     typeTranslation, typing.defeqU_l environmentWF contextWF unique⟩
 
+theorem inferType'.scopeWF {context : VContext} {state : VState}
+    (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars))
+    (translated : inferOnly = true → ∃ semantic, context.TrExprS expression semantic) :
+    (inferType' expression inferOnly).ScopeWF context state fun type _ =>
+      ∃ semantic semanticType, context.TrTyping expression type semantic semanticType := by
+  unfold inferType'; lift_lets; intro save dispatch worker
+  split <;> [exact RecM.ScopeWF.throw; refine RecM.ScopeWF.get <| RecM.ScopeWF.get ?_]
+  split
+  · rename_i found
+    refine RecM.ScopeWF.stateWF fun wellFormed => RecM.ScopeWF.pure ?_
+    generalize selected : cond .. = cache at found
+    have validCache : cache.WF context state := by
+      subst cache
+      cases inferOnly <;> [exact wellFormed.inferTypeC_wf; exact wellFormed.inferTypeI_wf]
+    exact (validCache found).2.2.2.2 freeVariables
+  generalize postEq : (fun type : Expr => _) = post
+  have saveWF {type semantic semanticType state}
+      (typing : context.TrTyping expression type semantic semanticType) :
+      (save type).ScopeWF context state post := by
+    rintro methods callbacks caches wellFormed result finalState ⟨⟩
+    refine let finalState := _; ⟨finalState, rfl, ?_⟩
+    have insertWF {cache} (valid : InferCache.WF context state cache) :
+        InferCache.WF context state (cache.insert expression type) := by
+      intro _ _ found
+      rw [Std.HashMap.getElem?_insert] at found
+      split at found <;> [cases found; exact valid found]
+      rename_i equal
+      refine .mk context.mlctx.noBV (.eqv typing equal BEq.rfl) (.eqv equal ?_) ?_
+      · exact typing.2.1.fvarsIn.mono wellFormed.ngen_wf
+      · exact typing.2.2.1.fvarsIn.mono wellFormed.ngen_wf
+    subst post
+    revert finalState
+    cases inferOnly <;>
+      (dsimp -zeta; intro finalState; refine ⟨.rfl, ?_, caches, _, _, typing⟩)
+    · exact { wellFormed with inferTypeC_wf := insertWF wellFormed.inferTypeC_wf }
+    · exact { wellFormed with inferTypeI_wf := insertWF wellFormed.inferTypeI_wf }
+  unfold dispatch
+  refine RecM.ScopeWF.get ?_
+  split
+  · extract_lets literalWorker
+    split <;> [split; skip]
+    · refine RecM.ScopeWF.getEnv <| (RecM.ScopeWF.liftExcept envGet.WF).bind fun _ _ _ found => ?_
+      have ⟨_, model, _⟩ := context.trenv.find? found <|
+        (context.safePrimitives found (literal_is_primitive (.inl rfl))).1 ▸ DefinitionSafety.le_safe
+      exact saveWF (infer_literal ⟨_, model⟩)
+    · refine RecM.ScopeWF.getEnv <| (RecM.ScopeWF.liftExcept envGet.WF).bind fun _ _ _ firstFound => ?_
+      refine RecM.ScopeWF.getEnv <| (RecM.ScopeWF.liftExcept envGet.WF).bind fun _ _ _ secondFound => ?_
+      have ⟨_, firstModel, _⟩ := context.trenv.find? firstFound <|
+        (context.safePrimitives firstFound (literal_is_primitive (.inr (.inl rfl)))).1 ▸ DefinitionSafety.le_safe
+      have ⟨_, secondModel, _⟩ := context.trenv.find? secondFound <|
+        (context.safePrimitives secondFound (literal_is_primitive (.inr (.inr rfl)))).1 ▸ DefinitionSafety.le_safe
+      exact saveWF (infer_literal ⟨⟨_, firstModel⟩, ⟨_, secondModel⟩⟩)
+    · rename_i inference
+      have ⟨_, literalTranslation⟩ := translated (by simpa using inference)
+      have literals := literalTranslation.lit_has_type
+      simp [literalWorker]
+      exact saveWF (infer_literal literals)
+  · refine (inferType'.scopeWF (by exact freeVariables) ?_).bind
+      fun _ _ _ ⟨_, _, below, expressionTranslation, typing⟩ => ?_
+    · exact fun inference => let ⟨_, .mdata inner⟩ := translated inference; ⟨_, inner⟩
+    exact saveWF ⟨below, .mdata expressionTranslation, typing⟩
+  · refine (inferType'.scopeWF (by exact freeVariables) ?_).bind
+      fun _ _ _ ⟨_, _, below, expressionTranslation, typeTranslation, typing⟩ => ?_
+    · exact fun inference => let ⟨_, .proj inner ..⟩ := translated inference; ⟨_, inner⟩
+    exact (inferProj.scopeWF ⟨below, expressionTranslation, typeTranslation, typing⟩).bind
+      fun _ _ _ ⟨_, _, projectedTyping⟩ => saveWF projectedTyping
+  · exact inferFVar.scopeWF.bind fun _ _ _ ⟨_, _, typing⟩ => saveWF typing
+  · exact RecM.ScopeWF.throw
+  · rename_i loose _
+    simp [Expr.hasLooseBVars, Expr.looseBVarRange'] at loose
+  · split <;> rename_i inference
+    · refine RecM.ScopeWF.readThe <|
+        (RecM.ScopeWF.liftExcept (checkLevel.WF freeVariables)).bind fun _ _ _ ⟨_, levelTranslation⟩ => ?_
+      exact saveWF (infer_sort levelTranslation)
+    · let ⟨_, .sort levelTranslation⟩ := translated (by simpa using inference)
+      exact saveWF (infer_sort levelTranslation)
+  · exact (inferConstant.scopeWF freeVariables translated).bind fun _ _ _ ⟨_, _, typing⟩ => saveWF typing
+  · exact (inferLambda.scopeWF freeVariables translated).bind fun _ _ _ ⟨_, _, typing⟩ => saveWF typing
+  · exact (inferForall.scopeWF freeVariables translated).bind fun _ _ _ ⟨_, _, typing⟩ => saveWF typing
+  · split <;> rename_i inference
+    · let ⟨_, applicationTranslation⟩ := translated inference
+      exact (inferApp.scopeWF applicationTranslation).bind fun _ _ _ ⟨_, typing⟩ => saveWF typing
+    refine (inferType'.scopeWF freeVariables.1 ?_).bind
+      fun _ _ _ ⟨_, _, functionBelow, functionTranslation, functionTypeTranslation, functionTyping⟩ => ?_
+    · exact fun inference => let ⟨_, .app _ _ function _⟩ := translated inference; ⟨_, function⟩
+    refine (ensureForallCore.scopeWF functionTypeTranslation).bind fun _ _ _ forallWF => ?_
+    obtain ⟨forallBelow, forallTranslation, name, domain, body, binder, rfl⟩ := forallWF
+    let ⟨_, forallStructural, forallEquality⟩ := forallTranslation
+    let .forallE (ty' := domainSemantic) _ _ domainTranslation bodyTranslation := forallStructural
+    extract_lets _ functionWorker
+    refine (inferType'.scopeWF freeVariables.2 ?_).bind
+      fun _ _ _ ⟨_, argumentTypeSemantic, argumentBelow, argumentTranslation,
+        argumentTypeTranslation, argumentTyping⟩ => ?_
+    · exact fun inference => let ⟨_, .app _ _ _ argument⟩ := translated inference; ⟨_, argument⟩
+    extract_lets comparisonWorker
+    suffices ∀ {state equal} (matched : equal = true → context.IsDefEqU domainSemantic argumentTypeSemantic),
+        (comparisonWorker equal).ScopeWF context state post by
+      split
+      · refine RecM.ScopeWF.bind ?_
+          (post := fun equal _ => equal = true → context.IsDefEqU domainSemantic argumentTypeSemantic)
+          fun _ _ _ matched => this matched
+        intro methods callbacks caches wellFormed result finalState accepted
+        let eagerContext := { context with eagerReduce := true }
+        have ⟨finalModel, sameState, increasing, finalWF, finalCaches, equal⟩ :=
+          isDefEq.scopeWF (context := eagerContext) domainTranslation argumentTypeTranslation
+            methods callbacks caches { wellFormed with } result finalState accepted
+        exact ⟨finalModel, sameState, increasing, { finalWF with }, finalCaches, equal⟩
+      · exact (isDefEq.scopeWF domainTranslation argumentTypeTranslation).bind
+          fun _ _ _ matched => this matched
+    subst comparisonWorker
+    dsimp
+    rintro state ⟨⟩ matched
+    · exact RecM.ScopeWF.getEnv <| RecM.ScopeWF.getLCtx RecM.ScopeWF.throw
+    simp [functionWorker, Expr.bindingBody!]
+    have functionTyping := functionTyping.defeqU_r context.Ewf context.Δwf forallEquality.symm
+    have argumentTyping := argumentTyping.defeqU_r context.Ewf context.Δwf (matched rfl).symm
+    subst postEq
+    refine saveWF ⟨?_, .app functionTyping argumentTyping functionTranslation argumentTranslation,
+      bodyTranslation.inst context.Ewf argumentTyping argumentTranslation, .app functionTyping argumentTyping⟩
+    exact fun _ upSet inputScope =>
+      (functionBelow.trans forallBelow _ upSet inputScope.1).2.instantiate1 inputScope.2
+  · cases inferOnly
+    · exact (inferLet.scopeWF freeVariables).bind fun _ _ _ ⟨_, _, typing⟩ => saveWF typing
+    · obtain ⟨_, letTranslation⟩ := translated rfl
+      exact (inferLet.scopeWF_inferOnly freeVariables letTranslation).bind
+        fun _ _ _ ⟨_, _, typing⟩ => saveWF typing
+termination_by expression
+
 end TypeChecker.Inner
 end Lean4Lean
