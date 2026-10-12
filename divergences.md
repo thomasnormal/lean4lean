@@ -478,3 +478,33 @@ receipt. No new admission or axiom is introduced; their inherited checker and
 native-interface assumptions remain explicit. This is a local integration
 checkpoint, not publication of the rebase or removal of the published branch's
 four disabled-operation boundaries.
+
+## Non-inductive frontend compatibility during upstream rebase (2026-10-12)
+
+The isolated checkpoints `9a95087` and `f9879f7` restore the verified frontend
+wrapper and its all-non-inductive preservation contract on the current upstream
+workers. Older unsafe-header/mutual-block scaffolding is superseded by the
+stronger checked `TrDefBlock`/block-extension model, not reinstated alongside it.
+The historical safe-only delta restriction is also superseded locally by
+upstream's native `deltaValue?` semantics and actual unfolding proof: definitions
+and theorems qualify at the right universe arity, opaques do not, and safe
+declarations still cannot use unsafe or partial dependencies. The published
+branch's behavior has not changed.
+
+The fuel-sensitive `addQuotVerified` worker is retained separately from the
+official quotient worker. It checks each generated header and fresh name,
+rejects exhausted callback fuel before initialization, and is idempotent after
+initialization. Equality readiness retains the fork's safety and genuine
+constructor-kind guards without deleting upstream's type-shape or quotient
+freshness checks. These controls are tested against native-prelude inputs;
+manually malformed environment variants are rejection fixtures, not evidence
+of a native declaration-acceptance bug.
+
+The current model still cannot contain inductive `Eq`. Consequently, the actual
+and verified quotient preservation proofs have an impossible successful
+uninitialized case. The original low-level quotient insertion scaffolding is
+not presented as a constructive model for the native prelude. Proving such a
+model remains an inductive-registration obligation. Direct-admission and
+dependency audits pass, with inherited checker admissions and native interfaces
+unchanged; neither the full rebase nor admission-free kernel soundness is
+established by this checkpoint.
