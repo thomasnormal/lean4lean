@@ -9,6 +9,23 @@ theorem reduceNative.WF :
   unfold reduceNative; split <;> [skip; exact .pure nofun]
   split <;> [exact .throw; skip]; split <;> [exact .throw; exact .pure nofun]
 
+theorem _root_.Lean4Lean.inductiveReduceRec.eq_none {monad : Type → Type} [Monad monad]
+    {context : VContext} (translated : context.TrExprS expression semantic)
+    (normalize infer : Expr → monad Expr) (compare : Expr → Expr → monad Bool) :
+    inductiveReduceRec context.env expression normalize infer compare = pure none := by
+  unfold inductiveReduceRec
+  cases headEq : expression.getAppFn <;> try rfl
+  case const name levels =>
+    have ⟨_, headStack⟩ := AppStack.build (expression.mkAppList_getAppArgsList ▸ translated)
+    have headTranslation := headEq ▸ headStack.tr
+    let .const semanticLookup _ _ := headTranslation
+    dsimp only
+    cases found : context.env.find? name with
+    | none => rfl
+    | some information =>
+      cases information <;> try rfl
+      exact False.elim <| context.trenv.recursorNotInModel found ⟨_, semanticLookup⟩
+
 theorem rawNatLitExt?.WF {c : VContext} (H : rawNatLitExt? e = some n) (he : c.TrExprS e e') :
     c.venv.contains ``Nat ∧ e' = .natLit n := by
   have : c.TrExprS (.lit (.natVal n)) e' := by
