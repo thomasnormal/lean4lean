@@ -420,8 +420,7 @@ theorem inferProj.rejects (translated : c.TrExprS ety semanticType) :
     dsimp only
     split
     · rintro _ _ _ _ _ accepted; cases accepted
-    · simp only [pure_bind]
-      refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ nativeLookup => ?_
+    · refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ nativeLookup => ?_
       cases information <;> try exact RecM.WF.getLCtx RecM.WF.throw
       exact False.elim <| c.trenv.inductiveNotInModel nativeLookup ⟨_, semanticLookup⟩
 
