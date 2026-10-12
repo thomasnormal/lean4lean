@@ -340,6 +340,36 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   `IsDefEqU` relation. The comparison contracts reuse the existing semantic
   equivalence-manager proof and require the typed `Methods.ScopeWF` callback;
   they do not yet close arbitrary-fuel `Methods.ScopeWF`.
+- `Inner.isDefEqLambda.scopeWF` and `Inner.isDefEqForall.scopeWF` prove the actual
+  recursive structural-comparison telescopes, with the same aligned substitution,
+  closed-value, model-context, and translated-expression premises as their
+  original semantic contracts. Equal native domains reuse structural uniqueness;
+  other domains consume the real scoped comparison callback and reject mismatches.
+  Dependent bodies allocate the actual reached state's fresh identifier, derive
+  its model-context instance, and consume `RecM.ScopeWF.withLocalDecl` to restore
+  the caller's scoped caches. The unused-binder branch carries the native default
+  substitution without allocating a name; a shared theorem derives its body
+  translation by fresh-context transport and weakening inversion. Successful
+  recursive comparisons transport back to semantic lambda/forall conversion.
+  Empty-substitution entry wrappers require only the original two translations.
+  `RecM.ScopeWF.toLBoolM` frames the actual Boolean-to-three-valued conversion.
+  `Inner.quickIsDefEq.scopeWF` proves the real equivalence-manager lookup/update,
+  cache-preserving short circuit, lambda/forall dispatch, sort equivalence,
+  metadata recursion, literal comparison, untranslated metavariable exclusion,
+  and undefined fallback. The equivalence-manager update leaves scoped WHNF
+  caches unchanged. The dedicated fixture exhaustively audits 64 owned
+  declarations for direct admissions/axioms against the existing semantic
+  lambda/forall/quick-comparison and native baselines. It also checks generic
+  telescope, empty-substitution, quick-comparison, and three-valued contracts,
+  rejecting loose substitution values and metavariable translations. Its 480
+  cold/warm bidirectional lambda/forall controls retain exact fresh-name counts
+  and scoped caches; 512 quick controls retain true/false/undefined results in
+  both hash modes. Domain aliases/mismatches, dependent/unused/nested binders,
+  body mismatches, sorts/literals/metadata, poisoned caches, and zero-fuel
+  boundaries are covered. These workers still require `Methods.ScopeWF`;
+  argument/eta/proof/lazy-delta workers,
+  the actual `isDefEqCore'` dispatcher, arbitrary-fuel scoped methods, and full
+  frontend closure remain open.
 - `Inner.inferType'.scopeWF` proves the actual recursive inference dispatcher in
   checking and infer-only modes under the existing scoped method callbacks.
   Its premises mirror `inferType'.WF`: free-variable membership and, only in
