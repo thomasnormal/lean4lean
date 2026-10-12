@@ -405,3 +405,33 @@ theorem TrEnv.constructorNotInModel (valid : TrEnv safety native environment)
     ¬environment.contains name := by
   rintro ⟨semantic, translated⟩
   exact valid.constructorLookupRejected found (valid.find?_uniq found translated).2.1
+
+theorem TrEnv'.quotientObjects (valid : TrEnv' safety constants true environment) :
+    environment.HasObjects [.defeq quotDefEq, .const ``Quot.ind quotIndConst,
+      .const ``Quot.lift quotLiftConst, .const ``Quot.mk quotMkConst, .const ``Quot quotConst] := by
+  generalize quotientEq : true = quotient at valid
+  induction valid with
+  | empty => cases quotientEq
+  | ignoreConst _ _ _ inductionHypothesis => exact inductionHypothesis quotientEq
+  | «axiom» _ _ _ added _ inductionHypothesis =>
+    exact (inductionHypothesis quotientEq).mono (VEnv.addConst_le added)
+  | defn _ _ _ added _ inductionHypothesis =>
+    exact (inductionHypothesis quotientEq).mono
+      ((VEnv.addConst_le added).trans VEnv.addDefEq_le)
+  | opaqueDefn _ _ _ _ added _ inductionHypothesis =>
+    exact (inductionHypothesis quotientEq).mono (VEnv.addConst_le added)
+  | quotInfo => cases quotientEq
+  | thm _ _ _ added _ inductionHypothesis =>
+    exact (inductionHypothesis quotientEq).mono
+      ((VEnv.addConst_le added).trans VEnv.addDefEq_le)
+  | «opaque» _ _ _ added _ inductionHypothesis =>
+    exact (inductionHypothesis quotientEq).mono (VEnv.addConst_le added)
+  | quot _ added _ _ => exact VEnv.addQuot_objs added.to_addQuot
+  | induct _ unsupported => cases unsupported
+
+theorem TrEnv.quotientObjects (valid : TrEnv safety native environment)
+    (initialized : native.quotInit = true) :
+    environment.HasObjects [.defeq quotDefEq, .const ``Quot.ind quotIndConst,
+      .const ``Quot.lift quotLiftConst, .const ``Quot.mk quotMkConst, .const ``Quot quotConst] := by
+  apply TrEnv'.quotientObjects
+  simpa [TrEnv, initialized] using valid

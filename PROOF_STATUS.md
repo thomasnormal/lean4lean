@@ -455,6 +455,17 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   semantic WHNF completeness, successful inductive reduction, or unrestricted
   frontend closure. The actual `isDefEqCore'` dispatcher and arbitrary-fuel
   scoped method closure are proved in the following module.
+- `TrEnv'.quotientObjects` and `TrEnv.quotientObjects` recover the five
+  semantic quotient objects from the existing `TrEnv'` quotient transition,
+  including the quotient equation, without adding a new environment premise.
+  The induction transports the object witnesses through ordinary constants,
+  definitions, theorems, opaques, and ignored unsafe records using the existing
+  environment extension order; the constructor-free inductive branch is
+  impossible. This exposes the registered quotient reduction rule as a reusable
+  prerequisite for semantic WHNF completeness and terminal-sort work. The
+  focused `QuotientEnvironmentObjects` fixture checks both wrappers and rejects
+  direct axioms/admissions. It does not prove the remaining inductive reducer or
+  unrestricted frontend theorem.
 - `Verify.TypeChecker.ScopedMethods` proves the actual comparison dispatcher,
   closes scoped callbacks for arbitrary `Methods.withFuel`, and frames configured
   public entries and cold initialization. Its private dispatcher frame follows
