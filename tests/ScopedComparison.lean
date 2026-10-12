@@ -188,6 +188,7 @@ run_meta
   let lambdaBaseline ← collectAxioms ``Inner.isDefEqLambda.WF
   let forallBaseline ← collectAxioms ``Inner.isDefEqForall.WF
   let quickBaseline ← collectAxioms ``Inner.quickIsDefEq.WF
+  let normalizerBaseline ← collectAxioms ``Inner.whnf'.WF
   let native := #[``propext, ``Classical.choice, ``Quot.sound,
     ``Lean.Expr.eqv_eq, ``Lean.Level.instLawfulBEqLevel, ``Lean.Syntax.structEq_eq,
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
@@ -195,6 +196,7 @@ run_meta
   logInfo m!"existing semantic lambda comparison baseline: {repr lambdaBaseline}"
   logInfo m!"existing semantic forall comparison baseline: {repr forallBaseline}"
   logInfo m!"existing semantic quick comparison baseline: {repr quickBaseline}"
+  logInfo m!"existing semantic normalization baseline: {repr normalizerBaseline}"
   let mut owned := 0
   for (name, information) in environment.constants do
     if environment.getModuleIdxFor? name == some moduleIndex then
@@ -204,11 +206,12 @@ run_meta
       let dependencies ← collectAxioms name
       for dependency in dependencies do
         unless lambdaBaseline.contains dependency || forallBaseline.contains dependency ||
-            quickBaseline.contains dependency || native.contains dependency do
+            quickBaseline.contains dependency || normalizerBaseline.contains dependency ||
+            native.contains dependency do
           throwError "unexpected scoped comparison dependency {dependency} in {name}"
       logInfo m!"{name}: {dependencies.size} inherited dependencies = {repr dependencies}"
       owned := owned + 1
-  logInfo m!"{owned} exhaustive owned scoped comparison declarations audited against existing semantic lambda/forall/quick baselines and native scope foundations; inherited admissions remain explicit; no owned axioms or proof admissions"
+  logInfo m!"{owned} exhaustive owned scoped comparison declarations audited against existing semantic lambda/forall/quick/normalization baselines and native scope foundations; inherited admissions remain explicit; no owned axioms or proof admissions"
   nativeControls
 
 end ScopedComparisonTest
