@@ -81,7 +81,8 @@ theorem StateWF.freshLambda {context : RestrictedContext safety env venv}
       exact ⟨fun member => fresh (reserved _ member), domainScope.trans inserted.fvars_sublist.subset⟩
     refine ⟨_, shift.consN 1, nextScopeWF, ?_,
       equivalent.weak' context.checker.wf (.skip_fvar _ _ .refl) nextScopeWF, ?_⟩
-    · simpa only [withMLC, MLCtx.vlctx, context.scope_eq] using inserted.cons_fvar _ _ domainScope
+    · simpa only [withMLC, MLCtx.vlctx, context.scope_eq, VLocalDecl.lift', VLocalDecl.depth] using
+        inserted.cons_fvar _ _ domainScope
     · intro identifier member
       rcases List.mem_cons.mp member with rfl | member
       · exact allocated
@@ -138,7 +139,8 @@ theorem StateWF.freshLet {context : RestrictedContext safety env venv}
       exact ⟨fun member => fresh (reserved _ member), combinedScope.trans inserted.fvars_sublist.subset⟩
     refine ⟨_, shift, nextScopeWF, ?_,
       equivalent.weak' context.checker.wf (.skip_fvar _ _ .refl) nextScopeWF, ?_⟩
-    · simpa only [withMLC, MLCtx.vlctx, context.scope_eq] using
+    · simpa only [withMLC, MLCtx.vlctx, context.scope_eq, VLocalDecl.lift', VLocalDecl.depth,
+        Lift.consN] using
         inserted.cons_fvar (⟨state.ngen.curr⟩, domain.fvarsList ++ value.fvarsList)
           (.vlet semanticDomain semanticValue) combinedScope
     · intro identifier member
