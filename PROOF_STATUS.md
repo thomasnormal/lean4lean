@@ -236,6 +236,21 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   application contract and explicitly records the pre-existing
   `Lean.Expr.instantiateRevRange_eq` representation axiom used by the source
   application reconstruction. Projection inference remains open.
+- `RecM.forInList_scopeWF` and `RecM.forInRange_scopeWF` provide the reusable
+  scoped cache/state frame for list and legacy-range loops, including yielded
+  intermediate states. They are intended for the native projection parameter
+  and field traversals, but do not themselves supply the missing semantic
+  projection contract.
+- Projection framing is currently blocked at a precise boundary rather than
+  by loop preservation: `InferType.lean:421` still admits `inferProj.WF`, while
+  the native `inferProj.headWF` theorem provides only `HeadWF`. A scoped proof
+  of the native parameter/field walks must supply `TrExprS` translations for
+  each intermediate constructor type before invoking the `Methods.ScopeWF.whnf`
+  callback; `NativeHeadScoped` alone does not provide those translations, and
+  `RecM.ScopeWF.fromHeadScopeWF` requires the stronger `HeadScopeWF` contract.
+  The next projection step therefore needs a semantic constructor-header
+  transport (or an independently proved native cache-scope theorem), not a
+  wrapper around the existing admission.
 - `Inner.addEquiv.scopeWF`, `Inner.isDefEqCore.scopeWF`, and
   `Inner.isDefEq.scopeWF` preserve the scoped WHNF caches through equivalence-
   manager updates and transport successful comparison results to the semantic
