@@ -158,6 +158,12 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   consume them; let telescopes, projections, applications, comparison and
   arbitrary-fuel method scope preservation remain
   open, and the existing `inferProj.WF` admission is not hidden or widened.
+- `Inner.isProp.scopeWF` composes the scoped inference and WHNF frames for the
+  actual proposition test. On a successful proposition result it transports
+  the inferred expression back to the caller's semantic translation and
+  derives `HasType semantic (.sort .zero)`; the false branch closes with the
+  existing trivial failure postcondition. This is a reusable native projection
+  prerequisite, not a projection soundness theorem.
 - `VState.WF.next` advances all model cache/type invariants through the actual
   fresh-name generator transition, while `HeadScopeCacheWF.next` preserves
   scoped cache heads under the unchanged caches. `RecM.ScopeWF.withFreshId`
