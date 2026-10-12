@@ -24,8 +24,25 @@ It submits the declaration through `Environment.addDeclCore 0 decl none`:
 The test asserts that the original constructor has a free variable, native
 declaration addition succeeds, and the stored constructor has the exact changed
 bound-variable type and no free variables. Indices 0, 2, and 17 in the same native
-fixture reject; index 1 accepts. No upstream report has been submitted, and
-behavior on other Lean versions has not been established.
+fixture reject; index 1 accepts. No upstream report has been submitted.
+
+On **2026-10-12**, the same source input was tested on official lean4lean's
+Lean **4.33.0-rc2** toolchain (Lean commit
+`d8b18978322de05a8f3dba51ef03cf5461676c17`). Native declaration addition now
+rejects it with `Kernel.Exception.declHasFVars`, identifying the exact original
+constructor name and expression. This specific reproducer is therefore **not
+a current-version native bug**; the test does not establish the fixing commit
+or correctness for every malformed declaration. The version-specific regression
+is `tests/NativeInductiveSourceRejection433.lean`, importing only `Lean`:
+
+```sh
+elan run leanprover/lean4:v4.33.0-rc2 lean tests/NativeInductiveSourceRejection433.lean
+```
+
+The newer API takes an extra maximum-recursion-depth argument:
+`Environment.addDeclCore 0 1000 decl none`. Running the unchanged 4.29.0
+fixture on 4.33.0-rc2 only produces an API type error, not evidence about
+acceptance or rejection. Keep the original fixture for the branch's 4.29.0 pin.
 
 The old lean4lean frontend has the corresponding capture with ID
 `_nested_fresh.2`, reflecting its different fresh-name progression. The regression
