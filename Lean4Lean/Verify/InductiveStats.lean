@@ -212,9 +212,7 @@ private theorem loop_headerSizes (measure : HeaderMeasure)
           apply bindWF
           intro equal
           split
-          · apply bindWF
-            intro _
-            have hnonzero : numTypes ≠ 0 := by
+          · have hnonzero : numTypes ≠ 0 := by
               simpa [Array.isEmpty, hstats.indConsts] using ‹¬stats.indConsts.isEmpty = true›
             have hvalid : index < stats.params.size := by
               have hsize : stats.params.size = nparams := by simpa [hnonzero] using hstats.params
@@ -286,9 +284,13 @@ private theorem loopInd_headerSizes (measure : HeaderMeasure)
     intro sort
     split
     · apply readWF
-      apply bindWF
-      intro _
-      apply loopInd_headerSizes measure nparams indTypes next (processed + 1) _ ctx' post
+      apply loopInd_headerSizes measure nparams indTypes next (processed + 1)
+        { stats' with
+          lctx := ctx'.lctx
+          resultLevel := sort.sortLevel!
+          nindices := stats'.nindices.push nindices
+          indConsts := stats'.indConsts.push (Expr.const indTypes[processed].name stats'.levels)
+          isNotZero := sort.sortLevel!.isNeverZero } ctx' post
       · omega
       · exact ⟨by simpa using hsizes.nindices,
           by simpa using hsizes.indConsts,
@@ -299,9 +301,10 @@ private theorem loopInd_headerSizes (measure : HeaderMeasure)
         exact hnext stats ctx'' hsizes harities hparams hfvars hnodup (hframe.trans hframe')
     · split
       · exact Except.WF.throw
-      · apply bindWF
-        intro _
-        apply loopInd_headerSizes measure nparams indTypes next (processed + 1) _ ctx' post
+      · apply loopInd_headerSizes measure nparams indTypes next (processed + 1)
+          { stats' with
+            nindices := stats'.nindices.push nindices
+            indConsts := stats'.indConsts.push (Expr.const indTypes[processed].name stats'.levels) } ctx' post
         · omega
         · exact ⟨by simpa using hsizes.nindices,
             by simpa using hsizes.indConsts,
