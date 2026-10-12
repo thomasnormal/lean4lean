@@ -151,8 +151,36 @@ These runtime controls use a native prelude and are **not a proof of its model
 translation**; primitive proof audits still inherit the upstream checker trust
 baseline. This is compatibility/preservation evidence, not a newly completed
 primitive soundness milestone. The published branch's four disabled operations
-remain disabled until the full rebase is validated and published. The live
-rebase stops cleanly before the restricted-frontend replay.
+remain disabled until the full rebase is validated and published.
+
+The restricted and remaining-non-inductive frontend replays are reconciled at
+`9a95087ca626e04ecaf2c4557f0992102531dac6` and
+`f9879f700b003dc6e517edf550bb95873f6eb353`. The actual verified wrapper again
+handles every non-inductive declaration form with arbitrary fuel, retaining
+upstream's checked unsafe/mutual-block model and the fork's fuel-sensitive,
+fresh-name-checked quotient worker. Native-prelude controls check quotient
+headers against the actual upstream worker, reject invalid equality/reflexivity
+headers and name collisions, and preserve exhausted-fuel rejection and
+initialized idempotence. Three additional checked pipelines accept recursive
+unsafe/partial bodies while rejecting safe dependencies on them, invalid mutual
+blocks, wrong proofs, duplicate names, and inductive declarations.
+
+**The quotient semantic boundary is still open:** successful initialization
+requires inductive `Eq`, which the current `TrEnv` cannot translate. Both
+initialization preservation proofs are therefore vacuous in their uninitialized
+case. Passing native-prelude bootstrap controls does not supply that missing
+model or establish constructive quotient-registration soundness.
+
+The candidate retains upstream's native `deltaValue?` semantics and its actual
+unfolding proof instead of the fork's historical safe-only delta scaffolding;
+wrong universe arities and opaque unfolding still reject. The published branch
+continues to use its previous behavior. All default targets and four candidate
+fixtures pass. Audited proof bodies introduce no direct admissions or new axioms,
+but still inherit `sorryAx` and the existing native/checker interfaces. These are
+preserved contracts and explicit remaining obligations, not an admission-free
+frontend milestone. The rebase is clean at a validation break before the
+original-level-normalization replay; final integration and publication remain
+unfinished.
 
 ### Upstream contributions
 
