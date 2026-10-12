@@ -452,3 +452,29 @@ The actual non-inductive batch/from-empty proofs compile and pass their direct
 admission/dependency audit on Lean 4.33.0-rc2, with inherited checker admissions
 and native interfaces still present. This checkpoint is unpublished; the full
 rebase and final integration validation remain unfinished.
+
+## Primitive compatibility during upstream rebase (2026-10-12)
+
+The historical safe-definition patch temporarily removed all binary native
+arithmetic and its model invariants while literal primitive extension was being
+proved. Current official upstream already supplies the full primitive-spec
+preservation and reduction proofs. The isolated replay `dc21754` therefore keeps
+those stronger guarantees rather than mechanically reinstating the old removals
+or replacing the new primitive table with the old literal-only record.
+
+It also retains official `67f63b0`'s metadata-aware header comparison and checks
+the declaration type/body before recognizer comparisons. Candidate regressions
+exercise actual fresh-slot addition for `Nat.add`, `Char.ofNat`, and
+`String.ofList`: domain metadata accepts, misplaced codomain metadata rejects,
+unsafe/partial or extra-universe primitive headers reject, missing String
+constructor dependencies reject, and an ill-typed body yields the body-check
+diagnostic before any recognizer probe. Direct native arithmetic/predicate
+results are checked without fallback unfolding. These native-prelude controls
+are runtime evidence, not a `TrEnv` model for that prelude.
+
+The primitive-only extension theorem is a consequence of the stronger actual
+declaration proof, and the actual checker exposes a primitive preservation
+receipt. No new admission or axiom is introduced; their inherited checker and
+native-interface assumptions remain explicit. This is a local integration
+checkpoint, not publication of the rebase or removal of the published branch's
+four disabled-operation boundaries.
