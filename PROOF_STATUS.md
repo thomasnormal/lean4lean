@@ -5,6 +5,23 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 ## What is proved
 
+- `IsDefEqStrong.substEq'` and `.subst` prove simultaneous substitution by a
+  pointwise definitionally equal pair of substitutions, with the left/right/cross
+  bundle covering every actual strong typing constructor. `IsDefEq.substDF`
+  transfers the result to the weak judgment; ordinary equality, typing, untyped
+  equality, and type judgments have diagonal substitution corollaries.
+  `Ctx.SubstEq` certifies each source binder's domain and corresponding target
+  values, supports identity, lookup, weakening, and lifting under equal domains,
+  and allows arbitrary substitutions outside the empty source context.
+  This is a targeted port of official upstream's `6ba54db`/`8223d22` proof API,
+  adapted to this branch without migrating its toolchain or executable.
+  `tests/StrongSubstitution.lean` audits the owned helper/context/semantic proofs
+  with no inherited admissions or new interface axioms; their dependency union
+  is `[propext, Quot.sound]`. It covers arbitrary related substitutions, actual
+  variable substitution with syntactically distinct equal values, binder lifting,
+  identity, and beta. This removes a missing semantic API, not the frontend's
+  existing inherited `sorryAx`, the remaining confluence admission, or any of
+  the inductive/recursor registration obligations.
 - `Pattern.Equation` represents guarded registered pattern reductions under
   lambda binders. `Pattern.Equation.of_root` preserves the old root-pattern
   certificate, while `Pattern.Equation.parRed` derives the corresponding actual
