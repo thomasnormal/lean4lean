@@ -4,6 +4,10 @@ import Lean4Lean.Verify.TypeChecker.Basic
 namespace Lean4Lean.Environment
 open Lean hiding Environment Exception
 
+def checkPrimitiveInductive (env : Kernel.Environment) (lparams : List Name) (nparams : Nat)
+    (types : List InductiveType) (isUnsafe : Bool) : Except Kernel.Exception Bool :=
+  Primitive.checkInductive env lparams nparams types isUnsafe
+
 inductive PrimitiveInductiveDecl : List Name → Nat → List InductiveType → Bool → Prop where
   | bool : PrimitiveInductiveDecl [] 0 [{
       name := ``Bool
@@ -25,16 +29,18 @@ theorem checkPrimitiveInductive.eq_true_iff (env : Kernel.Environment)
   · intro hcheck
     have hheader : !isUnsafe && lparams.isEmpty && nparams == 0 := by
       by_contra hheader
-      simp [checkPrimitiveInductive, hheader, pure, Except.pure] at hcheck
+      simp [checkPrimitiveInductive, Primitive.checkInductive, hheader, pure, Except.pure] at hcheck
     have ⟨⟨hsafe, hparams⟩, hnparams⟩ :
         (isUnsafe = false ∧ lparams = []) ∧ nparams = 0 := by simpa using hheader
     subst isUnsafe lparams nparams
     rcases types with _ | ⟨⟨name, type, ctors⟩, _ | ⟨other, types⟩⟩
-    all_goals simp [checkPrimitiveInductive, pure, Except.pure, Bind.bind, Except.bind] at hcheck
+    all_goals simp [checkPrimitiveInductive, Primitive.checkInductive, pure, Except.pure,
+      Bind.bind, Except.bind] at hcheck
     all_goals repeat' (split at hcheck <;> try simp_all [Expr.eqv_sort])
     all_goals first | exact .bool | exact .nat _ _
   · intro hdecl
-    cases hdecl <;> simp [checkPrimitiveInductive, pure, Except.pure, Bind.bind, Except.bind]
+    cases hdecl <;> simp [checkPrimitiveInductive, Primitive.checkInductive, pure, Except.pure,
+      Bind.bind, Except.bind]
 
 theorem checkPrimitiveInductive.WF (env : Kernel.Environment)
     (lparams : List Name) (nparams : Nat) (types : List InductiveType) (isUnsafe : Bool) :
