@@ -992,10 +992,22 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
     have hfvs : fvs = ⟨List.map Expr.fvar (m'.fvarRevList n hn).reverse⟩ := by
       have := congrArg List.reverse harr; simp at this
       exact Array.toList_inj.1 (by simpa using this)
+    have hwf' : MLCtx.WF c.venv c.lparams m' := ‹c.MLCWF m'›.wf
+    have hFscope : F.looseBVarRange' = 0 := by
+      exact (m'.noBV ▸ hFF.closed).looseBVarRange_zero
+    have hnodup : (m'.fvarRevList n hn).reverse.Nodup :=
+      List.nodup_reverse.2 (hwf'.fvarRevList_nodup n hn)
+    have habstract : F.abstract ⟨List.map Expr.fvar (m'.fvarRevList n hn).reverse⟩ =
+        F.abstractList (m'.fvarRevList n hn).reverse :=
+      Expr.abstract_eq_of_scope hFscope hnodup
+    have hFabs : (F.abstract ⟨List.map Expr.fvar (m'.fvarRevList n hn).reverse⟩).looseBVarRange' = 0 := by
+      simpa [Fa, hfvs, Expr.hasLooseBVars] using hF
     have hFlb : (F.abstractList (m'.fvarRevList n hn).reverse).looseBVarRange' = 0 := by
-      simp only [Fa, hfvs, Expr.abstract_eq] at hF; simpa [Expr.hasLooseBVars] using hF
+      rw [← habstract]
+      exact hFabs
     have hFaF : Fa = F := by
-      simp only [Fa, hfvs, Expr.abstract_eq]
+      simp only [Fa, hfvs]
+      rw [habstract]
       exact Expr.abstractList_eq_self (Nat.le_of_eq hFlb)
     obtain ⟨Fv, hFaS⟩ : ∃ Fv, (c.withMLC m').TrExprS Fa Fv := ⟨_, hFaF ▸ hFF⟩
     -- and the same guard read on the variables rather than the term: `F` mentions none of the
@@ -1015,7 +1027,6 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
     -- `pack` gets there a different way: it *binds* the telescope rather than avoiding it, and
     -- `mkLambda_eq` says the `LocalContext` form the recognizer builds is `MLCtx.mkLambda`, whose
     -- translation lands in the dropped context -- which `hdrop` says is `c`
-    have hwf' : MLCtx.WF c.venv c.lparams m' := ‹c.MLCWF m'›.wf
     -- closing the telescope off is `VExpr.lams` over its domains, for *any* body: `Inv.lams` is
     -- stated with `mkLambda'`, and the binders it counts are all `vlam` because a `vlet` would
     -- leave the context an entry short of the `As` the invariant also records. Both the measure
@@ -1029,7 +1040,10 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
           c.venv.HasType c.lparams.length (c.withMLC m₀).vlctx.toCtx pack' packTy ∧
           c.venv.HasType c.lparams.length (As.reverse ++ (c.withMLC m₀).vlctx.toCtx) a₀' tyv ∧
           (c.withMLC m').TrExprS a₀ a₀' := by
-      rw [show (c.withMLC m').lctx' = m'.lctx from rfl, hwf'.mkLambda_eq n hn harr]
+      have ha₀closed : a₀.looseBVarRange' = 0 :=
+        (m'.noBV ▸ ha₀.closed).looseBVarRange_zero
+      rw [show (c.withMLC m').lctx' = m'.lctx from rfl,
+        hwf'.mkLambda_eq n hn harr ha₀closed]
       refine ⟨_, _, _, hdrop ▸ (hwf'.mkLambda_trS c.Ewf ha₀ hty n hn).1, hmk _,
         hdrop ▸ (hwf'.mkLambda_trS c.Ewf ha₀ hty n hn).2, ?_⟩
       refine ⟨?_, ha₀⟩
@@ -1115,6 +1129,11 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
         (Δ := (none, .vlam Aty) :: (c.withMLC m₀).vlctx) (.cons_bvar (.vlam Aty) hinv.lift)
         (hΔdefeq.symm c.Ewf) hw2A (by simpa [VLCtx.bvars, m'.noBV] using hw2A.closed) hw2Afv
       let .forallE (ty' := dAv₀) (body' := restv₀) hdAty hrestTy hdAS₀ hrestS₀ := hw2Base
+      have hdAEclosed : dAE.looseBVarRange' = 0 := by
+        exact (m'.noBV ▸ hdAS.closed).looseBVarRange_zero
+      have hdAEabstract : dAE.abstractFVars [idd] = Expr.abstract1 idd dAE := by
+        rw [Expr.abstractFVars_cons (by simpa using hdAEclosed), Expr.abstractFVars_nil]
+        rfl
       have hw2uniq := ((TrExprS.forallE (name := bn) (bi := bi2) hdAty hrestTy hdAS₀
         hrestS₀).weakFV c.Ewf (.cons_bvar (.vlam Aty) hinv.lift) hΔdefeq.wf).uniq
         c.Ewf hΔdefeq hw2A
@@ -1150,9 +1169,11 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
       have hsorted := VEnv.IsDefEqU.defeqDF c.Ewf hΓc (hT.hasType.1.uniqU c.Ewf hΓc hcodv₀T) hT
       have hlamS : (c.withMLC m₀).TrExprS (.lam `a Adom (dAE.abstract #[.fvar idd]) .default)
           (.lam Aty dAv₀) := by
-        simp only [show (#[Expr.fvar idd] : Array Expr) = ⟨[idd].map .fvar⟩ from rfl,
-          Expr.abstract_eq, Expr.abstractList]
-        exact .lam hAty hAtyS hdAS₀
+        change TrExprS c.venv c.lparams m₀.vlctx
+          (.lam `a Adom (dAE.abstract #[.fvar idd]) .default) (.lam Aty dAv₀)
+        simpa only [show (#[Expr.fvar idd] : Array Expr) = ⟨[idd].map .fvar⟩ from rfl,
+          Expr.abstract_eq, hdAEabstract, VContext.withMLC_lparams] using
+          (TrExprS.lam hAty hAtyS hdAS₀)
       exact .pure ⟨.lam Aty dAv₀, hlamS, ⟨_, .lam hAty.choose_spec hdAT⟩, restv₀, _, hsorted⟩
     -- `F`'s own typing comes down the same way: `inferType`'s judgement is transported onto the
     -- lifted base term and the lifted base type, and then `weakN_iff` -- sound exactly because
