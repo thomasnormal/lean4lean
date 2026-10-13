@@ -16,7 +16,7 @@ substitution proof is narrowly ported here; that is foundation integration,
 not completion of frontend soundness.
 
 **Published versus local integration:** the published branch is at
-`3955220f2222b9c9d4932cb5f43e7ccc83d05e66` (a documentation checkpoint after
+`fae9d0f` (a documentation checkpoint after
 the proof-bearing source checkpoint `4b3a958f89d999bc40ec6b409b135aa36108b8be`)
 on Lean **4.29.0**, and its full
 default build passes on October 13. The separate integration worktree is
@@ -141,7 +141,7 @@ journal because each documentation commit changes the branch-only count. The
 detached integration remains based on the official tip. These are
 synchronization facts, not proof progress.
 
-The published branch currently measures **49 upstream-only / 344 branch-only
+The published branch currently measures **49 upstream-only / 346 branch-only
 commits** against that official tip. This is a synchronization count, not a
 verification score.
 
