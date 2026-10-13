@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveParamBinding
+import Lean4Lean.Verify.Name
 
 namespace Lean
 
@@ -605,7 +606,6 @@ theorem replaceIfNested.range (numParams : Nat) (source : LocalContext)
       exact .pure ⟨hstate, nestedApp_range auxI_name state.lvls As e info.numParams bound
         hscope.2.1 hsource.params_noLooseBVars he⟩
     | none =>
-      simp only
       simp only [pure_bind]
       rw [read_bind]
       refine (forIn_scope_range info.all none _ bound env state hstate trivial ?_).bind ?_
@@ -723,10 +723,13 @@ private theorem ParamContext.abstractRange_range {numParams : Nat} {lctx : Local
     (htype : type.looseBVarRange' ≤ numParams) :
     (type.abstractRange index params).looseBVarRange' ≤ numParams := by
   rw [hcontext.params_eq_fvars]
+  have hparams : lctx.toList.reverse.map (fun decl => Expr.fvar decl.fvarId) =
+      (lctx.toList.reverse.map LocalDecl.fvarId).map Expr.fvar := by
+    simp only [List.map_map, Function.comp_def]
+  rw [hparams]
   have hr := abstractRange_fvars_range type index
     (lctx.toList.reverse.map LocalDecl.fvarId) numParams htype
-  simpa [LocalDecl.fvarId] using
-    Nat.le_trans hr (Nat.max_le.2 ⟨Nat.le_refl _, Nat.le_of_lt hindex⟩)
+  simpa using Nat.le_trans hr (Nat.max_le.2 ⟨Nat.le_refl _, Nat.le_of_lt hindex⟩)
 
 private theorem paramForall_range_aux {numParams : Nat} {lctx : LocalContext}
     {params : Array Expr} (hcontext : ParamContext numParams lctx params)
@@ -879,7 +882,6 @@ theorem replaceIfNested.rangeWithNewTypes (numParams : Nat) (source : LocalConte
       exact .pure ⟨hstate, hrange, hindex, nestedApp_range auxI_name state.lvls As e info.numParams bound
         hscope.2.1 hsource.context.params_noLooseBVars he⟩
     | none =>
-      simp only
       simp only [pure_bind]
       rw [read_bind]
       refine (forIn_scope_newTypesRange info.all none _ numParams bound index env state hstate hrange
@@ -944,7 +946,8 @@ theorem replaceIfNested.rangeWithNewTypes (numParams : Nat) (source : LocalConte
                 State.NestedAuxScoped.push hpre JAs' auxJ_name hJscope
               have hpushRange : State.NewTypesRange numParams
                   { state'' with nestedAux := state''.nestedAux.push (JAs', auxJ_name) } := by
-                simpa using hrange'
+                intro indType hmem
+                exact hrange' indType hmem
               have hnewTypeType :
                   (lctx.mkForall As auxJ_type).looseBVarRange' ≤ numParams :=
                 hsource.mkForall_range hlocalScope auxJ_type hauxJ_type'
@@ -1444,7 +1447,8 @@ private theorem withParams_loop_context_range (remaining : Nat) (type : Expr)
           intro decl hdecl
           simp only [LocalContext.mkLocalDecl_toList, List.mem_cons] at hdecl
           rcases hdecl with rfl | hdecl
-          · simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hparts.1
+          · simpa only [LocalDecl.type, Array.size_push, Nat.add_assoc, Nat.add_comm,
+              Nat.add_left_comm] using hparts.1
           · simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
               hscope decl hdecl)
         (by
@@ -1556,7 +1560,8 @@ private theorem withParams_loop_context_range_newTypes (remaining : Nat) (type :
           intro decl hdecl
           simp only [LocalContext.mkLocalDecl_toList, List.mem_cons] at hdecl
           rcases hdecl with rfl | hdecl
-          · simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hparts.1
+          · simpa only [LocalDecl.type, Array.size_push, Nat.add_assoc, Nat.add_comm,
+              Nat.add_left_comm] using hparts.1
           · simpa [Array.size_push, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
               hscope decl hdecl)
         (by
@@ -1674,17 +1679,18 @@ theorem replaceAllNested.rangeWithNewTypesStructural (numParams : Nat) (source :
     hsource.context htarget hstate result hresult
   exact ⟨hnew.1, hnew.2.1, hnew.2.2, Nat.le_trans hrange.2 he⟩
 
-private def MapAux2NestedScoped (numParams : Nat) (map : NameMap Expr) : Prop :=
-  ∀ name type, map.find? name = some type → type.looseBVarRange' ≤ numParams
+private def MapAux2NestedScoped (numParams : Nat)
+    (map : Std.TreeMap Name Expr Name.quickCmp) : Prop :=
+  ∀ name type, Std.TreeMap.get? map name = some type → type.looseBVarRange' ≤ numParams
 
 private theorem foldAux2NestedScoped (numParams : Nat) (params : Array Expr)
-    (entries : List (Expr × Name)) (map : NameMap Expr)
+    (entries : List (Expr × Name)) (map : Std.TreeMap Name Expr Name.quickCmp)
     (hcontext : ParamContext numParams lctx params)
     (hscope : MapAux2NestedScoped numParams map)
     (hentries : ∀ entry ∈ entries, entry.1.looseBVarRange' = 0) :
     MapAux2NestedScoped numParams
-        (entries.foldl (fun map (entry : Expr × Name) =>
-          map.insert entry.2 (entry.1.abstract params)) map) := by
+        (entries.foldl (fun (map : Std.TreeMap Name Expr Name.quickCmp) (entry : Expr × Name) =>
+          Std.TreeMap.insert map entry.2 (entry.1.abstract params)) map) := by
   induction entries generalizing map with
   | nil => exact hscope
   | cons entry entries ih =>
@@ -1693,23 +1699,27 @@ private theorem foldAux2NestedScoped (numParams : Nat) (params : Array Expr)
       intro item hitem
       exact hentries item (by simp [hitem])
     have hinsertScope : MapAux2NestedScoped numParams
-        (map.insert entry.2 (entry.1.abstract params)) := by
+        (Std.TreeMap.insert map entry.2 (entry.1.abstract params)) := by
+      unfold MapAux2NestedScoped
       intro name type hfind
-      change (Std.TreeMap.insert map entry.2 (entry.1.abstract params))[name]? = some type at hfind
-      rw [Std.TreeMap.getElem?_insert] at hfind
+      have hinsert : (Std.TreeMap.insert map entry.2 (entry.1.abstract params))[name]? =
+          if Name.quickCmp entry.2 name = Ordering.eq then some (entry.1.abstract params)
+          else Std.TreeMap.get? map name := Std.TreeMap.getElem?_insert
+      rw [Std.TreeMap.get?_eq_getElem?] at hfind
+      rw [hinsert] at hfind
       split at hfind
       · injection hfind with htype
         subst type
         exact hcontext.abstract_scopedRange entry.1 hentry
       · exact hscope name type hfind
-    exact ih (map.insert entry.2 (entry.1.abstract params)) hinsertScope htail
+    exact ih (Std.TreeMap.insert map entry.2 (entry.1.abstract params)) hinsertScope htail
 
 private theorem stateAux2NestedScoped (numParams : Nat) (params : Array Expr)
     (state : State) (lctx : LocalContext) (hcontext : ParamContext numParams lctx params)
     (hstate : state.NestedAuxScoped) :
     MapAux2NestedScoped numParams
-      (state.nestedAux.foldl (fun map (entry : Expr × Name) =>
-        map.insert entry.2 (entry.1.abstract params)) {}) := by
+      (state.nestedAux.foldl (fun (map : Std.TreeMap Name Expr Name.quickCmp) (entry : Expr × Name) =>
+        Std.TreeMap.insert map entry.2 (entry.1.abstract params)) {}) := by
   have hentries : ∀ entry ∈ state.nestedAux.toList, entry.1.looseBVarRange' = 0 := by
     intro entry hentry
     apply hstate entry
@@ -1720,7 +1730,10 @@ private theorem stateAux2NestedScoped (numParams : Nat) (params : Array Expr)
       change Std.TreeMap.get? ({} : Std.TreeMap Name Expr Name.quickCmp) name = some type at hfind
       rw [Std.TreeMap.get?_eq_getElem?, Std.TreeMap.getElem?_emptyc] at hfind
       simp at hfind) hentries
-  simpa [Array.foldl_toList] using hfold
+  change MapAux2NestedScoped numParams
+    (Array.foldl (fun (map : Std.TreeMap Name Expr Name.quickCmp) (entry : Expr × Name) =>
+      Std.TreeMap.insert map entry.2 (entry.1.abstract params)) ∅ state.nestedAux)
+  simpa only [Array.foldl_toList] using hfold
 
 theorem run.loop.nestedAuxScoped (numParams : Nat) (lctx : LocalContext)
     (params : Array Expr) (index fuel : Nat) (env : Environment) (state : State)
