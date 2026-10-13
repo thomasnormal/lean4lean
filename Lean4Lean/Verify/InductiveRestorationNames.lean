@@ -270,8 +270,9 @@ theorem replaceIfNested.typesPrefix (lctx : LocalContext) (params sourceParams :
       apply typePrefixBind
       · apply forInTypePrefix
         intro name result next
-        simpa only [panicWithPosWithDecl, panic, panicCore, pure_bind] using
-          nestedIterationTypePrefix lctx params sourceParams type info headName levels name result env next
+        have h := nestedIterationTypePrefix lctx params sourceParams type info headName levels name result env next
+        dsimp only [StateT.run] at h ⊢
+        exact h
       · intro result next
         cases result <;> exact .pure (.refl _)
 
@@ -362,14 +363,16 @@ theorem inductivePreprocessing.names (env : Environment) (lparams : List Name) (
     { lvls := lparams.map .param, newTypes := types.toArray }
 
 private theorem auxRecNameLoop (names : List Name) (mainName : Name) (nextIndex : Nat)
-    (oldNames : Array Name) (nameMap : NameMap Name) :
-    (forIn (m := Id) names (⟨nextIndex, oldNames, nameMap⟩ : MProd Nat (MProd (Array Name) (NameMap Name)))
+    (oldNames : Array Name) (nameMap : Std.TreeMap Name Name Name.quickCmp) :
+    (forIn (m := Id) names (oldNames, nameMap, nextIndex)
       (fun name current =>
-        pure (.yield ⟨current.fst + 1, current.snd.fst.push (mkRecName name),
-          current.snd.snd.insert (mkRecName name) ((mkRecName mainName).appendIndexAfter current.fst)⟩))).run.snd.fst.toList =
+        pure (.yield (current.fst.push (mkRecName name),
+          current.snd.fst.insert (mkRecName name)
+            ((mkRecName mainName).appendIndexAfter current.snd.snd),
+          current.snd.snd + 1)))).fst.toList =
       oldNames.toList ++ names.map mkRecName := by
   induction names generalizing nextIndex oldNames nameMap with
-  | nil => simp
+  | nil => simp [Pure.pure]
   | cons name names ih =>
     rw [List.forIn_cons]
     simp only [pure_bind]
@@ -384,8 +387,7 @@ theorem mkAuxRecNameMap.names (env : Environment) (type : InductiveType) (types 
   unfold mkAuxRecNameMap
   simp only [hlookup]
   split
-  · simpa only [pure_bind, List.nil_append, Array.toList_empty] using
-      auxRecNameLoop (info.all.drop (type :: types).length) type.name 1 #[] {}
+  · exact auxRecNameLoop (info.all.drop (type :: types).length) type.name 1 #[] {}
   · rfl
 
 theorem AddInductive.InductiveStats.SafeRunScope.restorationNameCoverage
