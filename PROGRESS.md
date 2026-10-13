@@ -15,8 +15,10 @@ fully integrated into the published branch. Its admission-free simultaneous
 substitution proof is narrowly ported here; that is foundation integration,
 not completion of frontend soundness.
 
-**Published versus local integration:** the published proof source remains
-`4b3a958f89d999bc40ec6b409b135aa36108b8be` on Lean **4.29.0**, and its full
+**Published versus local integration:** the published branch is at
+`3955220f2222b9c9d4932cb5f43e7ccc83d05e66` (a documentation checkpoint after
+the proof-bearing source checkpoint `4b3a958f89d999bc40ec6b409b135aa36108b8be`)
+on Lean **4.29.0**, and its full
 default build passes on October 13. The separate integration worktree is
 based on official `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` on Lean
 **4.33.0-rc2**. Today's fetch confirms that official tip is **not** an
@@ -49,6 +51,7 @@ themselves satisfy any of these goals.
 | Reject projection type inference outside the current semantic model | **Upstream-ready candidate in PR #58:** `inferProj.rejects` proves that translated structure types cannot pass the inductive-header lookup, and the existing `inferProj.WF` contract now follows without an admission. | Official master still carries the original admitted `inferProj.WF` contract. | This closes only the constructor-free semantic fragment; successful inductive projection inference still requires `AddInduct`, model registration, and dependent-field semantics. |
 | Reject structure-eta and unit-like comparison outside the current semantic model | **Upstream-ready candidate in PR #59:** `tryEtaStructCore.false_of_translation` and `isDefEqUnitLike.false_of_translation` prove both comparison workers return false for translated constructor-family heads; their existing `WF` contracts now derive without admissions. | Official master still carries both comparison admissions. | This closes only the constructor-free semantic fragment; inductive eta and unit-like semantics still require constructive model registration. |
 | Preserve free variables through quotient recursor reduction | **Upstream-ready candidate in PR #60:** `quotReduceRec.fvarsBelow` covers successful `Quot.lift`/`Quot.ind` reductions, payload extraction, and reapplication of trailing arguments. | Official master has the quotient worker but no verified free-variable preservation theorem. | This is a supporting invariant for `reduceRecursor.WF`, not full quotient or inductive recursor soundness. |
+| Reject inductive recursor reduction outside the current semantic model | **Upstream-ready candidate in PR #61:** `inductiveReduceRec.none_of_translation` proves that translated terms cannot succeed through inductive/constructor/recursor lookups while the current `TrEnv` has no inductive-family registration. | Official master still carries the admitted `reduceRecursor.WF` contract. | This closes only the constructor-free rejection branch; actual inductive registration, recursor generation, and successful quotient/inductive recursor semantics remain open. |
 | Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
 | Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Native Lean 4.33.0-rc2 rejects this exact source constructor with `declHasFVars`, now regression-tested. | Version-bounded validation result, not a current native bug or a proof of logical unsoundness. |
 | New semantic guarantees in the October 13 integration checkpoint | **None claimed.** Recursor/restoration, binder, header-typing, and transport proofs are being restored against current APIs. | Compatibility preserves prior contracts; it is not a newly solved upstream obligation. | Full build, regression, and transitive-trust gates must pass before calling integration validated. |
@@ -137,6 +140,10 @@ is not based on the official tip; the live ancestry counts are recorded in the
 journal because each documentation commit changes the branch-only count. The
 detached integration remains based on the official tip. These are
 synchronization facts, not proof progress.
+
+The published branch currently measures **49 upstream-only / 344 branch-only
+commits** against that official tip. This is a synchronization count, not a
+verification score.
 
 The detached integration now passes the full default build (all 414 jobs) and
 all five current restoration/header regression fixtures. The final recursor-name
@@ -291,9 +298,9 @@ documents out of the PR. **PR #55** is open for the focused constant-case
 confluence proof, **PR #56** is open for the independent closed
 quotient-equation pattern repair, **PR #57** is open for projection reduction
 rejection, **PR #58** is open for projection type-inference rejection, and
-**PR #59** is open for structure-eta/unit-like comparison rejection, and
-**PR #60** is open for quotient-recursion free-variable preservation; all six
-branches are
+**PR #59** is open for structure-eta/unit-like comparison rejection,
+**PR #60** is open for quotient-recursion free-variable preservation, and
+**PR #61** is open for inductive-recursion rejection; all seven branches are
 based directly on the current official master and currently report GitHub
 merge state `UNSTABLE` with no published checks.
 
@@ -323,6 +330,11 @@ PR #60 adds the quotient worker's free-variable preservation invariant across
 both quotient eliminators and trailing-argument reapplication. Its fixture
 audits the theorem dependency chain against the inherited `Methods.withFuel.WF`
 baseline. This supports, but does not complete, `reduceRecursor.WF`.
+PR #61 proves the inductive worker's no-result contract for translated terms in
+the current constructor-free environment model. Its fixture audits the theorem
+dependency chain against the inherited `Methods.withFuel.WF` baseline. This is
+another supporting reduction invariant; it does not claim constructive
+inductive registration or full recursor semantics.
 The source-preflight contribution was rechecked and is not a PR candidate:
 official upstream already performs the equivalent original-header and
 constructor `checkNoMVarNoFVar` checks inline in `addInductive`, while Lean
