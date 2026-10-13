@@ -283,14 +283,17 @@ another large divergent stack or open PRs merely for module additions. Pending
 review does not block continuing verification. Re-check official master to
 avoid duplicate work, build on its current toolchain,
 include regression and transitive-axiom evidence, and keep fork-only status
-documents out of the PR. **PR #55** is now open for the focused constant-case
-confluence proof; its branch is based directly on the current official master.
+documents out of the PR. **PR #55** is open for the focused constant-case
+confluence proof, and **PR #56** is open for the independent closed
+quotient-equation pattern repair; both branches are based directly on the
+current official master.
 
 The constant-case confluence proof was submitted as PR #55 after a 161-job
 official-master build, a focused regression, and a transitive-axiom audit. The
-patch removes one existing confluence admission and adds no new one. Next,
-evaluate the closed quotient-equation pattern repair as an independent PR
-candidate. Do not submit the substitution port: it already came from upstream.
+patch removes one existing confluence admission and adds no new one. PR #56
+generalizes the equation certificate under shared lambda binders without adding
+an admission or claiming full quotient confluence. Do not submit the substitution
+port: it already came from upstream.
 Reassess the source-preflight contribution against upstream's own checks; the
 tested native capture input is already rejected by Lean 4.33.0-rc2.
 
