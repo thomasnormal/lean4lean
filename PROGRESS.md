@@ -139,20 +139,16 @@ This is compatibility maintenance, not a new semantic milestone. The rewritten
 history remains unpublished because explicit `--force-with-lease` authorization
 is still pending; the published branch remains the green Lean 4.29.0 source.
 
-Regression results are stricter than the focused module builds:
-- `tests/InductiveHeaderTraces.lean` passes.
-- `tests/InductiveOriginalRecursorNames.lean` rejects the transitive interface
-  axiom `Lean.Expr.mkAppData_eq`; its allowlist has not been weakened.
-- `tests/InductiveFrontendRestoration.lean` cannot evaluate a control because
-  its dependency contains the `sorry` axiom.
-- `tests/InductiveSubstitutionStageEndpointRebase.lean` and
-  `tests/InductiveHeaderNormalizationTransport.lean` need fixture/API adaptation.
-
-Receipt: `lean4lean-recursor-restoration-regressions.log`. All receipts above
-are under `/var/tmp/thomas-ahle/fleet2/logs/`. These failures must be resolved
-or explicitly accounted for before declaring integration validated. A passing
-module build is not a passing transitive-axiom audit. No source admission is
-added or removed by the uncommitted proof adaptation.
+Regression results are stricter than the focused module builds. Current
+receipts under `/var/tmp/thomas-ahle/fleet2/logs/` show passing controls for
+`tests/InductiveHeaderTraces.lean`, `tests/InductiveFrontendRestoration.lean`,
+`tests/InductiveSubstitutionStageEndpointRebase.lean`, and
+`tests/InductiveHeaderNormalizationTransport.lean`. The
+`tests/InductiveOriginalRecursorNames.lean` audit remains intentionally red:
+its transitive allowlist rejects `Lean.Expr.mkAppData_eq`; no allowlist was
+weakened. Thus the default build is green, but the integration is not yet a
+fully trusted checkpoint. No source admission is added or removed by the
+compatibility adaptation.
 
 Documentation is published by normal fast-forward without publishing the
 unfinished integration. Preserve that worktree and reconcile this document
