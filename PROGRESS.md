@@ -141,7 +141,7 @@ journal because each documentation commit changes the branch-only count. The
 detached integration remains based on the official tip. These are
 synchronization facts, not proof progress.
 
-The published branch currently measures **49 upstream-only / 346 branch-only
+The published branch currently measures **49 upstream-only / 348 branch-only
 commits** against that official tip. This is a synchronization count, not a
 verification score.
 
