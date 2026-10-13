@@ -45,6 +45,7 @@ themselves satisfy any of these goals.
 | Supply simultaneous substitution for arbitrary typing/equality derivations | **Proved API now available:** `55b7b4d` ports strong/weak cross-substitution and audits its dependencies as only `propext` and `Quot.sound`. | Already proved upstream in `6ba54db`/`8223d22`. | Foundation integration, not a newly solved upstream obligation; the frontend's inherited admissions remain. |
 | Verify actual checked inductive registration | **Not complete.** Header/constructor checks and staging invariants are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, and prelude translation. |
 | Complete confluence and semantic reduction correctness | **Partial progress:** `7682b23` removes the constant-case confluence admission; `c0f9930` repairs the incompatible quotient-equation premise. | Confluence and related semantic obligations remain open. | Application/extra confluence, injectivity/strengthening, genuine projection semantics, and `reduceRecursor.WF`. |
+| Reject projection reduction outside the current semantic model | **Upstream-ready candidate in PR #57:** `reduceProjCore.none_of_translation` and `reduceProj.none_of_translation` prove that translated terms cannot reduce through constructor-family lookups while `TrEnv` remains constructor-free; the existing `WF` contracts now derive from that rejection proof. | Official master still carries the original admitted projection `WF` contract. | This is deliberately a rejection theorem for the non-inductive fragment, not inductive projection semantics; `AddInduct`, model registration, and recursor obligations remain open. |
 | Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
 | Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Native Lean 4.33.0-rc2 rejects this exact source constructor with `declHasFVars`, now regression-tested. | Version-bounded validation result, not a current native bug or a proof of logical unsoundness. |
 | New semantic guarantees in the October 13 integration checkpoint | **None claimed.** Recursor/restoration, binder, header-typing, and transport proofs are being restored against current APIs. | Compatibility preserves prior contracts; it is not a newly solved upstream obligation. | Full build, regression, and transitive-trust gates must pass before calling integration validated. |
@@ -283,16 +284,24 @@ review does not block continuing verification. Re-check official master to
 avoid duplicate work, build on its current toolchain,
 include regression and transitive-axiom evidence, and keep fork-only status
 documents out of the PR. **PR #55** is open for the focused constant-case
-confluence proof, and **PR #56** is open for the independent closed
-quotient-equation pattern repair; both branches are based directly on the
-current official master.
+confluence proof, **PR #56** is open for the independent closed
+quotient-equation pattern repair, and **PR #57** is open for projection
+reduction rejection in the current non-inductive model; all three branches are
+based directly on the current official master and currently report GitHub
+merge state `UNSTABLE` with no published checks.
 
 The constant-case confluence proof was submitted as PR #55 after a 161-job
 official-master build, a focused regression, and a transitive-axiom audit. The
 patch removes one existing confluence admission and adds no new one. PR #56
 generalizes the equation certificate under shared lambda binders without adding
-an admission or claiming full quotient confluence. Do not submit the substitution
-port: it already came from upstream.
+an admission or claiming full quotient confluence. PR #57 proves the no-result
+projection contracts and derives the existing projection `WF` theorems without
+a direct admission. Its focused fixture compiles on the upstream API and
+audits the theorem dependencies against the inherited `Methods.withFuel.WF`
+baseline. The proof intentionally does not claim successful inductive
+projection reduction; it establishes only that the current constructor-free
+semantic model rejects those lookups. Do not submit the substitution port: it
+already came from upstream.
 The source-preflight contribution was rechecked and is not a PR candidate:
 official upstream already performs the equivalent original-header and
 constructor `checkNoMVarNoFVar` checks inline in `addInductive`, while Lean
