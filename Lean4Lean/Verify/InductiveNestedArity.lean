@@ -143,13 +143,13 @@ private theorem replaceIfNested.arityZero (lctx : LocalContext) (params sourcePa
     | some auxName => exact .pure (mkAppRange_tail_arity _ _ _ hstart (mkAppN_arity _ _ rfl))
     | none =>
       dsimp only
-      simp only [pure_bind]
       rw [Lean4Lean.ElimNestedInductive.read_bind]
       refine (forInArityZero info.all none _ env current trivial ?_).bind ?_
       · intro name result next hresult
-        simpa only [panicWithPosWithDecl, panic, panicCore, pure_bind] using
-          nestedIterationArityZero lctx params sourceParams type info headName levels name result env next
-            hstart hresult
+        have h := nestedIterationArityZero lctx params sourceParams type info headName levels name result env next
+          hstart hresult
+        dsimp only [StateT.run] at h ⊢
+        exact h
       · rintro ⟨returned, next⟩ hreturned
         cases returned <;> exact .pure hreturned
 
@@ -197,7 +197,8 @@ theorem replaceIfNested.arity (lctx : LocalContext) (params sourceParams : Array
   | _ =>
     intro result hresult rewritten heq
     have hzero := replaceIfNested.arityZero lctx params sourceParams _ env state result hresult
-    simpa only [heq, OptionArityZero, arity] using hzero
+    change AddInductive.declareConstructors.arity 0 rewritten = 0
+    simpa only [heq, OptionArityZero] using hzero
 
 theorem replaceAllNested.arity (lctx : LocalContext) (params sourceParams : Array Expr)
     (type : Expr) (env : Environment) (state : State) :
