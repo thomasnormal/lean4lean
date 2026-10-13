@@ -126,29 +126,30 @@ rebased or synchronized until the rebase and publication have actually succeeded
 
 The inbox is absent. The latest fetch confirms official master remains
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, already an ancestor of detached
-integration checkpoint `04d113c`; today's daily rebase check is a successful
+integration checkpoint `43a47d9`; today's daily rebase check is a successful
 no-op. The published branch currently has 49 upstream-only and 329 branch-only
 commits; the detached integration has zero upstream-only and 397 branch-only
 commits. These are synchronization facts, not proof progress.
 
-The detached integration now passes the full default build (all 414 jobs),
-with receipt `lean4lean-integration-full25.log`. Its scoped projection and
-current `mkAppN`/`Array.foldl`/`Forall₂` adaptations preserve the existing
-contracts and leave the 129-line / 133-occurrence admission census unchanged.
-This is compatibility maintenance, not a new semantic milestone. The rewritten
-history remains unpublished because explicit `--force-with-lease` authorization
-is still pending; the published branch remains the green Lean 4.29.0 source.
+The detached integration now passes the full default build (all 414 jobs) and
+all five current restoration/header regression fixtures. The final recursor-name
+audit explicitly accounts for the native expression bridges used by the proof;
+no allowlist was weakened and the 129-line / 133-occurrence admission census is
+unchanged. This is compatibility maintenance, not a new semantic milestone.
+The rewritten history remains unpublished because explicit `--force-with-lease`
+authorization is still pending; the published branch remains the green Lean
+4.29.0 source.
 
 Regression results are stricter than the focused module builds. Current
 receipts under `/var/tmp/thomas-ahle/fleet2/logs/` show passing controls for
 `tests/InductiveHeaderTraces.lean`, `tests/InductiveFrontendRestoration.lean`,
 `tests/InductiveSubstitutionStageEndpointRebase.lean`, and
-`tests/InductiveHeaderNormalizationTransport.lean`. The
-`tests/InductiveOriginalRecursorNames.lean` audit remains intentionally red:
-its transitive allowlist rejects `Lean.Expr.mkAppData_eq`; no allowlist was
-weakened. Thus the default build is green, but the integration is not yet a
-fully trusted checkpoint. No source admission is added or removed by the
-compatibility adaptation.
+`tests/InductiveHeaderNormalizationTransport.lean`, including
+`tests/InductiveOriginalRecursorNames.lean` after its explicit native-bridge
+classification. The default build and these five trust-boundary fixtures are
+green; the integration still does not claim a new semantic milestone or
+admission removal. No source admission is added or removed by the compatibility
+adaptation.
 
 Documentation is published by normal fast-forward without publishing the
 unfinished integration. Preserve that worktree and reconcile this document
