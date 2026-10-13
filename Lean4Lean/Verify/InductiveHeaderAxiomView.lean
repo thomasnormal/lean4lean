@@ -131,9 +131,9 @@ private theorem registerHeaderAxiomView (infos : List InductiveVal) (allowPrimit
     | cons model remaining =>
       rename_i header headers
       simp only [List.foldlM_cons, bind_assoc, pure_bind]
-      refine (checkName.WF actual info.name allowPrimitive).bind fun _ ⟨fresh, primitive⟩ => ?_
-      have absent : actual.find? info.name = none := by
-        simpa only [Kernel.Environment.find?, actualWF.find?'_eq_find?] using fresh
+      refine (checkName.WF actualWF info.name allowPrimitive).bind fun _ ⟨absent, primitive⟩ => ?_
+      have fresh : actual.constants.find? info.name = none := by
+        simpa only [Kernel.Environment.find?, actualWF.find?'_eq_find?] using absent
       have shadowAbsent := (agreement.none_iff info.name).mp absent
       have shadowFresh : shadow.constants.find? info.name = none := by
         simpa only [Kernel.Environment.find?, history.map_wf.find?'_eq_find?] using shadowAbsent
@@ -157,15 +157,22 @@ private theorem registerHeaderAxiomView (infos : List InductiveVal) (allowPrimit
       refine (induction (actual.add (.inductInfo info)) (shadow.add (headerAxiomInfo info)) next headers
         (actualWF.insert _ _ fresh) nextHistory nextAgreement nextLookups
         (fun info member => members info (by simp [member]))
-        (remaining.imp fun _ _ model => ⟨model.1, model.2.mono (VEnv.addConst_le step)⟩)
+        (Lean4Lean.List.Forall₂.imp (fun _ _ model => ⟨model.1, model.2.mono (VEnv.addConst_le step)⟩) remaining)
         (fun header member => (typesWF header (by simp [member])).mono (VEnv.addConst_le step))).mono ?_
       rintro result ⟨final, registered, finalHistory, finalAgreement, finalLookups, finalFrame,
         finalPrimitives, actualTrace, shadowTrace⟩
       refine ⟨final, ?_, finalHistory, finalAgreement, finalLookups, shadowFrame.trans finalFrame, ?_, ?_, ?_⟩
-      · simpa only [VEnv.addInductHeaders, ← model.1, step, Option.bind_some] using registered
+      · simpa only [VEnv.addInductHeaders, ← model.1, step, bind, Option.bind] using registered
       · intro disabled
         exact (NativePrimitiveFrame.addConst (ci := headerAxiomInfo info) history.map_wf
-          shadowFresh (primitive disabled)).trans (finalPrimitives disabled)
+          shadowFresh (by
+            change Kernel.Environment.primitives.contains info.name = false
+            cases enabled : Kernel.Environment.primitives.contains info.name with
+            | false => rfl
+            | true =>
+              have allowed := primitive enabled
+              rw [disabled] at allowed
+              cases allowed)).trans (finalPrimitives disabled)
       · exact (FreshRegistrationTrace.step (.refl actual) (.inductInfo info) ⟨info, rfl⟩ fresh).trans actualTrace
       · exact (FreshRegistrationTrace.step (.refl shadow) (headerAxiomInfo info) ⟨info, rfl⟩ shadowFresh).trans shadowTrace
 
@@ -388,7 +395,6 @@ theorem AddInductive.run.headerAxiomViewStage
     | «partial» => exact False.elim (ordinarySafety mode)
   unfold AddInductive.run
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.readWF
   dsimp only
   apply Lean4Lean.AddInductive.bindWF

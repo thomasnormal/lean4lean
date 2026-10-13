@@ -86,14 +86,14 @@ theorem inductiveReduceRec.headerAxiomNormalizationTransport
     (structureTypes : ∀ info major adapted adaptedState normalized normalizedState,
       NativeRecursorMajorReceipt (normalize := normalize) actualMethods actualContext state expression info major adapted adaptedState →
       normalize adapted actualMethods actualContext adaptedState = .ok (normalized, normalizedState) →
-      normalized.isLit = false → actualContext.env.isStructureLike info.getMajorInduct = true →
+      normalized.isLit = false → actualContext.env.isNonRecStructure info.getMajorInduct = true →
       (normalized.isConstructorApp?' actualContext.env).isSome = false → TypeChecker.M.SuccessTransport
         ((do normalize (← TypeChecker.Inner.inferType normalized true)) actualMethods)
         ((do normalize (← TypeChecker.Inner.inferType normalized true)) shadowMethods) actualContext shadowContext normalizedState)
     (structureSorts : ∀ info major adapted adaptedState normalized normalizedState,
       NativeRecursorMajorReceipt (normalize := normalize) actualMethods actualContext state expression info major adapted adaptedState →
       normalize adapted actualMethods actualContext adaptedState = .ok (normalized, normalizedState) →
-      normalized.isLit = false → actualContext.env.isStructureLike info.getMajorInduct = true →
+      normalized.isLit = false → actualContext.env.isNonRecStructure info.getMajorInduct = true →
       (normalized.isConstructorApp?' actualContext.env).isSome = false → ∀ type finalState,
       ((do normalize (← TypeChecker.Inner.inferType normalized true)) actualMethods) actualContext normalizedState = .ok (type, finalState) →
       type.getAppFn.isConstOf info.getMajorInduct = true → TypeChecker.M.SuccessTransport
@@ -204,14 +204,14 @@ theorem inductiveReduceRec.headerAxiomTransport
     (structureTypes : ∀ info major adapted adaptedState normalized normalizedState,
       NativeRecursorMajorReceipt actualMethods actualContext state expression info major adapted adaptedState →
       actualMethods.whnf adapted actualContext adaptedState = .ok (normalized, normalizedState) →
-      normalized.isLit = false → actualContext.env.isStructureLike info.getMajorInduct = true →
+      normalized.isLit = false → actualContext.env.isNonRecStructure info.getMajorInduct = true →
       (normalized.isConstructorApp?' actualContext.env).isSome = false → TypeChecker.M.SuccessTransport
         (do actualMethods.whnf (← actualMethods.inferType normalized true))
         (do shadowMethods.whnf (← shadowMethods.inferType normalized true)) actualContext shadowContext normalizedState)
     (structureSorts : ∀ info major adapted adaptedState normalized normalizedState,
       NativeRecursorMajorReceipt actualMethods actualContext state expression info major adapted adaptedState →
       actualMethods.whnf adapted actualContext adaptedState = .ok (normalized, normalizedState) →
-      normalized.isLit = false → actualContext.env.isStructureLike info.getMajorInduct = true →
+      normalized.isLit = false → actualContext.env.isNonRecStructure info.getMajorInduct = true →
       (normalized.isConstructorApp?' actualContext.env).isSome = false → ∀ type finalState,
       (do actualMethods.whnf (← actualMethods.inferType normalized true)) actualContext normalizedState = .ok (type, finalState) →
       type.getAppFn.isConstOf info.getMajorInduct = true → TypeChecker.M.SuccessTransport
@@ -269,7 +269,7 @@ theorem quotReduceRec.transport
 
 theorem TypeChecker.Inner.reduceRecursor.headerAxiomTransport
     (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
-    (state : TypeChecker.State) (expression : Expr) (cheapRec cheapProj : Bool)
+    (state : TypeChecker.State) (expression : Expr)
     (quotInit : actualContext.env.quotInit = shadowContext.env.quotInit)
     (quotients : actualContext.env.quotInit = true → TypeChecker.M.SuccessTransport
       (quotReduceRec expression TypeChecker.Inner.whnf actualMethods)
@@ -278,27 +278,27 @@ theorem TypeChecker.Inner.reduceRecursor.headerAxiomTransport
       ((if actualContext.env.quotInit then quotReduceRec expression TypeChecker.Inner.whnf else pure none) actualMethods)
         actualContext state = .ok (none, finalState) → TypeChecker.M.SuccessTransport
       (inductiveReduceRec actualContext.env expression
-        (fun major => if cheapRec then TypeChecker.Inner.whnfCore major cheapRec cheapProj else TypeChecker.Inner.whnf major)
+        TypeChecker.Inner.whnf
         TypeChecker.Inner.inferType TypeChecker.Inner.isDefEq actualMethods)
       (inductiveReduceRec shadowContext.env expression
-        (fun major => if cheapRec then TypeChecker.Inner.whnfCore major cheapRec cheapProj else TypeChecker.Inner.whnf major)
+        TypeChecker.Inner.whnf
         TypeChecker.Inner.inferType TypeChecker.Inner.isDefEq shadowMethods) actualContext shadowContext finalState) :
-    TypeChecker.M.SuccessTransport (TypeChecker.Inner.reduceRecursor expression cheapRec cheapProj actualMethods)
-      (TypeChecker.Inner.reduceRecursor expression cheapRec cheapProj shadowMethods)
+    TypeChecker.M.SuccessTransport (TypeChecker.Inner.reduceRecursor expression actualMethods)
+      (TypeChecker.Inner.reduceRecursor expression shadowMethods)
       actualContext shadowContext state := by
   change TypeChecker.M.SuccessTransport
     ((do
       if actualContext.env.quotInit then
         if let some reduced ← quotReduceRec expression TypeChecker.Inner.whnf then return some reduced
       if let some reduced ← inductiveReduceRec actualContext.env expression
-          (fun major => if cheapRec then TypeChecker.Inner.whnfCore major cheapRec cheapProj else TypeChecker.Inner.whnf major)
+          TypeChecker.Inner.whnf
           TypeChecker.Inner.inferType TypeChecker.Inner.isDefEq then return some reduced
       return none) actualMethods)
     ((do
       if shadowContext.env.quotInit then
         if let some reduced ← quotReduceRec expression TypeChecker.Inner.whnf then return some reduced
       if let some reduced ← inductiveReduceRec shadowContext.env expression
-          (fun major => if cheapRec then TypeChecker.Inner.whnfCore major cheapRec cheapProj else TypeChecker.Inner.whnf major)
+          TypeChecker.Inner.whnf
           TypeChecker.Inner.inferType TypeChecker.Inner.isDefEq then return some reduced
       return none) shadowMethods) actualContext shadowContext state
   rw [← quotInit]

@@ -21,7 +21,7 @@ theorem acceptedHeaderSortKind (checker : TypeChecker.VContext) (reader : Contex
   generalize checked : TypeChecker.ensureSort source source
     checker.toContext ({} : TypeChecker.VState).toState = returned at nativeAccepted
   cases returned with
-  | error exception => simp at nativeAccepted
+  | error exception => cases nativeAccepted
   | ok returned =>
     obtain ⟨normalized, final⟩ := returned
     change Except.ok normalized = .ok result at nativeAccepted
@@ -120,7 +120,8 @@ theorem checkInductiveTypes.firstHeaderKind (types : Array InductiveType)
     apply bindHeaderResultWF
     intro normalized normalizedCall
     have guarded : reader.env.checkNoMVarNoFVar types[0]!.name types[0]!.type = .ok () := by
-      simpa only [getElem!_pos types 0 bound] using guarded
+      simpa only [getElem!_pos types 0 bound, liftM, monadLift,
+        MonadLift.monadLift, StateT.run, ReaderT.run, ExceptT.run] using guarded
     have checked : (monadLift (TypeChecker.checkType types[0]!.type) : M Expr) reader = .ok inferred := by
       simpa only [getElem!_pos types 0 bound] using checked
     have normalizedCall : (monadLift (TypeChecker.whnf types[0]!.type) : M Expr) reader = .ok normalized := by

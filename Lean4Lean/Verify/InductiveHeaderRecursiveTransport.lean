@@ -374,7 +374,64 @@ theorem NativeMethodTransport.deltaUnfoldCallbacks
     NativeDeltaUnfoldCallbacks actualMethods shadowMethods actualContext shadowContext state expression := by
   unfold NativeDeltaUnfoldCallbacks
   intros
-  exact transport.whnfCore _ _ _ _
+  exact transport.whnfCore _ _ true
+
+theorem NativeMethodTransport.reduceProjCore
+    (transport : NativeMethodTransport actualMethods shadowMethods actualContext shadowContext)
+    (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
+    (state : TypeChecker.State) (index : Nat) (expression : Expr) :
+    TypeChecker.M.SuccessTransport (TypeChecker.Inner.reduceProjCore index expression actualMethods)
+      (TypeChecker.Inner.reduceProjCore index expression shadowMethods) actualContext shadowContext state := by
+  have lookup : ∀ (expression : Expr) (finalState : TypeChecker.State),
+      TypeChecker.M.SuccessTransport
+        (((expression.withApp fun head arguments => do
+          let .const name _ := head | return none
+          let environment ← TypeChecker.getEnv
+          let .ctorInfo information ← environment.get name | return none
+          return arguments[information.numParams + index]?) : TypeChecker.RecM (Option Expr)) actualMethods)
+        (((expression.withApp fun head arguments => do
+          let .const name _ := head | return none
+          let environment ← TypeChecker.getEnv
+          let .ctorInfo information ← environment.get name | return none
+          return arguments[information.numParams + index]?) : TypeChecker.RecM (Option Expr)) shadowMethods)
+        actualContext shadowContext finalState := by
+    intro expression finalState
+    apply Expr.withApp_rel expression _ _
+      (fun actual shadow : TypeChecker.RecM (Option Expr) =>
+        TypeChecker.M.SuccessTransport (actual actualMethods) (shadow shadowMethods)
+          actualContext shadowContext finalState)
+    intro head arguments result accepted
+    cases head <;> try exact accepted
+    rename_i name levels
+    dsimp only [TypeChecker.getEnv, liftM, MonadLift.monadLift, MonadLiftT.monadLift,
+      MonadReader.read, readThe, MonadReaderOf.read, ReaderT.read, Pure.pure, Bind.bind,
+      ReaderT.bind, StateT.bind, ReaderT.pure, StateT.pure, Except.pure, Except.bind] at accepted ⊢
+    rcases agreement name with same | ⟨_, header, actualLookup, shadowLookup⟩
+    · cases found : actualContext.env.find? name with
+      | none =>
+        simp only [Kernel.Environment.get, found] at accepted
+        change (Except.error _ : Except Kernel.Exception (Option Expr × TypeChecker.State)) = .ok result at accepted
+        contradiction
+      | some information =>
+        have shadowFound := same.symm.trans found
+        simp only [Kernel.Environment.get, found, shadowFound] at accepted ⊢
+        dsimp only [StateT.lift, Pure.pure, ReaderT.pure, StateT.pure, Except.pure, Except.bind] at accepted ⊢
+        cases information <;> exact accepted
+    · simp only [Kernel.Environment.get, actualLookup, shadowLookup] at accepted ⊢
+      exact accepted
+  unfold TypeChecker.Inner.reduceProjCore
+  dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
+  cases expression with
+  | lit literal =>
+    cases literal with
+    | natVal value => exact lookup _ _
+    | strVal text =>
+      dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
+      apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
+        (transport.whnf state (.strLitToConstructor text))
+      intro expanded finalState accepted
+      exact lookup _ _
+  | _ => exact lookup _ _
 
 theorem NativeScopedMethodTransport.deltaSingleCallbacks
     (methodTransport : NativeScopedMethodTransport actualMethods shadowMethods actualEnvironment shadowEnvironment)
@@ -414,7 +471,7 @@ theorem NativeScopedMethodTransport.deltaProjectionCallbacks
     (side : NativeDeltaSide) (state : TypeChecker.State) (first second : Expr) :
     NativeDeltaProjectionCallbacks side actualMethods shadowMethods actualContext shadowContext state first second := by
   constructor <;> intros
-  · exact (methodTransport _ _ frame).whnfCore _ _ _ _
+  · exact (methodTransport _ _ frame).whnfCore _ _ false
   · exact methodTransport.deltaQuickCallbacks frame _ _ _
   · exact methodTransport.deltaSingleCallbacks frame _ _ _ _
 
@@ -494,8 +551,8 @@ theorem NativeScopedMethodTransport.renormalizeCallbacks
     (state : TypeChecker.State) (first second : Expr) :
     NativeDefEqRenormalizeCallbacks actualMethods shadowMethods actualContext shadowContext state first second := by
   constructor <;> intros
-  · exact (methodTransport _ _ frame).whnfCore _ _ _ _
-  · exact (methodTransport _ _ frame).whnfCore _ _ _ _
+  · exact (methodTransport _ _ frame).whnfCore _ _ false
+  · exact (methodTransport _ _ frame).whnfCore _ _ false
   · exact (methodTransport _ _ frame).isDefEqCore _ _ _
   · exact methodTransport.fallbackCallbacks metadata frame _ _ _
 
@@ -507,8 +564,22 @@ theorem NativeScopedMethodTransport.unknownCallbacks
     NativeDefEqUnknownCallbacks actualMethods shadowMethods actualContext shadowContext state first second := by
   constructor <;> intros
   · unfold NativeDefEqSimpleCallbacks
-    intros
-    exact (methodTransport _ _ frame).isDefEqCore _ _ _
+    intros firstParent firstIndex firstBody secondParent secondIndex secondBody firstEq secondEq matching
+    subst first
+    subst second
+    exact TypeChecker.Inner.lazyDeltaProjReduction.transport _ _ _ _ state firstBody secondBody firstIndex
+      (by rw [frame.shadowReader]; exact Nat.le_refl _)
+      (fun currentState currentFirst currentSecond =>
+        TypeChecker.Inner.lazyDeltaReductionStep.headerAxiomTransport _ _ _ _
+          (by simpa only [frame.actualLookup, frame.shadowLookup] using metadata.agreement)
+          currentState currentFirst currentSecond
+          (methodTransport.deltaStepCallbacks frame _ _ _ _))
+      (fun currentState currentIndex expression =>
+        (methodTransport actualContext shadowContext frame).reduceProjCore
+          (by simpa only [frame.actualLookup, frame.shadowLookup] using metadata.agreement)
+          currentState currentIndex expression)
+      (fun currentState currentFirst currentSecond =>
+        (methodTransport actualContext shadowContext frame).isDefEqCore currentState currentFirst currentSecond)
   · exact methodTransport.renormalizeCallbacks metadata frame _ _ _
 
 theorem NativeScopedMethodTransport.defEqDeltaCallbacks
@@ -548,8 +619,8 @@ theorem NativeScopedMethodTransport.cheapCallbacks
     (state : TypeChecker.State) (first second : Expr) :
     NativeDefEqCheapCallbacks actualMethods shadowMethods actualContext shadowContext state first second := by
   constructor <;> intros
-  · exact (methodTransport _ _ frame).whnfCore _ _ _ _
-  · exact (methodTransport _ _ frame).whnfCore _ _ _ _
+  · exact (methodTransport _ _ frame).whnfCore _ _ true
+  · exact (methodTransport _ _ frame).whnfCore _ _ true
   · exact methodTransport.normalizedCallbacks metadata frame _ _ _ _ _
 
 theorem NativeScopedMethodTransport.shortCallbacks
@@ -591,11 +662,11 @@ theorem NativeScopedMethodTransport.successor
     (metadata : NativeRecursiveHeaderFrame changed actualEnvironment shadowEnvironment) :
     NativeScopedMethodTransport
       { isDefEqCore := fun first second => TypeChecker.Inner.isDefEqCore' first second actualMethods
-        whnfCore := fun expression cheapRec cheapProj => TypeChecker.Inner.whnfCore' expression cheapRec cheapProj actualMethods
+        whnfCore := fun expression cheapProj => TypeChecker.Inner.whnfCore' expression cheapProj actualMethods
         whnf := fun expression => TypeChecker.Inner.whnf' expression actualMethods
         inferType := fun expression inferOnly => TypeChecker.Inner.inferType' expression inferOnly actualMethods }
       { isDefEqCore := fun first second => TypeChecker.Inner.isDefEqCore' first second shadowMethods
-        whnfCore := fun expression cheapRec cheapProj => TypeChecker.Inner.whnfCore' expression cheapRec cheapProj shadowMethods
+        whnfCore := fun expression cheapProj => TypeChecker.Inner.whnfCore' expression cheapProj shadowMethods
         whnf := fun expression => TypeChecker.Inner.whnf' expression shadowMethods
         inferType := fun expression inferOnly => TypeChecker.Inner.inferType' expression inferOnly shadowMethods }
       actualEnvironment shadowEnvironment := by
@@ -636,9 +707,9 @@ theorem TypeChecker.whnfCore.headerAxiomTransport
     (context : TypeChecker.Context) (shadow : Kernel.Environment)
     (metadata : NativeRecursiveHeaderFrame changed context.env shadow) (state : TypeChecker.State) (expression : Expr) :
     TypeChecker.M.SuccessTransport (TypeChecker.whnfCore expression) (TypeChecker.whnfCore expression) context { context with env := shadow } state := by
-  change TypeChecker.M.SuccessTransport ((TypeChecker.Methods.withFuel context.fuel.recDepth).whnfCore expression false false)
-    ((TypeChecker.Methods.withFuel context.fuel.recDepth).whnfCore expression false false) context { context with env := shadow } state
-  exact (TypeChecker.Methods.withFuel.headerAxiomTransport _ metadata _ _ ⟨rfl, rfl⟩).whnfCore state expression false false
+  change TypeChecker.M.SuccessTransport ((TypeChecker.Methods.withFuel context.fuel.recDepth).whnfCore expression false)
+    ((TypeChecker.Methods.withFuel context.fuel.recDepth).whnfCore expression false) context { context with env := shadow } state
+  exact (TypeChecker.Methods.withFuel.headerAxiomTransport _ metadata _ _ ⟨rfl, rfl⟩).whnfCore state expression false
 
 theorem TypeChecker.inferType.headerAxiomTransport
     (context : TypeChecker.Context) (shadow : Kernel.Environment)

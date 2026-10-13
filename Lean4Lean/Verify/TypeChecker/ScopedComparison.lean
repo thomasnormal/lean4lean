@@ -52,8 +52,8 @@ theorem isDefEqLambda.scopeWF {context : VContext} {state : VState}
     Expr.instantiateMany_eq_instantiateList expression variables depth closedVariables
   split <;> [rename_i firstName firstDomain firstBody firstBinder secondName secondDomain secondBody secondBinder;
     (simp [substitutions, instantiateMany]; exact isDefEq.scopeWF firstTranslation secondTranslation)]
-  extract_lets bodyWorker firstInstantiatedDomain secondInstantiatedDomain domainWorker
-  unfold domainWorker firstInstantiatedDomain secondInstantiatedDomain
+  extract_lets bodyWorker firstInstantiatedDomain secondInstantiatedDomain
+  unfold firstInstantiatedDomain secondInstantiatedDomain
   simp at firstTranslation secondTranslation
   let .lam (ty' := firstDomainSemantic) (body' := firstBodySemantic)
     ⟨_, firstDomainTyping⟩ firstDomainTranslation firstBodyTranslation := firstTranslation
@@ -139,8 +139,8 @@ theorem isDefEqForall.scopeWF {context : VContext} {state : VState}
     Expr.instantiateMany_eq_instantiateList expression variables depth closedVariables
   split <;> [rename_i firstName firstDomain firstBody firstBinder secondName secondDomain secondBody secondBinder;
     (simp [substitutions, instantiateMany]; exact isDefEq.scopeWF firstTranslation secondTranslation)]
-  extract_lets bodyWorker firstInstantiatedDomain secondInstantiatedDomain domainWorker
-  unfold domainWorker firstInstantiatedDomain secondInstantiatedDomain
+  extract_lets bodyWorker firstInstantiatedDomain secondInstantiatedDomain
+  unfold firstInstantiatedDomain secondInstantiatedDomain
   simp at firstTranslation secondTranslation
   let .forallE (ty' := firstDomainSemantic) (body' := firstBodySemantic)
     ⟨_, firstDomainTyping⟩ _ firstDomainTranslation firstBodyTranslation := firstTranslation
@@ -261,10 +261,8 @@ theorem quickIsDefEq.scopeWF {context : VContext} {state : VState}
       exact (equality accepted).uniq context.Ewf (contextLift.bvars_eq.trans context.mlctx.noBV)
         levelsWF (firstTranslation.weakFV' context.Ewf contextLift levelsWF)
         (secondTranslation.weakFV' context.Ewf contextLift levelsWF)
-  extract_lets branchWorker
   split <;> [exact RecM.ScopeWF.pure fun _ => compared ‹_›; skip]
   refine RecM.ScopeWF.pureBind ?_
-  unfold branchWorker
   split
   · exact RecM.ScopeWF.toLBoolM (isDefEqLambda.scopeWF_empty firstTranslation secondTranslation)
   · exact RecM.ScopeWF.toLBoolM (isDefEqForall.scopeWF_empty firstTranslation secondTranslation)
@@ -272,7 +270,7 @@ theorem quickIsDefEq.scopeWF {context : VContext} {state : VState}
     have .sort secondLevel := secondTranslation
     refine RecM.ScopeWF.pure fun accepted => ⟨_, .sortDF (.of_ofLevel firstLevel)
       (.of_ofLevel secondLevel) ?_⟩
-    exact Level.isEquiv'_wf (toLBool_true.1 accepted) firstLevel secondLevel
+    exact Level.isEquiv_wf (toLBool_true.1 accepted) firstLevel secondLevel
   · let .mdata firstTranslation := firstTranslation
     let .mdata secondTranslation := secondTranslation
     exact RecM.ScopeWF.toLBoolM (isDefEq.scopeWF firstTranslation secondTranslation)
@@ -410,80 +408,79 @@ theorem isDefEqApp.scopeWF {context : VContext} {state : VState}
     (secondTranslation : context.TrExprS second secondSemantic) :
     (isDefEqApp first second).ScopeWF context state
       (fun equal _ => equal → context.IsDefEqU firstSemantic secondSemantic) := by
-  unfold isDefEqApp
-  extract_lets applicationWorker
+  simp only [isDefEqApp, Expr.withApp_eq]
   split <;> [refine RecM.ScopeWF.pureBind ?_; exact RecM.ScopeWF.pure nofun]
-  unfold applicationWorker
-  rw [Expr.withApp_eq, Expr.withApp_eq]
-  split <;> [rename_i sameArity; exact RecM.ScopeWF.pure nofun]
-  obtain ⟨_, firstStack⟩ := AppStack.build (first.mkAppList_getAppArgsList ▸ firstTranslation)
-  obtain ⟨_, secondStack⟩ := AppStack.build (second.mkAppList_getAppArgsList ▸ secondTranslation)
-  refine (isDefEq.scopeWF firstStack.tr secondStack.tr).bind fun _ _ _ headsEqual => ?_
-  extract_lets argumentWorker
-  split <;> [refine RecM.ScopeWF.pureBind ?_; exact RecM.ScopeWF.pure nofun]
-  unfold argumentWorker
-  let rec loop.scopeWF {state argumentsFirst argumentsSecond functionFirst functionSecond
-      semanticFirst semanticSecond sameArity index} (prefixFirst suffixFirst prefixSecond suffixSecond)
-      (firstArguments : argumentsFirst.toList = prefixFirst ++ suffixFirst)
-      (firstIndex : prefixFirst.length = index)
-      (secondArguments : argumentsSecond.toList = prefixSecond ++ suffixSecond)
-      (secondIndex : prefixSecond.length = index)
-      (firstStack : AppStack context.venv context.lparams context.vlctx
-        (.mkAppList functionFirst prefixFirst) semanticFirst suffixFirst)
-      (secondStack : AppStack context.venv context.lparams context.vlctx
-        (.mkAppList functionSecond prefixSecond) semanticSecond suffixSecond)
-      (headsEqual : context.IsDefEqU semanticFirst semanticSecond) :
-      (loop argumentsFirst argumentsSecond sameArity index).ScopeWF context state
-        (fun equal _ => equal → ∀ firstSemantic,
-          context.TrExprS (functionFirst.mkAppList argumentsFirst.toList) firstSemantic →
-          ∀ secondSemantic, context.TrExprS (functionSecond.mkAppList argumentsSecond.toList)
-            secondSemantic → context.IsDefEqU firstSemantic secondSemantic) := by
-    unfold loop
-    split <;> rename_i inRange
-    · have firstNonempty : suffixFirst.length > 0 := by
-        simp [← Array.length_toList, firstArguments] at inRange
-        omega
-      have secondNonempty : suffixSecond.length > 0 := by
-        simp [sameArity, ← Array.length_toList, secondArguments] at inRange
-        omega
-      let .app (a := firstArgument) (as := suffixFirst) firstFunctionType firstArgumentType
-        _ firstArgumentTranslation firstRemaining := firstStack
-      let .app (a := secondArgument) (as := suffixSecond) _ _
-        _ secondArgumentTranslation secondRemaining := secondStack
-      simp [show argumentsFirst[index] = firstArgument by
-          cases argumentsFirst; cases firstArguments; simp [firstIndex],
-        show argumentsSecond[index] = secondArgument by
-          cases argumentsSecond; cases secondArguments; simp [secondIndex]]
-      refine (isDefEq.scopeWF firstArgumentTranslation secondArgumentTranslation).bind
-        fun _ _ _ argumentsEqual => ?_
-      split <;> [skip; exact RecM.ScopeWF.pure nofun]
-      have applicationEquality := (headsEqual.of_l context.Ewf context.Δwf firstFunctionType).appDF
-        ((argumentsEqual ‹_›).of_l context.Ewf context.Δwf firstArgumentType)
-      exact loop.scopeWF (prefixFirst ++ [firstArgument]) suffixFirst
-        (prefixSecond ++ [secondArgument]) suffixSecond
-        (by simp [firstArguments]) (by simp [firstIndex])
-        (by simp [secondArguments]) (by simp [secondIndex])
-        (by simp [firstRemaining]) (by simp [secondRemaining]) ⟨_, applicationEquality⟩
-    · have firstEmpty : suffixFirst.length = 0 := by
-        simp [← Array.length_toList, firstArguments] at inRange
-        omega
-      have secondEmpty : suffixSecond.length = 0 := by
-        simp [sameArity, ← Array.length_toList, secondArguments] at inRange
-        omega
-      simp at firstEmpty secondEmpty
-      subst suffixFirst suffixSecond
-      simp at firstArguments secondArguments
-      subst prefixFirst prefixSecond
-      refine RecM.ScopeWF.pure fun _ _ firstTranslation _ secondTranslation => ?_
-      have firstEquality := firstTranslation.uniq context.Ewf (.refl context.Ewf context.Δwf) firstStack.tr
-      have secondEquality := secondTranslation.uniq context.Ewf (.refl context.Ewf context.Δwf) secondStack.tr
-      exact firstEquality.trans context.Ewf context.Δwf headsEqual
-        |>.trans context.Ewf context.Δwf secondEquality.symm
-  refine (loop.scopeWF [] _ [] _ (index := 0) (by simp [Expr.getAppArgs_toList]) rfl
-    (by simp [Expr.getAppArgs_toList]) rfl firstStack secondStack (headsEqual ‹_›)).mono
-    fun _ _ _ compared accepted => ?_
-  simp [Expr.getAppArgs_toList, Expr.mkAppList_getAppArgsList] at compared
-  exact compared accepted _ firstTranslation _ secondTranslation
+  generalize hdec : instDecidableEqNat first.getAppArgs.size second.getAppArgs.size = dec
+  cases dec with
+  | isTrue sameArity =>
+    simp_all
+    obtain ⟨_, firstStack⟩ := AppStack.build (first.mkAppList_getAppArgsList ▸ firstTranslation)
+    obtain ⟨_, secondStack⟩ := AppStack.build (second.mkAppList_getAppArgsList ▸ secondTranslation)
+    refine (isDefEq.scopeWF firstStack.tr secondStack.tr).bind fun _ _ _ headsEqual => ?_
+    split <;> [refine RecM.ScopeWF.pureBind ?_; exact RecM.ScopeWF.pure nofun]
+    let rec loop.scopeWF {state argumentsFirst argumentsSecond functionFirst functionSecond
+        semanticFirst semanticSecond sameArity index} (prefixFirst suffixFirst prefixSecond suffixSecond)
+        (firstArguments : argumentsFirst.toList = prefixFirst ++ suffixFirst)
+        (firstIndex : prefixFirst.length = index)
+        (secondArguments : argumentsSecond.toList = prefixSecond ++ suffixSecond)
+        (secondIndex : prefixSecond.length = index)
+        (firstStack : AppStack context.venv context.lparams context.vlctx
+          (.mkAppList functionFirst prefixFirst) semanticFirst suffixFirst)
+        (secondStack : AppStack context.venv context.lparams context.vlctx
+          (.mkAppList functionSecond prefixSecond) semanticSecond suffixSecond)
+        (headsEqual : context.IsDefEqU semanticFirst semanticSecond) :
+        (loop argumentsFirst argumentsSecond sameArity index).ScopeWF context state
+          (fun equal _ => equal → ∀ firstSemantic,
+            context.TrExprS (functionFirst.mkAppList argumentsFirst.toList) firstSemantic →
+            ∀ secondSemantic, context.TrExprS (functionSecond.mkAppList argumentsSecond.toList)
+              secondSemantic → context.IsDefEqU firstSemantic secondSemantic) := by
+      unfold loop
+      split <;> rename_i inRange
+      · have firstNonempty : suffixFirst.length > 0 := by
+          simp [← Array.length_toList, firstArguments] at inRange
+          omega
+        have secondNonempty : suffixSecond.length > 0 := by
+          simp [sameArity, ← Array.length_toList, secondArguments] at inRange
+          omega
+        let .app (a := firstArgument) (as := suffixFirst) firstFunctionType firstArgumentType
+          _ firstArgumentTranslation firstRemaining := firstStack
+        let .app (a := secondArgument) (as := suffixSecond) _ _
+          _ secondArgumentTranslation secondRemaining := secondStack
+        simp [show argumentsFirst[index] = firstArgument by
+            cases argumentsFirst; cases firstArguments; simp [firstIndex],
+          show argumentsSecond[index] = secondArgument by
+            cases argumentsSecond; cases secondArguments; simp [secondIndex]]
+        refine (isDefEq.scopeWF firstArgumentTranslation secondArgumentTranslation).bind
+          fun _ _ _ argumentsEqual => ?_
+        split <;> [skip; exact RecM.ScopeWF.pure nofun]
+        have applicationEquality := (headsEqual.of_l context.Ewf context.Δwf firstFunctionType).appDF
+          ((argumentsEqual ‹_›).of_l context.Ewf context.Δwf firstArgumentType)
+        exact loop.scopeWF (prefixFirst ++ [firstArgument]) suffixFirst
+          (prefixSecond ++ [secondArgument]) suffixSecond
+          (by simp [firstArguments]) (by simp [firstIndex])
+          (by simp [secondArguments]) (by simp [secondIndex])
+          (by simp [firstRemaining]) (by simp [secondRemaining]) ⟨_, applicationEquality⟩
+      · have firstEmpty : suffixFirst.length = 0 := by
+          simp [← Array.length_toList, firstArguments] at inRange
+          omega
+        have secondEmpty : suffixSecond.length = 0 := by
+          simp [sameArity, ← Array.length_toList, secondArguments] at inRange
+          omega
+        simp at firstEmpty secondEmpty
+        subst suffixFirst suffixSecond
+        simp at firstArguments secondArguments
+        subst prefixFirst prefixSecond
+        refine RecM.ScopeWF.pure fun _ _ firstTranslation _ secondTranslation => ?_
+        have firstEquality := firstTranslation.uniq context.Ewf (.refl context.Ewf context.Δwf) firstStack.tr
+        have secondEquality := secondTranslation.uniq context.Ewf (.refl context.Ewf context.Δwf) secondStack.tr
+        exact firstEquality.trans context.Ewf context.Δwf headsEqual
+          |>.trans context.Ewf context.Δwf secondEquality.symm
+    refine (loop.scopeWF [] _ [] _ (index := 0) (by simp [Expr.getAppArgs_toList]) rfl
+      (by simp [Expr.getAppArgs_toList]) rfl firstStack secondStack (headsEqual ‹_›)).mono
+      fun _ _ _ compared accepted => ?_
+    simp [Expr.getAppArgs_toList, Expr.mkAppList_getAppArgsList] at compared
+    exact compared accepted _ firstTranslation _ secondTranslation
+  | isFalse sameArity => simp_all; exact RecM.ScopeWF.pure nofun
 
 theorem isDefEqProofIrrel.scopeWF {context : VContext} {state : VState}
     (firstTranslation : context.TrExprS first firstSemantic)
@@ -493,10 +490,8 @@ theorem isDefEqProofIrrel.scopeWF {context : VContext} {state : VState}
   unfold isDefEqProofIrrel
   refine (inferType.scopeWF_of_translation firstTranslation).bind
     fun _ _ _ ⟨_, _, _, firstTypeTranslation, firstTyping⟩ => ?_
-  extract_lets proofWorker
   refine (isProp.scopeWF firstTypeTranslation).bind fun _ _ _ proposition => ?_
-  split <;> [exact RecM.ScopeWF.pure nofun; refine RecM.ScopeWF.pureBind ?_]
-  unfold proofWorker
+  split <;> [exact RecM.ScopeWF.pure nofun; skip]
   rename_i accepted
   simp at accepted
   refine (inferType.scopeWF_of_translation secondTranslation).bind

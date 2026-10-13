@@ -16,8 +16,10 @@ theorem translatedConstantHeader {env : VEnv} {universes : List Name} {virtual :
       (constant.type.instL semanticLevels) headerSemantic) :
     TrExprS env universes virtual (.const name nativeLevels) (.const name semanticLevels) ∧
       env.HasType universes.length virtual.toCtx (.const name semanticLevels) headerSemantic := by
+  have hlength : nativeLevels.length = semanticLevels.length :=
+    Lean4Lean.List.Forall₂.length_eq (Lean4Lean.List.mapM_eq_some.mp levels)
   have typed := VEnv.HasType.const (Γ := virtual.toCtx) lookup
-    (VLevel.WF.of_mapM_ofLevel levels) ((List.mapM_eq_some.mp levels).length_eq.symm.trans arity)
+    (VLevel.WF.of_mapM_ofLevel levels) (hlength.symm.trans arity)
   exact ⟨.const lookup levels arity, typed.defeqU_r envWF contextWF alignment⟩
 
 theorem TranslatedRecursorIndexTrace.constantApplication

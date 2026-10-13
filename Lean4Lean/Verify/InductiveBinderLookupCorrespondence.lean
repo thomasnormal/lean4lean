@@ -4,6 +4,8 @@ import Lean4Lean.Verify.InductiveBinderCorrespondence
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
 
+private theorem parameter_ne_index : ¬ BinderRole.parameter = BinderRole.index := by decide
+
 inductive BinderLookupCorrespondence :
     List (FVarId × FVarId) → List BinderStep → List BinderStep → List (FVarId × FVarId) → Prop where
   | nil (pairs : List (FVarId × FVarId)) : BinderLookupCorrespondence pairs [] [] pairs
@@ -109,8 +111,8 @@ theorem OpenedTelescope.relatedLookupIndexCorrespondence {pairs : List (FVarId �
           ((show IndexLookupRenaming pairs body rightBody from hbody).instantiate1
             (.fixedParameter hpairSupport hid)) hroles hparams
           (indexDeclaredTail leftDeclared) (indexDeclaredTail rightDeclared)
-          (by simpa only [BinderStep.indexValues, BinderRole.noConfusion, ↓reduceIte] using injection)
-          (by simpa only [BinderStep.indexValues, BinderRole.noConfusion, ↓reduceIte] using support)
+          (by simpa only [BinderStep.indexValues, parameter_ne_index, if_false] using injection)
+          (by simpa only [BinderStep.indexValues, parameter_ne_index, if_false] using support)
           (fun next hnext => shapes next (List.mem_cons_of_mem _ hnext)) hnextWithin
         exact ⟨finalPairs, .parameter name bi domain rightDomain (.fvar id) hdomain tail, hterminal⟩
       | index =>

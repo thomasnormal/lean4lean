@@ -21,9 +21,12 @@ private theorem registerHeaderNames (infos : List InductiveVal) (env : Environme
   | nil => exact .pure ⟨by simp, by simp⟩
   | cons info infos ih =>
     simp only [List.foldlM_cons, bind_assoc, pure_bind]
-    refine (Lean4Lean.checkName.WF env info.name allowPrimitive).bind ?_
+    refine (Lean4Lean.checkName.WF hmap info.name allowPrimitive).bind ?_
     rintro _ ⟨hfresh, _⟩
-    obtain ⟨hnext, hself, hpreserve⟩ := Lean4Lean.AddInductive.addFresh env (.inductInfo info) hmap hfresh
+    have hfreshInfo : env.constants.find? (ConstantInfo.inductInfo info).name = none := by
+      simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name,
+        ConstantInfo.toConstantVal] using hfresh
+    obtain ⟨hnext, hself, hpreserve⟩ := Lean4Lean.AddInductive.addFresh env (.inductInfo info) hmap hfreshInfo
     refine (ih _ hnext).mono ?_
     rintro _ ⟨hnodup, habsent⟩
     refine ⟨List.nodup_cons.mpr ⟨?_, hnodup⟩, ?_⟩
@@ -74,7 +77,6 @@ theorem run.datatypeNamesNodup (nparams : Nat) (types : List InductiveType) (num
   apply Lean4Lean.AddInductive.readWF
   dsimp only
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.bindWF
   intro _
   apply checkInductiveTypes.frameHeaderSizes
@@ -102,35 +104,60 @@ theorem InductiveNamePrefix.suffixNotMem {original rewritten : Array InductiveTy
   intro hmem
   exact (List.nodup_append.mp happend).2.2 _ htake _ hmem rfl
 
-private theorem auxRecMapFrame (names : List Name) (mainName : Name) (nextIndex : Nat)
-    (oldNames : Array Name) (nameMap : NameMap Name) (key : Name)
+private theorem auxRecMapFrameAux (names : List Name) (mainName key : Name)
+    (oldRecNames : Array Name) (recMap : Std.TreeMap Name Name Name.quickCmp) (nextIdx : Nat)
+    (hmap : Std.TreeMap.get? recMap key = none)
     (hnot : key ∉ names.map mkRecName) :
-    (forIn (m := Id) names (⟨nextIndex, oldNames, nameMap⟩ : MProd Nat (MProd (Array Name) (NameMap Name)))
-      (fun name current =>
-        pure (.yield ⟨current.fst + 1, current.snd.fst.push (mkRecName name),
-          current.snd.snd.insert (mkRecName name) ((mkRecName mainName).appendIndexAfter current.fst)⟩))).run.snd.snd.find? key =
-      nameMap.find? key := by
-  induction names generalizing nextIndex oldNames nameMap with
-  | nil => rfl
+    Std.TreeMap.get? ((do
+      let __s ← forIn (m := Id) names (oldRecNames, recMap, nextIdx) fun indName __s =>
+        pure (.yield (__s.fst.push (mkRecName indName),
+          __s.snd.fst.insert (mkRecName indName)
+            ((mkRecName mainName).appendIndexAfter __s.snd.snd),
+          __s.snd.snd + 1))
+      pure (__s.fst.toList, __s.snd.fst)).run.snd) key = none := by
+  induction names generalizing oldRecNames recMap nextIdx with
+  | nil => simpa using hmap
   | cons name names ih =>
     rw [List.forIn_cons]
     simp only [pure_bind]
-    rw [ih (hnot := fun hmem => hnot (List.mem_cons_of_mem _ hmem))]
     have hne : mkRecName name ≠ key := by
       intro heq
       exact hnot (by simp only [List.map_cons, List.mem_cons]; exact Or.inl heq.symm)
-    simp only [NameMap.find?, NameMap.insert, Std.TreeMap.get?_eq_getElem?, Std.TreeMap.getElem?_insert,
-      Std.LawfulEqCmp.compare_eq_iff_eq, if_neg hne]
+    have hmap' : Std.TreeMap.get? (recMap.insert (mkRecName name)
+        ((mkRecName mainName).appendIndexAfter nextIdx)) key = none := by
+      rw [Std.TreeMap.get?_eq_getElem?, Std.TreeMap.getElem?_insert]
+      simp only [Std.LawfulEqCmp.compare_eq_iff_eq, if_neg hne]
+      exact hmap
+    exact ih (oldRecNames := oldRecNames.push (mkRecName name))
+      (recMap := recMap.insert (mkRecName name)
+        ((mkRecName mainName).appendIndexAfter nextIdx)) (nextIdx := nextIdx + 1)
+      hmap' (fun hmem => hnot (List.mem_cons_of_mem _ hmem))
+
+private theorem auxRecMapFrame (names : List Name) (mainName key : Name)
+    (hnot : key ∉ names.map mkRecName) :
+    Std.TreeMap.get? ((do
+      let __s ← forIn (m := Id) names (#[], ({} : Std.TreeMap Name Name Name.quickCmp), 1) fun indName __s =>
+        pure (.yield (__s.fst.push (mkRecName indName),
+          __s.snd.fst.insert (mkRecName indName)
+            ((mkRecName mainName).appendIndexAfter __s.snd.snd),
+          __s.snd.snd + 1))
+      pure (__s.fst.toList, __s.snd.fst)).run.snd) key = none := by
+  exact auxRecMapFrameAux names mainName key #[] {} 1 Std.TreeMap.getElem?_emptyc hnot
 
 theorem mkAuxRecNameMap.find?_eq_none (env : Environment) (types : List InductiveType) (key : Name)
     (hnot : key ∉ (mkAuxRecNameMap env types).1) :
     (mkAuxRecNameMap env types).2.find? key = none := by
   cases types with
-  | nil => exact Std.TreeMap.getElem?_emptyc
+  | nil =>
+    unfold mkAuxRecNameMap
+    exact Std.TreeMap.getElem?_emptyc
   | cons type types =>
     generalize hget : env.find? type.name = found
     cases found with
-    | none => simpa only [mkAuxRecNameMap, hget] using (Std.TreeMap.getElem?_emptyc (a := key) (β := Name))
+    | none =>
+      unfold mkAuxRecNameMap
+      simp only [hget]
+      exact Std.TreeMap.getElem?_emptyc
     | some constant =>
       cases constant with
       | inductInfo info =>
@@ -141,16 +168,21 @@ theorem mkAuxRecNameMap.find?_eq_none (env : Environment) (types : List Inductiv
         · rename_i hlength
           have hnot' : key ∉ (info.all.drop (type :: types).length).map mkRecName := by
             simpa only [hnames, if_pos hlength] using hnot
-          simpa only [pure_bind] using (auxRecMapFrame (info.all.drop (type :: types).length)
-            type.name 1 #[] {} key hnot').trans (by
+          unfold NameMap.find? NameMap.insert
+          exact (auxRecMapFrame (info.all.drop (type :: types).length)
+            type.name key hnot').trans (by
               change ({} : Std.TreeMap Name Name Name.quickCmp)[key]? = none
               exact Std.TreeMap.getElem?_emptyc)
         · exact Std.TreeMap.getElem?_emptyc
-      | _ => simpa only [mkAuxRecNameMap, hget] using (Std.TreeMap.getElem?_emptyc (a := key) (β := Name))
+      | _ =>
+        unfold mkAuxRecNameMap
+        simp only [hget]
+        exact Std.TreeMap.getElem?_emptyc
 
 theorem mkAuxRecNameMap.getD_eq_self (env : Environment) (types : List InductiveType) (key : Name)
     (hnot : key ∉ (mkAuxRecNameMap env types).1) :
     (mkAuxRecNameMap env types).2.getD key key = key := by
+  unfold NameMap
   rw [Std.TreeMap.getD_eq_getD_getElem?]
   have hnone := mkAuxRecNameMap.find?_eq_none env types key hnot
   exact congrArg (fun found : Option Name => found.getD key) hnone

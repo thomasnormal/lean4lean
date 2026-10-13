@@ -249,12 +249,16 @@ def TypeChecker.Inner.nativeQuickBody (first second : Expr) : TypeChecker.RecM L
   match first, second with
   | .lam .., .lam .. => toLBoolM <| isDefEqLambda first second
   | .forallE .., .forallE .. => toLBoolM <| isDefEqForall first second
-  | .sort firstLevel, .sort secondLevel => pure (firstLevel.isEquiv' secondLevel).toLBool
+  | .sort firstLevel, .sort secondLevel => pure (firstLevel.isEquiv secondLevel).toLBool
   | .mdata _ firstBody, .mdata _ secondBody => toLBoolM <| isDefEq firstBody secondBody
   | .mvar .., .mvar .. => panicWithPosWithDecl "Lean4Lean.TypeChecker" "Lean4Lean.TypeChecker.Inner.quickIsDefEq" 491 26
       "unreachable code has been reached"
   | .lit firstLiteral, .lit secondLiteral => pure (firstLiteral == secondLiteral).toLBool
   | _, _ => pure .undef
+
+private theorem nativeQuickProbe_lift (f : TypeChecker.State → Prod Bool TypeChecker.State) :
+    (modifyGet f : TypeChecker.RecM Bool) = liftM (modifyGet f : TypeChecker.M Bool) := by
+  rfl
 
 theorem TypeChecker.Inner.quickIsDefEq.entry_eq (first second : Expr) (useHash : Bool) :
     quickIsDefEq first second useHash = (do
@@ -263,7 +267,9 @@ theorem TypeChecker.Inner.quickIsDefEq.entry_eq (first second : Expr) (useHash :
   funext methods context state
   cases state
   simp only [quickIsDefEq, nativeQuickProbe, nativeQuickBody, pure_bind]
-  cases first <;> cases second <;> rfl
+  rw [nativeQuickProbe_lift]
+  cases first <;> cases second <;> simp only [nativeQuickBody] <;> rfl
+
 
 def NativeQuickBodyCallbacks (actualMethods shadowMethods : TypeChecker.Methods)
     (actualContext shadowContext : TypeChecker.Context) (state : TypeChecker.State) (first second : Expr) : Prop :=

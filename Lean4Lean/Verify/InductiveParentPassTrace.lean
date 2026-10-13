@@ -118,7 +118,6 @@ theorem mkRecInfos.loopInd1.scopedParentPassTrace {ResultType : Type}
     have majorFrame := Context.RecursorScopeFrame.push indexReader indexFrame.wf indexFrame.reserved
       `t .default (recursorMajorDomain stats parent indices)
     apply Lean4Lean.AddInductive.getLCtxWF
-    dsimp only
     apply Lean4Lean.AddInductive.withIndexDeclWF
     have motiveFrame := Context.RecursorScopeFrame.push majorReader majorFrame.wf majorFrame.reserved
       (recursorMotiveName types parent) .default

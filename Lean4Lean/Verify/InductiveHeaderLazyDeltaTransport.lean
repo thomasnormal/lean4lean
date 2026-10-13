@@ -50,8 +50,8 @@ def TypeChecker.Inner.nativeDeltaUnfold (expression : Expr) : TypeChecker.RecM E
 def TypeChecker.Inner.nativeDeltaContinue (first second : Expr) : TypeChecker.RecM TypeChecker.ReductionStatus := do
   return match ← quickIsDefEq first second with
   | .undef => .continue first second
-  | .true => .bool true
-  | .false => .bool false
+  | .true => .true
+  | .false => .false first second
 
 def TypeChecker.Inner.nativeDeltaSingle (side : NativeDeltaSide) (first second : Expr) :
     TypeChecker.RecM TypeChecker.ReductionStatus := do
@@ -66,7 +66,7 @@ def TypeChecker.Inner.nativeDeltaPair (first second : Expr) : TypeChecker.RecM T
 
 def TypeChecker.Inner.nativeDeltaArguments (first second : Expr) : TypeChecker.RecM TypeChecker.ReductionStatus := do
   if Level.isEquivList first.getAppFn.constLevels! second.getAppFn.constLevels! then
-    if ← isDefEqArgs first second then return .bool true
+    if ← isDefEqArgs first second then return .true
   cacheFailure first second
   nativeDeltaPair first second
 
@@ -105,8 +105,8 @@ def NativeDeltaUnfoldCallbacks (actualMethods shadowMethods : TypeChecker.Method
     (actualContext shadowContext : TypeChecker.Context) (state : TypeChecker.State) (expression : Expr) : Prop :=
   ∀ unfolded nextState,
     TypeChecker.Inner.unfoldDefinition expression actualMethods actualContext state = .ok (unfolded, nextState) →
-    TypeChecker.M.SuccessTransport (actualMethods.whnfCore unfolded.get! false true)
-      (shadowMethods.whnfCore unfolded.get! false true) actualContext shadowContext nextState
+    TypeChecker.M.SuccessTransport (actualMethods.whnfCore unfolded.get! true)
+      (shadowMethods.whnfCore unfolded.get! true) actualContext shadowContext nextState
 
 def NativeDeltaQuickCallbacks (actualMethods shadowMethods : TypeChecker.Methods)
     (actualContext shadowContext : TypeChecker.Context) (state : TypeChecker.State) (first second : Expr) : Prop :=
@@ -156,8 +156,8 @@ structure NativeDeltaArgumentsCallbacks (actualMethods shadowMethods : TypeCheck
 structure NativeDeltaProjectionCallbacks (side : NativeDeltaSide) (actualMethods shadowMethods : TypeChecker.Methods)
     (actualContext shadowContext : TypeChecker.Context) (state : TypeChecker.State) (first second : Expr) : Prop where
   normalization : (side.select first second).getAppFn.isProj = true →
-    TypeChecker.M.SuccessTransport (actualMethods.whnfCore (side.select first second) false false)
-      (shadowMethods.whnfCore (side.select first second) false false) actualContext shadowContext state
+    TypeChecker.M.SuccessTransport (actualMethods.whnfCore (side.select first second) false)
+      (shadowMethods.whnfCore (side.select first second) false) actualContext shadowContext state
   continuation : ∀ normalized nextState,
     TypeChecker.Inner.tryUnfoldProjApp (side.select first second) actualMethods actualContext state = .ok (some normalized, nextState) →
     NativeDeltaQuickCallbacks actualMethods shadowMethods actualContext shadowContext nextState
@@ -233,8 +233,8 @@ theorem TypeChecker.Inner.tryUnfoldProjApp.transport
     (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
     (state : TypeChecker.State) (expression : Expr)
     (callback : expression.getAppFn.isProj = true →
-      TypeChecker.M.SuccessTransport (actualMethods.whnfCore expression false false)
-        (shadowMethods.whnfCore expression false false) actualContext shadowContext state) :
+      TypeChecker.M.SuccessTransport (actualMethods.whnfCore expression false)
+        (shadowMethods.whnfCore expression false) actualContext shadowContext state) :
     TypeChecker.M.SuccessTransport (tryUnfoldProjApp expression actualMethods) (tryUnfoldProjApp expression shadowMethods)
       actualContext shadowContext state := by
   unfold tryUnfoldProjApp
@@ -332,16 +332,16 @@ structure NativeDeltaNatCallbacks (actualMethods shadowMethods : TypeChecker.Met
 def TypeChecker.Inner.nativeLazyDeltaTail (first second : Expr) : TypeChecker.RecM TypeChecker.ReductionStatus := do
   let environment ← getEnv
   if let some normalized ← reduceNative environment first then
-    return .bool (← isDefEqCore normalized second)
+    return .bool normalized second (← isDefEqCore normalized second)
   else if let some normalized ← reduceNative environment second then
-    return .bool (← isDefEqCore first normalized)
+    return .bool first normalized (← isDefEqCore first normalized)
   lazyDeltaReductionStep first second
 
 def TypeChecker.Inner.nativeLazyDeltaNaturalTail (first second : Expr) : TypeChecker.RecM TypeChecker.ReductionStatus := do
   if let some normalized ← reduceNat first then
-    return .bool (← isDefEqCore normalized second)
+    return .bool normalized second (← isDefEqCore normalized second)
   else if let some normalized ← reduceNat second then
-    return .bool (← isDefEqCore first normalized)
+    return .bool first normalized (← isDefEqCore first normalized)
   nativeLazyDeltaTail first second
 
 def nativeLazyDeltaNaturalGate (context : TypeChecker.Context) (first second : Expr) : Bool :=
@@ -349,7 +349,7 @@ def nativeLazyDeltaNaturalGate (context : TypeChecker.Context) (first second : E
 
 def TypeChecker.Inner.nativeLazyDeltaRound (first second : Expr) : TypeChecker.RecM TypeChecker.ReductionStatus := do
   let offset ← isDefEqOffset first second
-  if offset != .undef then return .bool (offset == .true)
+  if offset != .undef then return .bool first second (offset == .true)
   if nativeLazyDeltaNaturalGate (← readThe TypeChecker.Context) first second then
     nativeLazyDeltaNaturalTail first second
   else nativeLazyDeltaTail first second
@@ -359,6 +359,24 @@ private theorem nativeDeltaBindCongr {resultType : Type} (action : TypeChecker.R
     (agreement : ∀ result, first result = second result) :
     (action >>= first) = (action >>= second) := by
   exact congrArg (fun continuation => action >>= continuation) (funext agreement)
+
+private theorem nativeDeltaBoolContinuation (first second : Expr) (fuel : Nat)
+    (action : TypeChecker.RecM Bool) :
+    (TypeChecker.ReductionStatus.bool first second <$> action) = (do
+      let result ← TypeChecker.ReductionStatus.bool first second <$> action
+      match result with
+      | .continue nextFirst nextSecond => TypeChecker.Inner.lazyDeltaReduction.loop nextFirst nextSecond fuel
+      | result => pure result) := by
+  funext methods context
+  dsimp only [Functor.map, ReaderT.instFunctorOfMonad, Bind.bind, ReaderT.bind, ReaderT.pure]
+  funext state
+  dsimp only [StateT.map, StateT.bind, Except.bind, Except.pure]
+  cases h : action methods context state with
+  | error error =>
+    change Except.error error = Except.bind (Except.error error) _
+    rfl
+  | ok value => cases value with
+    | mk result nextState => cases result <;> rfl
 
 set_option maxHeartbeats 800000 in
 theorem TypeChecker.Inner.lazyDeltaReduction.loop_round_eq (first second : Expr) (fuel : Nat) :
@@ -375,7 +393,17 @@ theorem TypeChecker.Inner.lazyDeltaReduction.loop_round_eq (first second : Expr)
     show (LBool.true != LBool.undef) = true from rfl,
     show (LBool.false != LBool.undef) = true from rfl, Bool.false_eq_true, if_false, if_true, pure_bind, bind_assoc]
   repeat' first | rfl | (simp only [bind_assoc, pure_bind]) |
+    (exact nativeDeltaBoolContinuation _ _ _ _) |
     (apply nativeDeltaBindCongr; intro result) | split
+  all_goals simp_all
+  all_goals repeat' first | rfl | (simp only [bind_assoc, pure_bind]) |
+    (exact nativeDeltaBoolContinuation _ _ _ _) |
+    (apply nativeDeltaBindCongr; intro result) | split
+  all_goals
+    rename_i gate natural
+    have secondTrue : second.hasFVar = true := gate.1 natural.1
+    have secondFalse : second.hasFVar = false := natural.2
+    simp_all
 
 structure NativeDeltaTailCallbacks (actualMethods shadowMethods : TypeChecker.Methods)
     (actualContext shadowContext : TypeChecker.Context) (state : TypeChecker.State) (first second : Expr) : Prop where
@@ -567,7 +595,8 @@ theorem TypeChecker.Inner.lazyDeltaReduction.loop_headerAxiomTransport
       cases result with
       | «continue» nextFirst nextSecond =>
         exact inductionHypothesis _ _ _ _ (.continued reached accepted) (by omega)
-      | bool equal => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
+      | «true» => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
+      | «false» nextFirst nextSecond => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
       | unknown nextFirst nextSecond => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
 
 theorem TypeChecker.Inner.lazyDeltaReduction.headerAxiomTransport

@@ -42,7 +42,7 @@ theorem acceptedHeaderParameterEquality (checker : TypeChecker.VContext) (reader
   generalize checked : TypeChecker.isDefEq candidate stored
     checker.toContext ({} : TypeChecker.VState).toState = returned at nativeAccepted
   cases returned with
-  | error exception => simp at nativeAccepted
+  | error exception => cases nativeAccepted
   | ok returned =>
     obtain ⟨result, final⟩ := returned
     change Except.ok result = .ok true at nativeAccepted
@@ -164,7 +164,7 @@ theorem CheckedHeaderTrace.checkerModels
       finalIndices finalReader parameter notFirst storedCall equalCall normalizedCall tail induction =>
     have bound : index < stats.params.size := by
       rw [parameterCount]
-      simpa only [notFirst, if_false] using parameter
+      simpa only [if_neg notFirst] using parameter
     have member : stats.params[index]! ∈ stats.params := by
       rw [getElem!_pos stats.params index bound]
       exact Array.getElem_mem bound
@@ -177,7 +177,7 @@ theorem CheckedHeaderTrace.checkerModels
       (by simpa only [equation] using storedCall) equalCall
       (by simpa only [equation] using normalizedCall)
     exact induction checker aligned initialWF reserved different constants definitions
-      (by simpa only [notFirst, if_false] using parameterCount) parameters opened
+      (by simpa only [if_neg notFirst] using parameterCount) parameters opened
   | @index stats name domain body binder index nindices reader normalized terminal finalStats finalIndices
       finalReader notParameter normalizedCall tail induction =>
     obtain ⟨semantic, sourceTranslated⟩ := translated
@@ -323,16 +323,12 @@ private theorem checkedHeaderTypes (nparams : Nat) (types : Array InductiveType)
       · exact remaining parent bound (by omega)
     split
     · apply Lean4Lean.AddInductive.readWF
-      apply Lean4Lean.AddInductive.bindWF
-      intro _
       apply resume
       · simp only [Array.size_push, constantsUnchanged, indCount]
       · rfl
     · split
       · exact Except.WF.throw
-      · apply Lean4Lean.AddInductive.bindWF
-        intro _
-        apply resume
+      · apply resume
         · simp only [Array.size_push, constantsUnchanged, indCount]
         · rfl
   · exact fun _ _ parent bound lower => False.elim (by omega)
@@ -427,7 +423,6 @@ theorem run.headersWF (nparams : Nat) (types : List InductiveType) (numNested : 
           header.toVConstant.WF checker.venv := by
   unfold run
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.readWF
   dsimp only
   apply Lean4Lean.AddInductive.bindWF

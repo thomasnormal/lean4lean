@@ -32,13 +32,15 @@ theorem M.SuccessTransport.typeChecker (actual shadow : TypeChecker.M resultType
       { reader.checkerReader with env := environment } {}) :
     M.SuccessTransport (monadLift actual) (monadLift shadow) reader { reader with env := environment } := by
   intro result accepted
-  change (fun returned => returned.1) <$> actual reader.checkerReader {} = .ok result at accepted
-  change (fun returned => returned.1) <$> shadow { reader.checkerReader with env := environment } {} = .ok result
+  change Except.map Prod.fst (actual reader.checkerReader {}) = .ok result at accepted
+  change Except.map Prod.fst (shadow { reader.checkerReader with env := environment } {}) = .ok result
   cases found : actual reader.checkerReader {} with
-  | error error => simp [found] at accepted
+  | error error =>
+    simp only [found, Except.map] at accepted
+    cases accepted
   | ok returned =>
     rw [transport returned found]
-    simpa [found] using accepted
+    simpa only [found, Except.map] using accepted
 
 theorem M.SuccessTransport.forIn' (items : List itemType) (initial : resultType)
     (actual shadow : (item : itemType) → item ∈ items → resultType → M (ForInStep resultType))
@@ -132,7 +134,7 @@ theorem checkConstructors.loop.headerAxiomTransport (stats : InductiveStats) (is
         apply M.SuccessTransport.bind _ _ _ _ _ _
           (.typeChecker _ _ _ _ (TypeChecker.ensureType.headerAxiomTransport reader.checkerReader shadow metadata {} domain))
         intro sort accepted
-        by_cases universeAccepted : (stats.resultLevel.isZero || stats.resultLevel.geq' sort.sortLevel!) = true
+        by_cases universeAccepted : (stats.resultLevel.isAlwaysZero || stats.resultLevel.geq' sort.sortLevel!) = true
         · simp only [universeAccepted, if_true, pure_bind]
           have opened : M.SuccessTransport
               (withLocalDecl name binder (peelTypeAnnotations domain) fun argument =>
@@ -203,7 +205,6 @@ theorem nativeConstructorCheck.headerAxiomTransport (types : Array InductiveType
       Nat.sub_zero, Nat.add_sub_cancel, Nat.div_one]
     apply M.SuccessTransport.forIn'
     intro parent bound value
-    dsimp only
     apply M.SuccessTransport.bind _ _ _ _ _ _
     · change M.SuccessTransport (forIn' (m := M) _ _ _) (forIn' (m := M) _ _ _) _ _
       apply M.SuccessTransport.forIn'

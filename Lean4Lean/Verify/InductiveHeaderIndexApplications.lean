@@ -211,8 +211,14 @@ theorem HeaderRecursorIndexModelEndpoint.applicationOfPartial
   have normalizedTyped := typed.defeqU_r environmentWF initialWF.tr.wf.toCtx equality.symm
   obtain ⟨finalValue, translated, typed⟩ := history.application environmentWF
     (by simpa only [mkAppN, Array.foldl_empty] using translated) normalizedTyped
-  exact ⟨finalValue, finalSemantic, by simpa only [converted] using translated,
-    by simpa only [converted] using history.finalTranslation.2, by simpa only [converted] using typed⟩
+  exact ⟨finalValue, finalSemantic,
+    by
+      simpa only [converted] using translated.eqv (by
+        change (mkAppN (Array.foldl mkApp head stats.params) indices ==
+          mkAppN (mkAppN head stats.params) indices) = true
+        simp [mkAppN, Array.foldl_toList, Expr.mkAppList_eq_foldl]),
+    by simpa only [converted] using history.finalTranslation.2,
+    by simpa only [converted] using typed⟩
 
 theorem HeaderRecursorIndexModelEndpoint.application
     {trace : RecursorIndexTrace stats source 0 #[] reader terminal finalIndex indices finalReader}
@@ -227,8 +233,12 @@ theorem HeaderRecursorIndexModelEndpoint.application
   have receipt := endpoint
   obtain ⟨_, _, _, _, _, _, _, _, arguments, _⟩ := receipt
   obtain ⟨translated, typed⟩ := arguments.apply environmentWF initialWF headTranslated headTyped
-  exact endpoint.applicationOfPartial environmentWF initialWF
-    (by simpa only [mkAppN, Array.foldl_toList, Expr.mkAppList_eq_foldl] using translated) typed
+  refine endpoint.applicationOfPartial environmentWF initialWF ?_ typed
+  have appEq : mkAppN head stats.params = Array.foldl Expr.app head stats.params := by
+    rw [Expr.mkAppN_eq, Expr.appN_eq_mkAppList, Expr.mkAppList_eq_foldl]
+    simp [Array.foldl_toList]
+  rw [appEq]
+  simpa only [Expr.mkAppList_eq_foldl, Array.foldl_toList] using translated
 
 theorem HeaderRecursorIndexModelEndpoint.constantInputApplication
     {trace : RecursorIndexTrace stats source 0 #[] reader terminal finalIndex indices finalReader}

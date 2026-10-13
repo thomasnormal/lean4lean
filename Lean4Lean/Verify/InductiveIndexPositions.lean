@@ -124,7 +124,8 @@ theorem BinderIndexAllocations.indexIdsNodup {ctx : Context} {start : Nat} {step
     cases hrole : step.role with
     | parameter =>
       simp only [BinderIndexAllocations, hrole] at allocated
-      simpa only [BinderStep.indexValues, hrole, BinderRole.noConfusion, ↓reduceIte] using ih allocated
+      have hne : ¬ (BinderRole.parameter = BinderRole.index) := by decide
+      simpa only [BinderStep.indexValues, hrole, hne, if_false] using ih allocated
     | index =>
       simp only [BinderIndexAllocations, hrole] at allocated
       simp only [BinderStep.indexValues, hrole, ↓reduceIte, List.map_cons, List.nodup_cons]

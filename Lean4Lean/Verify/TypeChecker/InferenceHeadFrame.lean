@@ -24,6 +24,14 @@ theorem TypeChecker.M.HeadWF.withFreshId {continuation : Name → TypeChecker.M 
   exact valid state.ngen.curr context { state with ngen := state.ngen.next }
     caches result finalState accepted
 
+theorem TypeChecker.RecM.bind_headWF {action : TypeChecker.RecM α}
+    {continuation : α → TypeChecker.RecM β} {pre : α → Prop} {post : β → Prop}
+    (methods : TypeChecker.Methods) (valid : (action methods).HeadWF pre)
+    (framed : ∀ value, pre value → (continuation value methods).HeadWF post) :
+    ((action >>= continuation) methods).HeadWF post := by
+  dsimp only [Bind.bind, ReaderT.bind]
+  exact valid.bind fun value proof => framed value proof
+
 theorem withLocalDecl.headWF (name : Name) (binder : BinderInfo) (domain : Expr)
     (continuation : Expr → TypeChecker.RecM Result) (methods : TypeChecker.Methods) (post : Result → Prop)
     (valid : ∀ expression, (continuation expression methods).HeadWF post) :
@@ -46,7 +54,7 @@ theorem TypeChecker.Inner.ensureSortCore.headWF (expression source : Expr)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
     (ensureSortCore expression source methods).HeadWF (fun _ => True) := by
   unfold ensureSortCore
-  simp only [pure_bind]
+  try simp only [pure_bind]
   split
   · exact TypeChecker.M.HeadWF.pure trivial
   · dsimp only [Bind.bind, ReaderT.bind, whnf]
@@ -64,7 +72,7 @@ theorem TypeChecker.Inner.ensureForallCore.headWF (expression source : Expr)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
     (ensureForallCore expression source methods).HeadWF (fun _ => True) := by
   unfold ensureForallCore
-  simp only [pure_bind]
+  try simp only [pure_bind]
   split
   · exact TypeChecker.M.HeadWF.pure trivial
   · dsimp only [Bind.bind, ReaderT.bind, whnf]
@@ -78,13 +86,30 @@ theorem TypeChecker.Inner.ensureForallCore.headWF (expression source : Expr)
       intro locals
       exact TypeChecker.M.HeadWF.throw _ _
 
+theorem TypeChecker.Inner.getSortLevel.headWF (expression : Expr)
+    (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
+    (getSortLevel expression methods).HeadWF (fun _ => True) := by
+  unfold getSortLevel
+  apply TypeChecker.RecM.bind_headWF methods (valid := valid.inferType expression true)
+  intro inferred _
+  dsimp only [Bind.bind, ReaderT.bind]
+  refine (ensureSortCore.headWF inferred expression methods valid).bind fun normalized _ => ?_
+  cases normalized <;> exact TypeChecker.M.HeadWF.pure trivial
+
 theorem TypeChecker.Inner.isProp.headWF (expression : Expr)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
     (isProp expression methods).HeadWF (fun _ => True) := by
   unfold isProp
-  dsimp only [Bind.bind, ReaderT.bind, inferType, whnf]
-  refine (valid.inferType expression true).bind fun inferred _ => ?_
-  exact (valid.whnf inferred).bind fun _ _ => .pure trivial
+  dsimp only [Bind.bind, ReaderT.bind]
+  exact (getSortLevel.headWF expression methods valid).bind fun _ _ => .pure trivial
+
+theorem TypeChecker.Inner.nativeProjectionMaybeProp.headWF (expression : Expr)
+    (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
+    (nativeProjectionMaybeProp expression methods).HeadWF (fun _ => True) := by
+  unfold nativeProjectionMaybeProp
+  apply TypeChecker.RecM.bind_headWF methods (valid := getSortLevel.headWF expression methods valid)
+  intro level _
+  exact TypeChecker.M.HeadWF.pure trivial
 
 theorem TypeChecker.Inner.inferLambda.loop_headWF (inferOnly : Bool) (variables : Array Expr)
     (expression : Expr) (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
@@ -96,7 +121,7 @@ theorem TypeChecker.Inner.inferLambda.loop_headWF (inferOnly : Bool) (variables 
     cases inferOnly <;> simp only [Bool.not_false, Bool.not_true, Bool.false_eq_true, if_true, if_false]
     · dsimp only [Bind.bind, ReaderT.bind, inferType]
       refine (valid.inferType _ false).bind fun inferred _ => ?_
-      dsimp only [Bind.bind, ReaderT.bind]
+      try dsimp only [Bind.bind, ReaderT.bind]
       refine (ensureSortCore.headWF inferred _ methods valid).bind fun _ _ => ?_
       exact withLocalDecl.headWF _ _ _ _ methods _ fun freeVariable => bodyIH (variables.push freeVariable)
     · exact withLocalDecl.headWF _ _ _ _ methods _ fun freeVariable => bodyIH (variables.push freeVariable)
@@ -121,7 +146,7 @@ theorem TypeChecker.Inner.inferForall.loop_headWF (inferOnly : Bool) (variables 
     unfold inferForall.loop
     dsimp only [Bind.bind, ReaderT.bind, inferType]
     refine (valid.inferType _ inferOnly).bind fun inferred _ => ?_
-    dsimp only [Bind.bind, ReaderT.bind]
+    try dsimp only [Bind.bind, ReaderT.bind]
     refine (ensureSortCore.headWF inferred _ methods valid).bind fun normalized _ => ?_
     exact withLocalDecl.headWF _ _ _ _ methods _
       fun freeVariable => bodyIH (variables.push freeVariable) (universes.push normalized.sortLevel!)
@@ -129,7 +154,7 @@ theorem TypeChecker.Inner.inferForall.loop_headWF (inferOnly : Bool) (variables 
     unfold inferForall.loop
     dsimp only [Bind.bind, ReaderT.bind, inferType]
     refine (valid.inferType _ inferOnly).bind fun inferred _ => ?_
-    dsimp only [Bind.bind, ReaderT.bind]
+    try dsimp only [Bind.bind, ReaderT.bind]
     exact (ensureSortCore.headWF inferred _ methods valid).bind fun _ _ => .pure trivial
 
 theorem TypeChecker.Inner.inferForall.headWF (expression : Expr) (inferOnly : Bool)
@@ -147,11 +172,11 @@ theorem TypeChecker.Inner.inferLet.loop_headWF (inferOnly : Bool) (variables : A
     cases inferOnly <;> simp only [Bool.not_false, Bool.not_true, Bool.false_eq_true, if_true, if_false]
     · dsimp only [Bind.bind, ReaderT.bind, inferType]
       refine (valid.inferType _ false).bind fun inferred _ => ?_
-      dsimp only [Bind.bind, ReaderT.bind]
+      try dsimp only [Bind.bind, ReaderT.bind]
       refine (ensureSortCore.headWF inferred _ methods valid).bind fun _ _ => ?_
-      dsimp only [Bind.bind, ReaderT.bind, inferType]
+      try dsimp only [Bind.bind, ReaderT.bind, inferType]
       refine (valid.inferType _ false).bind fun inferred _ => ?_
-      dsimp only [Bind.bind, ReaderT.bind]
+      try dsimp only [Bind.bind, ReaderT.bind]
       refine (isDefEq.headWF inferred _ methods valid).bind fun equal _ => ?_
       cases equal <;> simp only [Bool.not_false, Bool.not_true, Bool.false_eq_true, if_true, if_false]
       · dsimp only [Bind.bind, ReaderT.bind]
@@ -184,7 +209,7 @@ theorem TypeChecker.RecM.forInList_headWF (elements : List Element) (initial : V
   | nil => exact TypeChecker.M.HeadWF.pure trivial
   | cons element elements inductionHypothesis =>
     rw [List.forIn_cons]
-    dsimp only [Bind.bind, ReaderT.bind]
+    try dsimp only [Bind.bind, ReaderT.bind]
     refine (framed element initial).bind fun step _ => ?_
     cases step
     · exact TypeChecker.M.HeadWF.pure trivial
@@ -321,7 +346,6 @@ theorem TypeChecker.Inner.nativeProjectionBody.headWF (parent : Name) (index : N
   split
   · exact nativeProjectionFailure.bind_headWF _ _ _ methods
   · dsimp only [Bind.bind, ReaderT.bind]
-    refine (TypeChecker.M.HeadWF.pure (post := fun _ => True) trivial).bind fun _ _ => ?_
     refine (TypeChecker.M.HeadWF.liftExcept _).bind fun information _ => ?_
     cases information <;> try exact nativeProjectionFailure.headWF _ _ methods
     rename_i info
@@ -336,13 +360,18 @@ theorem TypeChecker.Inner.nativeProjectionBody.headWF (parent : Name) (index : N
         split
         · exact nativeProjectionFailure.bind_headWF _ _ _ methods
         · dsimp only [Bind.bind, ReaderT.bind]
-          refine (TypeChecker.M.HeadWF.pure (post := fun _ => True) trivial).bind fun _ _ => ?_
           refine (TypeChecker.M.HeadWF.liftExcept _).bind fun constructorInfo _ => ?_
-          dsimp only [Bind.bind, ReaderT.bind]
+          try dsimp only [Bind.bind, ReaderT.bind]
           refine (nativeProjectionParameters.headWF _ _ _ _ _ methods valid).bind fun fields _ => ?_
-          dsimp only [Bind.bind, ReaderT.bind]
-          refine (isProp.headWF normalized methods valid).bind fun proposition _ => ?_
-          dsimp only [Bind.bind, ReaderT.bind]
+          try dsimp only [Bind.bind, ReaderT.bind]
+          refine TypeChecker.RecM.bind_headWF methods
+            (action := nativeProjectionMaybeProp normalized)
+            (continuation := fun proposition =>
+              nativeProjectionFields environment (.proj parent index structureValue) name structureValue proposition index fields >>= fun fields =>
+                nativeProjectionFinal environment (.proj parent index structureValue) proposition fields)
+            (valid := nativeProjectionMaybeProp.headWF normalized methods valid) ?_
+          intro proposition _
+          try dsimp only [Bind.bind, ReaderT.bind]
           refine (nativeProjectionFields.headWF _ _ _ _ _ _ _ methods valid).bind fun fields _ => ?_
           exact nativeProjectionFinal.headWF _ _ _ fields methods valid
 
@@ -361,10 +390,12 @@ theorem TypeChecker.Inner.inferType'.headWF (expression : Expr) (inferOnly : Boo
   lift_lets
   intro finish worker continuation
   split
-  · exact TypeChecker.M.HeadWF.throw _ _
-  · unfold continuation
-    simp only [pure_bind]
-    dsimp only [Bind.bind, ReaderT.bind]
+  · intro state caches result finalState accepted
+    change Except.error _ = Except.ok _ at accepted
+    contradiction
+  · dsimp only [Bind.bind, ReaderT.bind]
+    try simp only [pure_bind]
+    try dsimp only [Bind.bind, ReaderT.bind]
     apply TypeChecker.M.HeadWF.get
     intro state caches
     dsimp only
@@ -377,8 +408,8 @@ theorem TypeChecker.Inner.inferType'.headWF (expression : Expr) (inferOnly : Boo
         refine (TypeChecker.M.HeadWF.modify _ ?_).bind fun _ _ => .pure trivial
         intro current clean
         cases inferOnly <;> exact clean
-      unfold worker
-      simp only [pure_bind]
+      try unfold worker
+      try simp only [pure_bind]
       dsimp only [Bind.bind, ReaderT.bind]
       cases expression <;> dsimp only [Bind.bind, ReaderT.bind]
       case lit literal closed =>
@@ -432,9 +463,9 @@ theorem TypeChecker.Inner.inferType'.headWF (expression : Expr) (inferOnly : Boo
         cases inferOnly <;> simp only [Bool.false_eq_true, if_true, if_false]
         · dsimp only [Bind.bind, ReaderT.bind]
           refine (inferType'.headWF function false methods valid).bind fun functionType _ => ?_
-          dsimp only [Bind.bind, ReaderT.bind]
+          try dsimp only [Bind.bind, ReaderT.bind]
           refine (ensureForallCore.headWF functionType _ methods valid).bind fun forallType _ => ?_
-          dsimp only [Bind.bind, ReaderT.bind]
+          try dsimp only [Bind.bind, ReaderT.bind]
           refine (inferType'.headWF argument false methods valid).bind fun argumentType _ => ?_
           split <;> dsimp only [Bind.bind, ReaderT.bind]
           all_goals first

@@ -13,6 +13,8 @@ theorem FVarsIn.instantiate1_native {predicate : FVarId → Prop} {value replace
 namespace AddInductive
 open scoped List
 
+private theorem parameter_ne_index : ¬ BinderRole.parameter = BinderRole.index := by decide
+
 theorem WrappedSortTelescope.fvarsIn {predicate : FVarId → Prop} {source normalized : Expr}
     (trace : WrappedSortTelescope source normalized) (within : source.FVarsIn predicate) :
     normalized.FVarsIn predicate := by
@@ -94,7 +96,7 @@ theorem OpenedTelescope.rawDomainFVarsIn {params : List FVarId} {type terminal :
         obtain rfl := Option.some.inj hstep
         simpa only [List.take_zero, BinderStep.indexValues, List.map_nil, List.append_nil] using within.1
       | succ position =>
-        simpa only [List.take_succ_cons, BinderStep.indexValues, BinderRole.noConfusion, ↓reduceIte]
+        simpa only [List.take_succ_cons, BinderStep.indexValues, parameter_ne_index, ↓reduceIte]
           using htail position step hstep
     | index =>
       obtain ⟨id, hvalue⟩ := (declared _ (List.mem_cons_self ..) rfl).fvar

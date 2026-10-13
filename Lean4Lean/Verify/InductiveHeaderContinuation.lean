@@ -355,16 +355,12 @@ private theorem typedHeaderLoop (nparams : Nat) (types : Array InductiveType)
             ← getElem!_pos stats.nindices parent previousBound] using lifted
     split
     · apply Lean4Lean.AddInductive.readWF
-      apply Lean4Lean.AddInductive.bindWF
-      intro _
       exact resume _ (by simp only [Array.size_push, indicesUnchanged, indicesCount])
         (by simp only [Array.size_push, constantsUnchanged, indCount]) rfl rfl
         (by simp only [indicesUnchanged]) (by simp only [constantsUnchanged, levelsUnchanged])
     · split
       · exact Except.WF.throw
-      · apply Lean4Lean.AddInductive.bindWF
-        intro _
-        exact resume _ (by simp only [Array.size_push, indicesUnchanged, indicesCount])
+      · exact resume _ (by simp only [Array.size_push, indicesUnchanged, indicesCount])
           (by simp only [Array.size_push, constantsUnchanged, indCount]) rfl rfl
           (by simp only [indicesUnchanged]) (by simp only [constantsUnchanged, levelsUnchanged])
   · apply Lean4Lean.AddInductive.readWF
@@ -594,7 +590,6 @@ theorem run.constructorAxiomContinuation
     | «partial» => exact False.elim (ordinarySafety mode)
   unfold run
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.readWF
   dsimp only
   apply Lean4Lean.AddInductive.bindWF

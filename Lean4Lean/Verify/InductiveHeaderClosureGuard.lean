@@ -38,7 +38,9 @@ theorem checkType_run_hasLooseBVars_eq_false {value inferred : Expr}
     value.hasLooseBVars = false := by
   unfold M.run StateT.run' at success
   cases checked : checkType value { env, safety, lctx, lparams, fuel } {} with
-  | error error => simp [checked] at success
+  | error error =>
+    rw [checked] at success
+    cases success
   | ok result => exact checkType_hasLooseBVars_eq_false checked
 
 end TypeChecker

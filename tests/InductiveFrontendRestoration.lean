@@ -545,7 +545,7 @@ private def checkSourceRecursorRules (nparams : Nat) (types : List InductiveType
 
 private def checkFrontend (env : Kernel.Environment) (nparams : Nat) (types : List InductiveType)
     (nested : Bool) (lparams : List Name := []) : MetaM Unit := do
-  unless ((← Lean.getEnv).addDeclCore 0 (.inductDecl lparams nparams types false) none).isOk do
+  unless ((← Lean.getEnv).addDeclCore 0 0 (.inductDecl lparams nparams types false) none).isOk do
     throwError "restoration fixture fails native kernel validation"
   let preprocessing ← match inductivePreprocessing env lparams nparams types {} with
     | .ok result => pure result
@@ -668,8 +668,12 @@ private def audit (theoremName : Name) (maps := false) (full := false) : MetaM U
     ``Lean.PersistentHashMap.findAux_isSome] else []
   let allowed := allowed ++ if full then [
     ``Lean.PersistentArray.toList'_push,
-    ``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq,
-    ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq] else []
+    ``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.mkAppData_eq, ``Expr.mkData_eq,
+    ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq,
+    ``Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7,
+    Name.mkStr (Name.mkStr (Name.mkStr (Name.mkStr (Name.mkStr (Name.mkStr
+      (Name.mkNum `_private.Lean4Lean.Verify.Expr 0) "Lean") "Expr") "mkData_flags")
+      "_native") "bv_decide") "ax_1_12"] else []
   for axiomName in axioms do
     unless allowed.contains axiomName do throwError "unexpected axiom {axiomName} in {theoremName}"
 

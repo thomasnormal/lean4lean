@@ -40,7 +40,8 @@ private theorem constantInputFromTranslation
   have sourceTypehood := (instantiatedType.weakN environmentWF.ordered weakening.toCtx).defeqU_l
     environmentWF modelWF.tr.wf.toCtx equality.symm
   have count : semanticLevels.length = constant.uvars :=
-    (List.mapM_eq_some.mp mapped).length_eq.symm.trans (arity.trans universeCount)
+    (Lean4Lean.List.Forall₂.length_eq (List.mapM_eq_some.mp mapped)).symm.trans
+      (arity.trans universeCount)
   have valueTyped : environment.HasType universes.length []
       (.const name semanticLevels) (constant.type.instL semanticLevels) :=
     .const lookup levelWF count
@@ -66,7 +67,8 @@ theorem ConstructorConstantRegistration.constructorInput
     registration.constructorConstant typeMember index source sourceGet
   apply constantInputFromTranslation registration.semanticWF semanticLookup
     (originalUniverses := root.lparams)
-  · simpa only [declareConstructors.metadataVal, ConstantInfo.type, ConstantInfo.toConstantVal]
+  · simpa only [declareConstructors.metadataVal, ConstantInfo.type, ConstantInfo.levelParams,
+      ConstantInfo.toConstantVal]
       using translated.2.2
   · simpa only [declareConstructors.metadataVal, ConstantInfo.levelParams, ConstantInfo.toConstantVal]
       using translated.2.1

@@ -49,7 +49,8 @@ private theorem originalLevelListIdentity {universes : List Name} {levels : List
     values.map (VLevel.inst (universes.map fun name => VLevel.param (universes.idxOf name))) = values := by
   apply List.map_id'''
   intro value member
-  obtain ⟨level, _, accepted⟩ := (List.mapM_eq_some.mp translated).forall_exists_r value member
+  obtain ⟨level, _, accepted⟩ :=
+    Lean4Lean.List.Forall₂.forall_exists_r (List.mapM_eq_some.mp translated) value member
   exact originalLevelIdentity accepted
 
 private theorem originalSourceInstantiation
@@ -152,7 +153,8 @@ theorem ConstructorConstantRegistration.parentParameterApplications
   intro parent bound
   obtain ⟨parameters⟩ := registration.parentParameterInput parent bound
   have levels := stage.before.levels (by omega)
-  obtain ⟨header, member, translated⟩ := stage.before.models.forall_exists_l types[parent]
+  obtain ⟨header, member, translated⟩ :=
+    Lean4Lean.List.Forall₂.forall_exists_l stage.before.models types[parent]
     (Array.mem_toList_iff.mpr (Array.getElem_mem bound))
   have increase := (VEnv.addInductHeaders.le stage.registered).trans registration.increase
   have lookup := registration.increase.constants (VEnv.addInductHeaders.constants stage.registered member)

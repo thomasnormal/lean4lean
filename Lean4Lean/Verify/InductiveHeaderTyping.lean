@@ -21,7 +21,7 @@ theorem acceptedHeaderSortIsType (checker : TypeChecker.VContext) (reader : Cont
   generalize checked : TypeChecker.ensureSort source source
     checker.toContext ({} : TypeChecker.VState).toState = returned at nativeAccepted
   cases returned with
-  | error exception => simp at nativeAccepted
+  | error exception => cases nativeAccepted
   | ok returned =>
     obtain ⟨normalized, final⟩ := returned
     change Except.ok normalized = .ok result at nativeAccepted
@@ -55,7 +55,8 @@ theorem checkInductiveTypes.firstHeaderIsType (nparams : Nat) (types : Array Ind
     apply Lean4Lean.AddInductive.bindHeaderResultWF
     intro normalized normalizedCall
     have guarded : reader.env.checkNoMVarNoFVar types[0]!.name types[0]!.type = .ok () := by
-      simpa only [getElem!_pos types 0 bound] using guarded
+      simpa only [getElem!_pos types 0 bound, liftM, monadLift,
+        MonadLift.monadLift, StateT.run, ReaderT.run, ExceptT.run] using guarded
     have checked : (monadLift (TypeChecker.checkType types[0]!.type) : M Expr) reader = .ok inferred := by
       simpa only [getElem!_pos types 0 bound] using checked
     have normalizedCall : (monadLift (TypeChecker.whnf types[0]!.type) : M Expr) reader = .ok normalized := by
@@ -85,8 +86,7 @@ theorem checkInductiveTypes.firstHeaderIsType (nparams : Nat) (types : Array Ind
           dsimp only
           split
           · exact Except.WF.throw
-          · simp only [pure_bind]
-            apply Lean4Lean.AddInductive.bindHeaderResultWF
+          · apply Lean4Lean.AddInductive.bindHeaderResultWF
             intro sorted sortedCall
             exact fun _ _ => finish
               (acceptedHeaderSortIsType checker reader aligned initialWF normalizedTranslated sortedCall)
@@ -155,7 +155,6 @@ theorem run.firstHeaderWF (nparams : Nat) (types : List InductiveType) (numNeste
         header.toVConstant.WF checker.venv := by
   unfold run
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.readWF
   dsimp only
   apply Lean4Lean.AddInductive.bindWF

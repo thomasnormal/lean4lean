@@ -69,8 +69,8 @@ theorem TypeChecker.Inner.reducePow.transport
       split <;> exact TypeChecker.M.SuccessTransport.pure _ _ _ _
 
 def nativeBinaryNatOperations : List Name :=
-  [``Nat.add, ``Nat.mul, ``Nat.pow, ``Nat.sub, ``Nat.beq, ``Nat.ble,
-    ``Nat.shiftLeft, ``Nat.div, ``Nat.shiftRight, ``Nat.mod]
+  [``Nat.add, ``Nat.sub, ``Nat.mul, ``Nat.pow, ``Nat.gcd, ``Nat.mod, ``Nat.div,
+    ``Nat.beq, ``Nat.ble, ``Nat.land, ``Nat.lor, ``Nat.xor, ``Nat.shiftLeft, ``Nat.shiftRight]
 
 set_option maxHeartbeats 800000 in
 theorem TypeChecker.Inner.reduceNat.transport
@@ -104,38 +104,63 @@ theorem TypeChecker.Inner.reduceNat.transport
       cases head <;> try exact TypeChecker.M.SuccessTransport.pure _ _ _ _
       rename_i name levels
       dsimp only [ReaderT.bind, ReaderT.pure]
-      simp only [bind_pure]
       have operandReceipt (selected : name ∈ nativeBinaryNatOperations) := binary name levels first second rfl selected
-      split
-      · rename_i selected
+      by_cases selected : (name == ``Nat.add) = true
+      · rw [if_pos selected]
         exact reduceBinNatOp.transport _ _ _ _ _ Nat.add _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
-      split
-      · rename_i selected
-        exact reduceBinNatOp.transport _ _ _ _ _ Nat.mul _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
-      split
-      · rename_i selected
-        exact reducePow.transport _ _ _ _ _ _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
-      split
-      · rename_i selected
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.sub) = true
+      · rw [if_pos selected]
         exact reduceBinNatOp.transport _ _ _ _ _ Nat.sub _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
-      split
-      · rename_i selected
-        exact reduceBinNatPred.transport _ _ _ _ _ Nat.beq _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
-      split
-      · rename_i selected
-        exact reduceBinNatPred.transport _ _ _ _ _ Nat.ble _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
-      split
-      · rename_i selected
-        exact reduceBinNatOp.transport _ _ _ _ _ Nat.shiftLeft _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
-      split
-      · rename_i selected
-        exact reduceBinNatOp.transport _ _ _ _ _ Nat.div _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
-      split
-      · rename_i selected
-        exact reduceBinNatOp.transport _ _ _ _ _ Nat.shiftRight _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
-      split
-      · rename_i selected
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.mul) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.transport _ _ _ _ _ Nat.mul _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.pow) = true
+      · rw [if_pos selected]
+        exact reducePow.transport _ _ _ _ _ _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.gcd) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.transport _ _ _ _ _ Nat.gcd _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.mod) = true
+      · rw [if_pos selected]
         exact reduceBinNatOp.transport _ _ _ _ _ Nat.mod _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.div) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.transport _ _ _ _ _ Nat.div _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.beq) = true
+      · rw [if_pos selected]
+        exact reduceBinNatPred.transport _ _ _ _ _ Nat.beq _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.ble) = true
+      · rw [if_pos selected]
+        exact reduceBinNatPred.transport _ _ _ _ _ Nat.ble _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.land) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.transport _ _ _ _ _ Nat.land _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.lor) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.transport _ _ _ _ _ Nat.lor _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.xor) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.transport _ _ _ _ _ Nat.xor _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.shiftLeft) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.transport _ _ _ _ _ Nat.shiftLeft _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.shiftRight) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.transport _ _ _ _ _ Nat.shiftRight _ _ (operandReceipt (by simp only [beq_iff_eq] at selected; simp [nativeBinaryNatOperations, selected]))
+      rw [if_neg selected]
       exact TypeChecker.M.SuccessTransport.pure _ _ _ _
     · rw [if_neg two]
       exact TypeChecker.M.SuccessTransport.pure _ _ _ _
@@ -155,10 +180,10 @@ theorem TypeChecker.Inner.unfoldDefinitionCore.headerShadowTransport
   cases selected : isDelta shadowContext.env (.const name levels) <;> dsimp only
   · rfl
   · split <;> try rfl
-    split <;> try rfl
     dsimp only [Bind.bind, Pure.pure, ReaderT.bind, StateT.bind, ReaderT.pure, StateT.pure,
       Except.pure, Except.bind, MonadState.get, getThe, MonadStateOf.get, StateT.get,
-      liftM, MonadLift.monadLift, MonadLiftT.monadLift]
+      liftM, MonadLift.monadLift, MonadLiftT.monadLift, StateT.lift,
+      modify, MonadState.modifyGet, MonadStateOf.modifyGet, StateT.modifyGet]
     cases cached : state.unfold[Expr.const name levels]? <;> rfl
 
 theorem TypeChecker.Inner.unfoldDefinition.headerShadowTransport
@@ -207,7 +232,7 @@ inductive NativeWhnfReachable (methods : TypeChecker.Methods) (context : TypeChe
       NativeWhnfReachable methods context state expression expression state context.whnfBudget
   | unfolded {current currentState remaining normalized normalizedState naturalState unfolded unfoldedState} :
       NativeWhnfReachable methods context state expression current currentState (remaining + 1) →
-      TypeChecker.Inner.whnfCore' current false false methods context currentState = .ok (normalized, normalizedState) →
+      TypeChecker.Inner.whnfCore' current false methods context currentState = .ok (normalized, normalizedState) →
       TypeChecker.Inner.reduceNative context.env normalized = .ok none →
       TypeChecker.Inner.reduceNat normalized methods context normalizedState = .ok (none, naturalState) →
       TypeChecker.Inner.unfoldDefinition normalized methods context naturalState = .ok (some unfolded, unfoldedState) →
@@ -217,10 +242,10 @@ structure NativeWhnfCallbacks (actualMethods shadowMethods : TypeChecker.Methods
     (actualContext shadowContext : TypeChecker.Context) (state : TypeChecker.State) (expression : Expr) : Prop where
   cores : ∀ current currentState remaining,
     NativeWhnfReachable actualMethods actualContext state expression current currentState (remaining + 1) →
-    NativeCoreCallbacks actualMethods shadowMethods actualContext shadowContext currentState current.consumeMData false false
+    NativeCoreCallbacks actualMethods shadowMethods actualContext shadowContext currentState current.consumeMData false
   naturals : ∀ current currentState remaining normalized normalizedState,
     NativeWhnfReachable actualMethods actualContext state expression current currentState (remaining + 1) →
-    TypeChecker.Inner.whnfCore' current false false actualMethods actualContext currentState = .ok (normalized, normalizedState) →
+    TypeChecker.Inner.whnfCore' current false actualMethods actualContext currentState = .ok (normalized, normalizedState) →
     TypeChecker.Inner.reduceNative actualContext.env normalized = .ok none →
     TypeChecker.M.SuccessTransport (TypeChecker.Inner.reduceNat normalized actualMethods)
       (TypeChecker.Inner.reduceNat normalized shadowMethods) actualContext shadowContext normalizedState
@@ -251,14 +276,14 @@ theorem TypeChecker.Inner.whnf'.loop_headerAxiomTransport
         MonadReader.read, readThe, MonadReaderOf.read, ReaderT.read, Pure.pure, Bind.bind,
         ReaderT.bind, ReaderT.pure, StateT.bind, StateT.pure, Except.pure, Except.bind,
         TypeChecker.M.SuccessTransport, Except.SuccessTransport, Except.WF] at accepted ⊢
-      cases coreResult : whnfCore' current false false actualMethods actualContext currentState with
+      cases coreResult : whnfCore' current false actualMethods actualContext currentState with
       | error error =>
         rw [coreResult] at accepted
         contradiction
       | ok corePair =>
         rcases corePair with ⟨normalized, normalizedState⟩
         have coreTransport := whnfCore'.headerAxiomTransport actualMethods shadowMethods actualContext shadowContext
-          currentState current false false locals (callbacks.cores current currentState remaining reached)
+          currentState current false locals (callbacks.cores current currentState remaining reached)
           (normalized, normalizedState) coreResult
         rw [coreResult] at accepted
         rw [coreTransport]
@@ -355,7 +380,7 @@ theorem TypeChecker.Inner.whnf'.headerAxiomTransport
       MonadReaderOf.read, ReaderT.read, Pure.pure, Bind.bind, ReaderT.bind, ReaderT.pure,
       StateT.bind, StateT.pure, Except.pure, Except.bind] at accepted ⊢
     cases cached : state.whnfCache[input]? with
-    | some value => simpa only [cached] using accepted
+    | some value => simpa only [cached, Pure.pure, ReaderT.pure, StateT.pure, Except.pure] using accepted
     | none =>
       have entry : NativeWhnfEntryReceipt actualContext state input := ⟨eligible, cached⟩
       have loopTransport := whnf'.loop_headerAxiomTransport actualMethods shadowMethods actualContext shadowContext
@@ -389,7 +414,8 @@ theorem TypeChecker.Inner.whnf'.headerAxiomTransport
       simp only [whnfCacheEligible] at eligible shadowEligible
       have actualFalse : isLetFVar actualContext.lctx name = false := Bool.eq_false_iff.mpr eligible
       have shadowFalse : isLetFVar shadowContext.lctx name = false := Bool.eq_false_iff.mpr shadowEligible
-      simpa only [actualFalse, shadowFalse, Bool.not_false, if_true] using accepted
+      simpa only [actualFalse, shadowFalse, Bool.not_false, if_true,
+        Pure.pure, ReaderT.pure, StateT.pure, Except.pure] using accepted
     | _ => simp [whnfCacheEligible] at eligible
 
 end Lean4Lean

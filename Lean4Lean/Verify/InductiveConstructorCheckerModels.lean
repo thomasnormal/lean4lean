@@ -229,14 +229,14 @@ theorem acceptedConstructorDomainSort (checker : TypeChecker.VContext) (reader :
     (accepted : (monadLift (TypeChecker.ensureType domain) : M Expr) reader = .ok sort) :
     ∃ level semanticLevel, sort = .sort level ∧ VLevel.ofLevel checker.lparams level = some semanticLevel ∧
       checker.HasType semantic (.sort semanticLevel) := by
-  have nativeAccepted : (Prod.fst <$> TypeChecker.ensureType domain
+  have nativeAccepted : (Prod.fst <$> TypeChecker.ensureType domain true
       checker.toContext ({} : TypeChecker.VState).toState) = .ok sort := by
     rw [aligned]
     exact accepted
-  generalize checked : TypeChecker.ensureType domain
+  generalize checked : TypeChecker.ensureType domain true
     checker.toContext ({} : TypeChecker.VState).toState = returned at nativeAccepted
   cases returned with
-  | error exception => simp at nativeAccepted
+  | error exception => cases nativeAccepted
   | ok returned =>
     obtain ⟨result, final⟩ := returned
     change Except.ok result = .ok sort at nativeAccepted

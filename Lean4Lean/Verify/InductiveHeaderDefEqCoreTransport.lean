@@ -26,7 +26,9 @@ def TypeChecker.Inner.nativeDefEqSimple (first second : Expr) : TypeChecker.RecM
     pure (firstName == secondName && Level.isEquivList firstLevels secondLevels)
   | .fvar firstName, .fvar secondName => pure (firstName == secondName)
   | .proj _ firstIndex firstBody, .proj _ secondIndex secondBody =>
-    if firstIndex == secondIndex then isDefEq firstBody secondBody else pure false
+    if firstIndex == secondIndex then
+      TypeChecker.Inner.lazyDeltaProjReduction firstBody secondBody firstIndex
+    else pure false
   | _, _ => pure false
 
 def TypeChecker.Inner.nativeDefEqUnknown (first second : Expr) : TypeChecker.RecM Bool := do
@@ -35,14 +37,16 @@ def TypeChecker.Inner.nativeDefEqUnknown (first second : Expr) : TypeChecker.Rec
     if firstName == secondName && Level.isEquivList firstLevels secondLevels then return true
   | .fvar firstName, .fvar secondName => if firstName == secondName then return true
   | .proj _ firstIndex firstBody, .proj _ secondIndex secondBody =>
-    if firstIndex == secondIndex then if ← isDefEq firstBody secondBody then return true
+    if firstIndex == secondIndex then
+      if ← TypeChecker.Inner.lazyDeltaProjReduction firstBody secondBody firstIndex then return true
   | _, _ => pure ()
   nativeDefEqRenormalize first second
 
 def TypeChecker.Inner.nativeDefEqDelta (first second : Expr) : TypeChecker.RecM Bool := do
   match ← lazyDeltaReduction first second with
-  | .continue .. => panicWithPosWithDecl "Lean4Lean.TypeChecker" "Lean4Lean.TypeChecker.Inner.isDefEqCore'" 676 20 "unreachable code has been reached"
-  | .bool equal => pure equal
+  | .continue .. => panicWithPosWithDecl "Lean4Lean.TypeChecker" "Lean4Lean.TypeChecker.Inner.isDefEqCore'" 859 20 "unreachable code has been reached"
+  | .true => pure true
+  | .false .. => pure false
   | .unknown normalizedFirst normalizedSecond => nativeDefEqUnknown normalizedFirst normalizedSecond
 
 def TypeChecker.Inner.nativeDefEqProof (first second : Expr) : TypeChecker.RecM Bool := do
@@ -194,20 +198,20 @@ structure NativeDefEqFallbackCallbacks (actualMethods shadowMethods : TypeChecke
 
 structure NativeDefEqRenormalizeCallbacks (actualMethods shadowMethods : TypeChecker.Methods)
     (actualContext shadowContext : TypeChecker.Context) (state : TypeChecker.State) (first second : Expr) : Prop where
-  firstNormalization : TypeChecker.M.SuccessTransport (actualMethods.whnfCore first false false)
-    (shadowMethods.whnfCore first false false) actualContext shadowContext state
-  secondNormalization : ∀ normalizedFirst firstState, actualMethods.whnfCore first false false actualContext state = .ok (normalizedFirst, firstState) →
-    TypeChecker.M.SuccessTransport (actualMethods.whnfCore second false false) (shadowMethods.whnfCore second false false)
+  firstNormalization : TypeChecker.M.SuccessTransport (actualMethods.whnfCore first false)
+    (shadowMethods.whnfCore first false) actualContext shadowContext state
+  secondNormalization : ∀ normalizedFirst firstState, actualMethods.whnfCore first false actualContext state = .ok (normalizedFirst, firstState) →
+    TypeChecker.M.SuccessTransport (actualMethods.whnfCore second false) (shadowMethods.whnfCore second false)
       actualContext shadowContext firstState
   changed : ∀ normalizedFirst firstState normalizedSecond secondState,
-    actualMethods.whnfCore first false false actualContext state = .ok (normalizedFirst, firstState) →
-    actualMethods.whnfCore second false false actualContext firstState = .ok (normalizedSecond, secondState) →
+    actualMethods.whnfCore first false actualContext state = .ok (normalizedFirst, firstState) →
+    actualMethods.whnfCore second false actualContext firstState = .ok (normalizedSecond, secondState) →
     (ptrEqExpr normalizedFirst first && ptrEqExpr normalizedSecond second) = false →
     TypeChecker.M.SuccessTransport (actualMethods.isDefEqCore normalizedFirst normalizedSecond)
       (shadowMethods.isDefEqCore normalizedFirst normalizedSecond) actualContext shadowContext secondState
   unchanged : ∀ normalizedFirst firstState normalizedSecond secondState,
-    actualMethods.whnfCore first false false actualContext state = .ok (normalizedFirst, firstState) →
-    actualMethods.whnfCore second false false actualContext firstState = .ok (normalizedSecond, secondState) →
+    actualMethods.whnfCore first false actualContext state = .ok (normalizedFirst, firstState) →
+    actualMethods.whnfCore second false actualContext firstState = .ok (normalizedSecond, secondState) →
     (ptrEqExpr normalizedFirst first && ptrEqExpr normalizedSecond second) = true →
     NativeDefEqFallbackCallbacks actualMethods shadowMethods actualContext shadowContext secondState first second
 
@@ -216,8 +220,9 @@ def NativeDefEqSimpleCallbacks (actualMethods shadowMethods : TypeChecker.Method
   ∀ firstParent firstIndex firstBody secondParent secondIndex secondBody,
     first = .proj firstParent firstIndex firstBody → second = .proj secondParent secondIndex secondBody →
     (firstIndex == secondIndex) = true →
-    TypeChecker.M.SuccessTransport (actualMethods.isDefEqCore firstBody secondBody)
-      (shadowMethods.isDefEqCore firstBody secondBody) actualContext shadowContext state
+    TypeChecker.M.SuccessTransport (TypeChecker.Inner.lazyDeltaProjReduction firstBody secondBody firstIndex actualMethods)
+      (TypeChecker.Inner.lazyDeltaProjReduction firstBody secondBody firstIndex shadowMethods)
+      actualContext shadowContext state
 
 structure NativeDefEqUnknownCallbacks (actualMethods shadowMethods : TypeChecker.Methods)
     (actualContext shadowContext : TypeChecker.Context) (state : TypeChecker.State) (first second : Expr) : Prop where
@@ -248,14 +253,14 @@ structure NativeDefEqNormalizedCallbacks (actualMethods shadowMethods : TypeChec
 
 structure NativeDefEqCheapCallbacks (actualMethods shadowMethods : TypeChecker.Methods)
     (actualContext shadowContext : TypeChecker.Context) (state : TypeChecker.State) (first second : Expr) : Prop where
-  firstNormalization : TypeChecker.M.SuccessTransport (actualMethods.whnfCore first false true)
-    (shadowMethods.whnfCore first false true) actualContext shadowContext state
-  secondNormalization : ∀ normalizedFirst firstState, actualMethods.whnfCore first false true actualContext state = .ok (normalizedFirst, firstState) →
-    TypeChecker.M.SuccessTransport (actualMethods.whnfCore second false true) (shadowMethods.whnfCore second false true)
+  firstNormalization : TypeChecker.M.SuccessTransport (actualMethods.whnfCore first true)
+    (shadowMethods.whnfCore first true) actualContext shadowContext state
+  secondNormalization : ∀ normalizedFirst firstState, actualMethods.whnfCore first true actualContext state = .ok (normalizedFirst, firstState) →
+    TypeChecker.M.SuccessTransport (actualMethods.whnfCore second true) (shadowMethods.whnfCore second true)
       actualContext shadowContext firstState
   continuation : ∀ normalizedFirst firstState normalizedSecond secondState,
-    actualMethods.whnfCore first false true actualContext state = .ok (normalizedFirst, firstState) →
-    actualMethods.whnfCore second false true actualContext firstState = .ok (normalizedSecond, secondState) →
+    actualMethods.whnfCore first true actualContext state = .ok (normalizedFirst, firstState) →
+    actualMethods.whnfCore second true actualContext firstState = .ok (normalizedSecond, secondState) →
     NativeDefEqNormalizedCallbacks actualMethods shadowMethods actualContext shadowContext secondState first second normalizedFirst normalizedSecond
 
 structure NativeDefEqShortCallbacks (actualMethods shadowMethods : TypeChecker.Methods)
@@ -340,6 +345,81 @@ theorem TypeChecker.Inner.nativeDefEqRenormalize.transport
   | false => exact callbacks.changed _ _ _ _ firstAccepted secondAccepted matching
   | true => exact nativeDefEqFallback.transport _ _ _ _ agreement _ _ _ (callbacks.unchanged _ _ _ _ firstAccepted secondAccepted matching)
 
+theorem TypeChecker.Inner.lazyDeltaProjReduction.transport
+    (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
+    (state : TypeChecker.State) (first second : Expr) (index : Nat) (budget : actualContext.fuel.lazyDelta ≤ shadowContext.fuel.lazyDelta)
+    (step : ∀ currentState currentFirst currentSecond,
+      TypeChecker.M.SuccessTransport (lazyDeltaReductionStep currentFirst currentSecond actualMethods)
+        (lazyDeltaReductionStep currentFirst currentSecond shadowMethods) actualContext shadowContext currentState)
+    (projection : ∀ currentState currentIndex expression,
+      TypeChecker.M.SuccessTransport (reduceProjCore currentIndex expression actualMethods)
+        (reduceProjCore currentIndex expression shadowMethods) actualContext shadowContext currentState)
+    (defEq : ∀ currentState currentFirst currentSecond,
+      TypeChecker.M.SuccessTransport (actualMethods.isDefEqCore currentFirst currentSecond)
+        (shadowMethods.isDefEqCore currentFirst currentSecond) actualContext shadowContext currentState) :
+    TypeChecker.M.SuccessTransport (lazyDeltaProjReduction first second index actualMethods)
+      (lazyDeltaProjReduction first second index shadowMethods) actualContext shadowContext state := by
+  change TypeChecker.M.SuccessTransport
+    (lazyDeltaProjReduction.loop index first second actualContext.fuel.lazyDelta actualMethods)
+    (lazyDeltaProjReduction.loop index first second shadowContext.fuel.lazyDelta shadowMethods)
+    actualContext shadowContext state
+  exact lazyDeltaProjReduction.loop_transport state first second actualContext.fuel.lazyDelta
+    shadowContext.fuel.lazyDelta trivial budget
+
+where
+  lazyDeltaProjReduction.finish_transport
+      (currentState : TypeChecker.State) (currentFirst currentSecond : Expr) :
+      TypeChecker.M.SuccessTransport
+        (lazyDeltaProjReduction.finish index currentFirst currentSecond actualMethods)
+        (lazyDeltaProjReduction.finish index currentFirst currentSecond shadowMethods)
+        actualContext shadowContext currentState := by
+    unfold lazyDeltaProjReduction.finish
+    dsimp only [Bind.bind, ReaderT.bind]
+    apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
+      (projection currentState index currentFirst)
+    intro firstProjection firstState firstAccepted
+    cases firstProjection with
+    | none => exact defEq firstState currentFirst currentSecond
+    | some firstProjection =>
+      dsimp only [Bind.bind, ReaderT.bind]
+      apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
+        (projection firstState index currentSecond)
+      intro secondProjection secondState secondAccepted
+      cases secondProjection with
+      | none => exact defEq secondState currentFirst currentSecond
+      | some secondProjection => exact defEq secondState firstProjection secondProjection
+
+  lazyDeltaProjReduction.loop_transport
+      (currentState : TypeChecker.State) (currentFirst currentSecond : Expr) (remaining shadowRemaining : Nat)
+      (reached : True) (budget : remaining ≤ shadowRemaining) :
+      TypeChecker.M.SuccessTransport
+        (lazyDeltaProjReduction.loop index currentFirst currentSecond remaining actualMethods)
+        (lazyDeltaProjReduction.loop index currentFirst currentSecond shadowRemaining shadowMethods)
+        actualContext shadowContext currentState := by
+    induction remaining generalizing currentFirst currentSecond currentState shadowRemaining with
+    | zero =>
+      intro result accepted
+      change Except.error Kernel.Exception.deterministicTimeout = Except.ok result at accepted
+      contradiction
+    | succ remaining inductionHypothesis =>
+      cases shadowRemaining with
+      | zero => omega
+      | succ shadowRemaining =>
+        rw [lazyDeltaProjReduction.loop.eq_2, lazyDeltaProjReduction.loop.eq_2]
+        dsimp only [Bind.bind, ReaderT.bind]
+        apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
+          (step currentState currentFirst currentSecond)
+        intro status nextState accepted
+        cases status with
+        | «continue» nextFirst nextSecond =>
+          exact inductionHypothesis nextState nextFirst nextSecond shadowRemaining
+            (Nat.le_of_succ_le_succ budget)
+        | «true» => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
+        | «unknown» nextFirst nextSecond =>
+          exact lazyDeltaProjReduction.finish_transport nextState nextFirst nextSecond
+        | «false» nextFirst nextSecond =>
+          exact lazyDeltaProjReduction.finish_transport nextState nextFirst nextSecond
+
 theorem TypeChecker.Inner.nativeDefEqSimple.transport
     (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
     (state : TypeChecker.State) (first second : Expr)
@@ -351,7 +431,7 @@ theorem TypeChecker.Inner.nativeDefEqSimple.transport
   dsimp only [nativeDefEqSimple]
   cases matching : firstIndex == secondIndex with
   | false => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
-  | true => exact isDefEq.transport _ _ _ _ _ _ _ (callbacks _ _ _ _ _ _ rfl rfl matching)
+  | true => exact callbacks _ _ _ _ _ _ rfl rfl matching
 
 theorem TypeChecker.Inner.nativeDefEqUnknown.transport
     (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
@@ -383,7 +463,8 @@ theorem TypeChecker.Inner.nativeDefEqDelta.transport
   intro reduction nextState accepted
   cases reduction with
   | «continue» nextFirst nextSecond => intro result completed; exact completed
-  | bool equal => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
+  | «true» => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
+  | «false» _ _ => exact TypeChecker.M.SuccessTransport.pure _ _ _ _
   | unknown normalizedFirst normalizedSecond =>
     exact nativeDefEqUnknown.transport _ _ _ _ agreement _ _ _ (callbacks.unknown _ _ _ accepted)
 

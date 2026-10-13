@@ -32,9 +32,9 @@ private theorem savedCoreWF {source normalized : Expr}
   exact Except.WF.bind haction fun returned hreturned => Except.WF.pure hreturned
 
 private theorem singletonBetaLoop (name : Name) (domain body value : Expr) (bi : BinderInfo) :
-    TypeChecker.Inner.whnfCore'.loop (.app (.lam name domain body bi) value) false false
+    TypeChecker.Inner.whnfCore'.loop (.app (.lam name domain body bi) value) false
       #[value] 1 body =
-    TypeChecker.Inner.whnfCore'.loop.cont (.app (.lam name domain body bi) value) false false
+    TypeChecker.Inner.whnfCore'.loop.cont (.app (.lam name domain body bi) value) false
       #[value] 1 body := by
   cases body <;> rw [TypeChecker.Inner.whnfCore'.loop.eq_def]
   all_goals rfl
@@ -42,15 +42,15 @@ private theorem singletonBetaLoop (name : Name) (domain body value : Expr) (bi :
 private theorem lambdaCoreStep (name : Name) (domain body : Expr) (bi : BinderInfo)
     (depth : Nat) (ctx : TypeChecker.Context) (state : TypeChecker.State) :
     (TypeChecker.Methods.withFuel (depth + 1)).whnfCore (.lam name domain body bi)
-      false false ctx state = .ok (.lam name domain body bi, state) := rfl
+      false ctx state = .ok (.lam name domain body bi, state) := rfl
 
 private theorem betaCoreStep (name : Name) (domain body value : Expr) (bi : BinderInfo)
     (depth : Nat) (ctx : TypeChecker.Context) (state : TypeChecker.State)
     (hcache : state.whnfCoreCache = ∅) :
-    TypeChecker.Inner.whnfCore' (.app (.lam name domain body bi) value) false false
+    TypeChecker.Inner.whnfCore' (.app (.lam name domain body bi) value) false
       (TypeChecker.Methods.withFuel (depth + 1)) ctx state =
       ((TypeChecker.Methods.withFuel (depth + 1)).whnfCore
-        (body.instantiate1 value) false false ctx state).bind fun result =>
+        (body.instantiate1 value) false ctx state).bind fun result =>
           .ok (result.1, { result.2 with
             whnfCoreCache := result.2.whnfCoreCache.insert
               (.app (.lam name domain body bi) value) result.1 }) := by
@@ -64,7 +64,7 @@ private theorem betaCoreStep (name : Name) (domain body value : Expr) (bi : Bind
   simp only [TypeChecker.Inner.whnfCore, bind, ReaderT.bind, StateT.bind, Except.bind]
   rw [lambdaCoreStep]
   change TypeChecker.Inner.whnfCore'.loop (.app (.lam name domain body bi) value)
-    false false #[value] 1 body (TypeChecker.Methods.withFuel (depth + 1)) ctx state = _
+    false #[value] 1 body (TypeChecker.Methods.withFuel (depth + 1)) ctx state = _
   rw [singletonBetaLoop, TypeChecker.Inner.whnfCore'.loop.cont]
   simp only [List.size_toArray, List.length_cons, List.length_nil,
     Nat.zero_add, Nat.sub_self, emptyRevRange, singletonRange]
@@ -77,7 +77,7 @@ private theorem betaCoreStep (name : Name) (domain body value : Expr) (bi : Bind
 private theorem betaCoreZero (name : Name) (domain body value : Expr) (bi : BinderInfo)
     (ctx : TypeChecker.Context) (state : TypeChecker.State)
     (hcache : state.whnfCoreCache = ∅) :
-    TypeChecker.Inner.whnfCore' (.app (.lam name domain body bi) value) false false
+    TypeChecker.Inner.whnfCore' (.app (.lam name domain body bi) value) false
       (TypeChecker.Methods.withFuel 0) ctx state = .error .deepRecursion := by
   rw [TypeChecker.Inner.whnfCore'.eq_def]
   simp only [get, getThe, bind, ReaderT.bind, StateT.bind, pure,
@@ -91,20 +91,20 @@ theorem WrappedSortTelescope.core {source normalized : Expr}
     (trace : WrappedSortTelescope source normalized) (depth : Nat)
     (ctx : TypeChecker.Context) (state : TypeChecker.State)
     (hempty : state.whnfCoreCache = ∅) :
-    ((TypeChecker.Methods.withFuel depth).whnfCore source false false ctx state).WF
+    ((TypeChecker.Methods.withFuel depth).whnfCore source false ctx state).WF
       fun returned => returned.1 = normalized := by
   induction trace generalizing depth ctx state with
   | telescope htype =>
     cases depth with
     | zero => exact Except.WF.throw
     | succ depth =>
-      rw [telescopeCore _ htype depth ctx state false false]
+      rw [telescopeCore _ htype depth ctx state false]
       exact Except.WF.pure rfl
   | mdata data tail ih =>
     cases depth with
     | zero => exact Except.WF.throw
     | succ depth =>
-      change (TypeChecker.Inner.whnfCore' (.mdata data _) false false
+      change (TypeChecker.Inner.whnfCore' (.mdata data _) false
         (TypeChecker.Methods.withFuel depth) ctx state).WF _
       rw [TypeChecker.Inner.whnfCore'.eq_def]
       simp only [bind_pure]
@@ -113,7 +113,7 @@ theorem WrappedSortTelescope.core {source normalized : Expr}
     cases depth with
     | zero => exact Except.WF.throw
     | succ depth =>
-      change (TypeChecker.Inner.whnfCore' (.letE name domain value body nondep) false false
+      change (TypeChecker.Inner.whnfCore' (.letE name domain value body nondep) false
         (TypeChecker.Methods.withFuel depth) ctx state).WF _
       rw [TypeChecker.Inner.whnfCore'.eq_def]
       simp only [pure_bind]
@@ -129,7 +129,7 @@ theorem WrappedSortTelescope.core {source normalized : Expr}
     cases depth with
     | zero => exact Except.WF.throw
     | succ depth =>
-      change (TypeChecker.Inner.whnfCore' (.app (.lam name domain body bi) value) false false
+      change (TypeChecker.Inner.whnfCore' (.app (.lam name domain body bi) value) false
         (TypeChecker.Methods.withFuel depth) ctx state).WF _
       cases depth with
       | zero =>
@@ -185,9 +185,9 @@ private theorem coreWrapperNormalized {source normalized : Expr}
           MonadReaderOf.read, read, liftM, monadLift, MonadLift.monadLift,
           Except.pure, Except.bind, ReaderT.read] at hresult
         have hcore := trace.core (depth + 1) tc {} rfl
-        change (TypeChecker.Inner.whnfCore' _ false false (TypeChecker.Methods.withFuel depth) tc {}).WF _ at hcore
+        change (TypeChecker.Inner.whnfCore' _ false (TypeChecker.Methods.withFuel depth) tc {}).WF _ at hcore
         generalize haction :
-          TypeChecker.Inner.whnfCore' _ false false (TypeChecker.Methods.withFuel depth) tc {} = action
+          TypeChecker.Inner.whnfCore' _ false (TypeChecker.Methods.withFuel depth) tc {} = action
           at hcore hresult
         cases action with
         | error error =>

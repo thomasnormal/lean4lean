@@ -300,18 +300,16 @@ theorem TypeChecker.Inner.unfoldDefinitionCore.headScopeWF (expression : Expr) (
   | some definition =>
     dsimp only
     split
-    · split
-      · dsimp only [Bind.bind, ReaderT.bind]
-        apply TypeChecker.M.HeadScopeWF.get
-        intro state
-        cases state.unfold[Expr.const name levels]? with
-        | some value => exact TypeChecker.M.HeadScopeWF.pure _
-        | none =>
-          dsimp only [Bind.bind, ReaderT.bind]
-          exact (TypeChecker.M.HeadScopeWF.modify (fun state : TypeChecker.State =>
-            { state with unfold := state.unfold.insert (.const name levels) (definition.instantiateValueLevelParams! levels) })
-              (fun _ _ stable names => ⟨.rfl, stable, names⟩)).bind fun _ => .pure _
-      · exact TypeChecker.M.HeadScopeWF.pure _
+    · dsimp only [Bind.bind, ReaderT.bind]
+      apply TypeChecker.M.HeadScopeWF.get
+      intro state
+      cases state.unfold[Expr.const name levels]? with
+      | some value => exact TypeChecker.M.HeadScopeWF.pure _
+      | none =>
+        dsimp only [Bind.bind, ReaderT.bind]
+        exact (TypeChecker.M.HeadScopeWF.modify (fun state : TypeChecker.State =>
+          { state with unfold := state.unfold.insert (.const name levels) (instantiateDeltaValue definition levels) })
+            (fun _ _ stable names => ⟨.rfl, stable, names⟩)).bind fun _ => .pure _
     · exact TypeChecker.M.HeadScopeWF.pure _
 
 theorem TypeChecker.Inner.unfoldDefinition.headScopeWF (expression : Expr) (methods : TypeChecker.Methods) :

@@ -4,6 +4,8 @@ import Lean4Lean.Verify.InductiveIndexRenaming
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
 
+private theorem parameter_ne_index : ¬ BinderRole.parameter = BinderRole.index := by decide
+
 theorem BinderDeclaredAt.fvar {ctx : Context} {value domain : Expr} {name : Name} {bi : BinderInfo}
     (declared : BinderDeclaredAt ctx value name domain bi) : ∃ id, value = .fvar id := by
   obtain ⟨decl, _, hexpr, _, _, _⟩ := declared
@@ -36,7 +38,7 @@ theorem BinderIndexCorrespondence.finalPairs {pairs finalPairs : List (FVarId ×
   induction correspondence with
   | nil pairs => exact (List.append_nil pairs).symm
   | parameter name bi leftDomain rightDomain value rawDomain localDomain tail ih =>
-    simpa only [BinderStep.indexValues, BinderRole.noConfusion, ↓reduceIte] using ih
+    simpa only [BinderStep.indexValues, parameter_ne_index, if_false] using ih
   | index name bi leftDomain rightDomain leftId rightId rawDomain localDomain tail ih =>
     simpa only [BinderStep.indexValues, ↓reduceIte, List.map_cons, Expr.fvarId!,
       List.zip_cons_cons, List.append_assoc, List.singleton_append] using ih

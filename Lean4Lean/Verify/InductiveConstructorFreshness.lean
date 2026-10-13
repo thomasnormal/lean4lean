@@ -113,15 +113,12 @@ theorem TypeChecker.Inner.isDefEqUnitLike.missingConstructor
   rw [lookup] at accepted
   dsimp only [Bind.bind, Pure.pure, ReaderT.bind, ReaderT.pure, StateT.bind, StateT.pure,
     StateT.lift, Except.bind, Except.pure] at accepted
-  cases header
+  rcases header with ⟨⟨_, _, _⟩, _, _, _, _, _, _, _, _⟩
   dsimp only at notRecursive constructors noIndices
   cases notRecursive
   cases constructors
   cases noIndices
-  dsimp only at accepted
-  rw [missing] at accepted
-  change (Except.error _ : Except Kernel.Exception (Bool × TypeChecker.State)) = .ok result at accepted
-  contradiction
+  simp [missing, Bind.bind, ReaderT.bind, StateT.bind, StateT.lift, Except.bind] at accepted
 
 namespace AddInductive
 
@@ -171,9 +168,10 @@ private theorem registerConstructorFreshness (constructors : List Constructor) (
   | nil => exact .pure ⟨.refl envWF, by simp, by simp, by simp⟩
   | cons constructor constructors induction =>
     simp only [List.foldlM_cons, bind_assoc, pure_bind]
-    refine (checkName.WF env constructor.name allowPrimitive).bind fun _ ⟨fresh, _⟩ => ?_
+    refine (checkName.WF envWF constructor.name allowPrimitive).bind fun _ ⟨fresh, _⟩ => ?_
     have infoFresh : env.constants.find? (ConstantInfo.ctorInfo (makeInfo index constructor)).name = none := by
-      simpa only [ConstantInfo.name, ConstantInfo.toConstantVal, names] using fresh
+      simpa only [Kernel.Environment.find?, envWF.find?'_eq_find?,
+        ConstantInfo.name, ConstantInfo.toConstantVal, names] using fresh
     have step := NativeValueFrame.addConst (ci := .ctorInfo (makeInfo index constructor)) envWF infoFresh rfl
     obtain ⟨_, self, _⟩ := Lean4Lean.AddInductive.addFresh env (.ctorInfo (makeInfo index constructor)) envWF infoFresh
     have self : (env.add (.ctorInfo (makeInfo index constructor))).find? constructor.name =
@@ -310,7 +308,6 @@ theorem run.registeredConstructorFreshness (nparams : Nat) (types : List Inducti
       checkConstructors types.toArray stats (reader.safety != .safe) { current with env := actual } = .ok () := by
   unfold run
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.readWF
   dsimp only
   apply Lean4Lean.AddInductive.bindWF
@@ -380,7 +377,6 @@ theorem run.freshConstructorAxiomContinuation (nparams : Nat) (types : List Indu
     | «partial» => exact False.elim (ordinarySafety mode)
   unfold run
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.readWF
   dsimp only
   apply Lean4Lean.AddInductive.bindWF

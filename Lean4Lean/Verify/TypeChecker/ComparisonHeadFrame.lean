@@ -152,7 +152,6 @@ theorem TypeChecker.Inner.isDefEqApp.headWF (first second : Expr)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
     (isDefEqApp first second methods).HeadWF (fun _ => True) := by
   unfold isDefEqApp
-  simp only [pure_bind]
   split
   · rw [Expr.withApp_eq, Expr.withApp_eq]
     split
@@ -191,7 +190,6 @@ theorem TypeChecker.Inner.isDefEqProofIrrel.headWF (first second : Expr)
   cases proposition <;> simp only [Bool.not_false, Bool.not_true, Bool.false_eq_true, if_true, if_false]
   · exact TypeChecker.M.HeadWF.pure trivial
   · dsimp only [Bind.bind, ReaderT.bind, inferType]
-    refine (TypeChecker.M.HeadWF.pure (post := fun _ => True) trivial).bind fun _ _ => ?_
     refine (valid.inferType second true).bind fun secondType _ => ?_
     exact TypeChecker.RecM.toLBoolM_headWF _ methods (isDefEq.headWF _ _ methods valid)
 
@@ -228,7 +226,7 @@ theorem TypeChecker.Inner.tryStringLitExpansion.headWF (first second : Expr)
 
 theorem TypeChecker.Inner.nativeEtaStructField.headWF (information : ConstructorVal) (first : Expr)
     (arguments : Array Expr) (index : Nat) (inBounds : index < arguments.size)
-    (current : MProd (Option Bool) PUnit) (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
+    (current : Prod (Option Bool) PUnit) (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
     (nativeEtaStructField information first arguments index inBounds current methods).HeadWF (fun _ => True) := by
   unfold nativeEtaStructField
   dsimp only [Bind.bind, ReaderT.bind]
@@ -313,8 +311,7 @@ theorem TypeChecker.Inner.tryUnfoldProjApp.headWF (expression : Expr)
   split
   · exact TypeChecker.M.HeadWF.pure trivial
   · dsimp only [Bind.bind, ReaderT.bind, whnfCore]
-    refine (TypeChecker.M.HeadWF.pure (post := fun _ => True) trivial).bind fun _ _ => ?_
-    exact (valid.whnfCore expression false false).bind fun _ _ => .pure trivial
+    exact (valid.whnfCore expression false).bind fun _ _ => .pure trivial
 
 theorem TypeChecker.Inner.nativeDeltaUnfold.headWF (expression : Expr)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
@@ -322,7 +319,7 @@ theorem TypeChecker.Inner.nativeDeltaUnfold.headWF (expression : Expr)
   unfold nativeDeltaUnfold
   dsimp only [Bind.bind, ReaderT.bind, whnfCore]
   exact (unfoldDefinition.headWF expression methods).bind fun unfolded _ =>
-    (valid.whnfCore unfolded.get! false true).mono fun _ _ => trivial
+    (valid.whnfCore unfolded.get! true).mono fun _ _ => trivial
 
 theorem TypeChecker.Inner.nativeDeltaContinue.headWF (first second : Expr)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
@@ -404,8 +401,7 @@ theorem TypeChecker.Inner.nativeLazyDeltaTail.headWF (first second : Expr)
   cases reducedFirst <;> dsimp only [Bind.bind, ReaderT.bind, isDefEqCore]
   · refine (TypeChecker.M.HeadWF.liftExcept _).bind fun reducedSecond _ => ?_
     cases reducedSecond <;> dsimp only [Bind.bind, ReaderT.bind, isDefEqCore]
-    · exact (TypeChecker.M.HeadWF.pure (post := fun _ => True) trivial).bind
-        fun _ _ => lazyDeltaReductionStep.headWF first second methods valid
+    · exact lazyDeltaReductionStep.headWF first second methods valid
     · exact (valid.isDefEqCore _ _).bind fun _ _ => .pure trivial
   · exact (valid.isDefEqCore _ _).bind fun _ _ => .pure trivial
 
@@ -418,8 +414,7 @@ theorem TypeChecker.Inner.nativeLazyDeltaNaturalTail.headWF (first second : Expr
   cases reducedFirst <;> dsimp only [Bind.bind, ReaderT.bind, isDefEqCore]
   · refine (reduceNat.headWF second methods valid).bind fun reducedSecond _ => ?_
     cases reducedSecond <;> dsimp only [Bind.bind, ReaderT.bind, isDefEqCore]
-    · exact (TypeChecker.M.HeadWF.pure (post := fun _ => True) trivial).bind
-        fun _ _ => nativeLazyDeltaTail.headWF first second methods valid
+    · exact nativeLazyDeltaTail.headWF first second methods valid
     · exact (valid.isDefEqCore _ _).bind fun _ _ => .pure trivial
   · exact (valid.isDefEqCore _ _).bind fun _ _ => .pure trivial
 
@@ -432,10 +427,8 @@ theorem TypeChecker.Inner.nativeLazyDeltaRound.headWF (first second : Expr)
   split
   · exact TypeChecker.M.HeadWF.pure trivial
   · dsimp only [Bind.bind, ReaderT.bind]
-    refine (TypeChecker.M.HeadWF.pure (post := fun _ => True) trivial).bind fun _ _ => ?_
     apply TypeChecker.M.HeadWF.read
     intro context
-    dsimp only
     split
     · exact nativeLazyDeltaNaturalTail.headWF first second methods valid
     · exact nativeLazyDeltaTail.headWF first second methods valid
@@ -453,6 +446,7 @@ theorem TypeChecker.Inner.lazyDeltaReduction.loop_headWF (first second : Expr) (
     · exact inductionHypothesis _ _
     · exact TypeChecker.M.HeadWF.pure trivial
     · exact TypeChecker.M.HeadWF.pure trivial
+    · exact TypeChecker.M.HeadWF.pure trivial
 
 theorem TypeChecker.Inner.lazyDeltaReduction.headWF (first second : Expr)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
@@ -462,6 +456,70 @@ theorem TypeChecker.Inner.lazyDeltaReduction.headWF (first second : Expr)
   apply TypeChecker.M.HeadWF.read
   intro context
   exact lazyDeltaReduction.loop_headWF first second context.fuel.lazyDelta methods valid
+
+theorem TypeChecker.Inner.reduceProjCore.headWF (index : Nat) (expression : Expr)
+    (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
+    (reduceProjCore index expression methods).HeadWF (fun _ => True) := by
+  have finish : ∀ value : Expr,
+      (((value.withApp (fun head arguments => do
+        let .const name _ := head | return none
+        let environment ← TypeChecker.getEnv
+        let .ctorInfo information ← environment.get name | return none
+        return arguments[information.numParams + index]?) : TypeChecker.RecM (Option Expr))) methods).HeadWF
+        (fun _ => True) := by
+    intro value
+    rw [Expr.withApp_eq]
+    cases value.getAppFn <;> dsimp only [Bind.bind, ReaderT.bind]
+    any_goals exact TypeChecker.M.HeadWF.pure trivial
+    apply TypeChecker.M.HeadWF.getEnv
+    intro environment
+    refine (TypeChecker.M.HeadWF.liftExcept _).bind fun info _ => ?_
+    cases info <;> exact TypeChecker.M.HeadWF.pure trivial
+  unfold reduceProjCore
+  dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
+  cases expression with
+  | lit literal =>
+    cases literal with
+    | natVal value => exact finish _
+    | strVal text =>
+      dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
+      exact (valid.whnf (.strLitToConstructor text)).bind fun expanded _ => finish expanded
+  | _ => exact finish _
+
+theorem TypeChecker.Inner.lazyDeltaProjReduction.loop_headWF (index : Nat) (first second : Expr) (fuel : Nat)
+    (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
+    (lazyDeltaProjReduction.loop index first second fuel methods).HeadWF (fun _ => True) := by
+  induction fuel generalizing first second with
+  | zero => exact TypeChecker.M.HeadWF.throw _ _
+  | succ fuel inductionHypothesis =>
+    rw [lazyDeltaProjReduction.loop.eq_2]
+    dsimp only [Bind.bind, ReaderT.bind]
+    refine (lazyDeltaReductionStep.headWF first second methods valid).bind fun status _ => ?_
+    cases status with
+    | «continue» nextFirst nextSecond => exact inductionHypothesis nextFirst nextSecond
+    | «true» => exact TypeChecker.M.HeadWF.pure trivial
+    | «unknown» nextFirst nextSecond
+    | «false» nextFirst nextSecond =>
+      unfold lazyDeltaProjReduction.finish
+      dsimp only [Bind.bind, ReaderT.bind]
+      refine (reduceProjCore.headWF index nextFirst methods valid).bind fun firstProjection _ => ?_
+      cases firstProjection with
+      | none => exact valid.isDefEqCore _ _
+      | some firstProjection =>
+        dsimp only [Bind.bind, ReaderT.bind]
+        refine (reduceProjCore.headWF index nextSecond methods valid).bind fun secondProjection _ => ?_
+        cases secondProjection with
+        | none => exact valid.isDefEqCore _ _
+        | some secondProjection => exact valid.isDefEqCore _ _
+
+theorem TypeChecker.Inner.lazyDeltaProjReduction.headWF (first second : Expr) (index : Nat)
+    (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
+    (lazyDeltaProjReduction first second index methods).HeadWF (fun _ => True) := by
+  unfold lazyDeltaProjReduction
+  dsimp only [Bind.bind, ReaderT.bind]
+  apply TypeChecker.M.HeadWF.read
+  intro context
+  exact lazyDeltaProjReduction.loop_headWF index first second context.fuel.lazyDelta methods valid
 
 theorem TypeChecker.Inner.nativeDefEqFallback.headWF (first second : Expr)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
@@ -492,8 +550,8 @@ theorem TypeChecker.Inner.nativeDefEqRenormalize.headWF (first second : Expr)
     (nativeDefEqRenormalize first second methods).HeadWF (fun _ => True) := by
   unfold nativeDefEqRenormalize
   dsimp only [Bind.bind, ReaderT.bind, whnfCore, isDefEqCore]
-  refine (valid.whnfCore first false false).bind fun normalizedFirst _ => ?_
-  refine (valid.whnfCore second false false).bind fun normalizedSecond _ => ?_
+  refine (valid.whnfCore first false).bind fun normalizedFirst _ => ?_
+  refine (valid.whnfCore second false).bind fun normalizedSecond _ => ?_
   split
   · exact valid.isDefEqCore normalizedFirst normalizedSecond
   · exact nativeDefEqFallback.headWF first second methods valid
@@ -505,7 +563,7 @@ theorem TypeChecker.Inner.nativeDefEqSimple.headWF (first second : Expr)
   cases first <;> cases second <;> try exact TypeChecker.M.HeadWF.pure trivial
   dsimp only
   split
-  · exact isDefEq.headWF _ _ methods valid
+  · exact lazyDeltaProjReduction.headWF _ _ _ methods valid
   · exact TypeChecker.M.HeadWF.pure trivial
 
 theorem TypeChecker.Inner.nativeDefEqUnknown.headWF (first second : Expr)
@@ -559,8 +617,8 @@ theorem TypeChecker.Inner.nativeDefEqCheap.headWF (first second : Expr)
     (nativeDefEqCheap first second methods).HeadWF (fun _ => True) := by
   unfold nativeDefEqCheap
   dsimp only [Bind.bind, ReaderT.bind, whnfCore]
-  refine (valid.whnfCore first false true).bind fun normalizedFirst _ => ?_
-  refine (valid.whnfCore second false true).bind fun normalizedSecond _ => ?_
+  refine (valid.whnfCore first true).bind fun normalizedFirst _ => ?_
+  refine (valid.whnfCore second true).bind fun normalizedSecond _ => ?_
   exact nativeDefEqNormalized.headWF first second normalizedFirst normalizedSecond methods valid
 
 theorem TypeChecker.Inner.nativeDefEqBoolShortcut.headWF (first second : Expr)
@@ -627,7 +685,7 @@ theorem TypeChecker.whnf.headWF (expression : Expr) : (whnf expression).HeadWF N
   RecM.run_headWF _ _ fun _ valid => valid.whnf expression
 
 theorem TypeChecker.whnfCore.headWF (expression : Expr) : (whnfCore expression).HeadWF NativeHeadClean :=
-  RecM.run_headWF _ _ fun _ valid => valid.whnfCore expression false false
+  RecM.run_headWF _ _ fun _ valid => valid.whnfCore expression false
 
 theorem TypeChecker.inferType.headWF (expression : Expr) : (inferType expression).HeadWF (fun _ => True) :=
   RecM.run_headWF _ _ fun _ valid => valid.inferType expression true
