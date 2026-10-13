@@ -188,7 +188,8 @@ theorem AddInductive.InductiveStats.SafeRunScope.sourceConstructor
       (Array.getElem_mem hrewritten) ctorIndex rewritten[typeIndex].ctors[ctorIndex]
       (by simp only [List.getElem?_eq_getElem hctorRewritten])
     simpa only [hctorName] using hlookup.1
-  · exact ⟨by simpa only [getElem!_pos, hctor] using hctorName, hname, rfl, hparams, rfl, rfl⟩
+  · exact ⟨by simpa only [info, AddInductive.declareConstructors.metadataVal, getElem!_pos, hctor]
+      using hctorName, hname, rfl, hparams, rfl, rfl⟩
 
 def SourceConstructorLookups (nparams : Nat) (lparams : List Name) (types : List InductiveType)
     (preprocessing : ElimNestedInductive.Result) (staged result : Environment) : Prop :=
