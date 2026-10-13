@@ -130,9 +130,10 @@ The inbox is absent. The latest fetch confirms official master remains
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, already an ancestor of detached
 integration checkpoint `43a47d9`; the detached integration's daily rebase check
 is a successful no-op. The published branch itself is not yet rebased: it
-currently has 49 upstream-only and 339 branch-only
-commits; the detached integration has zero upstream-only and 398 branch-only
-commits. These are synchronization facts, not proof progress.
+is not based on the official tip; the live ancestry counts are recorded in the
+journal because each documentation commit changes the branch-only count. The
+detached integration remains based on the official tip. These are
+synchronization facts, not proof progress.
 
 The detached integration now passes the full default build (all 414 jobs) and
 all five current restoration/header regression fixtures. The final recursor-name
