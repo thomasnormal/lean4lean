@@ -28,7 +28,7 @@ when a semantic contract, trust boundary, or correctness obstruction changes.
 
 | Signal | Current evidence | Interpretation |
 | --- | --- | --- |
-| Upstream synchronization | `HEAD` `TODO`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `TODO` branch-only | The local rebase is current; history counts are synchronization data, not verification progress. |
+| Upstream synchronization | `HEAD` `7c004de`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `386` branch-only | The local rebase is current; history counts are synchronization data, not verification progress. |
 | Semantic guarantees | Constructor/recursor metadata, registration, run-preservation, minor-indexing, recursor field/IH allocation, inductive frontend restoration, restoration-metadata, nested-rewrite range contracts, and non-nested frontend-scope contracts build; the frontend-scope fixture exercises source, fuel, arity, freshness, universe, and reserved-prefix boundaries | These preserve executable contracts on upstream's API; they do not remove inherited trust or complete inductive checking. |
 | Admission boundary | `129` matching lines in `27` files; `133` whole-word `sorry`/`admit` occurrences under `Lean4Lean/` | No admission was added or removed by this compatibility checkpoint; transitive `sorryAx` audits remain the trust signal. |
 | Build status | `lake build Lean4Lean.Verify.InductiveNestedRewrite` passes (110 jobs); the default build reaches all `414` targets and fails in `Verify.InductiveValueFrame`, `Verify.InductiveRestorationNames`, and `Verify.InductiveHeaderTraces` | Nested-rewrite range preservation is cleared; value-frame integration, restoration-name mapping, and header-trace proof fronts remain before a green default build. |
@@ -85,7 +85,7 @@ the entire dependency stack.
 - `e235023` and `974a97f`: adapted frontend restoration and restoration-metadata
   contracts to upstream's `checkName` freshness result, reserved-prefix
   preflight, panic provenance, and generated StateT action shape.
-- `TODO`: adapted nested-rewrite range proofs to upstream's `LocalDecl` shape,
+- `7c004de`: adapted nested-rewrite range proofs to upstream's `LocalDecl` shape,
   explicit `Name.quickCmp` map operations, and array/list fold normalization;
   the executable nested-restoration range contract is unchanged.
 - Repaired source-variable capture handling in inductive preprocessing through
