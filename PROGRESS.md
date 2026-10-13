@@ -19,9 +19,10 @@ not completion of frontend soundness.
 `4b3a958f89d999bc40ec6b409b135aa36108b8be` on Lean **4.29.0**, and its full
 default build passes on October 13. The separate integration worktree is
 based on official `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` on Lean
-**4.33.0-rc2**. Today's fetch confirms that official tip is already an ancestor,
-but integration's full build and regression gates are **not green**. Its
-rewritten history has not been published. A current local base is not a
+**4.33.0-rc2**. Today's fetch confirms that official tip is **not** an
+ancestor of the published branch; only the detached integration is based on
+it. That integration's full build and current regression gates are green, but
+its rewritten history has not been published. A current local base is not a
 validated, published rebase.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
@@ -126,8 +127,9 @@ rebased or synchronized until the rebase and publication have actually succeeded
 
 The inbox is absent. The latest fetch confirms official master remains
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, already an ancestor of detached
-integration checkpoint `43a47d9`; today's daily rebase check is a successful
-no-op. The published branch currently has 49 upstream-only and 336 branch-only
+integration checkpoint `43a47d9`; the detached integration's daily rebase check
+is a successful no-op. The published branch itself is not yet rebased: it
+currently has 49 upstream-only and 338 branch-only
 commits; the detached integration has zero upstream-only and 398 branch-only
 commits. These are synchronization facts, not proof progress.
 
