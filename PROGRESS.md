@@ -11,7 +11,7 @@ The branch is locally rebased on official `origin/master` at
 The stack restores and checks constructor, recursor, metadata, preservation,
 field-scope, inductive field/IH allocation, frontend restoration,
 restoration-metadata, restoration-name coverage, source-constructor metadata,
-and nested-rewrite range contracts on the current
+and nested-rewrite arity/range contracts on the current
 upstream API, but it is **not a completed verification of Lean's kernel**. The
 default build still stops in three downstream proof files, and the frontend's
 dependency chain still contains `sorryAx`.
@@ -29,10 +29,10 @@ when a semantic contract, trust boundary, or correctness obstruction changes.
 
 | Signal | Current evidence | Interpretation |
 | --- | --- | --- |
-| Upstream synchronization | `HEAD` `068f4ea`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `391` branch-only | The local rebase is current; history counts are synchronization data, not verification progress. |
-| Semantic guarantees | Constructor/recursor metadata, registration, run-preservation, minor-indexing, recursor field/IH allocation, inductive frontend restoration, restoration-metadata, restoration-name coverage, source-constructor metadata, nested-rewrite range contracts, and non-nested frontend-scope contracts build; the frontend-scope fixture exercises source, fuel, arity, freshness, universe, and reserved-prefix boundaries | These preserve executable contracts on upstream's API; they do not remove inherited trust or complete inductive checking. |
+| Upstream synchronization | `HEAD` `ec8f1aa`; `origin/master` `67f63b0`; merge-base is `origin/master`; `0` upstream-only / `393` branch-only | The local rebase is current; history counts are synchronization data, not verification progress. |
+| Semantic guarantees | Constructor/recursor metadata, registration, run-preservation, minor-indexing, recursor field/IH allocation, inductive frontend restoration, restoration-metadata, restoration-name coverage, source-constructor metadata, nested-rewrite arity/range contracts, and non-nested frontend-scope contracts build; the frontend-scope fixture exercises source, fuel, arity, freshness, universe, and reserved-prefix boundaries | These preserve executable contracts on upstream's API; they do not remove inherited trust or complete inductive checking. |
 | Admission boundary | `129` matching lines in `27` files; `133` whole-word `sorry`/`admit` occurrences under `Lean4Lean/` | No admission was added or removed by this compatibility checkpoint; transitive `sorryAx` audits remain the trust signal. |
-| Build status | `lake build Lean4Lean.Verify.InductiveRestorationConstructors` passes (166 jobs); the default build reaches all `414` targets and fails in `Verify.InductiveNestedArity`, `Verify.InductiveValueFrame`, and `Verify.InductiveHeaderTraces` | Restoration-name and source-constructor coverage are cleared; nested-arity transport, value-frame integration, and header-trace proof fronts remain before a green default build. |
+| Build status | `lake build Lean4Lean.Verify.InductiveNestedArity` passes (167 jobs); the default build reaches all `414` targets and fails in `Verify.InductiveRestorationRules`, `Verify.InductiveValueFrame`, and `Verify.InductiveHeaderTraces` | Restoration-name, source-constructor, and nested-arity coverage are cleared; restoration-rule translation, value-frame integration, and header-trace proof fronts remain before a green default build. |
 | Publication and upstream contribution | The rebased tip is not force-pushed; no upstream PR has been opened from this compatibility-only checkpoint | Keep the fork review branch intact until rewrite authorization is explicit; submit only focused semantic fixes once validated. |
 
 ## Progress scorecard
@@ -95,6 +95,9 @@ the entire dependency stack.
 - `068f4ea`: exposed the current constructor metadata definition in the
   source-name field proof; source-constructor lookup and metadata contracts are
   unchanged.
+- `ec8f1aa`: adapted nested-arity preservation to the current StateT callback
+  shape and qualified the constructor-arity reduction; nested rewrite and
+  constructor arity contracts are unchanged.
 - Repaired source-variable capture handling in inductive preprocessing through
   checks on the original source, before generated names can capture it.
 - Repaired the native-instantiation verification specification to model
@@ -169,11 +172,12 @@ and `lake build Lean4Lean.Verify.InductiveRestorationMetadata` passes (160 jobs)
 and `lake build Lean4Lean.Verify.InductiveFrontendRestoration` passes (159 jobs),
 and `lake build Lean4Lean.Verify.InductiveRestorationNames` passes (165 jobs),
 and `lake build Lean4Lean.Verify.InductiveRestorationConstructors` passes
-(166 jobs). The source-constructor fixture reaches its existing transitive
+(166 jobs), and `lake build Lean4Lean.Verify.InductiveNestedArity` passes
+(167 jobs). The source-constructor fixture reaches its existing transitive
 axiom audit and rejects `Lean.Expr.mkAppData_eq`; this compatibility change
 does not introduce that dependency. The direct restoration fixture remains
 blocked because rebuilding `Verify.InductiveRestorationRecursors` now reaches
-the separate `Verify.InductiveNestedArity` mismatch. Focused
+the separate `Verify.InductiveRestorationRules` mismatch. Focused
 `lake build Lean4Lean.Verify.InductiveFrontendScope` also passes (158 jobs),
 and `tests/InductiveFrontendScope.lean` passes 10 public fixtures plus 16
 failure controls, including reserved-prefix rejection. The constructor-field
@@ -182,10 +186,10 @@ translation fixtures remain downstream of unavailable binder-typing/header
 objects. The existing
 `RecursorFieldScope` and direct metadata/registration audits also pass with
 exact generated-native provenance identities. The default `lake build` reaches
-all `414` targets before failing in `Verify.InductiveNestedArity`,
+all `414` targets before failing in `Verify.InductiveRestorationRules`,
 `Verify.InductiveValueFrame`, and `Verify.InductiveHeaderTraces`;
 the receipt is
-`/var/tmp/thomas-ahle/fleet2/logs/lean4lean-restoration-constructors-full.log`.
+`/var/tmp/thomas-ahle/fleet2/logs/lean4lean-restoration-nested-arity-full.log`.
 The aggregate
 `tests/InductiveReturnTyping.lean`, `tests/InductiveValueFrame.lean`, and
 later inductive frontend fixtures remain downstream of those blockers. Validation
