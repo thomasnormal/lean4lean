@@ -352,9 +352,12 @@ unchanged text totals do not establish an unchanged transitive axiom set.
    fixes, validate it, and publish only with the required explicit lease permission.
    Then submit focused, validated upstream contributions rather than rebuilding
    a large divergent patch stack.
-2. Close semantic dependencies: the remaining application/extra confluence
-   case, non-circular typing/injectivity foundations, genuine `TrProj`, and
-   quotient/inductive `reduceRecursor.WF`.
+2. Close semantic dependencies: the remaining `NormalEq.parRed` application/
+   extra case (currently the sole confluence `sorry` after the constant-case
+   proof), non-circular typing/injectivity foundations, genuine `TrProj`, and
+   quotient/inductive `reduceRecursor.WF`. The application/extra case requires
+   a pattern-preservation/overlap lemma across `NormalEq`, including eta and
+   proof-irrelevance branches; a direct `cases` proof is not sound.
 3. Connect the existing inductive stages to actual checked model registration,
    constructor/recursor generation, and a constructive `AddInduct` model.
 4. Restore the four disabled native arithmetic operations with their proofs and
