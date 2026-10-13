@@ -291,8 +291,11 @@ patch removes one existing confluence admission and adds no new one. PR #56
 generalizes the equation certificate under shared lambda binders without adding
 an admission or claiming full quotient confluence. Do not submit the substitution
 port: it already came from upstream.
-Reassess the source-preflight contribution against upstream's own checks; the
-tested native capture input is already rejected by Lean 4.33.0-rc2.
+The source-preflight contribution was rechecked and is not a PR candidate:
+official upstream already performs the equivalent original-header and
+constructor `checkNoMVarNoFVar` checks inline in `addInductive`, while Lean
+4.33.0-rc2 rejects the historical capture input. It remains useful fork-side
+regression evidence, not a duplicate upstream change.
 
 ## Behavioral differences and findings
 
