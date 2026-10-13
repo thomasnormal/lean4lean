@@ -130,7 +130,7 @@ The inbox is absent. The latest fetch confirms official master remains
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, already an ancestor of detached
 integration checkpoint `43a47d9`; the detached integration's daily rebase check
 is a successful no-op. The published branch itself is not yet rebased: it
-currently has 49 upstream-only and 338 branch-only
+currently has 49 upstream-only and 339 branch-only
 commits; the detached integration has zero upstream-only and 398 branch-only
 commits. These are synchronization facts, not proof progress.
 
