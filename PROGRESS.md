@@ -1,6 +1,6 @@
 # Progress and upstream comparison
 
-Last reviewed: **2026-10-12 (UTC)**. This is the readable overview of the
+Last reviewed: **2026-10-13 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
@@ -11,9 +11,18 @@ inductive staging work, and regression coverage. It is **not a completed
 verification of Lean's kernel**, and it is **not uniformly ahead of official
 lean4lean**. Upstream has independently proved ordinary declaration checking
 and added newer primitive and universe-level results that our branch has not
-fully integrated. Its admission-free simultaneous substitution proof is now
-narrowly ported here; that is useful foundation integration, not completion of
-the frontend's soundness proof or a full upstream rebase.
+fully integrated into the published branch. Its admission-free simultaneous
+substitution proof is narrowly ported here; that is foundation integration,
+not completion of frontend soundness.
+
+**Published versus local integration:** the published proof source remains
+`4b3a958f89d999bc40ec6b409b135aa36108b8be` on Lean **4.29.0**, and its full
+default build passes on October 13. The separate integration worktree is
+based on official `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` on Lean
+**4.33.0-rc2**. Today's fetch confirms that official tip is already an ancestor,
+but integration's full build and regression gates are **not green**. Its
+rewritten history has not been published. A current local base is not a
+validated, published rebase.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.
@@ -21,7 +30,7 @@ Actual checked inductive/model registration and recursor semantics remain open.
 Our executable also deliberately differs from upstream; this is not just a
 proof-only patch set.
 
-## Progress scorecard
+## Comparison snapshot
 
 Progress means extending an actual semantic guarantee, removing an admission
 from its dependency chain, or repairing a demonstrated correctness obstruction.
@@ -37,9 +46,10 @@ themselves satisfy any of these goals.
 | Complete confluence and semantic reduction correctness | **Partial progress:** `7682b23` removes the constant-case confluence admission; `c0f9930` repairs the incompatible quotient-equation premise. | Confluence and related semantic obligations remain open. | Application/extra confluence, injectivity/strengthening, genuine projection semantics, and `reduceRecursor.WF`. |
 | Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
 | Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Native Lean 4.33.0-rc2 rejects this exact source constructor with `declHasFVars`, now regression-tested. | Version-bounded validation result, not a current native bug or a proof of logical unsoundness. |
+| New semantic guarantees in the October 13 integration checkpoint | **None claimed.** Recursor/restoration, binder, header-typing, and transport proofs are being restored against current APIs. | Compatibility preserves prior contracts; it is not a newly solved upstream obligation. | Full build, regression, and transitive-trust gates must pass before calling integration validated. |
 
-Comparison anchors: our `poc-verified-noninductive` source at
-`55b7b4dd061f580c88d8552315f350f866f0501f` (2026-10-12), and official
+Comparison anchors: our published proof source at
+`4b3a958f89d999bc40ec6b409b135aa36108b8be`, and official
 `digama0/lean4lean` master at `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`
 (2026-10-10). Our toolchain is Lean `v4.29.0`; official uses `v4.33.0-rc2`.
 These pins make the claims reviewable without treating source volume as progress.
@@ -111,6 +121,49 @@ This branch is published, so a nontrivial rebase requires a history-rewriting
 push. Permission to use `--force-with-lease` is pending; the existing no-force
 rule remains in effect until the user answers. Do not describe the branch as
 rebased or synchronized until the rebase and publication have actually succeeded.
+
+### Current integration checkpoint — October 13
+
+The inbox is absent. The latest fetch confirms official master remains
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, already an ancestor of the local
+integration checkpoint `9a56021`; today's daily rebase check is a successful
+no-op. The published branch still has 49 upstream-only and 328 branch-only
+commits before this documentation update. The local integration has zero
+upstream-only commits. These are synchronization facts, not proof progress.
+
+The recursor/restoration adaptation remains uncommitted until its required
+gates pass. Focused builds of `InductiveRestorationRecursors`,
+`InductiveRecursorNames`, and `InductiveHeaderRecursorTransport` pass, with
+receipt `lean4lean-recursor-restoration-focused.log`. The full default build
+fails in `Lean4Lean.Verify.InductiveHeaderReductionTransport`, where proofs
+must follow the new non-recursive-structure guard and removal of `cheapRec`.
+Receipt: `lean4lean-recursor-names-full36.log`. Dependent targets blocked by
+that failure are not validated by this build.
+
+Regression results are stricter than the focused module builds:
+- `tests/InductiveHeaderTraces.lean` passes.
+- `tests/InductiveOriginalRecursorNames.lean` rejects the transitive interface
+  axiom `Lean.Expr.mkAppData_eq`; its allowlist has not been weakened.
+- `tests/InductiveFrontendRestoration.lean` cannot evaluate a control because
+  its dependency contains the `sorry` axiom.
+- `tests/InductiveSubstitutionStageEndpointRebase.lean` and
+  `tests/InductiveHeaderNormalizationTransport.lean` need fixture/API adaptation.
+
+Receipt: `lean4lean-recursor-restoration-regressions.log`. All receipts above
+are under `/var/tmp/thomas-ahle/fleet2/logs/`. These failures must be resolved
+or explicitly accounted for before declaring integration validated. A passing
+module build is not a passing transitive-axiom audit. No source admission is
+added or removed by the uncommitted proof adaptation.
+
+Documentation is published by normal fast-forward without publishing the
+unfinished integration. Preserve that worktree and reconcile this document
+when the integration is ready.
+
+### Earlier integration receipts — October 12
+
+The following records describe intermediate checkpoints, not the current full
+integration gate. The October 13 checkpoint above supersedes their stopping
+points and broad statements about passing candidate targets.
 
 Preparation on 2026-10-12 fetched the official snapshot above. A non-mutating
 tip-to-tip merge preview reports conflicts across core checker and proof files;
@@ -225,8 +278,11 @@ connection replay; final integration and publication remain unfinished.
 ### Upstream contributions
 
 After the initial rebase passes its full validation, submit one coherent,
-reviewable proof or correctness fix upstream when it is ready; batch small
-dependent changes. Re-check official master, build on its current toolchain,
+reviewable proof or correctness fix **as soon as it is ready**, normally one
+reviewable item at a time; batch tiny dependent changes. Do not accumulate
+another large divergent stack or open PRs merely for module additions. Pending
+review does not block continuing verification. Re-check official master to
+avoid duplicate work, build on its current toolchain,
 include regression and transitive-axiom evidence, and keep fork-only status
 documents out of the PR. No PR has been opened for this integration checkpoint.
 
@@ -254,7 +310,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-At our source snapshot, the full default `lake build` passes **405 jobs**.
+At the published proof source, the full default `lake build` passes on
+**October 13** (receipt `lean4lean-published-progress-build-20261013.log`
+under `/var/tmp/thomas-ahle/fleet2/logs/`).
 Ten focused fixtures also pass without warnings: `StrongSubstitution`,
 `NativeInstantiation`, `Reflection`, `QuotientPatternEquation`,
 `ConfluenceConstantReduction`, `NonInductiveDeclarationFrontend`, `Environment`,
@@ -264,11 +322,11 @@ build. These receipts describe the published source, not the partially rebased
 candidate. Candidate focused builds and the version-specific native test above
 are separate integration evidence, not a full build of upstream or the candidate.
 
-| Whole-word `sorry` source census under `Lean4Lean/` | Our fork | Upstream |
-| --- | --- | --- |
-| Matching lines | 125 | 131 |
-| Files containing matches | 23 | 27 |
-| Occurrences | 129 | 135 |
+| Whole-word `sorry` or `admit` source census, October 13 | Published proof source | Local integration | Official master |
+| --- | --- | --- | --- |
+| Matching lines | 126 | 129 | 133 |
+| Files containing matches | 24 | 27 | 29 |
+| Occurrences | 130 | 133 | 137 |
 
 This deliberately includes comments and `Experimental` sources. It is a source
 census, **not an audit of theorem trust**: removing one admission does not make
@@ -276,6 +334,11 @@ every theorem depending on it admission-free, and adding substantial proved
 code does not make the raw totals comparable as percentages. Both branches
 retain foundational admissions. Our actual frontend's transitive `sorryAx`
 dependency is the more important signal.
+
+The uncommitted integration adaptation leaves its starting census unchanged:
+129 matching lines, 27 files, 133 occurrences. Differences between source and
+toolchain snapshots are not new admissions added by this adaptation, and
+unchanged text totals do not establish an unchanged transitive axiom set.
 
 ## Next priorities
 
