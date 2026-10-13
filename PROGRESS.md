@@ -125,20 +125,19 @@ rebased or synchronized until the rebase and publication have actually succeeded
 ### Current integration checkpoint — October 13
 
 The inbox is absent. The latest fetch confirms official master remains
-`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, already an ancestor of the local
-integration checkpoint `9a56021`; today's daily rebase check is a successful
-no-op. The published branch still has 49 upstream-only and 328 branch-only
-commits before this documentation update. The local integration has zero
-upstream-only commits. These are synchronization facts, not proof progress.
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, already an ancestor of detached
+integration checkpoint `04d113c`; today's daily rebase check is a successful
+no-op. The published branch currently has 49 upstream-only and 329 branch-only
+commits; the detached integration has zero upstream-only and 397 branch-only
+commits. These are synchronization facts, not proof progress.
 
-The recursor/restoration adaptation remains uncommitted until its required
-gates pass. Focused builds of `InductiveRestorationRecursors`,
-`InductiveRecursorNames`, and `InductiveHeaderRecursorTransport` pass, with
-receipt `lean4lean-recursor-restoration-focused.log`. The full default build
-fails in `Lean4Lean.Verify.InductiveHeaderReductionTransport`, where proofs
-must follow the new non-recursive-structure guard and removal of `cheapRec`.
-Receipt: `lean4lean-recursor-names-full36.log`. Dependent targets blocked by
-that failure are not validated by this build.
+The detached integration now passes the full default build (all 414 jobs),
+with receipt `lean4lean-integration-full25.log`. Its scoped projection and
+current `mkAppN`/`Array.foldl`/`Forall₂` adaptations preserve the existing
+contracts and leave the 129-line / 133-occurrence admission census unchanged.
+This is compatibility maintenance, not a new semantic milestone. The rewritten
+history remains unpublished because explicit `--force-with-lease` authorization
+is still pending; the published branch remains the green Lean 4.29.0 source.
 
 Regression results are stricter than the focused module builds:
 - `tests/InductiveHeaderTraces.lean` passes.
@@ -284,12 +283,16 @@ another large divergent stack or open PRs merely for module additions. Pending
 review does not block continuing verification. Re-check official master to
 avoid duplicate work, build on its current toolchain,
 include regression and transitive-axiom evidence, and keep fork-only status
-documents out of the PR. No PR has been opened for this integration checkpoint.
+documents out of the PR. **PR #55** is now open for the focused constant-case
+confluence proof; its branch is based directly on the current official master.
 
-First evaluate the closed quotient-equation pattern repair and the constant-case
-confluence proof. Do not submit the substitution port: it already came from
-upstream. Reassess the source-preflight contribution against upstream's own
-checks; the tested native capture input is already rejected by Lean 4.33.0-rc2.
+The constant-case confluence proof was submitted as PR #55 after a 161-job
+official-master build, a focused regression, and a transitive-axiom audit. The
+patch removes one existing confluence admission and adds no new one. Next,
+evaluate the closed quotient-equation pattern repair as an independent PR
+candidate. Do not submit the substitution port: it already came from upstream.
+Reassess the source-preflight contribution against upstream's own checks; the
+tested native capture input is already rejected by Lean 4.33.0-rc2.
 
 ## Behavioral differences and findings
 
