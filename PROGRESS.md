@@ -47,6 +47,7 @@ themselves satisfy any of these goals.
 | Complete confluence and semantic reduction correctness | **Partial progress:** `7682b23` removes the constant-case confluence admission; `c0f9930` repairs the incompatible quotient-equation premise. | Confluence and related semantic obligations remain open. | Application/extra confluence, injectivity/strengthening, genuine projection semantics, and `reduceRecursor.WF`. |
 | Reject projection reduction outside the current semantic model | **Upstream-ready candidate in PR #57:** `reduceProjCore.none_of_translation` and `reduceProj.none_of_translation` prove that translated terms cannot reduce through constructor-family lookups while `TrEnv` remains constructor-free; the existing `WF` contracts now derive from that rejection proof. | Official master still carries the original admitted projection `WF` contract. | This is deliberately a rejection theorem for the non-inductive fragment, not inductive projection semantics; `AddInduct`, model registration, and recursor obligations remain open. |
 | Reject projection type inference outside the current semantic model | **Upstream-ready candidate in PR #58:** `inferProj.rejects` proves that translated structure types cannot pass the inductive-header lookup, and the existing `inferProj.WF` contract now follows without an admission. | Official master still carries the original admitted `inferProj.WF` contract. | This closes only the constructor-free semantic fragment; successful inductive projection inference still requires `AddInduct`, model registration, and dependent-field semantics. |
+| Reject structure-eta and unit-like comparison outside the current semantic model | **Upstream-ready candidate in PR #59:** `tryEtaStructCore.false_of_translation` and `isDefEqUnitLike.false_of_translation` prove both comparison workers return false for translated constructor-family heads; their existing `WF` contracts now derive without admissions. | Official master still carries both comparison admissions. | This closes only the constructor-free semantic fragment; inductive eta and unit-like semantics still require constructive model registration. |
 | Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
 | Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Native Lean 4.33.0-rc2 rejects this exact source constructor with `declHasFVars`, now regression-tested. | Version-bounded validation result, not a current native bug or a proof of logical unsoundness. |
 | New semantic guarantees in the October 13 integration checkpoint | **None claimed.** Recursor/restoration, binder, header-typing, and transport proofs are being restored against current APIs. | Compatibility preserves prior contracts; it is not a newly solved upstream obligation. | Full build, regression, and transitive-trust gates must pass before calling integration validated. |
@@ -288,8 +289,9 @@ include regression and transitive-axiom evidence, and keep fork-only status
 documents out of the PR. **PR #55** is open for the focused constant-case
 confluence proof, **PR #56** is open for the independent closed
 quotient-equation pattern repair, **PR #57** is open for projection reduction
-rejection, and **PR #58** is open for projection type-inference rejection in the
-current non-inductive model; all four branches are
+rejection, **PR #58** is open for projection type-inference rejection, and
+**PR #59** is open for structure-eta/unit-like comparison rejection in the
+current non-inductive model; all five branches are
 based directly on the current official master and currently report GitHub
 merge state `UNSTABLE` with no published checks.
 
@@ -309,6 +311,12 @@ admission by proving the stronger rejection contract for translated structure
 types. Its theorem fixture and transitive-axiom audit use the upstream API and
 make the same explicit non-inductive-scope distinction; it does not claim
 successful inductive projection inference.
+PR #59 proves the two comparison rejection contracts and derives the existing
+`tryEtaStructCore.WF` and `isDefEqUnitLike.WF` theorems without direct
+admissions. Its fixture audits the theorem dependencies against the inherited
+`Methods.withFuel.WF` baseline. The proof shares the constructor-free model
+invariant with the projection work and explicitly does not claim inductive eta
+or unit-like semantics.
 The source-preflight contribution was rechecked and is not a PR candidate:
 official upstream already performs the equivalent original-header and
 constructor `checkNoMVarNoFVar` checks inline in `addInductive`, while Lean
