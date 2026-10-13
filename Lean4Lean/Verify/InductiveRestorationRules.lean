@@ -54,12 +54,12 @@ theorem SourceRecursorRules.count {nparams : Nat} {ctors : List Constructor} {ru
 
 theorem SourceRecursorRules.names {nparams : Nat} {ctors : List Constructor} {rules : List RecursorRule}
     (hrules : SourceRecursorRules nparams ctors rules) : rules.map (·.ctor) = ctors.map (·.name) := by
-  simpa only [List.map_map] using congrArg (List.map Prod.fst) hrules
+  simpa only [List.map_map, Function.comp_def] using congrArg (List.map Prod.fst) hrules
 
 theorem SourceRecursorRules.fieldCounts {nparams : Nat} {ctors : List Constructor} {rules : List RecursorRule}
     (hrules : SourceRecursorRules nparams ctors rules) :
     rules.map (·.nfields) = ctors.map (fun ctor => arity 0 ctor.type - nparams) := by
-  simpa only [List.map_map] using congrArg (List.map Prod.snd) hrules
+  simpa only [List.map_map, Function.comp_def] using congrArg (List.map Prod.snd) hrules
 
 theorem SourceRecursorRules.at {nparams : Nat} {ctors : List Constructor} {rules : List RecursorRule}
     (hrules : SourceRecursorRules nparams ctors rules) (index : Nat) (ctor : Constructor)
@@ -145,7 +145,8 @@ theorem AddInductive.InductiveStats.SafeRunScope.sourceRuleSources
   refine ⟨recursor, by simpa only [hname] using hlookup, ?_, ?_, hsourceRules, ?_⟩
   · change mkRecName rewritten[index]!.name = mkRecName types[index].name
     rw [hname]
-  · simpa only [hprefix.minorOffset index (Nat.le_of_lt harray),
+  · simpa only [recursor, declareRecursors.metadataVal,
+      hprefix.minorOffset index (Nat.le_of_lt harray),
       hprefix.minorOffset (index + 1) (by omega)] using hrecipe
   · simpa only [hframe.toHeaderFrame.lparams, hrootParams] using
       scope.sourceRuleConstructors hprefix index hindex recursor.rules hsourceRules
@@ -168,7 +169,7 @@ theorem SourceRecursorRules.restoredPairs {nparams : Nat} {ctors : List Construc
       ctors.map (fun ctor =>
         (if nameMap.getD recName recName == recName then ctor.name else preprocessing.restoreCtorName staged ctor.name,
           arity 0 ctor.type - nparams)) := by
-  simpa only [List.map_map, restoredRecursorRule] using
+  simpa only [List.map_map, Function.comp_def, restoredRecursorRule] using
     congrArg (List.map fun pair : Name × Nat =>
       (if nameMap.getD recName recName == recName then pair.1 else preprocessing.restoreCtorName staged pair.1, pair.2)) hrules
 
@@ -199,7 +200,8 @@ theorem SourceRecursorRuleLookups.finalRecursor {nparams : Nat} {lparams : List 
   · refine ⟨restoredRecursorVal preprocessing staged (types.map (·.name))
       (mkAuxRecNameMap staged types).2 (mkRecName types[index].name) recursor, hnested haux, ?_, ?_⟩
     · simpa only [restoredRecursorVal, List.length_map] using hrules.count
-    · simpa only [restoredRecursorVal, List.map_map, restoredRecursorRule] using hrules.fieldCounts
+    · simpa only [restoredRecursorVal, List.map_map, Function.comp_def,
+        restoredRecursorRule.fieldCount] using hrules.fieldCounts
 
 theorem SourceRecursorRuleLookups.finalRule {nparams : Nat} {lparams : List Name} {types : List InductiveType}
     {preprocessing : ElimNestedInductive.Result} {staged result : Environment}
