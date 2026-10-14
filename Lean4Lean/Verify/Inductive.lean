@@ -69,6 +69,49 @@ theorem Environment.PrimitiveInductiveDecl.toVDecl
     exact ⟨natInductDecl, .inr rfl, natInductDecl.headersWF,
       fun env' => natInductDecl.tr env binderName binderInfo⟩
 
+private theorem boolConstructorUvars (ctor : VConstVal)
+    (hmem : ctor ∈ boolInductDecl.constructorHeaders) :
+    ctor.uvars = boolInductDecl.uvars := by
+  change ctor ∈ ([
+    { name := ``Bool.false, uvars := 0, type := .const ``Bool [] },
+    { name := ``Bool.true, uvars := 0, type := .const ``Bool [] }
+  ] : List VConstVal) at hmem
+  simp at hmem
+  rcases hmem with rfl | rfl <;> rfl
+
+private theorem natConstructorUvars (ctor : VConstVal)
+    (hmem : ctor ∈ natInductDecl.constructorHeaders) :
+    ctor.uvars = natInductDecl.uvars := by
+  change ctor ∈ ([
+    { name := ``Nat.zero, uvars := 0, type := .const ``Nat [] },
+    { name := ``Nat.succ, uvars := 0, type := .forallE (.const ``Nat []) (.const ``Nat []) }
+  ] : List VConstVal) at hmem
+  simp at hmem
+  rcases hmem with rfl | rfl <;> rfl
+
+private theorem boolInductDecl.wf (env : VEnv) : boolInductDecl.WF env := by
+  refine ⟨boolInductDecl.headersWF, ?_⟩
+  intro env' hadd ctor hmem
+  exact ⟨boolConstructorUvars ctor hmem, boolInductDecl.constructorWF hadd ctor hmem⟩
+
+private theorem natInductDecl.wf (env : VEnv) : natInductDecl.WF env := by
+  refine ⟨natInductDecl.headersWF, ?_⟩
+  intro env' hadd ctor hmem
+  exact ⟨natConstructorUvars ctor hmem,
+    natInductDecl.constructorWF hadd ctor hmem⟩
+
+theorem Environment.PrimitiveInductiveDecl.toVDecl_WF
+    (hdecl : PrimitiveInductiveDecl lparams nparams types isUnsafe) (env : VEnv) :
+    ∃ decl, (decl = boolInductDecl ∨ decl = natInductDecl) ∧ decl.HeadersWF env ∧
+      decl.WF env ∧
+      ∀ env', env.addInductHeaders decl.types = some env' →
+        TrInductDecl env env' lparams nparams types decl := by
+  obtain ⟨decl, hkind, hheaders, htr⟩ := hdecl.toVDecl env
+  refine ⟨decl, hkind, hheaders, ?_, htr⟩
+  rcases hkind with rfl | rfl
+  · exact boolInductDecl.wf env
+  · exact natInductDecl.wf env
+
 theorem Environment.checkPrimitiveInductive.toVDecl
     (env : Kernel.Environment) (venv : VEnv)
     (hcheck : checkPrimitiveInductive env lparams nparams types isUnsafe = .ok true) :
@@ -90,5 +133,18 @@ theorem Environment.checkPrimitiveInductive.toVDecl_WF
   have checked : checkPrimitiveInductive env lparams nparams types isUnsafe = .ok true := by
     simpa [hprimitive] using result
   exact checkPrimitiveInductive.toVDecl env venv checked
+
+theorem Environment.checkPrimitiveInductive.toVDecl_WF_model
+    (env : Kernel.Environment) (venv : VEnv)
+    (lparams : List Name) (nparams : Nat) (types : List InductiveType) (isUnsafe : Bool) :
+    (checkPrimitiveInductive env lparams nparams types isUnsafe).WF fun isPrimitive =>
+      isPrimitive = true → ∃ decl, (decl = boolInductDecl ∨ decl = natInductDecl) ∧
+        decl.HeadersWF venv ∧ decl.WF venv ∧
+        ∀ venv', venv.addInductHeaders decl.types = some venv' →
+          TrInductDecl venv venv' lparams nparams types decl := by
+  intro isPrimitive result hprimitive
+  have checked : checkPrimitiveInductive env lparams nparams types isUnsafe = .ok true := by
+    simpa [hprimitive] using result
+  exact (checkPrimitiveInductive.eq_true_iff env lparams nparams types isUnsafe).mp checked |>.toVDecl_WF venv
 
 end Lean4Lean
