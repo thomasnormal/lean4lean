@@ -95,6 +95,11 @@ the entire dependency stack.
   weak cross-substitution, typed context substitutions, and binder/identity
   support. All 34 owned theorem audits exclude inherited admissions; this does
   not change the frontend's existing `sorryAx` dependency.
+- Added a proved rejection contract for the inductive recursor worker and its
+  dispatcher when the environment's quotient initialization flag is false.
+  The contract is constructor-free and preserves the existing arbitrary-fuel
+  and cheap-recursion interfaces; initialized quotient reduction and full
+  recursor soundness remain open.
 
 ## What upstream has that we should review
 

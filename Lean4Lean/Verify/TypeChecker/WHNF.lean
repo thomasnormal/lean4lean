@@ -177,6 +177,19 @@ theorem reduceRecursor.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
     RecM.WF c s (reduceRecursor e) fun oe _ =>
       ∀ e₁, oe = some e₁ → c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' := sorry
 
+theorem reduceRecursor.none_of_translation {context : VContext} {state : VState}
+    (notInitialized : context.env.quotInit = false)
+    (translated : context.TrExprS expression semantic) :
+    (reduceRecursor expression cheapRec cheapProj).WF context state
+      (fun outcome _ => outcome = none) := by
+  unfold reduceRecursor
+  refine RecM.WF.getEnv ?_
+  simp [notInitialized]
+  refine (inductiveReduceRec.none_of_translation translated _ _ _).bind fun outcome _ _ h => ?_
+  cases outcome with
+  | none => exact .pure rfl
+  | some value => cases h
+
 theorem whnfFVar.WF {c : VContext} {s : VState} (he : c.TrExprS (.fvar fv) e') :
     RecM.WF c s (whnfFVar (.fvar fv) cheapProj) fun e₁ _ =>
       c.FVarsBelow (.fvar fv) e₁ ∧ c.TrExpr e₁ e' := by
