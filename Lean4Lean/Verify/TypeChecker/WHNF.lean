@@ -190,6 +190,29 @@ theorem reduceRecursor.none_of_translation {context : VContext} {state : VState}
   | none => exact .pure rfl
   | some value => cases h
 
+theorem reduceRecursor.fvarsBelow {context : VContext} {state : VState}
+    (translated : context.TrExprS expression semantic) :
+    RecM.WF context state (reduceRecursor expression cheapRec cheapProj) fun outcome _ =>
+      ∀ reduced, outcome = some reduced → context.FVarsBelow expression reduced := by
+  by_cases initialized : context.env.quotInit = true
+  · unfold reduceRecursor
+    refine RecM.WF.getEnv ?_
+    simp [initialized]
+    refine (quotReduceRec.fvarsBelow translated).bind fun outcome _ _ h => ?_
+    cases outcome with
+    | some reduced =>
+      exact .pure (by intro value equality; cases equality; exact h _ rfl)
+    | none =>
+      refine (inductiveReduceRec.none_of_translation translated _ _ _).bind
+        fun outcome _ _ h => ?_
+      cases outcome with
+      | none => exact .pure nofun
+      | some reduced => cases h
+  · have notInitialized : context.env.quotInit = false := by
+      cases value : context.env.quotInit <;> simp_all
+    exact (reduceRecursor.none_of_translation notInitialized translated).mono
+      fun _ _ _ rejected _ successful => by cases rejected.symm.trans successful
+
 theorem whnfFVar.WF {c : VContext} {s : VState} (he : c.TrExprS (.fvar fv) e') :
     RecM.WF c s (whnfFVar (.fvar fv) cheapProj) fun e₁ _ =>
       c.FVarsBelow (.fvar fv) e₁ ∧ c.TrExpr e₁ e' := by
