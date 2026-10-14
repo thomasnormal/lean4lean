@@ -16,7 +16,7 @@ substitution proof is narrowly ported here; that is foundation integration,
 not completion of frontend soundness.
 
 **Published versus local integration:** the published branch is at
-`ef768b8` (the recursor-rejection proof checkpoint after
+`9271b1d` (the recursor free-variable checkpoint after
 the proof-bearing source checkpoint `4b3a958f89d999bc40ec6b409b135aa36108b8be`)
 on Lean **4.29.0**, and its full
 default build passes on October 13. The separate integration worktree is
