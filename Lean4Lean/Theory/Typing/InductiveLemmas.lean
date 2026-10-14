@@ -6,6 +6,19 @@ import Lean4Lean.Theory.ConstructorHeaders
 namespace Lean4Lean
 namespace VEnv
 
+theorem addInduct.exists
+    (headersFresh : ∀ header ∈ decl.types, env.constants header.name = none)
+    (headersDistinct : (decl.types.map (·.name)).Nodup)
+    (constructorsDistinct : (decl.constructorHeaders.map VConstVal.name).Nodup)
+    (constructorsFresh : ∀ headerEnv, env.addInductHeaders decl.types = some headerEnv →
+      ∀ ctor ∈ decl.constructorHeaders, headerEnv.constants ctor.name = none) :
+    ∃ env', addInduct env decl = some env' := by
+  obtain ⟨headerEnv, hheader⟩ := addInductHeaders.exists headersFresh headersDistinct
+  obtain ⟨env', hconstructor⟩ := addConstructorHeaders.exists
+    (constructorsFresh headerEnv hheader) constructorsDistinct
+  refine ⟨env', ?_⟩
+  simpa only [VEnv.addInduct, hheader] using hconstructor
+
 theorem addInduct.le
     (hadd : addInduct env decl = some env') : env ≤ env' := by
   unfold VEnv.addInduct at hadd
