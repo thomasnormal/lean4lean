@@ -42,6 +42,27 @@ theorem addInduct.constructor
   obtain ⟨headers, hheader, hconstructor⟩ := Option.bind_eq_some_iff.mp hadd
   exact addConstructorHeaders.constants hconstructor hmem
 
+theorem addInduct.headerFresh
+    (header : VInductiveType) (hadd : addInduct env decl = some env')
+    (hmem : header ∈ decl.types) :
+    env.constants header.name = none := by
+  unfold VEnv.addInduct at hadd
+  obtain ⟨headers, hheader, hconstructor⟩ := Option.bind_eq_some_iff.mp hadd
+  exact addInductHeaders.fresh hheader hmem
+
+theorem addInduct.constructorFresh
+    (ctor : VConstVal) (hadd : addInduct env decl = some env')
+    (hmem : ctor ∈ decl.constructorHeaders) :
+    env.constants ctor.name = none := by
+  unfold VEnv.addInduct at hadd
+  obtain ⟨headers, hheader, hconstructor⟩ := Option.bind_eq_some_iff.mp hadd
+  cases found : env.constants ctor.name with
+  | none => rfl
+  | some value =>
+    have found' := (addInductHeaders.le hheader).constants found
+    rw [addConstructorHeaders.fresh hconstructor hmem] at found'
+    cases found'
+
 theorem addInduct.defeqs_eq
     (hadd : addInduct env decl = some env') : env'.defeqs = env.defeqs := by
   unfold VEnv.addInduct at hadd

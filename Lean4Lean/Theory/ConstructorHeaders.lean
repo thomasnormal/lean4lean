@@ -53,6 +53,23 @@ theorem VEnv.addConstructorHeaders.constants
     · exact (addConstructorHeaders.le hrest).constants (addConst_self hstep)
     · exact ih hrest hmem
 
+theorem VEnv.addConstructorHeaders.fresh
+    (hadd : env.addConstructorHeaders ctors = some env') (hmem : ctor ∈ ctors) :
+    env.constants ctor.name = none := by
+  induction ctors generalizing env with
+  | nil => cases hmem
+  | cons first ctors ih =>
+    obtain ⟨next, hstep, hrest⟩ := Option.bind_eq_some_iff.mp hadd
+    rcases List.mem_cons.mp hmem with rfl | hmem
+    · unfold VEnv.addConst at hstep
+      split at hstep <;> simp_all
+    · cases found : env.constants ctor.name with
+      | none => rfl
+      | some value =>
+        have found' := (addConst_le hstep).constants found
+        rw [@ih next hrest hmem] at found'
+        cases found'
+
 theorem VEnv.addConstructorHeaders.defeqs_eq
     (hadd : env.addConstructorHeaders ctors = some env') : env'.defeqs = env.defeqs := by
   induction ctors generalizing env with
