@@ -1,6 +1,6 @@
 # Progress and upstream comparison
 
-Last reviewed: **2026-10-13 (UTC)**. This is the readable overview of the
+Last reviewed: **2026-10-14 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
@@ -16,7 +16,7 @@ substitution proof is narrowly ported here; that is foundation integration,
 not completion of frontend soundness.
 
 **Published versus local integration:** the published branch is at
-`fae9d0f` (a documentation checkpoint after
+`1dacf49` (a documentation checkpoint after
 the proof-bearing source checkpoint `4b3a958f89d999bc40ec6b409b135aa36108b8be`)
 on Lean **4.29.0**, and its full
 default build passes on October 13. The separate integration worktree is
@@ -130,9 +130,9 @@ push. Permission to use `--force-with-lease` is pending; the existing no-force
 rule remains in effect until the user answers. Do not describe the branch as
 rebased or synchronized until the rebase and publication have actually succeeded.
 
-### Current integration checkpoint — October 13
+### Current integration checkpoint — October 14
 
-The inbox is absent. The latest fetch confirms official master remains
+The inbox remains absent. The latest fetch on October 14, 2026 confirms official master remains
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, already an ancestor of detached
 integration checkpoint `43a47d9`; the detached integration's daily rebase check
 is a successful no-op. The published branch itself is not yet rebased: it
