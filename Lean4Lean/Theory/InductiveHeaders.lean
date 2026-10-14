@@ -4,15 +4,6 @@ import Lean4Lean.Theory.Typing.Env
 
 namespace Lean4Lean
 
-def VEnv.addInductHeaders (env : VEnv) : List VInductiveType → Option VEnv
-  | [] => some env
-  | header :: headers => do
-    let env ← env.addConst header.name header.toVConstant
-    env.addInductHeaders headers
-
-def VInductDecl.HeadersWF (env : VEnv) (decl : VInductDecl) : Prop :=
-  ∀ header ∈ decl.types, header.uvars = decl.uvars ∧ header.toVConstant.WF env
-
 variable {env env' : VEnv} {decl : VInductDecl} {headers : List VInductiveType}
   {header : VInductiveType} {name : Name} {constant : VConstant}
 

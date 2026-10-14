@@ -100,11 +100,10 @@ nonrec theorem AddQuot.to_addQuot (H : AddQuot m₁ m₂ env₁ env₂) : env₁
 nonrec theorem AddQuot.le (H : AddQuot m₁ m₂ env₁ env₂) : env₁ ≤ env₂ :=
   open AddQuot1 in (le <| le <| le <| le fun _ _ h => h.2 ▸ VEnv.addDefEq_le) _ _ H
 
-/-- This definition is essentially a `sorry`: it should relate `addInductive`'s
-effect on the constant map to `VEnv.addInduct` (which is itself a `sorry`,
-see `Lean4Lean.Theory.Inductive`), but it currently has no constructors, so the
-`TrEnv'.induct` case below can never fire and environments containing inductives
-are outside the verified `TrEnv` relation. -/
+/-- This relation still needs the kernel-to-model inductive registration proof.
+The abstract environment operation is defined and orderedness is proved, but
+the relation currently has no constructors, so the `TrEnv'.induct` case below
+cannot fire and environments containing inductives remain outside `TrEnv`. -/
 inductive AddInduct (m₁ : ConstMap) (env₁ : VEnv) (decl : VInductDecl)
     (m₂ : ConstMap) (env₂ : VEnv) : Prop
   -- TODO

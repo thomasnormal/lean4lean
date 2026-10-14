@@ -2,15 +2,6 @@ import Lean4Lean.Theory.InductiveHeaders
 
 namespace Lean4Lean
 
-def VEnv.addConstructorHeaders (env : VEnv) : List VConstVal → Option VEnv
-  | [] => some env
-  | ctor :: ctors => do
-    let env ← env.addConst ctor.name ctor.toVConstant
-    env.addConstructorHeaders ctors
-
-def VInductDecl.constructorHeaders (declaration : VInductDecl) : List VConstVal :=
-  declaration.types.flatMap (fun header => header.ctors)
-
 variable {env env' : VEnv} {ctors : List VConstVal} {ctor : VConstVal}
 
 theorem VEnv.addConstructorHeaders.exists
