@@ -100,6 +100,10 @@ the entire dependency stack.
   The contract is constructor-free and preserves the existing arbitrary-fuel
   and cheap-recursion interfaces; initialized quotient reduction and full
   recursor soundness remain open.
+- Added a dispatcher-level free-variable preservation invariant that composes
+  quotient reduction's payload/reapplication support with the constructor-free
+  inductive rejection branch. This is a supporting invariant, not a proof of
+  translated quotient results or initialized recursor soundness.
 
 ## What upstream has that we should review
 
