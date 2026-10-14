@@ -15,6 +15,17 @@ example (environment : Kernel.Environment) (model : VEnv)
             TrInductDecl model model' levels parameters types decl) :=
   Environment.checkPrimitiveInductive.toVDecl_WF environment model levels parameters types isUnsafe
 
+example (environment : Kernel.Environment) (model : VEnv)
+    (levels : List Name) (parameters : Nat) (types : List InductiveType) (isUnsafe : Bool) :
+    (Environment.checkPrimitiveInductive environment levels parameters types isUnsafe).WF
+      (fun primitive => primitive = true →
+        ∃ decl, (decl = boolInductDecl ∨ decl = natInductDecl) ∧
+          decl.HeadersWF model ∧ decl.WF model ∧
+          ∀ model', model.addInductHeaders decl.types = some model' →
+            TrInductDecl model model' levels parameters types decl) :=
+  Environment.checkPrimitiveInductive.toVDecl_WF_model
+    environment model levels parameters types isUnsafe
+
 run_meta
   let theoremName := ``Environment.checkPrimitiveInductive.toVDecl_WF
   let information ← getConstInfo theoremName
@@ -27,5 +38,12 @@ run_meta
     unless baseline.contains axiomName do
       throwError "primitive frontend receipt has unexpected dependency: {axiomName}"
   logInfo m!"primitive checker success is theorem-backed through VDecl/header translation; dependencies = {repr axioms}"
+
+run_meta
+  let theoremName := ``Environment.checkPrimitiveInductive.toVDecl_WF_model
+  let information ← getConstInfo theoremName
+  if information matches .axiomInfo _ then throwError "primitive model receipt is an axiom"
+  let some proof := information.value? | throwError "primitive model receipt proof missing"
+  if proof.hasSorry then throwError "primitive model receipt has an admission"
 
 end PrimitiveInductiveReceiptTest
