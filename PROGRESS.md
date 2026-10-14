@@ -16,7 +16,7 @@ substitution proof is narrowly ported here; that is foundation integration,
 not completion of frontend soundness.
 
 **Published versus local integration:** the published branch is at
-`b50e0f5` (the recursor free-variable checkpoint after
+`9c0f2ee` (the canonical non-inductive frontend theorem checkpoint after
 the proof-bearing source checkpoint `4b3a958f89d999bc40ec6b409b135aa36108b8be`)
 on Lean **4.29.0**, and its full
 default build passes on October 13. The separate integration worktree is
@@ -42,7 +42,7 @@ themselves satisfy any of these goals.
 
 | Goal | Our demonstrated result | Official snapshot | What still blocks completion |
 | --- | --- | --- | --- |
-| Preserve well-formedness through actual non-inductive declaration checking | **Conditional contract proved:** `addDecl.WF_noninductive`, including quotients, arbitrary fuel, batches, and empty-environment contracts. | Ordinary `addDecl.WF` cases are also proved, including quotients and mutual definitions. | Our theorem still inherits `sorryAx`; this is not unconditional kernel soundness. |
+| Preserve well-formedness through actual non-inductive declaration checking | **Conditional contract proved under the main theorem name:** `addDecl.WF` takes an explicit non-inductive premise and covers quotients and arbitrary fuel; `addDecl.WF_noninductive` remains a compatibility alias, with batch and empty-environment wrappers. | Ordinary `addDecl.WF` cases are also proved, including quotients and mutual definitions. | The contract still inherits `sorryAx`; this is not unconditional kernel soundness, and the inductive premise remains open. |
 | Remove inherited admissions from the frontend | **Not complete.** Dependency audits identify the remaining trust gaps. | Foundational admissions also remain. | Must close the actual metatheory/checker dependencies, not add another wrapper around them. |
 | Supply simultaneous substitution for arbitrary typing/equality derivations | **Proved API now available:** `55b7b4d` ports strong/weak cross-substitution and audits its dependencies as only `propext` and `Quot.sound`. | Already proved upstream in `6ba54db`/`8223d22`. | Foundation integration, not a newly solved upstream obligation; the frontend's inherited admissions remain. |
 | Verify actual checked inductive registration | **Not complete.** Header/constructor checks and staging invariants are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, and prelude translation. |
@@ -81,6 +81,10 @@ the entire dependency stack.
 - Proved actual non-inductive frontend contracts, rather than relying only on
   restricted wrapper entry points; dependency audits still expose inherited
   admissions.
+- Promoted the proved non-inductive frontend contract to the canonical
+  `addDecl.WF` theorem name, retaining `addDecl.WF_noninductive` as an alias;
+  the former unrestricted admission is removed while inductive semantics remain
+  explicitly outside the theorem's premise.
 - Repaired source-variable capture handling in inductive preprocessing through
   checks on the original source, before generated names can capture it.
 - Repaired the native-instantiation verification specification to model
