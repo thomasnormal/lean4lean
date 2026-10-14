@@ -39,6 +39,14 @@ theorem _root_.Lean4Lean.inductiveReduceRec.eq_none {monad : Type → Type} [Mon
       cases information <;> try rfl
       exact False.elim <| context.trenv.recursorNotInModel found ⟨_, semanticLookup⟩
 
+theorem inductiveReduceRec.none_of_translation {context : VContext} {state : VState}
+    (translated : context.TrExprS expression semantic)
+    (normalize infer : Expr → RecM Expr) (compare : Expr → Expr → RecM Bool) :
+    (inductiveReduceRec context.env expression normalize infer compare).WF context state
+      (fun outcome _ => outcome = none) := by
+  rw [inductiveReduceRec.eq_none translated]
+  exact .pure rfl
+
 theorem rawNatLitExt?.WF {c : VContext} (H : rawNatLitExt? e = some n) (he : c.TrExprS e e') :
     c.venv.contains ``Nat ∧ e' = .natLit n := by
   have : c.TrExprS (.lit (.natVal n)) e' := by
