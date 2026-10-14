@@ -1734,18 +1734,6 @@ theorem addMutual.WF {ves : VEnvs} (wf : ves.WF env) (vs : List DefinitionVal)
         fun _ _ => ?_
       exact .pure ⟨ves', wf', hmono⟩
 
-/-- The intended main theorem of the `Verify` development, currently unproved:
-if `env` is well-formed and `addDecl env decl` (in checking mode) succeeds,
-then the resulting environment is also well-formed, and it extends `env`.
-
-The actual non-inductive frontend is covered by `addDecl.WF_noninductive` below. The
-unrestricted theorem still requires the missing inductive specification and
-its connection to the executable checker. -/
-theorem addDecl.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env) (decl : Declaration) :
-    (addDecl env decl).WF fun env' =>
-      ∃ ves' : VEnvs, ves'.WF env' ∧ ∀ safety, ves.venv safety ≤ ves'.venv safety :=
-  sorry
-
 theorem checkEqType.no_success {ves : VEnvs} (wf : ves.WF env) :
     (checkEqType env).WF fun _ => False := by
   intro _ accepted
@@ -1772,8 +1760,10 @@ theorem Environment.addQuot.WF {ves : VEnvs} (wf : ves.WF env) :
   · refine (checkEqType.no_success wf).bind fun _ impossible => ?_
     exact impossible.elim
 
-theorem addDecl.WF_noninductive {env : Environment} {ves : VEnvs} (wf : ves.WF env)
-    (decl : Declaration)
+/-- The front-end theorem for the verified non-inductive fragment. The unrestricted
+case still requires the missing inductive specification and its connection to the
+executable checker. -/
+theorem addDecl.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env) (decl : Declaration)
     (notInductive : ∀ lparams nparams types isUnsafe,
       decl ≠ .inductDecl lparams nparams types isUnsafe)
     (fuel : FuelConfig := {}) :
@@ -1789,6 +1779,16 @@ theorem addDecl.WF_noninductive {env : Environment} {ves : VEnvs} (wf : ves.WF e
   | quotDecl => simpa [addDecl] using Environment.addQuot.WF wf
   | inductDecl lparams nparams types isUnsafe =>
     exact (notInductive lparams nparams types isUnsafe rfl).elim
+
+theorem addDecl.WF_noninductive {env : Environment} {ves : VEnvs} (wf : ves.WF env)
+    (decl : Declaration)
+    (notInductive : ∀ lparams nparams types isUnsafe,
+      decl ≠ .inductDecl lparams nparams types isUnsafe)
+    (fuel : FuelConfig := {}) :
+    (addDecl env decl true fuel).WF fun env' =>
+      ∃ ves' : VEnvs, VEnvs.WF env' ves' ∧
+        ∀ safety, ves.venv safety ≤ ves'.venv safety :=
+  addDecl.WF wf decl notInductive fuel
 
 theorem addDecl.foldlM_WF_noninductive {ves : VEnvs} (wf : ves.WF env)
     (decls : List Declaration)
