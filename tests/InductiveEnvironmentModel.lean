@@ -47,3 +47,28 @@ example {env : VEnv} (hadd : VEnv.addInduct ∅ boolInductDecl = some env) :
   VEnv.addInduct.defeqs_eq hadd
 
 end Lean4Lean
+
+namespace Lean4Lean
+
+example : ∃ env, VEnv.addInduct (∅ : VEnv) boolInductDecl = some env := by
+  apply VEnv.addInduct.exists
+  · intro header hmem
+    simp [boolInductDecl] at hmem
+    subst header
+    change none = none
+    rfl
+  · simp [boolInductDecl]
+  · simp [VInductDecl.constructorHeaders, boolInductDecl]
+  · intro headerEnv hheader ctor hmem
+    simp [VEnv.addInductHeaders, VEnv.addConst, boolInductDecl] at hheader
+    have hheader' := Option.some.inj hheader
+    simp at hheader'
+    rw [← hheader']
+    simp [VInductDecl.constructorHeaders, boolInductDecl] at hmem
+    rcases hmem with rfl | rfl
+    · change none = none
+      rfl
+    · change none = none
+      rfl
+
+end Lean4Lean
