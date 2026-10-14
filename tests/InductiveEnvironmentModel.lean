@@ -46,6 +46,17 @@ example {env : VEnv} (hadd : VEnv.addInduct ∅ boolInductDecl = some env) :
     env.defeqs = (∅ : VEnv).defeqs :=
   VEnv.addInduct.defeqs_eq hadd
 
+example {env : VEnv} (hadd : VEnv.addInduct ∅ boolInductDecl = some env) :
+    (∅ : VEnv).constants ``Bool = none := by
+  exact VEnv.addInduct.headerFresh boolInductDecl.types[0] hadd
+    (by simp [boolInductDecl])
+
+example {env : VEnv} (hadd : VEnv.addInduct ∅ boolInductDecl = some env) :
+    (∅ : VEnv).constants ``Bool.false = none := by
+  exact VEnv.addInduct.constructorFresh
+    ({ uvars := 0, type := .const ``Bool [], name := ``Bool.false }) hadd
+    (by simp [VInductDecl.constructorHeaders, boolInductDecl])
+
 end Lean4Lean
 
 namespace Lean4Lean
