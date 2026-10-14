@@ -24,3 +24,26 @@ example {env : VEnv} (hadd : VEnv.addInduct ∅ boolInductDecl = some env) : env
     exact ⟨boolCtorUvars ctor hmem, boolInductDecl.constructorWF haddHeaders ctor hmem⟩) hadd
 
 end Lean4Lean
+
+namespace Lean4Lean
+
+example {env : VEnv} (hadd : VEnv.addInduct ∅ boolInductDecl = some env) :
+    (∅ : VEnv) ≤ env :=
+  VEnv.addInduct.le hadd
+
+example {env : VEnv} (hadd : VEnv.addInduct ∅ boolInductDecl = some env) :
+    env.constants ``Bool = some boolInductDecl.types[0].toVConstant := by
+  simpa [boolInductDecl] using VEnv.addInduct.header boolInductDecl.types[0] hadd
+    (by simp [boolInductDecl])
+
+example {env : VEnv} (hadd : VEnv.addInduct ∅ boolInductDecl = some env) :
+    env.constants ``Bool.false = some { uvars := 0, type := .const ``Bool [] } := by
+  simpa [boolInductDecl] using VEnv.addInduct.constructor
+    ({ uvars := 0, type := .const ``Bool [], name := ``Bool.false }) hadd
+    (by simp [VInductDecl.constructorHeaders, boolInductDecl])
+
+example {env : VEnv} (hadd : VEnv.addInduct ∅ boolInductDecl = some env) :
+    env.defeqs = (∅ : VEnv).defeqs :=
+  VEnv.addInduct.defeqs_eq hadd
+
+end Lean4Lean

@@ -6,6 +6,36 @@ import Lean4Lean.Theory.ConstructorHeaders
 namespace Lean4Lean
 namespace VEnv
 
+theorem addInduct.le
+    (hadd : addInduct env decl = some env') : env ≤ env' := by
+  unfold VEnv.addInduct at hadd
+  obtain ⟨headers, hheader, hconstructor⟩ := Option.bind_eq_some_iff.mp hadd
+  exact (addInductHeaders.le hheader).trans (addConstructorHeaders.le hconstructor)
+
+theorem addInduct.header
+    (header : VInductiveType) (hadd : addInduct env decl = some env')
+    (hmem : header ∈ decl.types) :
+    env'.constants header.name = some header.toVConstant := by
+  unfold VEnv.addInduct at hadd
+  obtain ⟨headers, hheader, hconstructor⟩ := Option.bind_eq_some_iff.mp hadd
+  exact (addConstructorHeaders.le hconstructor).constants
+    (addInductHeaders.constants hheader hmem)
+
+theorem addInduct.constructor
+    (ctor : VConstVal) (hadd : addInduct env decl = some env')
+    (hmem : ctor ∈ decl.constructorHeaders) :
+    env'.constants ctor.name = some ctor.toVConstant := by
+  unfold VEnv.addInduct at hadd
+  obtain ⟨headers, hheader, hconstructor⟩ := Option.bind_eq_some_iff.mp hadd
+  exact addConstructorHeaders.constants hconstructor hmem
+
+theorem addInduct.defeqs_eq
+    (hadd : addInduct env decl = some env') : env'.defeqs = env.defeqs := by
+  unfold VEnv.addInduct at hadd
+  obtain ⟨headers, hheader, hconstructor⟩ := Option.bind_eq_some_iff.mp hadd
+  exact (addConstructorHeaders.defeqs_eq hconstructor).trans
+    (addInductHeaders.defeqs_eq hheader)
+
 theorem addInduct_WF (henv : Ordered env) (hdecl : decl.WF env)
     (henv' : addInduct env decl = some env') : Ordered env' :=
   by
