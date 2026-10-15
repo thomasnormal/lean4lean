@@ -24,6 +24,13 @@ structure RestoredRegistrationReceipt (original : Environment) (records : List C
   installed : RestoredRecordsInstalled records result
   map : result.constants = NativeInductive.insertInfos original.constants records.reverse
 
+structure RestoredRegistrationEvidence (preprocessing : ElimNestedInductive.Result)
+    (staged : Environment) (allIndNames : List Name) (recNameMap : NameMap Name)
+    (original : Environment) (records : List ConstantInfo) (result : Environment) : Prop where
+  trace : FreshRegistrationTrace
+    (RestoredInductiveRecord preprocessing staged allIndNames recNameMap) original result
+  receipt : RestoredRegistrationReceipt original records result
+
 theorem RestoredRegistrationReceipt.empty (env : Environment) (hwf : env.constants.WF) :
     RestoredRegistrationReceipt env [] env :=
   ⟨hwf, fun _ _ hold => hold, by simp [RestoredRecordsInstalled], by rfl⟩
@@ -314,6 +321,20 @@ theorem restoreInductiveEnvironment.installed (preprocessing : ElimNestedInducti
           preprocessing.aux2nested.forM fun _ type => do _ ← TypeChecker.checkType (preprocessing.openAux type)) >>=
             fun value => pure (value, recursors.2)).WF _
       exact Except.WF.bind (fun _ _ => trivial) fun _ _ => .pure (hdatatypes.trans hrecursors)
+
+theorem restoreInductiveEnvironment.evidence (preprocessing : ElimNestedInductive.Result)
+    (staged : Environment) (types : List InductiveType) (lparams : List Name)
+    (allowPrimitive : Bool) (fuel : FuelConfig) (hsources : RestorationSources staged types)
+    (env : Environment) (hwf : env.constants.WF) :
+    (restoreInductiveEnvironment preprocessing staged types lparams allowPrimitive fuel env).WF fun result =>
+      RestoredRegistrationEvidence preprocessing staged (types.map (·.name))
+        (mkAuxRecNameMap staged types).2 env (restoredEnvironmentRecords preprocessing staged types) result.2 := by
+  intro result hresult
+  have htrace := (restoreInductiveEnvironment.trace preprocessing staged types lparams allowPrimitive fuel env)
+    result hresult
+  have hreceipt := (restoreInductiveEnvironment.installed preprocessing staged types lparams allowPrimitive fuel
+    hsources env hwf) result hresult
+  exact ⟨htrace, hreceipt⟩
 
 theorem RestoredRegistrationReceipt.header {preprocessing : ElimNestedInductive.Result}
     {staged original result : Environment} {types : List InductiveType}

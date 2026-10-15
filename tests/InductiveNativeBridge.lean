@@ -105,6 +105,15 @@ example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environmen
       (mkAuxRecNameMap staged types).2 info :=
   restoredEnvironmentRecords.typedPartition preprocessing staged types hmem
 
+example (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+    (types : List InductiveType) (lparams : List Name) (allowPrimitive : Bool) (fuel : FuelConfig)
+    (hsources : RestorationSources staged types) (env : Kernel.Environment)
+    (hwf : env.constants.WF) :
+    (restoreInductiveEnvironment preprocessing staged types lparams allowPrimitive fuel env).WF fun result =>
+      RestoredRegistrationEvidence preprocessing staged (types.map (·.name))
+        (mkAuxRecNameMap staged types).2 env (restoredEnvironmentRecords preprocessing staged types) result.2 :=
+  restoreInductiveEnvironment.evidence preprocessing staged types lparams allowPrimitive fuel hsources env hwf
+
 example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name}
     {original result : Kernel.Environment} {records : List ConstantInfo}
