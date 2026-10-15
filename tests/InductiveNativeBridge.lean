@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.InductiveNativeBridge
+import Lean4Lean.Verify.InductiveNativeTrace
 
 namespace Lean4Lean.Tests.InductiveNativeBridge
 
@@ -44,5 +45,10 @@ example (env : VEnv) :
     TrConstVal .safe env (.recInfo receiptRecursor)
       { name := `Receipt.rec, uvars := 0, type := .sort .zero } := by
   refine ⟨⟨DefinitionSafety.le_rfl, rfl, .sort rfl⟩, rfl⟩
+
+example {allowed : ConstantInfo → Prop} {original result : Kernel.Environment}
+    (trace : FreshRegistrationTrace allowed original result) :
+    ∃ infos, result.constants = NativeInductive.insertInfos original.constants infos :=
+  NativeInductive.FreshRegistrationTrace.constants_eq trace
 
 end Lean4Lean.Tests.InductiveNativeBridge
