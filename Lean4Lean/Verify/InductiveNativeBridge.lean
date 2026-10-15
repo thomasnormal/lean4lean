@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.Environment.Basic
+import Lean4Lean.Verify.InductiveNativeTrace
 
 namespace Lean4Lean
 open Lean hiding Environment Exception
@@ -17,6 +18,15 @@ structure RecursorEntry where
   info : RecursorVal
   model : VConstVal
 
+def HeaderEntry.toConstantInfo (entry : HeaderEntry) : ConstantInfo :=
+  .inductInfo entry.info
+
+def ConstructorEntry.toConstantInfo (entry : ConstructorEntry) : ConstantInfo :=
+  .ctorInfo entry.info
+
+def RecursorEntry.toConstantInfo (entry : RecursorEntry) : ConstantInfo :=
+  .recInfo entry.info
+
 def insertHeaders (constants : ConstMap) : List HeaderEntry → ConstMap
   | [] => constants
   | entry :: entries =>
@@ -31,6 +41,39 @@ def insertRecursors (constants : ConstMap) : List RecursorEntry → ConstMap
   | [] => constants
   | entry :: entries =>
     insertRecursors (constants.insert entry.info.name (.recInfo entry.info)) entries
+
+theorem insertHeaders_toConstantInfos (constants : ConstMap) (entries : List HeaderEntry) :
+    insertHeaders constants entries =
+      insertInfos constants (entries.reverse.map HeaderEntry.toConstantInfo) := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [insertHeaders, List.reverse_cons, List.map_append, List.map_singleton,
+      HeaderEntry.toConstantInfo]
+    rw [ih, ← insertInfos_append]
+    rfl
+
+theorem insertConstructors_toConstantInfos (constants : ConstMap) (entries : List ConstructorEntry) :
+    insertConstructors constants entries =
+      insertInfos constants (entries.reverse.map ConstructorEntry.toConstantInfo) := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [insertConstructors, List.reverse_cons, List.map_append, List.map_singleton,
+      ConstructorEntry.toConstantInfo]
+    rw [ih, ← insertInfos_append]
+    rfl
+
+theorem insertRecursors_toConstantInfos (constants : ConstMap) (entries : List RecursorEntry) :
+    insertRecursors constants entries =
+      insertInfos constants (entries.reverse.map RecursorEntry.toConstantInfo) := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [insertRecursors, List.reverse_cons, List.map_append, List.map_singleton,
+      RecursorEntry.toConstantInfo]
+    rw [ih, ← insertInfos_append]
+    rfl
 
 def FreshHeaders (constants : ConstMap) : List HeaderEntry → Prop
   | [] => True
@@ -105,6 +148,26 @@ theorem RegistrationEvidence.native_map
         evidence.recursors := by rw [evidence.constructorMap]
     _ = insertRecursors (insertConstructors (insertHeaders constants evidence.headers)
         evidence.constructors) evidence.recursors := by rw [evidence.headerMap]
+
+theorem RegistrationEvidence.native_map_records
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    resultConstants = insertInfos constants
+      ((evidence.headers.map HeaderEntry.toConstantInfo ++
+        evidence.constructors.map ConstructorEntry.toConstantInfo ++
+        evidence.recursors.map RecursorEntry.toConstantInfo).reverse) := by
+  calc
+    resultConstants = insertRecursors (insertConstructors (insertHeaders constants evidence.headers)
+      evidence.constructors) evidence.recursors := evidence.native_map
+    _ = insertInfos constants
+        ((evidence.headers.map HeaderEntry.toConstantInfo ++
+          evidence.constructors.map ConstructorEntry.toConstantInfo ++
+          evidence.recursors.map RecursorEntry.toConstantInfo).reverse) := by
+      rw [insertRecursors_toConstantInfos, insertConstructors_toConstantInfos,
+        insertHeaders_toConstantInfos]
+      simp only [List.reverse_append, List.map_reverse]
+      rw [insertInfos_append, insertInfos_append]
+      congr 1
+      exact List.append_assoc _ _ _
 
 theorem RegistrationEvidence.recursor_translation_receipt
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
