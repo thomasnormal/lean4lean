@@ -28,6 +28,21 @@ def RegistrationEntry.toConstantInfo : RegistrationEntry → ConstantInfo
   | .constructor entry => .ctorInfo entry.info
   | .recursor entry => .recInfo entry.info
 
+def RegistrationEntry.insert (constants : ConstMap) : RegistrationEntry → ConstMap
+  | .header entry => constants.insert entry.info.name (.inductInfo entry.info)
+  | .constructor entry => constants.insert entry.info.name (.ctorInfo entry.info)
+  | .recursor entry => constants.insert entry.info.name (.recInfo entry.info)
+
+def insertOrdered (constants : ConstMap) : List RegistrationEntry → ConstMap
+  | [] => constants
+  | entry :: entries => insertOrdered (entry.insert constants) entries
+
+def FreshOrdered (constants : ConstMap) : List RegistrationEntry → Prop
+  | [] => True
+  | entry :: entries =>
+    constants.find? entry.toConstantInfo.name = none ∧
+      FreshOrdered (entry.insert constants) entries
+
 def RegistrationEntry.Semantic (env headerEnv constructorEnv : VEnv) :
     RegistrationEntry → Prop
   | .header entry => TrConstVal .safe env (.inductInfo entry.info) entry.model
@@ -135,6 +150,33 @@ theorem insertRecursors_toConstantInfos (constants : ConstMap) (entries : List R
     rw [ih, ← insertInfos_append]
     rfl
 
+theorem insertOrdered_headers (constants : ConstMap) (entries : List HeaderEntry) :
+    insertOrdered constants (entries.map (fun entry => .header entry)) =
+      insertHeaders constants entries := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [List.map_cons, insertOrdered, RegistrationEntry.insert, insertHeaders]
+    rw [ih]
+
+theorem insertOrdered_constructors (constants : ConstMap) (entries : List ConstructorEntry) :
+    insertOrdered constants (entries.map (fun entry => .constructor entry)) =
+      insertConstructors constants entries := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [List.map_cons, insertOrdered, RegistrationEntry.insert, insertConstructors]
+    rw [ih]
+
+theorem insertOrdered_recursors (constants : ConstMap) (entries : List RecursorEntry) :
+    insertOrdered constants (entries.map (fun entry => .recursor entry)) =
+      insertRecursors constants entries := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [List.map_cons, insertOrdered, RegistrationEntry.insert, insertRecursors]
+    rw [ih]
+
 def FreshHeaders (constants : ConstMap) : List HeaderEntry → Prop
   | [] => True
   | entry :: entries =>
@@ -152,6 +194,55 @@ def FreshRecursors (constants : ConstMap) : List RecursorEntry → Prop
   | entry :: entries =>
     constants.find? entry.info.name = none ∧
       FreshRecursors (constants.insert entry.info.name (.recInfo entry.info)) entries
+
+theorem FreshHeaders.ordered (constants : ConstMap) (entries : List HeaderEntry) :
+    FreshOrdered constants (entries.map (fun entry => .header entry)) ↔
+      FreshHeaders constants entries := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [List.map_cons, FreshOrdered, RegistrationEntry.toConstantInfo,
+      RegistrationEntry.insert, ConstantInfo.name, ConstantInfo.toConstantVal, FreshHeaders]
+    rw [ih]
+
+theorem FreshConstructors.ordered (constants : ConstMap) (entries : List ConstructorEntry) :
+    FreshOrdered constants (entries.map (fun entry => .constructor entry)) ↔
+      FreshConstructors constants entries := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [List.map_cons, FreshOrdered, RegistrationEntry.toConstantInfo,
+      RegistrationEntry.insert, ConstantInfo.name, ConstantInfo.toConstantVal, FreshConstructors]
+    rw [ih]
+
+theorem FreshRecursors.ordered (constants : ConstMap) (entries : List RecursorEntry) :
+    FreshOrdered constants (entries.map (fun entry => .recursor entry)) ↔
+      FreshRecursors constants entries := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [List.map_cons, FreshOrdered, RegistrationEntry.toConstantInfo,
+      RegistrationEntry.insert, ConstantInfo.name, ConstantInfo.toConstantVal, FreshRecursors]
+    rw [ih]
+
+theorem insertOrdered_append (constants : ConstMap) (first second : List RegistrationEntry) :
+    insertOrdered constants (first ++ second) =
+      insertOrdered (insertOrdered constants first) second := by
+  induction first generalizing constants with
+  | nil => rfl
+  | cons entry first ih =>
+    simp only [List.cons_append, insertOrdered]
+    rw [ih]
+
+theorem FreshOrdered.append {constants : ConstMap} {first second : List RegistrationEntry}
+    (hfirst : FreshOrdered constants first)
+    (hsecond : FreshOrdered (insertOrdered constants first) second) :
+    FreshOrdered constants (first ++ second) := by
+  induction first generalizing constants with
+  | nil => simpa using hsecond
+  | cons entry first ih =>
+    simp only [FreshOrdered, List.cons_append] at hfirst ⊢
+    exact ⟨hfirst.1, ih hfirst.2 hsecond⟩
 
 structure RegistrationEvidence (constants : ConstMap) (env : VEnv) (decl : VInductDecl)
     (resultConstants : ConstMap) (result : VEnv) where
@@ -195,6 +286,36 @@ def RegistrationEvidence.orderedEntries
   evidence.headers.map (fun entry => .header entry) ++
     evidence.constructors.map (fun entry => .constructor entry) ++
     evidence.recursors.map (fun entry => .recursor entry)
+
+theorem RegistrationEvidence.orderedFresh
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    FreshOrdered constants evidence.orderedEntries := by
+  have hheaders : FreshOrdered constants
+      (evidence.headers.map (fun entry => .header entry)) :=
+    (FreshHeaders.ordered constants evidence.headers).2 evidence.headerFresh
+  have hconstructors : FreshOrdered
+      (insertOrdered constants (evidence.headers.map (fun entry => .header entry)))
+      (evidence.constructors.map (fun entry => .constructor entry)) := by
+    have h := (FreshConstructors.ordered evidence.headerConstants evidence.constructors).2
+      evidence.constructorFresh
+    rw [evidence.headerMap, ← insertOrdered_headers] at h
+    exact h
+  have hheaderConstructors : FreshOrdered constants
+      (evidence.headers.map (fun entry => .header entry) ++
+        evidence.constructors.map (fun entry => .constructor entry)) :=
+    FreshOrdered.append hheaders hconstructors
+  have hrecursors : FreshOrdered
+      (insertOrdered constants
+        (evidence.headers.map (fun entry => .header entry) ++
+          evidence.constructors.map (fun entry => .constructor entry)))
+      (evidence.recursors.map (fun entry => .recursor entry)) := by
+    have h := (FreshRecursors.ordered evidence.constructorConstants evidence.recursors).2
+      evidence.recursorFresh
+    rw [evidence.constructorMap, evidence.headerMap, ← insertOrdered_headers,
+      ← insertOrdered_constructors] at h
+    rw [insertOrdered_append]
+    exact h
+  exact FreshOrdered.append hheaderConstructors hrecursors
 
 theorem RegistrationEvidence.orderedSemantic
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
