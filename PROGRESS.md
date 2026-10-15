@@ -351,6 +351,15 @@ missing typing inputs rather than assuming them; it still inherits unique-typing
 admissions and does not establish the constructor/eliminator parameter equalities
 or the full quotient reduction contract. See `QuotientConstructorInversion` and
 the detailed dependency account in `PROOF_STATUS.md`.
+Typed `Quot.lift` and `Quot.ind` applications now also determine their universe
+instances and every eliminator argument type, including the respect proof or
+dependent minor premise, the major's quotient type, and conversion of the result
+type to the target or the motive applied to that major. Native bridges retain
+translations of every original argument; their recovered major translations
+compose with verified WHNF and constructor payload extraction. These inversions
+inherit the same unique-typing admissions. `QuotientEliminatorInversion` checks
+both contracts and their dependencies; constructor/eliminator parameter alignment
+and full quotient reduction soundness remain unproved.
 PR #61 proves the inductive worker's no-result contract for translated terms in
 the current constructor-free environment model and composes it through the
 recursor dispatcher when quotient initialization is absent. Its fixture audits
