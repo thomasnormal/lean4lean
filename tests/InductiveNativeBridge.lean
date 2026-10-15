@@ -187,4 +187,13 @@ example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environmen
       RestoredInductiveRecord preprocessing staged allIndNames recNameMap info :=
   evidence.typedRecord hmem
 
+example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (evidence : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) {entry : NativeInductive.RegistrationEntry}
+    (hmem : entry ∈ evidence.entries) :
+    ∃ name info, staged.find? name = some info :=
+  evidence.sourceLookup hmem
+
 end Lean4Lean.Tests.InductiveNativeBridge

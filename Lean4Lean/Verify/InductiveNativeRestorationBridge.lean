@@ -7,6 +7,16 @@ open Kernel
 
 namespace NativeInductive
 
+theorem RestoredInductiveRecord.sourceLookup
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name} {info : ConstantInfo}
+    (record : RestoredInductiveRecord preprocessing staged allIndNames recNameMap info) :
+    ∃ name source, staged.find? name = some source := by
+  cases record with
+  | header name info lookup => exact ⟨name, .inductInfo info, lookup⟩
+  | constructor name info lookup => exact ⟨name, .ctorInfo info, lookup⟩
+  | recursor name info lookup => exact ⟨name, .recInfo info, lookup⟩
+
 structure RestoredRecordEvidence (preprocessing : ElimNestedInductive.Result)
     (staged : Environment) (allIndNames : List Name) (recNameMap : NameMap Name)
     (original result : Environment) (records : List ConstantInfo) where
@@ -66,6 +76,15 @@ structure RestoredRecordEvidence (preprocessing : ElimNestedInductive.Result)
   rw [evidence.records_eq] at hmem
   obtain ⟨entry, hentry, rfl⟩ := List.mem_map.mp hmem
   exact ⟨entry, hentry, rfl, evidence.typed entry hentry⟩
+
+ theorem RestoredRecordEvidence.sourceLookup
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Environment} {records : List ConstantInfo}
+    (evidence : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) {entry : RegistrationEntry} (hmem : entry ∈ evidence.entries) :
+    ∃ name info, staged.find? name = some info := by
+  exact RestoredInductiveRecord.sourceLookup (evidence.typed entry hmem)
 
  theorem RestoredRecordEvidence.installed
     {preprocessing : ElimNestedInductive.Result} {staged : Environment}
