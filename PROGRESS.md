@@ -33,6 +33,19 @@ Actual checked inductive/model registration and recursor semantics remain open.
 Our executable also deliberately differs from upstream; this is not just a
 proof-only patch set.
 
+**Known-false confluence contract:** the remaining `NormalEq.parRed`
+application/extra admission is now contradicted by a checked counterexample in
+the actual quotient reduction model. A proof-irrelevant propositional quotient
+major is convertible to a constructor, but its stuck eliminator cannot simulate
+the constructor's beta step using the current reduction/normal-equality
+relations. Results inheriting that admission remain conditional on a
+known-false specification, not merely an unfinished proof. This is a
+verification-model defect, not a demonstrated Lean kernel soundness bug.
+The counterexample avoids the contradicted confluence theorem, its consequences,
+and the separately reported `IsDefEqU.weakN_iff` strengthening admission, but
+still explicitly inherits other typing/injectivity admissions. Repairing this
+interface now takes priority over further staging.
+
 The actual inductive elimination-universe selector is now total rather than an
 opaque `partial` definition. Its verified search chooses the first unused name
 in the original `u`, `u_1`, `u_2`, … order, without introducing a fuel limit or
@@ -55,7 +68,7 @@ themselves satisfy any of these goals.
 | Remove inherited admissions from the frontend | **Not complete.** Dependency audits identify the remaining trust gaps. | Foundational admissions also remain. | Must close the actual metatheory/checker dependencies, not add another wrapper around them. |
 | Supply simultaneous substitution for arbitrary typing/equality derivations | **Proved API now available:** `55b7b4d` ports strong/weak cross-substitution and audits its dependencies as only `propext` and `Quot.sound`. | Already proved upstream in `6ba54db`/`8223d22`. | Foundation integration, not a newly solved upstream obligation; the frontend's inherited admissions remain. |
 | Verify actual checked inductive registration | **Not complete.** Header/constructor checks and staging invariants are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, and prelude translation. |
-| Complete confluence and semantic reduction correctness | **Partial progress:** `7682b23` removes the constant-case confluence admission; `c0f9930` repairs the incompatible quotient-equation premise. | Confluence and related semantic obligations remain open. | Application/extra confluence, injectivity/strengthening, genuine projection and inductive recursor semantics. |
+| Complete confluence and semantic reduction correctness | **Specification obstruction demonstrated:** the actual quotient model has a checked counterexample to the remaining `NormalEq.parRed` contract; the earlier constant-case proof and quotient-certificate repair remain separate results. | Confluence and related semantic obligations remain open. | Repair the reduction/conversion interface for proof-irrelevant quotient majors without restricting accepted declarations; then close non-circular injectivity/strengthening and genuine projection/recursor semantics. |
 | Reject projection reduction outside the current semantic model | **Upstream-ready candidate in PR #57:** `reduceProjCore.none_of_translation` and `reduceProj.none_of_translation` prove that translated terms cannot reduce through constructor-family lookups while `TrEnv` remains constructor-free; the existing `WF` contracts now derive from that rejection proof. | Official master still carries the original admitted projection `WF` contract. | This is deliberately a rejection theorem for the non-inductive fragment, not inductive projection semantics; `AddInduct`, model registration, and recursor obligations remain open. |
 | Reject projection type inference outside the current semantic model | **Upstream-ready candidate in PR #58:** `inferProj.rejects` proves that translated structure types cannot pass the inductive-header lookup, and the existing `inferProj.WF` contract now follows without an admission. | Official master still carries the original admitted `inferProj.WF` contract. | This closes only the constructor-free semantic fragment; successful inductive projection inference still requires `AddInduct`, model registration, and dependent-field semantics. |
 | Reject structure-eta and unit-like comparison outside the current semantic model | **Upstream-ready candidate in PR #59:** `tryEtaStructCore.false_of_translation` and `isDefEqUnitLike.false_of_translation` prove both comparison workers return false for translated constructor-family heads; their existing `WF` contracts now derive without admissions. | Official master still carries both comparison admissions. | This closes only the constructor-free semantic fragment; inductive eta and unit-like semantics still require constructive model registration. |
@@ -468,13 +481,15 @@ unchanged text totals do not establish an unchanged transitive axiom set.
    fixes, validate it, and publish only with the required explicit lease permission.
    Then submit focused, validated upstream contributions rather than rebuilding
    a large divergent patch stack.
-2. Close semantic dependencies: the remaining `NormalEq.parRed` application/
-   extra case (currently the sole confluence `sorry` after the constant-case
-   proof), non-circular typing/injectivity foundations, genuine `TrProj`, and
-   genuine inductive recursor semantics beyond the now-proved constructor-free
-   `reduceRecursor.WF` contract. The application/extra case requires
-   a pattern-preservation/overlap lemma across `NormalEq`, including eta and
-   proof-irrelevance branches; a direct `cases` proof is not sound.
+2. Repair the now-demonstrably false `NormalEq.parRed` application/extra
+   contract. A general pattern-preservation lemma across proof irrelevance
+   cannot hold: `QuotConfluenceObstruction.counterexample` refutes it in the
+   actual quotient model. Do not hide this behind another premise or reject
+   propositional quotients. Preserve the actual semantic equality and repair
+   its reduction/conversion presentation before claiming confluence-dependent
+   results. Separately close non-circular typing/injectivity foundations,
+   genuine `TrProj`, and inductive recursor semantics beyond the current
+   constructor-free dispatcher contract.
 3. Connect the existing inductive stages to actual checked model registration,
    constructor/recursor generation, and a constructive `AddInduct` model.
 4. Restore the four disabled native arithmetic operations with their proofs and

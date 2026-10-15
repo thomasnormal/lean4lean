@@ -3,8 +3,41 @@
 This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
+**2026-10-15 trust correction:** the remaining `NormalEq.parRed` contract is
+false for the actual quotient reduction instance, as demonstrated by
+`QuotConfluenceObstruction.counterexample`. Its transitive users therefore
+depend on a known-false admitted specification, not only an open proof task.
+The counterexample is independent of that theorem and all its confluence/
+quotient-injectivity consequences, but still inherits the separately identified
+typing/injectivity admissions. No unconditional kernel soundness follows from
+the results below. See `bugs-found.md` for the full obstruction and native
+Lean 4.29.0 / 4.33.0-rc2 controls.
+
 ## What is proved
 
+- `QuotConfluenceObstruction.counterexample` constructs a well-formed local
+  context, a `NormalEq` pair, and a concrete quotient pattern reduction for
+  which no left reduction followed by `NormalEq` can simulate the right step.
+  The source universe is zero, the target is `Prop`, and the neutral major and
+  `Quot.mk` major are proofs of the same proposition. `.neutralReduction`
+  proves that every finite left reduction stays unchanged;
+  `.not_normalEq_reduced` excludes the required normal equality using the
+  independent typing/injectivity baseline. `.semanticEquality` separately
+  derives the endpoint conversion by actual congruence and registered quotient
+  beta, without the refuted theorem. The fixture constructs an explicit
+  Eq-axiom-plus-quotient semantic declaration history, rather than assuming an
+  arbitrary environment or a fabricated `Params` instance. Its environment
+  well-formedness proof uses only `propext` and `Quot.sound`; the full
+  counterexample's exact dependency set is `propext`, `Quot.sound`, `sorryAx`.
+  All 32 owned public/private/generated values are checked for direct
+  admissions/new axioms and for forbidden dependence on `NormalEq.parRed`,
+  `.parRedS`, `IsDefEq.church_rosser`, `IsDefEqU.quot_inj`, or
+  `IsDefEqU.weakN_iff` (the separate upstream issue #50).
+  `tests/NativeQuotientProofIrrelevance.lean` imports only `Lean` and reproduces
+  the native proof-irrelevance/beta behavior on both toolchains; its named
+  equivalents in the semantic fixture have no axioms at all. This identifies
+  a false verification contract; it is not a repair of confluence or evidence
+  that the native kernel accepts an invalid proof.
 - `getElimLevel` is a total executable definition with an equation theorem.
   `Inductive.ElimName` implements the same first-unused `u`, `u_1`, `u_2`, …
   search using verified string append. A decimal-length bound on the finite
@@ -83,7 +116,7 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   consumers. Metadata, equation coverage and non-overlap use only `propext` and
   `Quot.sound`; the whole model additionally inherits the existing `sorryAx`
   dependency through rule soundness, but no choice or new interface axiom.
-  The generic `NormalEq.parRed` application/extra admission remains open; model
+  The generic `NormalEq.parRed` application/extra contract is now refuted; model
   construction does not remove it or prove full native recursor semantics.
 - `NormalEq.parRed_constDF` proves the constant case of parallel reduction
   modulo universe conversion, including registered extra-reduction rules and
