@@ -62,6 +62,29 @@ quotients or adding an unproved stability premise is not a repair. Existing
 frontend and quotient claims that inherit the confluence admission remain
 conditional on a now-known-false verification contract.
 
+### Checked repair ingredient
+
+`QuotPropReduction.unfold_sound` now proves the semantic unfolding
+`Quot.lift f h q ≡ f (Quot.ind (fun _ => P) id q)` at any source universe
+equivalent to zero, preserving the source's actual result type. The selector
+constructively obtains a proof of `P` from the propositional quotient major;
+this uses neither choice nor an arbitrary representative of a Type-valued
+quotient. Proof irrelevance reconstructs the major as `Quot.mk` of that proof,
+then the registered quotient equation applies. The compatible extension
+`QuotPropReduction.Step` therefore simulates this counterexample with one
+left step followed by the unchanged `NormalEq`. Weakening and typed
+substitution are proved, not extra caller preservation premises.
+
+This does not make the old `NormalEq.parRed` statement true: its relations
+are untouched. Full simulation/confluence for the extension, prefix/eta
+overlaps, and migration of dependent proofs remain open. The selector and
+generic normal-equality join are admission-free/no-choice, while source
+typing inversion and actual reduction-model construction retain the already
+documented independent `sorryAx` dependencies. The fixture audits those bounds
+and excludes the refuted confluence theorem and issue #50's strengthening.
+Upstream draft PR #53 already contains this selector/reconstruction direction;
+the local result is a focused bridge, not a new competing inductive stack.
+
 ## Inductive constructor source-variable capture (2026-10-08)
 
 Reproduced with the pinned Lean **4.29.0** native kernel. An inductive source

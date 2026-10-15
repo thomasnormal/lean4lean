@@ -15,6 +15,29 @@ Lean 4.29.0 / 4.33.0-rc2 controls.
 
 ## What is proved
 
+- `QuotPropReduction` supplies a concrete repair ingredient without changing
+  the existing false `NormalEq.parRed` contract. `zeroLike_iff` constructively
+  characterizes all universes equivalent to zero, including noncanonical
+  `max`/`imax` syntax. The total `unfold` transformer rewrites a saturated
+  Prop-source `Quot.lift f h q` to `f (Quot.ind (fun _ => P) id q)`;
+  `unfold_sound` preserves its original result type with only the source
+  typing, actual quotient registration, context WF, and environment WF.
+  `Step` adds this rule to actual parallel reduction with compatible
+  application/lambda/forall closure; finite `Steps` include all existing
+  parallel-reduction chains. The new step is stable under arbitrary weakening
+  and typed single-variable substitution, and both step relations preserve
+  semantic equality and the original type. The fixture demonstrates that the
+  prior concrete obstruction joins after one new step, while the original
+  obstruction remains checked and unchanged.
+  `selector_hasType`, `zeroLike_iff`, and generic `Params`-level selector/join
+  proofs use only `propext` and `Quot.sound`, without choice or admissions.
+  Concrete-model instantiation and general source-typing inversion additionally
+  inherit `sorryAx`; dependency traversal forbids the refuted confluence
+  theorem, its derived quotient injectivity, and `IsDefEqU.weakN_iff`.
+  This is not a confluence proof, downstream migration, native-checker fix, or
+  checked inductive registration. The same selector idea is already present
+  in upstream draft PR #53. Native-only controls pass on Lean 4.29.0 and
+  4.33.0-rc2; they use explicit congruence for the unfolding equality.
 - `QuotConfluenceObstruction.counterexample` constructs a well-formed local
   context, a `NormalEq` pair, and a concrete quotient pattern reduction for
   which no left reduction followed by `NormalEq` can simulate the right step.

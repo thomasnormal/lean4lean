@@ -44,6 +44,19 @@ add an unproved pattern-preservation premise, weaken the model, or reject
 otherwise accepted declarations. Confluence-dependent verification claims must
 remain conditional on this now-known-false interface until it is repaired.
 
+The first checked repair ingredient is now `QuotPropReduction`: a total
+syntax transformer recognizes every zero-equivalent source universe and
+unfolds saturated lifts using a constructive `Quot.ind` proof selector.
+Its semantic rule preserves the original result type, and its compatible
+extension simulates the recorded obstruction. It neither changes native
+execution nor rejects declarations. The old relation and its false theorem
+remain unchanged; full confluence and downstream migration are not claimed.
+Native controls on Lean 4.29.0 and 4.33.0-rc2 validate the selector/unfolding
+equations, not completeness of native conversion. The selector direction
+already appears in upstream draft PR #53. General soundness still inherits
+independent typing admissions, with confluence and strengthening explicitly
+excluded from the new dependency graph.
+
 ## Total inductive elimination-universe selection (2026-10-15)
 
 `AddInductive.getElimLevel` formerly used an opaque `partial` definition for its
