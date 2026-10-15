@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.InductiveFrontendRestoration
+import Lean4Lean.Verify.InductiveNativeTrace
 
 namespace Lean4Lean
 open Lean hiding Environment Exception
@@ -21,21 +22,26 @@ structure RestoredRegistrationReceipt (original : Environment) (records : List C
   wf : result.constants.WF
   preserves : ∀ name info, original.find? name = some info → result.find? name = some info
   installed : RestoredRecordsInstalled records result
+  map : ∃ infos, result.constants = NativeInductive.insertInfos original.constants infos
 
 theorem RestoredRegistrationReceipt.empty (env : Environment) (hwf : env.constants.WF) :
     RestoredRegistrationReceipt env [] env :=
-  ⟨hwf, fun _ _ hold => hold, by simp [RestoredRecordsInstalled]⟩
+  ⟨hwf, fun _ _ hold => hold, by simp [RestoredRecordsInstalled], ⟨[], rfl⟩⟩
 
 theorem RestoredRegistrationReceipt.trans {original current result : Environment}
     {first second : List ConstantInfo}
     (left : RestoredRegistrationReceipt original first current)
     (right : RestoredRegistrationReceipt current second result) :
     RestoredRegistrationReceipt original (first ++ second) result := by
-  refine ⟨right.wf, fun name info hold => right.preserves name info (left.preserves name info hold), ?_⟩
+  refine ⟨right.wf, fun name info hold => right.preserves name info (left.preserves name info hold), ?_, ?_⟩
   intro info hmem
   rcases List.mem_append.mp hmem with hfirst | hsecond
   · exact left.installed.mono right.preserves info hfirst
   · exact right.installed info hsecond
+  rcases left.map with ⟨first, hfirst⟩
+  rcases right.map with ⟨second, hsecond⟩
+  refine ⟨second ++ first, ?_⟩
+  rw [hsecond, hfirst, NativeInductive.insertInfos_append]
 
 def restoredConstructorRecords (preprocessing : ElimNestedInductive.Result) (staged : Environment)
     (name : Name) : List ConstantInfo :=
@@ -128,7 +134,9 @@ private theorem registerRestored.installed (info : ConstantInfo) (allowPrimitive
   refine Lean4Lean.restorationExceptBind (checkName.WF env info.name allowPrimitive) ?_
   rintro _ ⟨hfresh, _⟩
   obtain ⟨hnext, hself, hkeep⟩ := AddInductive.restorationAddFresh env info hwf hfresh
-  exact .pure ⟨hnext, hkeep, by simpa [RestoredRecordsInstalled] using hself⟩
+  refine .pure ⟨hnext, hkeep, by simpa [RestoredRecordsInstalled] using hself, ?_⟩
+  refine ⟨[info], ?_⟩
+  simp only [Kernel.Environment.add_constants, NativeInductive.insertInfos]
 
 private theorem restorationForInInstalled (items : List α)
     (step : α → InductiveRestorationM (ForInStep PUnit)) (records : α → List ConstantInfo)
