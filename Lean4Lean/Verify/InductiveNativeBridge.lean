@@ -501,6 +501,58 @@ theorem RegistrationEvidence.constructorModelMembership
   rw [evidence.constructorModels] at hmodel
   exact ⟨entry.model, hmodel, rfl⟩
 
+theorem RegistrationEvidence.orderedModelMembership
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries, match entry with
+      | .header entry => ∃ type ∈ decl.types, entry.model = type.toVConstVal
+      | .constructor entry => ∃ constructor ∈ decl.constructorHeaders, entry.model = constructor
+      | .recursor _ => True := by
+  intro entry hmem
+  simp only [RegistrationEvidence.orderedEntries, List.mem_append] at hmem
+  rcases hmem with hphase | hrecursors
+  · rcases hphase with hheaders | hconstructors
+    · rcases List.mem_map.mp hheaders with ⟨header, hmem, rfl⟩
+      exact evidence.headerModelMembership hmem
+    · rcases List.mem_map.mp hconstructors with ⟨constructor, hmem, rfl⟩
+      exact evidence.constructorModelMembership hmem
+  · rcases List.mem_map.mp hrecursors with ⟨recursor, hmem, rfl⟩
+    trivial
+
+theorem RegistrationEvidence.orderedEntryReceipt
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.Semantic env evidence.headerEnv evidence.constructorEnv ∧
+        entry.ModelShape ∧
+        (∃ semantic, match entry with
+          | .header entry =>
+            TrExprS env entry.info.levelParams [] entry.info.type semantic
+          | .constructor entry =>
+            TrExprS evidence.headerEnv entry.info.levelParams [] entry.info.type semantic
+          | .recursor entry =>
+            TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic) ∧
+        match entry with
+          | .header entry => ∃ type ∈ decl.types, entry.model = type.toVConstVal
+          | .constructor entry =>
+            ∃ constructor ∈ decl.constructorHeaders, entry.model = constructor
+          | .recursor _ => True := by
+  intro entry hmem
+  cases entry with
+  | header entry =>
+    have hsemantic := evidence.orderedSemantic (.header entry) hmem
+    refine ⟨hsemantic, hsemantic.modelShape, ?_, ?_⟩
+    · exact ⟨_, hsemantic.1.2.2⟩
+    · exact evidence.orderedModelMembership (.header entry) hmem
+  | constructor entry =>
+    have hsemantic := evidence.orderedSemantic (.constructor entry) hmem
+    refine ⟨hsemantic, hsemantic.modelShape, ?_, ?_⟩
+    · exact ⟨_, hsemantic.1.2.2⟩
+    · exact evidence.orderedModelMembership (.constructor entry) hmem
+  | recursor entry =>
+    have hsemantic := evidence.orderedSemantic (.recursor entry) hmem
+    refine ⟨hsemantic, hsemantic.modelShape, ?_, ?_⟩
+    · exact ⟨_, hsemantic.1.2.2⟩
+    · exact evidence.orderedModelMembership (.recursor entry) hmem
+
 theorem RegistrationEvidence.native_map_records
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     resultConstants = insertInfos constants

@@ -47,6 +47,33 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries, match entry with
+      | .header entry => ∃ type ∈ decl.types, entry.model = type.toVConstVal
+      | .constructor entry => ∃ constructor ∈ decl.constructorHeaders, entry.model = constructor
+      | .recursor _ => True :=
+  evidence.orderedModelMembership
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.Semantic env evidence.headerEnv evidence.constructorEnv ∧
+        entry.ModelShape ∧
+        (∃ semantic, match entry with
+          | .header entry =>
+            TrExprS env entry.info.levelParams [] entry.info.type semantic
+          | .constructor entry =>
+            TrExprS evidence.headerEnv entry.info.levelParams [] entry.info.type semantic
+          | .recursor entry =>
+            TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic) ∧
+        match entry with
+          | .header entry => ∃ type ∈ decl.types, entry.model = type.toVConstVal
+          | .constructor entry =>
+            ∃ constructor ∈ decl.constructorHeaders, entry.model = constructor
+          | .recursor _ => True :=
+  evidence.orderedEntryReceipt
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.orderedEntries, entry.ModelShape :=
   evidence.orderedModelShape
 
