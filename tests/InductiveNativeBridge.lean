@@ -319,7 +319,36 @@ example {preprocessing : ElimNestedInductive.Result} {staged original result : K
     (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap
       original records result) (hwf : original.constants.WF) {info : ConstantInfo}
     (hmem : info ∈ records) (habsent : original.find? info.name = none) :
-    RestoredInductiveRecord preprocessing staged allIndNames recNameMap info :=
+      RestoredInductiveRecord preprocessing staged allIndNames recNameMap info :=
   evidence.newRecordClassification hwf hmem habsent
+
+example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
+    (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap
+      original records result) (hwf : original.constants.WF) {info : ConstantInfo}
+    (hmem : info ∈ records) :
+    result.find? info.name = some info ∧
+      (original.find? info.name = some info ∨
+        RestoredInductiveRecord preprocessing staged allIndNames recNameMap info) :=
+  evidence.recordReceipt hwf hmem
+
+example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
+    (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap
+      original records result) (hwf : original.constants.WF) {info : ConstantInfo}
+    (hmem : info ∈ records) (habsent : original.find? info.name = none) :
+    result.find? info.name = some info ∧
+      RestoredInductiveRecord preprocessing staged allIndNames recNameMap info :=
+  evidence.newRecordReceipt hwf hmem habsent
+
+example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
+    (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap
+      original records result) (hwf : original.constants.WF) :
+    ∀ info ∈ records,
+      result.find? info.name = some info ∧
+        (original.find? info.name = some info ∨
+          RestoredInductiveRecord preprocessing staged allIndNames recNameMap info) :=
+  evidence.recordsReceipt hwf
 
 end Lean4Lean.Tests.InductiveNativeBridge
