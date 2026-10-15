@@ -245,6 +245,20 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   motive as a caller restriction. `QuotientReductionAlignment` checks these
   contracts in arbitrary initialized verified contexts and exhaustively audits
   owned declarations against the existing unique-typing dependencies.
+  `VEnv.quotMk_inv` now recovers the singleton universe instance, domain type,
+  relation type, payload type, and conversion of an arbitrary result type from
+  constructor application typing alone. `VContext.quotMkArguments` carries this
+  inversion through the actual native constructor translation while preserving
+  translations of all three original arguments. `VContext.quotMkPayload` turns
+  the reducer's actual `isAppOfArity` guard into a typed translation of its
+  extracted `appArg!` payload, including after the verified WHNF callback.
+  These inversion proofs inherit
+  the existing unique-typing admissions; they do not change the admission-free
+  dependency bounds of `quotMk_hasType` or `quotInd_beta`.
+  `QuotientConstructorInversion` checks arbitrary result types and local contexts,
+  rejects incorrect universe arities, checks a constructor typing/inversion
+  round trip, and audits all four new proofs against the existing unique-typing
+  and initialized-context dependency baselines.
   Recovering parameter equalities from arbitrary quotient application typing
   and the complete `quotReduceRec.WF`/`reduceRecursor.WF` contract remain open.
   No caller premise or statement of an existing theorem changes. The native
