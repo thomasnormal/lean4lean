@@ -37,8 +37,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   checked quotient rule soundness and constructs the concrete definition/quotient
   `Params` model described below. Quotient-type injectivity and semantic
   arbitrary-parameter alignment are now proved using that model and the existing
-  confluence theorem; its inherited admissions and the native callback proof
-  remain open.
+  confluence theorem. The native quotient callback/dispatcher contracts are also
+  proved below; the inherited confluence and typing admissions remain open.
 - `Theory.Typing.RewriteRules` derives the complete classification and constant
   lookup of registered equations, uniqueness of definition origins by name, and
   exclusion of definitions at all four registered quotient primitive names from
@@ -228,8 +228,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   callback. `Inner.reduceRecursor.scopeFrame` combines that frame with inductive
   rejection for both quotient-initialization states and all cheap flags.
   Consequently `whnfCore'.scopeWF` and `whnf'.scopeWF` no longer require a separate
-  recursor cache-frame hypothesis. Their semantic reduction dependencies,
-  including the existing `reduceRecursor.WF` admission, remain explicit. No new
+  recursor cache-frame hypothesis. Their semantic reduction dependencies remain
+  explicit; `reduceRecursor.WF` now has the proof described below. No new
   admission or stronger caller premise is added. Checked inductive registration
   will require replacing this fragment-specific rejection with actual recursor
   semantics. Arbitrary-fuel scoped comparison/method closure is proved below;
@@ -244,9 +244,8 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   of both quotient lift and quotient induction reductions. It follows the
   actual constructor-normalization callback, rejects malformed constructor
   heads, and preserves the optional trailing application range. This is a
-  separate partial-correctness component: it does not yet establish the
-  semantic `TrExpr` result required by `reduceRecursor.WF`, which remains the
-  next quotient WHNF obligation.
+  separate partial-correctness component, now combined with the semantic
+  `TrExpr` result in `quotReduceRec.WF` and the original dispatcher contract.
 - `VContext.quotientDefEq` turns the registered quotient beta equation into
   a verified semantic `IsDefEqU` relation whenever the native environment has
   completed quotient initialization. The theorem is the base equality for
@@ -344,7 +343,32 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   inherit `Classical.choice` from the existing confluence theorem. No admission
   is removed by that application of confluence, and its remaining
   `NormalEq.parRed` application/extra admission is not hidden or reproved here.
-  The complete native `quotReduceRec.WF`/`reduceRecursor.WF` contract remains open.
+  `VContext.quotLiftReduction` and `quotIndReduction` now transport the actual
+  normalized constructor payload back to the original native eliminator's
+  semantic translation. They use the WHNF callback's real `TrExpr` result,
+  preserve translations of the original function/minor and extracted payload,
+  and derive parameter alignment rather than imposing checks absent from the
+  executable. The actual application stack supplies saturated source typing;
+  the reapplication proof handles arbitrary trailing arguments and both the
+  empty/nonempty suffix branches of `mkAppRange`.
+  `quotReduceRec.trExpr` verifies the actual worker against arbitrary valid
+  methods, including every name, saturation and constructor-shape guard.
+  `quotReduceRec.WF` combines that semantic result with the existing
+  free-variable invariant. The original, unrestricted `reduceRecursor.WF`
+  contract is now proved by composing initialized quotient reduction with the
+  constructor-free inductive rejection branch, for both initialization states
+  and every cheap-recursion/projection flag. Its former direct admission is
+  removed without changing a theorem premise or executable behavior.
+  `NativeQuotientReduction` checks callback composition, the worker and original
+  dispatcher contracts, arbitrary explicit fuel and `RecM.run`; it audits all
+  new public/private/generated proof values against independent typing,
+  confluence, registration and native-interface baselines. A dependency traversal
+  excludes circular use of the normalizer implementations or `Methods.withFuel.WF`
+  in their own recursor proof. The result still inherits `sorryAx`, choice and
+  existing expression-range/persistent-map/array interface axioms. It does not
+  prove genuine inductive recursor semantics or close the remaining confluence
+  and foundational typing admissions, and the constructor-free `TrEnv` boundary
+  is unchanged.
   The existing beta/alignment theorem contracts stay unchanged. The native
   fixture includes actual proposition-induction reduction with an explicit
   motive, not a claim that native reduction erases the induction application.

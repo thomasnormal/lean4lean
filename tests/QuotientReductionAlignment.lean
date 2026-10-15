@@ -98,6 +98,6 @@ run_meta
           throwError "unexpected quotient alignment dependency: {dependency} in {name}"
       logInfo m!"{name}: {repr dependencies}"
       owned := owned + 1
-  logInfo m!"{owned} exhaustive owned quotient alignment declarations have no direct admission or axiom; existing unique-typing baseline is explicit: {repr baseline}; constructor levels/parameters/payloads may differ by conversion, and induction transports to the original dependent motive; obtaining parameter equalities from arbitrary quotient typing remains open"
+  logInfo m!"{owned} exhaustive owned quotient alignment declarations have no direct admission or axiom; existing unique-typing baseline is explicit: {repr baseline}; constructor levels/parameters/payloads may differ by conversion, and induction transports to the original dependent motive; automatic parameter inference and native worker soundness are audited separately"
 
 end QuotientReductionAlignmentTest

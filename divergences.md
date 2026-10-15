@@ -40,8 +40,11 @@ quotient certificate, actual parallel-reduction contract and dependency audits.
 
 Subsequent work proves the checked quotient rule's semantic soundness and
 constructs a concrete definition/quotient `Params` model from semantic environment
-WF. The remaining application/extra confluence admission, automatic native
-parameter alignment, injectivity and `reduceRecursor.WF` are still open. The actual
+WF. Quotient-type injectivity and automatic parameter alignment now supply a
+proof of native `quotReduceRec.WF` and the unchanged `reduceRecursor.WF` contract
+in the constructor-free model. These proofs inherit the remaining application/
+extra confluence and typing admissions; genuine inductive recursor semantics
+remain open. The actual
 type checker, quotient registration worker and accepted declaration fragment are
 unchanged.
 
