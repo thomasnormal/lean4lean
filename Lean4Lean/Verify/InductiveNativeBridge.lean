@@ -383,6 +383,14 @@ theorem RegistrationEvidence.native_map
     _ = insertRecursors (insertConstructors (insertHeaders constants evidence.headers)
         evidence.constructors) evidence.recursors := by rw [evidence.headerMap]
 
+theorem RegistrationEvidence.orderedMap
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    resultConstants = insertOrdered constants evidence.orderedEntries := by
+  unfold RegistrationEvidence.orderedEntries
+  rw [insertOrdered_append, insertOrdered_append, insertOrdered_recursors,
+    insertOrdered_constructors, insertOrdered_headers]
+  exact evidence.native_map
+
 theorem RegistrationEvidence.native_map_records
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     resultConstants = insertInfos constants
