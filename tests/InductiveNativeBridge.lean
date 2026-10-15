@@ -53,13 +53,13 @@ example {allowed : ConstantInfo → Prop} {original result : Kernel.Environment}
   NativeInductive.FreshRegistrationTrace.constants_eq trace
 
 example (env : Kernel.Environment) (hwf : env.constants.WF) :
-    ∃ infos, env.constants = NativeInductive.insertInfos env.constants infos :=
+    env.constants = NativeInductive.insertInfos env.constants [].reverse :=
   (RestoredRegistrationReceipt.empty env hwf).map
 
 example {original current result : Kernel.Environment} {first second : List ConstantInfo}
     (left : RestoredRegistrationReceipt original first current)
     (right : RestoredRegistrationReceipt current second result) :
-    ∃ infos, result.constants = NativeInductive.insertInfos original.constants infos :=
+    result.constants = NativeInductive.insertInfos original.constants (first ++ second).reverse :=
   (left.trans right).map
 
 end Lean4Lean.Tests.InductiveNativeBridge
