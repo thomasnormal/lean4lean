@@ -364,6 +364,14 @@ theorem RegistrationEvidence.orderedModelShape
   intro entry hmem
   exact (evidence.orderedSemantic entry hmem).modelShape
 
+theorem RegistrationEvidence.orderedModelShapeToConstantInfo
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.model.name = entry.toConstantInfo.name ∧
+        entry.model.uvars = entry.toConstantInfo.levelParams.length := by
+  intro entry hmem
+  exact (evidence.orderedSemantic entry hmem).modelShape.toConstantInfo
+
 theorem RegistrationEvidence.orderedTypeTranslation
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.orderedEntries, ∃ semantic, match entry with
