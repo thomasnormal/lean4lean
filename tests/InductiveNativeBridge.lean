@@ -44,6 +44,19 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
       entry.RuleSemantics evidence.constructorEnv :=
   evidence.orderedRuleSemantics
 
+example {entry : RegistrationEntry} {env headerEnv constructorEnv : VEnv}
+    (hsemantic : entry.Semantic env headerEnv constructorEnv) :
+    entry.ModelShape :=
+  hsemantic.modelShape
+
+example {entry : RegistrationEntry} {env headerEnv constructorEnv : VEnv}
+    (hsemantic : entry.Semantic env headerEnv constructorEnv) :
+    ∃ semantic, match entry with
+      | .header entry => TrExprS env entry.info.levelParams [] entry.info.type semantic
+      | .constructor entry => TrExprS headerEnv entry.info.levelParams [] entry.info.type semantic
+      | .recursor entry => TrExprS constructorEnv entry.info.levelParams [] entry.info.type semantic :=
+  hsemantic.typeTranslation
+
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.recursors,
