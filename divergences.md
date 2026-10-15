@@ -11,6 +11,39 @@ This is a list of places where lean4lean deliberately has different behavior fro
 * [`Lean4Lean.TypeChecker.Inner.inferLambda`](Lean4Lean/TypeChecker.lean), `inferLet`: lean4lean does the `ensureSort` call before extending the context, while [`infer_lambda`](https://github.com/leanprover/lean4/blob/v4.26.0/src/kernel/type_checker.cpp#L124-L126) does it afterward. It's not clear whether this is actually unsound but it would require some very weird invariants to justify having unchecked things in the local context and hoping that they won't be used in the typing proof of that same expression.
 * [`Lean4Lean.checkConstantVal`](Lean4Lean/Environment.lean): The original implementation would call `check` which sets the level params and then unsets them afterward, and then `ensure_sort` would run in a context without any level params. In lean4lean the monad is parameterized over level params, so they remain the same across the two calls.
 
+## False quotient confluence simulation contract (2026-10-15)
+
+This is a verification-model defect, not a newly introduced executable
+divergence or a demonstrated native kernel soundness bug. The remaining
+`NormalEq.parRed` application/extra contract cannot hold for the actual quotient
+instance. In a well-formed context with `P : Prop`, `a : P`, `r : P → P → Prop`,
+`f : P → Prop`, a respect proof, and `q : Quot r`, proof irrelevance gives
+normal equality between the majors `q` and `Quot.mk r a`. Congruence therefore
+gives normal equality between the corresponding `Quot.lift` applications.
+The constructor application takes the registered quotient beta step to `f a`.
+The neutral application cannot take any non-reflexive step in the current
+reduction relation, and its normal equality to `f a` is impossible: neither
+the eliminator nor its type-valued result can use proof irrelevance to erase
+the distinct function heads.
+
+`Theory.Typing.QuotConfluenceObstruction` proves this exact failure without
+using the contradicted theorem, its confluence consequences, or the separately
+reported `IsDefEqU.weakN_iff` strengthening admission (upstream issue #50). Its fixture
+builds a concrete Eq-plus-Quot semantic environment, audits the independent
+inherited typing/injectivity admissions, and keeps endpoint semantic equality
+explicitly proved by congruence and beta. `tests/NativeQuotientProofIrrelevance.lean`
+is a standalone native control on Lean 4.29.0 and 4.33.0-rc2: major proof
+irrelevance and constructor beta close by `rfl`, while lifted congruence and
+the final equality need explicit `congrArg`/transitivity proofs. This does not
+imply that a checker returning false is unsound; completeness is not the
+checker's proved success-only contract.
+
+The existing admission remains visible and unchanged. Repair must preserve
+propositional quotient elimination and its actual semantic conversions, not
+add an unproved pattern-preservation premise, weaken the model, or reject
+otherwise accepted declarations. Confluence-dependent verification claims must
+remain conditional on this now-known-false interface until it is repaired.
+
 ## Total inductive elimination-universe selection (2026-10-15)
 
 `AddInductive.getElimLevel` formerly used an opaque `partial` definition for its

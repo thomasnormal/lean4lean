@@ -4,6 +4,64 @@
 * https://github.com/leanprover/lean4/issues/10475
 * https://github.com/leanprover/lean4/issues/10511
 
+## False quotient confluence simulation specification (2026-10-15)
+
+**Verification-model defect, not a demonstrated native kernel soundness bug.**
+The last admitted case of `VEnv.NormalEq.parRed` has a counterexample in the
+actual quotient reduction instance, even with a concrete well-formed semantic
+declaration history and a well-formed local context. It is not a case that can
+be completed by a missing pattern-preservation lemma.
+
+Take `P : Prop`, `r : P → P → Prop`, `f : P → Prop`,
+`h : ∀ a b, r a b → f a = f b`, `a : P`, and `q : Quot r`. Write:
+
+```text
+L = Quot.lift f h q
+R = Quot.lift f h (Quot.mk r a)
+S = f a
+```
+
+1. `L ≡ₚ R`: the majors are proofs of the same proposition, so `NormalEq.proofIrrel`
+   and application congruence relate the two eliminators.
+2. `R ≫ S`: this is the actual registered, parameter-checked quotient pattern rule.
+3. `L ≫* T` implies `T = L`: the neutral major and all other arguments are
+   variables/sorts, with no constructor major, beta redex, or registered delta
+   rule in the source.
+4. `¬ L ≡ₚ S`: the distinct function heads cannot be related by normal equality.
+   The only otherwise possible proof-irrelevance cases are excluded because
+   the eliminator has a sort telescope type, while its result is a proposition
+   (type `Prop`), not a proof of a proposition. Neither term can therefore use
+   the proof-irrelevance rule to escape the head mismatch.
+
+Thus the exact conclusion of `NormalEq.parRed` fails. The endpoints still have
+the intended semantic equality, proved separately by congruence and quotient
+beta; it is the reduction/conversion presentation that fails to simulate it.
+
+Formal artifact: `Lean4Lean/Theory/Typing/QuotConfluenceObstruction.lean`.
+Run `lake env lean tests/QuotConfluenceObstruction.lean`. The fixture constructs
+an explicit semantic history adding the Eq axiom signature and then quotients;
+its well-formedness proof depends only on `propext` and `Quot.sound`. The full
+counterexample still inherits separate typing/injectivity admissions
+(`propext`, `Quot.sound`, `sorryAx`), which are not claimed repaired. Its
+dependency traversal rules out the contradicted confluence theorem and its
+derived quotient-injectivity results, as well as `IsDefEqU.weakN_iff` (the
+separate false-strengthening report in upstream issue #50). Every owned value
+is checked for direct admissions/new axioms.
+
+Minimal native control: `tests/NativeQuotientProofIrrelevance.lean`, importing
+only `Lean`. It passes on both Lean **4.29.0** and **4.33.0-rc2**. Native `rfl`
+accepts `q = Quot.mk r a` and the constructor beta equality; it does not close
+the lifted or final equalities directly, while explicit `congrArg` and
+transitivity proofs succeed. The named native controls in the full fixture
+have no axiom dependencies. This records native conversion incompleteness,
+not acceptance of an invalid theorem.
+
+No executable behavior, theorem statement, admission, or acceptance guard was
+changed to conceal the obstruction. In particular, excluding propositional
+quotients or adding an unproved stability premise is not a repair. Existing
+frontend and quotient claims that inherit the confluence admission remain
+conditional on a now-known-false verification contract.
+
 ## Inductive constructor source-variable capture (2026-10-08)
 
 Reproduced with the pinned Lean **4.29.0** native kernel. An inductive source
