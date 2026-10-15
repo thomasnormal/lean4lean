@@ -259,6 +259,22 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   rejects incorrect universe arities, checks a constructor typing/inversion
   round trip, and audits all four new proofs against the existing unique-typing
   and initialized-context dependency baselines.
+  `VEnv.quotLift_inv` and `VEnv.quotInd_inv` likewise derive universe arity,
+  well-formedness and all argument typings from an arbitrary typed eliminator
+  application, not from caller-supplied argument typing premises. This includes
+  the exact respect-proof or dependent-minor type, the major's quotient type,
+  and conversion of the arbitrary result type to the lift target or the motive
+  applied to the original induction major. `VContext.quotLiftArguments` and
+  `VContext.quotIndArguments` preserve translations of all original native
+  arguments with these derived typings. `QuotientEliminatorInversion` checks
+  both semantic contracts, incorrect semantic/native universe arities,
+  beta-typing/inversion round trips, and composition of the recovered major
+  translation with verified WHNF and constructor payload extraction. It audits
+  all four new proofs against the existing unique-typing and initialized-context
+  dependency baselines. The semantic proofs inherit `sorryAx` through unique
+  typing; the native bridges additionally inherit choice and the existing
+  persistent-map/array interface axioms. No direct admission or new axiom is
+  introduced, and `quotMk_hasType`/`quotInd_beta` retain their admission-free bounds.
   Recovering parameter equalities from arbitrary quotient application typing
   and the complete `quotReduceRec.WF`/`reduceRecursor.WF` contract remain open.
   No caller premise or statement of an existing theorem changes. The native

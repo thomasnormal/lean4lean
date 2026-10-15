@@ -32,6 +32,93 @@ theorem _root_.Lean4Lean.TypeChecker.VContext.quotMkArguments {context : VContex
   exact ⟨sourceUniverse, _, _, _, rfl, levelsTranslation, sourceUniverseWF,
     domainTranslation, relationTranslation, valueTranslation, domainTyped, relationTyped, valueTyped⟩
 
+theorem _root_.Lean4Lean.TypeChecker.VContext.quotLiftArguments {context : VContext}
+    {levels : List Level} {domain relation target function respect major : Expr} {semantic : VExpr}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS
+      (.app (.app (.app (.app (.app (.app (.const ``Quot.lift levels)
+        domain) relation) target) function) respect) major) semantic) :
+    ∃ sourceUniverse targetUniverse domainSemantic relationSemantic targetSemantic
+        functionSemantic respectSemantic majorSemantic,
+      semantic = .app (.app (.app (.app (.app (.app
+        (.const ``Quot.lift [sourceUniverse, targetUniverse]) domainSemantic) relationSemantic)
+          targetSemantic) functionSemantic) respectSemantic) majorSemantic ∧
+      levels.mapM (VLevel.ofLevel context.lparams) = some [sourceUniverse, targetUniverse] ∧
+      sourceUniverse.WF context.lparams.length ∧ targetUniverse.WF context.lparams.length ∧
+      context.TrExprS domain domainSemantic ∧ context.TrExprS relation relationSemantic ∧
+      context.TrExprS target targetSemantic ∧ context.TrExprS function functionSemantic ∧
+      context.TrExprS respect respectSemantic ∧ context.TrExprS major majorSemantic ∧
+      context.HasType domainSemantic (.sort sourceUniverse) ∧
+      context.HasType relationSemantic
+        (.forallE domainSemantic (.forallE domainSemantic.lift (.sort .zero))) ∧
+      context.HasType targetSemantic (.sort targetUniverse) ∧
+      context.HasType functionSemantic (.forallE domainSemantic targetSemantic.lift) ∧
+      context.HasType respectSemantic
+        (.forallE domainSemantic (.forallE domainSemantic.lift
+          (.forallE (.app (.app (relationSemantic.liftN 2) (.bvar 1)) (.bvar 0))
+            (.app (.app (.app (.const ``Eq [targetUniverse]) (targetSemantic.liftN 3))
+              (.app (functionSemantic.liftN 3) (.bvar 2)))
+                (.app (functionSemantic.liftN 3) (.bvar 1)))))) ∧
+      context.HasType majorSemantic
+        (.app (.app (.const ``Quot [sourceUniverse]) domainSemantic) relationSemantic) := by
+  let .app functionTyped argumentTyped respectTranslation majorTranslation := translated
+  let .app _ _ functionTranslation respectArgumentTranslation := respectTranslation
+  let .app _ _ targetTranslation functionArgumentTranslation := functionTranslation
+  let .app _ _ relationTranslation targetArgumentTranslation := targetTranslation
+  let .app _ _ domainTranslation relationArgumentTranslation := relationTranslation
+  let .app _ _ headTranslation domainArgumentTranslation := domainTranslation
+  let .const _ levelsTranslation _ := headTranslation
+  obtain ⟨sourceUniverse, targetUniverse, levelsEqual, sourceUniverseWF, targetUniverseWF,
+    domainTyped, relationTyped, targetTyped, appliedTyped, respectTyped, majorTyped, _⟩ :=
+      VEnv.quotLift_inv context.Ewf context.Δwf
+        (context.trenv.quotientObjects initialized).2.2.1 (functionTyped.app argumentTyped)
+  cases levelsEqual
+  exact ⟨sourceUniverse, targetUniverse, _, _, _, _, _, _, rfl, levelsTranslation,
+    sourceUniverseWF, targetUniverseWF, domainArgumentTranslation, relationArgumentTranslation,
+    targetArgumentTranslation, functionArgumentTranslation, respectArgumentTranslation,
+    majorTranslation, domainTyped, relationTyped, targetTyped, appliedTyped, respectTyped, majorTyped⟩
+
+theorem _root_.Lean4Lean.TypeChecker.VContext.quotIndArguments {context : VContext}
+    {levels : List Level} {domain relation motive minor major : Expr} {semantic : VExpr}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS
+      (.app (.app (.app (.app (.app (.const ``Quot.ind levels)
+        domain) relation) motive) minor) major) semantic) :
+    ∃ sourceUniverse domainSemantic relationSemantic motiveSemantic minorSemantic majorSemantic,
+      semantic = .app (.app (.app (.app (.app (.const ``Quot.ind [sourceUniverse])
+        domainSemantic) relationSemantic) motiveSemantic) minorSemantic) majorSemantic ∧
+      levels.mapM (VLevel.ofLevel context.lparams) = some [sourceUniverse] ∧
+      sourceUniverse.WF context.lparams.length ∧
+      context.TrExprS domain domainSemantic ∧ context.TrExprS relation relationSemantic ∧
+      context.TrExprS motive motiveSemantic ∧ context.TrExprS minor minorSemantic ∧
+      context.TrExprS major majorSemantic ∧
+      context.HasType domainSemantic (.sort sourceUniverse) ∧
+      context.HasType relationSemantic
+        (.forallE domainSemantic (.forallE domainSemantic.lift (.sort .zero))) ∧
+      context.HasType motiveSemantic
+        (.forallE (.app (.app (.const ``Quot [sourceUniverse]) domainSemantic) relationSemantic)
+          (.sort .zero)) ∧
+      context.HasType minorSemantic
+        (.forallE domainSemantic (.app motiveSemantic.lift
+          (.app (.app (.app (.const ``Quot.mk [sourceUniverse]) domainSemantic.lift)
+            relationSemantic.lift) (.bvar 0)))) ∧
+      context.HasType majorSemantic
+        (.app (.app (.const ``Quot [sourceUniverse]) domainSemantic) relationSemantic) := by
+  let .app functionTyped argumentTyped minorTranslation majorTranslation := translated
+  let .app _ _ motiveTranslation minorArgumentTranslation := minorTranslation
+  let .app _ _ relationTranslation motiveArgumentTranslation := motiveTranslation
+  let .app _ _ domainTranslation relationArgumentTranslation := relationTranslation
+  let .app _ _ headTranslation domainArgumentTranslation := domainTranslation
+  let .const _ levelsTranslation _ := headTranslation
+  obtain ⟨sourceUniverse, levelsEqual, sourceUniverseWF, domainTyped, relationTyped,
+    motiveTyped, minorTyped, majorTyped, _⟩ := VEnv.quotInd_inv context.Ewf context.Δwf
+      (context.trenv.quotientObjects initialized).2.1 (functionTyped.app argumentTyped)
+  cases levelsEqual
+  exact ⟨sourceUniverse, _, _, _, _, _, rfl, levelsTranslation, sourceUniverseWF,
+    domainArgumentTranslation, relationArgumentTranslation, motiveArgumentTranslation,
+    minorArgumentTranslation, majorTranslation, domainTyped, relationTyped, motiveTyped,
+    minorTyped, majorTyped⟩
+
 theorem _root_.Lean4Lean.TypeChecker.VContext.quotientDefEq (context : VContext)
     (initialized : context.env.quotInit = true) (levels : List VLevel)
     (levelsWF : ∀ level ∈ levels, level.WF context.lparams.length) :
