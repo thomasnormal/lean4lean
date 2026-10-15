@@ -17,7 +17,8 @@ class Params where
   pat_simple : Pat p r → ∃ sp : SimplePattern, p = sp.toPattern
   pat_uniq : Pat p₁ r → Pat p₂ r' → Subpattern p₃ p₁ → p₂.inter p₃ = some p₄ →
     p₁ = p₂ ∧ p₂ = p₃ ∧ r ≍ r'
-  pat_wf : Pat p r → p.Matches e m1 m2 → HasType env univs Γ e A →
+  pat_wf : OnCtx Γ (env.IsType univs) →
+    Pat p r → p.Matches e m1 m2 → HasType env univs Γ e A →
     r.2.OK (IsDefEqU env univs Γ) m1 m2 → IsDefEqU env univs Γ e (r.1.apply m1 m2)
   pat_app_l : Pat p r → Subpattern (.app p₁ p₂) p → ¬Subpattern (.app p₃ p₄) p₁
   pat_app_l_uniq : Pat p r → Pat p' r' → Subpattern (.app p₁ p₂) p →
@@ -625,8 +626,8 @@ theorem ParRed.defeq (H : Γ ⊢ e ≫ e') (he : Γ ⊢ e : A) : Γ ⊢ e ≡ e'
       (.symm <| .appDF (.symm <| .lamDF hA (ih1 ⟨hΓ, _, hA⟩ hb)) (.symm <| ih2 hΓ ha))
       (.beta (ih1 ⟨hΓ, _, hA⟩ hb).hasType.2 (ih2 hΓ ha).hasType.2)
   | @extra p r e m1 m2 Γ m2' h1 h2 h3 _ ih =>
-    exact .trans_l henv hΓ he <| .transU_r henv hΓ (pat_wf h1 h2 he h3) <|
-     .apply_pat hΓ (fun _ _ h => ⟨_, ih _ hΓ h⟩) (.defeqU_l henv hΓ (pat_wf h1 h2 he h3) he)
+    exact .trans_l henv hΓ he <| .transU_r henv hΓ (pat_wf hΓ h1 h2 he h3) <|
+     .apply_pat hΓ (fun _ _ h => ⟨_, ih _ hΓ h⟩) (.defeqU_l henv hΓ (pat_wf hΓ h1 h2 he h3) he)
 
 variable! (hΓ : OnCtx Γ (IsType env univs)) in
 theorem ParRed.hasType (H : Γ ⊢ e ≫ e') (he : Γ ⊢ e : A) : Γ ⊢ e' : A :=

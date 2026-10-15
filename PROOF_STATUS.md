@@ -33,9 +33,31 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   parameter-equality guards, result expression, and an admission-free certificate
   deriving those guards from the equation's bound variables. The fixture audits
   the structural proofs, legacy compatibility, and reduction-bridge dependencies.
-  This repairs the closed-equation representation, not full quotient pattern
-  soundness, a concrete quotient `Params` instance, general confluence,
-  injectivity, or the checker callback's arbitrary-parameter alignment.
+  This repairs the closed-equation representation; subsequent work also proves
+  checked quotient rule soundness and constructs the concrete definition/quotient
+  `Params` model described below. General confluence, injectivity, and the checker
+  callback's arbitrary-parameter alignment remain open.
+- `Theory.Typing.RewriteRules` derives the complete classification and constant
+  lookup of registered equations, uniqueness of definition origins by name, and
+  exclusion of definitions at all four registered quotient primitive names from
+  the WF declaration history. `RewriteRule` contains exactly registered closed
+  definition rules and the checked quotient rule; its soundness and equation
+  coverage are proved, including the actual closed quotient equation.
+  `Theory.Typing.ConcreteReduction` proves all overlap/major-premise obligations
+  and supplies `VEnv.WF.reductionParams` at every universe count. It constructs
+  the actual model instead of requiring a caller's `Params` premise.
+  `Params.pat_wf` now receives local-context WF explicitly, matching the proved
+  typing APIs; `ParRed.defeq` forwards its existing certificate at both uses.
+  The public parallel-reduction and confluence theorem statements do not change.
+  `ConcreteReduction` checks metadata, primitive-name masking negatives, equation
+  coverage, actual parallel reduction/subject conversion, and instantiation of
+  the unchanged confluence consumer. Its exhaustive proof/dependency audit
+  excludes circular reliance on the rule-soundness projection or confluence
+  consumers. Metadata, equation coverage and non-overlap use only `propext` and
+  `Quot.sound`; the whole model additionally inherits the existing `sorryAx`
+  dependency through rule soundness, but no choice or new interface axiom.
+  The generic `NormalEq.parRed` application/extra admission remains open; model
+  construction does not remove it or prove full native recursor semantics.
 - `NormalEq.parRed_constDF` proves the constant case of parallel reduction
   modulo universe conversion, including registered extra-reduction rules and
   their nontrivial equality checks. `EqUpToLevels.instL_of_levels` and
@@ -291,13 +313,13 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   concrete pattern construction, use in initialized verified contexts, all owned
   proof dependencies, and absence of circular dependence on `Params.pat_wf` or
   the confluence consumers. This proves the quotient rule's semantic-soundness
-  obligation for a future concrete rewrite model, not the whole model. The native
+  obligation used by the concrete rewrite model above, not full confluence. The native
   reducer does not perform these semantic checks; deriving them automatically
   from major typing and discharging the remaining confluence obligations are
   still necessary. No runtime restriction is added to evade those obligations.
   Recovering parameter equalities from arbitrary quotient application typing
   and the complete `quotReduceRec.WF`/`reduceRecursor.WF` contract remain open.
-  No caller premise or statement of an existing theorem changes. The native
+  The existing beta/alignment theorem contracts stay unchanged. The native
   fixture includes actual proposition-induction reduction with an explicit
   motive, not a claim that native reduction erases the induction application.
 - `Environment.checkPrimitiveInductive.toVDecl_WF` packages the checked
