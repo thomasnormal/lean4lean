@@ -46,6 +46,21 @@ and the separately reported `IsDefEqU.weakN_iff` strengthening admission, but
 still explicitly inherits other typing/injectivity admissions. Repairing this
 interface now takes priority over further staging.
 
+**First repair ingredient:** `QuotPropReduction` adds a proved, type-preserving
+semantic unfolding for saturated `Quot.lift` at any source universe equivalent
+to zero. It reconstructs the major using `Quot.ind` to extract a proof of the
+source proposition, then applies the function to that proof. This supplies an
+actual left step for the recorded obstruction, followed by ordinary normal
+equality. The selector and generic join need no admissions or choice; arbitrary
+source typing and concrete-model instantiation still inherit the separate
+typing/injectivity baseline. The extension includes the old reduction and is
+compatible with applications/binders, weakening, and typed substitution. It
+does not replace the old relation or fix its false confluence theorem; full
+simulation, Church–Rosser, and migration of downstream consumers remain open.
+The same selector/reconstruction direction is already present in upstream's
+draft PR #53; this is a focused checked bridge on the current fork, not a claim
+to originate that broader design.
+
 The actual inductive elimination-universe selector is now total rather than an
 opaque `partial` definition. Its verified search chooses the first unused name
 in the original `u`, `u_1`, `u_2`, … order, without introducing a fuel limit or
@@ -481,13 +496,17 @@ unchanged text totals do not establish an unchanged transitive axiom set.
    fixes, validate it, and publish only with the required explicit lease permission.
    Then submit focused, validated upstream contributions rather than rebuilding
    a large divergent patch stack.
-2. Repair the now-demonstrably false `NormalEq.parRed` application/extra
+2. Complete the reduction-interface repair begun by `QuotPropReduction`:
+   replace the now-demonstrably false `NormalEq.parRed` application/extra
    contract. A general pattern-preservation lemma across proof irrelevance
    cannot hold: `QuotConfluenceObstruction.counterexample` refutes it in the
    actual quotient model. Do not hide this behind another premise or reject
    propositional quotients. Preserve the actual semantic equality and repair
    its reduction/conversion presentation before claiming confluence-dependent
-   results. Separately close non-circular typing/injectivity foundations,
+   results. The new saturated Prop-source unfolding handles the concrete
+   obstruction, not arbitrary simulation or prefix/eta overlap. Coordinate
+   with the existing upstream draft instead of duplicating its full stack.
+   Separately close non-circular typing/injectivity foundations,
    genuine `TrProj`, and inductive recursor semantics beyond the current
    constructor-free dispatcher contract.
 3. Connect the existing inductive stages to actual checked model registration,
