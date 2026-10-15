@@ -28,6 +28,12 @@ def RegistrationEntry.toConstantInfo : RegistrationEntry → ConstantInfo
   | .constructor entry => .ctorInfo entry.info
   | .recursor entry => .recInfo entry.info
 
+def RegistrationEntry.Semantic (env headerEnv constructorEnv : VEnv) :
+    RegistrationEntry → Prop
+  | .header entry => TrConstVal .safe env (.inductInfo entry.info) entry.model
+  | .constructor entry => TrConstVal .safe headerEnv (.ctorInfo entry.info) entry.model
+  | .recursor entry => TrConstVal .safe constructorEnv (.recInfo entry.info) entry.model
+
 def HeaderEntry.toConstantInfo (entry : HeaderEntry) : ConstantInfo :=
   .inductInfo entry.info
 
@@ -138,6 +144,28 @@ structure RegistrationEvidence (constants : ConstMap) (env : VEnv) (decl : VIndu
     ∃ ctor ∈ constructors, rule.ctor = ctor.info.name
   recursorRuleTranslation : ∀ entry ∈ recursors, ∀ rule ∈ entry.info.rules, ∃ semantic,
     TrExprS constructorEnv entry.info.levelParams [] rule.rhs semantic
+
+def RegistrationEvidence.orderedEntries
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    List RegistrationEntry :=
+  evidence.headers.map (fun entry => .header entry) ++
+    evidence.constructors.map (fun entry => .constructor entry) ++
+    evidence.recursors.map (fun entry => .recursor entry)
+
+theorem RegistrationEvidence.orderedSemantic
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.Semantic env evidence.headerEnv evidence.constructorEnv := by
+  intro entry hmem
+  simp only [RegistrationEvidence.orderedEntries, List.mem_append] at hmem
+  rcases hmem with hphase | hrecursors
+  · rcases hphase with hheaders | hconstructors
+    · rcases List.mem_map.mp hheaders with ⟨header, hmem, rfl⟩
+      exact evidence.headerTranslation header hmem
+    · rcases List.mem_map.mp hconstructors with ⟨constructor, hmem, rfl⟩
+      exact evidence.constructorTranslation constructor hmem
+  · rcases List.mem_map.mp hrecursors with ⟨recursor, hmem, rfl⟩
+    exact evidence.recursorTranslation recursor hmem
 
 theorem RegistrationEvidence.to_addInduct
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
