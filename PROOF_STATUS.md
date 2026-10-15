@@ -35,8 +35,10 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   the structural proofs, legacy compatibility, and reduction-bridge dependencies.
   This repairs the closed-equation representation; subsequent work also proves
   checked quotient rule soundness and constructs the concrete definition/quotient
-  `Params` model described below. General confluence, injectivity, and the checker
-  callback's arbitrary-parameter alignment remain open.
+  `Params` model described below. Quotient-type injectivity and semantic
+  arbitrary-parameter alignment are now proved using that model and the existing
+  confluence theorem; its inherited admissions and the native callback proof
+  remain open.
 - `Theory.Typing.RewriteRules` derives the complete classification and constant
   lookup of registered equations, uniqueness of definition origins by name, and
   exclusion of definitions at all four registered quotient primitive names from
@@ -317,8 +319,32 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   reducer does not perform these semantic checks; deriving them automatically
   from major typing and discharging the remaining confluence obligations are
   still necessary. No runtime restriction is added to evade those obligations.
-  Recovering parameter equalities from arbitrary quotient application typing
-  and the complete `quotReduceRec.WF`/`reduceRecursor.WF` contract remain open.
+  `Theory.Typing.QuotInjectivity` now derives universe-list equivalence and
+  domain/relation definitional equality from arbitrary quotient-type equality.
+  The concrete model preserves the registered `Quot` head through parallel
+  reduction and its reflexive/transitive closure. Normal equality inversion
+  excludes every proof-irrelevance branch by proving that a telescope ending
+  in a sort cannot itself be a proposition; applications are not assumed to be
+  generally injective. Actual quotient-equation registration protects the head
+  from user definitions; a matching constant signature alone is not assumed
+  to identify a primitive. `VEnv.quot_inv` also recovers the primitive universe
+  arity and argument typings from an arbitrary typed quotient application.
+  `Theory.Typing.QuotReductionAutomatic` proves both `quotLift_beta_of_typed`
+  and `quotInd_beta_of_typed` at the original arbitrary result type without
+  caller-supplied parameter checks, universe equalities or argument typings.
+  Their `of_normalizedMajor` variants accept a major convertible to an arbitrary
+  constructor spine, including differently expressed constructor parameters.
+  `QuotientInjectivity` checks all these contracts, multistep spine preservation,
+  incorrect universe arities, unequal-universe impossibility, and beta-converted
+  domains. Its exhaustive audit rejects direct admissions and new axioms,
+  preserves the admission-free bounds of `quotMk_hasType`/`quotInd_beta`, and
+  explicitly traverses the inherited confluence and sort-injectivity dependencies.
+  Structural and normal-equality inversion use only `propext`, `Quot.sound`,
+  and inherited `sorryAx`; full injectivity and automatic beta additionally
+  inherit `Classical.choice` from the existing confluence theorem. No admission
+  is removed by that application of confluence, and its remaining
+  `NormalEq.parRed` application/extra admission is not hidden or reproved here.
+  The complete native `quotReduceRec.WF`/`reduceRecursor.WF` contract remains open.
   The existing beta/alignment theorem contracts stay unchanged. The native
   fixture includes actual proposition-induction reduction with an explicit
   motive, not a claim that native reduction erases the induction application.
