@@ -28,6 +28,11 @@ def RegistrationEntry.toConstantInfo : RegistrationEntry → ConstantInfo
   | .constructor entry => .ctorInfo entry.info
   | .recursor entry => .recInfo entry.info
 
+def RegistrationEntry.model : RegistrationEntry → VConstVal
+  | .header entry => entry.model
+  | .constructor entry => entry.model
+  | .recursor entry => entry.model
+
 def RegistrationEntry.insert (constants : ConstMap) : RegistrationEntry → ConstMap
   | .header entry => constants.insert entry.info.name (.inductInfo entry.info)
   | .constructor entry => constants.insert entry.info.name (.ctorInfo entry.info)
@@ -92,6 +97,15 @@ theorem RegistrationEntry.Semantic.typeTranslation
   | header entry => exact ⟨_, hsemantic.1.2.2⟩
   | constructor entry => exact ⟨_, hsemantic.1.2.2⟩
   | recursor entry => exact ⟨_, hsemantic.1.2.2⟩
+
+theorem RegistrationEntry.ModelShape.toConstantInfo
+    {entry : RegistrationEntry} (hshape : entry.ModelShape) :
+    entry.model.name = entry.toConstantInfo.name ∧
+      entry.model.uvars = entry.toConstantInfo.levelParams.length := by
+  cases entry with
+  | header entry => exact hshape
+  | constructor entry => exact hshape
+  | recursor entry => exact hshape
 
 def HeaderEntry.toConstantInfo (entry : HeaderEntry) : ConstantInfo :=
   .inductInfo entry.info

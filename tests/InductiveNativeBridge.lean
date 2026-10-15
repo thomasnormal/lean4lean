@@ -82,6 +82,11 @@ example {entry : RegistrationEntry} {env headerEnv constructorEnv : VEnv}
       | .recursor entry => TrExprS constructorEnv entry.info.levelParams [] entry.info.type semantic :=
   hsemantic.typeTranslation
 
+example {entry : RegistrationEntry} (hshape : entry.ModelShape) :
+    entry.model.name = entry.toConstantInfo.name ∧
+      entry.model.uvars = entry.toConstantInfo.levelParams.length :=
+  hshape.toConstantInfo
+
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.recursors,
