@@ -482,6 +482,25 @@ theorem RegistrationEvidence.orderedModelMap
     _ = insertOrderedModel constants evidence.orderedEntries :=
       insertOrdered_modelShape constants evidence.orderedEntries evidence.orderedModelShape
 
+theorem RegistrationEvidence.headerModelMembership
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    {entry : HeaderEntry} (hmem : entry ∈ evidence.headers) :
+    ∃ type ∈ decl.types, entry.model = type.toVConstVal := by
+  have hmodel : entry.model ∈ evidence.headers.map (·.model) :=
+    List.mem_map.mpr ⟨entry, hmem, rfl⟩
+  rw [evidence.headerModels] at hmodel
+  obtain ⟨type, htype, heq⟩ := List.mem_map.mp hmodel
+  exact ⟨type, htype, heq.symm⟩
+
+theorem RegistrationEvidence.constructorModelMembership
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    {entry : ConstructorEntry} (hmem : entry ∈ evidence.constructors) :
+    ∃ constructor ∈ decl.constructorHeaders, entry.model = constructor := by
+  have hmodel : entry.model ∈ evidence.constructors.map (·.model) :=
+    List.mem_map.mpr ⟨entry, hmem, rfl⟩
+  rw [evidence.constructorModels] at hmodel
+  exact ⟨entry.model, hmodel, rfl⟩
+
 theorem RegistrationEvidence.native_map_records
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     resultConstants = insertInfos constants
