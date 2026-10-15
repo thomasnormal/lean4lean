@@ -57,6 +57,71 @@ example {env : VEnv} (hadd : VEnv.addInduct ∅ boolInductDecl = some env) :
     ({ uvars := 0, type := .const ``Bool [], name := ``Bool.false }) hadd
     (by simp [VInductDecl.constructorHeaders, boolInductDecl])
 
+private def boolRecursor : VConstVal :=
+  { name := ``Bool.rec, uvars := 0, type := .const ``Bool [] }
+
+example : ∃ env, VEnv.addInductWithRecursors (∅ : VEnv) boolInductDecl
+    [boolRecursor] = some env := by
+  apply VEnv.addInductWithRecursors.exists
+  · intro header hmem
+    simp [boolInductDecl] at hmem
+    subst header
+    rfl
+  · simp [boolInductDecl]
+  · simp [VInductDecl.constructorHeaders, boolInductDecl]
+  · intro headerEnv hheader ctor hmem
+    simp [VEnv.addInductHeaders, VEnv.addConst, boolInductDecl] at hheader
+    have hheader' := Option.some.inj hheader
+    simp at hheader'
+    rw [← hheader']
+    simp [VInductDecl.constructorHeaders, boolInductDecl] at hmem
+    rcases hmem with rfl | rfl <;> rfl
+  · simp [boolRecursor]
+  · intro _ hinduct recursor hmem
+    simp [boolRecursor] at hmem
+    subst recursor
+    rw [VEnv.addInduct.constants_eq hinduct]
+    · rfl
+    · intro header hheader
+      simp [boolInductDecl] at hheader
+      subst header
+      decide
+    · intro ctor hctor
+      simp [VInductDecl.constructorHeaders, boolInductDecl] at hctor
+      rcases hctor with rfl | rfl <;> decide
+
+example {env : VEnv}
+    (hadd : VEnv.addInductWithRecursors (∅ : VEnv) boolInductDecl [boolRecursor] = some env) :
+    env.constants ``Bool.rec = some boolRecursor.toVConstant := by
+  exact VEnv.addInductWithRecursors.recursor boolRecursor hadd (by simp)
+
+example {env : VEnv}
+    (hadd : VEnv.addInductWithRecursors (∅ : VEnv) boolInductDecl [boolRecursor] = some env) :
+    (∅ : VEnv).constants ``Bool.rec = none := by
+  exact VEnv.addInductWithRecursors.recursorFresh boolRecursor hadd (by simp)
+
+example {env : VEnv}
+    (hadd : VEnv.addInductWithRecursors (∅ : VEnv) boolInductDecl [boolRecursor] = some env) :
+    env.defeqs = (∅ : VEnv).defeqs := by
+  exact VEnv.addInductWithRecursors.defeqs_eq hadd
+
+example {env : VEnv}
+    (hadd : VEnv.addInductWithRecursors (∅ : VEnv) boolInductDecl [boolRecursor] = some env) :
+    env.Ordered := by
+  apply VEnv.addInductWithRecursors_WF .empty
+  · refine ⟨boolInductDecl.headersWF, ?_⟩
+    intro next haddHeaders ctor hmem
+    exact ⟨boolCtorUvars ctor hmem, boolInductDecl.constructorWF haddHeaders ctor hmem⟩
+  · intro inductEnv hinduct recursor hmem
+    have : recursor = boolRecursor := List.mem_singleton.mp hmem
+    subst recursor
+    change inductEnv.IsType 0 [] (.const ``Bool [])
+    refine ⟨.succ .zero, VEnv.HasType.const (env := inductEnv) (U := 0) (Γ := [])
+      (c := ``Bool) (ci := boolInductDecl.types[0].toVConstant) (ls := []) ?_
+      (fun _ h => by cases h) rfl⟩
+    exact VEnv.addInduct.header boolInductDecl.types[0] hinduct (by simp [boolInductDecl])
+  · exact hadd
+
 end Lean4Lean
 
 namespace Lean4Lean
