@@ -1,6 +1,6 @@
 # Progress and upstream comparison
 
-Last reviewed: **2026-10-14 (UTC)**. This is the readable overview of the
+Last reviewed: **2026-10-15 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
@@ -15,11 +15,11 @@ fully integrated into the published branch. Its admission-free simultaneous
 substitution proof is narrowly ported here; that is foundation integration,
 not completion of frontend soundness.
 
-**Published versus local integration:** the published branch is at
+**Published versus local integration:** the published branch retains
 `7afeceb` (the canonical non-inductive frontend theorem checkpoint after
-the proof-bearing source checkpoint `4b3a958f89d999bc40ec6b409b135aa36108b8be`)
-on Lean **4.29.0**, and its full
-default build passes on October 13. The separate integration worktree is
+the proof-bearing source checkpoint `4b3a958f89d999bc40ec6b409b135aa36108b8be`),
+the subsequent quotient semantic milestones below, and Lean **4.29.0**. Its full
+default build passes on October 15. The separate integration worktree is
 based on official `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` on Lean
 **4.33.0-rc2**. Today's fetch confirms that official tip is **not** an
 ancestor of the published branch; only the detached integration is based on
@@ -74,7 +74,7 @@ the entire dependency stack.
 | Universe levels | Verified total level machinery and comparison path. | Upstream added newer standard-library normalization/comparison proofs and a SAT-hardness result. Our full syntactic agreement with its normalizer is regression-tested, not proved. |
 | Primitive checking and arithmetic | Many primitive-extension and arithmetic contracts, with native regression receipts. | Upstream has newer primitive-table/guard proofs and refactorings. Our four disabled native operations and well-founded primitive-validation gap remain unfinished. |
 | Inductive declarations | Source preflight, header/constructor checks, scope and registration-stage invariants, and primitive-inductive receipts. | Neither snapshot completes the constructive `AddInduct` model. Staging receipts do not prove actual checked inductive registration or translate the Lean prelude. |
-| Metatheory and reductions | Recent quotient beta/alignment work, a proved constant confluence case, the actual closed quotient equation's guarded pattern certificate, and a targeted port of upstream's strong simultaneous substitution proof. | Full confluence, injectivity/strengthening, genuine projection semantics, and recursor soundness remain open. The substitution API does not itself remove these admissions. |
+| Metatheory and reductions | Quotient-type injectivity and automatic typed/normalized-major beta, a concrete definition/quotient reduction model, a proved constant confluence case, and a targeted port of upstream's strong simultaneous substitution proof. | Full confluence, foundational injectivity/strengthening, genuine projection semantics, and native recursor soundness remain open. Automatic quotient alignment inherits the existing confluence and typing admissions. |
 
 ### Recent concrete progress
 
@@ -95,7 +95,13 @@ the entire dependency stack.
   real six-lambda quotient equation. The new guarded certificate is proved;
   subsequent work proves checked quotient-pattern soundness and constructs a
   concrete definition/quotient `Params` model from semantic environment WF.
-  General confluence and automatic native parameter alignment remain open.
+  Quotient-type injectivity now uses that model and the existing confluence
+  theorem to infer constructor/eliminator parameters. Both semantic beta rules
+  preserve the original result type with no caller parameter checks, including
+  normalized major arguments. Their exhaustive dependency audit retains the
+  existing confluence/sort-injectivity `sorryAx` and confluence's choice dependency;
+  this does not remove the generic confluence admission or prove the native
+  quotient callback/dispatcher contract.
 - `55b7b4d`: ported upstream's simultaneous substitution proof, with strong and
   weak cross-substitution, typed context substitutions, and binder/identity
   support. All 34 owned theorem audits exclude inherited admissions; this does
