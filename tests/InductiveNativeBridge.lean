@@ -19,6 +19,14 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    resultConstants = insertInfos constants
+      ((evidence.headers.map HeaderEntry.toConstantInfo ++
+        evidence.constructors.map ConstructorEntry.toConstantInfo ++
+        evidence.recursors.map RecursorEntry.toConstantInfo).reverse) :=
+  evidence.native_map_records
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.recursors,
       TrConstVal .safe evidence.constructorEnv (.recInfo entry.info) entry.model :=
   evidence.recursor_translation_receipt
