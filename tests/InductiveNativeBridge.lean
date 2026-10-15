@@ -98,6 +98,11 @@ example {entry : RegistrationEntry} {constants : ConstMap} (hshape : entry.Model
     entry.insert constants = constants.insert entry.model.name entry.toConstantInfo :=
   entry.insert_modelShape hshape
 
+example {constants : ConstMap} {entries : List RegistrationEntry}
+    (hshape : ∀ entry ∈ entries, entry.ModelShape) :
+    insertOrdered constants entries = insertOrderedModel constants entries :=
+  insertOrdered_modelShape constants entries hshape
+
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.recursors,
