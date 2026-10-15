@@ -193,7 +193,7 @@ run_meta
     for dependency in dependencies do
       unless #[``propext, ``Quot.sound].contains dependency do
         throwError "quotient constructor/induction acquired a metatheory admission: {dependency}"
-  logInfo m!"{owned} exhaustive owned quotient semantic declarations have no direct admission or axiom; lift explicitly inherits the existing unique-typing baseline {repr baseline}; constructor/induction exclude inherited admissions and choice; canonical parameter alignment is not full quotReduceRec.WF"
+  logInfo m!"{owned} exhaustive owned quotient semantic declarations have no direct admission or axiom; lift explicitly inherits the existing unique-typing baseline {repr baseline}; constructor/induction exclude inherited admissions and choice; full native quotReduceRec.WF is audited separately"
   nativeControls
 
 end QuotientReductionSemanticsTest

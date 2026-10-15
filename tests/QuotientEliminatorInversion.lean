@@ -227,6 +227,6 @@ run_meta
     for dependency in dependencies do
       unless #[``propext, ``Quot.sound].contains dependency do
         throwError "quotient constructor/induction acquired a metatheory admission: {dependency} in {name}"
-  logInfo m!"both quotient eliminators derive universe arity and every argument typing from the typed application; native major translations compose with verified WHNF and constructor payload extraction; exact respect/minor types and dependent result conversion are checked; parameter alignment remains open"
+  logInfo m!"both quotient eliminators derive universe arity and every argument typing from the typed application; native major translations compose with verified WHNF and constructor payload extraction; exact respect/minor types and dependent result conversion are checked; automatic parameter alignment and full native quotient soundness are audited separately"
 
 end QuotientEliminatorInversionTest

@@ -88,6 +88,8 @@ example {context : VContext} {levels : List Level} {domain relation value : Expr
 
 run_meta
   let environment ← getEnv
+  let some semanticModule := environment.getModuleIdx? `Lean4Lean.Theory.Typing.QuotReduction
+    | throwError "quotient semantic module absent"
   let baseline ← collectAxioms ``VEnv.IsDefEqU.of_r
   let registrationBaseline ← collectAxioms ``VContext.quotientDefEq
   let localContextBaseline ← collectAxioms ``VContext.Δwf
@@ -95,7 +97,8 @@ run_meta
   for (name, information) in environment.constants do
     if name == ``VEnv.quotMk_inv || name == ``VContext.quotMkArguments ||
         name == ``VContext.quotMkPayload ||
-        name.toString.endsWith ".applicationArgumentTyped" then
+        (name.toString.endsWith ".applicationArgumentTyped" &&
+          environment.getModuleIdxFor? name == some semanticModule) then
       if information matches .axiomInfo _ then throwError "quotient inversion axiom: {name}"
       let some proof := information.value? | throwError "quotient inversion proof absent: {name}"
       if proof.hasSorry then throwError "direct quotient inversion admission: {name}"

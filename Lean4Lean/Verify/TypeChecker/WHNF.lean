@@ -1,5 +1,5 @@
 import Lean4Lean.Verify.TypeChecker.Reduce
-import Lean4Lean.Theory.Typing.QuotReductionAlignment
+import Lean4Lean.Theory.Typing.QuotReductionAutomatic
 
 namespace Lean4Lean.TypeChecker.Inner
 open Lean hiding Environment Exception
@@ -337,6 +337,28 @@ theorem reduceRecursor.fvarsBelow {context : VContext} {state : VState}
   · have notInitialized : context.env.quotInit = false := by
       cases value : context.env.quotInit <;> simp_all
     exact (reduceRecursor.none_of_translation notInitialized translated).mono
+      fun _ _ _ rejected _ successful => by cases rejected.symm.trans successful
+
+theorem reduceRecursor.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
+    RecM.WF c s (reduceRecursor e cheapRec cheapProj) fun oe _ =>
+      ∀ e₁, oe = some e₁ → c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' := by
+  by_cases initialized : c.env.quotInit = true
+  · unfold reduceRecursor
+    refine RecM.WF.getEnv ?_
+    simp [initialized]
+    refine (quotReduceRec.WF initialized he).bind fun outcome _ _ result => ?_
+    cases outcome with
+    | some reduced =>
+      exact .pure (by intro value equal; cases equal; exact result _ rfl)
+    | none =>
+      refine (inductiveReduceRec.none_of_translation he _ _ _).bind
+        fun outcome _ _ rejected => ?_
+      cases outcome with
+      | none => exact .pure nofun
+      | some reduced => cases rejected
+  · have notInitialized : c.env.quotInit = false := by
+      cases value : c.env.quotInit <;> simp_all
+    exact (reduceRecursor.none_of_translation notInitialized he).mono
       fun _ _ _ rejected _ successful => by cases rejected.symm.trans successful
 
 theorem whnfFVar.WF {c : VContext} {s : VState} (he : c.TrExprS (.fvar fv) e') :
