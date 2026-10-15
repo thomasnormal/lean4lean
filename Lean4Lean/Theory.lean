@@ -1,5 +1,6 @@
 import Lean4Lean.Theory.Typing.EnvLemmas
 import Lean4Lean.Theory.Typing.QuotPattern
+import Lean4Lean.Theory.Typing.QuotPatternSoundness
 import Lean4Lean.Theory.InductiveHeaders
 import Lean4Lean.Theory.ConstructorHeaders
 import Lean4Lean.Theory.Typing.Strong

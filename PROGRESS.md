@@ -360,6 +360,12 @@ compose with verified WHNF and constructor payload extraction. These inversions
 inherit the same unique-typing admissions. `QuotientEliminatorInversion` checks
 both contracts and their dependencies; constructor/eliminator parameter alignment
 and full quotient reduction soundness remain unproved.
+The quotient pattern's actual domain/relation checks now suffice for a proved
+semantic reduction at the source's original result type, with argument typings,
+universe alignment and payload transport derived rather than assumed. The proof
+does not depend on a `Params` instance or confluence, so it can support the
+missing concrete rewrite-model construction. Deriving those checks from arbitrary
+native major typing, and completing the confluence model, remain open.
 PR #61 proves the inductive worker's no-result contract for translated terms in
 the current constructor-free environment model and composes it through the
 recursor dispatcher when quotient initialization is absent. Its fixture audits
