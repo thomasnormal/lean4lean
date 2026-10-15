@@ -94,6 +94,10 @@ example {entry : RegistrationEntry} (hshape : entry.ModelShape) :
       entry.model.uvars = entry.toConstantInfo.levelParams.length :=
   hshape.toConstantInfo
 
+example {entry : RegistrationEntry} {constants : ConstMap} (hshape : entry.ModelShape) :
+    entry.insert constants = constants.insert entry.model.name entry.toConstantInfo :=
+  entry.insert_modelShape hshape
+
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.recursors,

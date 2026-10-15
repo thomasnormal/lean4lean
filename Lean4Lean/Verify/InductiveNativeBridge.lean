@@ -107,6 +107,15 @@ theorem RegistrationEntry.ModelShape.toConstantInfo
   | constructor entry => exact hshape
   | recursor entry => exact hshape
 
+theorem RegistrationEntry.insert_modelShape
+    {entry : RegistrationEntry} {constants : ConstMap} (hshape : entry.ModelShape) :
+    entry.insert constants = constants.insert entry.model.name entry.toConstantInfo := by
+  cases entry <;>
+    simp only [RegistrationEntry.insert, RegistrationEntry.model, RegistrationEntry.toConstantInfo]
+  · rw [hshape.1]
+  · rw [hshape.1]
+  · rw [hshape.1]
+
 def HeaderEntry.toConstantInfo (entry : HeaderEntry) : ConstantInfo :=
   .inductInfo entry.info
 
