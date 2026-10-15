@@ -34,6 +34,18 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
   evidence.orderedModelMap
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    {entry : HeaderEntry} (hmem : entry ∈ evidence.headers) :
+    ∃ type ∈ decl.types, entry.model = type.toVConstVal :=
+  evidence.headerModelMembership hmem
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    {entry : ConstructorEntry} (hmem : entry ∈ evidence.constructors) :
+    ∃ constructor ∈ decl.constructorHeaders, entry.model = constructor :=
+  evidence.constructorModelMembership hmem
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.orderedEntries, entry.ModelShape :=
   evidence.orderedModelShape
