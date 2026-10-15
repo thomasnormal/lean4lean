@@ -302,6 +302,8 @@ inductive Step {environment : VEnv} (environmentWF : environment.WF) (universes 
   | core : @ParRed (environmentWF.reductionParams universes) locals source result →
       Step environmentWF universes locals source result
   | unfold : unfold source = some result → Step environmentWF universes locals source result
+  | funEta : environment.HasType universes locals source (.forallE domain body) →
+      Step environmentWF universes locals source (.lam domain (.app source.lift (.bvar 0)))
   | app : Step environmentWF universes locals function function' →
       Step environmentWF universes locals argument argument' →
       Step environmentWF universes locals (.app function argument) (.app function' argument')
@@ -322,6 +324,9 @@ theorem Step.weakN {environmentWF : environment.WF} {source result : VExpr}
   induction step generalizing depth extended with
   | core reduction => exact .core (reduction.weakN insertion)
   | unfold unfolded => exact .unfold (unfold_liftN unfolded count depth)
+  | funEta typed =>
+    simpa [VExpr.liftN, ← VExpr.lift_liftN', liftVar] using
+      Step.funEta (typed.weakN environmentWF.ordered insertion)
   | app _ _ functionIH argumentIH => exact .app (functionIH insertion) (argumentIH insertion)
   | lam _ _ domainIH bodyIH => exact .lam (domainIH insertion) (bodyIH insertion.succ)
   | forallE _ _ domainIH bodyIH => exact .forallE (domainIH insertion) (bodyIH insertion.succ)
@@ -335,6 +340,9 @@ theorem Step.instN {environmentWF : environment.WF} {source result argument argu
   induction step generalizing depth substituted with
   | core reduction => exact .core (ParRed.instN ParRed.rfl argumentTyped substitution reduction)
   | unfold unfolded => exact .unfold (unfold_inst unfolded argument depth)
+  | funEta typed =>
+    simpa only [VExpr.inst, ← VExpr.lift_instN_lo, VExpr.instVar_lower] using
+      Step.funEta (typed.instN environmentWF.ordered substitution argumentTyped)
   | app _ _ functionIH argumentIH => exact .app (functionIH substitution) (argumentIH substitution)
   | lam _ _ domainIH bodyIH => exact .lam (domainIH substitution) (bodyIH substitution.succ)
   | forallE _ _ domainIH bodyIH => exact .forallE (domainIH substitution) (bodyIH substitution.succ)
@@ -349,6 +357,7 @@ theorem Step.defeq {environmentWF : environment.WF} {source result resultType : 
   induction step generalizing resultType with
   | core reduction => exact reduction.defeq localsWF typed
   | unfold unfolded => exact unfold_sound environmentWF localsWF registered unfolded typed
+  | funEta functionTyped => exact typed.trans_l environmentWF localsWF (IsDefEq.eta functionTyped).symm
   | app _ _ functionIH argumentIH =>
     obtain ⟨_, _, functionTyped, argumentTyped⟩ := typed.app_inv environmentWF.ordered localsWF
     exact typed.trans_l environmentWF localsWF
