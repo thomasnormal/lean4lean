@@ -161,4 +161,12 @@ example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environmen
       (evidence.entries.map NativeInductive.RegistrationEntry.toConstantInfo).reverse :=
   evidence.map
 
+example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (evidence : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) :
+    result.constants = NativeInductive.insertOrdered original.constants evidence.entries :=
+  evidence.orderedMap
+
 end Lean4Lean.Tests.InductiveNativeBridge
