@@ -4,6 +4,34 @@ import Lean4Lean.Theory.Typing.QuotReductionAlignment
 namespace Lean4Lean.TypeChecker.Inner
 open Lean hiding Environment Exception
 
+theorem _root_.Lean4Lean.TypeChecker.VContext.quotMkArguments {context : VContext}
+    {levels : List Level} {domain relation value : Expr} {semantic : VExpr}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS
+      (.app (.app (.app (.const ``Quot.mk levels) domain) relation) value) semantic) :
+    ∃ sourceUniverse domainSemantic relationSemantic valueSemantic,
+      semantic = .app (.app (.app (.const ``Quot.mk [sourceUniverse]) domainSemantic)
+        relationSemantic) valueSemantic ∧
+      levels.mapM (VLevel.ofLevel context.lparams) = some [sourceUniverse] ∧
+      sourceUniverse.WF context.lparams.length ∧
+      context.TrExprS domain domainSemantic ∧
+      context.TrExprS relation relationSemantic ∧
+      context.TrExprS value valueSemantic ∧
+      context.HasType domainSemantic (.sort sourceUniverse) ∧
+      context.HasType relationSemantic
+        (.forallE domainSemantic (.forallE domainSemantic.lift (.sort .zero))) ∧
+      context.HasType valueSemantic domainSemantic := by
+  let .app functionTyped argumentTyped partialTranslation valueTranslation := translated
+  let .app _ _ constructorDomainTranslation relationTranslation := partialTranslation
+  let .app _ _ headTranslation domainTranslation := constructorDomainTranslation
+  let .const _ levelsTranslation _ := headTranslation
+  obtain ⟨sourceUniverse, levelsEqual, sourceUniverseWF, domainTyped, relationTyped,
+    valueTyped, _⟩ := VEnv.quotMk_inv context.Ewf context.Δwf
+      (context.trenv.quotientObjects initialized).2.2.2.1 (functionTyped.app argumentTyped)
+  cases levelsEqual
+  exact ⟨sourceUniverse, _, _, _, rfl, levelsTranslation, sourceUniverseWF,
+    domainTranslation, relationTranslation, valueTranslation, domainTyped, relationTyped, valueTyped⟩
+
 theorem _root_.Lean4Lean.TypeChecker.VContext.quotientDefEq (context : VContext)
     (initialized : context.env.quotInit = true) (levels : List VLevel)
     (levelsWF : ∀ level ∈ levels, level.WF context.lparams.length) :
@@ -30,6 +58,17 @@ private theorem quotMkShape {expression : Expr}
       | _ => simp [Expr.isAppOfArity] at shape
     | _ => simp [Expr.isAppOfArity] at shape
   | _ => simp [Expr.isAppOfArity] at shape
+
+theorem _root_.Lean4Lean.TypeChecker.VContext.quotMkPayload {context : VContext}
+    {expression : Expr} {semantic : VExpr}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS expression semantic)
+    (shape : expression.isAppOfArity ``Quot.mk 3 = true) :
+    ∃ domain value, context.TrExprS expression.appArg! value ∧ context.HasType value domain := by
+  obtain ⟨levels, domain, relation, value, rfl⟩ := quotMkShape shape
+  obtain ⟨_, _, _, _, _, _, _, _, _, valueTranslated, _, _, valueTyped⟩ :=
+    context.quotMkArguments initialized translated
+  exact ⟨_, _, valueTranslated, valueTyped⟩
 
 private theorem quotArgumentBelow {context : VContext} {expression : Expr} (position : Nat)
     (bound : position < expression.getAppArgs.size) :

@@ -343,6 +343,14 @@ PR #60 adds the quotient worker's free-variable preservation invariant across
 both quotient eliminators and trailing-argument reapplication. Its fixture
 audits the theorem dependency chain against the inherited `Methods.withFuel.WF`
 baseline. This supports, but does not complete, `reduceRecursor.WF`.
+On October 15, the fork also proves quotient-constructor inversion: a typed
+`Quot.mk` application determines its universe arity and domain, relation, and
+payload typings. The native bridge recovers a typed translation of the payload
+selected by the reducer's constructor guard, including after WHNF. This derives
+missing typing inputs rather than assuming them; it still inherits unique-typing
+admissions and does not establish the constructor/eliminator parameter equalities
+or the full quotient reduction contract. See `QuotientConstructorInversion` and
+the detailed dependency account in `PROOF_STATUS.md`.
 PR #61 proves the inductive worker's no-result contract for translated terms in
 the current constructor-free environment model and composes it through the
 recursor dispatcher when quotient initialization is absent. Its fixture audits
