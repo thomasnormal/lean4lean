@@ -38,9 +38,16 @@ def RegistrationEntry.insert (constants : ConstMap) : RegistrationEntry → Cons
   | .constructor entry => constants.insert entry.info.name (.ctorInfo entry.info)
   | .recursor entry => constants.insert entry.info.name (.recInfo entry.info)
 
+def RegistrationEntry.insertModel (constants : ConstMap) (entry : RegistrationEntry) : ConstMap :=
+  constants.insert entry.model.name entry.toConstantInfo
+
 def insertOrdered (constants : ConstMap) : List RegistrationEntry → ConstMap
   | [] => constants
   | entry :: entries => insertOrdered (entry.insert constants) entries
+
+def insertOrderedModel (constants : ConstMap) : List RegistrationEntry → ConstMap
+  | [] => constants
+  | entry :: entries => insertOrderedModel (entry.insertModel constants) entries
 
 def FreshOrdered (constants : ConstMap) : List RegistrationEntry → Prop
   | [] => True
@@ -115,6 +122,18 @@ theorem RegistrationEntry.insert_modelShape
   · rw [hshape.1]
   · rw [hshape.1]
   · rw [hshape.1]
+
+theorem insertOrdered_modelShape (constants : ConstMap) (entries : List RegistrationEntry)
+    (hshape : ∀ entry ∈ entries, entry.ModelShape) :
+    insertOrdered constants entries = insertOrderedModel constants entries := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [insertOrdered, insertOrderedModel]
+    have htail : ∀ entry ∈ entries, entry.ModelShape :=
+      fun entry hmem => hshape entry (by simp [hmem])
+    rw [entry.insert_modelShape (hshape entry (by simp))]
+    simpa [RegistrationEntry.insertModel] using ih (entry.insertModel constants) htail
 
 def HeaderEntry.toConstantInfo (entry : HeaderEntry) : ConstantInfo :=
   .inductInfo entry.info
