@@ -261,6 +261,32 @@ example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environmen
     ∃ name info, staged.find? name = some info :=
   evidence.sourceLookup hmem
 
+example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (evidence : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) {entry : NativeInductive.RegistrationEntry}
+    (hmem : entry ∈ evidence.entries) (hshape : entry.ModelShape) :
+    entry.model.name = entry.toConstantInfo.name ∧
+      entry.model.uvars = entry.toConstantInfo.levelParams.length ∧
+      result.find? entry.toConstantInfo.name = some entry.toConstantInfo ∧
+      RestoredInductiveRecord preprocessing staged allIndNames recNameMap entry.toConstantInfo ∧
+      ∃ name info, staged.find? name = some info :=
+  evidence.entryModelReceipt hmem hshape
+
+example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (evidence : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) (hshape : ∀ entry ∈ evidence.entries, entry.ModelShape) :
+    ∀ entry ∈ evidence.entries,
+      entry.model.name = entry.toConstantInfo.name ∧
+        entry.model.uvars = entry.toConstantInfo.levelParams.length ∧
+        result.find? entry.toConstantInfo.name = some entry.toConstantInfo ∧
+        RestoredInductiveRecord preprocessing staged allIndNames recNameMap entry.toConstantInfo ∧
+        ∃ name info, staged.find? name = some info :=
+  evidence.orderedModelReceipt hshape
+
 example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
     (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap

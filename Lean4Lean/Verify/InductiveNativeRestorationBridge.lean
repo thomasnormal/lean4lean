@@ -77,7 +77,7 @@ structure RestoredRecordEvidence (preprocessing : ElimNestedInductive.Result)
   obtain ⟨entry, hentry, rfl⟩ := List.mem_map.mp hmem
   exact ⟨entry, hentry, rfl, evidence.typed entry hentry⟩
 
- theorem RestoredRecordEvidence.sourceLookup
+theorem RestoredRecordEvidence.sourceLookup
     {preprocessing : ElimNestedInductive.Result} {staged : Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name}
     {original result : Environment} {records : List ConstantInfo}
@@ -86,7 +86,37 @@ structure RestoredRecordEvidence (preprocessing : ElimNestedInductive.Result)
     ∃ name info, staged.find? name = some info := by
   exact RestoredInductiveRecord.sourceLookup (evidence.typed entry hmem)
 
- theorem RestoredRecordEvidence.installed
+theorem RestoredRecordEvidence.entryModelReceipt
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Environment} {records : List ConstantInfo}
+    (evidence : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) {entry : RegistrationEntry} (hmem : entry ∈ evidence.entries)
+    (hshape : entry.ModelShape) :
+    entry.model.name = entry.toConstantInfo.name ∧
+      entry.model.uvars = entry.toConstantInfo.levelParams.length ∧
+      result.find? entry.toConstantInfo.name = some entry.toConstantInfo ∧
+      RestoredInductiveRecord preprocessing staged allIndNames recNameMap entry.toConstantInfo ∧
+      ∃ name info, staged.find? name = some info := by
+  exact ⟨hshape.toConstantInfo.1, hshape.toConstantInfo.2,
+    evidence.entryInstalled hmem, evidence.typed entry hmem, evidence.sourceLookup hmem⟩
+
+theorem RestoredRecordEvidence.orderedModelReceipt
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Environment} {records : List ConstantInfo}
+    (evidence : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) (hshape : ∀ entry ∈ evidence.entries, entry.ModelShape) :
+    ∀ entry ∈ evidence.entries,
+      entry.model.name = entry.toConstantInfo.name ∧
+        entry.model.uvars = entry.toConstantInfo.levelParams.length ∧
+        result.find? entry.toConstantInfo.name = some entry.toConstantInfo ∧
+        RestoredInductiveRecord preprocessing staged allIndNames recNameMap entry.toConstantInfo ∧
+        ∃ name info, staged.find? name = some info := by
+  intro entry hmem
+  exact evidence.entryModelReceipt hmem (hshape entry hmem)
+
+theorem RestoredRecordEvidence.installed
     {preprocessing : ElimNestedInductive.Result} {staged : Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name}
     {original result : Environment} {records : List ConstantInfo}
