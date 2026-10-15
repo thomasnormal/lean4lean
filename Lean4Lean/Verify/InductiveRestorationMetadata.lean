@@ -51,6 +51,25 @@ theorem RestoredRegistrationEvidence.newLookup
     RestoredInductiveRecord preprocessing staged allIndNames recNameMap info :=
   evidence.trace.newLookup hwf name info habsent hlookup
 
+theorem RestoredRegistrationEvidence.recordClassification
+    {preprocessing : ElimNestedInductive.Result} {staged original result : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
+    (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap
+      original records result) (hwf : original.constants.WF) {info : ConstantInfo}
+    (hmem : info ∈ records) :
+    original.find? info.name = some info ∨
+      RestoredInductiveRecord preprocessing staged allIndNames recNameMap info := by
+  exact evidence.lookup hwf info.name info (evidence.receipt.installed info hmem)
+
+theorem RestoredRegistrationEvidence.newRecordClassification
+    {preprocessing : ElimNestedInductive.Result} {staged original result : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
+    (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap
+      original records result) (hwf : original.constants.WF) {info : ConstantInfo}
+    (hmem : info ∈ records) (habsent : original.find? info.name = none) :
+    RestoredInductiveRecord preprocessing staged allIndNames recNameMap info := by
+  exact evidence.newLookup hwf info.name info habsent (evidence.receipt.installed info hmem)
+
 theorem RestoredRegistrationReceipt.empty (env : Environment) (hwf : env.constants.WF) :
     RestoredRegistrationReceipt env [] env :=
   ⟨hwf, fun _ _ hold => hold, by simp [RestoredRecordsInstalled], by rfl⟩
