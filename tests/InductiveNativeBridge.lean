@@ -35,6 +35,13 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.model.name = entry.toConstantInfo.name ∧
+        entry.model.uvars = entry.toConstantInfo.levelParams.length :=
+  evidence.orderedModelShapeToConstantInfo
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.orderedEntries, ∃ semantic, match entry with
       | .header entry => TrExprS env entry.info.levelParams [] entry.info.type semantic
       | .constructor entry =>
