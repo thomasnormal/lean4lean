@@ -30,6 +30,21 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries, entry.ModelShape :=
+  evidence.orderedModelShape
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries, ∃ semantic, match entry with
+      | .header entry => TrExprS env entry.info.levelParams [] entry.info.type semantic
+      | .constructor entry =>
+        TrExprS evidence.headerEnv entry.info.levelParams [] entry.info.type semantic
+      | .recursor entry =>
+        TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic :=
+  evidence.orderedTypeTranslation
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
     resultConstants = insertInfos constants
       ((evidence.headers.map HeaderEntry.toConstantInfo ++
         evidence.constructors.map ConstructorEntry.toConstantInfo ++
