@@ -22,11 +22,11 @@ structure RestoredRegistrationReceipt (original : Environment) (records : List C
   wf : result.constants.WF
   preserves : ∀ name info, original.find? name = some info → result.find? name = some info
   installed : RestoredRecordsInstalled records result
-  map : ∃ infos, result.constants = NativeInductive.insertInfos original.constants infos
+  map : result.constants = NativeInductive.insertInfos original.constants records.reverse
 
 theorem RestoredRegistrationReceipt.empty (env : Environment) (hwf : env.constants.WF) :
     RestoredRegistrationReceipt env [] env :=
-  ⟨hwf, fun _ _ hold => hold, by simp [RestoredRecordsInstalled], ⟨[], rfl⟩⟩
+  ⟨hwf, fun _ _ hold => hold, by simp [RestoredRecordsInstalled], by rfl⟩
 
 theorem RestoredRegistrationReceipt.trans {original current result : Environment}
     {first second : List ConstantInfo}
@@ -38,10 +38,8 @@ theorem RestoredRegistrationReceipt.trans {original current result : Environment
   rcases List.mem_append.mp hmem with hfirst | hsecond
   · exact left.installed.mono right.preserves info hfirst
   · exact right.installed info hsecond
-  rcases left.map with ⟨first, hfirst⟩
-  rcases right.map with ⟨second, hsecond⟩
-  refine ⟨second ++ first, ?_⟩
-  rw [hsecond, hfirst, NativeInductive.insertInfos_append]
+  rw [right.map, left.map, NativeInductive.insertInfos_append]
+  simp only [List.reverse_append]
 
 def restoredConstructorRecords (preprocessing : ElimNestedInductive.Result) (staged : Environment)
     (name : Name) : List ConstantInfo :=
@@ -135,8 +133,8 @@ private theorem registerRestored.installed (info : ConstantInfo) (allowPrimitive
   rintro _ ⟨hfresh, _⟩
   obtain ⟨hnext, hself, hkeep⟩ := AddInductive.restorationAddFresh env info hwf hfresh
   refine .pure ⟨hnext, hkeep, by simpa [RestoredRecordsInstalled] using hself, ?_⟩
-  refine ⟨[info], ?_⟩
-  simp only [Kernel.Environment.add_constants, NativeInductive.insertInfos]
+  simp only [Kernel.Environment.add_constants, List.reverse_cons, List.reverse_nil,
+    List.nil_append, NativeInductive.insertInfos]
 
 private theorem restorationForInInstalled (items : List α)
     (step : α → InductiveRestorationM (ForInStep PUnit)) (records : α → List ConstantInfo)
