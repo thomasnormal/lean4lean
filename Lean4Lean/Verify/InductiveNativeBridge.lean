@@ -332,6 +332,27 @@ theorem RegistrationEvidence.orderedSemantic
   · rcases List.mem_map.mp hrecursors with ⟨recursor, hmem, rfl⟩
     exact evidence.recursorTranslation recursor hmem
 
+theorem RegistrationEvidence.orderedModelShape
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries, entry.ModelShape := by
+  intro entry hmem
+  exact (evidence.orderedSemantic entry hmem).modelShape
+
+theorem RegistrationEvidence.orderedTypeTranslation
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries, ∃ semantic, match entry with
+      | .header entry => TrExprS env entry.info.levelParams [] entry.info.type semantic
+      | .constructor entry =>
+        TrExprS evidence.headerEnv entry.info.levelParams [] entry.info.type semantic
+      | .recursor entry =>
+        TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic := by
+  intro entry hmem
+  have hsemantic := evidence.orderedSemantic entry hmem
+  cases entry with
+  | header entry => exact ⟨_, hsemantic.1.2.2⟩
+  | constructor entry => exact ⟨_, hsemantic.1.2.2⟩
+  | recursor entry => exact ⟨_, hsemantic.1.2.2⟩
+
 theorem RegistrationEvidence.orderedMetadata
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.orderedEntries,
