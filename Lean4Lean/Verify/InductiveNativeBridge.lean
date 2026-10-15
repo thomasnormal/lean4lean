@@ -18,6 +18,16 @@ structure RecursorEntry where
   info : RecursorVal
   model : VConstVal
 
+inductive RegistrationEntry where
+  | header (entry : HeaderEntry)
+  | constructor (entry : ConstructorEntry)
+  | recursor (entry : RecursorEntry)
+
+def RegistrationEntry.toConstantInfo : RegistrationEntry → ConstantInfo
+  | .header entry => .inductInfo entry.info
+  | .constructor entry => .ctorInfo entry.info
+  | .recursor entry => .recInfo entry.info
+
 def HeaderEntry.toConstantInfo (entry : HeaderEntry) : ConstantInfo :=
   .inductInfo entry.info
 

@@ -1,6 +1,7 @@
 import Lean4Lean.Verify.InductiveNativeBridge
 import Lean4Lean.Verify.InductiveNativeTrace
 import Lean4Lean.Verify.InductiveRestorationMetadata
+import Lean4Lean.Verify.InductiveNativeRestorationBridge
 
 namespace Lean4Lean.Tests.InductiveNativeBridge
 
@@ -85,5 +86,14 @@ example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environmen
     RestoredInductiveRecord preprocessing staged (types.map (·.name))
       (mkAuxRecNameMap staged types).2 info :=
   restoredEnvironmentRecords.typedPartition preprocessing staged types hmem
+
+example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (evidence : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) :
+    result.constants = NativeInductive.insertInfos original.constants
+      (evidence.entries.map NativeInductive.RegistrationEntry.toConstantInfo).reverse :=
+  evidence.map
 
 end Lean4Lean.Tests.InductiveNativeBridge
