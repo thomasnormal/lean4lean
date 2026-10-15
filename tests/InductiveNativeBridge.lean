@@ -169,4 +169,22 @@ example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environmen
     result.constants = NativeInductive.insertOrdered original.constants evidence.entries :=
   evidence.orderedMap
 
+example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (evidence : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) {entry : NativeInductive.RegistrationEntry}
+    (hmem : entry ∈ evidence.entries) :
+    result.find? entry.toConstantInfo.name = some entry.toConstantInfo :=
+  evidence.entryInstalled hmem
+
+example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (evidence : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) {info : ConstantInfo} (hmem : info ∈ records) :
+    ∃ entry ∈ evidence.entries, info = entry.toConstantInfo ∧
+      RestoredInductiveRecord preprocessing staged allIndNames recNameMap info :=
+  evidence.typedRecord hmem
+
 end Lean4Lean.Tests.InductiveNativeBridge
