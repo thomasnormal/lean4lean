@@ -474,6 +474,14 @@ theorem RegistrationEvidence.orderedMap
     insertOrdered_constructors, insertOrdered_headers]
   exact evidence.native_map
 
+theorem RegistrationEvidence.orderedModelMap
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    resultConstants = insertOrderedModel constants evidence.orderedEntries := by
+  calc
+    resultConstants = insertOrdered constants evidence.orderedEntries := evidence.orderedMap
+    _ = insertOrderedModel constants evidence.orderedEntries :=
+      insertOrdered_modelShape constants evidence.orderedEntries evidence.orderedModelShape
+
 theorem RegistrationEvidence.native_map_records
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     resultConstants = insertInfos constants

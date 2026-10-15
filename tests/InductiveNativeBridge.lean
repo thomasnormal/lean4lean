@@ -30,6 +30,11 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    resultConstants = insertOrderedModel constants evidence.orderedEntries :=
+  evidence.orderedModelMap
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.orderedEntries, entry.ModelShape :=
   evidence.orderedModelShape
 
