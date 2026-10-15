@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.InductiveNativeBridge
 import Lean4Lean.Verify.InductiveNativeTrace
+import Lean4Lean.Verify.InductiveRestorationMetadata
 
 namespace Lean4Lean.Tests.InductiveNativeBridge
 
@@ -50,5 +51,15 @@ example {allowed : ConstantInfo → Prop} {original result : Kernel.Environment}
     (trace : FreshRegistrationTrace allowed original result) :
     ∃ infos, result.constants = NativeInductive.insertInfos original.constants infos :=
   NativeInductive.FreshRegistrationTrace.constants_eq trace
+
+example (env : Kernel.Environment) (hwf : env.constants.WF) :
+    ∃ infos, env.constants = NativeInductive.insertInfos env.constants infos :=
+  (RestoredRegistrationReceipt.empty env hwf).map
+
+example {original current result : Kernel.Environment} {first second : List ConstantInfo}
+    (left : RestoredRegistrationReceipt original first current)
+    (right : RestoredRegistrationReceipt current second result) :
+    ∃ infos, result.constants = NativeInductive.insertInfos original.constants infos :=
+  (left.trans right).map
 
 end Lean4Lean.Tests.InductiveNativeBridge
