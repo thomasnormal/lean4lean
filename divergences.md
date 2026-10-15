@@ -38,10 +38,29 @@ Run `lake env lean tests/QuotientPatternEquation.lean` for the old root-match
 negative, legacy compatibility, concrete and generic universe instances, guarded
 quotient certificate, actual parallel-reduction contract and dependency audits.
 
-This does not prove arbitrary quotient redex soundness, construct a full quotient
-`Params` instance, close the remaining application/extra confluence admission,
-resolve injectivity or establish `reduceRecursor.WF`. The actual type checker,
-quotient registration worker and accepted declaration fragment are unchanged.
+Subsequent work proves the checked quotient rule's semantic soundness and
+constructs a concrete definition/quotient `Params` model from semantic environment
+WF. The remaining application/extra confluence admission, automatic native
+parameter alignment, injectivity and `reduceRecursor.WF` are still open. The actual
+type checker, quotient registration worker and accepted declaration fragment are
+unchanged.
+
+## Reduction-model local contexts (repaired 2026-10-15)
+
+`Theory.Typing.ChurchRosser.Params.pat_wf` formerly required rule soundness in
+arbitrary local contexts without a context-WF premise. The actual quotient typing
+and conversion proofs require that premise, while every use of the field already
+has it. The model interface now receives `OnCtx` explicitly, and `ParRed.defeq`
+forwards its existing context certificate at both uses. The parallel-reduction and
+confluence theorem statements remain unchanged. This is a verification-interface
+repair, not a native kernel discrepancy or an added runtime restriction.
+
+`VEnv.WF.reductionParams` constructs the concrete registered definition/quotient
+model with equation coverage and all non-overlap obligations proved from the WF
+declaration history. `tests/ConcreteReduction.lean` checks actual reduction and
+confluence consumers and rules out circular dependence of model construction on
+those consumers. The remaining generic confluence and unique-typing admissions
+are not removed by this interface repair or model construction.
 
 ## Header parameter-normalization boundary (resolved 2026-10-08)
 

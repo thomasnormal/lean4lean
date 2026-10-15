@@ -93,8 +93,9 @@ the entire dependency stack.
   universe conversion, removing one confluence admission.
 - `c0f9930`: repaired the root-only equation-pattern premise that excluded the
   real six-lambda quotient equation. The new guarded certificate is proved;
-  arbitrary quotient-pattern soundness and a concrete quotient `Params`
-  instance are not established.
+  subsequent work proves checked quotient-pattern soundness and constructs a
+  concrete definition/quotient `Params` model from semantic environment WF.
+  General confluence and automatic native parameter alignment remain open.
 - `55b7b4d`: ported upstream's simultaneous substitution proof, with strong and
   weak cross-substitution, typed context substitutions, and binder/identity
   support. All 34 owned theorem audits exclude inherited admissions; this does
@@ -363,9 +364,17 @@ and full quotient reduction soundness remain unproved.
 The quotient pattern's actual domain/relation checks now suffice for a proved
 semantic reduction at the source's original result type, with argument typings,
 universe alignment and payload transport derived rather than assumed. The proof
-does not depend on a `Params` instance or confluence, so it can support the
-missing concrete rewrite-model construction. Deriving those checks from arbitrary
-native major typing, and completing the confluence model, remain open.
+does not depend on a `Params` instance or confluence.
+Every well-formed semantic environment now supplies a concrete definition/quotient
+reduction model. Equation coverage, unique definition origins, protection of all
+four quotient primitive names, and all pattern non-overlap obligations follow
+from the declaration history without inherited admissions or choice. The model's
+rule soundness retains existing unique-typing admissions. Its local-context WF
+requirement is now explicit in `Params.pat_wf`, and the existing consumers forward
+their already-required context certificate; no confluence theorem statement or
+native behavior changes. `ConcreteReduction` checks actual parallel-reduction and
+confluence consumers with this model. The remaining generic confluence admission,
+automatic native parameter alignment, and full recursor soundness remain open.
 PR #61 proves the inductive worker's no-result contract for translated terms in
 the current constructor-free environment model and composes it through the
 recursor dispatcher when quotient initialization is absent. Its fixture audits
