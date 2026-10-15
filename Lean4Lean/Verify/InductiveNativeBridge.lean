@@ -49,6 +49,35 @@ def RegistrationEntry.RuleSemantics (constructorEnv : VEnv) : RegistrationEntry 
     ∀ rule ∈ entry.info.rules, ∃ semantic,
       TrExprS constructorEnv entry.info.levelParams [] rule.rhs semantic
 
+def RegistrationEntry.ModelShape : RegistrationEntry → Prop
+  | .header entry => entry.model.name = entry.info.name ∧
+      entry.model.uvars = entry.info.levelParams.length
+  | .constructor entry => entry.model.name = entry.info.name ∧
+      entry.model.uvars = entry.info.levelParams.length
+  | .recursor entry => entry.model.name = entry.info.name ∧
+      entry.model.uvars = entry.info.levelParams.length
+
+theorem RegistrationEntry.Semantic.modelShape
+    {env headerEnv constructorEnv : VEnv} {entry : RegistrationEntry}
+    (hsemantic : entry.Semantic env headerEnv constructorEnv) :
+    entry.ModelShape := by
+  cases entry with
+  | header entry => exact ⟨hsemantic.2.symm, hsemantic.1.2.1.symm⟩
+  | constructor entry => exact ⟨hsemantic.2.symm, hsemantic.1.2.1.symm⟩
+  | recursor entry => exact ⟨hsemantic.2.symm, hsemantic.1.2.1.symm⟩
+
+theorem RegistrationEntry.Semantic.typeTranslation
+    {env headerEnv constructorEnv : VEnv} {entry : RegistrationEntry}
+    (hsemantic : entry.Semantic env headerEnv constructorEnv) :
+    ∃ semantic, match entry with
+      | .header entry => TrExprS env entry.info.levelParams [] entry.info.type semantic
+      | .constructor entry => TrExprS headerEnv entry.info.levelParams [] entry.info.type semantic
+      | .recursor entry => TrExprS constructorEnv entry.info.levelParams [] entry.info.type semantic := by
+  cases entry with
+  | header entry => exact ⟨_, hsemantic.1.2.2⟩
+  | constructor entry => exact ⟨_, hsemantic.1.2.2⟩
+  | recursor entry => exact ⟨_, hsemantic.1.2.2⟩
+
 def HeaderEntry.toConstantInfo (entry : HeaderEntry) : ConstantInfo :=
   .inductInfo entry.info
 
