@@ -85,6 +85,18 @@ and excludes the refuted confluence theorem and issue #50's strengthening.
 Upstream draft PR #53 already contains this selector/reconstruction direction;
 the local result is a focused bridge, not a new competing inductive stack.
 
+`QuotPrefixReduction` extends this ingredient to every partial quotient-lift
+prefix using typed function eta in the same compatible presentation. Its
+complete transformer introduces precisely the missing binders from the
+registered signature, and its proof reconstructs canonical residual typing
+from the actual source derivation instead of assuming it from the caller.
+All zero through six supplied-argument cases have a generic completeness
+theorem and concrete semantic regressions. Weakening and typed substitution
+also preserve the generated finite chains. General confluence and eta-overlap
+proofs remain unproved; neither the old false contract nor native execution
+is changed. This follows the existing upstream draft #53 direction, rather
+than asserting a new competing repair design.
+
 ## Inductive constructor source-variable capture (2026-10-08)
 
 Reproduced with the pinned Lean **4.29.0** native kernel. An inductive source

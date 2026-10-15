@@ -61,6 +61,19 @@ The same selector/reconstruction direction is already present in upstream's
 draft PR #53; this is a focused checked bridge on the current fork, not a claim
 to originate that broader design.
 
+The candidate presentation now also has typed function-eta expansion and a
+total `unfoldPrefix` transformer for all seven quotient-lift prefixes, from
+the bare constant through six supplied arguments. A completeness theorem
+covers arbitrary prefix arguments and every zero-equivalent source universe;
+soundness derives the canonical residual type internally from actual source
+typing and the registered signature, then preserves the original result type.
+The generated finite reduction chains remain stable under weakening, typed
+substitution, and definitional context conversion. This removes the
+saturation-only limitation, not the outstanding
+general simulation/confluence or eta-critical-pair obligations. The same
+typed-eta/prefix direction exists in upstream draft PR #53; no competing full
+inductive implementation is claimed.
+
 The actual inductive elimination-universe selector is now total rather than an
 opaque `partial` definition. Its verified search chooses the first unused name
 in the original `u`, `u_1`, `u_2`, … order, without introducing a fuel limit or
@@ -503,8 +516,9 @@ unchanged text totals do not establish an unchanged transitive axiom set.
    actual quotient model. Do not hide this behind another premise or reject
    propositional quotients. Preserve the actual semantic equality and repair
    its reduction/conversion presentation before claiming confluence-dependent
-   results. The new saturated Prop-source unfolding handles the concrete
-   obstruction, not arbitrary simulation or prefix/eta overlap. Coordinate
+   results. Prop-source unfolding now covers every partial prefix as well as
+   the concrete saturated obstruction; arbitrary simulation and eta-overlap
+   proofs are still open. Coordinate
    with the existing upstream draft instead of duplicating its full stack.
    Separately close non-circular typing/injectivity foundations,
    genuine `TrProj`, and inductive recursor semantics beyond the current

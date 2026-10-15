@@ -15,6 +15,32 @@ Lean 4.29.0 / 4.33.0-rc2 controls.
 
 ## What is proved
 
+- `QuotPrefixReduction` removes the preceding repair ingredient's
+  saturation-only limitation. The same compatible presentation includes typed
+  function eta, and `unfoldPrefix` parses the actual application spine,
+  computes the residual type from `quotLiftConst`, and introduces precisely
+  the missing binders before applying the existing Prop-source unfolding.
+  `unfoldPrefix_complete` proves success for arbitrary lists of zero through
+  six supplied arguments at any zero-equivalent source universe, not just
+  fixture terms. `prefix_reduces` combines that completeness with actual source
+  typing to give a real finite reduction and semantic equality at the original
+  type. No canonical-type witness or preservation condition is demanded from
+  the caller; the canonical residual typing is derived internally using the
+  existing independent typing/injectivity baseline.
+  Eta steps and all finite chains preserve weakening, typed substitution,
+  and definitional context conversion;
+  compatible application/lambda chains allow the generated reductions beneath
+  binders and additional applications. The fixture checks all seven prefixes
+  in a concrete Eq-plus-Quot model and excludes the refuted confluence theorem,
+  derived quotient injectivity, and false strengthening from reachable proofs.
+  Completeness, fresh-variable application typing, and concrete source typings
+  are admission-free/no-choice; general reduction soundness and actual-model
+  construction retain the separate `sorryAx` baseline. Native prefix and full
+  function equalities use only `Quot.sound`; native selector and saturated
+  unfolding equalities use no axioms. These are semantic controls, not native
+  reduction-completeness claims. General simulation/Church–Rosser, eta critical
+  pairs, and downstream migration remain open. The eta/prefix direction is
+  already present in upstream draft PR #53.
 - `QuotPropReduction` supplies a concrete repair ingredient without changing
   the existing false `NormalEq.parRed` contract. `zeroLike_iff` constructively
   characterizes all universes equivalent to zero, including noncanonical

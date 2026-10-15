@@ -57,6 +57,15 @@ already appears in upstream draft PR #53. General soundness still inherits
 independent typing admissions, with confluence and strengthening explicitly
 excluded from the new dependency graph.
 
+The compatible presentation now includes typed function eta and a complete
+quotient-prefix transformer, so the semantic repair ingredient applies to
+the bare lift constant and all partial applications, not only saturated
+majors. The proof derives the residual signature typing internally and
+preserves the original type. Native prefix/function equality controls pass on
+Lean 4.29.0 and 4.33.0-rc2 with explicit extensionality and congruence; this
+does not add those steps to either executable checker. General confluence,
+critical-pair proofs, and downstream migration are still open.
+
 ## Total inductive elimination-universe selection (2026-10-15)
 
 `AddInductive.getElimLevel` formerly used an opaque `partial` definition for its
