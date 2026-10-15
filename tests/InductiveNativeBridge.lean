@@ -62,4 +62,20 @@ example {original current result : Kernel.Environment} {first second : List Cons
     result.constants = NativeInductive.insertInfos original.constants (first ++ second).reverse :=
   (left.trans right).map
 
+example {original result : Kernel.Environment} {headers constructors recursors : List ConstantInfo}
+    (receipt : RestoredRegistrationReceipt original (headers ++ constructors ++ recursors) result) :
+    result.constants =
+      NativeInductive.insertInfos
+        (NativeInductive.insertInfos
+          (NativeInductive.insertInfos original.constants headers.reverse) constructors.reverse)
+        recursors.reverse :=
+  receipt.mapPhases
+
+example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {types : List InductiveType} {info : ConstantInfo}
+    (hmem : info ∈ restoredEnvironmentRecords preprocessing staged types) :
+    RestoredInductiveRecord preprocessing staged (types.map (·.name))
+      (mkAuxRecNameMap staged types).2 info :=
+  restoredEnvironmentRecords.typedPartition preprocessing staged types hmem
+
 end Lean4Lean.Tests.InductiveNativeBridge

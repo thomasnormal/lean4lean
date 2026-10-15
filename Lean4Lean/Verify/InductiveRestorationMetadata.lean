@@ -41,6 +41,17 @@ theorem RestoredRegistrationReceipt.trans {original current result : Environment
   rw [right.map, left.map, NativeInductive.insertInfos_append]
   simp only [List.reverse_append]
 
+theorem RestoredRegistrationReceipt.mapPhases
+    {original result : Environment} {headers constructors recursors : List ConstantInfo}
+    (receipt : RestoredRegistrationReceipt original (headers ++ constructors ++ recursors) result) :
+    result.constants =
+      NativeInductive.insertInfos
+        (NativeInductive.insertInfos
+          (NativeInductive.insertInfos original.constants headers.reverse) constructors.reverse)
+        recursors.reverse := by
+  rw [receipt.map, List.reverse_append, List.reverse_append]
+  rw [← NativeInductive.insertInfos_append, ← NativeInductive.insertInfos_append]
+
 def restoredConstructorRecords (preprocessing : ElimNestedInductive.Result) (staged : Environment)
     (name : Name) : List ConstantInfo :=
   match staged.find? name with
@@ -67,6 +78,72 @@ def restoredEnvironmentRecords (preprocessing : ElimNestedInductive.Result) (sta
   let (recNames, recNameMap) := mkAuxRecNameMap staged types
   types.flatMap (restoredDatatypeRecords preprocessing staged (types.map (·.name)) recNameMap) ++
     recNames.flatMap (restoredRecursorRecords preprocessing staged (types.map (·.name)) recNameMap)
+
+theorem restoredDatatypeRecords.typed
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name} {indType : InductiveType}
+    {info : ConstantInfo}
+    (hmem : info ∈ restoredDatatypeRecords preprocessing staged allIndNames recNameMap indType) :
+    RestoredInductiveRecord preprocessing staged allIndNames recNameMap info := by
+  simp only [restoredDatatypeRecords] at hmem
+  cases hlookup : staged.find? indType.name with
+  | none => simp [hlookup] at hmem
+  | some value =>
+    cases value with
+    | inductInfo value =>
+      simp only [hlookup] at hmem
+      change info ∈ [.inductInfo { value with all := allIndNames }] ++
+        (value.ctors.flatMap (restoredConstructorRecords preprocessing staged) ++
+          restoredRecursorRecords preprocessing staged allIndNames recNameMap (mkRecName indType.name)) at hmem
+      rcases List.mem_append.mp hmem with hheader | hrest
+      · have hheader' : info = .inductInfo { value with all := allIndNames } := by
+          simpa using hheader
+        subst info
+        exact .header indType.name value hlookup
+      · rcases List.mem_append.mp hrest with hconstructors | hrecursor
+        · rcases List.mem_flatMap.mp hconstructors with ⟨name, hname, hrecord⟩
+          cases hctor : staged.find? name with
+          | none => simp [restoredConstructorRecords, hctor] at hrecord
+          | some ctor =>
+            cases ctor with
+            | ctorInfo ctor =>
+              simp [restoredConstructorRecords, hctor] at hrecord
+              subst info
+              exact .constructor name ctor hctor
+            | _ => simp [restoredConstructorRecords, hctor] at hrecord
+        · simp only [restoredRecursorRecords] at hrecursor
+          cases hrec : staged.find? (mkRecName indType.name) with
+          | none => simp [hrec] at hrecursor
+          | some recursor =>
+            cases recursor with
+            | recInfo recursor =>
+              simp [hrec] at hrecursor
+              subst info
+              exact .recursor (mkRecName indType.name) recursor hrec
+            | _ => simp [hrec] at hrecursor
+    | _ => simp [hlookup] at hmem
+
+theorem restoredEnvironmentRecords.typedPartition
+    (preprocessing : ElimNestedInductive.Result) (staged : Environment)
+    (types : List InductiveType) {info : ConstantInfo}
+    (hmem : info ∈ restoredEnvironmentRecords preprocessing staged types) :
+    RestoredInductiveRecord preprocessing staged (types.map (·.name))
+      (mkAuxRecNameMap staged types).2 info := by
+  simp only [restoredEnvironmentRecords] at hmem
+  simp only [List.mem_append] at hmem
+  rcases hmem with hdatatypes | hauxiliaries
+  · rcases List.mem_flatMap.mp hdatatypes with ⟨indType, hmem, hrecord⟩
+    exact restoredDatatypeRecords.typed hrecord
+  · rcases List.mem_flatMap.mp hauxiliaries with ⟨name, hmem, hrecord⟩
+    cases hlookup : staged.find? name with
+    | none => simp [restoredRecursorRecords, hlookup] at hrecord
+    | some recursor =>
+      cases recursor with
+      | recInfo recursor =>
+        simp [restoredRecursorRecords, hlookup] at hrecord
+        subst info
+        exact .recursor name recursor hlookup
+      | _ => simp [restoredRecursorRecords, hlookup] at hrecord
 
 def RestorationDatatypeSources (staged : Environment) (indType : InductiveType) : Prop :=
   ∃ info : InductiveVal, staged.find? indType.name = some (.inductInfo info) ∧
