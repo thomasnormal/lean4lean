@@ -275,6 +275,26 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
   typing; the native bridges additionally inherit choice and the existing
   persistent-map/array interface axioms. No direct admission or new axiom is
   introduced, and `quotMk_hasType`/`quotInd_beta` retain their admission-free bounds.
+  `Theory.Typing.QuotPatternSoundness` now proves `quotLiftPattern.sound`:
+  the actual pattern match, source application typing, and the pattern's actual
+  domain/relation checks imply semantic reduction at the original supplied
+  result type. `VEnv.quotLift_beta_of_checkedParameters` derives all argument
+  typings, both universe arities and their required equivalence, and payload
+  transport before applying the semantic beta rule. It does not assume universe
+  equivalence or any argument typing. `VEnv.WF.quotientObjects` recovers primitive
+  quotient signatures from registration of the actual quotient equation by
+  induction on the well-formed declaration history; its dependencies are only
+  `propext` and `Quot.sound`. The semantic rule proofs retain the existing
+  unique-typing/sort-injectivity `sorryAx` dependency but do not assume a `Params`
+  instance or confluence. `QuotientPatternSoundness` checks arbitrary convertible
+  parameters and result types, both actual checks (with mismatch rejection),
+  concrete pattern construction, use in initialized verified contexts, all owned
+  proof dependencies, and absence of circular dependence on `Params.pat_wf` or
+  the confluence consumers. This proves the quotient rule's semantic-soundness
+  obligation for a future concrete rewrite model, not the whole model. The native
+  reducer does not perform these semantic checks; deriving them automatically
+  from major typing and discharging the remaining confluence obligations are
+  still necessary. No runtime restriction is added to evade those obligations.
   Recovering parameter equalities from arbitrary quotient application typing
   and the complete `quotReduceRec.WF`/`reduceRecursor.WF` contract remain open.
   No caller premise or statement of an existing theorem changes. The native
