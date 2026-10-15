@@ -70,6 +70,40 @@ theorem RestoredRegistrationEvidence.newRecordClassification
     RestoredInductiveRecord preprocessing staged allIndNames recNameMap info := by
   exact evidence.newLookup hwf info.name info habsent (evidence.receipt.installed info hmem)
 
+theorem RestoredRegistrationEvidence.recordReceipt
+    {preprocessing : ElimNestedInductive.Result} {staged original result : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
+    (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap
+      original records result) (hwf : original.constants.WF) {info : ConstantInfo}
+    (hmem : info ∈ records) :
+    result.find? info.name = some info ∧
+      (original.find? info.name = some info ∨
+        RestoredInductiveRecord preprocessing staged allIndNames recNameMap info) := by
+  exact ⟨evidence.receipt.installed info hmem, evidence.recordClassification hwf hmem⟩
+
+theorem RestoredRegistrationEvidence.newRecordReceipt
+    {preprocessing : ElimNestedInductive.Result} {staged original result : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
+    (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap
+      original records result) (hwf : original.constants.WF) {info : ConstantInfo}
+    (hmem : info ∈ records) (habsent : original.find? info.name = none) :
+    result.find? info.name = some info ∧
+      RestoredInductiveRecord preprocessing staged allIndNames recNameMap info := by
+  exact ⟨evidence.receipt.installed info hmem,
+    evidence.newRecordClassification hwf hmem habsent⟩
+
+theorem RestoredRegistrationEvidence.recordsReceipt
+    {preprocessing : ElimNestedInductive.Result} {staged original result : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
+    (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap
+      original records result) (hwf : original.constants.WF) :
+    ∀ info ∈ records,
+      result.find? info.name = some info ∧
+        (original.find? info.name = some info ∨
+          RestoredInductiveRecord preprocessing staged allIndNames recNameMap info) := by
+  intro info hmem
+  exact evidence.recordReceipt hwf hmem
+
 theorem RestoredRegistrationReceipt.empty (env : Environment) (hwf : env.constants.WF) :
     RestoredRegistrationReceipt env [] env :=
   ⟨hwf, fun _ _ hold => hold, by simp [RestoredRecordsInstalled], by rfl⟩
