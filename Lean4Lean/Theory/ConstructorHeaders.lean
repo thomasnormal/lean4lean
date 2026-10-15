@@ -70,6 +70,21 @@ theorem VEnv.addConstructorHeaders.fresh
         rw [@ih next hrest hmem] at found'
         cases found'
 
+theorem VEnv.addConstructorHeaders.otherConstants
+    (hadd : env.addConstructorHeaders ctors = some env')
+    (notMember : ∀ ctor ∈ ctors, ctor.name ≠ name) :
+    env'.constants name = env.constants name := by
+  induction ctors generalizing env with
+  | nil => cases hadd; rfl
+  | cons first ctors ih =>
+    obtain ⟨next, hstep, hrest⟩ := Option.bind_eq_some_iff.mp hadd
+    have hnext := ih hrest (fun ctor hmem => notMember ctor (by simp [hmem]))
+    unfold VEnv.addConst at hstep
+    split at hstep
+    · cases hstep
+    · cases hstep
+      simpa [notMember first (by simp)] using hnext
+
 theorem VEnv.addConstructorHeaders.defeqs_eq
     (hadd : env.addConstructorHeaders ctors = some env') : env'.defeqs = env.defeqs := by
   induction ctors generalizing env with

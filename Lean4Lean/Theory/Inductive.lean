@@ -30,3 +30,7 @@ def VInductDecl.WF (env : VEnv) (decl : VInductDecl) : Prop :=
 def VEnv.addInduct (env : VEnv) (decl : VInductDecl) : Option VEnv :=
   env.addInductHeaders decl.types >>= fun env =>
     env.addConstructorHeaders decl.constructorHeaders
+
+def VEnv.addInductWithRecursors (env : VEnv) (decl : VInductDecl)
+    (recursors : List VConstVal) : Option VEnv :=
+  env.addInduct decl >>= fun env => env.addConstructorHeaders recursors

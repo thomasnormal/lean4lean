@@ -71,6 +71,21 @@ theorem VEnv.addInductHeaders.fresh
         rw [@ih nextEnv hrest hmem] at found'
         cases found'
 
+theorem VEnv.addInductHeaders.otherConstants
+    (hadd : env.addInductHeaders headers = some env')
+    (notMember : ∀ header ∈ headers, header.name ≠ name) :
+    env'.constants name = env.constants name := by
+  induction headers generalizing env with
+  | nil => cases hadd; rfl
+  | cons firstHeader headers ih =>
+    obtain ⟨nextEnv, hstep, hrest⟩ := Option.bind_eq_some_iff.mp hadd
+    have hnext := ih hrest (fun header hmem => notMember header (by simp [hmem]))
+    unfold VEnv.addConst at hstep
+    split at hstep
+    · cases hstep
+    · cases hstep
+      simpa [notMember firstHeader (by simp)] using hnext
+
 theorem VEnv.addConst.defeqs_eq
     (hadd : env.addConst name constant = some env') : env'.defeqs = env.defeqs := by
   unfold VEnv.addConst at hadd
