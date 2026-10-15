@@ -44,6 +44,29 @@ structure RestoredRecordEvidence (preprocessing : ElimNestedInductive.Result)
     _ = insertOrdered original.constants evidence.entries := by
       rw [insertOrdered_toConstantInfos]
 
+ theorem RestoredRecordEvidence.entryInstalled
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Environment} {records : List ConstantInfo}
+    (evidence : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) {entry : RegistrationEntry} (hmem : entry ∈ evidence.entries) :
+    result.find? entry.toConstantInfo.name = some entry.toConstantInfo := by
+  apply evidence.receipt.installed entry.toConstantInfo
+  rw [evidence.records_eq]
+  exact List.mem_map.mpr ⟨entry, hmem, rfl⟩
+
+ theorem RestoredRecordEvidence.typedRecord
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Environment} {records : List ConstantInfo}
+    (evidence : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) {info : ConstantInfo} (hmem : info ∈ records) :
+    ∃ entry ∈ evidence.entries, info = entry.toConstantInfo ∧
+      RestoredInductiveRecord preprocessing staged allIndNames recNameMap info := by
+  rw [evidence.records_eq] at hmem
+  obtain ⟨entry, hentry, rfl⟩ := List.mem_map.mp hmem
+  exact ⟨entry, hentry, rfl, evidence.typed entry hentry⟩
+
  theorem RestoredRecordEvidence.installed
     {preprocessing : ElimNestedInductive.Result} {staged : Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name}
