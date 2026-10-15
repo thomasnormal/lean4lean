@@ -25,6 +25,11 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    resultConstants = insertOrdered constants evidence.orderedEntries :=
+  evidence.orderedMap
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
     resultConstants = insertInfos constants
       ((evidence.headers.map HeaderEntry.toConstantInfo ++
         evidence.constructors.map ConstructorEntry.toConstantInfo ++
