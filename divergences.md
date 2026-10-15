@@ -11,6 +11,26 @@ This is a list of places where lean4lean deliberately has different behavior fro
 * [`Lean4Lean.TypeChecker.Inner.inferLambda`](Lean4Lean/TypeChecker.lean), `inferLet`: lean4lean does the `ensureSort` call before extending the context, while [`infer_lambda`](https://github.com/leanprover/lean4/blob/v4.26.0/src/kernel/type_checker.cpp#L124-L126) does it afterward. It's not clear whether this is actually unsound but it would require some very weird invariants to justify having unchecked things in the local context and hoping that they won't be used in the typing proof of that same expression.
 * [`Lean4Lean.checkConstantVal`](Lean4Lean/Environment.lean): The original implementation would call `check` which sets the level params and then unsets them afterward, and then `ensure_sort` would run in a context without any level params. In lean4lean the monad is parameterized over level params, so they remain the same across the two calls.
 
+## Total inductive elimination-universe selection (2026-10-15)
+
+`AddInductive.getElimLevel` formerly used an opaque `partial` definition for its
+unbounded first-unused universe-name search. It is now total, with termination
+proved from the maximum string length of the finite input names and the decimal
+representation length of each candidate index. No runtime fuel, failure case,
+fallback name, or new rejection is added. The search still considers bare `u`
+first, then `u_1`, `u_2`, and so on, and preserves the large-elimination
+classifier's success and failure results.
+
+The indexed candidates use ordinary verified `String.append` rather than
+`Name.appendIndexAfter`, whose implementation calls opaque
+`String.Internal.append`. The constructed names have the explicit same ASCII
+decimal spelling; runtime tests compare against that original helper through
+2049 consecutive indices and 96 large decimal boundary cases. There is no new
+axiom equating the two append interfaces and no claimed kernel discrepancy.
+Successful selection now proves freshness and scope in the generated recursor
+universe telescope. This does not establish the semantic soundness of the
+large-elimination classifier, inductive registration, or recursor equations.
+
 ## Closed quotient equation pattern boundary (repaired 2026-10-12)
 
 The former `Theory.Typing.ChurchRosser.Params.extra_pat` specification required

@@ -33,6 +33,15 @@ Actual checked inductive/model registration and recursor semantics remain open.
 Our executable also deliberately differs from upstream; this is not just a
 proof-only patch set.
 
+The actual inductive elimination-universe selector is now total rather than an
+opaque `partial` definition. Its verified search chooses the first unused name
+in the original `u`, `u_1`, `u_2`, … order, without introducing a fuel limit or
+rejecting additional declarations. Successful selection supplies both freshness
+and translation of the selected level in the generated recursor's universe
+parameters, preserving their distinctness when the source parameters are
+distinct. This removes a real executable verification obstruction; it does not
+prove the semantic large-elimination criterion or inductive registration.
+
 ## Comparison snapshot
 
 Progress means extending an actual semantic guarantee, removing an admission

@@ -5,6 +5,31 @@ all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 ## What is proved
 
+- `getElimLevel` is a total executable definition with an equation theorem.
+  `Inductive.ElimName` implements the same first-unused `u`, `u_1`, `u_2`, …
+  search using verified string append. A decimal-length bound on the finite
+  input names proves termination; it is a proof-only decreasing measure, not
+  runtime fuel, a fallback result, or an extra acceptance restriction.
+  `freshElimName.loop.spec` proves freshness and that every preceding candidate
+  is occupied, for arbitrary starting indices and arbitrary lists, including
+  duplicates. `freshElimName.first` also accounts for the initial bare `u`.
+  `getElimLevel.eq_map` preserves the actual `isLargeEliminator` result and
+  every classifier failure. `getElimLevel.fresh` and `.recLevelParams` derive
+  freshness, distinct generated recursor universe parameters, and the actual
+  selected level's semantic translation without caller-supplied freshness or
+  translation receipts. The new proof/definition values depend only on
+  `propext`, `Classical.choice`, and `Quot.sound`, with no inherited admission
+  or new interface axiom. The original `Name.appendIndexAfter` uses opaque
+  `String.Internal.append`, so equality to that old helper is runtime-tested,
+  not asserted as a proved native-interface equation. The verified candidate
+  definition explicitly constructs the same decimal `u_` spelling.
+  `tests/InductiveEliminationLevel.lean` audits all 44 owned declarations and
+  exercises 2378 collision/order/duplicate/noise controls, 2145 comparisons to
+  the former native renderer, 100 actual empty/unit/data/proof/indexed
+  declaration runs and their generated recursors, 120 classifier/selection
+  controls, and classifier fuel-failure propagation. This closes the selector's
+  partial-definition gap, not semantic large elimination, `AddInduct`, checked
+  recursor registration, positivity, or the frontend's inherited admissions.
 - `IsDefEqStrong.substEq'` and `.subst` prove simultaneous substitution by a
   pointwise definitionally equal pair of substitutions, with the left/right/cross
   bundle covering every actual strong typing constructor. `IsDefEq.substDF`
