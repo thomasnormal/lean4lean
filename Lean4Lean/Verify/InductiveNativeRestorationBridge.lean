@@ -31,6 +31,19 @@ structure RestoredRecordEvidence (preprocessing : ElimNestedInductive.Result)
         (evidence.entries.map RegistrationEntry.toConstantInfo).reverse := by
       rw [congrArg List.reverse evidence.records_eq]
 
+ theorem RestoredRecordEvidence.orderedMap
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Environment} {records : List ConstantInfo}
+    (evidence : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records) :
+    result.constants = insertOrdered original.constants evidence.entries := by
+  calc
+    result.constants = insertInfos original.constants
+        (evidence.entries.map RegistrationEntry.toConstantInfo).reverse := evidence.map
+    _ = insertOrdered original.constants evidence.entries := by
+      rw [insertOrdered_toConstantInfos]
+
  theorem RestoredRecordEvidence.installed
     {preprocessing : ElimNestedInductive.Result} {staged : Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name}

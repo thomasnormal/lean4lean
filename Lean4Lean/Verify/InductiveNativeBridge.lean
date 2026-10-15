@@ -234,6 +234,18 @@ theorem insertOrdered_append (constants : ConstMap) (first second : List Registr
     simp only [List.cons_append, insertOrdered]
     rw [ih]
 
+theorem insertOrdered_toConstantInfos (constants : ConstMap) (entries : List RegistrationEntry) :
+    insertOrdered constants entries =
+      insertInfos constants (entries.map RegistrationEntry.toConstantInfo).reverse := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [insertOrdered, List.map_cons, List.reverse_cons]
+    have hentry : entry.insert constants =
+        insertInfos constants [entry.toConstantInfo] := by
+      cases entry <;> rfl
+    rw [hentry, ih, ← insertInfos_append]
+
 theorem FreshOrdered.append {constants : ConstMap} {first second : List RegistrationEntry}
     (hfirst : FreshOrdered constants first)
     (hsecond : FreshOrdered (insertOrdered constants first) second) :
