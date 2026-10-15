@@ -116,6 +116,28 @@ theorem RestoredRecordEvidence.orderedModelReceipt
   intro entry hmem
   exact evidence.entryModelReceipt hmem (hshape entry hmem)
 
+theorem RestoredRecordEvidence.fromRegistrationEvidence
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Environment} {records : List ConstantInfo}
+    (restored : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries) :
+    ∀ entry ∈ restored.entries,
+      entry.model.name = entry.toConstantInfo.name ∧
+        entry.model.uvars = entry.toConstantInfo.levelParams.length ∧
+        result.find? entry.toConstantInfo.name = some entry.toConstantInfo ∧
+        RestoredInductiveRecord preprocessing staged allIndNames recNameMap entry.toConstantInfo ∧
+        ∃ name info, staged.find? name = some info := by
+  apply restored.orderedModelReceipt
+  intro entry hmem
+  apply producer.orderedModelShape entry
+  rw [← halign]
+  exact hmem
+
 theorem RestoredRecordEvidence.installed
     {preprocessing : ElimNestedInductive.Result} {staged : Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name}
