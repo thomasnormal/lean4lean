@@ -34,6 +34,21 @@ def RegistrationEntry.Semantic (env headerEnv constructorEnv : VEnv) :
   | .constructor entry => TrConstVal .safe headerEnv (.ctorInfo entry.info) entry.model
   | .recursor entry => TrConstVal .safe constructorEnv (.recInfo entry.info) entry.model
 
+def RegistrationEntry.Metadata (decl : VInductDecl) (constructors : List ConstructorEntry) :
+    RegistrationEntry → Prop
+  | .header entry => entry.info.numParams = decl.nparams
+  | .constructor entry => entry.info.numParams = decl.nparams
+  | .recursor entry =>
+    entry.info.all = decl.types.map (·.name) ∧
+      ∀ rule ∈ entry.info.rules, ∃ ctor ∈ constructors, rule.ctor = ctor.info.name
+
+def RegistrationEntry.RuleSemantics (constructorEnv : VEnv) : RegistrationEntry → Prop
+  | .header _ => True
+  | .constructor _ => True
+  | .recursor entry =>
+    ∀ rule ∈ entry.info.rules, ∃ semantic,
+      TrExprS constructorEnv entry.info.levelParams [] rule.rhs semantic
+
 def HeaderEntry.toConstantInfo (entry : HeaderEntry) : ConstantInfo :=
   .inductInfo entry.info
 
@@ -166,6 +181,37 @@ theorem RegistrationEvidence.orderedSemantic
       exact evidence.constructorTranslation constructor hmem
   · rcases List.mem_map.mp hrecursors with ⟨recursor, hmem, rfl⟩
     exact evidence.recursorTranslation recursor hmem
+
+theorem RegistrationEvidence.orderedMetadata
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.Metadata decl evidence.constructors := by
+  intro entry hmem
+  simp only [RegistrationEvidence.orderedEntries, List.mem_append] at hmem
+  rcases hmem with hphase | hrecursors
+  · rcases hphase with hheaders | hconstructors
+    · rcases List.mem_map.mp hheaders with ⟨header, hmem, rfl⟩
+      exact evidence.headerParameters header hmem
+    · rcases List.mem_map.mp hconstructors with ⟨constructor, hmem, rfl⟩
+      exact evidence.constructorParameters constructor hmem
+  · rcases List.mem_map.mp hrecursors with ⟨recursor, hmem, rfl⟩
+    exact ⟨evidence.recursorParents recursor hmem, evidence.recursorRules recursor hmem⟩
+
+theorem RegistrationEvidence.orderedRuleSemantics
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.RuleSemantics evidence.constructorEnv := by
+  intro entry hmem
+  simp only [RegistrationEvidence.orderedEntries, List.mem_append] at hmem
+  rcases hmem with hphase | hrecursors
+  · rcases hphase with hheaders | hconstructors
+    · rcases List.mem_map.mp hheaders with ⟨header, hmem, rfl⟩
+      trivial
+    · rcases List.mem_map.mp hconstructors with ⟨constructor, hmem, rfl⟩
+      trivial
+  · rcases List.mem_map.mp hrecursors with ⟨recursor, hmem, rfl⟩
+    intro rule hrule
+    exact evidence.recursorRuleTranslation recursor hmem rule hrule
 
 theorem RegistrationEvidence.to_addInduct
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
