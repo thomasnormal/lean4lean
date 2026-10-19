@@ -14,6 +14,73 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Constructive observation subsumption and typing — 2026-10-19
+
+The observation layer of
+[PR #53](https://github.com/digama0/lean4lean/pull/53), exact head
+5a8c0d5f111809a95f4924c71e0e9bc8738d72e0, is now ported with a constructive
+representation of contravariant key coverage. Instead of a global
+observation-to-observation choice function, each application/codomain
+subsumption constructor carries a map between the two finite lists' index
+types. Finite induction proves witness selection without decidable equality
+on observations. Covers.iff_indices proves equivalence with the ORIGINAL
+membership-based coverage contract; application and codomain iff lemmas
+pin its exact contravariant direction. Empty lists, reordered keys and
+duplicate observations are supported. Simultaneous pre/post composition
+proves subsumption transitivity by composing the finite maps.
+
+The pure observation syntax and hereditary witness closure are retained.
+Witness size decreases, so every finite demand extends to a finite backed
+demand. The typing filter for the existing six-expression fragment retains
+actual typed argument classes. TypedOb.strengthen reconstructs finite domain
+and codomain observations through coverage; TypedOb.not_prop establishes
+the observation-level proof-irrelevance obstruction. Typed witnesses remain
+typed, and TypedOb.finite_close produces a finite backed typed demand.
+
+Constructor-family evidence is an explicit decomposition of the ACTUAL
+stored constant type into a forall telescope ending in that family's
+constant spine. CtorFam.result_head computes that head from the stored type,
+and CtorFam.unique proves that two such decompositions name the SAME family.
+No environment invariant is strengthened. Pure field
+annotations and their closure are present, but projection/case-eliminator
+expression typing is not introduced into our syntax or environment.
+This is an observation filter, not a sound interpretation of expressions:
+interpretation, substitution/compactness, rule soundness, declaration-history
+validity, quotient/Pi separation and nonzero EXTRA remain open. Later
+upstream rule proofs also use classical tactics and need their own audit;
+removing this choice point does not certify the whole upstream model.
+
+tests/ModelObservations.lean fixes exact admission AND axiom manifests for
+86 production/control roots, including ALL theorem declarations of the new
+module and the closure function. Every root is admission-free and
+choice-free, with exactly its listed subset of propext and Quot.sound.
+The graph traversal includes types, constructor types and explicitly opaque
+bodies on integration. Required dependencies pin finite selection,
+contravariant composition, actual strengthening, proof irrelevance and
+typed closure. Concrete controls reject reversed coverage, compose nested
+codomain/application observations with duplicate/reordered demands, exercise
+non-reflexive typed application strengthening, and compute the exact
+hereditary field-witness closure. A reachable Eq/Quot environment supplies
+the actual stored Quot.mk type and a typed constructor class; a negative
+control rejects Eq as its family. Its controls
+retain typing through nontrivial hereditary witnesses and exclude
+constructor observations at a Prop-source family. No expression-level
+projection or head-separation result is claimed.
+
+Coverage-index selection traverses 1440 main / 1497 integration declarations;
+subsumption transitivity 1423 / 1479, strengthening 1588 / 1657,
+proof irrelevance 1566 / 1632, and typed finite closure 1752 / 1833.
+Full defaults pass 432 main / 435 integration jobs. All 26/55 previous
+selected fixtures plus the new strict fixture pass: 27/56 total.
+Source census remains main 119 matching lines / 19 files / 123 occurrences;
+integration 124 / 23 / 128. All old production bytes are unchanged, and the
+new production is byte-identical across toolchains. No new admission,
+executable behavior change, kernel discrepancy or duplicate PR.
+Authoritative fleet receipts use lean4lean-model-observations- stems dated
+20261019: *-default-final2, *-fixture-final2, *-regressions,
+final-manifests.json and final-gates.json. Earlier module/fixture diagnostics
+are superseded by these terminal successful receipts.
+
 ## Typed class application and beta foundation — 2026-10-19
 
 The first observation-model foundation is now ported from
@@ -57,11 +124,11 @@ distinct but related substitutions.
 Collapse traverses 2224 main / 2366 integration declarations; beta traverses
 2326 / 2478 and related-anchor class invariance 2302 / 2454.
 
-The observation syntax, constructive coverage witnesses, interpretation,
-rule soundness and declaration-history model validity are still open.
-PR #53's `Covers.choice` uses classical choice; it is not imported here and
-needs a constructive treatment before the remaining model can meet this
-audit. Quotient/Pi separation, nonzero EXTRA, universal simulation, false
+The observation/filter layer above now supplies syntax and constructive
+coverage witnesses. Interpretation, rule soundness and declaration-history
+model validity remain open. PR #53's global Covers.choice is replaced by
+finite index witnesses above; the remaining model still needs its own audit.
+Quotient/Pi separation, nonzero EXTRA, universal simulation, false
 confluence replacement and actual-consumer migration remain open. No
 frontend soundness claim follows from this foundation. No duplicate PR is
 opened for the copied upstream proofs.

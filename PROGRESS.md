@@ -39,8 +39,17 @@ native restoration receipts also remain open. The Nat-closing and successor
 arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
-Full default builds pass (434 integration / 431 main review jobs), as do all
-55 selected integration fixtures and 26 selected main fixtures. No new admission is introduced.
+Full default builds pass (435 integration / 432 main review jobs), as do all
+56 selected integration fixtures and 27 selected main fixtures. No new admission is introduced.
+
+**Constructive observation filter:** finite index maps now implement the
+original contravariant coverage relation without global choice or decidable
+equality on observations. Subsumption composes, finite demands admit
+hereditary backing, and typed application survives coverage strengthening.
+The filter's proof-irrelevance result and typed finite closure are proved;
+86 roots have exact admission-free, choice-free manifests on both toolchains.
+This advances the genuine model foundation. Expression interpretation,
+rule/environment soundness, quotient/Pi separation and nonzero EXTRA remain open.
 
 **Typed class foundation for separation:** heterogeneous sort-typed chains
 and element-class collapse now yield actual typed definitional equalities,
@@ -48,8 +57,9 @@ without typing injectivity, confluence, admissions or choice. Application,
 beta at any member of a typed argument class, related-anchor invariance and
 actual function eta preserve the anchored classes. The 51-root audit pins
 exact axiom manifests on both toolchains. This ports PR #53's necessary class
-foundation; observation interpretation and soundness, constructive coverage,
-quotient/Pi separation and nonzero EXTRA remain open.
+foundation; the constructive observation filter is now supplied above.
+Observation interpretation and soundness, quotient/Pi separation and nonzero
+EXTRA remain open.
 
 **Nonzero quotient-major classification:** actual sort typings now prove
 source-universe agreement for definitionally equal quotient types and recover a
@@ -679,9 +689,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current Lean 4.29.0 proof source passes all default targets (**431 jobs**)
-on October 19 and all 26 selected regressions. The separate Lean 4.33.0-rc2
-integration passes its full default build (**434 jobs**) and all 55 selected
+The current Lean 4.29.0 proof source passes all default targets (**432 jobs**)
+on October 19 and all 27 selected regressions. The separate Lean 4.33.0-rc2
+integration passes its full default build (**435 jobs**) and all 56 selected
 regressions. The independent current-master substitution PR passes its default
 build and standalone regression. These receipts validate their respective
 snapshots; the main branch retains its earlier history. Detailed logs and exact
