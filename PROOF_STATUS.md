@@ -4,6 +4,87 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Structural expression soundness — 2026-10-19
+
+The remaining structural cases of the observation soundness proof from
+[PR #53](https://github.com/digama0/lean4lean/pull/53), exact head
+5a8c0d5f111809a95f4924c71e0e9bc8738d72e0, now apply to the existing
+six-expression language. SoundAt.appDF, lamDF, defeqDF, beta, eta, proofIrrel
+and constDF prove both semantic inclusions and both observation typings at
+related anchors. Their recursive premises are the actual strong derivations
+and their simultaneous induction hypotheses. Combined with the previously
+proved variable, sort, symmetry/transitivity and forall cases, these cover
+every non-rule constructor of IsDefEqStrong individually. They do not assume
+validity of the environment's rules or replace stored equations with an
+arbitrary soundness/firing certificate.
+
+Application typing recovers the actual domain class from the function's
+observations, changes codomain representatives through their soundness, and
+uses finite coverage and substitution to reach the instantiated codomain.
+The right application keeps the original supplied result type through the
+actual instantiated-codomain equality. Lambda congruence transfers typed
+keys along a domain equality and extends both related anchors. Conversion
+transports the typing witnesses along the sound type equality.
+
+Beta transports to the actual substituted argument; its reverse inclusion
+uses compact0B and hereditary backing to collect finite typed demands before
+rebuilding the actual lambda/application. Eta recovers typed application
+observations from the function's Pi type, builds the expansion, and enlarges
+key demands while preserving typing. Proof irrelevance excludes observations
+of typed proofs through TypedOb.not_prop. Constant-level equality retains the
+actual stored typing filter and transfers directly through Obs.const_levels
+and TypedAt.lvEq, without a separate type-observation transfer certificate.
+The SD wrappers retain every premise of the actual strong constructors,
+including all dependent typing, instantiated-type and lifted eta premises.
+
+The strict tests/ModelSoundness.lean audit covers all 22 new production
+theorems and all 83 control declarations: 105 exact admission AND axiom
+manifests. Full traversal checks declaration/constructor types and bodies,
+explicitly opaque bodies on integration, and fails on missing declarations.
+Every root is admission-free and choice-free, with exactly its listed subset
+of propext and Quot.sound. Required dependencies pin compactness, backing,
+finite coverage, actual class transport, beta/eta, the original strong
+constructors and the controls.
+
+The dependent function fun X : Sort 2 => fun x : X => x is applied to the
+beta redex (fun X : Sort 2 => X) (Sort 1). Both the resulting Pi type and
+its simplified counterpart are proved sound and syntactically distinct.
+Positive application observations retain typing of the right endpoint at the
+ORIGINAL result type. Beta soundness is exercised in both directions with
+the residual dependent lambda and nonempty finite demands. A separate
+application changes BOTH function (by eta) and argument (by equivalent levels).
+Eta controls use duplicate outer demands and a singleton inner demand, checking
+typed key enlargement. A dependent lambda transfers under the same observation
+sets between syntactically different anchors related by actual beta equality.
+Controls also convert a sort to a beta-redex type, change lambda domains,
+compare two distinct neutral proofs in a well-formed dependent context, and
+transfer a checked stored polymorphic delta constant between equivalent levels.
+All soundness premises used by the controls are derived from proved cases.
+
+Application soundness traverses 2613 / 2772 declarations main / integration;
+lambda 2614 / 2774, conversion 2476 / 2636, beta 2754 / 2926,
+eta 2587 / 2746, proof irrelevance 1805 / 1881 and constants 1966 / 2059.
+The control retaining the original dependent result type traverses
+2825 / 2997. Full defaults pass 437 main / 440 integration jobs; all
+29/58 prior selected fixtures and the new strict fixture pass: 30/59 total.
+All previous production bytes/contracts are unchanged, and the new production
+is byte-identical across toolchains. Source census stays main 119 matching
+lines / 19 files / 123 occurrences; integration 124 / 23 / 128. No new
+admission, axiom declaration, executable behavior change or kernel discrepancy.
+Authoritative receipts use lean4lean-model-sound- stems dated 20261019:
+*-default-final, *-fixture-final2, *-regressions, final-manifests.json and
+final-gates.json. The first strict audit rejected a misspelled required
+constructor namespace; the corrected audit pins the actual VEnv.Ctx.SubstEq.cons.
+No trust gate was weakened. No duplicate PR for this adapted upstream layer.
+
+The remaining simultaneous proof must carry semantic typing derivations
+through actual constant and lambda spines to establish stored-rule soundness
+and declaration-history validity. These are still open; the individual cases
+do not establish full model soundness or quotient/Pi separation. Nonzero
+EXTRA, universal simulation, replacement of false NormalEq.parRed/confluence
+and actual-consumer migration remain open. Actual frontend soundness still
+inherits its existing foundational admissions.
+
 ## Level invariance and dependent telescope soundness — 2026-10-19
 
 The next model foundation adapts the level and telescope proofs and actual
