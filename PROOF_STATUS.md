@@ -14,6 +14,72 @@ unconditional kernel soundness follows from the results below. See `bugs-found.m
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Nonzero quotient constructor exposure and checked EXTRA replay — 2026-10-19
+
+`normal_quot_major_constructor` now eliminates the residual eta/Pi alternative
+of the unchanged `normal_quot_major_expose` theorem. Actual typing supplies the
+quotient spine's sort; actual declaration history supplies Quot rigidity.
+The new `IsDefEqU.rigidApp_forallE_inv` retypes the actual untyped equality and
+uses model head separation to rule out a Pi type. Constructor exposure retains
+the original-core path, equivalent constructor universe, all three normal
+capture relations and actual typing at the original quotient type. All old
+`UniqueTyping.lean` theorem bodies and contracts remain unchanged.
+
+`CoreSimulates.quot_nonzero_extra` replays root EXTRA for an explicit left
+`Quot.lift α r β f c major` prefix with an arbitrary left major and nonzero
+source universe. The function capture and original major supply exactly their
+recursive `CoreSimulates` premises. Every actual right capture may reduce.
+Actual right typing gives capture equalities; the major simulation yields a
+normal constructor comparison, and the stronger exposure recovers an actual
+left constructor. Ordinary equality transitivity reconstructs both actual
+pattern checks through the reduced constructor parameters. The proof then
+constructs actual `Pattern.Matches`, actual `ParRed.extra`, a `Steps` path,
+normal output comparison, and both output typings at the original result type.
+No caller constructor-exposure or matching-preservation certificate is added.
+
+This closes nonzero major exposure and concrete root replay for that left
+prefix. Arbitrary-left-function application EXTRA and universal reduction
+simulation remain open. The known-false `NormalEq.parRed`/confluence contract,
+inverse weakening, projection translation, frontend soundness and genuine
+inductive constructor/recursor semantics also remain open. The earlier
+PR53-based repair stack is retained; no duplicate upstream PR is opened.
+
+`tests/QuotNonzeroExtra.lean` audits all four added production declarations
+(including the private shape helper) and all 61 named fixture definitions and
+theorems, with 65 exact per-root axiom manifests on each toolchain. Traversal
+checks declaration and constructor types and all bodies, including opaque integration
+bodies; missing declarations fail. Each root has exactly its listed subset of
+`propext` and `Quot.sound`, with no admission or choice. Forbidden dependencies
+include false confluence, quotient injectivity, inverse weakening,
+`NormalEq.trans` and `TrProj`. Required dependencies pin actual history,
+retyping, capture reduction, pattern matching, checks and EXTRA construction.
+Both strict runs finish with a 65-root terminal receipt.
+
+The positive replay uses an actual checked Eq/Quot environment and six typed
+local captures at `[1, 1]`. Every right capture beta-reduces. Outer and constructor
+domain/relation parameters differ syntactically, exercising both actual checks.
+The left major starts behind a beta redex, and a separate proof establishes
+that the initial left expression does not match the quotient pattern. Its
+major simulation handles every right-major reduction. A retained dependent
+binder exercises forward weakening; the prior eta-major case exercises stronger
+exposure with syntactically distinct equivalent constructor universes.
+
+Full defaults pass 455 main / 458 integration jobs. All 39/67 previous selected
+fixtures and the new strict fixture pass: 40/68 total. Existing fixtures and
+all unrelated production bytes are unchanged. The three changed/added production
+files are byte-identical across Lean 4.29.0 and 4.33.0-rc2. The source census
+is unchanged: main 116 matching lines / 18 files / 120 whole-word sorry|admit
+occurrences; integration 121 / 22 / 125. No new admission, axiom declaration,
+executable change or kernel discrepancy.
+
+This milestone extends main `50ba6fd3d57107111b09fba73176fe629bc27ca9` and detached
+integration `d83e728de8d0ce92a7f14bd52ae51270db9a89fd`, based on official
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`. Receipts use
+`lean4lean-nonzero-replay-` stems dated 20261019 in the fleet logs directory.
+Earlier dated boundaries and counts below describe their original checkpoints;
+this section supersedes their nonzero-exposure and concrete-replay gaps.
+
+
 ## Type uniqueness and original dependent-Pi injectivity — 2026-10-19
 
 `IsDefEqU.forallE_inv_stratified` now has a proof with its exact original

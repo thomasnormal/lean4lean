@@ -137,4 +137,33 @@ theorem normal_quot_major_expose
     exact .inr ⟨binder, body, codomain, path, exposedNormal, resultTyped,
       rightTyped.uniqU environmentWF localsWF functionTyped⟩
 
+/-- At a nonzero source, actual head separation eliminates the residual eta
+alternative. Every normal capture and the actual original-core path remain. -/
+theorem normal_quot_major_constructor
+    (registered : environment.defeqs quotDefEq)
+    (localsWF : OnCtx locals (environment.IsType universes))
+    (nonzero : zeroLike sourceUniverse = false)
+    (typed : environment.HasType universes locals left
+      (.app (.app (.const ``Quot [sourceUniverse]) domain) relation))
+    (normal : @NormalEq (environmentWF.reductionParams universes) locals left
+      (.app (.app (.app (.const ``Quot.mk [constructorUniverse]) constructorDomain)
+        constructorRelation) value)) :
+    ∃ leftUniverse leftDomain leftRelation leftValue,
+      @ParRedS (environmentWF.reductionParams universes) locals left
+        (.app (.app (.app (.const ``Quot.mk [leftUniverse]) leftDomain) leftRelation) leftValue) ∧
+      leftUniverse ≈ constructorUniverse ∧
+      @NormalEq (environmentWF.reductionParams universes) locals leftDomain constructorDomain ∧
+      @NormalEq (environmentWF.reductionParams universes) locals leftRelation constructorRelation ∧
+      @NormalEq (environmentWF.reductionParams universes) locals leftValue value ∧
+      environment.HasType universes locals
+        (.app (.app (.app (.const ``Quot.mk [leftUniverse]) leftDomain) leftRelation) leftValue)
+        (.app (.app (.const ``Quot [sourceUniverse]) domain) relation) := by
+  rcases normal_quot_major_expose registered localsWF nonzero typed normal with h | h
+  · exact h
+  · obtain ⟨_, _, _, _, _, _, equal⟩ := h
+    obtain ⟨_, hsort⟩ := typed.isType environmentWF.ordered localsWF
+    exact False.elim (IsDefEqU.rigidApp_forallE_inv (ls := [sourceUniverse])
+      (args := [domain, relation]) environmentWF localsWF
+      (Model.quotient_rigid environmentWF registered) hsort equal)
+
 end Lean4Lean.VEnv.QuotPropReduction
