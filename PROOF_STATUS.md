@@ -14,6 +14,79 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## General Prop-source hereditary EXTRA simulation — 2026-10-19
+
+`normal_quot_prop_join` follows ACTUAL checked Prop-source quotient firing from
+ANY normally related left source beneath ANY finite, pointwise normally related
+pending argument list. It requires no left match, lambda shape, recursive
+simulation premise or caller postcondition certificate. It first uses universal
+original-core hereditary exposure, then interprets its entire `RigidSpine`:
+proof alternatives use actual propositional typings; literal spines unfold
+canonically and join the selected left proof to the actual right payload;
+retained eta binders recurse under their typed dependent contexts, weaken both
+actual checks and reassemble the join by eta. Constant heads also account for
+proof irrelevance instead of assuming that every such comparison is universe
+congruence. `normal_quot_prop_root` supplies the concrete saturated firing step.
+
+`CoreSimulates.app_quot_prop_extra` closes the COMPLETE Prop-source application
+EXTRA induction clause. Only the original FUNCTION and ARGUMENT simulation
+hypotheses are required. ALL EIGHT actual right captures may reduce. Actual
+capture typings turn their original parallel reductions into semantic
+definitional equalities; these transport BOTH original rule checks to the
+reduced captures. Constructive matching reduction supplies the real reduced
+function prefix and major. The induction witnesses may have arbitrary normally
+related shapes; hereditary joining constructs their left candidate path.
+The result contains the ORIGINAL actual checked right EXTRA, the complete left
+path, normal equality and BOTH endpoint typings at the ORIGINAL supplied type.
+It does not assume that normal equality preserves matching or use normal
+transitivity or quotient injectivity derived from false confluence.
+
+Production is IDENTICAL on Lean 4.29.0 and 4.33.0-rc2; all existing production
+bytes and public contracts remain unchanged. Both new main roots inherit
+EXACTLY `IsDefEqU.sort_inv` and `IsDefEqU.forallE_inv_stratified`, and EXACTLY
+`propext`, `Quot.sound`, `sorryAx`. Hereditary joining has 3030 main / 3238
+integration dependencies; the application clause has 3037 / 3246. Strict exact
+per-root admission AND axiom manifests cover 62 public/private production,
+environment, typing and control roots. Full traversal includes declaration
+types, inductive constructor types and explicitly opaque bodies on integration.
+Forbidden dependencies include choice, false normal-reduction transport and
+confluence, derived quotient injectivity, inverse typing/normal/reduction
+transport, normal transitivity, sort/Pi disjointness admissions, old inverse
+beta helpers and projection placeholders. Required dependencies pin actual
+capture reductions/check transport, structural exposure, selector unfolding,
+proof/eta reconstruction and the complete application clause.
+
+`tests/QuotHereditaryExtra.lean` builds a reachable Eq/Quot model. Its application
+control has an ETA-EXPANDED left eliminator prefix and a NEUTRAL left major;
+ALL EIGHT right captures beta reduce and BOTH checks compare syntactically
+different parameters. The complete original source pair is normally related,
+and a delayed ORIGINAL result type is preserved at both endpoints. The join
+survives a retained dependent binder and actual typed instantiation. A separate
+context returns a function taking `P : Prop` and `p : P`: two eta binders surround
+the saturated left source, one pending argument consumes the first, and the
+second DEPENDENT binder remains around actual quotient firing. That result
+keeps its delayed original function type. A third reachable proof-valued
+context compares a NEUTRAL proof variable to the checked quotient redex,
+exercising the proof alternative. Explicit syntax controls pin actual eta,
+erased-major matching failure, all eight changed captures, differing checked
+parameters and the delayed result type.
+
+Full defaults pass 427 main / 430 integration jobs. All 23/52 previous selected
+fixtures and the new strict fixture pass: 24/53 total. The source census remains
+main 119 matching lines / 19 files / 123 occurrences and integration
+124 / 23 / 128. No new admission, checker behavior change or kernel discrepancy.
+Authoritative receipts use `lean4lean-hereditary-extra-` stems dated `20261019`
+under the fleet log directory: `*-default-final3`, `*-regressions`,
+`*-QuotHereditaryExtra-final2`, `final-manifests.json` and `final-gates.json`.
+
+The NONZERO-source application EXTRA branch remains: it must expose the major
+hereditarily and recover actual matching/checks where proof irrelevance cannot
+join payloads. Universal normal-equality simulation, new-step overlaps,
+confluence and actual-consumer migration remain open. The false/admitted
+`NormalEq.parRed` and actual frontend manifests remain unchanged. This result
+depends on the fork's concrete candidate; no duplicate current-master PR is
+opened. Today's official fetch/no-op integration rebase was already completed.
+
 ## Universal hereditary constant-spine exposure — 2026-10-19
 
 `normal_spine_expose` constructs an ACTUAL original `ParRedS` path from ANY
@@ -74,10 +147,10 @@ discrepancy. Authoritative receipts use `lean4lean-spine-exposure-` stems dated
 `20261019` under the fleet log directory: `*-default-final2`, `*-regressions`,
 `*-QuotSpineExposure-final`, `final-manifests.json` and `final-gates.json`.
 
-General hereditary prefix exposure is now proved. The GENERAL checked EXTRA
-branch still needs to interpret its proof/spine/eta alternatives for actual
-quotient firing, expose the major where needed, and transport the actual rule
-checks before invoking the existing firing clauses. Universal simulation,
+General hereditary prefix exposure is proved; its complete Prop-source
+interpretation is now proved above. The remaining NONZERO-source checked EXTRA
+branch must expose the major where needed and recover actual matching/checks
+before invoking the existing firing clauses. Universal simulation,
 new-step overlaps, confluence and actual consumer migration remain open.
 The false/admitted `NormalEq.parRed` and actual frontend manifests are unchanged.
 This result depends on the fork's candidate development; no separate

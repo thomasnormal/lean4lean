@@ -39,8 +39,20 @@ native restoration receipts also remain open. The Nat-closing and successor
 arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
-Full default builds pass (429 integration / 426 main review jobs), as do all
-52 selected integration fixtures and 23 selected main fixtures. No new admission is introduced.
+Full default builds pass (430 integration / 427 main review jobs), as do all
+53 selected integration fixtures and 24 selected main fixtures. No new admission is introduced.
+
+**General Prop-source application EXTRA:** hereditary exposure now follows
+actual checked quotient firing from an arbitrary normally related left source,
+beneath any finite related argument list, including retained dependent eta
+binders. The complete application induction clause uses only the original
+function and argument simulation hypotheses. All eight right captures may
+reduce; their actual definitional equalities transport both rule checks before
+the exposed left witnesses are joined. Both endpoints retain the original
+supplied type. Exact audits retain only the two existing typing admissions.
+The nonzero-source EXTRA clause still needs hereditary major exposure and
+actual matching/check recovery. Universal simulation, confluence and
+actual-consumer migration remain open.
 
 **Universal hereditary constant-spine exposure:** any normal comparison to a
 constant applied to captures now produces an actual original-core reduction
@@ -50,9 +62,9 @@ structure, including dependent binder domains; applying related arguments
 consumes eta binders by actual beta steps. The complete application theorem
 handles any finite pending argument list and preserves both endpoint typings
 at the original supplied type, without a recursive simulation premise.
-Exact audits retain only the two existing typing admissions. General checked
-EXTRA still needs to interpret these alternatives for the actual quotient
-eliminator and major, recover its checks, and use the firing clauses below.
+Exact audits retain only the two existing typing admissions. The Prop-source
+interpretation is now proved above. Nonzero-source EXTRA still needs to expose
+the major and recover actual matching and checks.
 Universal simulation, confluence and actual-consumer migration remain open.
 
 **Checked quotient firing across related sources:** when both terms actually
@@ -67,8 +79,8 @@ types. Their exact graphs retain only the two existing typing admissions and
 exclude choice, false confluence, inverse transport and normal transitivity.
 These are firing clauses with explicit matching/component hypotheses. The
 exposure result above supplies hereditary prefix structure; interpreting it
-for general checked firing remains open, as do universal simulation, confluence
-and actual-consumer migration.
+for nonzero-source checked firing remains open, as do universal simulation,
+confluence and actual-consumer migration.
 
 **General application beta simulation:** an arbitrary normally related
 function can now follow beta on the right, with different normally related
@@ -79,9 +91,9 @@ normal transitivity. The general application beta clause consumes just the
 function/argument induction hypotheses and retains both original endpoint
 types. Proof-valued functions also have their complete application clause.
 Exact audits retain only the two existing typing admissions and exclude choice
-and false confluence. Checked EXTRA still needs to connect the general exposure
-result to its actual firing clauses. Universal simulation, confluence and
-consumer migration remain open.
+and false confluence. Nonzero-source checked EXTRA still needs to connect
+hereditary major exposure to its actual firing clauses. Universal simulation,
+confluence and consumer migration remain open.
 
 **Simultaneous substitution and lambda beta simulation:** related arguments
 can now be substituted simultaneously into both endpoints of normal equality,
