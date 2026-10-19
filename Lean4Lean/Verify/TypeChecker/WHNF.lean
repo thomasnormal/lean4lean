@@ -653,50 +653,9 @@ theorem reduceProj.none_of_translation {context : VContext} {state : VState}
     cases cheapProj
     · exact whnf.WF translated
     · exact whnfCore.WF translated
-  refine initial.bind fun normalized _ _ normalizedResult => ?_
-  have finish {state : VState} {expression : Expr} {result : VExpr}
-      (expressionTranslation : context.TrExprS expression result) :
-      (expression.withApp fun head arguments => do
-        let .const name _ := head | return none
-        let environment ← getEnv
-        let .ctorInfo information ← environment.get name | return none
-        return arguments[information.numParams + index]? : RecM (Option Expr)).WF
-          context state (fun outcome _ => outcome = none) := by
-    rw [Expr.withApp_eq]
-    cases headEq : expression.getAppFn <;> try exact RecM.WF.pure rfl
-    case const name levels =>
-      have inModel := context.constAppHeadInModel expressionTranslation headEq
-      refine RecM.WF.getEnv ?_
-      refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ found => ?_
-      cases information <;> try exact RecM.WF.pure rfl
-      exact False.elim <| context.trenv.constructorNotInModel found inModel
-  unfold reduceProjCore
-  cases h : normalized <;> try exact RecM.WF.pure rfl
-  case const name levels =>
-    subst normalized
-    obtain ⟨_, structural, _⟩ := normalizedResult.2
-    change RecM.WF context _ ((Expr.const name levels).withApp _) _
-    exact finish structural
-  case app function argument =>
-    subst normalized
-    obtain ⟨_, structural, _⟩ := normalizedResult.2
-    change RecM.WF context _ ((function.app argument).withApp _) _
-    exact finish structural
-  case lit literal =>
-    subst normalized
-    cases literal with
-    | natVal value => exact RecM.WF.pure rfl
-    | strVal value =>
-      obtain ⟨_, structural, _⟩ := normalizedResult.2
-      cases structural with
-      | lit contains constructor =>
-        change RecM.WF context _
-          (do
-            let constructor ← whnf (Expr.strLitToConstructor value)
-            constructor.withApp _) _
-        exact (whnf.WF constructor).bind fun _ _ _ result => by
-          obtain ⟨_, reducedTranslation, _⟩ := result.2
-          exact finish reducedTranslation
+  refine initial.bind fun _ _ _ result => ?_
+  obtain ⟨_, structural, _⟩ := result.2
+  exact reduceProjCore.none_of_translation structural
 
 theorem reduceProj.WF {c : VContext} {s : VState} (he : c.TrExprS (.proj n i e) e') :
     RecM.WF c s (reduceProj i e cheapProj) fun oe _ =>
