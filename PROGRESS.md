@@ -52,8 +52,20 @@ outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
 All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
 inherited projection admissions, and its equality bridge pins five.
-Full default builds pass (444 integration / 441 main review jobs), as do all
-62 selected integration fixtures and 33 selected main fixtures. No new admission is introduced.
+Full default builds pass (448 integration / 445 main review jobs), as do all
+63 selected integration fixtures and 34 selected main fixtures. No new admission is introduced.
+
+**Finite dependent telescope round trips:** reverse spine transfer now
+recovers actual argument typings and reconstructs each domain/result type
+observation as a chain at the stored constant type. Actual argument observation
+sets form a typed valuation of every prefix of a sound telescope. Finite demands
+then produce finite backed keys, including earlier demands needed to type later
+ones; winding those keys rebuilds a typed head observation at the actual
+application class. Controls exercise a dependent two-argument spine through
+beta conversion, partial application, representative replacement and discovery
+of an earlier demand omitted from the input. All 138 audited roots exclude
+admissions and choice on both versions. Actual quotient-rule validity remains
+open.
 
 **Constructive rule binding:** the rule-soundness foundation now recovers
 actual dependent binder types, splits typed key telescopes, transfers typed
@@ -604,9 +616,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current main Lean 4.29.0 proof source passes all default targets (441 jobs)
-and all 33 selected regressions on October 19. This Lean 4.33.0-rc2 integration
-passes its full default build (444 jobs) and all 62 selected regressions. The
+The current main Lean 4.29.0 proof source passes all default targets (445 jobs)
+and all 34 selected regressions on October 19. This Lean 4.33.0-rc2 integration
+passes its full default build (448 jobs) and all 63 selected regressions. The
 independent current-master substitution PR passes its default build and
 standalone regression. Each receipt validates its respective source snapshot;
 exact trust bounds are recorded in `PROOF_STATUS.md`.
