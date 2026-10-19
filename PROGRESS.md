@@ -17,27 +17,31 @@ not completion of frontend soundness.
 
 **Published versus upstream integration:** this main review branch retains
 the quotient and inhabited-binder proof source `1337f87` on Lean **4.29.0**.
-Its full default build passes on October 19. The separate Lean **4.33.0-rc2**
-snapshot is now `fd16eef5c9e43031b09feb88c337031396300355` on
-`poc-verified-noninductive-upstream-20261019`, extending `33b42bf` on official
+The separate Lean **4.33.0-rc2** snapshot is `5e72e87f2ab2f6759da1c955d64fcf4b9b3f4771`,
+extending `fd16eef` on
+`poc-verified-noninductive-upstream-20261019`, based on official
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`.
 It retains upstream mutual definitions, integrates the quotient proofs and
-actual dispatcher, and replaces five local general-strengthening uses in
-well-founded recursion: two semantic transports and three native translation
-extractions. The existing Nat-domain guard supplies actual zero inhabitants;
-executable behavior and public theorem premises are unchanged. Full default
-builds and all 35 current integration fixtures pass. The six semantic helpers
-exclude admissions and choice. The native closing helpers exclude false
-strengthening/confluence but inherit exactly three existing projection
-admissions; the separate retained-domain conversion inherits six existing
-typing/projection admissions. The enclosing recursion theorems retain their
-measured 33-axiom manifests. One fuel-binder extraction and other checker
-dependencies still inherit general strengthening. Current reflection differs
-from the older `ite_carrier` architecture here; native restoration receipts
-also remain open. Draft [PR #53](https://github.com/digama0/lean4lean/pull/53)
-already contains the core Nat-closing direction and a larger recursion redesign;
+actual dispatcher, and repairs all direct general-strengthening/context
+extraction uses in well-founded recursion. Its existing Nat-domain guard
+supplies zero inhabitants for the measure telescope. The separate fuel binder
+now stays in scope: its checked `succ t` witness proves the recursor invariant
+under successor replacement, and the induction consumes that equality at
+adjacent fuel closings. The intermediate `Step` witness is repaired accordingly;
+WF′/WF/WF₂ keep their exact top-level contracts and executable behavior.
+The six semantic helpers exclude admissions and choice. Native closing and
+replacement helpers exclude false strengthening/confluence but inherit three
+existing projection admissions. The retained-domain conversion and uniqueness
+bridges inherit six and five existing admissions respectively. The enclosing
+recursion theorems retain their measured 33-axiom manifests; general
+strengthening and other admissions remain through checker dependencies.
+Current reflection differs from the older `ite_carrier` architecture here;
+native restoration receipts also remain open. The Nat-closing and successor
+arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
+Full default builds pass (422 integration / 419 main review jobs), as do all
+36 current integration fixtures. No new admission is introduced.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.
