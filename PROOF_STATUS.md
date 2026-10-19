@@ -4,6 +4,69 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Constructive rule-binding foundation — 2026-10-19
+
+Model.RuleLemmas adapts the rule foundation of
+[PR #53](https://github.com/digama0/lean4lean/pull/53), exact head
+5a8c0d5f111809a95f4924c71e0e9bc8738d72e0, to the current expression language.
+Constant-spine and lambda-pattern injectivity are syntactic. Binder lookup
+uses actual dependent domain types and level instantiation. Typed telescopes
+split at a prefix and preserve their outside anchors and observation sets.
+HTS.tele_dom recovers actual semantic typing and soundness for each domain.
+
+CtxSD records sound context entries. TV.transfer uses that soundness and an
+actual Ctx.SubstEq to transfer a typed valuation between anchors agreeing
+outside the prefix. SubstEq.of_heads_ind constructs the substitution relation
+from head equalities proved under progressively related tails. These retain
+the actual context/substitution contracts. HTS alone remains insufficient to
+certify typing; the controls obtain it from actual Strong derivations.
+
+The spine inversion records argument classes and observation coverage.
+ctor_spine_inv handles exactly the current four constant-observation clauses:
+rigidity excludes actual delta and pattern rules, rigid endpoints cannot be
+constructor endpoints, and the constructor clause retains CtorEnd.
+spine_rigid_obs constructs a positive rigid observation using actual stored
+typing, finite backed key extraction and the existing spine theorem.
+
+TeleKeys.inner_lists constructs finite lists for every bounded binder using
+exists_fin_function, proved by finite induction. This discharges the exact
+finite-list selection obligation for the later rule proof without the
+upstream Classical.choose/choose_spec step. It proves no quotient-rule
+validity or general model-soundness theorem by itself.
+
+The strict ModelRuleBind fixture audits every new production declaration,
+both CtxSD constructors and every fixture declaration: 173 exact admission
+and axiom manifests. Traversal checks declaration types, constructor types
+and bodies (including opaque bodies on the integration version), rejects
+missing declarations, and pins substantive dependencies. Each root has
+exactly its recorded subset of propext and Quot.sound; no admission, choice,
+false NormalEq.parRed/confluence, derived quotient injectivity, inverse
+weakening or admitted sort/Pi separation is reachable.
+
+Controls use a genuinely dependent two-binder telescope with nonempty keys.
+Finite list extraction preserves both positive observations. Splitting and
+binder lookup retain the dependent second domain. The anchors differ by an
+actual beta reduction; pointwise head induction establishes SubstEq, and
+context soundness transfers the same nonempty typed observation sets.
+An actual Strong derivation supplies a positive rigid constant spine, whose
+keys are inverted and checked for backing and argument coverage.
+
+A checked Eq axiom and actual addQuot installation supply a well-formed
+quotient environment. The actual Quot.mk is applied to a type, a typed
+relation and a typed proposition. Direct ordinary typing is proved from its
+stored type. Typed telescope construction and the actual constructor clause
+produce positive head and third-argument-class observations. Constructor
+inversion consumes actual WF-derived rigidity and recovers the third class.
+A wrong constructor head is rejected. No arbitrary rule-validity or firing
+certificate replaces the stored quotient equation.
+
+All previous production contracts and bytes are unchanged. Full defaults
+and all selected regressions pass on both toolchains; the admission census
+is unchanged. The next semantic obligation is validity of the actual quotient
+equation, followed by full declaration-history model soundness. The ordinary
+frontend's foundational dependencies, quotient/Pi separation and consumer
+migration remain open.
+
 ## Validity of actual delta equations — 2026-10-19
 
 Model.Delta adapts the delta-rule proof from
