@@ -17,16 +17,20 @@ not completion of frontend soundness.
 
 **Published versus upstream integration:** this main review branch retains
 the quotient and inhabited-binder proof source `1337f87` on Lean **4.29.0**.
-Its full default build passes on October 19. A separate Lean **4.33.0-rc2**
-snapshot `d0f77425617a355241492ab574a4ce48a3cf39bf`, published separately as
-`poc-verified-noninductive-upstream-20261019`, extends detached
-checkpoint `43a47d9` on official
-`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`. It integrates the quotient
-proofs and actual dispatcher while retaining upstream mutual definitions.
-Its full default build and current quotient/model and integration regression
-gates pass. The later inhabited-binder repair and remaining native restoration
-receipts still need replay. Publishing this snapshot separately does not
-rebase or replace the main review branch.
+Its full default build passes on October 19. The separate Lean **4.33.0-rc2**
+snapshot is now `33b42bfdd5ecfba9d0855a7340d5201c767ddd28` on
+`poc-verified-noninductive-upstream-20261019`, extending quotient checkpoint
+`d0f7742` on official `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`.
+It retains upstream mutual definitions, integrates the quotient proofs and
+actual dispatcher, and now replaces two direct general-strengthening calls
+in well-founded recursion with typed substitution at zero using the existing
+Nat-domain guard. Full default builds and all 34 current integration fixtures
+pass. The six new dependent-telescope helpers exclude admissions and choice;
+the enclosing recursion theorems keep their measured 33-axiom manifests,
+including inherited admissions. Current reflection has a different primitive
+architecture from the older `ite_carrier` proof here; general context extraction
+and remaining native restoration receipts still need repair. Publishing this
+snapshot separately does not rebase or replace the main review branch.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.

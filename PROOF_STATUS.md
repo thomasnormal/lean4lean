@@ -14,6 +14,43 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Separate upstream inhabited-telescope repair — 2026-10-19
+
+The Lean 4.33.0-rc2 integration now advances from quotient checkpoint `d0f7742`
+to `33b42bfdd5ecfba9d0855a7340d5201c767ddd28`, on the same official base
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` and separate dated snapshot branch.
+This main branch's Lean 4.29 proof source remains `1337f87`.
+
+The current primitive architecture has no corresponding `Reflection.ite_carrier`
+theorem to replay. Instead, the actual `Primitive.unfoldNatWellFounded.WF'`
+proof replaces its two direct general-strengthening calls with typed telescope
+substitution. Its existing measure-domain guard proves the removed domains are
+Nat, supplying zero inhabitants at arbitrary universe-context size. Generic
+helpers cover dependent telescopes and a retained binder whose domain depends
+on the base context. Executable behavior and public theorem premises are
+unchanged. This repairs those two local obligations, while `TrExprS.weakFV_inv`
+and checker methods still inherit the known-false general strengthening.
+
+The new `InhabitedTelescope` fixture checks dependent domains, a nonempty base,
+distinct beta-equality endpoints, base-variable typing, a retained dependent
+binder, empty insertion, and two retained binders' syntactic cancellation.
+Six new helpers and eight witnesses use only `propext`/`Quot.sound`, excluding
+admissions, choice, false strengthening and confluence. The actual consumer body
+must use both new transports and omit direct false-strengthening calls. All
+three public recursion contracts retain their pre-change 33-axiom sets,
+including inherited `sorryAx`, choice, and native interfaces.
+
+Full integration default build passes all 422 jobs; all 34 fixtures pass,
+including the previous 33 regression gates. Source census before/after is
+125 matching lines / 24 files / 129 whole-word `sorry|admit` occurrences. Main
+review has a separate fresh 419-job default-build pass and unchanged
+119 / 19 / 123 census. Receipts under `/var/tmp/thomas-ahle/fleet2/logs/`:
+`lean4lean-inhabited-telescope-default-20261019.log`,
+`lean4lean-inhabited-telescope-fixture-20261019.log`,
+`lean4lean-inhabited-telescope-regressions-20261019.log`,
+`lean4lean-inhabited-telescope-main-build-20261019.log`, and
+`lean4lean-inhabited-telescope-census-20261019.log`.
+
 ## Separate upstream quotient snapshot — 2026-10-19
 
 The main review branch remains on Lean 4.29.0 at proof source `1337f87`.
@@ -52,10 +89,10 @@ branch's proof source is unchanged, with 119 lines / 19 files / 123 occurrences
 and a fresh 419-job default-build pass in
 `lean4lean-quot-integration-published-status-build-20261019.log`.
 
-This is partial replay, not a replacement of the main review history.
-The inhabited-binder reflection repair and remaining native inductive
-restoration receipts still need integration. No force push or duplicate
-upstream proof PR is used for this compatibility snapshot.
+This quotient checkpoint was partial replay, not a replacement of the main
+review history. The subsequent inhabited-telescope item above repairs the
+current recursion consumer; native inductive restoration receipts remain open.
+No force push or duplicate upstream proof PR is used for these snapshots.
 
 ## What is proved
 
