@@ -4,6 +4,79 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Simultaneous normal substitution and the lambda beta branch — 2026-10-19
+
+`NormalEq.substDF` now simultaneously substitutes related variable images into
+BOTH endpoints of an existing normal equality. `NormalSubstitution` combines
+the existing typed `Ctx.SubstEq` with normal equality of corresponding images
+at source lookups. Direct syntax induction handles reflexive expressions;
+direct normal-equality induction handles every constructor. Eta-right lifts
+under the RIGHT substituted domain and explicitly converts the function type,
+so dependent domains may differ syntactically. `NormalEq.instDF` specializes
+the result to related single arguments. No normal transitivity, inverse
+weakening, inverse reduction transport, or confluence is used.
+
+`Steps.instN_argument` propagates an arbitrary candidate argument path through
+EVERY occurrence, including duplicates and retained dependent binders. Together
+with body instantiation it proves `Steps.instN_both`. The actual
+`CoreSimulates.lam_beta` clause uses recursive body/argument simulation, performs
+the right-hand `ParRed.beta`, and constructs a candidate beta/body/argument path
+on the left. It permits different converted lambda domains and returns normal
+equality plus BOTH endpoint typings at the ORIGINAL supplied application type.
+This completes beta for related lambda bodies with the explicit recursive
+simulation hypotheses. General beta across arbitrary eta-related function
+shapes, checked EXTRA, the universal simulation theorem, new-step overlaps,
+confluence and actual-consumer migration remain open. The original false
+`NormalEq.parRed` and the actual frontend dependency manifests are unchanged.
+
+Production code is identical on Lean 4.29.0 and 4.33.0-rc2. Every existing
+production file and public contract is unchanged. In these fork snapshots,
+`NormalEq.substDF` has NO inherited source admission and exactly `propext` and
+`Quot.sound` (2526 main / 2710 integration dependencies). `NormalSubstitution.one`
+and `NormalEq.instDF` inherit exactly `IsDefEqU.sort_inv` and
+`IsDefEqU.forallE_inv_stratified`, as do all four candidate-path/beta roots.
+Their exact axiom set is `propext`, `Quot.sound`, `sorryAx`. The beta clause has
+2999 / 3205 dependencies. These are full graphs including inductive constructor
+types; integration also explicitly traverses opaque bodies. Strict per-root
+manifests cover 24 substitution and 22 beta/path/environment/control roots.
+They forbid choice, normal transitivity, false confluence, derived quotient
+injectivity, inverse weakening/reduction transport and projection placeholders.
+Required dependencies pin the actual simultaneous substitutions, beta rule,
+context conversions, argument propagation and retained-binder transport.
+
+`tests/NormalSubstitution.lean` exercises both eta cases with different dependent
+substituted domains, lambda/forall/application congruence, reflexive syntax,
+and two changed variable images. `tests/QuotBetaSimulation.lean` uses the
+reachable Eq/Quot model and nonempty dependent obstruction context. Its beta
+control reduces BOTH body and argument, changes both lambda domains, duplicates
+the changed argument in a forall domain and body, and keeps a delayed original
+result type that is syntactically different from Prop. Further typed controls
+duplicate unfolding and eta argument paths and retain then instantiate a
+dependent proof binder.
+
+Full default builds pass (423 main / 426 integration jobs); all 18/47 previous
+selected fixtures and the two new strict fixtures pass: 20/49 total. The source
+admission census remains 119 matching lines / 19 files / 123 occurrences on
+main and 124 / 23 / 128 on integration. No checker behavior or kernel discrepancy
+changed. Receipts use `lean4lean-normal-subst-` stems dated `20261019` under
+`/var/tmp/thomas-ahle/fleet2/logs/`; authoritative build and fixture receipts
+are `*-default-final`, `*-NormalSubstitution-final3`, and
+`*-QuotBetaSimulation-final2`.
+
+The independent simultaneous-normal-substitution proof and its standalone
+regression are submitted as [upstream PR #65](https://github.com/digama0/lean4lean/pull/65),
+based on official `67f63b0`, at `1af5844a88e4090b5a2de0d949faeb042c3ac78f`.
+Its default build passes 162 jobs; Environment/DeclFVar tests and the strict
+fixture pass; source census is unchanged at 133 / 29 / 137. Official master
+still has three additional inherited admissions (`VInductDecl.WF`, `addInduct`,
+`addInduct_WF`), explicitly pinned in that fixture. The one-argument wrapper adds
+the same two typing admissions. All candidate roots have exactly `propext`,
+`Quot.sound`, `sorryAx`. This differs from the existing typed simultaneous
+substitution proof, which is reused unchanged. Fresh whole-tree PR #53 inspection
+found a related theorem for one unchanged source expression; the new proof
+handles both endpoints of normal equality and has a separate module name.
+The fork-specific beta module and status documents are excluded from the PR.
+
 ## Eta joins and the replacement simulation induction — 2026-10-19
 
 `QuotEtaSimulation` proves forward eta compatibility for the existing candidate

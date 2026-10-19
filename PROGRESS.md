@@ -52,8 +52,22 @@ outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
 All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
 inherited projection admissions, and its equality bridge pins five.
-Full default builds pass (424 integration / 421 main review jobs), as do all
-47 selected integration fixtures and 18 selected main fixtures. No new admission is introduced.
+Full default builds pass (426 integration / 423 main review jobs), as do all
+49 selected integration fixtures and 20 selected main fixtures. No new admission is introduced.
+
+**Simultaneous substitution and lambda beta simulation:** related arguments
+can now be substituted simultaneously into both endpoints of normal equality,
+including eta with different dependent binder domains. The general proof has no
+inherited source admission in either fork snapshot and avoids normal
+transitivity and inverse weakening. Arbitrary candidate argument paths propagate
+through duplicated occurrences beneath dependent binders. The actual lambda
+beta clause combines recursive body/argument simulation, converted domains and
+both endpoint typings at the original application type. Its exact trust boundary
+is the two existing typing admissions. General beta across arbitrary eta-related
+function shapes, checked EXTRA and the universal simulation remain open. The
+independent substitution proof and strict regression are submitted as
+[upstream PR #65](https://github.com/digama0/lean4lean/pull/65), with the official
+master's additional inductive admissions explicitly audited there.
 
 **Eta joins and replacement simulation clauses:** root eta expansion now joins
 EVERY finite candidate path at an identical endpoint, including unfolding and
@@ -437,11 +451,12 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The main Lean 4.29.0 proof source `1337f87` passes all default targets and
-twelve focused fixtures on October 19. This Lean 4.33.0-rc2 integration
-separately passes all default targets and the quotient/model and existing
-integration regression gates. Receipts are recorded in `PROOF_STATUS.md`;
-passing either source does not validate the other or complete the rebase.
+The current main Lean 4.29.0 proof source passes all default targets (423 jobs)
+and all 20 selected regressions on October 19. This Lean 4.33.0-rc2 integration
+passes its full default build (426 jobs) and all 49 selected regressions. The
+independent current-master substitution PR passes its default build and
+standalone regression. Each receipt validates its respective source snapshot;
+exact trust bounds are recorded in `PROOF_STATUS.md`.
 
 | Whole-word `sorry` or `admit` source census, October 19 | Published proof source | Local integration | Official master |
 | --- | --- | --- | --- |
