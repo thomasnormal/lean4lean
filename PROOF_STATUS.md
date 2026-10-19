@@ -4,6 +4,51 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Conditional gadget transport at checked inhabitants — 2026-10-19
+
+The actual `Condition.check.gadget_pieces` now obtains all four closed native
+translations by typed instantiation. Both Nat binders are instantiated at zero;
+the remaining proposition, Boolean, and dependent proof binders are instantiated
+at the gadget's own checked arguments at zero. Their typings are extracted
+before the decision function's closedness is known; only the final beta equation
+requires that closedness. The original `gadget_types`, `gadget_pieces`, and
+`Condition.check.WF` headers are unchanged, as are executable behavior and all
+acceptance guards. The legacy general `TrExprS.ofClosed` contract is retained
+but no longer occurs in the actual extraction's dependency graph.
+
+This inhabitant construction follows draft [upstream PR #53](https://github.com/digama0/lean4lean/pull/53)
+at `5a8c0d5f111809a95f4924c71e0e9bc8738d72e0`; it is attributed as a port,
+not submitted as a duplicate contribution. Specialized projection-free native
+weakening, substitution, and well-formedness proofs use the existing `CondOK`
+guards to avoid importing projection transport obligations. They do not add
+public caller assumptions or change the existing gadget contracts.
+
+The complete extraction graph traverses **6383 dependencies**, down from four
+inherited direct admissions to exactly THREE: `TrProj`, `IsDefEqU.sort_inv`, and
+`IsDefEqU.forallE_inv_stratified`. It transitively excludes general native and
+semantic strengthening, generic projection weakening/instantiation/WF, false
+confluence, and derived quotient injectivity. The witness-closing helper's
+4057-dependency graph inherits only `TrProj`; each new transport helper has that
+same exact single-admission bound. The syntax identity uses only `propext`.
+The whole `Condition.check.WF` still has its identical **33-axiom manifest** and
+wider checker dependencies, including general strengthening and confluence.
+This repairs one actual extraction path, not whole-recognizer soundness.
+
+`tests/ReflectionGadgetInhabitants.lean` closes a genuinely dependent proof
+binder using a constructed proof of `∀ P : Prop, P → P`, retaining native
+lambda/let syntax throughout. It checks exact helper/extraction provenance,
+axiom manifests, the actual recognizer's use of the repaired extraction, and
+the unchanged full-recognizer axiom set.
+
+Full integration default build passes **423 jobs**; all **38 fixtures** pass,
+including the new strict audit. Main review separately passes **419 jobs**.
+The source census is unchanged: integration **125 matching lines / 24 files /
+129 occurrences**, main **119 / 19 / 123**. All 76 pre-existing theorem headers
+in this module and the executable files are unchanged. Receipts use
+`/var/tmp/thomas-ahle/fleet2/logs/lean4lean-gadget-inhabitants-` (`default-final`,
+`regressions`, `ReflectionGadgetInhabitants`, `main-build`, and `census-contracts`,
+dated 20261019). No new admission or axiom.
+
 ## Local-let entry without projection weakening — 2026-10-19
 
 This item extends `fe2ab45` from restoration to the complete local-let scope.

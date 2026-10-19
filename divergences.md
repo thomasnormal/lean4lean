@@ -55,6 +55,21 @@ Generic lambda restoration remains unresolved. See `tests/LetCacheRestoration.le
 and upstream PR #64.
 These are metatheory repairs, not new native kernel discrepancies.
 
+## Conditional gadget context transport (2026-10-19)
+
+`Condition.check.gadget_pieces` now instantiates both Nat binders at zero and
+then the three dependent reflection binders at its own checked arguments at
+zero, following upstream draft PR #53 (`5a8c0d5`). Closed source syntax stays
+unchanged; actual typed witnesses justify removing the domains. Projection-free
+transport avoids generic projection weakening, instantiation, and WF obligations.
+The complete extraction retains exactly the `TrProj` definition and the two
+existing sort/forall typing gaps, with general strengthening and false confluence
+excluded. The legacy general extraction contract remains visible but is no
+longer used by this gadget. Public gadget/recognizer statements, checker behavior,
+and accepted inputs are unchanged. The full recognizer still inherits broader
+checker gaps; this is a metatheory repair, not a native kernel discrepancy.
+See `tests/ReflectionGadgetInhabitants.lean`.
+
 ## False quotient confluence simulation contract (2026-10-15)
 
 This is a verification-model defect, not a newly introduced executable

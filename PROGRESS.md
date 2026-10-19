@@ -53,7 +53,7 @@ All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
 inherited projection admissions, and its equality bridge pins five.
 Full default builds pass (423 integration / 419 main review jobs), as do all
-37 current integration fixtures. No new admission is introduced.
+38 current integration fixtures. No new admission is introduced.
 
 **Local-let cache transport:** entering and leaving local definitions preserve
 the exact model context and expressions. All five actual state/cache producer
@@ -65,6 +65,14 @@ Cache definitions, theorem contracts and accepted inputs are unchanged. Generic
 lambda paths and broader frontend/model obligations remain open. The focused
 master-based [PR #64](https://github.com/digama0/lean4lean/pull/64) now covers both
 directions, with its own full build and strict provenance gates.
+
+**Conditional gadget extraction:** the actual conditional recognizer now
+closes its two Nat binders at zero and its three dependent reflection binders
+at the gadget's own checked arguments. This follows upstream draft #53,
+with local projection-free transport proofs preserving the existing contracts.
+Its complete extraction graph drops general strengthening and inherits exactly
+three existing projection/typing gaps; the whole recognizer's 33-axiom manifest
+and broader checker gaps remain. No executable behavior changes.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.
