@@ -13,6 +13,50 @@ typing/injectivity admissions. No unconditional kernel soundness follows from
 the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
+
+## Separate upstream quotient snapshot — 2026-10-19
+
+The main review branch remains on Lean 4.29.0 at proof source `1337f87`.
+The separately published `poc-verified-noninductive-upstream-20261019`
+snapshot at `d0f77425617a355241492ab574a4ce48a3cf39bf` is based on
+official `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`
+with Lean 4.33.0-rc2, extending `43a47d9`. It integrates quotient inversion,
+pattern soundness, concrete reduction, the unchanged actual
+`reduceRecursor.WF` contract, the checked false-confluence obstruction, and
+typed Prop-source/all-prefix unfolding. It retains upstream mutual-definition
+histories and executable workers. New metadata proofs cover simultaneous
+signature reservation followed by all defining equations, without restricting
+the declaration history; the dependent-body mutual fixture and general metadata
+witnesses are admission-free/no-choice.
+
+Three abstract model placeholders are replaced by constructive constant-signature
+registration and orderedness, and one direct dispatcher admission is removed.
+This is not genuine checked inductive/model registration or recursor semantics.
+The dispatcher retains inherited typing/confluence admissions and native
+interfaces; the old `NormalEq.parRed` contract remains false and admitted.
+The candidate unfolding and obstruction exclude that theorem, its confluence
+consequences, derived quotient injectivity, and false general strengthening;
+independent typing/injectivity admissions remain. General simulation,
+confluence, eta overlaps, and consumer migration remain open.
+
+The integration's theorem-body audits use
+`value? (allowOpaque := true)` for Lean 4.33 and preserve strict no-choice
+bounds. All 422 default build jobs and all 33 quotient/model, primitive/frontend,
+and restoration fixtures pass, including 560 cold/warm actual quotient
+helper/dispatcher controls. Receipts are
+`lean4lean-quot-integration-default-final-20261019.log` and
+`lean4lean-integration-<Fixture>-final-20261019.log` under
+`/var/tmp/thomas-ahle/fleet2/logs/`. Census: 129 matching lines / 27 files /
+133 occurrences before, 125 / 24 / 129 after; no new admission. This main
+branch's proof source is unchanged, with 119 lines / 19 files / 123 occurrences
+and a fresh 419-job default-build pass in
+`lean4lean-quot-integration-published-status-build-20261019.log`.
+
+This is partial replay, not a replacement of the main review history.
+The inhabited-binder reflection repair and remaining native inductive
+restoration receipts still need integration. No force push or duplicate
+upstream proof PR is used for this compatibility snapshot.
+
 ## What is proved
 
 - `QuotPrefixReduction` removes the preceding repair ingredient's
