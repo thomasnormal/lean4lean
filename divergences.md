@@ -137,6 +137,28 @@ Lean 4.29.0 and 4.33.0-rc2 with explicit extensionality and congruence; this
 does not add those steps to either executable checker. General confluence,
 critical-pair proofs, and downstream migration are still open.
 
+## Candidate-step simulation boundary (2026-10-19)
+
+`QuotCandidateSimulation.normal_candidate_simulates` now simulates every
+candidate `Step` and finite `Steps` path from an actual `NormalEq`, using the
+repaired left paths and a direct normal comparison at the endpoint. The proof
+covers checked original reduction, Prop-source unfolding with neutral majors,
+eta expansion, application/lambda/Pi congruence, changing dependent domains,
+retained eta binders, and supplied result types. Its dependency audit excludes
+the false `NormalEq.parRed`/`parRedS` contracts, `NormalEq.trans`, inverse
+weakening, quotient injectivity, `TrProj`, admissions, and choice.
+
+This simulation result does not establish confluence or normal-equality
+composition. The existing `NormalEq.trans` implementation still reaches
+`NormalEq.weakN_iff`, whose proof in `UniqueTyping.lean` contains the remaining
+inverse-weakening admission; its eta-right/eta-left branch is exactly where a
+lifted body comparison must be pulled back through a binder. Candidate
+simulation composes paths only when an actual candidate path is supplied and
+therefore cannot discharge that critical pair. The old theorem and its
+downstream consumers remain unchanged and conditional. Any future repair must
+prove the missing context conversion constructively before claiming candidate
+confluence or unconditional frontend soundness.
+
 ## Reduction-model local contexts (repaired 2026-10-15)
 
 `Theory.Typing.ChurchRosser.Params.pat_wf` formerly required rule soundness in
