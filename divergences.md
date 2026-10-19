@@ -702,3 +702,27 @@ Nat.add compatibility lemmas have no direct admission or new axiom declarations,
 but their transitive typing/equation proof uses the existing `sorryAx`, classical,
 and quotient/interface baseline; it is not advertised as admission-free kernel
 soundness. No native binary arithmetic operation is re-enabled by this replay.
+## AddInduct registration boundary (2026-10-19)
+
+`NativeInductive.RegistrationEvidence.aligned` proves the staged semantic
+alignment that is available today: header constants are added against the
+pre-block model environment, constructor constants against the header
+environment, and each phase preserves freshness and the native/model constant
+map. The theorem also composes the existing native `addInduct`-with-recursor
+receipt, but it does not claim recursor or ι-rule semantics.
+
+The remaining `Verify.Environment.Basic.AddInduct` relation is intentionally
+constructor-free. Making it constructible from those receipts would change a
+separate global contract: `TrEnv'.inductiveLookupRejected`,
+`TrEnv.inductiveNotInModel`, and the projection, recursor, and comparison
+consumers currently prove that no inductive-family lookup can enter the model.
+An aligned header/constructor witness would make those rejection statements
+false for a safe inductive block, so filling `AddInduct` requires a coordinated
+migration of that noninductive fragment and a new model for generated
+recursors. The staged alignment theorem is therefore recorded as a valid
+registration prerequisite rather than being unsafely wired into `TrEnv`.
+
+This is a semantic boundary, not an executable-kernel discrepancy. The next
+inductive item must either replace the rejection contracts with an inductive-
+aware environment relation or remain within the current constructor-free
+fragment.
