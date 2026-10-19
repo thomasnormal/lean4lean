@@ -23,9 +23,17 @@ extending checkpoint `43a47d9`. It integrates the later quotient semantics,
 the actual native quotient/recursor dispatcher proof, the checked confluence
 obstruction, and the typed Prop-source/prefix repair ingredients. Upstream's
 mutual-definition declarations and executable behavior are retained. This is
-a partial integration: the inhabited-binder reflection repair and later native
-restoration receipts still need replay. Publishing this snapshot on a separate
-branch does not rebase or replace the main review branch.
+a partial integration: current reflection uses a different primitive architecture,
+and later native restoration receipts still need replay. Publishing this snapshot
+on a separate branch does not rebase or replace the main review branch.
+
+**Inhabited telescope repair:** well-founded recursion now discharges two direct
+inverse-weakening obligations by substituting zero for the Nat binders certified
+by its existing guard. The new generic helpers support dependent telescopes and
+a retained binder depending on the base context; their dependency audits exclude
+admissions, choice, false strengthening and confluence. Public theorem premises
+and executable behavior are unchanged. The full recursion theorem still inherits
+general strengthening through context extraction and other checker dependencies.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.

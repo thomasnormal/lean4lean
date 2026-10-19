@@ -20,6 +20,20 @@ This is a list of places where lean4lean deliberately has different behavior fro
 * [`Lean4Lean.addDefinition`](Lean4Lean/Environment.lean) (`unsafe` branch), [`addMutual`](Lean4Lean/Environment.lean): an `unsafe`/`partial` definition may be recursive, so its body is checked in an environment that already contains the declaration. The C++ kernel adds `constant_info(d)` there -- the full definition, value included -- so the body can delta-unfold the very constant being defined. Lean4lean adds it as an axiom of the same type instead: the body may still *refer* to the block's constants, but cannot unfold them. So for example `unsafe def foo : Nat := (fun (_ : foo = 1) => 1) rfl` is accepted by the C++ kernel, but rejected by L4L: checking the argument requires `foo =?= 1`, which succeeds by unfolding `foo` to its own body and reducing. Read literally, that rule makes a typing fact about the constant available while establishing it, and implementing this in `IsDefEq` directly degenerates completely, allowing even things like `unsafe def bar : Nat := "hi"` by using the typing judgment to justify itself. The gap is confined to `unsafe`/`partial` code, which carries no logical content.
 * [`Lean4Lean.addMutual`](Lean4Lean/Environment.lean): lean4lean requires the declarations of a mutual block to carry the same universe parameters and to have distinct names. Both checks are in kernel PRs that are not yet released ([leanprover/lean4#14608](https://github.com/leanprover/lean4/pull/14608), [#14632](https://github.com/leanprover/lean4/pull/14632)); the released kernel checks only that the safety annotations agree. Lean4lean needs them rather than merely matching them: the block is checked under a single `M.run`, whose level parameters are fixed for the whole run, and the model adds the block's constants one at a time with `VEnv.addConsts`, which fails on a repeated name.
 
+## Inhabited telescope transport in recursion (2026-10-19)
+
+The general inverse-weakening admission reported in upstream issue #50 remains
+false: omission of variables from the endpoints does not justify dropping their
+domains. The actual `Primitive.unfoldNatWellFounded.WF'` proof now replaces its
+two direct uses with typed substitution. Its existing measure guard proves all
+removed domains are Nat, so zero closes the telescope without changing accepted
+inputs or theorem premises. The generic helpers also handle dependent domains
+and a retained binder depending on the base context. Their transitive audits
+exclude admissions and choice. The enclosing theorem still inherits general
+strengthening through context extraction and checker methods; that separate
+repair remains open. See `tests/InhabitedTelescope.lean`. This is a metatheory
+repair, not a new native kernel discrepancy.
+
 ## False quotient confluence simulation contract (2026-10-15)
 
 This is a verification-model defect, not a newly introduced executable

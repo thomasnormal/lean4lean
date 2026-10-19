@@ -4,14 +4,51 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Inhabited telescope transport in well-founded recursion — 2026-10-19
+
+This Lean 4.33.0-rc2 item extends quotient checkpoint `d0f7742` without changing
+executable code or the public recursion theorem's premises. The current primitive
+architecture has no `Reflection.ite_carrier` theorem corresponding to the older
+Lean 4.29 fork. Instead, it repairs the two direct general-strengthening calls
+in the actual `Primitive.unfoldNatWellFounded.WF'` proof.
+
+`VEnv.IsDefEq.weakN_inv_of_argsTyped` and its typing variant close a telescope
+using actual typed arguments and the proved simultaneous-substitution API.
+`VEnv.IsDefEqU.weakN_inv_of_argsTyped_under` retains a binder whose domain may
+depend on the base context. Syntactic substitution/weakening cancellation is
+proved for arbitrary retained depth. The existing `meas.natBinderTypes` guard
+already certifies every removed domain as Nat, so typed zeros supply the closing
+arguments at arbitrary universe-context size. This does not assume inhabitants
+of arbitrary propositions or strengthen the checker guard.
+
+`tests/InhabitedTelescope.lean` checks a genuinely dependent two-domain telescope,
+a nonempty base, beta equality with distinct endpoints, base-variable typing,
+a retained binder whose domain depends on that base, an empty telescope, and
+cancellation beneath two retained binders. All six new helpers and eight witness
+proofs have bodies and transitively use at most `propext` and `Quot.sound`.
+Dependency traversal excludes the false strengthening and confluence theorems.
+The actual consumer body must reference both new semantic transports directly
+and omit direct general-strengthening calls. The three public recursion contracts
+retain their measured pre-change 33-axiom manifests, including `sorryAx`, choice,
+and native interfaces. In particular, `TrExprS.weakFV_inv` and checker methods
+still inherit general strengthening: the whole theorem is not admission-free.
+
+Validation: full default `lake build` passes all 422 jobs, and all 34 fixtures
+pass (the new dependent telescope audit plus the preceding 33 regression gates).
+Receipts: `lean4lean-inhabited-telescope-default-20261019.log`,
+`lean4lean-inhabited-telescope-fixture-20261019.log`, and
+`lean4lean-inhabited-telescope-regressions-20261019.log` under
+`/var/tmp/thomas-ahle/fleet2/logs/`. Census remains
+125 matching lines / 24 files / 129 whole-word `sorry|admit` occurrences.
+
 ## Upstream quotient integration — 2026-10-19
 
 This separate Lean 4.33.0-rc2 snapshot extends `43a47d9`, based on official
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`. The main Lean 4.29.0 review branch
 remains at proof source `1337f871caea000219b8da408b4dea3c31718690`.
 The snapshot is published as `poc-verified-noninductive-upstream-20261019`
-without replacing either existing branch. It does not yet replay the later
-inhabited-binder reflection repair or all native inductive restoration receipts.
+without replacing either existing branch. Current reflection has a different
+primitive architecture; later native inductive restoration receipts remain open.
 
 The original `reduceRecursor.WF` contract is now proved by composing native
 quotient reduction with `inductiveReduceRec.none_of_translation`. The executable

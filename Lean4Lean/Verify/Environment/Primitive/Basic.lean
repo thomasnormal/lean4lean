@@ -381,6 +381,29 @@ theorem VExpr.liftN_subst_consN : ∀ {vs : List VExpr} {e : VExpr} {γ : VExpr.
       VExpr.liftN_subst_consN (vs := vs) (e := VExpr.liftN 1 e) (γ := γ.cons v)]
     simp [VExpr.lift_subst]
 
+/-- Closing cancels weakening beneath any number of retained binders. -/
+theorem VExpr.Subst.lift_l_consN_liftN (vs : List VExpr) (γ : VExpr.Subst) (k : Nat) :
+    ((γ.consN vs).liftN k).lift_l (.consN (.skipN .refl vs.length) k) = γ.liftN k := by
+  induction k with
+  | zero =>
+    funext i
+    simp only [VExpr.Subst.liftN, Lift.consN, VExpr.Subst.lift_l, Lift.liftVar_skipN,
+      Lift.liftVar]
+    simpa [Nat.add_comm] using VExpr.Subst.consN_add vs γ i
+  | succ k ih =>
+    change ((γ.consN vs).liftN k).lift.lift_l
+      (Lift.consN (Lift.skipN .refl vs.length) k).cons = (γ.liftN k).lift
+    rw [← VExpr.Subst.lift_l_lift, ih]
+
+theorem VExpr.liftN_subst_consN_liftN (e : VExpr) (vs : List VExpr) (k : Nat) :
+    (e.liftN vs.length k).subst ((VExpr.Subst.id.consN vs).liftN k) = e := by
+  rw [VExpr.liftN_subst, VExpr.Subst.lift_l_consN_liftN]
+  have identity : VExpr.Subst.id.liftN k = VExpr.Subst.id := by
+    induction k with
+    | zero => rfl
+    | succ k ih => simpa only [VExpr.Subst.liftN, ih, VExpr.id_lift]
+  rw [identity, VExpr.subst_id]
+
 /-- Closing a telescope's variables is closing at its arguments: the variables translate to
 `bvar 0, bvar 1, …` innermost-first, so read off in telescope order they are the reversed range,
 and `consN` sends them to the arguments in that same order. -/
@@ -505,6 +528,53 @@ theorem VExpr.ArgsTyped.substEq {env : VEnv} {U} {Γ₀ : List VExpr} :
     obtain ⟨u, hAu⟩ : env.IsType U Γ A := (OnCtx.of_append hctx).2
     have hσ' : VEnv.Ctx.SubstEq env U Γ₀ (σ.cons _) (σ.cons _) (A :: Γ) := .cons hσ hAu hv
     exact ih hctx hσ' hargs
+
+theorem VExpr.ArgsTyped.length_eq (arguments : VExpr.ArgsTyped env U Γ As σ vs) :
+    As.length = vs.length := by
+  induction arguments with
+  | nil => rfl
+  | cons _ _ ih => exact congrArg Nat.succ ih
+
+/-- Remove a telescope using actual typed arguments. Closed syntax alone does not
+justify inverse weakening; the arguments supply the missing inhabitants. -/
+theorem VEnv.IsDefEq.weakN_inv_of_argsTyped {env : VEnv} (henv : env.Ordered)
+    (hctx : OnCtx (As.reverse ++ Γ) (env.IsType U))
+    (arguments : VExpr.ArgsTyped env U Γ As .id vs)
+    (equal : env.IsDefEq U (As.reverse ++ Γ)
+      (first.liftN vs.length) (second.liftN vs.length) (type.liftN vs.length)) :
+    env.IsDefEq U Γ first second type := by
+  have hΓ := OnCtx.of_append hctx
+  have closing := arguments.substEq hctx (VEnv.Ctx.SubstEq.id henv hΓ)
+  simpa only [VExpr.liftN_subst_consN, VExpr.subst_id] using equal.subst henv closing hΓ
+
+theorem VEnv.HasType.weakN_inv_of_argsTyped {env : VEnv} (henv : env.Ordered)
+    (hctx : OnCtx (As.reverse ++ Γ) (env.IsType U))
+    (arguments : VExpr.ArgsTyped env U Γ As .id vs)
+    (typed : env.HasType U (As.reverse ++ Γ)
+      (expression.liftN vs.length) (type.liftN vs.length)) :
+    env.HasType U Γ expression type :=
+  VEnv.IsDefEq.weakN_inv_of_argsTyped henv hctx arguments typed
+
+/-- The same retraction beneath a retained binder, whose domain may depend on Γ. -/
+theorem VEnv.IsDefEqU.weakN_inv_of_argsTyped_under {env : VEnv} (henv : env.Ordered)
+    (hctx : OnCtx (As.reverse ++ Γ) (env.IsType U))
+    (arguments : VExpr.ArgsTyped env U Γ As .id vs)
+    (domainTyped : env.HasType U Γ domain (.sort u))
+    (equal : env.IsDefEqU U (domain.liftN vs.length :: (As.reverse ++ Γ))
+      (first.liftN vs.length 1) (second.liftN vs.length 1)) :
+    env.IsDefEqU U (domain :: Γ) first second := by
+  have hΓ := OnCtx.of_append hctx
+  have closing := arguments.substEq hctx (VEnv.Ctx.SubstEq.id henv hΓ)
+  have domainExtended := domainTyped.weakN henv
+    (Ctx.LiftN.zero As.reverse (by simpa using arguments.length_eq))
+  have retained := closing.lift henv domainExtended
+  simp only [VExpr.liftN_subst_consN, VExpr.subst_id] at retained
+  have result := equal.subst henv retained
+    (show OnCtx (domain :: Γ) (env.IsType U) from ⟨hΓ, _, domainTyped⟩)
+  change env.IsDefEqU U (domain :: Γ)
+    ((first.liftN vs.length 1).subst ((VExpr.Subst.id.consN vs).liftN 1))
+    ((second.liftN vs.length 1).subst ((VExpr.Subst.id.consN vs).liftN 1)) at result
+  simpa only [VExpr.liftN_subst_consN_liftN] using result
 
 /-- A lambda telescope is well typed when its body is. Needed because closing a *second* term at
 an already-built substitution cannot re-derive the binder typings from the application's own
