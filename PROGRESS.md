@@ -39,8 +39,22 @@ native restoration receipts also remain open. The Nat-closing and successor
 arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
-Full default builds pass (427 integration / 424 main review jobs), as do all
-50 selected integration fixtures and 21 selected main fixtures. No new admission is introduced.
+Full default builds pass (428 integration / 425 main review jobs), as do all
+51 selected integration fixtures and 22 selected main fixtures. No new admission is introduced.
+
+**Checked quotient firing across related sources:** when both terms actually
+match the quotient pattern, normal equality of the captures now derives the
+left rule's two equality checks from the right checks at any source universe.
+Only the function and payload need recursive simulation. A separate Prop-source
+clause unfolds a saturated left eliminator with an arbitrary major, including
+a neutral one, and joins its selected proof to the reduced right payload.
+Both clauses use the actual checked right EXTRA and every captured parallel
+reduction, construct a left candidate path, and preserve both original endpoint
+types. Their exact graphs retain only the two existing typing admissions and
+exclude choice, false confluence, inverse transport and normal transitivity.
+These are firing clauses with explicit matching/component hypotheses. Exposing
+such components through arbitrary eta-related prefixes remains open, as do
+universal simulation, confluence and actual-consumer migration.
 
 **General application beta simulation:** an arbitrary normally related
 function can now follow beta on the right, with different normally related
@@ -51,8 +65,8 @@ normal transitivity. The general application beta clause consumes just the
 function/argument induction hypotheses and retains both original endpoint
 types. Proof-valued functions also have their complete application clause.
 Exact audits retain only the two existing typing admissions and exclude choice
-and false confluence. Checked EXTRA is the remaining general application
-branch; universal simulation, confluence and actual-consumer migration are open.
+and false confluence. Checked EXTRA still needs general prefix exposure; the concrete firing clauses
+are proved above. Universal simulation, confluence and consumer migration remain open.
 
 **Simultaneous substitution and lambda beta simulation:** related arguments
 can now be substituted simultaneously into both endpoints of normal equality,
