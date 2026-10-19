@@ -39,8 +39,21 @@ native restoration receipts also remain open. The Nat-closing and successor
 arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
-Full default builds pass (440 integration / 437 main review jobs), as do all
-59 selected integration fixtures and 30 selected main fixtures. No new admission is introduced.
+Full default builds pass (442 integration / 439 main review jobs), as do all
+60 selected integration fixtures and 31 selected main fixtures. No new admission is introduced.
+
+**Semantic typing and simultaneous induction:** actual strong derivations now
+produce observation soundness and semantic typing for both endpoints together,
+conditional on validity of their actual stored equations. The no-equations
+corollary discharges that premise from the source environment itself. Constant
+spines recover the stored type, finite backed argument keys containing caller
+demands, wrapped observation typing, and codomain/domain observation recovery.
+Lambda spines recover body typing through dependent binders and nonreflexive
+type conversion. The 121-root audit excludes admissions and choice on both
+versions. HTS's syntax fallback alone does not certify actual typing; the
+simultaneous theorem retains the actual strong derivation. Actual general
+stored-rule and declaration-history validity, full model soundness, quotient/Pi
+separation and nonzero EXTRA remain open.
 
 **Structural observation soundness:** application, lambda, conversion,
 beta, eta, proof irrelevance and constant-level equality now preserve both
@@ -51,8 +64,8 @@ strong equality derivation has its simultaneous soundness proof. The
 reduce a dependent beta redex under a binder, change both an application's
 function and argument, transport a lambda across different beta-equal anchors,
 and retain duplicate eta demands and the original dependent result type.
-The combined induction carrying semantic typing derivations, actual stored-rule
-soundness and declaration-history validity remain open; so do quotient/Pi
+These individual cases feed the simultaneous induction above. Actual stored-rule
+soundness and declaration-history validity remain open, as do quotient/Pi
 separation and nonzero EXTRA.
 
 **Level invariance and dependent telescopes:** observations and their typing
@@ -724,9 +737,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current Lean 4.29.0 proof source passes all default targets (**437 jobs**)
-on October 19 and all 30 selected regressions. The separate Lean 4.33.0-rc2
-integration passes its full default build (**440 jobs**) and all 59 selected
+The current Lean 4.29.0 proof source passes all default targets (**439 jobs**)
+on October 19 and all 31 selected regressions. The separate Lean 4.33.0-rc2
+integration passes its full default build (**442 jobs**) and all 60 selected
 regressions. The independent current-master substitution PR passes its default
 build and standalone regression. These receipts validate their respective
 snapshots; the main branch retains its earlier history. Detailed logs and exact
