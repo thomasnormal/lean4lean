@@ -161,9 +161,11 @@ run_meta
   for required in [``MLCtx.WF.dropNat_trS, ``MLCtx.WF.dropNat_trS_under,
       ``VEnv.HasType.weakN_inv_of_argsTyped, ``VEnv.IsDefEqU.weakN_inv_of_argsTyped_under] do
     unless direct.contains required do throwError "actual consumer lost {required}"
-  unless direct.contains ``TrExprS.weakFV_inv do
-    throwError "reassess the remaining fuel-binder extraction trust account"
+  unless direct.contains ``TrExprS.replace_unused_fvar do
+    throwError "actual consumer lost same-context fuel replacement"
+  for name in forbidden do
+    if direct.contains name then throwError "direct false strengthening/confluence call {name}"
   logInfo m!"{helperCount} helper and {visited.size} domain-conversion dependencies traversed: no general strengthening/confluence; exact three- and six-admission provenance manifests"
-  logInfo "actual guarded Nat context extractions use typed zero closing; the separate fuel-binder extraction and enclosing consumer admissions remain"
+  logInfo "actual guarded Nat context extractions use typed zero closing; fuel uses same-context replacement; enclosing consumer admissions remain"
 
 end UnusedNatTranslationTest

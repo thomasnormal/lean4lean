@@ -33,9 +33,8 @@ by its existing guard. The new generic helpers support dependent telescopes and
 a retained binder depending on the base context; their dependency audits exclude
 admissions, choice, false strengthening and confluence. Public theorem premises
 and executable behavior are unchanged. The full recursion theorem still inherits
-general strengthening through its separate fuel-binder extraction and other
-checker dependencies. Three further context-extraction calls for the guarded
-measure telescope now use abstraction and typed zero instantiation, including
+general strengthening through checker dependencies. Three further context
+extractions for the guarded measure telescope now use abstraction and typed zero instantiation, including
 beneath the retained packed-argument binder. These native translation helpers
 exclude false strengthening and confluence; they retain exactly the existing
 projection definition, weakening and instantiation admissions, standard logic,
@@ -45,6 +44,16 @@ The abstraction/typed-zero direction also exists in draft
 `MLCtx.trExprS_dropN_nat` and larger recursion redesign were inspected at
 `5a8c0d5`. This checkpoint repairs the current contracts and supplies explicit
 trust audits; no duplicate upstream PR is opened.
+The remaining direct fuel extraction now follows #53's same-context successor
+replacement: the checked `succ t` witness stays under the original fuel binder,
+and the induction consumes the resulting equality at adjacent fuel closings.
+The intermediate `Step` witness states that equality instead of asserting an
+outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
+All direct general-strengthening/extraction calls in WF′ are now removed;
+transitive checker admissions remain. The new replacement helper pins three
+inherited projection admissions, and its equality bridge pins five.
+Full default builds pass (422 integration / 419 main review jobs), as do all
+36 current integration fixtures. No new admission is introduced.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.

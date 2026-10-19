@@ -91,8 +91,8 @@ run_meta
     | throwError "actual recursion consumer proof absent"
   if proof.hasSorry then throwError "direct recursion consumer admission"
   let direct := proof.getUsedConstants
-  unless direct.contains ``TrExprS.weakFV_inv do
-    throwError "reassess the documented inherited context-extraction dependency"
+  for name in [``TrExprS.weakFV_inv, ``TrExprS.weakFV'_inv] do
+    if direct.contains name then throwError "direct general context extraction remains: {name}"
   for required in [``VEnv.HasType.weakN_inv_of_argsTyped,
       ``VEnv.IsDefEqU.weakN_inv_of_argsTyped_under] do
     unless direct.contains required do throwError "actual consumer no longer uses {required}"

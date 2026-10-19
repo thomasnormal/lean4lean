@@ -4,6 +4,59 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Fuel replacement within its original context — 2026-10-19
+
+This item extends `fd16eef` by removing the last direct general context
+extraction in the actual `Primitive.unfoldNatWellFounded.WF'` proof. It ports
+upstream draft [PR #53](https://github.com/digama0/lean4lean/pull/53)'s
+successor-invariance argument, reviewed at
+`5a8c0d5f111809a95f4924c71e0e9bc8738d72e0`. The existing check types `succ t`
+within the fuel binder. It supplies a genuine same-context witness at the
+binder's lifted domain; no inhabitant in the outer context is assumed.
+
+`TrExprS.replace_unused_fvar` factors abstraction, insertion below the anonymous
+binder, and typed instantiation for arbitrary same-context replacements.
+For source syntax omitting the fuel variable, replacement leaves the native
+expression unchanged. Uniqueness of translation then yields equality between
+the recursor and its fuel-successor substitution. The intermediate `Step`
+witness now records this equality in its own context instead of asserting an
+outer translation exists. Closing at fuel `t` yields precisely the recursor
+at `t+1`, using the ported `liftN_one_one_inst_subst_cons` identity. Both the
+producer and the actual induction consumer use the repaired witness.
+
+WF′/WF/WF₂ top-level declaration headers are byte-for-byte unchanged. Executable
+code and acceptance guards are unchanged. All direct general extraction and
+semantic-strengthening calls in WF′ are gone. Its checker dependencies still
+transitively inherit those false contracts, and all three recursion theorems
+retain their measured 33-axiom manifests. This is not unconditional soundness.
+
+The replacement helper and its witnesses traverse 4530 dependencies, excluding
+false strengthening, confluence and derived quotient injectivity. They inherit
+exactly `TrProj`, `TrProj.instN`, and `TrProj.weak'`; their axiom sets are bounded
+by `propext`, `Quot.sound`, `Classical.choice`, `sorryAx`. The separate uniqueness
+bridge traverses 4602 dependencies and inherits exactly `TrProj`, `TrProj.uniq`,
+`TrProj.wf`, `IsDefEqU.sort_inv`, and `IsDefEqU.forallE_inv_stratified`, with the
+same axiom bound and exclusions. Pure substitution and adjacent-closing proofs
+use only `propext`/`Quot.sound`, without admissions or choice.
+
+`tests/FuelSuccessorReplacement.lean` checks an arbitrary proposition's proof
+binder using only its in-scope proof variable, replacement beneath a lambda,
+actual Nat-successor replacement over a nonempty base, and the closing identity
+at arbitrary fuel/tail. The two preceding fixtures now reject every direct
+general extraction in the actual consumer rather than expecting its old fuel
+call. All exact provenance and axiom bounds remain enforced.
+
+Full integration default build passes 422 jobs and all 36 fixtures pass,
+including the new replacement audit, both strengthened preceding gates, and
+all 33 other quotient/model, primitive/frontend and restoration regressions.
+Main review has a separate fresh 419-job default-build pass. Receipt prefix
+`/var/tmp/thomas-ahle/fleet2/logs/lean4lean-fuel-successor-`:
+`default-20261019.log`, `regressions-20261019.log`,
+`FuelSuccessorReplacement-20261019.log`, `main-build-20261019.log`, and
+`census-contracts-20261019.log`. Source census is unchanged: integration
+125 matching lines / 24 files / 129 occurrences; main 119 / 19 / 123.
+No new native kernel discrepancy or duplicate upstream PR.
+
 ## Closing unused Nat locals in native translation — 2026-10-19
 
 This item extends `33b42bf` by replacing three `TrExprS.weakFV_inv` calls in the
@@ -30,8 +83,9 @@ persistent-container interface axioms. Their provenance and axiom bounds are
 checked explicitly; this is not an admission-free translation theorem.
 The separate retained-domain conversion also excludes false strengthening and
 confluence; its existing six typing/projection admissions are pinned separately.
-The actual recursion proof still has one general extraction call for the
-separate fuel binder, and the full checker dependencies remain conditional.
+At this checkpoint one general extraction call remained for the separate fuel
+binder; the subsequent same-context replacement above removes it. Full checker
+dependencies remain conditional.
 
 `tests/UnusedNatTranslation.lean` exercises closing an unused local at a concrete
 Sort inhabitant, a retained binder whose domain is the base proposition, two
@@ -50,7 +104,8 @@ integration and 119 / 19 / 123 in the main review. Logs under
 `default-final-20261019.log`, `fixture-final-20261019.log`,
 `regressions-20261019.log`, `main-build-20261019.log`, and
 `census-20261019.log`. The actual source has exactly two ordinary Nat-closing
-calls, one retained-binder call, and one remaining fuel-binder general extraction.
+calls, one retained-binder call, and (before the subsequent repair above) one
+remaining fuel-binder general extraction.
 
 Upstream coordination: official master remains `67f63b0`, with these extraction
 calls still present. Draft [PR #53](https://github.com/digama0/lean4lean/pull/53),
@@ -90,8 +145,10 @@ Dependency traversal excludes the false strengthening and confluence theorems.
 The actual consumer body must reference both new semantic transports directly
 and omit direct general-strengthening calls. The three public recursion contracts
 retain their measured pre-change 33-axiom manifests, including `sorryAx`, choice,
-and native interfaces. In particular, `TrExprS.weakFV_inv` and checker methods
-still inherit general strengthening: the whole theorem is not admission-free.
+and native interfaces. At that checkpoint `TrExprS.weakFV_inv` and checker
+methods still inherited general strengthening; the later items above remove the
+direct extraction calls, while the theorem remains conditional through checker
+dependencies.
 
 Validation: full default `lake build` passes all 422 jobs, and all 34 fixtures
 pass (the new dependent telescope audit plus the preceding 33 regression gates).

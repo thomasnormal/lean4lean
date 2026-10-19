@@ -30,14 +30,23 @@ removed domains are Nat, so zero closes the telescope without changing accepted
 inputs or theorem premises. The generic helpers also handle dependent domains
 and a retained binder depending on the base context. Their transitive audits
 exclude admissions and choice. The enclosing theorem still inherits general
-strengthening through its separate fuel-binder extraction and checker methods.
+strengthening through checker methods.
 Three further guarded measure-telescope translation extractions now abstract and
 instantiate unused locals at typed zero, including below a retained dependent
 binder. Those helpers exclude false strengthening/confluence while retaining
 exactly the existing projection definition/weakening/instantiation admissions
-and native interface baseline. See `tests/InhabitedTelescope.lean` and
-`tests/UnusedNatTranslation.lean`. These are metatheory repairs, not new native
-kernel discrepancies.
+and native interface baseline. The last direct fuel-binder extraction now uses
+upstream PR #53's same-context successor replacement: the existing checked
+`succ t` provides the witness within the original binder, and the induction
+consumes the resulting adjacent-fuel equality. Its intermediate `Step` witness
+is repaired accordingly; the top-level WF′/WF/WF₂ contracts and executable
+behavior are unchanged. The replacement helper inherits exactly three projection
+admissions and its uniqueness bridge five existing typing/projection admissions;
+false strengthening and confluence are excluded from both. See
+`tests/InhabitedTelescope.lean`, `tests/UnusedNatTranslation.lean`, and
+`tests/FuelSuccessorReplacement.lean`. These remove all direct general-extraction
+calls in WF′, while its transitive checker obligations remain conditional.
+These are metatheory repairs, not new native kernel discrepancies.
 
 ## False quotient confluence simulation contract (2026-10-15)
 

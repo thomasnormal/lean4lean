@@ -476,9 +476,10 @@ def unfoldNatWellFounded.Step (c : VContext) (m : MLCtx) [cwf : c.MLCWF m] (gohv
     -- the recursor does not mention the fuel variable -- the recognizer's
     -- `!natRec.containsFVar t.fvarId!`. Without this, closing the telescope at two different
     -- fuels would give two unrelated recursors, and `step` relates fuel `t+1` on one side to
-    -- `succ t` on the other. `lift` says it exactly: substituting a `cons` into a lifted term
-    -- ignores the head, so the closing is independent of what the fuel is closed at.
-    (∃ nrv₀ : VExpr, (@VContext.withMLC c m2 cwf2).IsDefEqU nrv nrv₀.lift) ∧
+    -- `succ t` on the other. Stay in the telescope's context: replacing the fuel by its
+    -- successor leaves the recursor unchanged, so the closings at `t` and `t+1` agree.
+    (@VContext.withMLC c m2 cwf2).IsDefEqU nrv
+      ((nrv.liftN 1 1).inst (.app .natSucc (.bvar 0))) ∧
     -- the body is well typed where it stands, which is what closing it at the *lower* fuel needs:
     -- there the application `step` is handed says nothing, being at `t+1`
     VExpr.WF c.venv c.lparams.length (@VContext.withMLC c m2 cwf2).vlctx.toCtx (.app nrv tgv') ∧
@@ -937,35 +938,41 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
           ([α2, motive2, f2, F] ++ [.app eagerFn fuelN, .fvar ida, pf])) _ :=
       (hlist2 ▸ e5.mkAppList_getAppArgsList ▸ he5S).eqv <| BEq.symm <| by
         simp only [Expr.mkAppList]; simp_all [(· == ·), Expr.eqv']
-    -- the recursor is independent of the fuel variable, which is what the recognizer's
-    -- `containsFVar` guard says
-    have hnrlift : ∀ nrv : VExpr, (c.withMLC m2).TrExprS natRec nrv →
-        ∃ nrv₀ : VExpr, (c.withMLC m2).IsDefEqU nrv nrv₀.lift := by
-      intro nrv hnr
+    -- Follow upstream PR #53: replace the fuel within its own context, using the
+    -- checked typing of `succ t`. No inhabitant in the outer context is required.
+    have hnrsucc : ∀ nrv tv : VExpr, (c.withMLC m2).TrExprS natRec nrv →
+        (c.withMLC m2).TrExprS tg tv → (c.withMLC m2).HasType tv .nat →
+        (c.withMLC m2).IsDefEqU nrv
+          ((nrv.liftN 1 1).inst (.app .natSucc (.bvar 0))) := by
+      intro nrv tv hnr htv htvT
       have hn25 : n2 = 5 := by simpa using hinv2.vars.length_eq.symm
       subst hn25
       obtain ⟨x, nm2, ty2, tyv2, bi2, m2', rfl⟩ :=
         MLCtx.head_vlam (n := 4) (m := m2) (hn := hn2) (Bs := As2.reverse)
           (by simpa using hinv2.len) (by rw [hdrop2]; exact hinv2.toCtx)
-      -- the fuel variable is that head, and the guard says `natRec` avoids it, so it translates
-      -- one binder down. This separate fuel-domain extraction still uses general
-      -- inverse weakening; the measure telescope is closed at typed zeros below.
       have htgx : tg = Expr.fvar x := by
         simp [MLCtx.fvarRevList] at harr2; exact harr2.1
       have hnc' : natRec.containsFVar' x = false := by
         rw [htgx] at hnc; simpa [Expr.containsFVar_eq, Expr.fvarId!] using hnc
       have cwf2b : c.MLCWF (MLCtx.vlam x nm2 ty2 tyv2 bi2 m2') := ‹_›
-      have cwf2' : c.MLCWF m2' := ⟨cwf2b.wf.1⟩
-      have hnrfv : FVarsIn (· ∈ (c.withMLC m2' (wf := cwf2')).vlctx.fvars) natRec := by
-        refine (FVarsIn.of_containsFVar' hnr.fvarsIn hnc').mono fun fv h => ?_
-        simp only [VContext.vlctx, VContext.withMLC_mlctx, MLCtx.vlctx, VLCtx.fvars,
-          List.filterMap_cons, Option.map, List.mem_cons] at h ⊢
-        exact h.1.resolve_left h.2
-      obtain ⟨nrv₀, hnr₀⟩ := TrExprS.weakFV_inv c.Ewf (.skip_fvar _ (.vlam tyv2) .refl)
-        (.refl c.Ewf (c.withMLC _ (wf := cwf2b)).Δwf) hnr (m2'.noBV ▸ hnr.closed) hnrfv
-      exact ⟨nrv₀, ((hnr₀.weakFV c.Ewf.ordered (.skip_fvar _ _ .refl)
-        (c.withMLC _ (wf := cwf2b)).Δwf).uniq c.Ewf
-        (.refl c.Ewf (c.withMLC _ (wf := cwf2b)).Δwf) hnr).symm⟩
+      have hΔ := (c.withMLC _ (wf := cwf2b)).Δwf
+      have hΓ := hΔ.toCtx
+      subst htgx
+      cases TrExprS.fvar_uniq htv (.fvar VLCtx.find?_vlam_self)
+      have hT1 : (c.withMLC _ (wf := cwf2b)).HasType (.bvar 0) tyv2.lift := .bvar .zero
+      have hTeq := hT1.uniqU c.Ewf hΓ htvT
+      have hsuccT : (c.withMLC _ (wf := cwf2b)).HasType
+          (.app .natSucc (.bvar 0)) tyv2.lift :=
+        (VEnv.HasType.app (TrExprS.natSucc c.hasPrimitives hnat).2 htvT).defeqU_r c.Ewf hΓ
+          hTeq.symm
+      have hsuccS : (c.withMLC _ (wf := cwf2b)).TrExprS
+          (.app (.const ``Nat.succ []) (.fvar x)) (.app .natSucc (.bvar 0)) :=
+        .app (TrExprS.natSucc c.hasPrimitives hnat).2 htvT
+          (TrExprS.natSucc c.hasPrimitives hnat).1 htv
+      have hclosed : Closed natRec := by simpa [VLCtx.bvars, MLCtx.noBV] using hnr.closed
+      have replaced := TrExprS.replace_unused_fvar c.Ewf.ordered hΔ hsuccS hsuccT hnr hclosed
+        ((FVarsIn.of_containsFVar' hnr.fvarsIn hnc').mono fun _ h => h.2)
+      exact hnr.uniq c.Ewf (.refl c.Ewf hΔ) replaced
     refine .pure ⟨ida, cwfa, ?_, ?_⟩
     · exact ⟨_, _, hfS, ha₀w, _, hbodyw, (hfa₀ ‹_›).symm⟩
     have hihApp : (c.withMLC m4).TrExprS (.app (.app (.app natRec tg) yg) iharg) ih4' :=
@@ -975,7 +982,7 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
         (VEnv.IsDefEqU.trans c.Ewf (c.withMLC _ (wf := cwfa)).Δwf.toCtx he5eq he4eq).symm⟩,
       hfuelN, .app hfT haT hfS hida, hfuelEq ‹_›, ⟨_, _, _, rfl⟩, hfixGoS,
       ⟨m2, ‹_›, n2, hn2, _, _, _, _, _, natRec, As2, _, _, _, _, _, he6eq, hdrop2, hinv2, hnrS,
-        hnrlift _ hnrS, ⟨_, VEnv.HasType.app hnrT htgT⟩, hargS, htgeq, hgoreq,
+        hnrsucc _ _ hnrS hargS htgTnat, ⟨_, VEnv.HasType.app hnrT htgT⟩, hargS, htgeq, hgoreq,
         m3, ‹_›, n3, hn3, _, _, As3, _, _, hdrop3, hinv3, hFxS.eqv (BEq.symm hFx),
         m4, ‹_›, n4, hn4, _, _, _, As4, _, hdrop4, hinv4, hihApp⟩,
       heagerQ⟩
@@ -1494,7 +1501,7 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
     -- closing it at the four the recognizer never inspected plus the fuel turns `goFn b` applied
     -- to the fuel into the `Nat.rec` the recognizer found underneath.
     obtain ⟨m2, cwf2, n2, hn2, a1, a2, a3, Fg, tg, natRec, As2, goh2, nrv, tgv, tgv', gorv,
-      he6eq, hdrop2, hinv2, hnrS, ⟨nrv₀, hnrv₀⟩, hbodyT2, htgS, htgeq, hgoreq, hbranch⟩ := hstep
+      he6eq, hdrop2, hinv2, hnrS, hnrsucc, hbodyT2, htgS, htgeq, hgoreq, hbranch⟩ := hstep
     have hmk2 : ∀ X : VExpr, m2.mkLambda' n2 hn2 X = VExpr.lams As2 X := fun X => by
       rw [MLCtx.mkLambda'_eq_lams (Bs := As2.reverse) (by simpa using hinv2.len)
         (by rw [hdrop2]; exact hinv2.toCtx), List.reverse_reverse]
@@ -1569,17 +1576,16 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
         (As2.reverse ++ (tyv :: (As.reverse ++ (c.withMLC m₀).vlctx.toCtx))) gorv
         (.app nrv (.app .natSucc tgv)) := hΓa ▸ hinv2.toCtx ▸ hgoreq
     have hgoreqc := E.mono hgoreq' |>.subst E.wf hcl2t
-    -- fuel-independence in action: the recursor is the same under both closings, because they
-    -- differ only in the head, which a lifted term ignores
-    have hnrv₀' : c.venv.IsDefEqU c.lparams.length
-        (As2.reverse ++ (tyv :: (As.reverse ++ (c.withMLC m₀).vlctx.toCtx))) nrv nrv₀.lift := by
-      exact hΓa ▸ hinv2.toCtx ▸ hnrv₀
+    -- The checked successor replacement relates the two fuel closings directly.
+    have hnrsucc' : c.venv.IsDefEqU c.lparams.length
+        (As2.reverse ++ (tyv :: (As.reverse ++ (c.withMLC m₀).vlctx.toCtx))) nrv
+        ((nrv.liftN 1 1).inst (.app .natSucc (.bvar 0))) := by
+      exact hΓa ▸ hinv2.toCtx ▸ hnrsucc
     have hnrsame := by
-      have hA := E.mono hnrv₀' |>.subst E.wf hcl2
-      have hB := E.mono hnrv₀' |>.subst E.wf hcl2t
-      simp only [VExpr.Subst.consN_append_singleton, VExpr.lift_subst,
-        VExpr.Subst.tail_cons] at hA hB
-      exact hA.trans E.wf trivial hB.symm
+      have hB := E.mono hnrsucc' |>.subst E.wf hcl2t
+      simp only [VExpr.Subst.consN_append_singleton, VExpr.liftN_one_one_inst_subst_cons,
+        VExpr.subst_app, VExpr.subst_natSucc, VExpr.subst_bvar, VExpr.Subst.cons] at hB
+      exact hB.symm
     -- the fuel variable's translation is `bvar 0`, so it closes to whichever numeral the
     -- telescope was closed at
     let .cons htg0 (.cons hFg0 _) := hinv2.vars

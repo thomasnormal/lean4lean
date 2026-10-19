@@ -979,6 +979,42 @@ theorem TrExprS.close_unused_fvar (henv : env.Ordered)
   rwa [unused.abstract_eq_self closed,
     Expr.instantiate1'_eq_self closed.looseBVarRange_le] at result
 
+/-- Replace an unused native free variable by a witness in the same context.
+Unlike closing the binder, this only needs the witness at the lifted domain.
+The abstraction/weakening/instantiation construction follows upstream PR #53's
+fuel-successor proof, factored here for arbitrary typed replacements. -/
+theorem TrExprS.replace_unused_fvar (henv : env.Ordered)
+    (context : VLCtx.WF env Us.length ((some (removed, support), .vlam domain) :: Δ))
+    (witness : TrExprS env Us ((some (removed, support), .vlam domain) :: Δ) value value')
+    (typed : env.HasType Us.length (VLCtx.toCtx ((some (removed, support), .vlam domain) :: Δ))
+      value' domain.lift)
+    (source : TrExprS env Us ((some (removed, support), .vlam domain) :: Δ)
+      expression expression')
+    (closed : Closed expression) (unused : FVarsIn (· ≠ removed) expression) :
+    TrExprS env Us ((some (removed, support), .vlam domain) :: Δ)
+      expression ((expression'.liftN 1 1).inst value') := by
+  have abstracted := source.abstract (v₀ := removed) .zero
+  rw [unused.abstract_eq_self closed] at abstracted
+  have headTyped : env.HasType Us.length
+      (VLCtx.toCtx ((some (removed, support), .vlam domain) :: Δ)) (.bvar 0) domain.lift :=
+    .bvar .zero
+  have extended : VLCtx.WF env Us.length
+      ((none, .vlam domain.lift) :: (some (removed, support), .vlam domain) :: Δ) :=
+    ⟨context, nofun, headTyped.isType henv context.toCtx⟩
+  have weakened := abstracted.weakFV henv
+    (.cons_bvar (.vlam domain) (.skip_fvar _ (.vlam domain) .refl)) extended
+  have result := witness.instN henv typed .zero weakened
+  rwa [Expr.instantiate1'_eq_self closed.looseBVarRange_le] at result
+
+/-- Substitution after replacing the head variable. Ported from upstream PR #53;
+closing the replacement in the retained context extends the same tail. -/
+theorem VExpr.liftN_one_one_inst_subst_cons {e u k : VExpr} {B : VExpr.Subst} :
+    ((e.liftN 1 1).inst u).subst (B.cons k) = e.subst (B.cons (u.subst (B.cons k))) := by
+  rw [VExpr.inst_eq, VExpr.subst_subst, VExpr.liftN_subst]
+  congr 1; funext i; cases i <;>
+    simp [VExpr.Subst.lift_l, VExpr.Subst.comp, VExpr.Subst.cons, Lift.consN, Lift.skipN,
+      Lift.liftVar, VExpr.Subst.id]
+
 /-- Close the guard-certified Nat telescope in a translation of source syntax
 that uses only the remaining context. Every removed binder is instantiated at zero. -/
 theorem MLCtx.WF.dropNat_trS {env : VEnv} {Us : List Name}
