@@ -14,6 +14,67 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Actual quotient validity and Strong-derivation soundness — 2026-10-19
+
+Model.QuotRule adapts the quotient argument of
+[PR #53](https://github.com/digama0/lean4lean/pull/53), exact head
+5a8c0d5f111809a95f4924c71e0e9bc8738d72e0, to the current four constant
+observation clauses and actual declaration histories. The pattern and binder
+coverage are the actual quotDefEq data. WF.quotientObjects supplies the actual
+Quot, Quot.mk and Quot.lift lookups. Actual rewrite classification and
+quotient-name exclusion prove Quot rigidity; installed-constructor rigidity
+and unique Quot.lift ownership already follow from the same history.
+
+quot_C_level unwinds the actual stored Quot.lift type. A zero-sort rigid
+observation of the major domain forces the instantiated source universe to
+evaluate identically zero. Only the actual const, delta, ctor and rule clauses
+are considered. quot_pf then uses actual dependent binder lookup, typed
+substitution and TV to show that the sole field absent from the leading
+arguments is a proof and that its type observations are typed at sort zero.
+It retains all actual typing and valuation premises.
+
+RuleValid.quot_of_wf instantiates sound_pat with these facts, actual stored
+membership, level instantiation, closedness, constructor data and the actual
+IsDefEq.extra equation. Both semantic inclusions and both endpoint observation
+typings retain RuleValid's original Strong typing and simultaneous induction
+premises. RuleValid.of_wf handles every actual stored equation through the
+history's delta-or-quotient classification. sound_of_wf discharges all source
+rules and proves SoundAt and HTS for both endpoints of actual Strong
+derivations, preserving distinct well-formed source/target environments and
+their inclusion. Neither an arbitrary caller rule-validity certificate nor
+HTS alone replaces actual typing.
+
+The strict ModelQuotRule fixture audits all 23 production declarations and all
+108 fixture declarations. Exact manifests traverse declaration/constructor
+types and all bodies, explicitly opaque bodies on integration. Every root
+has exactly its listed subset of propext and Quot.sound, with no admission or
+choice. Required dependencies pin the actual history, both rule kinds, both
+semantic directions, the proof-field argument, Strong EXTRA and positive
+controls. False NormalEq.parRed/confluence, derived quotient injectivity,
+inverse weakening and admitted sort/Pi separation remain excluded.
+
+Controls install a checked Eq declaration and the actual quotient objects in
+an environment already containing polymorphic delta definitions. The source
+itself contains both equation kinds; an actual Strong delta derivation feeds
+the unrestricted theorem and recovers a positive observation. Actual quotient
+validity/lookups/rigidity are instantiated in the same target. A six-binder
+dependent context at the syntactically noncanonical level max 0 0 supplies an
+actual typed identity anchor and a nonempty typed valuation; quot_pf types its
+positive field-type observation at sort zero. A genuinely nonzero source
+rejects the proposition-mode indicator. The fixture does not construct a
+complete Strong EXTRA derivation for the quotient equation itself.
+
+Both full default builds and all 35/64 prior selected fixtures plus the new
+strict fixture pass on Lean 4.29.0 / 4.33.0-rc2. All previous production bytes
+and contracts and the admission census are unchanged. No kernel discrepancy
+or executable behavior change was found. This completes stored-rule validity
+for the current language and unrestricted Strong-derivation soundness. Ordinary
+frontend soundness still inherits foundational admissions; quotient/Pi
+separation, nonzero major exposure, matching/check recovery, universal
+simulation, replacement of the false NormalEq.parRed/confluence contract and
+migration of actual consumers remain open. Genuine inductive recursor rules
+are not present in this environment language.
+
 ## Constructor-pattern rule soundness — 2026-10-19
 
 Model.RuleSound adapts the pattern-rule proof from
@@ -55,10 +116,10 @@ Actual declaration-history metadata proves that every stored constructor
 pattern is quotDefEq. With the actual quotient equation installed, no delta
 rule competes at Quot.lift. These discharge equation identity and head
 uniqueness from actual history rather than an arbitrary firing certificate.
-Full actual quotient validity still needs its concrete family/constructor
-data and proof-field premises instantiated in sound_pat. General model
-soundness, quotient/Pi separation, nonzero exposure, simulation and consumer
-migration remain open. Ordinary frontend soundness retains its foundational
+Actual quotient validity now instantiates its concrete family/constructor
+data and proof-field premises in sound_pat, as described above. Unrestricted
+Strong-derivation soundness is now supplied; quotient/Pi separation, nonzero
+exposure, simulation and consumer migration remain open. Ordinary frontend soundness retains its foundational
 admissions.
 
 The strict ModelRuleSound fixture audits all 36 production and 164 fixture
