@@ -726,3 +726,21 @@ This is a semantic boundary, not an executable-kernel discrepancy. The next
 inductive item must either replace the rejection contracts with an inductive-
 aware environment relation or remain within the current constructor-free
 fragment.
+
+### Explicit generated-recursor WF receipt (2026-10-19)
+
+The constructive registration receipts now expose more of the model-side
+environment proof.  Header constants are well formed in the header environment,
+constructors are well formed after the header phase, and the inductive
+declaration/history can be lifted into the model's `VEnv.WF` history.  The final
+environment theorem composes these phases with the generated recursor extension.
+
+That final theorem deliberately takes an explicit premise that every generated
+recursor model constant is `VConstant.WF` in the constructor environment.  A
+`TrConstVal` receipt supplies translation of the source recursor type, but the
+current `RegistrationEvidence` does not yet store source typehood or a semantic
+`HasType` witness from which that model-WF premise could be derived.  The
+registration receipt therefore does not claim complete recursor type checking,
+ι-rule semantics, or a constructive `AddInduct` constructor.  Filling those
+obligations still requires the recursor/frontend bridge and the coordinated
+migration of the constructor-free rejection consumers described above.
