@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.Typing.Lemmas
+import Lean4Lean.Verify.Typing.LetErasure
 
 namespace Lean4Lean
 open VEnv Lean
@@ -23,6 +23,16 @@ theorem ConditionallyTyped.weakN_inv
   have := H.2.2
   have ⟨e', h⟩ := H.2.2 H2.fvars_cons
   exact TrExprS.weakFV_inv henv (.skip_fvar _ _ .refl) (.refl henv hΔ) h H.1 H2
+
+/-- A local definition has already been inlined into the semantic context. -/
+theorem ConditionallyTyped.weakLet_inv
+    (hΔ : VLCtx.WF env Us.length ((some fv, .vlet domain value) :: Δ))
+    (H : ConditionallyTyped ngen env Us ((some fv, .vlet domain value) :: Δ) e) :
+    ConditionallyTyped ngen env Us Δ e := by
+  refine ⟨H.1, H.2.1, fun sourceScope => ?_⟩
+  obtain ⟨e', translated⟩ := H.2.2 sourceScope.fvars_cons
+  exact ⟨e', translated.eraseLet .zero <| sourceScope.mono fun _ member equal =>
+    (hΔ.2.1 _ _ rfl).1 (equal ▸ member)⟩
 
 theorem ConditionallyTyped.fresh
     (henv : Ordered env) (hΔ : VLCtx.WF env Us.length ((some (⟨ngen.curr⟩, deps), d) :: Δ))
@@ -74,6 +84,24 @@ theorem ConditionallyHasType.weakN_inv
   exact h1 _
     ⟨(IsFVarUpSet.and_fvars hΔ.1.fvwf).1 hP, fun h => (hΔ.2.1 _ _ rfl).1.elim h.2⟩
     (he'.mp (fun _ => .intro) he.fvarsIn) |>.mono fun _ => (·.1)
+
+theorem ConditionallyHasType.weakLet_inv
+    (hΔ : VLCtx.WF env Us.length ((some fv, .vlet domain value) :: Δ))
+    (H : ConditionallyHasType ngen env Us ((some fv, .vlet domain value) :: Δ) e A) :
+    ConditionallyHasType ngen env Us Δ e A := by
+  obtain ⟨c1, f1, c2, f2, H⟩ := H
+  refine ⟨c1, f1, c2, f2, fun sourceScope => ?_⟩
+  obtain ⟨e', A', below, he, hA, typed⟩ := H sourceScope.fvars_cons
+  have up : IsFVarUpSet (· ∈ VLCtx.fvars Δ) ((some fv, .vlet domain value) :: Δ) :=
+    ⟨.fvars hΔ.1.fvwf, (hΔ.2.1 _ _ rfl).1.elim⟩
+  have unused {a} (ha : FVarsIn (· ∈ VLCtx.fvars Δ) a) : FVarsIn (· ≠ fv.1) a :=
+    ha.mono fun _ member equal => (hΔ.2.1 _ _ rfl).1 (equal ▸ member)
+  have he := he.eraseLet .zero (unused sourceScope)
+  have hA := hA.eraseLet .zero (unused (below _ up sourceScope))
+  refine ⟨e', A', fun P hP source => ?_, he, hA, typed⟩
+  exact below _
+    ⟨(IsFVarUpSet.and_fvars hΔ.1.fvwf).1 hP, fun h => (hΔ.2.1 _ _ rfl).1.elim h.2⟩
+    (source.mp (fun _ => .intro) he.fvarsIn) |>.mono fun _ => (·.1)
 
 theorem ConditionallyHasType.fresh
     (henv : Ordered env)
@@ -128,6 +156,24 @@ theorem ConditionallyWHNF.weakN_inv
   exact h1 _
     ⟨(IsFVarUpSet.and_fvars hΔ.1.fvwf).1 hP, fun h => (hΔ.2.1 _ _ rfl).1.elim h.2⟩
     (he'.mp (fun _ => .intro) he.fvarsIn) |>.mono fun _ => (·.1)
+
+theorem ConditionallyWHNF.weakLet_inv
+    (hΔ : VLCtx.WF env Us.length ((some fv, .vlet domain value) :: Δ))
+    (H : ConditionallyWHNF ngen env Us ((some fv, .vlet domain value) :: Δ) e result) :
+    ConditionallyWHNF ngen env Us Δ e result := by
+  obtain ⟨c1, f1, c2, f2, H⟩ := H
+  refine ⟨c1, f1, c2, f2, fun sourceScope => ?_⟩
+  obtain ⟨e', below, he, hr⟩ := H sourceScope.fvars_cons
+  have up : IsFVarUpSet (· ∈ VLCtx.fvars Δ) ((some fv, .vlet domain value) :: Δ) :=
+    ⟨.fvars hΔ.1.fvwf, (hΔ.2.1 _ _ rfl).1.elim⟩
+  have unused {a} (ha : FVarsIn (· ∈ VLCtx.fvars Δ) a) : FVarsIn (· ≠ fv.1) a :=
+    ha.mono fun _ member equal => (hΔ.2.1 _ _ rfl).1 (equal ▸ member)
+  have he := he.eraseLet .zero (unused sourceScope)
+  have hr := hr.eraseLet .zero (unused (below _ up sourceScope))
+  refine ⟨e', fun P hP source => ?_, he, hr⟩
+  exact below _
+    ⟨(IsFVarUpSet.and_fvars hΔ.1.fvwf).1 hP, fun h => (hΔ.2.1 _ _ rfl).1.elim h.2⟩
+    (source.mp (fun _ => .intro) he.fvarsIn) |>.mono fun _ => (·.1)
 
 theorem ConditionallyWHNF.fresh
     (henv : env.WF)
