@@ -14,6 +14,70 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Typed class application and beta foundation — 2026-10-19
+
+The first observation-model foundation is now ported from
+[kim-em/lean4lean PR #53](https://github.com/digama0/lean4lean/pull/53), exact
+head `5a8c0d5f111809a95f4924c71e0e9bc8738d72e0`.
+`TypeChain` retains actual sort-typed links, including different sorts on
+successive links. Its transport, weakening, instantiation and simultaneous
+substitution proofs use those links directly. Related-anchor substitution
+uses the right endpoint's actual sort typing; no uniqueness or inverse
+weakening is assumed.
+
+`Model.Classes` defines type and element classes, including level variants,
+and proves `ElCls.collapse`: membership from an actually typed representative
+yields one actual definitional equality at the base type. Typed class members
+are typed and equal at that base. Related substitutions have symmetry and a
+typed right side. The upstream witness extraction in the level-variant chain
+proof is replaced with existential elimination, avoiding classical choice.
+The port uses our six expression constructors and preserves environment
+orderedness and actual context/substitution typing obligations. Existing
+environment invariants and public theorem contracts are unchanged.
+
+`Model.ClassApplication` computes value classes from actual anchor
+substitutions. `vcls_app` identifies a typed application's class with the
+applications of function/argument class members. `vcls_beta` proves beta for
+ANY member of a typed argument class, using real class collapse, typed
+substitution, application congruence and `IsDefEq.beta`.
+`vcls_substEq` proves invariance under related anchors; conversion and actual
+typed function eta also preserve classes. These are class equalities, not
+observation soundness or quotient/Pi separation.
+
+`tests/ModelClasses.lean` fixes exact admission AND axiom manifests for 51
+production/control roots. Every root is admission-free and choice-free; its
+axioms are exactly the listed subset of `propext` and `Quot.sound`.
+The traversal checks declaration types, constructor types and explicitly
+opaque bodies on integration. Required-dependency gates pin actual collapse,
+beta, eta and substitution proofs. Concrete controls cover a chain with
+syntactically different link sorts, level-variant membership transported to a
+different type-class base, beta at a non-anchor argument-class member,
+application, neutral function eta, and a dependent identity under genuinely
+distinct but related substitutions.
+Collapse traverses 2224 main / 2366 integration declarations; beta traverses
+2326 / 2478 and related-anchor class invariance 2302 / 2454.
+
+The observation syntax, constructive coverage witnesses, interpretation,
+rule soundness and declaration-history model validity are still open.
+PR #53's `Covers.choice` uses classical choice; it is not imported here and
+needs a constructive treatment before the remaining model can meet this
+audit. Quotient/Pi separation, nonzero EXTRA, universal simulation, false
+confluence replacement and actual-consumer migration remain open. No
+frontend soundness claim follows from this foundation. No duplicate PR is
+opened for the copied upstream proofs.
+
+Full defaults pass 431 main / 434 integration jobs. All 25/54 previous
+selected fixtures and the new strict fixture pass: 26/55 total. Source census
+is unchanged: main 119 matching lines / 19 files / 123 occurrences;
+integration 124 / 23 / 128. All old production bytes are unchanged, and all
+three new production files are byte-identical across toolchains. No new
+admission, executable behavior change or kernel discrepancy. Authoritative
+receipts use `lean4lean-model-classes-` stems dated `20261019` under the
+fleet log directory: `*-default-final`, `*-fixture-final2`,
+`*-regressions`, `final-manifests.json` and `final-gates.json`.
+Earlier module/API and runner diagnostics are superseded by these final
+terminal receipts.
+
 ## Quotient source universes and nonzero major classification — 2026-10-19
 
 `quot_source_eq` proves that definitionally equal quotient types have equivalent
@@ -60,8 +124,8 @@ PR #53 at `5a8c0d5f111809a95f4924c71e0e9bc8738d72e0` derives its general rigid/P
 separation from `WF.headInversion`, assembled from a glued observation model's
 soundness and declaration-history environment validity. The inspected files do
 not provide a small standalone quotient/Pi proof, and a full transitive/model
-compatibility audit remains open. We have not ported that model or strengthened
-our environment obligations. This fork-specific classification is not submitted
+compatibility audit remains open. The class-only foundation above is the first
+port; observation soundness remains open and our environment obligations are unchanged. This fork-specific classification is not submitted
 as a duplicate general-rigidity PR.
 
 Full defaults pass 428 main / 431 integration jobs. All 24/53 previous selected

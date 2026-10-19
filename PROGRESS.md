@@ -39,8 +39,17 @@ native restoration receipts also remain open. The Nat-closing and successor
 arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
-Full default builds pass (431 integration / 428 main review jobs), as do all
-54 selected integration fixtures and 25 selected main fixtures. No new admission is introduced.
+Full default builds pass (434 integration / 431 main review jobs), as do all
+55 selected integration fixtures and 26 selected main fixtures. No new admission is introduced.
+
+**Typed class foundation for separation:** heterogeneous sort-typed chains
+and element-class collapse now yield actual typed definitional equalities,
+without typing injectivity, confluence, admissions or choice. Application,
+beta at any member of a typed argument class, related-anchor invariance and
+actual function eta preserve the anchored classes. The 51-root audit pins
+exact axiom manifests on both toolchains. This ports PR #53's necessary class
+foundation; observation interpretation and soundness, constructive coverage,
+quotient/Pi separation and nonzero EXTRA remain open.
 
 **Nonzero quotient-major classification:** actual sort typings now prove
 source-universe agreement for definitionally equal quotient types and recover a
@@ -670,9 +679,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current Lean 4.29.0 proof source passes all default targets (**424 jobs**)
-on October 19 and all 21 selected regressions. The separate Lean 4.33.0-rc2
-integration passes its full default build (**427 jobs**) and all 50 selected
+The current Lean 4.29.0 proof source passes all default targets (**431 jobs**)
+on October 19 and all 26 selected regressions. The separate Lean 4.33.0-rc2
+integration passes its full default build (**434 jobs**) and all 55 selected
 regressions. The independent current-master substitution PR passes its default
 build and standalone regression. These receipts validate their respective
 snapshots; the main branch retains its earlier history. Detailed logs and exact
