@@ -14,6 +14,78 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Level invariance and dependent telescope soundness — 2026-10-19
+
+The next model foundation adapts the level and telescope proofs and actual
+forall-formation case of [PR #53](https://github.com/digama0/lean4lean/pull/53),
+exact head 5a8c0d5f111809a95f4924c71e0e9bc8738d72e0, to the existing
+six-expression language. Obs.lvEq handles every actual interpretation
+constructor. RuleBind.lvEq retains the stored binding conditions; type and
+constant classes transfer along equivalent well-formed level lists.
+Obs.const_levels also transfers to arbitrary valuations directly from
+level invariance and constant independence, without a caller-supplied
+certificate for transferring type observations. TypedAt.lvEq preserves typing.
+Stored equations, actual right-hand sides and typing filters are unchanged.
+
+TeleKeys records actual typed, backed keys along dependent binder domains.
+pi_list constructs observations and typed application demands for a Pi;
+tele_obs and Obs.wrapLams_iff characterize actual Pi/lambda telescopes.
+Forward/inverse application-spine lemmas connect wrapped observations to
+actual applications. pi_step recovers domain typing and transports a typed
+remainder to any chosen member of the argument class. It explicitly uses
+codomain soundness as a simultaneous induction hypothesis and constructive
+finite coverage. tele_unwind iterates this step at typed extended valuations.
+SoundAt, SD and PiSD state the required simultaneous proof obligations;
+they are not globally assumed environment certificates.
+
+SoundAt.bvar and SoundAt.sort prove the base soundness cases. SoundAt.forallEDF
+proves the full dependent-Pi formation case from the actual strong domain and
+codomain derivations and their soundness induction hypotheses. Both semantic
+inclusions and both observation typings transfer at related anchors. Key
+observations transfer with their domain; the zero-imax condition preserves
+the Prop-valued codomain restriction. SD.bvar, SD.sort and SD.forallE package
+actual derivations with these proved cases; soundness symmetry/transitivity
+are also proved. No rule-validity assumption or stronger environment invariant
+is introduced.
+
+tests/ModelTelescopes.lean fixes exact admission AND axiom manifests for
+115 roots: all 36 production definitions/theorems, four telescope constructors
+and 75 fixture declarations. Full traversal reads declaration and constructor
+types and bodies, explicitly opaque bodies on integration, and fails on missing
+declarations. Every root is admission-free and choice-free, using exactly its
+listed subset of propext and Quot.sound. Required dependencies pin actual
+stored binding, finite coverage, representative transfer, strong Pi formation
+and the controls. A two-domain telescope has domains [Sort 2, bvar 0] and
+result bvar 1. Its first key is anchored at Sort 1 but instantiated by the
+syntactically different beta redex (fun x : Sort 2 => x) (Sort 1). Actual typed
+lambda/application observations are constructed, unwound, and transferred
+back to Sort 1 while retaining the dependent remainder's typing. Controls
+derive all their SD/PiSD premises from the proved cases. A checked polymorphic
+delta definition, a stored RuleBind and positive lambda observations transfer
+between zero and max zero zero. Other controls check a nonreflexive Pi
+comparison and the actual Prop-valued type forall P : Prop, P.
+
+Level invariance traverses 1736 / 1816 declarations main / integration;
+pi_step 2594 / 2753, tele_unwind 2608 / 2767, full Pi formation 2612 / 2772,
+and the representative-changing control 2688 / 2848. Full defaults pass
+436 main / 439 integration jobs. All 28/57 previous selected fixtures plus
+the new strict fixture pass: 29/58 total. Source census remains main
+119 matching lines / 19 files / 123 occurrences; integration 124 / 23 / 128.
+Every previous production byte is unchanged; all three new production files
+are byte-identical across toolchains. No new admission, axiom declaration,
+executable behavior change or kernel discrepancy is introduced. Authoritative
+receipts use lean4lean-model-telescopes- stems dated 20261019:
+*-default-final, *-fixture-final2, *-regressions, final-manifests.json and
+final-gates.json. Earlier draft/discovery receipts are diagnostic.
+No duplicate upstream PR is opened for this adapted foundation.
+
+Level invariance and these soundness cases are now proved. Full expression
+soundness, arbitrary representative invariance, actual rule soundness and
+declaration-history validity remain open. Quotient/Pi separation, nonzero
+EXTRA, universal simulation, replacement of false NormalEq.parRed/confluence
+and actual-consumer migration remain open. Actual frontend soundness still
+inherits its existing foundational admissions.
+
 ## Anchored expression interpretation — 2026-10-19
 
 The observation interpretation of
@@ -77,9 +149,10 @@ Receipts use lean4lean-model-interp- stems dated 20261019: *-default-final,
 Earlier draft/discovery receipts are superseded by these successful terminal
 checks. No duplicate PR is opened for the adapted upstream model foundation.
 
-This defines the actual interpretation and proves its structural laws;
-interpretation soundness is still open. Level invariance, representative
-invariance, rule soundness and declaration-history validity are next.
+This checkpoint defines the actual interpretation and proves its structural
+laws. The level invariance and initial soundness cases above now extend it.
+Full expression/representative soundness, rule soundness and declaration-history
+validity remain open.
 Quotient/Pi separation, nonzero EXTRA, universal simulation, replacement of the
 false NormalEq.parRed/confluence contract and actual-consumer migration remain
 open. The actual frontend still inherits its existing foundational admissions.
