@@ -807,7 +807,7 @@ theorem MLCtx.PartialForall.full : MLCtx.PartialForall c n (c.fvarRevList n hn) 
   | zero => exact .nil
   | succ n ih => match c with | .vlam .. | .vlet .. => constructor; apply ih
 
-theorem MLCtx.PartialForall.sublist (H : MLCtx.PartialForall c n l e) : l <+ c.vlctx.fvars := by
+theorem MLCtx.PartialForall.sublist (H : MLCtx.PartialForall c n l e) : List.Sublist l c.vlctx.fvars := by
   induction H with
   | nil => simp
   | vlam _ ih | vlet _ ih => simp [ih]

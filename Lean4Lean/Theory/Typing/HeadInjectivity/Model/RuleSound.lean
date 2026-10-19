@@ -1,6 +1,6 @@
 import Lean4Lean.Theory.Typing.HeadInjectivity.Model.TeleWind
 import Lean4Lean.Theory.Typing.HeadInjectivity.Model.Delta
-import Lean4Lean.Theory.Typing.QuotPropReduction
+import Lean4Lean.Theory.LevelZero
 
 /-! # Soundness of actual constructor-pattern rule clauses
 
