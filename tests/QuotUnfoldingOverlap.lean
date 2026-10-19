@@ -370,7 +370,7 @@ run_meta
     ``arbitraryCoreRetained, ``alternateCoreReduction]
   let onlyPropext := [``computes, ``prefixAlgorithmComputes, ``canonicalComputes, ``saturatedMatches]
   let noAxioms := [``constMatches_name, ``spineMatches_count, ``saturatedResultNotPrefix]
-  let typingAdmissions := [``IsDefEqU.forallE_inv_stratified]
+  let typingAdmissions : List Name := []
   let forbidden := [``NormalEq.parRed, ``NormalEq.parRedS, ``IsDefEq.church_rosser,
     ``IsDefEqU.quot_inj, ``IsDefEqU.weakN_iff, ``NormalEq.weakN_iff, ``NormalEq.weakN_inv_DFC,
     `Lean4Lean.TrProj, `Lean4Lean.TrProj.weak', `Lean4Lean.TrProj.instN, ``Classical.choice]
@@ -382,7 +382,7 @@ run_meta
     let expectedAdmissions := if usesTyping.contains root then typingAdmissions else []
     let expectedAxioms := if noAxioms.contains root then []
       else if onlyPropext.contains root then [``propext]
-      else if usesTyping.contains root then [``propext, ``Quot.sound, ``sorryAx]
+      else if usesTyping.contains root then [``propext, ``Quot.sound]
       else [``propext, ``Quot.sound]
     let axioms ← collectAxioms root
     unless axioms.size == expectedAxioms.length && expectedAxioms.all axioms.contains do

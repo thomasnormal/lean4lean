@@ -124,7 +124,7 @@ run_meta
   let logic := [``propext, ``Classical.choice, ``Quot.sound, ``sorryAx]
   let native := [``Lean.PersistentArray.toList'_push, ``Lean.PersistentHashMap.WF.find?_eq,
     ``Lean.PersistentHashMap.WF.toList'_insert]
-  let conversionAdmissions := [``TrProj, ``VEnv.IsDefEqU.forallE_inv_stratified]
+  let conversionAdmissions := [``TrProj]
   let forbidden := [``TrProj.weak', ``TrProj.instN, ``TrProj.wf, ``TrProj.uniq,
     ``TrExprS.weakFV, ``TrExprS.weakFV', ``TrExprS.weakBV,
     ``TrExprS.inst_let, ``TrExprS.instN_let, ``TrExprS.instN, ``TrExprS.inst,
@@ -175,8 +175,7 @@ run_meta
 
   -- Whole inference still has independent obligations; pin those rather than
   -- extrapolating the smaller builder trust boundary to the full checker.
-  let common := [``TrProj, ``TrProj.weak', ``TrProj.defeqDFC, ``TrProj.uniq, ``TrProj.wf,
-    ``VEnv.IsDefEqU.forallE_inv_stratified]
+  let common := [``TrProj, ``TrProj.weak', ``TrProj.defeqDFC, ``TrProj.uniq, ``TrProj.wf]
   let forallAdmissions := common ++ [``VEnv.IsDefEqU.weakN_iff, ``TrProj.weak'_inv]
   let lambdaAdmissions := forallAdmissions ++ [``TrProj.instN]
   let letAdmissions := lambdaAdmissions

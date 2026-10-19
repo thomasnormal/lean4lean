@@ -31,16 +31,29 @@ WF′/WF/WF₂ keep their exact top-level contracts and executable behavior.
 The six semantic helpers exclude admissions and choice. Native closing and
 replacement helpers exclude false strengthening/confluence but inherit three
 existing projection admissions. The retained-domain conversion and uniqueness
-bridges inherit six and five existing admissions respectively. The enclosing
-recursion theorems retain their measured 33-axiom manifests; general
+bridges inherit four and three existing projection admissions respectively.
+The enclosing recursion theorems retain their measured 33-axiom manifests; general
 strengthening and other admissions remain through checker dependencies.
 Current reflection differs from the older `ite_carrier` architecture here;
 native restoration receipts also remain open. The Nat-closing and successor
 arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
-Full default builds pass (456 integration / 453 main review jobs), as do all
-66 selected integration fixtures and 38 selected main fixtures. No new admission is introduced.
+Full default builds and all selected regression fixtures pass on both
+toolchains. No new admission is introduced.
+
+**Type uniqueness and dependent Pi injectivity:** the original stratified Pi
+inversion now has a proof with both exact height bounds. Structural Strong
+uniqueness gives heterogeneous type chains; collapsing them at the actual left
+universe proves ordinary uniqueness and inverts arbitrary untyped Pi equality.
+The original `IsDefEq.uniq` proof is unchanged and now excludes admissions,
+choice and confluence. Its equality/conversion consequences are independently
+audited. Dependent beta domains/codomains, heterogeneous chains, real delta and
+quotient derivations, converted types, and unequal heights with distinct
+but equivalent codomain universes pass on both toolchains. The lower uniqueness
+module has no import path through the original consumers or confluence.
+Inverse weakening later in `UniqueTyping.lean`, the false reduction/confluence
+contract, projection translation and frontend soundness remain open.
 
 **Ordinary soundness and head separation:** the original sort-injectivity and
 sort/Pi-separation admissions are now proved with unchanged contracts, using
@@ -52,9 +65,10 @@ The model also separates actual rigid Quot spines from Pi types. Its import
 graph excludes the old injectivity, uniqueness and confluence modules. Strict
 197/204-root audits include the moved foundational helpers and existing
 consumer names. Dependent beta chains, real ordinary/Strong quotient EXTRA
-and a two-argument Quot spine are checked. Original dependent-Pi injectivity,
-type uniqueness, nonzero reduction simulation and frontend soundness remain
-open. Earlier dated checkpoint accounts below are superseded by this boundary.
+and a two-argument Quot spine are checked. Original dependent-Pi injectivity
+and type uniqueness are now proved above; nonzero reduction simulation and
+frontend soundness remain open. Earlier dated checkpoint accounts below are
+superseded by this boundary.
 
 **Actual rule validity and Strong-derivation soundness:** declaration history now
 supplies quotient constants, family/constructor rigidity and unique ownership.
@@ -853,8 +867,8 @@ confluence dependency is not repaired by this integration.
    the concrete saturated obstruction; arbitrary simulation and eta-overlap
    proofs are still open. Coordinate
    with the existing upstream draft instead of duplicating its full stack.
-   Separately derive type uniqueness and the original dependent-Pi injectivity
-   contract from the proved chain fields; close the remaining typing foundations,
+   Type uniqueness and original dependent-Pi injectivity are now proved from
+   actual chain fields; close the remaining inverse-weakening foundations,
    genuine `TrProj`, and inductive recursor semantics beyond the current
    constructor-free dispatcher contract.
 3. Connect the existing inductive stages to actual checked model registration,
