@@ -4,6 +4,81 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Universal original-core simulation by repaired paths — 2026-10-19
+
+`normal_core_simulates` now proves the complete `NormalEq` induction for the
+actual reduction instance in a well-formed environment with the actual quotient
+rule registered. Any original `ParRed` successor on the right has a left
+`Steps` path and a final `NormalEq` comparison. `normal_parRed_join` retains
+any supplied original type on both outputs; `normal_parRedS_join` extends this
+to every finite original-core path. It consumes each intermediate comparison
+directly, without `NormalEq.trans`, inverse weakening or confluence.
+
+The missing application clause is complete. Actual right capture reductions
+feed exactly the original function and argument simulations. Hereditary
+exposure handles arbitrary left functions, applied eta binders and retained
+eta bodies. At a nonzero source, actual head separation exposes the major's
+constructor and reconstructs both actual pattern checks. At a Prop source,
+checked unfolding and proof irrelevance handle neutral majors. The proof also
+covers proof-valued results and prefixes, and arbitrary related pending
+arguments. Actual declaration history recovers both stored quotient universes.
+Root beta and application congruence use their existing proved joins; a bare
+stored delta rule cannot match an application. The actual input normal
+comparisons and typings are retained, with no caller exposure certificate.
+
+`QuotApplicationSimulation` adds ten production declarations, including two
+private helpers. All existing production sources and all previous fixtures are
+byte-unchanged. The module is byte-identical on Lean 4.29.0 and 4.33.0-rc2.
+The strict fixture audits those ten declarations and all 90 named fixture
+definitions/theorems: 100 roots on each version. Declaration and constructor
+types and all bodies are traversed, explicitly including opaque integration
+bodies; missing declarations fail. Exact per-root axiom manifests allow only
+the listed subset of `propext` and `Quot.sound`. No admission or choice is
+allowed. Dependency pins require all simulation induction clauses, actual
+capture typing/reduction/checks, head exposure and separation, retained-binder
+transport and the real obstruction. The closure recursor pin uses its actual
+version-specific namespace; shared axiom manifests agree. Both strict runs
+end with a 100-root terminal receipt.
+
+Positive controls eta-expand both the left function and the left constructor
+head; separate proofs establish that neither initial source matches its
+pattern. Every right capture beta-reduces, and outer and constructor parameters
+are syntactically distinct. One control takes two genuinely changing original
+steps: quotient firing with captures retained, then beta reduction of the
+function and payload. Other controls cover a dependent retained binder,
+reduction beneath a lambda and a Pi, and root beta with an eta-shaped left
+function. The original Prop-source counterexample now has a repaired-path
+simulation, while a separate audited theorem still refutes its original
+core-only simulation target. The newer library string simplification proof
+introduces choice into a historical negative helper. The new fixture repeats
+its inert-path argument with decidable closed-name membership; both the
+positive repair and the negative control retain the strict choice-free bound.
+
+Full defaults pass 456 main / 459 integration jobs. All 40/68 previous selected
+fixtures and the new strict fixture pass: 41/69 total. Census is unchanged:
+main 116 matching lines / 18 files / 120 whole-word sorry|admit occurrences;
+integration 121 / 22 / 125. No new admission, axiom declaration, executable
+change or kernel discrepancy. The first default attempt found a missing local
+reduction instance in the finite-path corollary; that instance is explicit in
+the validated source, and both failed receipts are retained.
+
+This proves original-core simulation with the repaired left target, not
+confluence of the repaired relation or frontend soundness. Remaining work
+includes simulation of candidate unfolding/eta steps in arbitrary comparisons,
+conversion/confluence consumer migration, contexts without the registered
+quotient rule, general inverse weakening, genuine projection translation and
+inductive constructor/recursor semantics. The false `NormalEq.parRed` contract
+and its existing consumers remain unchanged and conditional.
+
+This milestone extends main `115480e9241f5228154f90efdae60f346a2fa5e6` and detached
+integration `c63e9a90ee4d76ae58bb883086d86e118e9f5412`, based on official
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`. Evidence uses
+`lean4lean-application-simulation-` stems dated 20261019 in the fleet logs.
+The earlier PR53-based repair stack remains the foundation; no duplicate
+upstream PR is opened. Earlier accounts of the universal core-simulation gap
+are superseded by this section.
+
+
 ## Nonzero quotient constructor exposure and checked EXTRA replay — 2026-10-19
 
 `normal_quot_major_constructor` now eliminates the residual eta/Pi alternative
