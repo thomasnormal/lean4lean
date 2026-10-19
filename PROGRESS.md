@@ -42,6 +42,18 @@ or replace the main review branch.
 Full default builds and all selected regression fixtures pass on both
 toolchains. No new admission is introduced.
 
+**Nonzero quotient exposure and actual EXTRA replay:** a normal comparison
+with `Quot.mk` now exposes an actual left constructor at a nonzero source.
+Actual Quot rigidity and sort typing eliminate the residual eta/Pi alternative.
+For an explicit left `Quot.lift α r β f c major` prefix, recursive simulations
+of the function capture and original major now suffice to replay actual root
+EXTRA after every right capture reduces. The proof reconstructs both actual
+pattern checks and retains the original result type. Controls start with a
+left major that does not match, distinct domain/relation parameters, and a
+retained dependent binder. All 65 audited roots exclude admissions and choice
+on both versions. Arbitrary-left-function application EXTRA, universal
+simulation, false-confluence replacement and frontend soundness remain open.
+
 **Type uniqueness and dependent Pi injectivity:** the original stratified Pi
 inversion now has a proof with both exact height bounds. Structural Strong
 uniqueness gives heterogeneous type chains; collapsing them at the actual left
@@ -66,9 +78,9 @@ graph excludes the old injectivity, uniqueness and confluence modules. Strict
 197/204-root audits include the moved foundational helpers and existing
 consumer names. Dependent beta chains, real ordinary/Strong quotient EXTRA
 and a two-argument Quot spine are checked. Original dependent-Pi injectivity
-and type uniqueness are now proved above; nonzero reduction simulation and
-frontend soundness remain open. Earlier dated checkpoint accounts below are
-superseded by this boundary.
+and type uniqueness are now proved above; concrete nonzero root replay is supplied
+above, while universal reduction simulation and frontend soundness remain open.
+Earlier dated checkpoint accounts below are superseded by this boundary.
 
 **Actual rule validity and Strong-derivation soundness:** declaration history now
 supplies quotient constants, family/constructor rigidity and unique ownership.
@@ -822,9 +834,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current Lean 4.29.0 proof source passes all default targets (**453 jobs**)
-on October 19 and all 38 selected regressions. The separate Lean 4.33.0-rc2
-integration passes its full default build (**456 jobs**) and all 66 selected
+The current Lean 4.29.0 proof source passes all default targets (**455 jobs**)
+on October 19 and all 40 selected regressions. The separate Lean 4.33.0-rc2
+integration passes its full default build (**458 jobs**) and all 68 selected
 regressions. The independent current-master substitution PR passes its default
 build and standalone regression. These receipts validate their respective
 snapshots; the main branch retains its earlier history. Detailed logs and exact
@@ -832,9 +844,9 @@ trust bounds are in `PROOF_STATUS.md`.
 
 | Whole-word `sorry` or `admit` source census, October 19 | Published proof source | Local integration | Official master |
 | --- | --- | --- | --- |
-| Matching lines | 117 | 122 | 133 |
-| Files containing matches | 19 | 23 | 29 |
-| Occurrences | 121 | 126 | 137 |
+| Matching lines | 116 | 121 | 133 |
+| Files containing matches | 18 | 22 | 29 |
+| Occurrences | 120 | 125 | 137 |
 
 This deliberately includes comments and `Experimental` sources. It is a source
 census, **not an audit of theorem trust**: removing one admission does not make
@@ -846,9 +858,10 @@ dependency is the more important signal.
 The quotient integration removes three abstract signature/model placeholders
 and the actual dispatcher admission; restoring the projection core proof removes
 a fifth occurrence. Proved sort injectivity and sort/Pi separation now remove
-two more occurrences in both trees, reaching 126 integration / 121 main
-occurrences. Both snapshots retain foundational admissions; the known-false
-confluence dependency is not repaired by this integration.
+two more occurrences in both trees; original dependent-Pi injectivity removes
+one more, reaching 125 integration / 120 main occurrences. Nonzero constructor
+exposure and actual EXTRA replay add no admission. Both snapshots retain
+foundational admissions; the known-false confluence dependency remains open.
 
 ## Next priorities
 
@@ -864,7 +877,8 @@ confluence dependency is not repaired by this integration.
    propositional quotients. Preserve the actual semantic equality and repair
    its reduction/conversion presentation before claiming confluence-dependent
    results. Prop-source unfolding now covers every partial prefix as well as
-   the concrete saturated obstruction; arbitrary simulation and eta-overlap
+   the concrete saturated obstruction. Concrete nonzero root EXTRA replay now
+   recovers an actual constructor and both pattern checks. Arbitrary-left-function simulation and remaining eta-overlap
    proofs are still open. Coordinate
    with the existing upstream draft instead of duplicating its full stack.
    Type uniqueness and original dependent-Pi injectivity are now proved from
