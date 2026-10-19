@@ -87,6 +87,23 @@ with exactly `propext` and `Quot.sound`. The general inverse-weakening theorem
 remains false for arbitrary unused binders, so this result does not claim
 confluence or unconditional frontend soundness.
 
+## Constructive inductive registration alignment — 2026-10-19
+
+`NativeInductive.RegistrationEvidence.aligned` is the first semantic bridge
+from the existing native registration receipt to the model's `Aligned`
+relation. It proves the header, constructor, and generated-recursor phases in
+order, transporting translated constant types through each staged `VEnv`
+extension and matching the native map with the model insertion map. Freshness,
+the model-name/level shape, and the staged `addConst` equations are checked at
+each step. Safe receipts are lowered to any `DefinitionSafety`, so the bridge
+is usable by the safety-indexed environment relation.
+
+`tests/InductiveNativeAlignment.lean` checks the theorem at both `.safe` and
+`.unsafe`. The production module and fixture introduce no executable changes,
+admissions, or altered theorem contracts. The old constructor-free `AddInduct`
+relation and the full recursor/frontend registration theorem remain the next
+integration boundary.
+
 
 ## Universal original-core simulation by repaired paths — 2026-10-19
 
