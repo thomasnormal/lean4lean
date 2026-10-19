@@ -42,6 +42,17 @@ or replace the main review branch.
 Full default builds and all selected regression fixtures pass on both
 toolchains. No new admission is introduced.
 
+**Universal original-core simulation:** every actual `NormalEq` in a
+well-formed environment with the checked quotient rule registered now simulates
+any original parallel step, and any finite original-core path, using the
+repaired left paths. The complete application clause handles arbitrary left
+functions and majors, actual capture reductions/checks, retained eta binders,
+root beta and congruence. Both outputs keep the supplied original type. All 100
+audited roots exclude admissions and choice on both versions. The original
+Prop-source counterexample is simulated by repaired paths and still refutes
+the old core-only target. Candidate-step simulation, confluence/conversion
+consumer migration and frontend soundness remain open.
+
 **Nonzero quotient exposure and actual EXTRA replay:** a normal comparison
 with `Quot.mk` now exposes an actual left constructor at a nonzero source.
 Actual Quot rigidity and sort typing eliminate the residual eta/Pi alternative.
@@ -51,8 +62,9 @@ EXTRA after every right capture reduces. The proof reconstructs both actual
 pattern checks and retains the original result type. Controls start with a
 left major that does not match, distinct domain/relation parameters, and a
 retained dependent binder. All 65 audited roots exclude admissions and choice
-on both versions. Arbitrary-left-function application EXTRA, universal
-simulation, false-confluence replacement and frontend soundness remain open.
+on both versions. This explicit-prefix result is generalized by the complete
+application and universal core-simulation theorems above; confluence repair
+and frontend soundness remain open.
 
 **Type uniqueness and dependent Pi injectivity:** the original stratified Pi
 inversion now has a proof with both exact height bounds. Structural Strong
@@ -79,7 +91,8 @@ graph excludes the old injectivity, uniqueness and confluence modules. Strict
 consumer names. Dependent beta chains, real ordinary/Strong quotient EXTRA
 and a two-argument Quot spine are checked. Original dependent-Pi injectivity
 and type uniqueness are now proved above; concrete nonzero root replay is supplied
-above, while universal reduction simulation and frontend soundness remain open.
+above, and universal original-core simulation is now proved with repaired paths.
+Candidate-step simulation and frontend soundness remain open.
 Earlier dated checkpoint accounts below are superseded by this boundary.
 
 **Actual rule validity and Strong-derivation soundness:** declaration history now
@@ -834,9 +847,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current Lean 4.29.0 proof source passes all default targets (**455 jobs**)
-on October 19 and all 40 selected regressions. The separate Lean 4.33.0-rc2
-integration passes its full default build (**458 jobs**) and all 68 selected
+The current Lean 4.29.0 proof source passes all default targets (**456 jobs**)
+on October 19 and all 41 selected regressions. The separate Lean 4.33.0-rc2
+integration passes its full default build (**459 jobs**) and all 69 selected
 regressions. The independent current-master substitution PR passes its default
 build and standalone regression. These receipts validate their respective
 snapshots; the main branch retains its earlier history. Detailed logs and exact
@@ -878,8 +891,9 @@ foundational admissions; the known-false confluence dependency remains open.
    its reduction/conversion presentation before claiming confluence-dependent
    results. Prop-source unfolding now covers every partial prefix as well as
    the concrete saturated obstruction. Concrete nonzero root EXTRA replay now
-   recovers an actual constructor and both pattern checks. Arbitrary-left-function simulation and remaining eta-overlap
-   proofs are still open. Coordinate
+   recovers an actual constructor and both pattern checks. The complete application
+   clause now proves universal original-core simulation by repaired paths.
+   Candidate-step simulation and confluence consumer migration stay open. Coordinate
    with the existing upstream draft instead of duplicating its full stack.
    Type uniqueness and original dependent-Pi injectivity are now proved from
    actual chain fields; close the remaining inverse-weakening foundations,
