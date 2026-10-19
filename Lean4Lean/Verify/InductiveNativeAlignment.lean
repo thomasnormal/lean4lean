@@ -170,5 +170,30 @@ theorem RegistrationEvidence.aligned
           (evidence.recursors.map (fun entry => .recursor entry)) := by
         rw [insertOrdered_recursors]
 
+theorem RegistrationEvidence.headerEnvWF
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (henv : env.WF) : evidence.headerEnv.WF := by
+  exact VEnv.addInductHeaders.wf henv
+    (fun header hmem => (evidence.declWF.1 header hmem).2) evidence.headerAdd
+
+theorem RegistrationEvidence.constructorEnvWF
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (henv : env.WF) : evidence.constructorEnv.WF := by
+  exact VEnv.addConstructorHeaders.wf (evidence.headerEnvWF henv)
+    (fun ctor hmem => (evidence.declWF.2 evidence.headerEnv evidence.headerAdd ctor hmem).2)
+    evidence.constructorAdd
+
+theorem RegistrationEvidence.resultWF
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (henv : env.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors, entry.model.toVConstant.WF
+      evidence.constructorEnv) : result.WF := by
+  exact VEnv.addConstructorHeaders.wf (evidence.constructorEnvWF henv)
+    (by
+      intro model hmem
+      obtain ⟨entry, hentry, rfl⟩ := List.mem_map.mp hmem
+      exact hrecursors entry hentry)
+    evidence.recursorAdd
+
 end NativeInductive
 end Lean4Lean
