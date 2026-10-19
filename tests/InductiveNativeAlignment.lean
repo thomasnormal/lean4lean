@@ -47,4 +47,10 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
     VDecl.WF env (.induct decl) evidence.constructorEnv :=
   evidence.inductiveDeclWF
 
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (henv : env.WF) :
+    ∃ declarations, VEnv.WF' (.induct decl :: declarations) evidence.constructorEnv :=
+  evidence.inductiveHistoryWF henv
+
 end Lean4Lean.Tests.InductiveNativeAlignment
