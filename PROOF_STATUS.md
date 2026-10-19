@@ -14,6 +14,74 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Checked quotient firing across related sources — 2026-10-19
+
+`CoreSimulates.quot_constructor_extra` proves the constructor-preserving firing
+clause at ANY source universe. Both sources must actually match
+`quotLiftPattern`; the right side supplies the actual two equality checks and
+all eight captured parallel reductions. Pointwise normal equality of the
+captures transports those checks to the left using semantic definitional
+equality, without `NormalEq.trans`. Only the function and constructor payload
+need recursive `CoreSimulates` hypotheses. The result includes BOTH actual
+checked EXTRA steps, the subsequent left candidate path, normal equality to the
+right rule's computed result, and BOTH endpoint typings at the original type.
+It neither assumes nor asserts that normal equality preserves matching.
+
+`CoreSimulates.quot_prop_extra` handles a saturated left eliminator whose source
+universe is zero-equivalent, with an ARBITRARY left major. The right source must
+actually match and pass the existing checks, and every right capture may
+reduce. Only the domains need normal equality and only the function capture
+needs recursive simulation. Canonical unfolding selects a typed left proof;
+actual right checks and constructor inversion recover the reduced payload's
+typing, domain conversion aligns it, and proof irrelevance joins the two.
+The left major need not match a constructor or be normally compared separately.
+The result includes the actual right EXTRA, a complete left candidate path,
+normal equality and both original endpoint typings.
+
+Both production proofs are identical on Lean 4.29.0 and 4.33.0-rc2. Every
+existing production file and theorem contract remains unchanged. Both public
+roots inherit EXACTLY `IsDefEqU.sort_inv` and
+`IsDefEqU.forallE_inv_stratified`, and EXACTLY `propext`, `Quot.sound`, `sorryAx`.
+The constructor clause has 2818 main / 3012 integration dependencies; the Prop
+clause has 2830 / 3023. Strict per-root admission AND axiom manifests cover 51 production, environment,
+typing and control roots. Full graphs include declaration types, inductive
+constructor types and explicitly opaque bodies on integration. They forbid
+choice, false normal-reduction transport/confluence, derived quotient
+injectivity, inverse typing/normal/reduction transport, normal transitivity,
+the original inverse beta helpers and projection placeholders. Required
+dependencies enforce the real checks, rewrites, selector, paths and retained
+binder transports.
+
+`tests/QuotNormalExtra.lean` constructs a reachable Eq/Quot model. Its Prop
+control has a neutral left major, an eta-expanded left function, distinct
+zero-equivalent eliminator/constructor universe syntax, all eight right captures
+beta reducing, non-reflexive parameter checks and a delayed ORIGINAL result
+type. A separate Type-source control has both actual matches, a changed
+eta-function capture and all eight reductions; neither side admits Prop
+unfolding. Both pairs of complete source terms are explicitly proved normally
+related. Both joins survive a retained dependent binder and actual typed
+instantiation. Syntax controls pin all eight changed captures, differing checked
+parameters and failure of matching on the neutral left source.
+
+Full defaults pass 425 main / 428 integration jobs. All 21/50 previous selected
+fixtures and this new strict fixture pass: 22/51 total. The source admission
+census stays main 119 matching lines / 19 files / 123 occurrences and integration
+124 / 23 / 128. No checker behavior change, new admission or kernel discrepancy.
+Receipts use `lean4lean-normal-extra-` stems dated `20261019` under the fleet log
+directory: `*-default`, `*-regressions`, `*-QuotNormalExtra-final2`,
+`final-manifests.json`, and `final-gates.json`.
+
+The GENERAL checked EXTRA induction branch still needs a constructive exposure
+lemma across arbitrary eta-related function prefixes and erased major shapes.
+These firing clauses do not replace that obligation with a caller-supplied
+postcondition. Universal simulation, new-step overlaps, confluence and actual
+consumer migration remain open; the false/admitted `NormalEq.parRed` and actual
+frontend manifests are unchanged. Today's official fetch/no-op integration
+rebase was already completed. Fresh master and PR checks remain at `67f63b0`,
+PR #53 OPEN `5a8c0d5`, and independent substitution PR #65 OPEN `1af5844`.
+This item depends on the fork's concrete candidate, so no additional
+current-master PR is opened.
+
 ## General application beta simulation without inverse weakening — 2026-10-19
 
 `normal_beta_join` handles an ARBITRARY normally related function on the left
