@@ -232,6 +232,17 @@ theorem RegistrationEvidence.registrationWF
       result.WF :=
   ⟨evidence.to_addInduct, evidence.resultWF henv hrecursors⟩
 
+theorem RegistrationEvidence.registrationWF_of_sourceTypehood
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (henv : env.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result ∧
+      result.WF := by
+  exact evidence.registrationWF henv
+    (evidence.recursorWF_of_sourceTypehood (evidence.constructorEnvWF henv) hsource)
+
 theorem RegistrationEvidence.inductiveDeclWF
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     VDecl.WF env (.induct decl) evidence.constructorEnv := by

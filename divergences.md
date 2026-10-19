@@ -38,7 +38,9 @@ current `RegistrationEvidence` does not yet store source typehood or a semantic
 `HasType` witness from which that model-WF premise could be derived.  The
 separate `recursorWF_of_sourceTypehood` bridge discharges the premise when a
 caller supplies exactly that source translation and typehood witness.  The
-registration receipt therefore does not claim complete recursor type checking,
+packaged `registrationWF_of_sourceTypehood` theorem then combines this bridge
+with the staged extension and final-environment WF receipt.
+The registration receipt therefore does not claim complete recursor type checking,
 ι-rule semantics, or a constructive `AddInduct` constructor.  Filling those
 obligations still requires the recursor/frontend bridge and the coordinated
 migration of the constructor-free rejection consumers described above.
