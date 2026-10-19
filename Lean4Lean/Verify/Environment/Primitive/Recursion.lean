@@ -948,7 +948,8 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
         MLCtx.head_vlam (n := 4) (m := m2) (hn := hn2) (Bs := As2.reverse)
           (by simpa using hinv2.len) (by rw [hdrop2]; exact hinv2.toCtx)
       -- the fuel variable is that head, and the guard says `natRec` avoids it, so it translates
-      -- one binder down -- the same `abstract`-then-`weakFV_inv` route `F` takes
+      -- one binder down. This separate fuel-domain extraction still uses general
+      -- inverse weakening; the measure telescope is closed at typed zeros below.
       have htgx : tg = Expr.fvar x := by
         simp [MLCtx.fvarRevList] at harr2; exact harr2.1
       have hnc' : natRec.containsFVar' x = false := by
@@ -1012,6 +1013,12 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
             have equal := (List.mem_replicate.mp member).2
             subst argument
             exact c.hasPrimitives.natLitT c.Ewf.ordered hnat 0 _))
+    have hctxNat : m'.vlctx.toCtx =
+        List.replicate n VExpr.nat ++ (m'.dropN n hn).vlctx.toCtx := by
+      have domains : As.reverse = List.replicate n VExpr.nat := by
+        rw [hAsNat, List.reverse_replicate, hinv.len]
+      rw [hdrop, ← domains]
+      exact hinv.toCtx
     have hFscope : F.looseBVarRange' = 0 := by
       exact (m'.noBV ▸ hFF.closed).looseBVarRange_zero
     have hnodup : (m'.fvarRevList n hn).reverse.Nodup :=
@@ -1039,10 +1046,13 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
         List.mem_reverse] at h ⊢
       exact h.1.resolve_left h.2
     -- so `F` translates in `c` itself, which is the form the bundle stores
-    obtain ⟨F', hFbase⟩ : ∃ F', (c.withMLC m₀).TrExprS F F' :=
-      TrExprS.weakFV_inv (c.withMLC m₀).Ewf hinv.lift
-        (.refl (c.withMLC m₀).Ewf (c.withMLC m').Δwf) hFF
-        (m'.noBV ▸ hFF.closed) hFfv
+    obtain ⟨F', hFbase⟩ : ∃ F', (c.withMLC m₀).TrExprS F F' := by
+      have result := MLCtx.WF.dropNat_trS c.Ewf.ordered c.hasPrimitives hnat
+        (n := n) (hn := hn) hwf' hctxNat hFF (m'.noBV ▸ hFF.closed)
+        (by simpa only [hdrop, VContext.TrExprS, VContext.vlctx, VContext.withMLC_mlctx,
+          VContext.withMLC_lparams, VContext.withMLC_venv] using hFfv)
+      simpa only [hdrop, VContext.TrExprS, VContext.vlctx, VContext.withMLC_mlctx,
+        VContext.withMLC_lparams, VContext.withMLC_venv] using result
     -- `pack` gets there a different way: it *binds* the telescope rather than avoiding it, and
     -- `mkLambda_eq` says the `LocalContext` form the recognizer builds is `MLCtx.mkLambda`, whose
     -- translation lands in the dropped context -- which `hdrop` says is `c`
@@ -1084,8 +1094,12 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
     -- `Aty` the bundle records and whose body is `F`'s codomain there. Identifying it with the
     -- telescope's translation and running `forallE_inv` hands the component defeqs back already
     -- *sorted*, which is what the congruences below need and what `uniq` on its own would not give.
-    obtain ⟨_, hw1Base⟩ := TrExprS.weakFV_inv c.Ewf hinv.lift
-      (.refl c.Ewf (c.withMLC m').Δwf) hw1S (m'.noBV ▸ hw1S.closed) ⟨hAdomfv, hcodfv⟩
+    obtain ⟨_, hw1Base⟩ := MLCtx.WF.dropNat_trS c.Ewf.ordered c.hasPrimitives hnat
+      (n := n) (hn := hn) hwf' hctxNat hw1S (m'.noBV ▸ hw1S.closed)
+      (by simpa only [hdrop, VContext.TrExprS, VContext.vlctx, VContext.withMLC_mlctx,
+        VContext.withMLC_lparams, VContext.withMLC_venv] using
+        (show FVarsIn _ (.forallE _ Adom cod _) from ⟨hAdomfv, hcodfv⟩))
+    rw [hdrop] at hw1Base
     let .forallE (ty' := Aty) (body' := codv₀) hAty hcodTy hAtyS hcodS := hw1Base
     have hw1uniq := ((TrExprS.forallE hAty hcodTy hAtyS hcodS).weakFV c.Ewf hinv.lift
       hwf'.tr.wf).uniq c.Ewf (.refl c.Ewf (c.withMLC m').Δwf) hw1S
@@ -1135,8 +1149,8 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
       -- stands. Abstracting it first is what fixes that: `TrExprS.abstract` retags the `idd`
       -- binder as the plain `bvar` binder `FVLift.cons_bvar` understands, leaving the translation
       -- untouched, and now the whole `forallE` lives one binder above the base context. Its
-      -- binder's type there is `Aty`, not `Adomv`, which is why `weakFV_inv` is handed the
-      -- *defeq* context `hΔdefeq` rather than a reflexivity.
+      -- binder's type there is `Aty`, so first align its type through `hΔdefeq`,
+      -- then close the guarded Nat telescope using actual zero inhabitants.
       have hΔdefeq : VLCtx.IsDefEq c.venv c.lparams.length
           ((none, .vlam (Aty.liftN n 0)) :: (c.withMLC m').vlctx)
           ((none, .vlam Adomv) :: (c.withMLC m').vlctx) :=
@@ -1144,9 +1158,13 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
       have hw2A := (TrExprS.forallE (name := bn) (bi := bi2) hdA hrest hdAS hrestS).abstract
         (v₀ := idd) .zero
       have hw2Afv := FVarsIn.abstract1_erase (k := 0) (P := (· ∈ (c.withMLC m₀).vlctx.fvars)) hw2fv
-      obtain ⟨_, hw2Base⟩ := TrExprS.weakFV_inv c.Ewf
-        (Δ := (none, .vlam Aty) :: (c.withMLC m₀).vlctx) (.cons_bvar (.vlam Aty) hinv.lift)
-        (hΔdefeq.symm c.Ewf) hw2A (by simpa [VLCtx.bvars, m'.noBV] using hw2A.closed) hw2Afv
+      obtain ⟨_, hw2Aligned⟩ := hw2A.defeqDFC c.Ewf (hΔdefeq.symm c.Ewf)
+      obtain ⟨_, hw2Base⟩ := MLCtx.WF.dropNat_trS_under c.Ewf.ordered c.hasPrimitives hnat
+        (n := n) (hn := hn) (domain := Aty) hwf' hctxNat hw2Aligned
+        (by simpa [VLCtx.bvars, m'.noBV] using hw2A.closed)
+        (by simpa only [hdrop, VContext.TrExprS, VContext.vlctx, VContext.withMLC_mlctx,
+          VContext.withMLC_lparams, VContext.withMLC_venv] using hw2Afv)
+      rw [hdrop] at hw2Base
       let .forallE (ty' := dAv₀) (body' := restv₀) hdAty hrestTy hdAS₀ hrestS₀ := hw2Base
       have hdAEclosed : dAE.looseBVarRange' = 0 := by
         exact (m'.noBV ▸ hdAS.closed).looseBVarRange_zero
@@ -1196,7 +1214,7 @@ theorem unfoldNatWellFounded.WF' {c : VContext} {m₀ : MLCtx} [c.MLCWF m₀] {s
         change TrExprS c.venv c.lparams m₀.vlctx
           (.lam `a Adom (dAE.abstract #[.fvar idd]) .default) (.lam Aty dAv₀)
         simpa only [show (#[Expr.fvar idd] : Array Expr) = ⟨[idd].map .fvar⟩ from rfl,
-          Expr.abstract_eq, hdAEabstract, VContext.withMLC_lparams] using
+          Expr.abstract_eq, hdAEabstract, VContext.withMLC_lparams, VContext.withMLC_venv] using
           (TrExprS.lam hAty hAtyS hdAS₀)
       exact .pure ⟨.lam Aty dAv₀, hlamS, ⟨_, .lam hAty.choose_spec hdAT⟩, restv₀, _, hsorted⟩
     -- Close the same Nat telescope in F's typing, using the zero arguments

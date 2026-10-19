@@ -30,9 +30,14 @@ removed domains are Nat, so zero closes the telescope without changing accepted
 inputs or theorem premises. The generic helpers also handle dependent domains
 and a retained binder depending on the base context. Their transitive audits
 exclude admissions and choice. The enclosing theorem still inherits general
-strengthening through context extraction and checker methods; that separate
-repair remains open. See `tests/InhabitedTelescope.lean`. This is a metatheory
-repair, not a new native kernel discrepancy.
+strengthening through its separate fuel-binder extraction and checker methods.
+Three further guarded measure-telescope translation extractions now abstract and
+instantiate unused locals at typed zero, including below a retained dependent
+binder. Those helpers exclude false strengthening/confluence while retaining
+exactly the existing projection definition/weakening/instantiation admissions
+and native interface baseline. See `tests/InhabitedTelescope.lean` and
+`tests/UnusedNatTranslation.lean`. These are metatheory repairs, not new native
+kernel discrepancies.
 
 ## False quotient confluence simulation contract (2026-10-15)
 

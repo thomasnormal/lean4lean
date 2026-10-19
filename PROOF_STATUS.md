@@ -4,6 +4,66 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Closing unused Nat locals in native translation — 2026-10-19
+
+This item extends `33b42bf` by replacing three `TrExprS.weakFV_inv` calls in the
+actual `Primitive.unfoldNatWellFounded.WF'` proof: the functional, its inferred
+forall type, and the opened/normalized codomain beneath a retained binder.
+The existing measure guard certifies precisely the Nat telescope being removed.
+No executable code, acceptance guard or public theorem premise changes.
+
+`TrExprS.close_unused_fvar` abstracts an unused free variable, then instantiates
+it at an actual translated, typed native witness. Source closure and absence of
+the free variable prove both native transformations leave the expression
+unchanged; the model is substituted. It supports arbitrary retained native
+binder depth. `MLCtx.WF.dropNat_trS` and `dropNat_trS_under` iterate this at zero
+through exactly the guard-certified locals, including beneath a binder whose
+domain depends on the base context. The codomain branch first aligns that
+retained domain using the existing definitional-context transport.
+
+The new helpers transitively exclude `weakFV_inv`, `weakFV'_inv`, false general
+semantic strengthening, and the false confluence contract and its consequences.
+Unlike the preceding six pure semantic helpers, native instantiation inherits
+exactly three existing projection admissions: `TrProj`, `TrProj.instN`, and
+`TrProj.weak'`. It also uses choice and, for the MLCtx helpers, three existing
+persistent-container interface axioms. Their provenance and axiom bounds are
+checked explicitly; this is not an admission-free translation theorem.
+The separate retained-domain conversion also excludes false strengthening and
+confluence; its existing six typing/projection admissions are pinned separately.
+The actual recursion proof still has one general extraction call for the
+separate fuel binder, and the full checker dependencies remain conditional.
+
+`tests/UnusedNatTranslation.lean` exercises closing an unused local at a concrete
+Sort inhabitant, a retained binder whose domain is the base proposition, two
+retained native binders, two actual guard-shaped Nat locals over a nonempty
+base, the corresponding retained dependent binder, and an empty telescope.
+Its body audit verifies actual use of both new telescope transports and pins
+the three inherited projection admissions, while the preceding fixture continues
+to pin the full recursion theorems' unchanged 33-axiom manifests.
+
+Validation: full default build passes all 422 jobs, and all 35 fixtures pass
+(the new native-translation fixture plus the preceding 34 gates). Main review
+has a separate fresh 419-job build; its proof source is unchanged. Source census
+before/after remains 125 matching lines / 24 files / 129 occurrences in this
+integration and 119 / 19 / 123 in the main review. Logs under
+`/var/tmp/thomas-ahle/fleet2/logs/` use prefix `lean4lean-unused-nat-`:
+`default-final-20261019.log`, `fixture-final-20261019.log`,
+`regressions-20261019.log`, `main-build-20261019.log`, and
+`census-20261019.log`. The actual source has exactly two ordinary Nat-closing
+calls, one retained-binder call, and one remaining fuel-binder general extraction.
+
+Upstream coordination: official master remains `67f63b0`, with these extraction
+calls still present. Draft [PR #53](https://github.com/digama0/lean4lean/pull/53),
+reviewed at `5a8c0d5f111809a95f4924c71e0e9bc8738d72e0`, already proves
+`MLCtx.trExprS_dropN_nat` by abstraction followed by typed zero instantiation
+and redesigns the recursion contracts to remove the extraction calls. The core
+closing direction is therefore already upstream work; this checkpoint applies
+it within the current contracts and audits the inherited dependencies. No
+duplicate PR is opened. The exploratory official-master candidate was archived
+under `lean4lean-pr-inhabited-nat-exploratory-20261019` in the log directory;
+its build exposed missing fork telescope foundations, so it is not advertised
+as an upstream-ready patch. This does not affect the validated integration.
+
 ## Inhabited telescope transport in well-founded recursion — 2026-10-19
 
 This Lean 4.33.0-rc2 item extends quotient checkpoint `d0f7742` without changing

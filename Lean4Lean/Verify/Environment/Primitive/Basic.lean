@@ -964,6 +964,83 @@ theorem MLCtx.mkLambda_natBinderTypes {env : VEnv} {Us : List Name} :
     have := MLCtx.dropN_toCtx_length (n := n) (hn := Nat.le_of_succ_le_succ hn)
     rw [hctx] at this; simp [hlen] at this; omega
 
+/-- Close an unused free binder at an actual typed native witness. The abstraction
+and instantiation leave the source syntax unchanged, while the model is substituted.
+Projection translation retains its existing definition, weakening and instantiation obligations. -/
+theorem TrExprS.close_unused_fvar (henv : env.Ordered)
+    (witness : TrExprS env Us Δ₀ value value')
+    (typed : env.HasType Us.length Δ₀.toCtx value' domain)
+    (opening : VLCtx.Abstract Δ₀ removed (.vlam domain) dk k Δ₁ Δ₂)
+    (closing : VLCtx.InstN Δ₀ value' domain dk k Δ₂ Δ)
+    (source : TrExprS env Us Δ₁ expression expression')
+    (closed : Closed expression dk) (unused : FVarsIn (· ≠ removed) expression) :
+    TrExprS env Us Δ expression (expression'.inst value' k) := by
+  have result := witness.instN henv typed closing (source.abstract opening)
+  rwa [unused.abstract_eq_self closed,
+    Expr.instantiate1'_eq_self closed.looseBVarRange_le] at result
+
+/-- Close the guard-certified Nat telescope in a translation of source syntax
+that uses only the remaining context. Every removed binder is instantiated at zero. -/
+theorem MLCtx.WF.dropNat_trS {env : VEnv} {Us : List Name}
+    (henv : env.Ordered) (hprim : env.HasPrimitives) (hnat : env.contains ``Nat) :
+    ∀ {n : Nat} {m : MLCtx} {hn : n ≤ m.length} {expression : Expr} {expression' : VExpr},
+      MLCtx.WF env Us m →
+      m.vlctx.toCtx = List.replicate n VExpr.nat ++ (m.dropN n hn).vlctx.toCtx →
+      TrExprS env Us m.vlctx expression expression' → Closed expression 0 →
+      FVarsIn (· ∈ (m.dropN n hn).vlctx.fvars) expression →
+      ∃ result, TrExprS env Us (m.dropN n hn).vlctx expression result
+  | 0, _, _, _, _, _, _, source, _, _ => ⟨_, source⟩
+  | n+1, .vlam x name ty tyv bi m, hn, expression, _, wf, domains, source, closed, hscope => by
+    simp only [MLCtx.vlctx, VLCtx.toCtx, List.replicate_succ, List.cons_append,
+      List.cons.injEq, MLCtx.dropN] at domains
+    obtain ⟨rfl, domains⟩ := domains
+    have unused : FVarsIn (· ≠ x) expression := hscope.mono fun fv member equal => by
+      subst fv
+      exact wf.1.tr.find?_eq_none.1 wf.2.1 (m.dropN_fvars_subset _ _ member)
+    have zero := TrExprS.natLit (Us := Us) (Δ := m.vlctx) hprim hnat 0
+    have smaller := TrExprS.close_unused_fvar henv zero.1 zero.2 .zero .zero
+      source closed unused
+    exact MLCtx.WF.dropNat_trS henv hprim hnat (n := n) (m := m)
+      (hn := Nat.le_of_succ_le_succ hn) wf.1 domains smaller closed hscope
+  | n+1, .vlet .., hn, _, _, _, domains, _, _, _ => by
+    simp only [MLCtx.vlctx, VLCtx.toCtx, MLCtx.dropN] at domains
+    have bound := MLCtx.dropN_toCtx_length (n := n) (hn := Nat.le_of_succ_le_succ hn)
+    rw [domains] at bound
+    simp only [List.length_append, List.length_replicate] at bound
+    omega
+
+/-- The same closing beneath a retained native binder. Its domain is a lifted
+base type and may depend on the remaining context. -/
+theorem MLCtx.WF.dropNat_trS_under {env : VEnv} {Us : List Name}
+    (henv : env.Ordered) (hprim : env.HasPrimitives) (hnat : env.contains ``Nat) :
+    ∀ {n : Nat} {m : MLCtx} {hn : n ≤ m.length} {expression : Expr} {expression' domain : VExpr},
+      MLCtx.WF env Us m →
+      m.vlctx.toCtx = List.replicate n VExpr.nat ++ (m.dropN n hn).vlctx.toCtx →
+      TrExprS env Us ((none, .vlam (domain.liftN n)) :: m.vlctx) expression expression' →
+      Closed expression 1 → FVarsIn (· ∈ (m.dropN n hn).vlctx.fvars) expression →
+      ∃ result, TrExprS env Us ((none, .vlam domain) :: (m.dropN n hn).vlctx) expression result
+  | 0, _, _, _, _, _, _, _, source, _, _ =>
+    ⟨_, by simpa only [MLCtx.dropN, VExpr.liftN_zero] using source⟩
+  | n+1, .vlam x name ty tyv bi m, hn, expression, _, domain, wf, domains, source, closed, hscope => by
+    simp only [MLCtx.vlctx, VLCtx.toCtx, List.replicate_succ, List.cons_append,
+      List.cons.injEq, MLCtx.dropN] at domains
+    obtain ⟨rfl, domains⟩ := domains
+    have unused : FVarsIn (· ≠ x) expression := hscope.mono fun fv member equal => by
+      subst fv
+      exact wf.1.tr.find?_eq_none.1 wf.2.1 (m.dropN_fvars_subset _ _ member)
+    have zero := TrExprS.natLit (Us := Us) (Δ := m.vlctx) hprim hnat 0
+    have smaller := TrExprS.close_unused_fvar henv zero.1 zero.2 (.succ .zero) (.succ .zero)
+      source closed unused
+    simp only [VLocalDecl.inst, VExpr.inst_liftN'] at smaller
+    exact MLCtx.WF.dropNat_trS_under henv hprim hnat (n := n) (m := m)
+      (hn := Nat.le_of_succ_le_succ hn) wf.1 domains smaller closed hscope
+  | n+1, .vlet .., hn, _, _, _, _, domains, _, _, _ => by
+    simp only [MLCtx.vlctx, VLCtx.toCtx, MLCtx.dropN] at domains
+    have bound := MLCtx.dropN_toCtx_length (n := n) (hn := Nat.le_of_succ_le_succ hn)
+    rw [domains] at bound
+    simp only [List.length_append, List.length_replicate] at bound
+    omega
+
 theorem lambdaTelescope.loop.WF {c : VContext} {α} {k : Array Expr → Expr → M α}
     {Q : α → VState → Prop} {s₀ : VState} {m₀ : MLCtx} [c.MLCWF m₀] {e₀ : Expr} {e₀' : VExpr}
     (H : ∀ (fvs : Array Expr) {m' : MLCtx} [c.MLCWF m'] {s' : VState} {body} body'
