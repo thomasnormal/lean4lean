@@ -39,8 +39,21 @@ native restoration receipts also remain open. The Nat-closing and successor
 arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
-Full default builds pass (439 integration / 436 main review jobs), as do all
-58 selected integration fixtures and 29 selected main fixtures. No new admission is introduced.
+Full default builds pass (440 integration / 437 main review jobs), as do all
+59 selected integration fixtures and 30 selected main fixtures. No new admission is introduced.
+
+**Structural observation soundness:** application, lambda, conversion,
+beta, eta, proof irrelevance and constant-level equality now preserve both
+semantic inclusions and observation typing at related anchors. Together with
+the variable, sort and Pi results below, every non-rule case of the actual
+strong equality derivation has its simultaneous soundness proof. The
+105-root audit excludes admissions and choice on both toolchains. Controls
+reduce a dependent beta redex under a binder, change both an application's
+function and argument, transport a lambda across different beta-equal anchors,
+and retain duplicate eta demands and the original dependent result type.
+The combined induction carrying semantic typing derivations, actual stored-rule
+soundness and declaration-history validity remain open; so do quotient/Pi
+separation and nonzero EXTRA.
 
 **Level invariance and dependent telescopes:** observations and their typing
 now transfer across equivalent well-formed levels, including actual stored
@@ -711,9 +724,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current Lean 4.29.0 proof source passes all default targets (**436 jobs**)
-on October 19 and all 29 selected regressions. The separate Lean 4.33.0-rc2
-integration passes its full default build (**439 jobs**) and all 58 selected
+The current Lean 4.29.0 proof source passes all default targets (**437 jobs**)
+on October 19 and all 30 selected regressions. The separate Lean 4.33.0-rc2
+integration passes its full default build (**440 jobs**) and all 59 selected
 regressions. The independent current-master substitution PR passes its default
 build and standalone regression. These receipts validate their respective
 snapshots; the main branch retains its earlier history. Detailed logs and exact
