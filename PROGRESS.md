@@ -40,7 +40,16 @@ arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
 Full default builds pass (423 integration / 420 main review jobs), as do all
-45 selected integration fixtures and 16 selected main fixtures. No new admission is introduced.
+46 selected integration fixtures and 17 selected main fixtures. No new admission is introduced.
+
+**Quotient rewrite overlap:** canonical Prop-source unfolding now joins the
+original checked quotient EXTRA rule modulo `NormalEq`, including arbitrary
+parallel argument reductions, syntactically different checked constructor
+parameters and zero-equivalent source universes. Both endpoints keep the original
+application type. Its complete graph excludes false confluence, derived quotient
+injectivity, inverse weakening, projections and choice; exactly two independent
+typing admissions remain. General simulation and actual consumer migration are
+still open.
 
 **Local-let cache transport:** entering and leaving local definitions preserve
 the exact model context and expressions. All five actual state/cache producer
@@ -179,7 +188,7 @@ themselves satisfy any of these goals.
 | Remove inherited admissions from the frontend | **Not complete.** Dependency audits identify the remaining trust gaps. | Foundational admissions also remain. | Must close the actual metatheory/checker dependencies, not add another wrapper around them. |
 | Supply simultaneous substitution for arbitrary typing/equality derivations | **Proved API now available:** `55b7b4d` ports strong/weak cross-substitution and audits its dependencies as only `propext` and `Quot.sound`. | Already proved upstream in `6ba54db`/`8223d22`. | Foundation integration, not a newly solved upstream obligation; the frontend's inherited admissions remain. |
 | Verify actual checked inductive registration | **Not complete.** Header/constructor checks and staging invariants are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, and prelude translation. |
-| Complete confluence and semantic reduction correctness | **Original simulation contract refuted:** the actual quotient model has a checked counterexample to `NormalEq.parRed`. The candidate relation now proves exact typed joins for all six prefix-application beta overlaps. | Confluence and related semantic obligations remain open. | General quotient simulation, other eta/rewrite overlaps, migration of actual consumers, non-circular injectivity/strengthening, genuine projection and inductive recursor semantics. |
+| Complete confluence and semantic reduction correctness | **Original simulation contract refuted:** the actual quotient model has a checked counterexample to `NormalEq.parRed`. The candidate relation proves exact joins for all six prefix-application beta overlaps and a normal-equality join for canonical unfolding versus checked quotient rewriting. | Confluence and related semantic obligations remain open. | General quotient simulation, other eta/rewrite overlaps, migration of actual consumers, non-circular injectivity/strengthening, genuine projection and inductive recursor semantics. |
 | Reject projection reduction outside the current semantic model | **Upstream-ready candidate in PR #57:** `reduceProjCore.none_of_translation` and `reduceProj.none_of_translation` prove that translated terms cannot reduce through constructor-family lookups while `TrEnv` remains constructor-free; the existing `WF` contracts now derive from that rejection proof. | Official master still carries the original admitted projection `WF` contract. | This is deliberately a rejection theorem for the non-inductive fragment, not inductive projection semantics; `AddInduct`, model registration, and recursor obligations remain open. |
 | Reject projection type inference outside the current semantic model | **Upstream-ready candidate in PR #58:** `inferProj.rejects` proves that translated structure types cannot pass the inductive-header lookup, and the existing `inferProj.WF` contract now follows without an admission. | Official master still carries the original admitted `inferProj.WF` contract. | This closes only the constructor-free semantic fragment; successful inductive projection inference still requires `AddInduct`, model registration, and dependent-field semantics. |
 | Reject structure-eta and unit-like comparison outside the current semantic model | **Upstream-ready candidate in PR #59:** `tryEtaStructCore.false_of_translation` and `isDefEqUnitLike.false_of_translation` prove both comparison workers return false for translated constructor-family heads; their existing `WF` contracts now derive without admissions. | Official master still carries both comparison admissions. | This closes only the constructor-free semantic fragment; inductive eta and unit-like semantics still require constructive model registration. |
