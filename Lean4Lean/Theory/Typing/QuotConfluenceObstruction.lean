@@ -4,7 +4,7 @@ import Lean4Lean.Theory.Typing.Meta
 namespace Lean4Lean.VEnv.QuotConfluenceObstruction
 open VExpr
 open private notProofOfSortTelescope from Lean4Lean.Theory.Typing.QuotInjectivity
-open private quotientExtension from Lean4Lean.Theory.Typing.RewriteRules
+open private quotientExtension from Lean4Lean.Theory.Typing.RewriteMetadata
 
 variable {environment : VEnv}
 

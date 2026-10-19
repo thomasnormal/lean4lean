@@ -200,14 +200,14 @@ run_meta
     ``ParRed.weakN_inv, ``NormalEq.trans,
     `Lean4Lean.TrProj, `Lean4Lean.TrProj.weak', `Lean4Lean.TrProj.instN, ``Classical.choice]
   let manifests : List (Name × List Name × List Name) := [
-    (`Lean4Lean.VEnv.QuotPropReduction.Steps.lam_congr, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
-    (`Lean4Lean.VEnv.QuotPropReduction.Steps.instN_argument, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
-    (`Lean4Lean.VEnv.QuotPropReduction.Steps.instN_both, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
-    (`Lean4Lean.VEnv.QuotPropReduction.CoreSimulates.lam_beta, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
+    (`Lean4Lean.VEnv.QuotPropReduction.Steps.lam_congr, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
+    (`Lean4Lean.VEnv.QuotPropReduction.Steps.instN_argument, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
+    (`Lean4Lean.VEnv.QuotPropReduction.Steps.instN_both, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
+    (`Lean4Lean.VEnv.QuotPropReduction.CoreSimulates.lam_beta, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
     (`QuotBetaSimulationTest.quotientEnvironmentWF, [], [`propext, `Quot.sound]),
     (`QuotBetaSimulationTest.quotientRegistered, [], [`propext, `Quot.sound]),
     (`QuotBetaSimulationTest.delayEqual, [], [`propext, `Quot.sound]),
-    (`QuotBetaSimulationTest.delayReduction, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
+    (`QuotBetaSimulationTest.delayReduction, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
     (`QuotBetaSimulationTest.domainTyped, [], [`propext, `Quot.sound]),
     (`QuotBetaSimulationTest.selectedTyped, [], [`propext, `Quot.sound]),
     (`QuotBetaSimulationTest.leftDomainEqual, [], [`propext, `Quot.sound]),
@@ -216,12 +216,12 @@ run_meta
     (`QuotBetaSimulationTest.bodyTyped, [], [`propext, `Quot.sound]),
     (`QuotBetaSimulationTest.leftArgumentTyped, [], [`propext, `Quot.sound]),
     (`QuotBetaSimulationTest.rightArgumentTyped, [], [`propext, `Quot.sound]),
-    (`QuotBetaSimulationTest.argumentSimulation, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
+    (`QuotBetaSimulationTest.argumentSimulation, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
     (`QuotBetaSimulationTest.originalTyped, [], [`propext, `Quot.sound]),
-    (`QuotBetaSimulationTest.betaControl, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
-    (`QuotBetaSimulationTest.unfoldingArgument, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
-    (`QuotBetaSimulationTest.etaArgument, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
-    (`QuotBetaSimulationTest.retainedDependentBinder, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx])]
+    (`QuotBetaSimulationTest.betaControl, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
+    (`QuotBetaSimulationTest.unfoldingArgument, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
+    (`QuotBetaSimulationTest.etaArgument, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx]),
+    (`QuotBetaSimulationTest.retainedDependentBinder, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `Quot.sound, `sorryAx])]
   for root in roots do
     let some (_, expectedAdmissions, expectedAxioms) := manifests.find? (fun entry => entry.1 == root)
       | throwError "missing manifest {root}"
