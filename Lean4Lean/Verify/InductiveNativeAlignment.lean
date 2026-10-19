@@ -205,5 +205,13 @@ theorem RegistrationEvidence.registrationWF
       result.WF :=
   ⟨evidence.to_addInduct, evidence.resultWF henv hrecursors⟩
 
+theorem RegistrationEvidence.inductiveDeclWF
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    VDecl.WF env (.induct decl) evidence.constructorEnv := by
+  apply VDecl.WF.induct evidence.declWF
+  unfold VEnv.addInduct
+  rw [evidence.headerAdd]
+  exact evidence.constructorAdd
+
 end NativeInductive
 end Lean4Lean
