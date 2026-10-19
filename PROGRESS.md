@@ -55,6 +55,18 @@ inherited projection admissions, and its equality bridge pins three projection a
 Full default builds and all selected regression fixtures pass on both
 toolchains. No new admission is introduced.
 
+**Nonzero quotient exposure and actual EXTRA replay:** a normal comparison
+with `Quot.mk` now exposes an actual left constructor at a nonzero source.
+Actual Quot rigidity and sort typing eliminate the residual eta/Pi alternative.
+For an explicit left `Quot.lift α r β f c major` prefix, recursive simulations
+of the function capture and original major now suffice to replay actual root
+EXTRA after every right capture reduces. The proof reconstructs both actual
+pattern checks and retains the original result type. Controls start with a
+left major that does not match, distinct domain/relation parameters, and a
+retained dependent binder. All 65 audited roots exclude admissions and choice
+on both versions. Arbitrary-left-function application EXTRA, universal
+simulation, false-confluence replacement and frontend soundness remain open.
+
 **Type uniqueness and dependent Pi injectivity:** the original stratified Pi
 inversion now has a proof with both exact height bounds. Structural Strong
 uniqueness gives heterogeneous type chains; collapsing them at the actual left
@@ -79,9 +91,9 @@ graph excludes the old injectivity, uniqueness and confluence modules. Strict
 197/204-root audits include the moved foundational helpers and existing
 consumer names. Dependent beta chains, real ordinary/Strong quotient EXTRA
 and a two-argument Quot spine are checked. Original dependent-Pi injectivity
-and type uniqueness are now proved above; nonzero reduction simulation and
-frontend soundness remain open. Earlier dated checkpoint accounts below are
-superseded by this boundary.
+and type uniqueness are now proved above; concrete nonzero root replay is supplied
+above, while universal reduction simulation and frontend soundness remain open.
+Earlier dated checkpoint accounts below are superseded by this boundary.
 
 **Actual rule validity and Strong-derivation soundness:** declaration history now
 supplies quotient constants, family/constructor rigidity and unique ownership.
@@ -667,18 +679,18 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current main Lean 4.29.0 proof source passes all default targets (453 jobs)
-and all 38 selected regressions on October 19. This Lean 4.33.0-rc2 integration
-passes its full default build (456 jobs) and all 66 selected regressions. The
+The current main Lean 4.29.0 proof source passes all default targets (455 jobs)
+and all 40 selected regressions on October 19. This Lean 4.33.0-rc2 integration
+passes its full default build (458 jobs) and all 68 selected regressions. The
 independent current-master substitution PR passes its default build and
 standalone regression. Each receipt validates its respective source snapshot;
 exact trust bounds are recorded in `PROOF_STATUS.md`.
 
 | Whole-word `sorry` or `admit` source census, October 19 | Published proof source | Local integration | Official master |
 | --- | --- | --- | --- |
-| Matching lines | 117 | 122 | 133 |
-| Files containing matches | 19 | 23 | 29 |
-| Occurrences | 121 | 126 | 137 |
+| Matching lines | 116 | 121 | 133 |
+| Files containing matches | 18 | 22 | 29 |
+| Occurrences | 120 | 125 | 137 |
 
 This deliberately includes comments and `Experimental` sources. It is a source
 census, **not an audit of theorem trust**: removing one admission does not make
@@ -689,9 +701,10 @@ dependency is the more important signal.
 
 This integration removes three abstract signature/model placeholders and the
 actual recursor dispatcher admission. Proved sort injectivity and sort/Pi
-separation remove two more occurrences in both trees, with no new admissions. The remaining
-`sorryAx` dependencies, including the known-false confluence contract, remain
-explicitly conditional. Raw counts do not replace the dependency audits.
+separation remove two more occurrences in both trees; original dependent-Pi
+injectivity removes another. Nonzero constructor exposure and actual EXTRA
+replay add no admission. The remaining `sorryAx` dependencies, including the
+known-false confluence contract, remain explicitly conditional. Raw counts do not replace the dependency audits.
 
 ## Next priorities
 
