@@ -4,6 +4,109 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Validity of actual delta equations — 2026-10-19
+
+Model.Delta adapts the delta-rule proof from
+[PR #53](https://github.com/digama0/lean4lean/pull/53), exact head
+5a8c0d5f111809a95f4924c71e0e9bc8738d72e0, using the existing branch's actual
+RewriteMetadata. DeltaRules records that a bare-constant equation has exactly
+its stored level parameters and declared type, and owns its head among ALL
+stored equations. RewriteMetadata.deltaRules derives both fields from actual
+classification, lookup, name uniqueness and quotient-name exclusion.
+WF.deltaRules obtains them from the actual declaration history, including the
+integration snapshot's mutual definitions. No arbitrary caller rule-validity
+or firing certificate is supplied.
+
+The actual current environment language classifies stored equations as delta
+or quotDefEq. Model.RewriteMetadata.installedCtor therefore identifies every
+installed constructor major as Quot.mk. WF.installed_constructor_rigid proves
+its rigidity from actual history metadata: the quotient rule's head is
+Quot.lift, and definitions cannot own the quotient names after installation.
+These statements concern the current formal environment; they do not supply
+new inductive recursor equations or extend executable expression semantics.
+
+RuleValid.delta proves BOTH observation inclusions and BOTH observation
+typings for the actual stored equation, retaining the original RuleValid
+contract. A constant observation cannot be rigid or a constructor; competing
+delta/pattern clauses are eliminated by actual head ownership. The forward
+inclusion recovers the stored RHS observation. The reverse inclusion uses the
+actual RHS soundness induction hypothesis to obtain its typing, transports its
+class using the actual IsDefEq.extra equation, and rebuilds Obs.delta with the
+ACTUAL stored-type filter. Closedness transfers between anchors. The endpoint
+typing follows from that same stored filter and the RHS induction hypothesis.
+RuleValid.delta_of_wf discharges all metadata/rigidity obligations from actual
+WF and actual stored membership, even when the environment contains quotDefEq.
+
+Model.sound_no_quot applies the complete simultaneous induction to actual
+Strong derivations in well-formed source E included in a well-formed target
+env. Its only rule restriction is actual absence of quotDefEq from E.
+History classification proves every source equation is delta and then actual
+WF discharges RuleValid for it in the target. The conclusion is SoundAt and
+HTS for BOTH endpoints; the target may contain the actual quotient equation.
+This is a proved delta-rule fragment beyond the previous no-equations
+corollary. It does not establish validity for quotDefEq itself or soundness of
+arbitrary derivations whose source contains it. HTS alone still does not
+certify typing: the actual Strong derivation remains an input.
+
+The strict tests/ModelDelta.lean audit covers all 11 production declarations,
+the record constructor and both field projections, and all 85 fixture
+declarations: 99 exact admission AND axiom manifests. Full graph traversal
+checks declaration/constructor types and bodies, explicitly opaque bodies on
+integration, rejects missing declarations, and does not trust imported axiom
+caches. Every root excludes admissions and choice with exactly its listed
+subset of propext and Quot.sound. Required dependencies pin actual history
+metadata and its fields, RuleValid, stored membership, IsDefEq.extra, actual
+Strong EXTRA/transitivity, constant filtering, class transport and controls.
+
+Two checked polymorphic definitions first unfold an alias to an earlier
+constant, then to its sort value at the noncanonical level max zero zero.
+Actual Strong EXTRA constructors retain all stored-type and endpoint typing
+premises. Positive observations exercise both inclusions and endpoint typing,
+including at distinct equivalent anchors under the same nonempty observation
+sets. A later checked Eq axiom and actual addQuot installation produce a mixed
+target. Its actual Quot.mk constructor is proved rigid, delta validity still
+holds, and the earlier delta-only source's derivations yield positive target
+observations. A negative control rejects using that mixed environment as a
+source for the no-quotient corollary. A checked identity-function definition
+has a positive lambda observation with duplicate nonempty argument demands.
+Delta validity recovers a typed constant-head observation; subsumption and
+actual argument observations rebuild an application observation, whose typing
+is then derived from the actual Strong application via sound_no_quot.
+
+Main / integration dependency counts are history delta metadata 976 / 1070,
+constructor rigidity 986 / 1078, generic delta validity 2528 / 2688, actual-WF
+delta validity 2695 / 2890, and sound_no_quot 3143 / 3354. The mixed target's
+positive observation traverses 3179 / 3390, function-head typing 3189 / 3400,
+and actual function-application typing 3191 / 3402. Full defaults pass
+440 main / 443 integration jobs; all 31/60 prior selected fixtures and this
+strict fixture pass: 32/61 total. All previous production bytes/contracts are
+unchanged, new production is byte-identical across versions, and the fixture
+differs only in explicit opaque body access. Source census remains main
+119 matching lines / 19 files / 123 whole-word sorry|admit occurrences;
+integration 124 / 23 / 128. No new admission, axiom declaration, executable
+behavior change or kernel discrepancy. Authoritative receipts use
+lean4lean-model-delta- stems dated 20261019: *-default-final2,
+*-fixture-final2, *-regressions, final-manifests.json and final-gates.json.
+
+The first discovery audit caught a Lean 4.33-only Classical.choice dependency
+from simplifying literal-name membership through String.ofList_injective and
+an Array extraction theorem. Explicit finite list-membership witnesses remove
+that dependency in production; full defaults were rerun after that change.
+The final 99-root strict audit then passes both versions with the original
+trust gates. Earlier successful/failing build and audit receipts remain
+diagnostic. No duplicate PR for the adapted upstream delta argument is opened.
+
+Next, prove the actual quotient equation valid and discharge the remaining
+rule obligation for arbitrary well-formed environments. The upstream pattern
+proof uses Classical.choose over finitely many rule binders; constructive
+finite selection already available here is the intended replacement. Pattern
+binding, the propositional-major case, quotient/Pi separation, nonzero major
+exposure, matching/check recovery, universal simulation and actual-consumer
+migration remain open. The new graphs exclude the false NormalEq.parRed and
+its confluence/quotient-injectivity consequences, inverse weakening and
+admitted sort/Pi separation. The actual frontend still inherits its existing
+foundational admissions.
+
 ## Semantic typing spines and simultaneous induction — 2026-10-19
 
 Model.HTS and Model.Sound adapt the corresponding foundation from
@@ -84,8 +187,8 @@ names; final3 pins actual Model.TypeChain.tyCls_subst_of_ctx and VEnv.WF'.decl.
 No theorem or trust gate was weakened. No duplicate upstream PR is opened.
 
 This closes semantic typing spines and the CONDITIONAL combined induction.
-Actual stored delta/quotient rule validity and declaration-history validity
-still prevent full model soundness. Quotient/Pi separation, nonzero major
+Delta-rule validity is now discharged above. Actual quotient-rule validity
+and the remaining declaration-history validity still prevent full model soundness. Quotient/Pi separation, nonzero major
 exposure, matching/check recovery, universal simulation and consumer migration
 remain open. The false NormalEq.parRed/confluence foundation and its derived
 quotient injectivity/inverse weakening remain excluded from every new graph.
