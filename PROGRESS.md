@@ -52,8 +52,19 @@ outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
 All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
 inherited projection admissions, and its equality bridge pins five.
-Full default builds pass (423 integration / 420 main review jobs), as do all
-46 selected integration fixtures and 17 selected main fixtures. No new admission is introduced.
+Full default builds pass (424 integration / 421 main review jobs), as do all
+47 selected integration fixtures and 18 selected main fixtures. No new admission is introduced.
+
+**Eta joins and replacement simulation clauses:** root eta expansion now joins
+EVERY finite candidate path at an identical endpoint, including unfolding and
+further eta steps. Eta/application joins also allow simultaneous candidate paths
+in the function and argument and retain the original dependent result type.
+The replacement `CoreSimulates` obligation has proved recursive clauses for all
+eight non-application normal-equality constructors and application congruence.
+These clauses still take their recursive simulation hypotheses; application's
+general root beta and checked EXTRA cases remain open. All 15 new production
+proofs exclude inverse weakening, false confluence and choice, with exactly the
+two independent typing admissions. Actual consumer manifests are unchanged.
 
 **Canonical unfolding versus arbitrary core reduction:** every original
 parallel successor of an unfoldable quotient application now joins its canonical
