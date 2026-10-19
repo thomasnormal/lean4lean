@@ -52,6 +52,16 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
   evidence.registrationWF henv hrecursors
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (henv : env.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result ∧
+      result.WF :=
+  evidence.registrationWF_of_sourceTypehood henv hsource
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     VDecl.WF env (.induct decl) evidence.constructorEnv :=
   evidence.inductiveDeclWF
