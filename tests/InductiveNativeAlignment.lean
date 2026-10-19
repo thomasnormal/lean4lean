@@ -33,4 +33,13 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
       evidence.constructorEnv) : result.WF :=
   evidence.resultWF henv hrecursors
 
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (henv : env.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors, entry.model.toVConstant.WF
+      evidence.constructorEnv) :
+    env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result ∧
+      result.WF :=
+  evidence.registrationWF henv hrecursors
+
 end Lean4Lean.Tests.InductiveNativeAlignment
