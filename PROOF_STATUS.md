@@ -14,6 +14,76 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Universal hereditary constant-spine exposure — 2026-10-19
+
+`normal_spine_expose` constructs an ACTUAL original `ParRedS` path from ANY
+normal comparison whose right endpoint is a constant applied to captures.
+Its endpoint has the inductive `RigidSpine` representation: an actual proof,
+a literal same-name constant spine with normally related captures and levels,
+or retained eta binders whose bodies are recursively exposed. This structure
+is produced by the theorem from `NormalEq`; it is not an arbitrary caller
+certificate for firing or simulation. No recursive simulation premise is used.
+
+`RigidSpine.substDF` preserves the entire representation under simultaneous
+related substitution, including dependent eta domains. `RigidSpine.instDF`
+specializes it to related arguments; `RigidSpine.apply` takes an ACTUAL beta
+when it consumes an exposed eta binder. The exposure proof recurses on LEFT
+syntax using `VExpr.brecOn`, exposing smaller eta bodies BEFORE substitution.
+Hereditary substitution then handles enlarged instantiated terms without a
+new recursive search or normal transitivity.
+
+`normal_spine_expose_applications` handles ANY finite, pointwise normally
+related pending argument list. It returns the original core path, the exposed
+structure, normal equality to the complete right spine, and BOTH endpoint
+typings at the ORIGINAL supplied type. Core path congruence and preservation
+supply those typings. A constructive typing/universe argument handles applying
+proof-valued functions; it uses direct level evaluation without choice.
+
+The production proof is IDENTICAL on Lean 4.29.0 and 4.33.0-rc2. All existing
+production bytes and theorem contracts remain unchanged. Both universal roots
+inherit EXACTLY `IsDefEqU.sort_inv` and `IsDefEqU.forallE_inv_stratified`, and
+EXACTLY `propext`, `Quot.sound`, `sorryAx`. Exposure has 2905 main / 3108
+integration dependencies; complete application exposure has 2910 / 3113.
+Strict per-root admission AND axiom manifests cover 45 production, environment,
+typing and control roots. Full graph traversal includes declaration types,
+inductive constructor types and explicitly opaque bodies on integration. Gates
+forbid choice, false normal-reduction transport/confluence, derived quotient
+injectivity, inverse typing/normal/reduction transport, normal transitivity,
+old inverse beta helpers and projection placeholders. Required dependencies
+pin structural recursion, simultaneous substitution, actual beta, core paths
+and the complete application theorem.
+
+`tests/QuotSpineExposure.lean` constructs a reachable Eq/Quot model and a
+nonempty dependent context. It exposes a `Quot.lift` prefix through THREE nested
+dependent eta binders and four supplied arguments, with a changed NON-PROOF
+function argument, a neutral major normally related to a constructor, and a
+delayed original result type. The path survives a retained dependent binder
+and actual typed instantiation. A second control exposes `Quot.mk` through two
+eta binders under a fresh type variable that OCCURS in their dependent domains;
+simultaneous substitution uses syntactically different, normally related type
+images and preserves the structure, core path and both original instantiated
+typings. A separate reachable proof-constant environment exercises the proof
+alternative through two supplied arguments. Its environment and typing roots
+are admission-free. Syntax controls pin the binder and argument differences.
+
+Full defaults pass 426 main / 429 integration jobs. All 22/51 previous selected
+fixtures and this new strict fixture pass: 23/52 total. The source admission
+census remains main 119 matching lines / 19 files / 123 occurrences and
+integration 124 / 23 / 128. No new admission, checker behavior change or kernel
+discrepancy. Authoritative receipts use `lean4lean-spine-exposure-` stems dated
+`20261019` under the fleet log directory: `*-default-final2`, `*-regressions`,
+`*-QuotSpineExposure-final`, `final-manifests.json` and `final-gates.json`.
+
+General hereditary prefix exposure is now proved. The GENERAL checked EXTRA
+branch still needs to interpret its proof/spine/eta alternatives for actual
+quotient firing, expose the major where needed, and transport the actual rule
+checks before invoking the existing firing clauses. Universal simulation,
+new-step overlaps, confluence and actual consumer migration remain open.
+The false/admitted `NormalEq.parRed` and actual frontend manifests are unchanged.
+This result depends on the fork's candidate development; no separate
+current-master PR is opened. Today's official fetch/no-op integration rebase
+was already completed and journaled.
+
 ## Checked quotient firing across related sources — 2026-10-19
 
 `CoreSimulates.quot_constructor_extra` proves the constructor-preserving firing
@@ -71,8 +141,9 @@ Receipts use `lean4lean-normal-extra-` stems dated `20261019` under the fleet lo
 directory: `*-default`, `*-regressions`, `*-QuotNormalExtra-final2`,
 `final-manifests.json`, and `final-gates.json`.
 
-The GENERAL checked EXTRA induction branch still needs a constructive exposure
-lemma across arbitrary eta-related function prefixes and erased major shapes.
+The later hereditary exposure result above supplies constructive structure
+across arbitrary eta-related function prefixes. The GENERAL checked EXTRA
+branch still needs to interpret that structure and expose erased major shapes.
 These firing clauses do not replace that obligation with a caller-supplied
 postcondition. Universal simulation, new-step overlaps, confluence and actual
 consumer migration remain open; the false/admitted `NormalEq.parRed` and actual
