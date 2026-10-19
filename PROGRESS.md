@@ -1,6 +1,6 @@
 # Progress and upstream comparison
 
-Last reviewed: **2026-10-15 (UTC)**. This is the readable overview of the
+Last reviewed: **2026-10-19 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
@@ -19,7 +19,7 @@ not completion of frontend soundness.
 `7afeceb` (the canonical non-inductive frontend theorem checkpoint after
 the proof-bearing source checkpoint `4b3a958f89d999bc40ec6b409b135aa36108b8be`),
 the subsequent quotient semantic milestones below, and Lean **4.29.0**. Its full
-default build passes on October 15. The separate integration worktree is
+default build passes on October 19. The separate integration worktree is
 based on official `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` on Lean
 **4.33.0-rc2**. Today's fetch confirms that official tip is **not** an
 ancestor of the published branch; only the detached integration is based on
@@ -32,6 +32,15 @@ without a direct admission, but its dependencies still include `sorryAx`.
 Actual checked inductive/model registration and recursor semantics remain open.
 Our executable also deliberately differs from upstream; this is not just a
 proof-only patch set.
+
+**Inhabited-binder repair:** the inverse-weakening lemmas from upstream PR #51
+are now ported with an explicit typed inhabitant. The actual
+`Reflection.ite_carrier` proof substitutes `Prop` for its `Type` binder instead
+of invoking the known-false general strengthening theorem. Its dependency
+audit excludes that theorem and the false confluence simulation. The general
+proof-binder extraction used by `ite_witness` and `natDITE_witness` still invokes
+the old strengthening admission; this local repair does not justify those
+uses or remove the frontend's inherited admissions.
 
 **Known-false confluence contract:** the remaining `NormalEq.parRed`
 application/extra admission is now contradicted by a checked counterexample in
@@ -207,9 +216,9 @@ push. Permission to use `--force-with-lease` is pending; the existing no-force
 rule remains in effect until the user answers. Do not describe the branch as
 rebased or synchronized until the rebase and publication have actually succeeded.
 
-### Current integration checkpoint — October 14
+### Current integration checkpoint — October 19
 
-The inbox remains absent. The latest fetch on October 14, 2026 confirms official master remains
+The inbox remains absent. The latest fetch on October 19, 2026 confirms official master remains
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, already an ancestor of detached
 integration checkpoint `43a47d9`; the detached integration's daily rebase check
 is a successful no-op. The published branch itself is not yet rebased: it
@@ -218,12 +227,13 @@ journal because each documentation commit changes the branch-only count. The
 detached integration remains based on the official tip. These are
 synchronization facts, not proof progress.
 
-The published branch currently measures **49 upstream-only / 348 branch-only
-commits** against that official tip. This is a synchronization count, not a
-verification score.
+The detached checkpoint predates the subsequent quotient and inhabited-binder
+work on the published branch. Those later changes still need integration;
+the successful no-op checks the checkpoint's upstream base, not a rebase of
+the complete current published source.
 
-The detached integration now passes the full default build (all 414 jobs) and
-all five current restoration/header regression fixtures. The final recursor-name
+The detached integration's October 19 default build and all five current
+restoration/header regression fixtures pass. The final recursor-name
 audit explicitly accounts for the native expression bridges used by the proof;
 no allowlist was weakened and the 129-line / 133-occurrence admission census is
 unchanged. This is compatibility maintenance, not a new semantic milestone.

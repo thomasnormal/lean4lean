@@ -670,6 +670,71 @@ theorem IsDefEq.instN (W : Ctx.InstN Γ₀ e₀ A₀ k Γ₁ Γ) (H : env.IsDefE
       hA3.instL.instN_eq (Nat.zero_le _)]
     exact .extra h1 h2 h3
 
+/-- A single inserted binder can be removed by instantiation. This and the
+inhabited inverse-weakening lemmas below are ported from upstream PR #51. -/
+theorem _root_.Lean4Lean.Ctx.LiftN.instN (argument : VExpr) {domain : VExpr} :
+    ∀ {depth locals extended}, Ctx.LiftN 1 depth locals extended → extended[depth]? = some domain →
+      Ctx.InstN (locals.drop depth) argument domain depth extended locals
+  | _, _, _, .zero inserted arity, lookup => by
+    match inserted, arity, lookup with
+    | [_], _, lookup => cases lookup; exact .zero
+  | _, _, _, .succ (k := depth) (A := binder) insertion, lookup => by
+    have substituted := (Ctx.LiftN.instN argument insertion (by simpa using lookup)).succ
+      (A := binder.liftN 1 depth)
+    rw [VExpr.inst_liftN] at substituted
+    exact substituted
+
+/-- Substitute a typed inhabitant for the removed binder. General inverse
+weakening without an inhabitant is false (upstream issue #50). -/
+theorem IsDefEq.weakN_inv_of_hasType {environment : VEnv}
+    (environmentOrdered : environment.Ordered)
+    (insertion : Ctx.LiftN 1 depth locals extended) (lookup : extended[depth]? = some domain)
+    (argumentTyped : environment.HasType universes (locals.drop depth) argument domain)
+    (equal : environment.IsDefEq universes extended
+      (first.liftN 1 depth) (second.liftN 1 depth) (type.liftN 1 depth)) :
+    environment.IsDefEq universes locals first second type := by
+  simpa only [VExpr.inst_liftN] using
+    equal.instN environmentOrdered argumentTyped (insertion.instN argument lookup)
+
+theorem IsDefEq.weak_inv_of_hasType {environment : VEnv}
+    (environmentOrdered : environment.Ordered)
+    (argumentTyped : environment.HasType universes locals argument domain)
+    (equal : environment.IsDefEq universes (domain :: locals) first.lift second.lift type.lift) :
+    environment.IsDefEq universes locals first second type :=
+  IsDefEq.weakN_inv_of_hasType environmentOrdered .one rfl argumentTyped equal
+
+theorem IsDefEqU.weakN_inv_of_hasType {environment : VEnv}
+    (environmentOrdered : environment.Ordered)
+    (insertion : Ctx.LiftN 1 depth locals extended) (lookup : extended[depth]? = some domain)
+    (argumentTyped : environment.HasType universes (locals.drop depth) argument domain)
+    (equal : environment.IsDefEqU universes extended (first.liftN 1 depth) (second.liftN 1 depth)) :
+    environment.IsDefEqU universes locals first second := by
+  obtain ⟨_, equal⟩ := equal
+  exact ⟨_, by simpa only [VExpr.inst_liftN] using
+    equal.instN environmentOrdered argumentTyped (insertion.instN argument lookup)⟩
+
+theorem IsDefEqU.weak_inv_of_hasType {environment : VEnv}
+    (environmentOrdered : environment.Ordered)
+    (argumentTyped : environment.HasType universes locals argument domain)
+    (equal : environment.IsDefEqU universes (domain :: locals) first.lift second.lift) :
+    environment.IsDefEqU universes locals first second :=
+  IsDefEqU.weakN_inv_of_hasType environmentOrdered .one rfl argumentTyped equal
+
+theorem HasType.weakN_inv_of_hasType {environment : VEnv}
+    (environmentOrdered : environment.Ordered)
+    (insertion : Ctx.LiftN 1 depth locals extended) (lookup : extended[depth]? = some domain)
+    (argumentTyped : environment.HasType universes (locals.drop depth) argument domain)
+    (typed : environment.HasType universes extended (expression.liftN 1 depth) (type.liftN 1 depth)) :
+    environment.HasType universes locals expression type :=
+  IsDefEq.weakN_inv_of_hasType environmentOrdered insertion lookup argumentTyped typed
+
+theorem HasType.weak_inv_of_hasType {environment : VEnv}
+    (environmentOrdered : environment.Ordered)
+    (argumentTyped : environment.HasType universes locals argument domain)
+    (typed : environment.HasType universes (domain :: locals) expression.lift type.lift) :
+    environment.HasType universes locals expression type :=
+  HasType.weakN_inv_of_hasType environmentOrdered .one rfl argumentTyped typed
+
 theorem HasType.instN {env : VEnv} (henv : env.Ordered) (W : Ctx.InstN Γ₀ e₀ A₀ k Γ₁ Γ)
     (H : env.HasType U Γ₁ e A) (h₀ : env.HasType U Γ₀ e₀ A₀) :
     env.HasType U Γ (e.inst e₀ k) (A.inst e₀ k) := IsDefEq.instN henv h₀ W H

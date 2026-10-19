@@ -1348,11 +1348,12 @@ theorem Reflection.checkNatDITETypes.WF {c : VContext} (hc : c.vlctx = [])
   exact (checkReflectionProofs.WF hc r fail hfail ht hf hr hrt tn₀ hnt₀ hb).mono
     fun _ _ _ ⟨ht, hf⟩ => ⟨neg, tn, hnt, hdt, ht, hf⟩
 
-private theorem tr_boundApp_arg {env : VEnv} (henv : env.WF)
+private theorem tr_boundApp_domains {env : VEnv} (henv : env.WF)
     (hA : env.IsType Us.length [] A) (hc : fn.Closed)
     (hbody : TrExprS env Us [(none, .vlam A)] (.app fn (.bvar 0)) body')
     (happ : TrExprS env Us [] (.app fn arg) app') :
-    ∃ arg', TrExprS env Us [] arg arg' ∧ env.HasType Us.length [] arg' A := by
+    ∃ arg' domain, TrExprS env Us [] arg arg' ∧ env.HasType Us.length [] arg' domain ∧
+      env.IsDefEqU Us.length [A] domain.lift A.lift := by
   let .app hfb hab tfb tab := hbody
   let .app hfa haa tfa taa := happ
   have hΔ : VLCtx.WF env Us.length [(none, .vlam A)] := ⟨trivial, nofun, hA⟩
@@ -1365,9 +1366,27 @@ private theorem tr_boundApp_arg {env : VEnv} (henv : env.WF)
     henv hΔ.toCtx (hfa.weak henv.ordered)
   have ⟨⟨_, hdom⟩, _⟩ := hfun.forallE_inv henv hΔ.toCtx
   have heq := VEnv.IsDefEqU.trans henv hΔ.toCtx ⟨_, hdom.symm⟩ habA
-  -- The compared domains are closed over the witness binder.
+  exact ⟨_, _, taa, haa, heq⟩
+
+private theorem tr_boundApp_arg_inhabited {env : VEnv} (henv : env.WF)
+    (hA : env.IsType Us.length [] A) (hc : fn.Closed)
+    (witnessTyped : env.HasType Us.length [] witness A)
+    (hbody : TrExprS env Us [(none, .vlam A)] (.app fn (.bvar 0)) body')
+    (happ : TrExprS env Us [] (.app fn arg) app') :
+    ∃ arg', TrExprS env Us [] arg arg' ∧ env.HasType Us.length [] arg' A := by
+  obtain ⟨argument, _, translated, typed, equal⟩ := tr_boundApp_domains henv hA hc hbody happ
+  have equal := equal.weak_inv_of_hasType henv.ordered witnessTyped
+  exact ⟨argument, translated, typed.defeqU_r henv trivial equal⟩
+
+private theorem tr_boundApp_arg {env : VEnv} (henv : env.WF)
+    (hA : env.IsType Us.length [] A) (hc : fn.Closed)
+    (hbody : TrExprS env Us [(none, .vlam A)] (.app fn (.bvar 0)) body')
+    (happ : TrExprS env Us [] (.app fn arg) app') :
+    ∃ arg', TrExprS env Us [] arg arg' ∧ env.HasType Us.length [] arg' A := by
+  obtain ⟨argument, _, translated, typed, heq⟩ := tr_boundApp_domains henv hA hc hbody happ
+  have hΔ : VLCtx.WF env Us.length [(none, .vlam A)] := ⟨trivial, nofun, hA⟩
   have heq := (VEnv.IsDefEqU.weakN_iff henv hΔ.toCtx (.one (A := A))).1 heq
-  exact ⟨_, taa, haa.defeqU_r henv trivial heq⟩
+  exact ⟨argument, translated, typed.defeqU_r henv trivial heq⟩
 
 theorem Reflection.ite_witness {env : VEnv} (henv : env.WF) (r : Reflection)
     (hrc : r.type.Closed) (hdc : r.toDec.Closed)
@@ -1472,7 +1491,8 @@ theorem Reflection.ite_carrier {env : VEnv} (henv : env.WF) (r : Reflection)
         cases hu
         let .app _ _ tFn _ := tBody
         let .app _ _ tFn _ := tFn
-        exact tr_boundApp_arg henv hType (by simp [Closed]) tFn tactual
+        exact tr_boundApp_arg_inhabited henv hType (by simp [Closed])
+          (VEnv.HasType.sort (l := .zero) (by trivial)) tFn tactual
 
 private theorem Reflection.ite_beta_core (r : Reflection) (hd : r.toDec.Closed)
     (hp : p.Closed) (hb : b.Closed) (hH : H.Closed) (hA : A.Closed) :

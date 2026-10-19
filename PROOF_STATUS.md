@@ -9178,5 +9178,41 @@ logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
 without `sorryAx`. The frontend audit includes `sorryAx` and the existing
 implementation-interface axioms, as noted above.
 
+## Inhabited inverse weakening and the actual carrier check (2026-10-19)
+
+`Ctx.LiftN.instN` and the six `weakN_inv_of_hasType` / `weak_inv_of_hasType`
+lemmas for typed equality, untyped equality, and typing are ported from
+[upstream PR #51](https://github.com/digama0/lean4lean/pull/51), head
+`5ff580979f181a29c41cb358f542e0846756a0c6`. They are substitution lemmas:
+the removed binder must have an actual typed inhabitant in the remaining
+outer context. They require only environment orderedness, not the general
+strengthening admission, and their transitive axioms are bounded by `propext`
+and `Quot.sound`, with no admission or choice.
+
+The local application factors primitive argument-domain recovery into
+`tr_boundApp_domains`, retaining the comparison under the witness binder.
+`tr_boundApp_arg_inhabited` then substitutes the supplied inhabitant.
+The unchanged public `Reflection.ite_carrier` contract uses this helper with
+`Prop : Type`. The concrete carrier result therefore no longer depends on
+`IsDefEqU.weakN_iff`. No acceptance rule or caller premise is changed.
+
+`tests/InhabitedStrengthening.lean` checks top and interior insertion, a
+context-dependent inhabitant, all seven foundational lemmas, both private
+helpers, and the actual public carrier theorem. Its dependency traversal
+excludes `IsDefEqU.weakN_iff`, `NormalEq.parRed`, `NormalEq.parRedS`,
+`IsDefEq.church_rosser`, and `IsDefEqU.quot_inj`. The primitive application
+still inherits independent typing admissions; this is not an admission-free
+primitive/frontend soundness claim. The two proof-binder callers of
+`tr_boundApp_arg` remain on the old general strengthening path, explicitly
+outside this repair.
+
+Validation on Lean 4.29.0: all default targets and twelve focused fixtures
+pass, including the new dependency audit, reflection/primitive and actual
+non-inductive frontend controls, simultaneous substitution, and the existing
+quotient reduction/obstruction fixtures. The source admission census remains
+119 matching lines / 123 whole-word occurrences. The detached Lean 4.33.0-rc2
+integration checkpoint separately passes its default build and five existing
+trust-boundary fixtures; it does not yet incorporate this later fork work.
+
 AI assistance: drafted and iterated with OpenAI Codex, compiled and tested
 locally. Not yet human-reviewed. No PR or Zulip message has been submitted.

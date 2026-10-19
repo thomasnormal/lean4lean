@@ -11,6 +11,19 @@ This is a list of places where lean4lean deliberately has different behavior fro
 * [`Lean4Lean.TypeChecker.Inner.inferLambda`](Lean4Lean/TypeChecker.lean), `inferLet`: lean4lean does the `ensureSort` call before extending the context, while [`infer_lambda`](https://github.com/leanprover/lean4/blob/v4.26.0/src/kernel/type_checker.cpp#L124-L126) does it afterward. It's not clear whether this is actually unsound but it would require some very weird invariants to justify having unchecked things in the local context and hoping that they won't be used in the typing proof of that same expression.
 * [`Lean4Lean.checkConstantVal`](Lean4Lean/Environment.lean): The original implementation would call `check` which sets the level params and then unsets them afterward, and then `ensure_sort` would run in a context without any level params. In lean4lean the monad is parameterized over level params, so they remain the same across the two calls.
 
+## Inhabited inverse weakening (2026-10-19)
+
+General inverse weakening through an arbitrary unused binder is false for
+semantic conversion; upstream issue #50 records the counterexample.
+The substitution lemmas ported from upstream PR #51 prove the inhabited
+special case with an explicit typed witness. `Reflection.ite_carrier` now
+uses that case, substituting `Prop : Type` rather than the general admission.
+The public theorem and executable behavior are unchanged. Its dependency
+fixture excludes the false strengthening and confluence theorems while
+retaining independent typing admissions. Proof-binder extraction in
+`ite_witness` and `natDITE_witness` still uses general strengthening and remains
+unrepaired; a witness must not be assumed for an arbitrary proposition.
+
 ## False quotient confluence simulation contract (2026-10-15)
 
 This is a verification-model defect, not a newly introduced executable
