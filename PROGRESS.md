@@ -39,8 +39,22 @@ native restoration receipts also remain open. The Nat-closing and successor
 arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
-Full default builds pass (424 integration / 421 main review jobs), as do all
-47 selected integration fixtures and 18 selected main fixtures. No new admission is introduced.
+Full default builds pass (426 integration / 423 main review jobs), as do all
+49 selected integration fixtures and 20 selected main fixtures. No new admission is introduced.
+
+**Simultaneous substitution and lambda beta simulation:** related arguments
+can now be substituted simultaneously into both endpoints of normal equality,
+including eta with different dependent binder domains. The general proof has no
+inherited source admission in either fork snapshot and avoids normal
+transitivity and inverse weakening. Arbitrary candidate argument paths propagate
+through duplicated occurrences beneath dependent binders. The actual lambda
+beta clause combines recursive body/argument simulation, converted domains and
+both endpoint typings at the original application type. Its exact trust boundary
+is the two existing typing admissions. General beta across arbitrary eta-related
+function shapes, checked EXTRA and the universal simulation remain open. The
+independent substitution proof and strict regression are submitted as
+[upstream PR #65](https://github.com/digama0/lean4lean/pull/65), with the official
+master's additional inductive admissions explicitly audited there.
 
 **Eta joins and replacement simulation clauses:** root eta expansion now joins
 EVERY finite candidate path at an identical endpoint, including unfolding and
@@ -592,14 +606,13 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The Lean 4.29.0 proof source `742ecbe` passes all default targets
-(**419 jobs**) on October 19, rechecked for this documentation commit.
-The preceding proof item also passed twelve focused fixtures, including
-inhabited-strengthening, substitution, reflection/primitive/frontend and
-quotient controls. The separate Lean 4.33.0-rc2 integration passes its own full
-default build and current quotient/model and restoration regression gates.
-These receipts validate their respective source snapshots, not a complete
-published rebase. Detailed logs and trust bounds are in `PROOF_STATUS.md`.
+The current Lean 4.29.0 proof source passes all default targets (**423 jobs**)
+on October 19 and all 20 selected regressions. The separate Lean 4.33.0-rc2
+integration passes its full default build (**426 jobs**) and all 49 selected
+regressions. The independent current-master substitution PR passes its default
+build and standalone regression. These receipts validate their respective
+snapshots; the main branch retains its earlier history. Detailed logs and exact
+trust bounds are in `PROOF_STATUS.md`.
 
 | Whole-word `sorry` or `admit` source census, October 19 | Published proof source | Local integration | Official master |
 | --- | --- | --- | --- |
