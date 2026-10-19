@@ -14,6 +14,75 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Eta joins and the replacement simulation induction — 2026-10-19
+
+`QuotEtaSimulation` proves forward eta compatibility for the existing candidate
+relation. `Step.etaCongr` and `Steps.etaCongr` transport arbitrary candidate
+steps/finite paths beneath eta's retained binder. `eta_steps_join` joins a ROOT
+eta expansion against EVERY finite candidate path, including original core
+rewriting, canonical unfolding, and further eta expansion, at an IDENTICAL
+endpoint. Its endpoint keeps the ORIGINAL supplied result type, which need not
+be the function type used to choose the eta binder.
+
+`eta_apply_join` additionally joins eta followed by beta with simultaneous
+arbitrary candidate paths in BOTH the function and argument. It returns the
+initial eta application step, the expanded application's path, the direct
+application path, and their common endpoint's ORIGINAL application typing.
+The result remains valid when the type depends on the argument and reducing
+that argument changes its syntactic form.
+
+The logical predicate `CoreSimulates` states the proposed repair precisely:
+an ACTUAL original `ParRed` on the right is matched by candidate `Steps` on
+the left, ending in `NormalEq`. This item proves its recursive induction clauses
+for ALL EIGHT non-application `NormalEq` constructors: reflexivity, sorts,
+constants, proof irrelevance, lambda, forall, eta-left, and eta-right. It also
+proves application's congruence case. Lambda/forall explicitly transport
+recursive paths through the actual domain conversions. The eta-right clause
+expands its source and retains the binder, replacing the old attempted inverse
+reduction argument. `CoreSimulates.typed` gives BOTH endpoint typings at the
+original source type.
+
+These ARE recursive constructor clauses: their body/domain simulation premises
+are the corresponding induction hypotheses. There is NO theorem yet asserting
+that every `NormalEq` satisfies `CoreSimulates`. Application's general ROOT beta
+and checked EXTRA cases remain outstanding, as do unfolding against arbitrary
+new congruence steps, full simulation/confluence, and migration of the actual
+checker consumers. The original false/admitted `NormalEq.parRed` and the actual
+frontend dependency manifests are unchanged. Genuine projection semantics and
+checked inductive/model registration also remain open.
+
+The 15 new production proofs are identical on Lean 4.29.0 and 4.33.0-rc2. All
+existing production sources and theorem contracts remain byte-identical; only
+a logical predicate and proved lemmas are added. Every production root has
+EXACTLY the inherited `IsDefEqU.sort_inv` and `IsDefEqU.forallE_inv_stratified`
+admissions, with EXACTLY `propext`, `Quot.sound`, `sorryAx`. The concrete parameter
+instance exposes this baseline even in the syntactic path lemmas. Eta/path and
+eta/application joins have 2821/2824 main and 3017/3020 integration dependencies;
+the eta-right clause has 2739/2931. Strict complete-graph gates forbid choice,
+false confluence, derived quotient injectivity, inverse weakening/inverse
+reduction transport, normal-equality transitivity, and projection placeholders.
+
+`tests/QuotEtaSimulation.lean` pins exact admission AND axiom manifests for 45
+roots, with opaque bodies explicitly traversed on 4.33. Controls use the reachable
+Eq/Quot environment and nonempty dependent obstruction context. They cover an
+ARBITRARY actual reduction of an eta lambda, simultaneous beta reduction of its
+domain and body, both eta clauses, nonliteral lambda-domain conversion, forall
+domain reduction, and an actual path containing core, unfolding and new eta.
+Application controls reduce BOTH function and argument; a dependent function
+control keeps a delayed original result type after its argument reduces. A
+retained dependent proof binder is then instantiated at its checked witness.
+
+Full default builds pass (421 main / 424 integration jobs), all 17/46 previous
+selected fixtures pass, and the new strict fixture passes on both: 18/47 total.
+Source census is unchanged: main 119 matching lines / 19 files / 123 occurrences;
+integration 124 / 23 / 128. No new source admission, checker behavior change, or
+kernel discrepancy. Receipts use `lean4lean-eta-simulation-` stems dated
+`20261019` under `/var/tmp/thomas-ahle/fleet2/logs/`. The final trust receipts are
+`main/integration-fixture-final.log/.exit`. Official master remains `67f63b0`;
+a fresh PR #53 API/source check gives OPEN at `5a8c0d5`, developing the shared
+prefix/unfolding direction in its broader model. This dependent fork-candidate
+extension does not warrant a separate current-master PR.
+
 ## Canonical quotient unfolding and every original core reduction — 2026-10-19
 
 `QuotPropReduction.unfold_parRed_join` now handles EVERY original `ParRed`
