@@ -14,6 +14,61 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Separate upstream native Nat-closing repair — 2026-10-19
+
+The Lean 4.33.0-rc2 integration advances from `33b42bf` to
+`fd16eef5c9e43031b09feb88c337031396300355` on the same official base
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` and separate dated snapshot branch.
+This main branch's Lean 4.29 proof source remains `1337f87`.
+
+The actual `Primitive.unfoldNatWellFounded.WF'` proof now replaces three
+`TrExprS.weakFV_inv` calls for its functional, inferred forall type, and opened
+normalized codomain beneath a retained binder. Its existing measure guard
+certifies the removed Nat locals. `TrExprS.close_unused_fvar` abstracts an unused
+native free variable and instantiates it at an actual translated typed witness,
+supporting arbitrary retained binder depth. `MLCtx.WF.dropNat_trS` and
+`dropNat_trS_under` iterate this at zero, including beneath a domain depending
+on the base context. No executable behavior, guard or public premise changes.
+
+The new native helpers exclude general strengthening and false confluence
+transitively. They inherit exactly three direct projection admissions:
+`TrProj`, `TrProj.instN`, and `TrProj.weak'`. Their axiom bounds include
+`propext`, `Quot.sound`, `Classical.choice`, `sorryAx`, and, for the MLCtx
+variants, the existing persistent array/map interfaces `toList'_push`,
+`find?_eq`, and `toList'_insert`. The separate retained-domain transport
+`TrExprS.defeqDFC` also excludes false strengthening/confluence; its exact six
+inherited admissions are `TrProj`, `TrProj.defeqDFC`, `TrProj.uniq`, `TrProj.wf`,
+`IsDefEqU.sort_inv`, and `IsDefEqU.forallE_inv_stratified`. These are conditional
+translation results. The previous six semantic helpers remain admission-free
+and use no choice; all three public recursion theorems retain the unchanged
+33-axiom manifests. One general fuel-binder extraction and other inherited
+checker obligations remain open.
+
+`tests/UnusedNatTranslation.lean` exercises actual closing over a nonempty base,
+a dependent retained domain, two retained binders, two guard-shaped Nat locals,
+and an empty telescope. Its audit traverses 5209 helper dependencies and 4636
+conversion dependencies, pinning the exact three/six admission provenance and
+the actual consumer's new helper calls. Full default build passes all 422 jobs;
+all 35 fixtures pass, including the preceding 34 regression gates. Source census
+is unchanged at 125 matching lines / 24 files / 129 occurrences. Main has a
+fresh 419-job default-build pass and unchanged 119 / 19 / 123 census.
+Receipts under `/var/tmp/thomas-ahle/fleet2/logs/` use prefix
+`lean4lean-unused-nat-`: `default-final-20261019.log`,
+`fixture-final-20261019.log`, `regressions-20261019.log`,
+`main-build-20261019.log`, and `census-20261019.log`.
+
+Current official master still has these extraction calls. Draft
+[PR #53](https://github.com/digama0/lean4lean/pull/53), inspected at
+`5a8c0d5f111809a95f4924c71e0e9bc8738d72e0`, already proves
+`MLCtx.trExprS_dropN_nat` using abstraction and typed zero instantiation and
+removes the extraction calls through a broader recursion redesign. The closing
+direction is already upstream work; this checkpoint applies it within the
+current contracts with explicit dependency audits. No duplicate PR is opened.
+An isolated official-master candidate was archived after its exploratory build
+exposed absent fork telescope foundations; it is not a validated upstream patch.
+The integration and main default-build results above are independent of that
+exploration. No new native kernel discrepancy was found.
+
 ## Separate upstream inhabited-telescope repair — 2026-10-19
 
 The Lean 4.33.0-rc2 integration now advances from quotient checkpoint `d0f7742`
