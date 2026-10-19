@@ -292,7 +292,7 @@ run_meta
   let noAdmissions := [``quotientEnvironmentWF, ``quotientRegistered, ``delayEqual,
     ``domainTyped, ``plainDomainTyped, ``bodyTyped, ``functionTyped, ``wrapperTyped,
     ``delayedProofTyped]
-  let typingAdmissions := [``IsDefEqU.forallE_inv_stratified]
+  let typingAdmissions : List Name := []
   let forbidden := [``NormalEq.parRed, ``NormalEq.parRedS, ``IsDefEq.church_rosser,
     ``IsDefEqU.quot_inj, ``IsDefEqU.weakN_iff, ``NormalEq.weakN_iff, ``NormalEq.weakN_inv_DFC,
     ``ParRed.weakN_inv, ``NormalEq.trans,
@@ -304,7 +304,7 @@ run_meta
     if proof.hasSorry then throwError "direct eta-simulation admission {root}"
     let expectedAdmissions := if noAdmissions.contains root then [] else typingAdmissions
     let expectedAxioms := if noAdmissions.contains root then [``propext, ``Quot.sound]
-      else [``propext, ``Quot.sound, ``sorryAx]
+      else [``propext, ``Quot.sound]
     let axioms ← collectAxioms root
     unless axioms.size == expectedAxioms.length && expectedAxioms.all axioms.contains do
       throwError "eta-simulation axiom manifest changed for {root}: {repr axioms}"

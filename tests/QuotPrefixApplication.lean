@@ -102,7 +102,7 @@ run_meta
     ``quotientRegistered, ``applicationsTyped, ``allSixJoin, ``retainedDependentBinder, ``computationControls]
   let usesTyping := [``expand_apply_join, ``prefix_apply_join, ``allSixJoin, ``retainedDependentBinder]
   let onlyPropext := [``spine_applyArguments, ``applyType_append, ``computationControls]
-  let typingAdmissions := [``IsDefEqU.forallE_inv_stratified]
+  let typingAdmissions : List Name := []
   let forbidden := [``NormalEq.parRed, ``NormalEq.parRedS, ``IsDefEq.church_rosser,
     ``IsDefEqU.quot_inj, ``IsDefEqU.weakN_iff, ``NormalEq.weakN_iff, ``NormalEq.weakN_inv_DFC,
     `Lean4Lean.TrProj, `Lean4Lean.TrProj.weak', `Lean4Lean.TrProj.instN]
@@ -113,7 +113,7 @@ run_meta
     if proof.hasSorry then throwError "direct prefix application admission {root}"
     let expectedAdmissions := if usesTyping.contains root then typingAdmissions else []
     let expectedAxioms := if onlyPropext.contains root then [``propext]
-      else if usesTyping.contains root then [``propext, ``Quot.sound, ``sorryAx]
+      else if usesTyping.contains root then [``propext, ``Quot.sound]
       else [``propext, ``Quot.sound]
     let axioms ← collectAxioms root
     unless axioms.size == expectedAxioms.length && expectedAxioms.all axioms.contains do

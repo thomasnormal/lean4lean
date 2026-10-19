@@ -1,10 +1,10 @@
-import Lean4Lean.Theory.Typing.HeadInjectivity.Model.Separation
+import Lean4Lean.Theory.Typing.HeadInjectivity.Uniqueness
 import Lean4Lean.Theory.Typing.EnvLemmas
 import Lean4Lean.Theory.Typing.Strong
 
 /-!
-Sort injectivity and sort/Pi separation follow from the observation model.
-The stratified dependent-Pi injectivity proof remains open.
+Sort and dependent-Pi injectivity and sort/Pi separation follow from the
+observation model. Stratified Pi inversion preserves both original height bounds.
 -/
 
 namespace Lean4Lean
@@ -21,7 +21,9 @@ theorem IsDefEqU.forallE_inv_stratified (henv : VEnv.WF env) (hΓ : OnCtx Γ (en
     (∃ u, env.IsDefEq U Γ A A' (.sort u) ∧ env.HasTypeStratified U Γ A (.sort u) true n) ∧
     ∃ u, env.IsDefEq U (A::Γ) B B' (.sort u) ∧
       env.HasTypeStratified U (A::Γ) B (.sort u) true n ∧
-      env.HasTypeStratified U (A'::Γ) B' (.sort u) true n' := sorry
+      env.HasTypeStratified U (A'::Γ) B' (.sort u) true n' :=
+  IsDefEqU.forallE_inv_stratified_of_chainHeadInjectivity
+    henv henv.chainHeadInjectivity hΓ h1 h2 h3
 
 theorem IsDefEqU.forallE_inv (henv : VEnv.WF env) (hΓ : OnCtx Γ (env.IsType U))
     (h1 : env.IsDefEqU U Γ (.forallE A B) (.forallE A' B')) :

@@ -8,10 +8,83 @@ false for the actual quotient reduction instance, as demonstrated by
 `QuotConfluenceObstruction.counterexample`. Its transitive users therefore
 depend on a known-false admitted specification, not only an open proof task.
 The counterexample is independent of that theorem and all its confluence/
-quotient-injectivity consequences, but still inherits the separately identified
-typing/injectivity admissions. No unconditional kernel soundness follows from
-the results below. See `bugs-found.md` for the full obstruction and native
+quotient-injectivity consequences. The independent typing/injectivity
+admissions recorded at that checkpoint are now discharged below. No
+unconditional kernel soundness follows from the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
+
+
+## Type uniqueness and original dependent-Pi injectivity — 2026-10-19
+
+`IsDefEqU.forallE_inv_stratified` now has a proof with its exact original
+contract: actual untyped Pi equality, both actual stratified typings, the left
+height `n` and right codomain height `n'`. The existing ordinary `forallE_inv`
+derivation and all of `UniqueTyping.lean` remain byte-unchanged. In particular,
+the original `IsDefEq.uniq` and its equality/conversion consequences are now
+transitively admission-free and choice-free. Later inverse-weakening admissions
+in the same module remain open.
+
+The new lower `HeadInjectivity.Uniqueness` module adapts the uniqueness/chain
+collapse argument from [PR #53](https://github.com/digama0/lean4lean/pull/53),
+exact head `5a8c0d5f111809a95f4924c71e0e9bc8738d72e0`, to the current actual
+Strong constructors. Structural uniqueness yields a heterogeneous `TypeChain`.
+Application inversion uses the actual chain Pi field and typed argument
+instantiation; Pi formation uses the actual chain sort field. Chain collapse
+retypes each link at the actual left endpoint's universe. Ordinary uniqueness
+then aligns the two actual types at a common term.
+
+Untyped Pi equality is retyped at the canonical sort supplied by the actual
+left domain and codomain typings. The chain field extracts dependent chains in
+the left-domain context, then collapse gives both equalities at the original
+left universes. `forallE_core` retains the supplied stratified heights after
+removing conversions. Ordinary context conversion and uniqueness identify the
+right codomain universe; the original spare conversion step aligns it with
+the left universe at exactly `n'`. No height relaxation, additional premise,
+stratified context-conversion assumption or invented projection metadata is
+introduced. The lower module imports neither original Injectivity nor
+UniqueTyping nor ChurchRosser.
+
+`tests/ChainUniqueness.lean` audits 232 main / 239 integration roots, including
+all six new theorems, both original Pi consumers, original uniqueness and its
+equality/conversion consequences, and all fixture declarations. Full
+declaration and constructor types and bodies are traversed, explicitly including opaque
+integration bodies. Missing declarations fail. Every root has exactly its
+listed subset of `propext` and `Quot.sound`; no admission or choice is allowed.
+The lower six roots additionally forbid the old consumer names. Required
+dependencies pin actual chain fields/collapse, actual WF history, original
+consumer names, beta, quotient EXTRA, conversion and finite-height controls.
+
+Positive controls retain the actual mixed checked delta/Quot environment.
+Dependent beta domains and codomains feed original Pi inversion. A two-link
+heterogeneous sort chain collapses at the actual left universe. Real delta
+and complete ordinary quotient EXTRA derivations feed original uniqueness;
+a converted sort term exercises unequal syntactic types. The stratified
+control uses heights 2 and 3 with codomain universes `1` and `max 1 0`,
+proves these levels syntactically distinct, and obtains the original output
+bounds 2 and 3 including the right universe conversion.
+
+Full defaults pass 454 main / 457 integration jobs. All 38/66 prior selected
+fixtures and the new strict fixture pass: 39/67 total. Exact historical
+manifests remove only the newly proved Pi admission and remove `sorryAx` only
+where no other admission remains. Projection and confluence admissions stay
+explicit in their existing fixtures. Two translation fixtures now require the
+exact clean axiom sets of original Pi inversion, uniqueness and type conversion,
+while preserving their original provenance checks. Census decreases by exactly one admission
+and one affected file per tree: main 117 to 116 matching lines / 19 to 18 files /
+121 to 120 whole-word sorry|admit occurrences; integration 122 to 121 lines /
+23 to 22 files / 126 to 125 occurrences. No new admission, axiom declaration,
+executable change or kernel discrepancy.
+
+This milestone extends main `36a530617ceff0d75906812fe238f0bc8fb9614c` and detached
+integration `9da33a7c0f3ab7910ae9a2d819db289160a6dd00`, based on official
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`. Receipts use
+`lean4lean-chain-uniqueness-` stems dated 20261019 in the fleet logs directory.
+Earlier dated admission accounts below describe their original checkpoints;
+the current fixtures and this section supersede those typing-foundation counts.
+Remaining work includes inverse weakening, nonzero major exposure,
+matching/check recovery, universal reduction simulation, replacement of the
+false NormalEq.parRed/confluence contract, projection translation and actual
+frontend soundness. Genuine inductive constructor/recursor semantics stays open.
 
 
 ## Ordinary soundness and proved head separation — 2026-10-19
@@ -89,9 +162,9 @@ integration 1b49dcd40717b18063b3c3f8919757ae711f7e45, based on official
 Earlier dated counts/manifests below describe their original checkpoints;
 the current fixtures and this section give the updated trust boundary.
 
-Remaining work includes original dependent-Pi injectivity, type uniqueness,
-nonzero major exposure, matching/check recovery, universal reduction simulation,
-replacement of false NormalEq.parRed/confluence and the remaining consumer
+Original dependent-Pi injectivity and type uniqueness are now proved above.
+Remaining work includes inverse weakening, nonzero major exposure,
+matching/check recovery, universal reduction simulation, replacement of false NormalEq.parRed/confluence and the remaining consumer
 migration. Ordinary frontend soundness still inherits foundational admissions;
 genuine inductive constructor/recursor semantics remains open.
 

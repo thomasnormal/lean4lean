@@ -494,10 +494,15 @@ private def auditFoundations (nativeInterfaces : List Name) : MetaM Unit := do
     unless environment.getModuleIdxFor? name == environment.getModuleIdx? moduleName do
       throwError "constructor-fields inherited foundation provenance changed: {name}"
     let axioms ← collectAxioms name
-    unless axioms.contains ``sorryAx do
-      throwError "constructor-fields inherited foundation admission unexpectedly vanished: {name}"
-    auditDeclaration name (logical ++ [``sorryAx])
-    logInfo m!"pinned inherited constructor-field foundation: {name} from {moduleName}"
+    let proved := name == ``VEnv.HasType.defeqU_r
+    if proved then
+      unless axioms.size == 2 && [``propext, ``Quot.sound].all axioms.contains do
+        throwError "constructor-fields proved foundation manifest changed: {name}"
+    else
+      unless axioms.contains ``sorryAx do
+        throwError "constructor-fields inherited foundation admission unexpectedly vanished: {name}"
+    auditDeclaration name (if proved then [``propext, ``Quot.sound] else logical ++ [``sorryAx])
+    logInfo m!"pinned constructor-field foundation: {name} from {moduleName}; proved = {proved}"
   for name in [``TypeChecker.MLCtx.WF.mkForall_eq, ``TypeChecker.MLCtx.WF.mkForall_tr,
       ``TypeChecker.MLCtx.WF.mkForall_trS] do
     unless environment.getModuleIdxFor? name == environment.getModuleIdx? `Lean4Lean.Verify.TypeChecker.Basic do
