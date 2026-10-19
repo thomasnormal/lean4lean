@@ -17,8 +17,8 @@ not completion of frontend soundness.
 
 **Published versus upstream integration:** this main review branch retains
 the quotient and inhabited-binder proof source `1337f87` on Lean **4.29.0**.
-The separate Lean **4.33.0-rc2** snapshot is `5e72e87f2ab2f6759da1c955d64fcf4b9b3f4771`,
-extending `fd16eef` on
+The separate Lean **4.33.0-rc2** snapshot is `fe2ab45a1fa36f9de8b852a621188c3f3179cd83`,
+extending `5e72e87` on
 `poc-verified-noninductive-upstream-20261019`, based on official
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`.
 It retains upstream mutual definitions, integrates the quotient proofs and
@@ -40,8 +40,18 @@ native restoration receipts also remain open. The Nat-closing and successor
 arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
-Full default builds pass (422 integration / 419 main review jobs), as do all
-36 current integration fixtures. No new admission is introduced.
+Full default builds pass (423 integration / 419 main review jobs), as do all
+37 current integration fixtures. No new admission is introduced.
+
+**Local-let cache restoration:** removing a local definition leaves the model
+context identical. Structural erasure now restores type and WHNF caches in all
+three actual let-restoration paths, preserving the original expressions,
+dependency scopes, contracts, and accepted inputs. Their full dependency audits
+exclude general strengthening and false confluence, with exactly one or two
+existing projection admissions per path. The generic lambda paths and the
+frontend's broader inherited obligations remain open. The focused master-based
+patch is [upstream PR #64](https://github.com/digama0/lean4lean/pull/64), validated
+independently on the current official toolchain.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.
