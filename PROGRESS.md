@@ -52,8 +52,18 @@ outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
 All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
 inherited projection admissions, and its equality bridge pins five.
-Full default builds pass (435 integration / 432 main review jobs), as do all
-56 selected integration fixtures and 27 selected main fixtures. No new admission is introduced.
+Full default builds pass (436 integration / 433 main review jobs), as do all
+57 selected integration fixtures and 28 selected main fixtures. No new admission is introduced.
+
+**Expression observation interpretation:** anchored valuations now interpret
+all six existing expression forms using actual stored constants and equations,
+with typed backed keys and the original rule-binding conditions. Structural
+weakening, substitution, instantiation, subsumption monotonicity, compactness,
+closed-term invariance and hereditary backing are proved without admissions or
+choice. The 139-root audit reads full types and bodies on both toolchains;
+controls include a checked delta definition, the actual quotient equation and
+nonempty finite demands under a binder. Level/representative invariance,
+rule/environment soundness, quotient/Pi separation and nonzero EXTRA remain open.
 
 **Constructive observation filter:** finite index maps now implement the
 original contravariant coverage relation without global choice or decidable
@@ -61,7 +71,7 @@ equality on observations. Subsumption composes, finite demands admit
 hereditary backing, and typed application survives coverage strengthening.
 The filter's proof-irrelevance result and typed finite closure are proved;
 86 roots have exact admission-free, choice-free manifests on both toolchains.
-This advances the genuine model foundation. Expression interpretation,
+The structural interpreter is now supplied above. Interpretation soundness,
 rule/environment soundness, quotient/Pi separation and nonzero EXTRA remain open.
 
 **Typed class foundation for separation:** heterogeneous sort-typed chains
@@ -71,8 +81,7 @@ beta at any member of a typed argument class, related-anchor invariance and
 actual function eta preserve the anchored classes. The 51-root audit pins
 exact axiom manifests on both toolchains. This ports PR #53's necessary class
 foundation; the constructive observation filter is now supplied above.
-Observation interpretation and soundness, quotient/Pi separation and nonzero
-EXTRA remain open.
+Interpretation soundness, quotient/Pi separation and nonzero EXTRA remain open.
 
 **Nonzero quotient-major classification:** actual sort typings now prove
 source-universe agreement for definitionally equal quotient types and recover a
@@ -534,9 +543,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current main Lean 4.29.0 proof source passes all default targets (432 jobs)
-and all 27 selected regressions on October 19. This Lean 4.33.0-rc2 integration
-passes its full default build (435 jobs) and all 56 selected regressions. The
+The current main Lean 4.29.0 proof source passes all default targets (433 jobs)
+and all 28 selected regressions on October 19. This Lean 4.33.0-rc2 integration
+passes its full default build (436 jobs) and all 57 selected regressions. The
 independent current-master substitution PR passes its default build and
 standalone regression. Each receipt validates its respective source snapshot;
 exact trust bounds are recorded in `PROOF_STATUS.md`.

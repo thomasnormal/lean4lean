@@ -4,6 +4,76 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Anchored expression interpretation — 2026-10-19
+
+The observation interpretation of
+[PR #53](https://github.com/digama0/lean4lean/pull/53), exact head
+5a8c0d5f111809a95f4924c71e0e9bc8738d72e0, now covers the existing six
+expression forms. Constants read actual stored declarations and equations.
+Delta observations read the actual instantiated right-hand side; constructor
+observations require a constructor major in a stored equation. Pattern rules
+retain their literal lambda/spine decompositions and bind the actual stored
+body. Their keys remain typed and backed. Bare leading variables take the
+first matching key. Fields absent from those variables use constructor
+observations in mode AB, or an actually typed propositional representative
+with empty observations. Mode C retains uniqueness of the stored rule and a
+zero-sort rigid major-family observation of the actual head type. No caller
+soundness/firing certificate replaces these conditions. Rigidity excludes
+all stored rule heads after stripping leading lambdas, including Quot.lift's
+pattern rule. No projection/eliminator metadata or new environment invariant
+is introduced.
+
+Obs.lift'_iff, subst_iff and inst_iff transport observations structurally at
+anchored valuations. Inclusion and subsumption monotonicity preserve finite
+coverage and actual typed keys. Compactness extracts finite variable demands;
+compact0B closes them under hereditary witnesses. Closed terms are independent
+of their valuation, and backed valuations yield backed interpretations.
+TypedAt merges finite typing witnesses; TV.cons extends typed observation
+valuations. Anchor typing remains the separate, unchanged Ctx.SubstEq premise.
+These results need no global environment validity or typed-anchor assumption.
+A copied simplifier proof of variable-update commutation introduced
+Classical.choice; explicit natural-number cases remove it, including its
+transitive use by compactness.
+
+tests/ModelInterpretation.lean fixes exact admission AND axiom manifests for
+139 declarations and controls: all production definitions/theorems, all twelve
+interpretation constructors, and all fixture definitions/theorems. Every root
+is admission-free and choice-free, with exactly its listed subset of propext
+and Quot.sound. The audit computes axioms during its full traversal of types,
+constructor types and bodies, explicitly reading opaque values on integration.
+It fails on missing declarations. This avoids the Lean 4.33 imported-constructor
+axiom cache returning an empty list where Lean 4.29 walks the constructor type.
+Required dependencies pin actual stored rules, bindings, filters, finite
+coverage, substitution, compactness and backing. Controls observe a typed
+identity/application and a checked delta definition, exercise non-reflexive
+application subsumption, and extract backed demands under a lambda while
+proving empty demands impossible. Other controls cover hereditary field
+witnesses, a typed valuation extension, repeated-variable first binding and
+an actually typed proof-field binding. The installed quotient equation
+supplies its actual constructor major and pattern head; negative controls
+reject the wrong constructor, missing lookups and a second competing rule
+under the mode-C uniqueness condition.
+
+Substitution traverses 1665 / 1752 declarations main / integration; compact0B
+1832 / 1918, closed-term invariance 1612 / 1683 and hereditary backing
+1621 / 1695. Full defaults pass 433 main / 436 integration jobs. All 27/56
+previous selected fixtures plus the new strict fixture pass: 28/57 total.
+Source census is unchanged: main 119 matching lines / 19 files / 123 occurrences;
+integration 124 / 23 / 128. Every previous production byte is unchanged; the
+new production is byte-identical across toolchains. No new admission, axiom
+declaration, executable behavior change or kernel discrepancy is introduced.
+Receipts use lean4lean-model-interp- stems dated 20261019: *-default-final,
+*-fixture-final4, *-regressions, final-manifests.json and final-gates.json.
+Earlier draft/discovery receipts are superseded by these successful terminal
+checks. No duplicate PR is opened for the adapted upstream model foundation.
+
+This defines the actual interpretation and proves its structural laws;
+interpretation soundness is still open. Level invariance, representative
+invariance, rule soundness and declaration-history validity are next.
+Quotient/Pi separation, nonzero EXTRA, universal simulation, replacement of the
+false NormalEq.parRed/confluence contract and actual-consumer migration remain
+open. The actual frontend still inherits its existing foundational admissions.
+
 ## Constructive observation subsumption and typing — 2026-10-19
 
 The observation layer of
@@ -34,8 +104,8 @@ and CtorFam.unique proves that two such decompositions name the SAME family.
 No environment invariant is strengthened. Pure field
 annotations and their closure are present, but projection/case-eliminator
 expression typing is not introduced into our syntax or environment.
-This is an observation filter, not a sound interpretation of expressions:
-interpretation, substitution/compactness, rule soundness, declaration-history
+The expression interpretation above now supplies structural substitution and
+compactness. Interpretation soundness, rule soundness, declaration-history
 validity, quotient/Pi separation and nonzero EXTRA remain open. Later
 upstream rule proofs also use classical tactics and need their own audit;
 removing this choice point does not certify the whole upstream model.
@@ -115,8 +185,9 @@ Collapse traverses 2224 main / 2366 integration declarations; beta traverses
 2326 / 2478 and related-anchor class invariance 2302 / 2454.
 
 The observation/filter layer above now supplies syntax and constructive
-coverage witnesses. Interpretation, rule soundness and declaration-history
-model validity remain open. PR #53's global Covers.choice is replaced by
+coverage witnesses. The structural interpreter is supplied above;
+interpretation soundness, rule soundness and declaration-history model
+validity remain open. PR #53's global Covers.choice is replaced by
 finite index witnesses above; the remaining model still needs its own audit.
 Quotient/Pi separation, nonzero EXTRA, universal simulation, false
 confluence replacement and actual-consumer migration remain open. No
