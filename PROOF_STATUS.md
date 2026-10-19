@@ -14,6 +14,60 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Separate upstream same-context fuel repair — 2026-10-19
+
+The separate Lean 4.33.0-rc2 integration advances from `fd16eef` to
+`5e72e87f2ab2f6759da1c955d64fcf4b9b3f4771`, removing the last direct general context extraction in the actual `Primitive.unfoldNatWellFounded.WF'` proof. It ports
+upstream draft [PR #53](https://github.com/digama0/lean4lean/pull/53)'s
+successor-invariance argument, reviewed at
+`5a8c0d5f111809a95f4924c71e0e9bc8738d72e0`. The existing check types `succ t`
+within the fuel binder. It supplies a genuine same-context witness at the
+binder's lifted domain; no inhabitant in the outer context is assumed.
+
+`TrExprS.replace_unused_fvar` factors abstraction, insertion below the anonymous
+binder, and typed instantiation for arbitrary same-context replacements.
+For source syntax omitting the fuel variable, replacement leaves the native
+expression unchanged. Uniqueness of translation then yields equality between
+the recursor and its fuel-successor substitution. The intermediate `Step`
+witness now records this equality in its own context instead of asserting an
+outer translation exists. Closing at fuel `t` yields precisely the recursor
+at `t+1`, using the ported `liftN_one_one_inst_subst_cons` identity. Both the
+producer and the actual induction consumer use the repaired witness.
+
+WF′/WF/WF₂ top-level declaration headers are byte-for-byte unchanged. Executable
+code and acceptance guards are unchanged. All direct general extraction and
+semantic-strengthening calls in WF′ are gone. Its checker dependencies still
+transitively inherit those false contracts, and all three recursion theorems
+retain their measured 33-axiom manifests. This is not unconditional soundness.
+
+The replacement helper and its witnesses traverse 4530 dependencies, excluding
+false strengthening, confluence and derived quotient injectivity. They inherit
+exactly `TrProj`, `TrProj.instN`, and `TrProj.weak'`; their axiom sets are bounded
+by `propext`, `Quot.sound`, `Classical.choice`, `sorryAx`. The separate uniqueness
+bridge traverses 4602 dependencies and inherits exactly `TrProj`, `TrProj.uniq`,
+`TrProj.wf`, `IsDefEqU.sort_inv`, and `IsDefEqU.forallE_inv_stratified`, with the
+same axiom bound and exclusions. Pure substitution and adjacent-closing proofs
+use only `propext`/`Quot.sound`, without admissions or choice.
+
+`tests/FuelSuccessorReplacement.lean` checks an arbitrary proposition's proof
+binder using only its in-scope proof variable, replacement beneath a lambda,
+actual Nat-successor replacement over a nonempty base, and the closing identity
+at arbitrary fuel/tail. The two preceding fixtures now reject every direct
+general extraction in the actual consumer rather than expecting its old fuel
+call. All exact provenance and axiom bounds remain enforced.
+
+Full integration default build passes 422 jobs and all 36 fixtures pass,
+including the new replacement audit, both strengthened preceding gates, and
+all 33 other quotient/model, primitive/frontend and restoration regressions.
+Main review has a separate fresh 419-job default-build pass. Receipt prefix
+`/var/tmp/thomas-ahle/fleet2/logs/lean4lean-fuel-successor-`:
+`default-20261019.log`, `regressions-20261019.log`,
+`FuelSuccessorReplacement-20261019.log`, `main-build-20261019.log`, and
+`census-contracts-20261019.log`. Source census is unchanged: integration
+125 matching lines / 24 files / 129 occurrences; main 119 / 19 / 123.
+The main review proof source stays at `1337f87` on Lean 4.29.0. No new native
+kernel discrepancy or duplicate upstream PR.
+
 ## Separate upstream native Nat-closing repair — 2026-10-19
 
 The Lean 4.33.0-rc2 integration advances from `33b42bf` to
@@ -41,7 +95,8 @@ inherited admissions are `TrProj`, `TrProj.defeqDFC`, `TrProj.uniq`, `TrProj.wf`
 `IsDefEqU.sort_inv`, and `IsDefEqU.forallE_inv_stratified`. These are conditional
 translation results. The previous six semantic helpers remain admission-free
 and use no choice; all three public recursion theorems retain the unchanged
-33-axiom manifests. One general fuel-binder extraction and other inherited
+33-axiom manifests. At that checkpoint one general fuel-binder extraction
+remained; the subsequent same-context repair above removes it. Other inherited
 checker obligations remain open.
 
 `tests/UnusedNatTranslation.lean` exercises actual closing over a nonempty base,
