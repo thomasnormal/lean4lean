@@ -4,6 +4,93 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Semantic typing spines and simultaneous induction — 2026-10-19
+
+Model.HTS and Model.Sound adapt the corresponding foundation from
+[PR #53](https://github.com/digama0/lean4lean/pull/53), exact head
+5a8c0d5f111809a95f4924c71e0e9bc8738d72e0, to the existing six-expression
+language. HTS records recursive semantic typing and actual strong derivations
+with their soundness. Its other constructor is a syntax fallback permitting
+an arbitrary supplied type; HTS ALONE is not a proof of actual typing. The
+simultaneous theorem pairs it with an actual IsDefEqStrong derivation.
+
+HTS.spineH and HTS.spine extract the actual stored constant type and its
+semantic typing, well-formed levels and finite backed keys. Each KeyData
+retains the actual argument's domain, semantic typing, strong derivation,
+observations and equivalence class. The keys contain all caller demands.
+P1 transports an observation typed at the supplied result type to the wrapped
+observation typed at the stored constant type. P2 recovers result observations
+from stored codomain observations. dP2 recovers each argument's domain
+observations from the corresponding stored domain observations. Conversion
+transports classes and observations along the actual sound type equality.
+HTS.lamSpine similarly recovers a dependent telescope body's semantic typing,
+sound domains and innermost observation typing through type conversion.
+Variable/Pi/lambda inversions retain actual lookup and type chains; piSD
+extracts sound Pi domains/codomains, and TeleKeys.typed derives both the
+extended typed substitution and typed valuation.
+
+Model.sound proves the complete simultaneous induction on actual strong
+derivations in a source E included in an ordered target env, at well-formed
+anchor context Delta. Its conclusion is SoundAt plus HTS for BOTH endpoints.
+Every structural case uses the previously proved actual soundness cases.
+The EXTRA case uses actual membership E.defeqs df and RuleValid env df.
+RuleValid retains all actual strong type/lhs/rhs derivations, their SoundAt
+and HTS premises, level well-formedness and arity, and the stored expressions.
+It is the exact remaining rule obligation, not a theorem establishing it.
+Model.sound_no_rules discharges it only from actual absence of equations in
+E. Target env may extend E; no arbitrary firing certificate replaces the
+stored rules. General rule validity and declaration-history validity are open.
+
+The strict tests/ModelSpines.lean audit covers 27 production declarations,
+all nine new constructors and 85 fixture declarations: 121 exact admission
+AND axiom manifests. Full graph traversal checks declaration/constructor
+types and bodies, explicitly opaque bodies on integration, and rejects missing
+declarations. Every root excludes admissions and choice and has exactly its
+listed subset of propext and Quot.sound, agreeing across both toolchains.
+Required dependencies pin actual Strong induction/monotonicity, RuleValid,
+all structural case helpers, compactness, backing, finite coverage, class
+transport, spine inversion, actual declarations and positive controls.
+
+Controls derive HTS and soundness via actual Strong derivations and the
+no-equations corollary. The checked axiom DependentSpine has stored type
+forall X : Sort 2, X -> X and actual absence of equations. Its first argument
+is the beta redex (fun X : Sort 2 => X) (Sort 1); its second is Sort 0.
+The dependent application result is converted from that beta redex to Sort 1.
+Spine extraction accepts duplicate first-argument demands. A round trip
+consumes P1 by unwinding its wrapped rigid observation typing, recovers an
+actual codomain observation using tele_obs and P2, and uses dP2 to recover
+the first domain observation. A second control rebuilds a positive observation
+of the actual application using the extracted keys, actual stored typing
+filter, lookup and rigidity derived from absence of equations. A dependent
+two-lambda telescope is extracted through a syntactically different beta-redex
+supplied type, exercising type-chain/class transport. Negative controls show
+the fallback cannot hide constant spines, lambdas or variables.
+
+Main / integration dependency counts are sound 2958 / 3133, no-equations
+corollary 2959 / 3134, constant spine 2851 / 3026, lambda spine 2628 / 2787,
+and extended-valuation typing 2411 / 2561. The round trip traverses
+3151 / 3348, actual source observation 3140 / 3337 and converted lambda
+control 3029 / 3204. Full defaults pass 439 main / 442 integration jobs;
+all 30/59 prior selected fixtures and this strict fixture pass: 31/60 total.
+All prior production bytes/contracts are unchanged. New production is
+byte-identical across versions; the fixture differs only in explicit opaque
+body access. Source census remains main 119 matching lines / 19 files /
+123 whole-word sorry|admit occurrences; integration 124 / 23 / 128.
+No new admission, axiom declaration, executable change or kernel discrepancy.
+Authoritative receipts use lean4lean-model-hts- stems dated 20261019:
+*-default-final, *-fixture-final3, *-regressions, final-manifests.json and
+final-gates.json. Earlier strict failures identified misspelled dependency
+names; final3 pins actual Model.TypeChain.tyCls_subst_of_ctx and VEnv.WF'.decl.
+No theorem or trust gate was weakened. No duplicate upstream PR is opened.
+
+This closes semantic typing spines and the CONDITIONAL combined induction.
+Actual stored delta/quotient rule validity and declaration-history validity
+still prevent full model soundness. Quotient/Pi separation, nonzero major
+exposure, matching/check recovery, universal simulation and consumer migration
+remain open. The false NormalEq.parRed/confluence foundation and its derived
+quotient injectivity/inverse weakening remain excluded from every new graph.
+Actual frontend soundness still inherits its existing foundational admissions.
+
 ## Structural expression soundness — 2026-10-19
 
 The remaining structural cases of the observation soundness proof from
@@ -77,10 +164,10 @@ final-gates.json. The first strict audit rejected a misspelled required
 constructor namespace; the corrected audit pins the actual VEnv.Ctx.SubstEq.cons.
 No trust gate was weakened. No duplicate PR for this adapted upstream layer.
 
-The remaining simultaneous proof must carry semantic typing derivations
-through actual constant and lambda spines to establish stored-rule soundness
-and declaration-history validity. These are still open; the individual cases
-do not establish full model soundness or quotient/Pi separation. Nonzero
+These case proofs now feed the conditional simultaneous induction described
+above. Actual stored-rule soundness and declaration-history validity remain
+open; the individual cases and conditional induction do not establish full
+model soundness or quotient/Pi separation. Nonzero
 EXTRA, universal simulation, replacement of false NormalEq.parRed/confluence
 and actual-consumer migration remain open. Actual frontend soundness still
 inherits its existing foundational admissions.
