@@ -16,9 +16,9 @@ substitution proof is narrowly ported here; that is foundation integration,
 not completion of frontend soundness.
 
 **Published versus upstream integration:** this main review branch retains
-the quotient and inhabited-binder proof source `1337f87` on Lean **4.29.0**.
-The separate Lean **4.33.0-rc2** snapshot is `c51fccfacb8702b299db11c06ce934629b8d2f25`,
-extending `41fac39` on
+its older base on Lean **4.29.0**, now including direct native binder naming.
+The separate Lean **4.33.0-rc2** snapshot is `6bf537cf7bb2af387a1174d560ac959813a42027`,
+extending `c51fccf` on
 `poc-verified-noninductive-upstream-20261019`, based on official
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`.
 It retains upstream mutual definitions, integrates the quotient proofs and
@@ -61,6 +61,16 @@ with local projection-free transport proofs preserving the existing contracts.
 Its complete extraction graph drops general strengthening and inherits exactly
 three existing projection/typing gaps; the whole recognizer's 33-axiom manifest
 and broader checker gaps remain. No executable behavior changes.
+
+**Native binder naming:** the actual `TrExprS.inst_fvar` API now preserves the
+exact semantic context directly, across both declaration kinds and nested native
+binders/projections. Its complete graph drops projection weakening and
+instantiation, retaining exactly the existing `TrProj` placeholder. The existing
+`TrExpr.openFreshFVar` consumer shares that reduction. Contracts and executable
+behavior are unchanged, and the proof is validated on both toolchains. Broader
+inference/frontend admissions remain. A focused master-based candidate is kept
+separate; draft PR #53 already repairs this API through its larger redesign,
+so no duplicate upstream PR is opened.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.
