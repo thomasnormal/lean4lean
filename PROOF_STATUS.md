@@ -4,6 +4,62 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Prop-source unfolding versus checked quotient rewriting — 2026-10-19
+
+`QuotPropReduction.unfold_extra_join` proves the overlap between canonical
+Prop-source unfolding and the ORIGINAL quotient `ParRed.extra` rule. It consumes
+the rule's actual pattern match, actual domain/relation equality checks, arbitrary
+parallel reductions of all matched arguments, and typing at the original result
+type. Constructor parameters need not be syntactically identical to the
+eliminator parameters; source universes need only pass the existing `zeroLike`
+check. The theorem returns the actual EXTRA step, a compatible core step from
+the unfolded term, a `NormalEq` relation between their endpoints, and BOTH
+endpoint typings at the original result type.
+
+The proof inverts the original lift and constructor typings, aligns the payload
+using the checked domain equality, and preserves its type through parallel
+reduction. Universe conversion makes the original major available to the
+existing Prop selector. The reduced function applied to that selector is
+normally equal to the EXTRA result by proof irrelevance. No quotient injectivity,
+normal-equality/reduction simulation, strengthening, new caller-side certificate,
+or executable change is used. All prior module declarations remain unchanged.
+
+The complete production graph has 2791 dependencies on Lean 4.29 and 2985 on
+Lean 4.33.0-rc2. It inherits EXACTLY `IsDefEqU.sort_inv` and
+`IsDefEqU.forallE_inv_stratified`, and exactly `propext`, `Quot.sound`, `sorryAx`.
+The strict fixture pins exact admission AND axiom manifests for 19 roots,
+explicitly reading opaque bodies on 4.33. It rejects false `NormalEq.parRed`,
+its confluence consequences, derived quotient injectivity, inverse weakening,
+projection placeholders/transport and choice, and requires the actual EXTRA,
+inversion, selector and preservation dependencies.
+
+`tests/QuotUnfoldingOverlap.lean` uses the reachable Eq/Quot model and nonempty
+dependent obstruction context. ALL EIGHT matched arguments undergo nontrivial
+parallel beta reductions. Both equality checks compare syntactically different
+parameters (one versus two identity applications). Source typing, matching and
+check proofs are source-admission-free. The generic fixture also permits distinct
+zero-equivalent source/constructor universes, with a checked nonliteral example.
+The saturated prefix algorithm computes the same unfolding. Both reduction paths
+and their normal equality survive a retained dependent proof binder and typed
+instantiation at its checked witness.
+
+This closes one canonical-unfolding/quotient-rewrite overlap MODULO `NormalEq`
+in the candidate relation. It is not an identical-term diamond or a proof of
+general simulation/confluence. The original `NormalEq.parRed` is still false and
+admitted; actual checker/frontend dependency manifests are unchanged. General
+simulation, other eta/rewrite overlaps, consumer migration, genuine projection
+and checked inductive registration remain open. This extends the fork's
+candidate presentation; upstream draft #53 develops the selector/prefix direction
+in a broader model, so no separate current-master PR is opened for this dependent
+extension.
+
+Full default builds pass (420 main / 423 integration jobs). All 45 previous
+integration fixtures and 16 previous main fixtures pass, together with the new
+strict fixture (46 / 17). Source census remains main 119 matching lines / 19 files /
+123 occurrences, integration 124 / 23 / 128. No new source admission, axiom
+declaration or kernel discrepancy. Receipts use
+`/var/tmp/thomas-ahle/fleet2/logs/lean4lean-unfold-extra-` stems dated `20261019`.
+
 ## Quotient-prefix application overlap — 2026-10-19
 
 The existing candidate quotient reduction now has a proved application overlap

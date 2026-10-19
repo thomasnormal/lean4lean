@@ -407,4 +407,71 @@ theorem Steps.hasType {environmentWF : environment.WF} {source result resultType
     environment.HasType universes locals result resultType :=
   (steps.defeq registered localsWF typed).hasType.2
 
+/-- Canonical Prop-source unfolding joins the actual checked quotient EXTRA
+rule, including all its parallel argument reductions. Both endpoints retain
+the original application type; constructor parameters need only pass the
+existing rule's equality checks. -/
+theorem unfold_extra_join {environmentWF : environment.WF}
+    {source unfolded resultType : VExpr} {levels : List VLevel}
+    {values reducedValues : quotLiftPattern.Path → VExpr}
+    (registered : environment.defeqs quotDefEq)
+    (localsWF : OnCtx locals (environment.IsType universes))
+    (typed : environment.HasType universes locals source resultType)
+    (computed : unfold source = some unfolded)
+    (matched : quotLiftPattern.Matches source levels values)
+    (checked : quotLiftPatternCheck.OK (environment.IsDefEqU universes locals) levels values)
+    (reductions : ∀ path, @ParRed (environmentWF.reductionParams universes) locals
+      (values path) (reducedValues path)) :
+    ∃ joined,
+      @ParRed (environmentWF.reductionParams universes) locals source
+        (quotLiftPatternResult.apply levels reducedValues) ∧
+      Step environmentWF universes locals unfolded joined ∧
+      @NormalEq (environmentWF.reductionParams universes) locals joined
+        (quotLiftPatternResult.apply levels reducedValues) ∧
+      environment.HasType universes locals joined resultType ∧
+      environment.HasType universes locals (quotLiftPatternResult.apply levels reducedValues) resultType := by
+  letI := environmentWF.reductionParams universes
+  have rewriteStep : ParRed locals source (quotLiftPatternResult.apply levels reducedValues) :=
+    .extra (.quot registered) matched checked reductions
+  have unfoldedTyped := (unfold_sound environmentWF localsWF registered computed typed).hasType.2
+  let .app functionMatched constructorMatched := matched
+  let .var functionMatched := functionMatched
+  let .var functionMatched := functionMatched
+  let .var functionMatched := functionMatched
+  let .var functionMatched := functionMatched
+  let .var functionMatched := functionMatched
+  let .const := functionMatched
+  let .var constructorMatched := constructorMatched
+  let .var constructorMatched := constructorMatched
+  let .var constructorMatched := constructorMatched
+  let .const := constructorMatched
+  obtain ⟨_, _, liftRegistered, constructorRegistered, quotientRegistered, _⟩ := environmentWF.quotientObjects registered
+  obtain ⟨sourceUniverse, targetUniverse, rfl, sourceWF, _, domainTyped, relationTyped,
+    _, functionTyped, _, majorTyped, _⟩ := quotLift_inv environmentWF localsWF liftRegistered typed
+  obtain ⟨_, _, _, constructorDomainTyped, _, valueTyped, _⟩ :=
+    quotMk_inv environmentWF localsWF constructorRegistered majorTyped
+  simp only [quotLiftPatternCheck, Pattern.Check.OK, Pattern.RHS.apply] at checked
+  have alignedValue := (checked.1.symm.of_l environmentWF localsWF constructorDomainTyped).defeq valueTyped
+  have reducedValue := (reductions (.inr none)).hasType localsWF alignedValue
+  have reducedFunction := (reductions (.inl (some none))).hasType localsWF functionTyped
+  simp only [unfold] at computed
+  split at computed <;> try contradiction
+  rename_i zeroChecked
+  cases Option.some.inj computed
+  have zeroEqual := (zeroLike_iff sourceUniverse).mp zeroChecked
+  have domainProp := IsDefEq.defeqDF (IsDefEq.sortDF sourceWF (by trivial) zeroEqual) domainTyped
+  have quotientEqual := IsDefEq.constDF quotientRegistered
+    (ls := [sourceUniverse]) (ls' := [.zero]) (by simpa using sourceWF)
+    (by simp [VLevel.WF]) (by rfl) (.cons zeroEqual .nil) (Γ := locals)
+  have first := quotientEqual.appDF domainTyped
+  simp [VExpr.instL, VLevel.inst, VExpr.inst, VExpr.instVar] at first
+  have second := first.appDF relationTyped
+  simp [VExpr.inst] at second
+  have majorProp := second.defeq majorTyped
+  refine ⟨_, rewriteStep, .core (.app (reductions (.inl (some none))) .rfl),
+    ?_, ?_, rewriteStep.hasType localsWF typed⟩
+  · exact unfolding_join (target := _) environmentWF registered domainProp relationTyped
+      majorProp reducedFunction reducedValue
+  · exact (ParRed.app (reductions (.inl (some none))) .rfl).hasType localsWF unfoldedTyped
+
 end Lean4Lean.VEnv.QuotPropReduction
