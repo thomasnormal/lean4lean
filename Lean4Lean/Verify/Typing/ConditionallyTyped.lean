@@ -3,6 +3,9 @@ import Lean4Lean.Verify.Typing.LetErasure
 namespace Lean4Lean
 open VEnv Lean
 
+theorem FVarsIn.not_curr {ngen : NameGenerator} (H : FVarsIn ngen.Reserves e) : FVarsIn (· ≠ ⟨ngen.curr⟩) e :=
+  H.mono fun _ reserved equal => ngen.not_reserves_self (equal ▸ reserved)
+
 def ConditionallyTyped
     (ngen : NameGenerator) (env : VEnv) (Us : List Name) (Δ : VLCtx) (e : Expr) : Prop :=
   Closed e ∧ FVarsIn ngen.Reserves e ∧ (FVarsIn (· ∈ Δ.fvars) e → ∃ e', TrExprS env Us Δ e e')
@@ -43,6 +46,20 @@ theorem ConditionallyTyped.fresh
   intro _ h1 h2; simp at h1; rcases h1 with rfl | h1
   · cases Nat.lt_irrefl _ (h2 _ rfl)
   · exact h1
+
+theorem ConditionallyTyped.freshLet
+    (H : ConditionallyTyped ngen env Us Δ e) :
+    ConditionallyTyped ngen env Us
+      ((some (⟨ngen.curr⟩, deps), .vlet domain value) :: Δ) e := by
+  obtain ⟨closed, reserved, H⟩ := H
+  refine ⟨closed, reserved, fun sourceScope => ?_⟩
+  have ⟨e', translated⟩ := H (sourceScope.mp ?_ reserved)
+  · exact ⟨e', translated.insertLet .zero reserved.not_curr⟩
+  · intro _ member reserved
+    simp at member
+    rcases member with rfl | member
+    · exact (ngen.not_reserves_self reserved).elim
+    · exact member
 
 def ConditionallyHasType
     (ngen : NameGenerator) (env : VEnv) (Us : List Name) (Δ : VLCtx) (e A : Expr) : Prop :=
@@ -118,6 +135,21 @@ theorem ConditionallyHasType.fresh
     · cases Nat.lt_irrefl _ (h2 _ rfl)
     · exact h1
 
+theorem ConditionallyHasType.freshLet
+    (H : ConditionallyHasType ngen env Us Δ e A) :
+    ConditionallyHasType ngen env Us
+      ((some (⟨ngen.curr⟩, deps), .vlet domain value) :: Δ) e A := by
+  obtain ⟨c1, f1, c2, f2, H⟩ := H
+  refine ⟨c1, f1, c2, f2, fun sourceScope => ?_⟩
+  have ⟨e', A', below, he, hA, typed⟩ := H (sourceScope.mp ?_ f1)
+  · exact ⟨e', A', fun P up => below P up.1,
+      he.insertLet .zero f1.not_curr, hA.insertLet .zero f2.not_curr, typed⟩
+  · intro _ member reserved
+    simp at member
+    rcases member with rfl | member
+    · exact (ngen.not_reserves_self reserved).elim
+    · exact member
+
 def ConditionallyWHNF
     (ngen : NameGenerator) (env : VEnv) (Us : List Name) (Δ : VLCtx) (e e₁ : Expr) : Prop :=
   Closed e ∧ FVarsIn ngen.Reserves e ∧ Closed e₁ ∧ FVarsIn ngen.Reserves e₁ ∧
@@ -188,3 +220,18 @@ theorem ConditionallyWHNF.fresh
   · intro _ h1 h2; simp at h1; rcases h1 with rfl | h1
     · cases Nat.lt_irrefl _ (h2 _ rfl)
     · exact h1
+
+theorem ConditionallyWHNF.freshLet
+    (H : ConditionallyWHNF ngen env Us Δ e result) :
+    ConditionallyWHNF ngen env Us
+      ((some (⟨ngen.curr⟩, deps), .vlet domain value) :: Δ) e result := by
+  obtain ⟨c1, f1, c2, f2, H⟩ := H
+  refine ⟨c1, f1, c2, f2, fun sourceScope => ?_⟩
+  have ⟨e', below, he, hr⟩ := H (sourceScope.mp ?_ f1)
+  · exact ⟨e', fun P up => below P up.1,
+      he.insertLet .zero f1.not_curr, hr.insertLet .zero f2.not_curr⟩
+  · intro _ member reserved
+    simp at member
+    rcases member with rfl | member
+    · exact (ngen.not_reserves_self reserved).elim
+    · exact member
