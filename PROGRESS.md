@@ -55,6 +55,15 @@ inherited projection admissions, and its equality bridge pins five.
 Full default builds pass (423 integration / 420 main review jobs), as do all
 46 selected integration fixtures and 17 selected main fixtures. No new admission is introduced.
 
+**Canonical unfolding versus arbitrary core reduction:** every original
+parallel successor of an unfoldable quotient application now joins its canonical
+unfolding modulo `NormalEq`, with both endpoints at the original result type.
+The congruence case has an identical endpoint; the proof recovers argument
+reductions by classifying all proper lift prefixes and handles checked EXTRA
+through the prior selector join. Exact trust gates retain only the two independent
+typing admissions and exclude choice/false confluence. General normal-equality
+simulation, new-step overlaps and actual-consumer migration remain open.
+
 **Quotient rewrite overlap:** canonical Prop-source unfolding now joins the
 original checked quotient EXTRA rule modulo `NormalEq`, including arbitrary
 parallel argument reductions, syntactically different checked constructor
@@ -142,7 +151,7 @@ themselves satisfy any of these goals.
 | Remove inherited admissions from the frontend | **Not complete.** Dependency audits identify the remaining trust gaps. | Foundational admissions also remain. | Must close the actual metatheory/checker dependencies, not add another wrapper around them. |
 | Supply simultaneous substitution for arbitrary typing/equality derivations | **Proved API now available:** `55b7b4d` ports strong/weak cross-substitution and audits its dependencies as only `propext` and `Quot.sound`. | Already proved upstream in `6ba54db`/`8223d22`. | Foundation integration, not a newly solved upstream obligation; the frontend's inherited admissions remain. |
 | Verify actual checked inductive registration | **Not complete.** Header/constructor checks and staging invariants are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, and prelude translation. |
-| Complete confluence and semantic reduction correctness | **Original simulation contract refuted:** the actual quotient model has a checked counterexample to `NormalEq.parRed`. The candidate relation proves exact joins for all six prefix-application beta overlaps and a normal-equality join for canonical unfolding versus checked quotient rewriting. | Confluence and related semantic obligations remain open. | General quotient simulation, other eta/rewrite overlaps, migration of actual consumers, non-circular injectivity/strengthening, genuine projection and inductive recursor semantics. |
+| Complete confluence and semantic reduction correctness | **Original simulation contract refuted:** the actual quotient model has a checked counterexample to `NormalEq.parRed`. The candidate relation proves exact joins for all six prefix-application beta overlaps and a normal-equality local join for canonical unfolding versus every original core reduction. | Confluence and related semantic obligations remain open. | General quotient simulation, other eta/rewrite overlaps, migration of actual consumers, non-circular injectivity/strengthening, genuine projection and inductive recursor semantics. |
 | Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
 | Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Native Lean 4.33.0-rc2 rejects this exact source constructor with `declHasFVars`, now regression-tested. | Version-bounded validation result, not a current native bug or a proof of logical unsoundness. |
 | New semantic guarantees in the October 13 integration checkpoint | **None claimed.** Recursor/restoration, binder, header-typing, and transport proofs are restored against current APIs while preserving their existing contracts. | Compatibility preserves prior contracts; it is not a newly solved upstream obligation. | Submit only independently reviewable semantic or correctness changes after publication; keep compatibility repairs out of the progress score. |

@@ -4,6 +4,69 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Canonical quotient unfolding and every original core reduction — 2026-10-19
+
+`QuotPropReduction.unfold_parRed_join` now handles EVERY original `ParRed`
+successor of an unfoldable saturated quotient application. The caller supplies
+only environment registration, context WF, the original typing, successful
+unfolding and the actual reduction. The theorem classifies the reduction itself;
+no constructor match, argumentwise reduction certificate or canonical result
+type is requested. It constructs one candidate step from the unfolded term,
+a candidate path from the core result, normal equality between their endpoints,
+and both endpoint typings at the ORIGINAL result type.
+
+The argument-congruence case reaches an IDENTICAL term on both paths.
+`selector_parRed` preserves simultaneous reductions of the selector domain,
+relation and major, including the lifted domain beneath its generated motive.
+The checked quotient EXTRA case reuses `unfold_extra_join`. The proof rules out
+delta rewriting and beta reduction of proper lift prefixes rather than assuming
+that their heads are inert: `liftPrefix_parRed_inv` derives a matching reduced
+prefix and all its argument reductions for every supplied arity ZERO through
+FIVE, using registered-name protection and exact pattern arity. The sixth
+application is deliberately excluded from that helper because it can take the
+actual quotient rule.
+
+Two private pattern-inversion lemmas have NO axioms. The general selector lemma
+has no source admissions or choice, with exactly `propext` and `Quot.sound`.
+Proper-prefix inversion has 2711 main / 2902 integration dependencies; the
+general core join has 2836 / 3032. These two roots inherit EXACTLY
+`IsDefEqU.sort_inv` and `IsDefEqU.forallE_inv_stratified`, with exactly `propext`,
+`Quot.sound`, `sorryAx`. All original module bytes, including 22 theorem headers
+and every executable definition, remain unchanged. No caller obligation,
+accepted input or checker behavior changes.
+
+The existing `QuotUnfoldingOverlap` fixture now pins exact admission AND axiom
+manifests for 35 roots on both toolchains, explicitly reading opaque bodies on
+4.33. Gates forbid false confluence, derived quotient injectivity, inverse
+weakening, projection placeholders/transport and choice, and require actual
+prefix classification, selector transport and checked rewriting. Both the
+congruence and EXTRA reductions pass through the GENERAL theorem in the reachable
+Eq/Quot model with all eight arguments beta reducing and syntactically different
+checked constructor parameters. Separate paths verify the identical congruence
+endpoint. An arbitrary core reduction and both resulting paths survive retention
+and typed instantiation of a dependent proof binder. Alternate source/constructor
+universes retain their typing checks. A source matches the six-argument spine
+and takes EXTRA to a term that cannot match that spine, checking the helper's
+necessary arity boundary.
+
+The first audits exposed proof-tactic choice dependencies. Explicit natural-number
+contradictions and direct name-list membership remove them on both toolchains;
+the final strict gates retain the original choice-free boundary. Full default
+builds pass (420 main / 423 integration jobs), as do all 17 selected main / 46
+integration fixtures. Source census is unchanged: main 119 matching lines / 19
+files / 123 occurrences; integration 124 / 23 / 128. Receipts use
+`/var/tmp/thomas-ahle/fleet2/logs/lean4lean-unfold-core-` stems dated `20261019`;
+`default-final3` and `fixture-final` are the final build/trust receipts.
+
+This proves the canonical-unfolding versus ORIGINAL-CORE local overlap modulo
+`NormalEq`. General normal-equality simulation, overlaps involving the new eta
+and unfolding steps themselves, confluence and actual-consumer migration remain
+open. The original `NormalEq.parRed` stays false/admitted, and actual frontend
+dependency manifests are unchanged. Genuine projection and checked inductive
+registration also remain open. This extends the fork's candidate relation;
+upstream draft #53 develops the unfolding direction through a broader model,
+so no separate current-master PR is opened for this dependent extension.
+
 ## Prop-source unfolding versus checked quotient rewriting — 2026-10-19
 
 `QuotPropReduction.unfold_extra_join` proves the overlap between canonical

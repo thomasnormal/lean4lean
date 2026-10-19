@@ -474,4 +474,143 @@ theorem unfold_extra_join {environmentWF : environment.WF}
       majorProp reducedFunction reducedValue
   · exact (ParRed.app (reductions (.inl (some none))) .rfl).hasType localsWF unfoldedTyped
 
+private theorem constMatches_name {name otherName : Lean.Name} {levels matchedLevels : List VLevel}
+    {values : (Pattern.const name).Path → VExpr}
+    (matched : (Pattern.const name).Matches (.const otherName levels) matchedLevels values) :
+    name = otherName := by
+  cases matched
+  rfl
+
+private theorem spineMatches_count {firstName secondName : Lean.Name}
+    {count secondCount : Nat} {expression : VExpr} {levels otherLevels : List VLevel}
+    {values : (Pattern.varN (.const firstName) count).Path → VExpr}
+    {otherValues : (Pattern.varN (.const secondName) secondCount).Path → VExpr}
+    (first : (Pattern.varN (.const firstName) count).Matches expression levels values)
+    (second : (Pattern.varN (.const secondName) secondCount).Matches expression otherLevels otherValues) :
+    count = secondCount := by
+  induction count generalizing secondCount expression with
+  | zero =>
+    cases first
+    cases secondCount with
+    | zero => rfl
+    | succ secondCount => cases second
+  | succ count induction =>
+    cases first with
+    | var first =>
+      cases secondCount with
+      | zero => cases second
+      | succ secondCount =>
+        cases second with
+        | var second => exact congrArg Nat.succ (induction first second)
+
+/-- A proper quotient-lift prefix can only reduce its supplied arguments.
+Registered quotient names cannot be definition heads, and the quotient rule
+needs all six arguments. -/
+theorem liftPrefix_parRed_inv {environmentWF : environment.WF} {count : Nat}
+    {source reduced : VExpr} {levels : List VLevel}
+    {values : (Pattern.varN (.const ``Quot.lift) count).Path → VExpr}
+    (registered : environment.defeqs quotDefEq) (bounded : count ≤ 5)
+    (matched : (Pattern.varN (.const ``Quot.lift) count).Matches source levels values)
+    (reduction : @ParRed (environmentWF.reductionParams universes) locals source reduced) :
+    ∃ reducedValues,
+      (Pattern.varN (.const ``Quot.lift) count).Matches reduced levels reducedValues ∧
+      ∀ path, @ParRed (environmentWF.reductionParams universes) locals
+        (values path) (reducedValues path) := by
+  letI := environmentWF.reductionParams universes
+  induction count generalizing source reduced with
+  | zero =>
+    cases matched
+    cases reduction with
+    | const => exact ⟨_, .const, nofun⟩
+    | extra rule matched _ _ =>
+      cases rule with
+      | delta closed definitionRegistered =>
+        exact False.elim (environmentWF.rewriteMetadata.quotientNames definitionRegistered registered
+          ``Quot.lift (.tail _ (.tail _ (.head _))) (constMatches_name matched))
+      | quot => cases matched
+  | succ count induction =>
+    cases matched with
+    | var matched =>
+      cases reduction with
+      | app functionReduction argumentReduction =>
+        obtain ⟨reducedValues, resultMatched, argumentsReduced⟩ := induction (Nat.le_trans (Nat.le_succ count) bounded) matched functionReduction
+        refine ⟨_, .var resultMatched, ?_⟩
+        rintro (_ | path)
+        · exact argumentReduction
+        · exact argumentsReduced path
+      | beta => exact False.elim (Pattern.Matches.not_lam matched)
+      | extra rule extraMatched _ _ =>
+        cases rule with
+        | delta => cases extraMatched
+        | quot =>
+          cases extraMatched with
+          | app prefixMatched _ =>
+            have equal := spineMatches_count matched prefixMatched
+            exact False.elim (Nat.not_succ_le_self 5 (equal ▸ bounded))
+
+/-- The canonical selector preserves simultaneous reductions of its domain,
+relation and major, including the lifted domain under its generated motive. -/
+theorem selector_parRed [parameters : Params]
+    {domain domain' relation relation' major major' : VExpr}
+    (domainReduction : ParRed locals domain domain')
+    (relationReduction : ParRed locals relation relation')
+    (majorReduction : ParRed locals major major') :
+    ParRed locals (selector domain relation major) (selector domain' relation' major') := by
+  unfold selector quotient
+  exact .app (.app (.app (.app (.app .rfl domainReduction) relationReduction)
+    (.lam (.app (.app .rfl domainReduction) relationReduction) (domainReduction.weakN .one)))
+    (.lam domainReduction .rfl)) majorReduction
+
+/-- Every original parallel reduction from an unfoldable quotient application
+joins canonical unfolding modulo normal equality. The congruence case has an
+identical endpoint; the checked EXTRA case uses the Prop selector join. -/
+theorem unfold_parRed_join {environmentWF : environment.WF} {source unfolded reduced resultType : VExpr}
+    (registered : environment.defeqs quotDefEq)
+    (localsWF : OnCtx locals (environment.IsType universes))
+    (typed : environment.HasType universes locals source resultType)
+    (computed : unfold source = some unfolded)
+    (reduction : @ParRed (environmentWF.reductionParams universes) locals source reduced) :
+    ∃ left right,
+      Step environmentWF universes locals unfolded left ∧
+      Steps environmentWF universes locals reduced right ∧
+      @NormalEq (environmentWF.reductionParams universes) locals left right ∧
+      environment.HasType universes locals left resultType ∧
+      environment.HasType universes locals right resultType := by
+  letI := environmentWF.reductionParams universes
+  have originalComputed := computed
+  have unfoldedTyped := (unfold_sound environmentWF localsWF registered computed typed).hasType.2
+  unfold unfold at computed
+  split at computed <;> try contradiction
+  rename_i sourceUniverse targetUniverse domain relation target function respect major
+  split at computed <;> try contradiction
+  rename_i zeroChecked
+  cases Option.some.inj computed
+  cases reduction with
+  | app prefixReduction majorReduction =>
+    have matched := Pattern.Matches.const (c := ``Quot.lift) (ls := [sourceUniverse, targetUniverse])
+      |>.var (a' := domain) |>.var (a' := relation) |>.var (a' := target)
+      |>.var (a' := function) |>.var (a' := respect)
+    obtain ⟨reducedValues, reducedMatched, argumentsReduced⟩ :=
+      liftPrefix_parRed_inv registered (by decide : 5 ≤ 5) matched prefixReduction
+    let .var reducedMatched := reducedMatched
+    let .var reducedMatched := reducedMatched
+    let .var reducedMatched := reducedMatched
+    let .var reducedMatched := reducedMatched
+    let .var reducedMatched := reducedMatched
+    let .const := reducedMatched
+    have congruence := ParRed.app (argumentsReduced (some none))
+      (selector_parRed (argumentsReduced (some (some (some (some none)))))
+        (argumentsReduced (some (some (some none)))) majorReduction)
+    have joinedTyped := congruence.hasType localsWF unfoldedTyped
+    refine ⟨_, _, .core congruence, .tail .rfl (.unfold ?_), .refl joinedTyped, joinedTyped, joinedTyped⟩
+    simp only [unfold, zeroChecked, ite_true]
+    rfl
+  | extra rule matched checked argumentsReduced =>
+    cases rule with
+    | delta => cases matched
+    | quot =>
+      obtain ⟨joined, _, step, normal, joinedTyped, resultTyped⟩ :=
+        unfold_extra_join registered localsWF typed originalComputed matched checked argumentsReduced
+      exact ⟨joined, _, step, .rfl, normal, joinedTyped, resultTyped⟩
+
 end Lean4Lean.VEnv.QuotPropReduction
