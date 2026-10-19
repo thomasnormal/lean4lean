@@ -72,6 +72,16 @@ inference/frontend admissions remain. A focused master-based candidate is kept
 separate; draft PR #53 already repairs this API through its larger redesign,
 so no duplicate upstream PR is opened.
 
+**Projection core contract:** the Lean 4.33.0-rc2 integration now proves the
+existing `reduceProjCore.WF` contract used by lazy projection comparison and
+scoped methods. Its constructor-head rejection argument is shared with WHNF,
+including checked normalization of string literals. This replays the core proof
+already submitted in [PR #57](https://github.com/digama0/lean4lean/pull/57);
+no duplicate contribution is opened. The source census loses one admission.
+The older main worker was already proved; its regression now pins exactly the
+remaining `TrProj` admission and seven axioms instead of accepting the entire
+method baseline. General projection and frontend soundness remain open.
+
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.
 Actual checked inductive/model registration and recursor semantics remain open.
@@ -534,7 +544,7 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The Lean 4.29.0 proof source `1337f87` passes all default targets
+The Lean 4.29.0 proof source `742ecbe` passes all default targets
 (**419 jobs**) on October 19, rechecked for this documentation commit.
 The preceding proof item also passed twelve focused fixtures, including
 inhabited-strengthening, substitution, reflection/primitive/frontend and
@@ -545,9 +555,9 @@ published rebase. Detailed logs and trust bounds are in `PROOF_STATUS.md`.
 
 | Whole-word `sorry` or `admit` source census, October 19 | Published proof source | Local integration | Official master |
 | --- | --- | --- | --- |
-| Matching lines | 119 | 125 | 133 |
-| Files containing matches | 19 | 24 | 29 |
-| Occurrences | 123 | 129 | 137 |
+| Matching lines | 119 | 124 | 133 |
+| Files containing matches | 19 | 23 | 29 |
+| Occurrences | 123 | 128 | 137 |
 
 This deliberately includes comments and `Experimental` sources. It is a source
 census, **not an audit of theorem trust**: removing one admission does not make
@@ -557,8 +567,8 @@ retain foundational admissions. Our actual frontend's transitive `sorryAx`
 dependency is the more important signal.
 
 The quotient integration removes three abstract signature/model placeholders
-and the actual dispatcher admission: 133 to 129 occurrences, with no new
-admissions. The main Lean 4.29 source census stays 119 matching lines / 123
+and the actual dispatcher admission; restoring the projection core proof removes
+a fifth occurrence: 133 to 128 occurrences, with no new admissions. The main Lean 4.29 source census stays 119 matching lines / 123
 occurrences. Both snapshots retain foundational admissions; the known-false
 confluence dependency is not repaired by this integration.
 

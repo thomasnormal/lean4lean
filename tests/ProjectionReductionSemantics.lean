@@ -123,17 +123,43 @@ private def nativeControls : MetaM Unit := do
   logInfo m!"{noneCount} actual cold/warm projection rejection controls and {constructorCount} native constructor-field successes pass; both safeties/eager modes, callback depths 32/128, all cheap flags, varied indices, metadata/beta/local-let heads, under-application and zero-depth guards covered; native constructor/string successes are outside the current TrEnv fragment, and poisoned caches are excluded by the original state premise"
 
 run_meta
-  let baseline ← collectAxioms ``Methods.withFuel.WF
-  for theoremName in #[``Inner.reduceProj.none_of_translation, ``Inner.reduceProj.WF] do
-    let information ← getConstInfo theoremName
-    if information matches .axiomInfo _ then throwError "projection theorem is an axiom: {theoremName}"
-    let some proof := information.value? | throwError "projection proof missing: {theoremName}"
-    if proof.hasSorry then throwError "projection theorem has an admission: {theoremName}"
-    let dependencies ← collectAxioms theoremName
-    for dependency in dependencies do
-      unless baseline.contains dependency do
-        throwError "unexpected projection theorem dependency: {dependency} in {theoremName}"
-  logInfo m!"projection no-result contract and original soundness theorem have no direct admission or axiom; inherited semantic/native baseline remains explicit: {repr baseline}"
+  let environment ← getEnv
+  let expectedAxioms := [``propext, ``Classical.choice, ``Quot.sound, ``sorryAx,
+    ``Lean.PersistentHashMap.findAux_isSome, ``Lean.PersistentHashMap.WF.find?_eq,
+    ``Lean.PersistentHashMap.WF.toList'_insert]
+  let forbidden := [``TrProj.uniq, ``TrProj.wf, ``TrProj.weak', ``TrProj.instN,
+    ``TrProj.weak'_inv, ``VEnv.IsDefEqU.weakN_iff,
+    `Lean4Lean.VEnv.NormalEq.parRed, `Lean4Lean.VEnv.NormalEq.parRedS,
+    `Lean4Lean.VEnv.IsDefEq.church_rosser, `Lean4Lean.VEnv.IsDefEqU.quot_inj]
+  for root in [``Inner.reduceProj.none_of_translation, ``Inner.reduceProj.WF] do
+    let information ← getConstInfo root
+    if information matches .axiomInfo _ then throwError "projection theorem is an axiom: {root}"
+    let some proof := information.value? | throwError "projection proof missing: {root}"
+    if proof.hasSorry then throwError "projection theorem has an admission: {root}"
+    let axioms ← collectAxioms root
+    unless expectedAxioms.length == axioms.size && expectedAxioms.all axioms.contains do
+      throwError "projection axiom manifest changed for {root}: {repr axioms}"
+    let mut pending := #[root]
+    let mut visited : NameSet := {}
+    let mut admissions : Array Name := #[]
+    for _ in [:1000000] do
+      if pending.isEmpty then break
+      let name := pending.back!
+      pending := pending.pop
+      if visited.contains name then continue
+      visited := visited.insert name
+      if forbidden.contains name then throwError "forbidden projection dependency {name} in {root}"
+      if let some declaration := environment.find? name then
+        pending := pending ++ declaration.type.getUsedConstants
+        if let some value := declaration.value? then
+          if value.hasSorry then
+            unless name == ``TrProj do throwError "unapproved projection admission {name} in {root}"
+            admissions := admissions.push name
+          pending := pending ++ value.getUsedConstants
+    unless pending.isEmpty do throwError "projection audit traversal exceeded bound"
+    unless admissions == #[``TrProj] do
+      throwError "projection admission manifest changed for {root}: {repr admissions}"
+    logInfo m!"{root}: {visited.size} dependencies; exactly TrProj; exact axioms {repr axioms}"
   nativeControls
 
 end ProjectionReductionSemanticsTest
