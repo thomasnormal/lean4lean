@@ -14,6 +14,61 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Restore the integration projection core proof — 2026-10-19
+
+Integration commit `c65a7a0e277fa5310264f93ae30126c11ed26375`, published on
+`poc-verified-noninductive-upstream-20261019`, now discharges the existing
+`TypeChecker.Inner.reduceProjCore.WF` admission, used by
+`lazyDeltaProjReduction.finish.WF` and the scoped method proof. New
+`reduceProjCore.none_of_translation` rejects constructor heads through the
+existing environment alignment, and string expansion through the existing
+normalization contract. WHNF reuses that proof. All 29 pre-existing theorem
+headers in Reduce/WHNF and every executable source file are unchanged. This
+restores the core argument already in our open upstream PR #57 (`249a70e`),
+rather than introducing another PR for the same proof.
+
+The complete core and normalized projection graphs inherit exactly `TrProj`
+and the exact seven axioms: `propext`, `Classical.choice`, `Quot.sound`,
+`sorryAx`, `Lean.PersistentHashMap.findAux_isSome`,
+`Lean.PersistentHashMap.WF.find?_eq`, and
+`Lean.PersistentHashMap.WF.toList'_insert`. Strict transitive gates exclude
+generic projection transport, inverse weakening, false confluence and derived
+quotient injectivity from those four roots. The actual lazy comparison,
+dispatcher and arbitrary-fuel semantic/scoped method graphs consume the repaired
+contract and pin their remaining admission and axiom sets separately. Lazy
+comparison finish drops from five to four inherited admissions; its loop and
+the comparison dispatcher drop from eleven to ten. The semantic method proof
+drops from thirteen to twelve. The scoped method proof also has exactly twelve.
+The core has 6666 dependencies; the actual finish and semantic/scoped methods
+have 7715, 21804 and 22233 respectively. Dependency counts rise when an admitted
+proof is replaced by its derivation. The finish now also exposes the existing
+`findAux_isSome` interface; no axiom is declared, and the full method proofs
+retain their original exact 33-axiom manifest. Their larger graphs still inherit
+the known-false confluence specification, so this repair does not establish
+unconditional checker soundness.
+
+`tests/ProjectionReductionSemantics.lean` checks arbitrary certified callbacks,
+finite callback fuel and initialized runs for the core and normalized worker.
+Its runtime controls preserve native constructor/string successes outside the
+current semantic model, as well as poisoned-cache controls, both safeties/eager
+modes, varying indices and callback depths, and both cheap-projection modes.
+Zero-depth raw constructor lookup succeeds while normalization/string callbacks
+reject. The Lean 4.29 main branch has no separate core and already proves its
+combined worker; its fixture now enforces the same exact inherited projection
+trust boundary while retaining both older cheap flags.
+
+The integration census decreases from **125 matching lines / 24 files /
+129 occurrences** to **124 / 23 / 128**; main remains **119 / 19 / 123**.
+No new admission, axiom, executable restriction or kernel discrepancy is
+introduced. Both default builds pass (423 integration / 419 main jobs).
+All 43 selected integration fixtures pass, including the final stricter
+projection fixture, and the main projection fixture passes its exact trust gate
+and 1536 runtime rejection / 128 native-constructor success controls. The
+integration fixture exercises the same counts across raw/normalized workers.
+Full default build and regression receipts use
+`/var/tmp/thomas-ahle/fleet2/logs/lean4lean-projection-core-` stems dated
+`20261019`.
+
 ## Direct native binder naming — 2026-10-19
 
 The existing `TrExprS.inst_fvar` now names an anonymous native binder directly,
