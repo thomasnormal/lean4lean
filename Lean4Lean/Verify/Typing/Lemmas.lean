@@ -92,6 +92,25 @@ theorem FVarsIn.abstract_eq_self (h : FVarsIn (· ≠ v) e) (hc : Closed e k) :
   induction e generalizing k <;> simp_all [FVarsIn, Closed, Expr.abstract1]
   exact Ne.symm h
 
+/-- The converse of `FVarsIn.abstract_eq_self`. `Expr.abstract1_eq_self` already says an
+abstraction that left no loose bvar behind did nothing; this says the same thing about the
+variable rather than the term, which is the form a context argument wants.
+
+The incoming `FVarsIn P e` is not redundant: `FVarsIn` also demands mvar-freeness of levels and
+is outright `False` on `.mvar`, and no loose-bvar fact can supply that. It always comes from the
+term's own translation, which is where mvar-freeness lives. -/
+theorem FVarsIn.of_abstract1 {v : FVarId} {e : Expr} {k}
+    (hP : FVarsIn P e) (h : (Expr.abstract1 v e k).looseBVarRange' ≤ k) :
+    FVarsIn (fun fv => P fv ∧ fv ≠ v) e := by
+  induction e generalizing k with
+  | fvar v' =>
+    simp only [Expr.abstract1] at h
+    split at h
+    · simp only [Expr.looseBVarRange'] at h; omega
+    · rename_i hne; exact ⟨hP, fun eq => hne (by simp [eq])⟩
+  | _ => simp_all [FVarsIn, Expr.abstract1, Expr.looseBVarRange', Nat.max_le] <;> grind
+
+
 theorem FVarsIn.liftLooseBVars (h : FVarsIn P e) : FVarsIn P (Expr.liftLooseBVars' e s d) := by
   induction e generalizing s <;> simp_all [FVarsIn, Expr.liftLooseBVars']
 

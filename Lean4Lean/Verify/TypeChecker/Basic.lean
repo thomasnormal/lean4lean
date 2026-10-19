@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.Environment.Lemmas
 import Lean4Lean.Verify.Typing.ConditionallyTyped
+import Lean4Lean.Verify.Typing.LetErasure
 import Lean4Lean.TypeChecker
 
 namespace Except
@@ -591,6 +592,8 @@ def MLCtx.mkLetArg (x : FVarId) (name : Name)
     c.mkLet n (Nat.le_of_succ_le_succ h) nds (Nat.succ_inj.1 eq) <| mkLetArg x name ty val nd e
 termination_by structural n
 
+-- Keep the existing environment parameter for callers; erasure itself needs none.
+set_option linter.unusedVariables false in
 variable! (henv : VEnv.WF env) in
 theorem MLCtx.WF.mkForall_trS {c : MLCtx} (wf : c.WF env Us)
     (H1 : TrExprS env Us c.vlctx e e')
@@ -610,8 +613,7 @@ theorem MLCtx.WF.mkForall_trS {c : MLCtx} (wf : c.WF env Us)
       refine ih h1 ?_ H2 _; dsimp; split
       · exact .letE h5 h3 h4 (.abstract .zero H1)
       · rename_i h; simp at h
-        rw [Expr.lowerLooseBVars_eq_instantiate h (v := val)]
-        exact .inst_let henv (.abstract .zero H1) h4
+        exact H1.eraseAbstractedLet (c.noBV ▸ H1.closed) h
 
 theorem mkForall_hasType {c : MLCtx}
     (hus : us.Forall₂ (VLevel.ofLevel Us · = some ·) us')
@@ -655,6 +657,8 @@ theorem MLCtx.WF.mkForall_tr (henv : VEnv.WF env) {c : MLCtx} (wf : c.WF env Us)
   have := wf.mkForall_trS henv H1 ⟨_, eq.hasType.1⟩ n hn
   exact ⟨⟨_, this.1, _, H⟩, this.2.defeqU_l henv (wf.dropN n hn).tr.wf ⟨_, H⟩⟩
 
+-- Keep the existing environment parameter for callers; erasure itself needs none.
+set_option linter.unusedVariables false in
 variable! (henv : VEnv.WF env) in
 theorem MLCtx.WF.mkLambda_trS {c : MLCtx} (wf : c.WF env Us)
     (H1 : TrExprS env Us c.vlctx e e')
@@ -675,8 +679,7 @@ theorem MLCtx.WF.mkLambda_trS {c : MLCtx} (wf : c.WF env Us)
       refine ih h1 ?_ H2 _; dsimp; split
       · exact .letE h5 h3 h4 (.abstract .zero H1)
       · rename_i h; simp at h
-        rw [Expr.lowerLooseBVars_eq_instantiate h (v := val)]
-        exact .inst_let henv (.abstract .zero H1) h4
+        exact H1.eraseAbstractedLet (c.noBV ▸ H1.closed) h
 
 theorem MLCtx.WF.mkLambda'_congr {c : MLCtx} (wf : c.WF env Us)
     (H : env.IsDefEq Us.length c.vlctx.toCtx e₁ e₂ ty) (n hn) :
@@ -701,6 +704,8 @@ theorem MLCtx.WF.mkLambda_tr (henv : VEnv.WF env) {c : MLCtx} (wf : c.WF env Us)
   have := wf.mkLambda_trS henv H1 eq.hasType.1 n hn
   exact ⟨⟨_, this.1, _, H⟩, this.2.defeqU_l henv (wf.dropN n hn).tr.wf ⟨_, H⟩⟩
 
+-- Keep the existing environment parameter for callers; erasure itself needs none.
+set_option linter.unusedVariables false in
 variable! (henv : VEnv.WF env) in
 theorem MLCtx.WF.mkLet_trS {c : MLCtx} (wf : c.WF env Us)
     (H1 : TrExprS env Us c.vlctx e e')
@@ -722,8 +727,7 @@ theorem MLCtx.WF.mkLet_trS {c : MLCtx} (wf : c.WF env Us)
       · exact .letE h5 h3 h4 (.abstract .zero H1)
       · exact .letE h5 h3 h4 (.abstract .zero H1)
       · rename_i h _ _; simp at h
-        rw [Expr.lowerLooseBVars_eq_instantiate h (v := val)]
-        exact .inst_let henv (.abstract .zero H1) h4
+        exact H1.eraseAbstractedLet (c.noBV ▸ H1.closed) h
 
 theorem MLCtx.fvarRevList_prefix (c : MLCtx)
     {n hn} : c.fvarRevList n hn <+: c.vlctx.fvars := by
