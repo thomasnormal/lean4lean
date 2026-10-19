@@ -14,6 +14,76 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## General application beta simulation without inverse weakening — 2026-10-19
+
+`normal_beta_join` handles an ARBITRARY normally related function on the left
+and a lambda on the right, with normally related, potentially different
+arguments. It builds an actual candidate path from the left application and
+normal equality to the right beta result. There is NO recursive simulation
+premise in this theorem and no lambda-shape restriction on the left function.
+The proof recurses on the LEFT syntax. A retained-spine auxiliary handles
+nested eta applications; forward `ParRedExt.beta_forward` supplies the target's
+typing directly by preservation instead of extracting it through inverse
+weakening. Simultaneous normal substitution handles both changed arguments
+without normal transitivity. `CoreSimulates.proof_application` separately proves
+the ENTIRE application simulation for proof-valued functions, covering every
+actual core successor, by proving that their application result is a proof.
+
+`CoreSimulates.app_beta` now closes the GENERAL application beta induction
+branch: only the original function and argument simulation hypotheses are
+required. Their actual witnesses may have arbitrary normally related shapes.
+The theorem constructs the actual right beta from arbitrary simultaneous body
+and argument parallel reductions, the complete left candidate path, normal
+equality and BOTH endpoint typings at the ORIGINAL application result type.
+It requires neither a recursive body-simulation premise nor an independent
+lambda shape or body-typing certificate from the caller.
+
+All original production bytes and public contracts remain unchanged. The new
+production proof is identical on Lean 4.29.0 and 4.33.0-rc2. Every public root
+inherits EXACTLY `IsDefEqU.sort_inv` and `IsDefEqU.forallE_inv_stratified` and
+EXACTLY `propext`, `Quot.sound`, `sorryAx`. General beta joining has 2992 main /
+3200 integration dependencies; the general application beta clause has 2993 /
+3201. Strict full-graph gates traverse declaration types, inductive constructor
+types and explicitly opaque bodies on integration. They forbid choice, original
+`ParRedExt.parRed_beta`/`hasType_app_bvar0`, false confluence, derived quotient
+injectivity, inverse typing/normal/reduction transport, normal transitivity and
+projection placeholders. Required dependencies enforce actual structural
+recursion, forward beta preservation, simultaneous substitution and both
+retained-binder transports.
+
+`tests/QuotNormalBeta.lean` pins exact source-admission AND axiom manifests for
+33 production/environment/typing/control roots. It uses the reachable Eq/Quot
+model and nonempty dependent obstruction context. A VARIABLE function is
+normally related to a lambda and applied to different proof arguments. A second
+control eta-expands an identity returning a binary predicate through THREE
+nested binders, using explicit application congruence beneath those binders and
+syntactically different, nonpropositional function arguments. Exact syntax
+controls pin those changes. The actual application beta clause reduces BOTH
+the target body and argument nontrivially and retains a delayed ORIGINAL
+function result type. Its join survives a retained dependent proof binder and
+actual typed instantiation. A separate proof-valued function control quantifies
+over all actual core successors and explicitly exercises beta with both
+endpoint typings.
+
+Full defaults pass 424 main / 427 integration jobs. All 20/49 previous selected
+fixtures pass, together with this new strict fixture: 21/50 total. Source census
+remains main 119 matching lines / 19 files / 123 whole-word occurrences and
+integration 124 / 23 / 128. No new source admission, checker behavior change or
+kernel discrepancy. Final receipts use `lean4lean-normal-beta-` stems dated
+`20261019`: `*-default-final3`, `*-regressions`, `*-QuotNormalBeta-final`,
+`final-manifests.json`, and `final-gates.json` under the fleet log directory.
+
+The remaining GENERAL application induction branch is checked EXTRA. This is
+not yet a theorem that every normal equality satisfies `CoreSimulates`, and
+there is no confluence or consumer migration claim. The original false/admitted
+`NormalEq.parRed`, actual frontend manifests, genuine projection semantics and
+checked inductive/model registration remain unchanged. Today's official
+fetch/no-op integration rebase was already completed. Fresh master and PR checks
+remain at `67f63b0` and PR #53 `5a8c0d5`; its broader `FullReduction` also develops
+beta-spine joining. This is a dependent extension of the fork's candidate, so no
+additional current-master PR is opened. Independent substitution PR #65 remains
+OPEN at `1af5844`.
+
 ## Simultaneous normal substitution and the lambda beta branch — 2026-10-19
 
 `NormalEq.substDF` now simultaneously substitutes related variable images into
@@ -34,8 +104,8 @@ the right-hand `ParRed.beta`, and constructs a candidate beta/body/argument path
 on the left. It permits different converted lambda domains and returns normal
 equality plus BOTH endpoint typings at the ORIGINAL supplied application type.
 This completes beta for related lambda bodies with the explicit recursive
-simulation hypotheses. General beta across arbitrary eta-related function
-shapes, checked EXTRA, the universal simulation theorem, new-step overlaps,
+simulation hypotheses. The general beta clause is now proved above. Checked EXTRA, the universal
+simulation theorem, new-step overlaps,
 confluence and actual-consumer migration remain open. The original false
 `NormalEq.parRed` and the actual frontend dependency manifests are unchanged.
 
@@ -117,8 +187,8 @@ original source type.
 
 These ARE recursive constructor clauses: their body/domain simulation premises
 are the corresponding induction hypotheses. There is NO theorem yet asserting
-that every `NormalEq` satisfies `CoreSimulates`. Application's general ROOT beta
-and checked EXTRA cases remain outstanding, as do unfolding against arbitrary
+that every `NormalEq` satisfies `CoreSimulates`. The general application ROOT
+beta clause is now proved above. Checked EXTRA remains outstanding, as do unfolding against arbitrary
 new congruence steps, full simulation/confluence, and migration of the actual
 checker consumers. The original false/admitted `NormalEq.parRed` and the actual
 frontend dependency manifests are unchanged. Genuine projection semantics and
