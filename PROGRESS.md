@@ -39,8 +39,20 @@ native restoration receipts also remain open. The Nat-closing and successor
 arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
-Full default builds pass (436 integration / 433 main review jobs), as do all
-57 selected integration fixtures and 28 selected main fixtures. No new admission is introduced.
+Full default builds pass (439 integration / 436 main review jobs), as do all
+58 selected integration fixtures and 29 selected main fixtures. No new admission is introduced.
+
+**Level invariance and dependent telescopes:** observations and their typing
+now transfer across equivalent well-formed levels, including actual stored
+rule bindings and delta bodies. Typed lambda/Pi telescopes can be constructed
+and unwound; the dependent remainder transfers to any member of a key's
+class using its codomain soundness induction hypothesis. Variable, sort and
+the full dependent-Pi formation cases of simultaneous soundness are proved,
+including typing at related anchors. The 115-root audit is admission-free
+and choice-free on both toolchains. Controls derive their soundness premises
+and change a beta-redex representative inside a genuinely dependent telescope.
+Full expression/representative soundness, rule soundness and declaration-history
+validity remain open, as do quotient/Pi separation and nonzero EXTRA.
 
 **Expression observation interpretation:** anchored valuations now interpret
 all six existing expression forms using actual stored constants and equations,
@@ -49,7 +61,8 @@ weakening, substitution, instantiation, subsumption monotonicity, compactness,
 closed-term invariance and hereditary backing are proved without admissions or
 choice. The 139-root audit reads full types and bodies on both toolchains;
 controls include a checked delta definition, the actual quotient equation and
-nonempty finite demands under a binder. Level/representative invariance,
+nonempty finite demands under a binder. Level invariance and the initial
+soundness cases are now supplied above. Full expression/representative and
 rule/environment soundness, quotient/Pi separation and nonzero EXTRA remain open.
 
 **Constructive observation filter:** finite index maps now implement the
@@ -698,9 +711,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current Lean 4.29.0 proof source passes all default targets (**433 jobs**)
-on October 19 and all 28 selected regressions. The separate Lean 4.33.0-rc2
-integration passes its full default build (**436 jobs**) and all 57 selected
+The current Lean 4.29.0 proof source passes all default targets (**436 jobs**)
+on October 19 and all 29 selected regressions. The separate Lean 4.33.0-rc2
+integration passes its full default build (**439 jobs**) and all 58 selected
 regressions. The independent current-master substitution PR passes its default
 build and standalone regression. These receipts validate their respective
 snapshots; the main branch retains its earlier history. Detailed logs and exact
