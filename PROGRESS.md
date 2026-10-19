@@ -17,7 +17,7 @@ not completion of frontend soundness.
 
 **Published versus upstream integration:** this main review branch retains
 its older base on Lean **4.29.0**, now including direct native binder naming.
-The separate Lean **4.33.0-rc2** snapshot extends `c65a7a0` on
+The separate Lean **4.33.0-rc2** snapshot extends `b7b7d92` on
 `poc-verified-noninductive-upstream-20261019`, based on official
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`.
 It retains upstream mutual definitions, integrates the quotient proofs and
@@ -42,6 +42,16 @@ or replace the main review branch.
 Full default builds and all selected regression fixtures pass on both
 toolchains. No new admission is introduced.
 
+**Universal candidate reduction simulation:** every actual `NormalEq` in a
+well-formed environment with the quotient rule registered now simulates every
+candidate `Step`, and every finite candidate `Steps` path, using candidate
+paths on the left and a direct final normal comparison. Both outputs retain
+any supplied original type. This includes neutral Prop-source unfolding,
+root eta expansion, original checked reduction and congruence under changing
+dependent binders. All 155 audited roots exclude admissions and choice on
+both versions. Confluence, admission-free normal-equality transitivity,
+conversion-consumer migration and frontend soundness remain open.
+
 **Universal original-core simulation:** every actual `NormalEq` in a
 well-formed environment with the checked quotient rule registered now simulates
 any original parallel step, and any finite original-core path, using the
@@ -50,8 +60,8 @@ functions and majors, actual capture reductions/checks, retained eta binders,
 root beta and congruence. Both outputs keep the supplied original type. All 100
 audited roots exclude admissions and choice on both versions. The original
 Prop-source counterexample is simulated by repaired paths and still refutes
-the old core-only target. Candidate-step simulation, confluence/conversion
-consumer migration and frontend soundness remain open.
+the old core-only target. The broader candidate-step and finite-path result
+is proved above; confluence, consumer migration and frontend soundness remain open.
 
 **Nonzero quotient exposure and actual EXTRA replay:** a normal comparison
 with `Quot.mk` now exposes an actual left constructor at a nonzero source.
@@ -92,7 +102,8 @@ consumer names. Dependent beta chains, real ordinary/Strong quotient EXTRA
 and a two-argument Quot spine are checked. Original dependent-Pi injectivity
 and type uniqueness are now proved above; concrete nonzero root replay is supplied
 above, and universal original-core simulation is now proved with repaired paths.
-Candidate-step simulation and frontend soundness remain open.
+Universal candidate-step simulation is also proved above; confluence and
+frontend soundness remain open.
 Earlier dated checkpoint accounts below are superseded by this boundary.
 
 **Actual rule validity and Strong-derivation soundness:** declaration history now
@@ -463,7 +474,7 @@ themselves satisfy any of these goals.
 | Remove inherited admissions from the frontend | **Not complete.** Dependency audits identify the remaining trust gaps. | Foundational admissions also remain. | Must close the actual metatheory/checker dependencies, not add another wrapper around them. |
 | Supply simultaneous substitution for arbitrary typing/equality derivations | **Proved API now available:** `55b7b4d` ports strong/weak cross-substitution and audits its dependencies as only `propext` and `Quot.sound`. | Already proved upstream in `6ba54db`/`8223d22`. | Foundation integration, not a newly solved upstream obligation; the frontend's inherited admissions remain. |
 | Verify actual checked inductive registration | **Not complete.** Header/constructor checks and staging invariants are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, and prelude translation. |
-| Complete confluence and semantic reduction correctness | **Original simulation contract refuted:** the actual quotient model has a checked counterexample to `NormalEq.parRed`. The candidate relation proves forward eta joins, general application beta simulation, exact joins for all six prefix-application beta overlaps, and a normal-equality local join for canonical unfolding versus every original core reduction. | Confluence and related semantic obligations remain open. | General quotient simulation, other eta/rewrite overlaps, migration of actual consumers, non-circular injectivity/strengthening, genuine projection and inductive recursor semantics. |
+| Complete confluence and semantic reduction correctness | **Original simulation contract refuted:** the actual quotient model has a checked counterexample to `NormalEq.parRed`. Every actual normal equality now simulates every candidate step and finite candidate path, including original checked reduction, neutral Prop-source unfolding, eta expansion and congruence. Both outputs retain the supplied original type. | Confluence and related semantic obligations remain open. | Candidate confluence, admission-free normal-equality transitivity, migration of actual consumers, general strengthening, genuine projection and inductive recursor semantics. |
 | Reject projection reduction outside the current semantic model | **Upstream-ready candidate in PR #57:** `reduceProjCore.none_of_translation` and `reduceProj.none_of_translation` prove that translated terms cannot reduce through constructor-family lookups while `TrEnv` remains constructor-free; the existing `WF` contracts now derive from that rejection proof. | Official master still carries the original admitted projection `WF` contract. | This is deliberately a rejection theorem for the non-inductive fragment, not inductive projection semantics; `AddInduct`, model registration, and recursor obligations remain open. |
 | Reject projection type inference outside the current semantic model | **Upstream-ready candidate in PR #58:** `inferProj.rejects` proves that translated structure types cannot pass the inductive-header lookup, and the existing `inferProj.WF` contract now follows without an admission. | Official master still carries the original admitted `inferProj.WF` contract. | This closes only the constructor-free semantic fragment; successful inductive projection inference still requires `AddInduct`, model registration, and dependent-field semantics. |
 | Reject structure-eta and unit-like comparison outside the current semantic model | **Upstream-ready candidate in PR #59:** `tryEtaStructCore.false_of_translation` and `isDefEqUnitLike.false_of_translation` prove both comparison workers return false for translated constructor-family heads; their existing `WF` contracts now derive without admissions. | Official master still carries both comparison admissions. | This closes only the constructor-free semantic fragment; inductive eta and unit-like semantics still require constructive model registration. |
@@ -847,9 +858,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current Lean 4.29.0 proof source passes all default targets (**456 jobs**)
-on October 19 and all 41 selected regressions. The separate Lean 4.33.0-rc2
-integration passes its full default build (**459 jobs**) and all 69 selected
+The current Lean 4.29.0 proof source passes all default targets (**457 jobs**)
+on October 19 and all 42 selected regressions. The separate Lean 4.33.0-rc2
+integration passes its full default build (**460 jobs**) and all 70 selected
 regressions. The independent current-master substitution PR passes its default
 build and standalone regression. These receipts validate their respective
 snapshots; the main branch retains its earlier history. Detailed logs and exact
@@ -892,8 +903,9 @@ foundational admissions; the known-false confluence dependency remains open.
    results. Prop-source unfolding now covers every partial prefix as well as
    the concrete saturated obstruction. Concrete nonzero root EXTRA replay now
    recovers an actual constructor and both pattern checks. The complete application
-   clause now proves universal original-core simulation by repaired paths.
-   Candidate-step simulation and confluence consumer migration stay open. Coordinate
+   clause proves universal original-core simulation by repaired paths, and
+   candidate-step/finite-path simulation is now proved as well. Confluence,
+   admission-free normal-equality transitivity and consumer migration remain open. Coordinate
    with the existing upstream draft instead of duplicating its full stack.
    Type uniqueness and original dependent-Pi injectivity are now proved from
    actual chain fields; close the remaining inverse-weakening foundations,
