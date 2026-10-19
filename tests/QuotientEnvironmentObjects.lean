@@ -20,7 +20,7 @@ run_meta
   for theoremName in #[``TrEnv'.quotientObjects, ``TrEnv.quotientObjects] do
     let information ← getConstInfo theoremName
     if information matches .axiomInfo _ then throwError "quotient object theorem is an axiom"
-    if let some proof := information.value? then
+    if let some proof := information.value? (allowOpaque := true) then
       if proof.hasSorry then throwError "quotient object theorem has an admission"
   logInfo m!"quotient object availability wrappers are theorem-backed and admission-free"
 

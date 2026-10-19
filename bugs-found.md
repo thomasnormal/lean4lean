@@ -4,6 +4,99 @@
 * https://github.com/leanprover/lean4/issues/10475
 * https://github.com/leanprover/lean4/issues/10511
 
+## False quotient confluence simulation specification (2026-10-15)
+
+**Verification-model defect, not a demonstrated native kernel soundness bug.**
+The last admitted case of `VEnv.NormalEq.parRed` has a counterexample in the
+actual quotient reduction instance, even with a concrete well-formed semantic
+declaration history and a well-formed local context. It is not a case that can
+be completed by a missing pattern-preservation lemma.
+
+Take `P : Prop`, `r : P → P → Prop`, `f : P → Prop`,
+`h : ∀ a b, r a b → f a = f b`, `a : P`, and `q : Quot r`. Write:
+
+```text
+L = Quot.lift f h q
+R = Quot.lift f h (Quot.mk r a)
+S = f a
+```
+
+1. `L ≡ₚ R`: the majors are proofs of the same proposition, so `NormalEq.proofIrrel`
+   and application congruence relate the two eliminators.
+2. `R ≫ S`: this is the actual registered, parameter-checked quotient pattern rule.
+3. `L ≫* T` implies `T = L`: the neutral major and all other arguments are
+   variables/sorts, with no constructor major, beta redex, or registered delta
+   rule in the source.
+4. `¬ L ≡ₚ S`: the distinct function heads cannot be related by normal equality.
+   The only otherwise possible proof-irrelevance cases are excluded because
+   the eliminator has a sort telescope type, while its result is a proposition
+   (type `Prop`), not a proof of a proposition. Neither term can therefore use
+   the proof-irrelevance rule to escape the head mismatch.
+
+Thus the exact conclusion of `NormalEq.parRed` fails. The endpoints still have
+the intended semantic equality, proved separately by congruence and quotient
+beta; it is the reduction/conversion presentation that fails to simulate it.
+
+Formal artifact: `Lean4Lean/Theory/Typing/QuotConfluenceObstruction.lean`.
+Run `lake env lean tests/QuotConfluenceObstruction.lean`. The fixture constructs
+an explicit semantic history adding the Eq axiom signature and then quotients;
+its well-formedness proof depends only on `propext` and `Quot.sound`. The full
+counterexample still inherits separate typing/injectivity admissions
+(`propext`, `Quot.sound`, `sorryAx`), which are not claimed repaired. Its
+dependency traversal rules out the contradicted confluence theorem and its
+derived quotient-injectivity results, as well as `IsDefEqU.weakN_iff` (the
+separate false-strengthening report in upstream issue #50). Every owned value
+is checked for direct admissions/new axioms.
+
+Minimal native control: `tests/NativeQuotientProofIrrelevance.lean`, importing
+only `Lean`. It passes on both Lean **4.29.0** and **4.33.0-rc2**. Native `rfl`
+accepts `q = Quot.mk r a` and the constructor beta equality; it does not close
+the lifted or final equalities directly, while explicit `congrArg` and
+transitivity proofs succeed. The named native controls in the full fixture
+have no axiom dependencies. This records native conversion incompleteness,
+not acceptance of an invalid theorem.
+
+No executable behavior, theorem statement, admission, or acceptance guard was
+changed to conceal the obstruction. In particular, excluding propositional
+quotients or adding an unproved stability premise is not a repair. Existing
+frontend and quotient claims that inherit the confluence admission remain
+conditional on a now-known-false verification contract.
+
+### Checked repair ingredient
+
+`QuotPropReduction.unfold_sound` now proves the semantic unfolding
+`Quot.lift f h q ≡ f (Quot.ind (fun _ => P) id q)` at any source universe
+equivalent to zero, preserving the source's actual result type. The selector
+constructively obtains a proof of `P` from the propositional quotient major;
+this uses neither choice nor an arbitrary representative of a Type-valued
+quotient. Proof irrelevance reconstructs the major as `Quot.mk` of that proof,
+then the registered quotient equation applies. The compatible extension
+`QuotPropReduction.Step` therefore simulates this counterexample with one
+left step followed by the unchanged `NormalEq`. Weakening and typed
+substitution are proved, not extra caller preservation premises.
+
+This does not make the old `NormalEq.parRed` statement true: its relations
+are untouched. Full simulation/confluence for the extension, prefix/eta
+overlaps, and migration of dependent proofs remain open. The selector and
+generic normal-equality join are admission-free/no-choice, while source
+typing inversion and actual reduction-model construction retain the already
+documented independent `sorryAx` dependencies. The fixture audits those bounds
+and excludes the refuted confluence theorem and issue #50's strengthening.
+Upstream draft PR #53 already contains this selector/reconstruction direction;
+the local result is a focused bridge, not a new competing inductive stack.
+
+`QuotPrefixReduction` extends this ingredient to every partial quotient-lift
+prefix using typed function eta in the same compatible presentation. Its
+complete transformer introduces precisely the missing binders from the
+registered signature, and its proof reconstructs canonical residual typing
+from the actual source derivation instead of assuming it from the caller.
+All zero through six supplied-argument cases have a generic completeness
+theorem and concrete semantic regressions. Weakening and typed substitution
+also preserve the generated finite chains. General confluence and eta-overlap
+proofs remain unproved; neither the old false contract nor native execution
+is changed. This follows the existing upstream draft #53 direction, rather
+than asserting a new competing repair design.
+
 ## Inductive constructor source-variable capture (2026-10-08)
 
 Reproduced with the pinned Lean **4.29.0** native kernel. An inductive source

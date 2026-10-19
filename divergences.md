@@ -20,6 +20,78 @@ This is a list of places where lean4lean deliberately has different behavior fro
 * [`Lean4Lean.addDefinition`](Lean4Lean/Environment.lean) (`unsafe` branch), [`addMutual`](Lean4Lean/Environment.lean): an `unsafe`/`partial` definition may be recursive, so its body is checked in an environment that already contains the declaration. The C++ kernel adds `constant_info(d)` there -- the full definition, value included -- so the body can delta-unfold the very constant being defined. Lean4lean adds it as an axiom of the same type instead: the body may still *refer* to the block's constants, but cannot unfold them. So for example `unsafe def foo : Nat := (fun (_ : foo = 1) => 1) rfl` is accepted by the C++ kernel, but rejected by L4L: checking the argument requires `foo =?= 1`, which succeeds by unfolding `foo` to its own body and reducing. Read literally, that rule makes a typing fact about the constant available while establishing it, and implementing this in `IsDefEq` directly degenerates completely, allowing even things like `unsafe def bar : Nat := "hi"` by using the typing judgment to justify itself. The gap is confined to `unsafe`/`partial` code, which carries no logical content.
 * [`Lean4Lean.addMutual`](Lean4Lean/Environment.lean): lean4lean requires the declarations of a mutual block to carry the same universe parameters and to have distinct names. Both checks are in kernel PRs that are not yet released ([leanprover/lean4#14608](https://github.com/leanprover/lean4/pull/14608), [#14632](https://github.com/leanprover/lean4/pull/14632)); the released kernel checks only that the safety annotations agree. Lean4lean needs them rather than merely matching them: the block is checked under a single `M.run`, whose level parameters are fixed for the whole run, and the model adds the block's constants one at a time with `VEnv.addConsts`, which fails on a repeated name.
 
+## False quotient confluence simulation contract (2026-10-15)
+
+This is a verification-model defect, not a newly introduced executable
+divergence or a demonstrated native kernel soundness bug. The remaining
+`NormalEq.parRed` application/extra contract cannot hold for the actual quotient
+instance. In a well-formed context with `P : Prop`, `a : P`, `r : P → P → Prop`,
+`f : P → Prop`, a respect proof, and `q : Quot r`, proof irrelevance gives
+normal equality between the majors `q` and `Quot.mk r a`. Congruence therefore
+gives normal equality between the corresponding `Quot.lift` applications.
+The constructor application takes the registered quotient beta step to `f a`.
+The neutral application cannot take any non-reflexive step in the current
+reduction relation, and its normal equality to `f a` is impossible: neither
+the eliminator nor its type-valued result can use proof irrelevance to erase
+the distinct function heads.
+
+`Theory.Typing.QuotConfluenceObstruction` proves this exact failure without
+using the contradicted theorem, its confluence consequences, or the separately
+reported `IsDefEqU.weakN_iff` strengthening admission (upstream issue #50). Its fixture
+builds a concrete Eq-plus-Quot semantic environment, audits the independent
+inherited typing/injectivity admissions, and keeps endpoint semantic equality
+explicitly proved by congruence and beta. `tests/NativeQuotientProofIrrelevance.lean`
+is a standalone native control on Lean 4.29.0 and 4.33.0-rc2: major proof
+irrelevance and constructor beta close by `rfl`, while lifted congruence and
+the final equality need explicit `congrArg`/transitivity proofs. This does not
+imply that a checker returning false is unsound; completeness is not the
+checker's proved success-only contract.
+
+The existing admission remains visible and unchanged. Repair must preserve
+propositional quotient elimination and its actual semantic conversions, not
+add an unproved pattern-preservation premise, weaken the model, or reject
+otherwise accepted declarations. Confluence-dependent verification claims must
+remain conditional on this now-known-false interface until it is repaired.
+
+The first checked repair ingredient is now `QuotPropReduction`: a total
+syntax transformer recognizes every zero-equivalent source universe and
+unfolds saturated lifts using a constructive `Quot.ind` proof selector.
+Its semantic rule preserves the original result type, and its compatible
+extension simulates the recorded obstruction. It neither changes native
+execution nor rejects declarations. The old relation and its false theorem
+remain unchanged; full confluence and downstream migration are not claimed.
+Native controls on Lean 4.29.0 and 4.33.0-rc2 validate the selector/unfolding
+equations, not completeness of native conversion. The selector direction
+already appears in upstream draft PR #53. General soundness still inherits
+independent typing admissions, with confluence and strengthening explicitly
+excluded from the new dependency graph.
+
+The compatible presentation now includes typed function eta and a complete
+quotient-prefix transformer, so the semantic repair ingredient applies to
+the bare lift constant and all partial applications, not only saturated
+majors. The proof derives the residual signature typing internally and
+preserves the original type. Native prefix/function equality controls pass on
+Lean 4.29.0 and 4.33.0-rc2 with explicit extensionality and congruence; this
+does not add those steps to either executable checker. General confluence,
+critical-pair proofs, and downstream migration are still open.
+
+## Reduction-model local contexts (repaired 2026-10-15)
+
+`Theory.Typing.ChurchRosser.Params.pat_wf` formerly required rule soundness in
+arbitrary local contexts without a context-WF premise. The actual quotient typing
+and conversion proofs require that premise, while every use of the field already
+has it. The model interface now receives `OnCtx` explicitly, and `ParRed.defeq`
+forwards its existing context certificate at both uses. The parallel-reduction and
+confluence theorem statements remain unchanged. This is a verification-interface
+repair, not a native kernel discrepancy or an added runtime restriction.
+
+`VEnv.WF.reductionParams` constructs the concrete registered definition/quotient
+model with equation coverage and all non-overlap obligations proved from the WF
+declaration history. `tests/ConcreteReduction.lean` checks actual reduction and
+confluence consumers and rules out circular dependence of model construction on
+those consumers. The remaining generic confluence and unique-typing admissions
+are not removed by this interface repair or model construction.
+
 ## Closed quotient equation pattern boundary (repaired 2026-10-12)
 
 The former `Theory.Typing.ChurchRosser.Params.extra_pat` specification required

@@ -122,29 +122,27 @@ private def nativeControls : MetaM Unit := do
           let context : Context := {
             env := environment, lctx := locals, safety, eagerReduce := eager,
             fuel := { recDepth := depth, whnf := depth, whnfEager := depth } }
-          for cheapRec in [false, true] do
-            for cheapProj in [false, true] do
-              let mut state : State := {}
-              for _ in [:2] do
-                for (wrappedMajor, payload) in wrapped do
-                  let canonical := mkAppN source.getAppFn (arguments.set! majorPosition wrappedMajor)
-                  let trailing : List (List Expr) := if declarationName == ``functionControl then
-                    [[], [.lit (.natVal 7)]] else [[]]
-                  for extraArguments in trailing do
-                    let expression := canonical.mkAppList extraArguments
-                    let expected := (Expr.app arguments[3]! payload).mkAppList extraArguments
-                    let .ok (outcome, nextState) := quotReduceRec expression
-                        (fun argument => Inner.whnf argument methods) context state
-                      | throwError "actual quotient semantic helper rejected: {declarationName}"
-                    unless outcome == some expected do
-                      throwError "actual quotient semantic helper lost its payload/spine: {declarationName}"
-                    let .ok (dispatched, finalState) := Inner.reduceRecursor expression
-                        cheapRec cheapProj methods context nextState
-                      | throwError "actual quotient semantic dispatch rejected: {declarationName}"
-                    unless dispatched == some expected do
-                      throwError "actual quotient semantic dispatch differs from the helper: {declarationName}"
-                    state := finalState
-                    controls := controls + 1
+          let mut state : State := {}
+          for _ in [:2] do
+            for (wrappedMajor, payload) in wrapped do
+              let canonical := mkAppN source.getAppFn (arguments.set! majorPosition wrappedMajor)
+              let trailing : List (List Expr) := if declarationName == ``functionControl then
+                [[], [.lit (.natVal 7)]] else [[]]
+              for extraArguments in trailing do
+                let expression := canonical.mkAppList extraArguments
+                let expected := (Expr.app arguments[3]! payload).mkAppList extraArguments
+                let .ok (outcome, nextState) := quotReduceRec expression
+                    (fun argument => Inner.whnf argument methods) context state
+                  | throwError "actual quotient semantic helper rejected: {declarationName}"
+                unless outcome == some expected do
+                  throwError "actual quotient semantic helper lost its payload/spine: {declarationName}"
+                let .ok (dispatched, finalState) := Inner.reduceRecursor expression
+                    methods context nextState
+                  | throwError "actual quotient semantic dispatch rejected: {declarationName}"
+                unless dispatched == some expected do
+                  throwError "actual quotient semantic dispatch differs from the helper: {declarationName}"
+                state := finalState
+                controls := controls + 1
           let guardContext : Context := { env := environment, lctx := locals }
           let underApplied := mkAppN source.getAppFn (arguments.extract 0 majorPosition)
           let .ok (missing, _) := quotReduceRec underApplied
@@ -169,7 +167,7 @@ private def nativeControls : MetaM Unit := do
     unless !(quotReduceRec source (fun argument => Inner.whnf argument (Methods.withFuel 0))
         context {}).isOk do
       throwError "zero-depth quotient normalization unexpectedly accepted"
-  logInfo m!"{controls} actual cold/warm quotient helper/dispatch pairs preserve constructor payloads and trailing applications; lift, constant/dependent proposition induction, function-valued lift, metadata/beta/let majors and open/local-let payloads, both safeties/eager modes, depths 32/128 and all cheap flags; four universe/parameter-conversion controls also pass checked inference and type comparison; saturation, malformed-major and zero-depth guards pass"
+  logInfo m!"{controls} actual cold/warm quotient helper/dispatch pairs preserve constructor payloads and trailing applications; lift, constant/dependent proposition induction, function-valued lift, metadata/beta/let majors and open/local-let payloads, both safeties/eager modes, depths 32/128; four universe/parameter-conversion controls also pass checked inference and type comparison; saturation, malformed-major and zero-depth guards pass"
 
 run_meta
   let environment ← getEnv
@@ -180,7 +178,7 @@ run_meta
   for (name, information) in environment.constants do
     if environment.getModuleIdxFor? name == some moduleIndex then
       if information matches .axiomInfo _ then throwError "owned quotient semantic axiom: {name}"
-      let some proof := information.value? | throwError "owned quotient semantic proof absent: {name}"
+      let some proof := information.value? (allowOpaque := true) | throwError "owned quotient semantic proof absent: {name}"
       if proof.hasSorry then throwError "owned quotient semantic admission: {name}"
       let dependencies ← collectAxioms name
       for dependency in dependencies do
@@ -193,7 +191,7 @@ run_meta
     for dependency in dependencies do
       unless #[``propext, ``Quot.sound].contains dependency do
         throwError "quotient constructor/induction acquired a metatheory admission: {dependency}"
-  logInfo m!"{owned} exhaustive owned quotient semantic declarations have no direct admission or axiom; lift explicitly inherits the existing unique-typing baseline {repr baseline}; constructor/induction exclude inherited admissions and choice; canonical parameter alignment is not full quotReduceRec.WF"
+  logInfo m!"{owned} exhaustive owned quotient semantic declarations have no direct admission or axiom; lift explicitly inherits the existing unique-typing baseline {repr baseline}; constructor/induction exclude inherited admissions and choice; full native quotReduceRec.WF is audited separately"
   nativeControls
 
 end QuotientReductionSemanticsTest

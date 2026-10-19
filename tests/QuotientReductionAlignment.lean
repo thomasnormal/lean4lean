@@ -90,7 +90,7 @@ run_meta
   for (name, information) in environment.constants do
     if environment.getModuleIdxFor? name == some moduleIndex then
       if information matches .axiomInfo _ then throwError "owned quotient alignment axiom: {name}"
-      let some proof := information.value? | throwError "owned quotient alignment proof absent: {name}"
+      let some proof := information.value? (allowOpaque := true) | throwError "owned quotient alignment proof absent: {name}"
       if proof.hasSorry then throwError "owned quotient alignment admission: {name}"
       let dependencies ← collectAxioms name
       for dependency in dependencies do
@@ -98,6 +98,6 @@ run_meta
           throwError "unexpected quotient alignment dependency: {dependency} in {name}"
       logInfo m!"{name}: {repr dependencies}"
       owned := owned + 1
-  logInfo m!"{owned} exhaustive owned quotient alignment declarations have no direct admission or axiom; existing unique-typing baseline is explicit: {repr baseline}; constructor levels/parameters/payloads may differ by conversion, and induction transports to the original dependent motive; obtaining parameter equalities from arbitrary quotient typing remains open"
+  logInfo m!"{owned} exhaustive owned quotient alignment declarations have no direct admission or axiom; existing unique-typing baseline is explicit: {repr baseline}; constructor levels/parameters/payloads may differ by conversion, and induction transports to the original dependent motive; automatic parameter inference and native worker soundness are audited separately"
 
 end QuotientReductionAlignmentTest

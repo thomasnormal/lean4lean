@@ -19,7 +19,7 @@ run_meta
   let theoremName := ``Environment.checkPrimitiveInductive.toVDecl_WF
   let information ← getConstInfo theoremName
   if information matches .axiomInfo _ then throwError "primitive frontend receipt is an axiom"
-  let some proof := information.value? | throwError "primitive frontend receipt proof missing"
+  let some proof := information.value? (allowOpaque := true) | throwError "primitive frontend receipt proof missing"
   if proof.hasSorry then throwError "primitive frontend receipt has an admission"
   let baseline ← collectAxioms ``Environment.checkPrimitiveInductive.toVDecl
   let axioms ← collectAxioms theoremName

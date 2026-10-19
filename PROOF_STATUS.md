@@ -3,6 +3,74 @@
 This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
+
+## Upstream quotient integration — 2026-10-19
+
+This separate Lean 4.33.0-rc2 snapshot extends `43a47d9`, based on official
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`. The main Lean 4.29.0 review branch
+remains at proof source `1337f871caea000219b8da408b4dea3c31718690`.
+The snapshot is published as `poc-verified-noninductive-upstream-20261019`
+without replacing either existing branch. It does not yet replay the later
+inhabited-binder reflection repair or all native inductive restoration receipts.
+
+The original `reduceRecursor.WF` contract is now proved by composing native
+quotient reduction with `inductiveReduceRec.none_of_translation`. The executable
+dispatcher retains upstream's expression-only interface. Actual callback WHNF,
+payload translation, inferred constructor parameters, and trailing applications
+are covered; no new translation restriction is introduced. Its transitive
+axioms still include existing native interfaces and typing/confluence
+admissions. Genuine inductive recursor reduction is outside the constructor-free
+`TrEnv` model.
+
+The imported quotient development supplies constructor/eliminator inversion,
+typed and normalized-major beta, concrete rewrite metadata, the checked
+confluence obstruction, and Prop-source/all-prefix unfolding. The actual
+`Params.pat_wf` interface now includes context well-formedness, and its
+consumer passes that premise. The old false `NormalEq.parRed` contract is
+unchanged. The counterexample and repair ingredients explicitly exclude that
+theorem, its confluence consequences, derived quotient injectivity, and the
+known-false general strengthening theorem; independent typing/injectivity
+admissions remain. General simulation, eta critical pairs, confluence, and
+consumer migration remain open. The selector/prefix direction is attributed
+to upstream draft #53.
+
+Original integration proofs extend `WF.rewriteMetadata`, quotient-object
+lookup, and the concrete Eq registration witness across upstream mutual
+definitions. `addConsts_defeqs`, `addDefEqs_defeqs`,
+`addDefEqs_constants`, and `addDefEqs_extension` expose both folds without
+changing them. Metadata proves freshness and uniqueness for the simultaneous
+signature reservation and later equation registration, including interaction
+with pre-existing definitions and quotient names. The fixture checks a genuine
+two-definition WF history with a dependent second body, both equations and
+actual reduction, plus duplicate-name rejection. General metadata and history
+witnesses are admission-free/no-choice.
+
+Three earlier abstract model placeholders are replaced by the fork's
+constructive signature-registration model and its orderedness proof.
+`InductiveEnvironmentModel` tests headers, constructors, fresh names, extensions,
+defining-equation preservation, and explicitly supplied recursor signatures.
+Its body/axiom audit excludes admissions and choice. This model registers
+constant signatures: it does not establish inductive positivity, generated
+recursor semantics, checked `AddInduct` registration, or prelude translation.
+
+All imported proof/dependency audits explicitly inspect theorem/opaque bodies
+with `value? (allowOpaque := true)`, required by Lean 4.33. Conventional choice
+introduced by newer String simplification proofs is avoided with explicit list
+membership and a direct UTF-8-size distinction for protected quotient names;
+strict no-choice bounds are retained rather than relaxed.
+
+Validation: full default `lake build` passes all 422 jobs; all 33 fixtures
+pass, including quotient/model, primitive/frontend, and all five existing
+integration trust fixtures. Actual runtime controls cover 560 cold/warm
+quotient helper/dispatcher pairs at both safety/eager settings and depths
+32/128, including open/local-let majors and trailing applications. Logs live under
+`/var/tmp/thomas-ahle/fleet2/logs/`: full build
+`lean4lean-quot-integration-default-final-20261019.log` and per-fixture
+`lean4lean-integration-<Fixture>-final-20261019.log`. Source census changes
+from 129 matching lines / 27 files / 133 whole-word `sorry|admit` occurrences
+to 125 / 24 / 129, with no new admission. Three abstract placeholders and one
+dispatcher admission are removed; inherited frontend trust gaps remain.
+
 ## What is proved
 
 - `Pattern.Equation` represents guarded registered pattern reductions under

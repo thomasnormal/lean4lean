@@ -2,15 +2,6 @@ import Lean4Lean.Theory.InductiveHeaders
 
 namespace Lean4Lean
 
-def VEnv.addConstructorHeaders (env : VEnv) : List VConstVal → Option VEnv
-  | [] => some env
-  | ctor :: ctors => do
-    let env ← env.addConst ctor.name ctor.toVConstant
-    env.addConstructorHeaders ctors
-
-def VInductDecl.constructorHeaders (declaration : VInductDecl) : List VConstVal :=
-  declaration.types.flatMap (fun header => header.ctors)
-
 variable {env env' : VEnv} {ctors : List VConstVal} {ctor : VConstVal}
 
 theorem VEnv.addConstructorHeaders.exists
@@ -61,6 +52,38 @@ theorem VEnv.addConstructorHeaders.constants
     rcases List.mem_cons.mp hmem with rfl | hmem
     · exact (addConstructorHeaders.le hrest).constants (addConst_self hstep)
     · exact ih hrest hmem
+
+theorem VEnv.addConstructorHeaders.fresh
+    (hadd : env.addConstructorHeaders ctors = some env') (hmem : ctor ∈ ctors) :
+    env.constants ctor.name = none := by
+  induction ctors generalizing env with
+  | nil => cases hmem
+  | cons first ctors ih =>
+    obtain ⟨next, hstep, hrest⟩ := Option.bind_eq_some_iff.mp hadd
+    rcases List.mem_cons.mp hmem with rfl | hmem
+    · unfold VEnv.addConst at hstep
+      split at hstep <;> simp_all
+    · cases found : env.constants ctor.name with
+      | none => rfl
+      | some value =>
+        have found' := (addConst_le hstep).constants found
+        rw [@ih next hrest hmem] at found'
+        cases found'
+
+theorem VEnv.addConstructorHeaders.otherConstants
+    (hadd : env.addConstructorHeaders ctors = some env')
+    (notMember : ∀ ctor ∈ ctors, ctor.name ≠ name) :
+    env'.constants name = env.constants name := by
+  induction ctors generalizing env with
+  | nil => cases hadd; rfl
+  | cons first ctors ih =>
+    obtain ⟨next, hstep, hrest⟩ := Option.bind_eq_some_iff.mp hadd
+    have hnext := ih hrest (fun ctor hmem => notMember ctor (by simp [hmem]))
+    unfold VEnv.addConst at hstep
+    split at hstep
+    · cases hstep
+    · cases hstep
+      simpa [notMember first (by simp)] using hnext
 
 theorem VEnv.addConstructorHeaders.defeqs_eq
     (hadd : env.addConstructorHeaders ctors = some env') : env'.defeqs = env.defeqs := by

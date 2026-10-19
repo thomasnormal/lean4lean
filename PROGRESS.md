@@ -1,6 +1,6 @@
 # Progress and upstream comparison
 
-Last reviewed: **2026-10-13 (UTC)**. This is the readable overview of the
+Last reviewed: **2026-10-19 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
@@ -15,16 +15,17 @@ fully integrated into the published branch. Its admission-free simultaneous
 substitution proof is narrowly ported here; that is foundation integration,
 not completion of frontend soundness.
 
-**Published versus local integration:** the published branch is at `0ebb018`
-on Lean **4.29.0**. The isolated integration worktree is detached at `9a56021`,
-based on official `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` on Lean
-**4.33.0-rc2**. Today's fetch confirms that official tip is already an
-ancestor, so the daily rebase check is a successful no-op. The integrated
-source now passes the full default build (**414 jobs**), the restoration,
-header-normalization, and substitution-endpoint regression fixtures, the
-whole-word admission census (**129 existing `sorry`/`admit` occurrences**),
-and `git diff --check`. This is compatibility and synchronization evidence,
-not a new semantic milestone; the rewritten history has not been published.
+**Published versus upstream integration:** the main review branch is at
+proof source `1337f871caea000219b8da408b4dea3c31718690` on Lean **4.29.0**.
+This separate integration snapshot is based on official
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` on Lean **4.33.0-rc2**,
+extending checkpoint `43a47d9`. It integrates the later quotient semantics,
+the actual native quotient/recursor dispatcher proof, the checked confluence
+obstruction, and the typed Prop-source/prefix repair ingredients. Upstream's
+mutual-definition declarations and executable behavior are retained. This is
+a partial integration: the inhabited-binder reflection repair and later native
+restoration receipts still need replay. Publishing this snapshot on a separate
+branch does not rebase or replace the main review branch.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.
@@ -124,33 +125,50 @@ push. Permission to use `--force-with-lease` is pending; the existing no-force
 rule remains in effect until the user answers. Do not describe the branch as
 rebased or synchronized until the rebase and publication have actually succeeded.
 
-### Current integration checkpoint — October 13
+### Current integration checkpoint — October 19
 
-The inbox is absent. The latest fetch confirms official master remains
-`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, already an ancestor of the local
-integration checkpoint `9a56021`; today's daily rebase check is a successful
-no-op. The published comparison is **49 upstream-only / 329 branch-only**
-commits. Those counts describe synchronization, not semantic progress. The
-local integration has zero upstream-only commits relative to official master.
+Official `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` is an ancestor of this
+integration; today's rebase check at its preceding checkpoint was a successful
+no-op. The main Lean 4.29.0 review branch is still not based on that tip.
+No force push is authorized or used. The validated snapshot is published
+separately as `poc-verified-noninductive-upstream-20261019`.
 
-The current compatibility gate is green: `lake build` completes **414 jobs**
-on Lean 4.33.0-rc2. Focused builds for the scoped comparison/method workers,
-header application and residual-kind transport, and recursor parameter/index
-applications pass. The three current regression fixtures also pass:
-`tests/InductiveFrontendRestoration.lean`,
-`tests/InductiveHeaderNormalizationTransport.lean`, and
-`tests/InductiveSubstitutionStageEndpointRebase.lean`. The restoration audit
-now records the current Lean 4.33 expression-construction and native `bv_decide`
-axioms explicitly; it does not treat them as semantic admissions. The source
-census remains **129 existing whole-word `sorry`/`admit` occurrences**, with
-no executable files changed and `git diff --check` clean.
+The unchanged `reduceRecursor.WF` contract now composes the actual quotient
+worker proof with inductive rejection in the constructor-free `TrEnv` model.
+This removes its direct admission but retains inherited typing/confluence
+admissions and native interface axioms. This upstream dispatcher accepts only
+the expression argument; the older fork's cheap-flag interface is not added.
+The abstract signature-registration model supplies constructive freshness,
+lookup, extension, and orderedness proofs. It replaces three placeholders,
+but does not establish positivity, generated recursor correctness, or genuine
+checked inductive/model registration.
 
-This checkpoint restores existing proof contracts against current upstream APIs;
-it does not remove an inherited admission or complete constructive inductive
-registration. It is committed locally as `9669415`, but the rewritten history
-is still detached from the published branch and has not been pushed. No
-upstream PR is opened for compatibility-only replay; after publication, submit
-focused semantic or correctness fixes one reviewable item at a time.
+Rewrite metadata now handles every well-formed declaration history, including
+upstream mutual definitions: all signatures are reserved before bodies are
+checked, then their equations are registered. A new fixture checks a real
+two-definition block whose second body uses the first constant, registered
+equations and actual reduction, and duplicate-name rejection. These history
+witnesses and general metadata proofs have no admissions or choice.
+
+The quotient confluence obstruction is proved against the actual integration
+model without depending on the refuted theorem, its confluence consequences,
+derived quotient injectivity, or false strengthening. The typed Prop-source
+and all-prefix unfolding preserve the original result type and are stable
+under weakening, typed substitution, and context conversion. The strict
+selector/completeness audits exclude admissions and choice. Full source typing
+and model construction still inherit independent typing/injectivity admissions.
+The old `NormalEq.parRed` contract remains false and admitted; general
+simulation, confluence, eta overlaps, and downstream migration remain open.
+The selector/prefix direction is attributed to upstream draft #53.
+
+All 422 default build jobs and 33 fixtures pass on Lean 4.33.0-rc2,
+including the quotient/model, primitive/frontend, and five existing integration
+trust fixtures. Audits inspect theorem and opaque
+bodies explicitly using `value? (allowOpaque := true)`, as required by the
+newer API; no dependency allowlist is broadened. The source census decreases
+from 129 matching lines / 133 occurrences to 125 / 129. This is evidence of
+four direct admission removals, not unconditional frontend soundness.
+Detailed contracts and receipts are in `PROOF_STATUS.md`.
 
 ### Earlier integration receipts — October 12
 
@@ -303,23 +321,17 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-At the published proof source, the full default `lake build` passes on
-**October 13** (receipt `lean4lean-published-progress-build-20261013.log`
-under `/var/tmp/thomas-ahle/fleet2/logs/`).
-Ten focused fixtures also pass without warnings: `StrongSubstitution`,
-`NativeInstantiation`, `Reflection`, `QuotientPatternEquation`,
-`ConfluenceConstantReduction`, `NonInductiveDeclarationFrontend`, `Environment`,
-`QuotientReductionAlignment`, `QuotientReductionSemantics`, and
-`PrimitiveInductiveReceipt`. These fixtures are run separately from the default
-build. These receipts describe the published source, not the partially rebased
-candidate. Candidate focused builds and the version-specific native test above
-are separate integration evidence, not a full build of upstream or the candidate.
+The main Lean 4.29.0 proof source `1337f87` passes all default targets and
+twelve focused fixtures on October 19. This Lean 4.33.0-rc2 integration
+separately passes all default targets and the quotient/model and existing
+integration regression gates. Receipts are recorded in `PROOF_STATUS.md`;
+passing either source does not validate the other or complete the rebase.
 
-| Whole-word `sorry` or `admit` source census, October 13 | Published proof source | Local integration | Official master |
+| Whole-word `sorry` or `admit` source census, October 19 | Published proof source | Local integration | Official master |
 | --- | --- | --- | --- |
-| Matching lines | 126 | 129 | 133 |
-| Files containing matches | 24 | 27 | 29 |
-| Occurrences | 130 | 133 | 137 |
+| Matching lines | 119 | 125 | 133 |
+| Files containing matches | 19 | 24 | 29 |
+| Occurrences | 123 | 129 | 137 |
 
 This deliberately includes comments and `Experimental` sources. It is a source
 census, **not an audit of theorem trust**: removing one admission does not make
@@ -328,10 +340,10 @@ code does not make the raw totals comparable as percentages. Both branches
 retain foundational admissions. Our actual frontend's transitive `sorryAx`
 dependency is the more important signal.
 
-The uncommitted integration adaptation leaves its starting census unchanged:
-129 matching lines, 27 files, 133 occurrences. Differences between source and
-toolchain snapshots are not new admissions added by this adaptation, and
-unchanged text totals do not establish an unchanged transitive axiom set.
+This integration removes three abstract signature/model placeholders and the
+actual recursor dispatcher admission, with no new admissions. The remaining
+`sorryAx` dependencies, including the known-false confluence contract, remain
+explicitly conditional. Raw counts do not replace the dependency audits.
 
 ## Next priorities
 
@@ -339,9 +351,12 @@ unchanged text totals do not establish an unchanged transitive axiom set.
    fixes, validate it, and publish only with the required explicit lease permission.
    Then submit focused, validated upstream contributions rather than rebuilding
    a large divergent patch stack.
-2. Close semantic dependencies: the remaining application/extra confluence
-   case, non-circular typing/injectivity foundations, genuine `TrProj`, and
-   quotient/inductive `reduceRecursor.WF`.
+2. Repair the demonstrated false `NormalEq.parRed` contract while preserving
+   semantic conversion and accepted declarations. Prove general simulation,
+   eta overlaps, confluence, and downstream migration for the candidate
+   unfolding relation. Close the separate typing/injectivity foundations and
+   genuine projection/inductive recursor semantics; the dispatcher proof here
+   still depends on those foundations and constructor-free rejection.
 3. Connect the existing inductive stages to actual checked model registration,
    constructor/recursor generation, and a constructive `AddInduct` model.
 4. Restore the four disabled native arithmetic operations with their proofs and

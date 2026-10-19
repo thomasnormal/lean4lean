@@ -4,17 +4,32 @@ import Lean4Lean.Theory.Typing.Env
 
 namespace Lean4Lean
 
-def VEnv.addInductHeaders (env : VEnv) : List VInductiveType → Option VEnv
-  | [] => some env
-  | header :: headers => do
-    let env ← env.addConst header.name header.toVConstant
-    env.addInductHeaders headers
-
-def VInductDecl.HeadersWF (env : VEnv) (decl : VInductDecl) : Prop :=
-  ∀ header ∈ decl.types, header.uvars = decl.uvars ∧ header.toVConstant.WF env
-
 variable {env env' : VEnv} {decl : VInductDecl} {headers : List VInductiveType}
   {header : VInductiveType} {name : Name} {constant : VConstant}
+
+theorem VEnv.addInductHeaders.exists
+    (fresh : ∀ header ∈ headers, env.constants header.name = none)
+    (distinct : (headers.map (·.name)).Nodup) :
+    ∃ extended, env.addInductHeaders headers = some extended := by
+  induction headers generalizing env with
+  | nil => exact ⟨env, rfl⟩
+  | cons first remaining ih =>
+    have firstFresh := fresh first (by simp)
+    have names := List.nodup_cons.mp distinct
+    let next : VEnv := { env with constants := fun name =>
+      if first.name = name then some first.toVConstant else env.constants name }
+    have registered : env.addConst first.name first.toVConstant = some next := by
+      simp only [VEnv.addConst, firstFresh, next]
+    have remainingFresh : ∀ header ∈ remaining, next.constants header.name = none := by
+      intro header member
+      have different : first.name ≠ header.name := by
+        intro equal
+        apply names.1
+        simpa [equal] using List.mem_map.mpr ⟨header, member, rfl⟩
+      simp only [next, if_neg different]
+      exact fresh header (by simp [member])
+    obtain ⟨extended, final⟩ := ih remainingFresh names.2
+    exact ⟨extended, by simp only [addInductHeaders, registered]; exact final⟩
 
 theorem VInductDecl.HeadersWF.mono (hheaders : decl.HeadersWF env) (hle : env ≤ env') :
     decl.HeadersWF env' :=
@@ -38,6 +53,38 @@ theorem VEnv.addInductHeaders.constants
     rcases List.mem_cons.mp hmem with rfl | hmem
     · exact (addInductHeaders.le hrest).constants (addConst_self hstep)
     · exact ih hrest hmem
+
+theorem VEnv.addInductHeaders.fresh
+    (hadd : env.addInductHeaders headers = some env') (hmem : header ∈ headers) :
+    env.constants header.name = none := by
+  induction headers generalizing env with
+  | nil => cases hmem
+  | cons firstHeader headers ih =>
+    obtain ⟨nextEnv, hstep, hrest⟩ := Option.bind_eq_some_iff.mp hadd
+    rcases List.mem_cons.mp hmem with rfl | hmem
+    · unfold VEnv.addConst at hstep
+      split at hstep <;> simp_all
+    · cases found : env.constants header.name with
+      | none => rfl
+      | some value =>
+        have found' := (addConst_le hstep).constants found
+        rw [@ih nextEnv hrest hmem] at found'
+        cases found'
+
+theorem VEnv.addInductHeaders.otherConstants
+    (hadd : env.addInductHeaders headers = some env')
+    (notMember : ∀ header ∈ headers, header.name ≠ name) :
+    env'.constants name = env.constants name := by
+  induction headers generalizing env with
+  | nil => cases hadd; rfl
+  | cons firstHeader headers ih =>
+    obtain ⟨nextEnv, hstep, hrest⟩ := Option.bind_eq_some_iff.mp hadd
+    have hnext := ih hrest (fun header hmem => notMember header (by simp [hmem]))
+    unfold VEnv.addConst at hstep
+    split at hstep
+    · cases hstep
+    · cases hstep
+      simpa [notMember firstHeader (by simp)] using hnext
 
 theorem VEnv.addConst.defeqs_eq
     (hadd : env.addConst name constant = some env') : env'.defeqs = env.defeqs := by

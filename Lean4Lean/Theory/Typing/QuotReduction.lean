@@ -83,6 +83,169 @@ theorem quotMk_hasType {environment : VEnv} {locals : List VExpr} {universes : N
   simp [instantiateLifted, VExpr.inst, VExpr.instVar] at constructorRelation
   simpa [VExpr.inst_lift, VExpr.inst] using constructorRelation.app valueTyped
 
+private theorem applicationArgumentTyped {environment : VEnv}
+    (environmentWF : environment.WF) (localsWF : OnCtx locals (environment.IsType universes))
+    (applicationTyped : environment.HasType universes locals (.app function argument) resultType)
+    (functionTyped : environment.HasType universes locals function (.forallE domain codomain)) :
+    environment.HasType universes locals argument domain := by
+  obtain ⟨_, _, actualFunctionTyped, argumentTyped⟩ :=
+    applicationTyped.app_inv environmentWF.ordered localsWF
+  obtain ⟨⟨_, domainEqual⟩, _⟩ :=
+    (actualFunctionTyped.uniqU environmentWF localsWF functionTyped).forallE_inv
+      environmentWF localsWF
+  exact domainEqual.defeq argumentTyped
+
+theorem quotMk_inv {environment : VEnv} {locals : List VExpr} {universes : Nat}
+    {levels : List VLevel} {domain relation value resultType : VExpr}
+    (environmentWF : environment.WF)
+    (localsWF : OnCtx locals (environment.IsType universes))
+    (registered : environment.constants ``Quot.mk = some quotMkConst)
+    (typed : environment.HasType universes locals
+      (.app (.app (.app (.const ``Quot.mk levels) domain) relation) value) resultType) :
+    ∃ sourceUniverse, levels = [sourceUniverse] ∧ sourceUniverse.WF universes ∧
+      environment.HasType universes locals domain (.sort sourceUniverse) ∧
+      environment.HasType universes locals relation
+        (.forallE domain (.forallE domain.lift (.sort .zero))) ∧
+      environment.HasType universes locals value domain ∧
+      environment.IsDefEqU universes locals resultType
+        (.app (.app (.const ``Quot [sourceUniverse]) domain) relation) := by
+  obtain ⟨_, _, functionTyped, _⟩ := typed.app_inv environmentWF.ordered localsWF
+  obtain ⟨_, _, partialTyped, _⟩ := functionTyped.app_inv environmentWF.ordered localsWF
+  obtain ⟨_, _, headTyped, _⟩ := partialTyped.app_inv environmentWF.ordered localsWF
+  obtain ⟨constant, lookup, levelsWF, arity⟩ :=
+    headTyped.const_inv environmentWF.ordered localsWF
+  rw [registered] at lookup
+  cases lookup
+  obtain ⟨sourceUniverse, rfl⟩ := List.length_eq_one_iff.mp arity
+  have sourceUniverseWF : sourceUniverse.WF universes := levelsWF _ (by simp)
+  have constructorTyped := HasType.const registered levelsWF (by rfl) (Γ := locals)
+  simp [quotMkConst, VExpr.instL, VLevel.inst] at constructorTyped
+  have domainTyped := applicationArgumentTyped environmentWF localsWF partialTyped constructorTyped
+  have constructorDomain := constructorTyped.app domainTyped
+  simp [VExpr.inst, VExpr.instVar] at constructorDomain
+  have relationTyped := applicationArgumentTyped environmentWF localsWF functionTyped constructorDomain
+  have constructorRelation := constructorDomain.app relationTyped
+  simp [instantiateLifted, VExpr.inst, VExpr.instVar] at constructorRelation
+  have valueTyped := applicationArgumentTyped environmentWF localsWF typed constructorRelation
+  exact ⟨sourceUniverse, rfl, sourceUniverseWF, domainTyped, relationTyped, valueTyped,
+    typed.uniqU environmentWF localsWF
+      (quotMk_hasType registered sourceUniverseWF domainTyped relationTyped valueTyped)⟩
+
+theorem quotLift_inv {environment : VEnv} {locals : List VExpr} {universes : Nat}
+    {levels : List VLevel} {domain relation target function respect major resultType : VExpr}
+    (environmentWF : environment.WF)
+    (localsWF : OnCtx locals (environment.IsType universes))
+    (registered : environment.constants ``Quot.lift = some quotLiftConst)
+    (typed : environment.HasType universes locals
+      (.app (.app (.app (.app (.app (.app (.const ``Quot.lift levels)
+        domain) relation) target) function) respect) major) resultType) :
+    ∃ sourceUniverse targetUniverse,
+      levels = [sourceUniverse, targetUniverse] ∧
+      sourceUniverse.WF universes ∧ targetUniverse.WF universes ∧
+      environment.HasType universes locals domain (.sort sourceUniverse) ∧
+      environment.HasType universes locals relation
+        (.forallE domain (.forallE domain.lift (.sort .zero))) ∧
+      environment.HasType universes locals target (.sort targetUniverse) ∧
+      environment.HasType universes locals function (.forallE domain target.lift) ∧
+      environment.HasType universes locals respect
+        (.forallE domain (.forallE domain.lift
+          (.forallE (.app (.app (relation.liftN 2) (.bvar 1)) (.bvar 0))
+            (.app (.app (.app (.const ``Eq [targetUniverse]) (target.liftN 3))
+              (.app (function.liftN 3) (.bvar 2))) (.app (function.liftN 3) (.bvar 1)))))) ∧
+      environment.HasType universes locals major
+        (.app (.app (.const ``Quot [sourceUniverse]) domain) relation) ∧
+      environment.IsDefEqU universes locals resultType target := by
+  obtain ⟨_, _, respectPrefixTyped, _⟩ := typed.app_inv environmentWF.ordered localsWF
+  obtain ⟨_, _, functionPrefixTyped, _⟩ := respectPrefixTyped.app_inv environmentWF.ordered localsWF
+  obtain ⟨_, _, targetPrefixTyped, _⟩ := functionPrefixTyped.app_inv environmentWF.ordered localsWF
+  obtain ⟨_, _, relationPrefixTyped, _⟩ := targetPrefixTyped.app_inv environmentWF.ordered localsWF
+  obtain ⟨_, _, domainPrefixTyped, _⟩ := relationPrefixTyped.app_inv environmentWF.ordered localsWF
+  obtain ⟨_, _, headTyped, _⟩ := domainPrefixTyped.app_inv environmentWF.ordered localsWF
+  obtain ⟨constant, lookup, levelsWF, arity⟩ :=
+    headTyped.const_inv environmentWF.ordered localsWF
+  rw [registered] at lookup
+  cases lookup
+  obtain ⟨sourceUniverse, remaining, rfl⟩ := List.exists_cons_of_length_eq_add_one arity
+  have remainingArity : remaining.length = 1 := by simpa [quotLiftConst] using arity
+  obtain ⟨targetUniverse, rfl⟩ := List.length_eq_one_iff.mp remainingArity
+  have sourceUniverseWF : sourceUniverse.WF universes := levelsWF _ (by simp)
+  have targetUniverseWF : targetUniverse.WF universes := levelsWF _ (by simp)
+  have eliminatorTyped := HasType.const registered levelsWF (by rfl) (Γ := locals)
+  simp [quotLiftConst, VExpr.instL, VLevel.inst] at eliminatorTyped
+  have domainTyped := applicationArgumentTyped environmentWF localsWF domainPrefixTyped eliminatorTyped
+  have eliminatorDomain := eliminatorTyped.app domainTyped
+  simp [VExpr.inst, VExpr.instVar] at eliminatorDomain
+  have relationTyped := applicationArgumentTyped environmentWF localsWF relationPrefixTyped eliminatorDomain
+  have eliminatorRelation := eliminatorDomain.app relationTyped
+  simp [instantiateLifted, VExpr.inst, VExpr.instVar] at eliminatorRelation
+  have targetTyped := applicationArgumentTyped environmentWF localsWF targetPrefixTyped eliminatorRelation
+  have eliminatorTarget := eliminatorRelation.app targetTyped
+  simp [instantiateLifted, VExpr.inst, VExpr.instVar] at eliminatorTarget
+  have functionTyped := applicationArgumentTyped environmentWF localsWF functionPrefixTyped eliminatorTarget
+  have eliminatorFunction := eliminatorTarget.app functionTyped
+  simp [instantiateLifted, VExpr.inst, VExpr.instVar] at eliminatorFunction
+  have respectTyped := applicationArgumentTyped environmentWF localsWF respectPrefixTyped eliminatorFunction
+  have eliminatorRespect := eliminatorFunction.app respectTyped
+  simp [instantiateLifted, VExpr.inst] at eliminatorRespect
+  have majorTyped := applicationArgumentTyped environmentWF localsWF typed eliminatorRespect
+  have eliminatorMajor := eliminatorRespect.app majorTyped
+  simp [instantiateLifted] at eliminatorMajor
+  exact ⟨sourceUniverse, targetUniverse, rfl, sourceUniverseWF, targetUniverseWF,
+    domainTyped, relationTyped, targetTyped, functionTyped, respectTyped, majorTyped,
+    typed.uniqU environmentWF localsWF eliminatorMajor⟩
+
+theorem quotInd_inv {environment : VEnv} {locals : List VExpr} {universes : Nat}
+    {levels : List VLevel} {domain relation motive minor major resultType : VExpr}
+    (environmentWF : environment.WF)
+    (localsWF : OnCtx locals (environment.IsType universes))
+    (registered : environment.constants ``Quot.ind = some quotIndConst)
+    (typed : environment.HasType universes locals
+      (.app (.app (.app (.app (.app (.const ``Quot.ind levels)
+        domain) relation) motive) minor) major) resultType) :
+    ∃ sourceUniverse, levels = [sourceUniverse] ∧ sourceUniverse.WF universes ∧
+      environment.HasType universes locals domain (.sort sourceUniverse) ∧
+      environment.HasType universes locals relation
+        (.forallE domain (.forallE domain.lift (.sort .zero))) ∧
+      environment.HasType universes locals motive
+        (.forallE (.app (.app (.const ``Quot [sourceUniverse]) domain) relation) (.sort .zero)) ∧
+      environment.HasType universes locals minor
+        (.forallE domain (.app motive.lift
+          (.app (.app (.app (.const ``Quot.mk [sourceUniverse]) domain.lift)
+            relation.lift) (.bvar 0)))) ∧
+      environment.HasType universes locals major
+        (.app (.app (.const ``Quot [sourceUniverse]) domain) relation) ∧
+      environment.IsDefEqU universes locals resultType (.app motive major) := by
+  obtain ⟨_, _, minorPrefixTyped, _⟩ := typed.app_inv environmentWF.ordered localsWF
+  obtain ⟨_, _, motivePrefixTyped, _⟩ := minorPrefixTyped.app_inv environmentWF.ordered localsWF
+  obtain ⟨_, _, relationPrefixTyped, _⟩ := motivePrefixTyped.app_inv environmentWF.ordered localsWF
+  obtain ⟨_, _, domainPrefixTyped, _⟩ := relationPrefixTyped.app_inv environmentWF.ordered localsWF
+  obtain ⟨_, _, headTyped, _⟩ := domainPrefixTyped.app_inv environmentWF.ordered localsWF
+  obtain ⟨constant, lookup, levelsWF, arity⟩ :=
+    headTyped.const_inv environmentWF.ordered localsWF
+  rw [registered] at lookup
+  cases lookup
+  obtain ⟨sourceUniverse, rfl⟩ := List.length_eq_one_iff.mp arity
+  have sourceUniverseWF : sourceUniverse.WF universes := levelsWF _ (by simp)
+  have eliminatorTyped := HasType.const registered levelsWF (by rfl) (Γ := locals)
+  simp [quotIndConst, VExpr.instL, VLevel.inst] at eliminatorTyped
+  have domainTyped := applicationArgumentTyped environmentWF localsWF domainPrefixTyped eliminatorTyped
+  have eliminatorDomain := eliminatorTyped.app domainTyped
+  simp [VExpr.inst, VExpr.instVar] at eliminatorDomain
+  have relationTyped := applicationArgumentTyped environmentWF localsWF relationPrefixTyped eliminatorDomain
+  have eliminatorRelation := eliminatorDomain.app relationTyped
+  simp [instantiateLifted, VExpr.inst, VExpr.instVar] at eliminatorRelation
+  have motiveTyped := applicationArgumentTyped environmentWF localsWF motivePrefixTyped eliminatorRelation
+  have eliminatorMotive := eliminatorRelation.app motiveTyped
+  simp [instantiateLifted, VExpr.inst, VExpr.instVar] at eliminatorMotive
+  have minorTyped := applicationArgumentTyped environmentWF localsWF minorPrefixTyped eliminatorMotive
+  have eliminatorMinor := eliminatorMotive.app minorTyped
+  simp [instantiateLifted, VExpr.inst, VExpr.instVar] at eliminatorMinor
+  have majorTyped := applicationArgumentTyped environmentWF localsWF typed eliminatorMinor
+  have eliminatorMajor := eliminatorMinor.app majorTyped
+  simp [instantiateLifted, VExpr.inst, VExpr.instVar] at eliminatorMajor
+  exact ⟨sourceUniverse, rfl, sourceUniverseWF, domainTyped, relationTyped, motiveTyped,
+    minorTyped, majorTyped, typed.uniqU environmentWF localsWF eliminatorMajor⟩
+
 theorem quotInd_beta {environment : VEnv} {locals : List VExpr} {universes : Nat}
     {sourceUniverse : VLevel} {domain relation motive minor value : VExpr}
     (constructorRegistered : environment.constants ``Quot.mk = some quotMkConst)
@@ -120,11 +283,8 @@ theorem quotInd_beta {environment : VEnv} {locals : List VExpr} {universes : Nat
   simp [VExpr.inst_lift, VExpr.inst, VExpr.instVar] at inductionValue
   have minorValue := minorTyped.app valueTyped
   simp [VExpr.inst_lift, VExpr.inst, VExpr.instVar] at minorValue
-  have motiveType : environment.IsDefEq universes locals
-      (.app motive (.app (.app (.app (.const ``Quot.mk [sourceUniverse]) domain) relation) value))
-      (.app motive (.app (.app (.app (.const ``Quot.mk [sourceUniverse]) domain) relation) value))
-      (.sort .zero) := by
-    simpa only [VExpr.inst, VEnv.HasType] using motiveTyped.app constructorValue
-  exact VEnv.IsDefEq.proofIrrel motiveType inductionValue minorValue
+  have propositionTyped := motiveTyped.app constructorValue
+  simp only [VExpr.inst] at propositionTyped
+  exact .proofIrrel propositionTyped inductionValue minorValue
 
 end Lean4Lean.VEnv

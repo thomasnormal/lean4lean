@@ -76,7 +76,7 @@ private def nativeControls : MetaM Unit := do
     for name in [`FrontendProposition, `frontendProof, `FrontendOther] do
       let some before := initial.find? name | throwError "frontend prefix constant absent"
       let some after := final.find? name | throwError "actual frontend dropped an old constant"
-      unless before.type == after.type && before.value? == after.value? do
+      unless before.type == after.type && before.value? (allowOpaque := true) == after.value? (allowOpaque := true) do
         throwError "actual frontend changed an old type/value"
     for name in [`frontendDefinition, `frontendTheorem, `frontendOpaque, `frontendMutual] do
       unless (final.find? name).isSome do throwError "actual frontend dropped a new constant"
@@ -99,7 +99,7 @@ private def nativeControls : MetaM Unit := do
   for name in [``Quot, ``Quot.mk, ``Quot.lift, ``Quot.ind] do
     let some before := native.find? name | throwError "native quotient object absent"
     let some after := unchanged.find? name | throwError "initialized quotient object disappeared"
-    unless before.type == after.type && before.value? == after.value? do
+    unless before.type == after.type && before.value? (allowOpaque := true) == after.value? (allowOpaque := true) do
       throwError "initialized actual quotient frontend changed an object"
   logInfo m!"three actual checked non-inductive pipelines cover axioms, safe definitions, theorems, opaques and unsafe mutual definitions, old lookup/type/value preservation, wrong-proof and duplicate-name rejection, empty/nonempty quotient bootstrap rejection; native initialized quotient identity succeeds at zero callback depth outside the current TrEnv bootstrap fragment"
 
@@ -107,7 +107,7 @@ run_meta
   let theoremName := ``addDecl.WF_noninductive
   let information ← getConstInfo theoremName
   if information matches .axiomInfo _ then throwError "regular declaration theorem is an axiom"
-  let some proof := information.value? | throwError "regular declaration theorem proof missing"
+  let some proof := information.value? (allowOpaque := true) | throwError "regular declaration theorem proof missing"
   if proof.hasSorry then throwError "regular declaration theorem has an admission"
   let baseline ← collectAxioms ``addDeclVerified.WF
   let dependencies ← collectAxioms theoremName
@@ -118,7 +118,7 @@ run_meta
       ``addDecl.foldlM_WF_noninductive, ``addDecl.fromEmpty_noninductive] do
     let information ← getConstInfo theoremName
     if information matches .axiomInfo _ then throwError "non-inductive frontend axiom: {theoremName}"
-    let some proof := information.value? | throwError "non-inductive frontend proof absent: {theoremName}"
+    let some proof := information.value? (allowOpaque := true) | throwError "non-inductive frontend proof absent: {theoremName}"
     if proof.hasSorry then throwError "non-inductive frontend direct admission: {theoremName}"
     let dependencies ← collectAxioms theoremName
     for dependency in dependencies do

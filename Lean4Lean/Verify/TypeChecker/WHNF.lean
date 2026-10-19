@@ -1,8 +1,123 @@
 import Lean4Lean.Verify.TypeChecker.Reduce
-import Lean4Lean.Theory.Typing.QuotReductionAlignment
+import Lean4Lean.Theory.Typing.QuotReductionAutomatic
 
 namespace Lean4Lean.TypeChecker.Inner
 open Lean hiding Environment Exception
+
+theorem _root_.Lean4Lean.TypeChecker.VContext.quotMkArguments {context : VContext}
+    {levels : List Level} {domain relation value : Expr} {semantic : VExpr}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS
+      (.app (.app (.app (.const ``Quot.mk levels) domain) relation) value) semantic) :
+    ∃ sourceUniverse domainSemantic relationSemantic valueSemantic,
+      semantic = .app (.app (.app (.const ``Quot.mk [sourceUniverse]) domainSemantic)
+        relationSemantic) valueSemantic ∧
+      levels.mapM (VLevel.ofLevel context.lparams) = some [sourceUniverse] ∧
+      sourceUniverse.WF context.lparams.length ∧
+      context.TrExprS domain domainSemantic ∧
+      context.TrExprS relation relationSemantic ∧
+      context.TrExprS value valueSemantic ∧
+      context.HasType domainSemantic (.sort sourceUniverse) ∧
+      context.HasType relationSemantic
+        (.forallE domainSemantic (.forallE domainSemantic.lift (.sort .zero))) ∧
+      context.HasType valueSemantic domainSemantic := by
+  let .app functionTyped argumentTyped partialTranslation valueTranslation := translated
+  let .app _ _ constructorDomainTranslation relationTranslation := partialTranslation
+  let .app _ _ headTranslation domainTranslation := constructorDomainTranslation
+  let .const _ levelsTranslation _ := headTranslation
+  obtain ⟨sourceUniverse, levelsEqual, sourceUniverseWF, domainTyped, relationTyped,
+    valueTyped, _⟩ := VEnv.quotMk_inv context.Ewf context.Δwf
+      (context.trenv.quotientObjects initialized).2.2.2.1 (functionTyped.app argumentTyped)
+  cases levelsEqual
+  exact ⟨sourceUniverse, _, _, _, rfl, levelsTranslation, sourceUniverseWF,
+    domainTranslation, relationTranslation, valueTranslation, domainTyped, relationTyped, valueTyped⟩
+
+theorem _root_.Lean4Lean.TypeChecker.VContext.quotLiftArguments {context : VContext}
+    {levels : List Level} {domain relation target function respect major : Expr} {semantic : VExpr}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS
+      (.app (.app (.app (.app (.app (.app (.const ``Quot.lift levels)
+        domain) relation) target) function) respect) major) semantic) :
+    ∃ sourceUniverse targetUniverse domainSemantic relationSemantic targetSemantic
+        functionSemantic respectSemantic majorSemantic,
+      semantic = .app (.app (.app (.app (.app (.app
+        (.const ``Quot.lift [sourceUniverse, targetUniverse]) domainSemantic) relationSemantic)
+          targetSemantic) functionSemantic) respectSemantic) majorSemantic ∧
+      levels.mapM (VLevel.ofLevel context.lparams) = some [sourceUniverse, targetUniverse] ∧
+      sourceUniverse.WF context.lparams.length ∧ targetUniverse.WF context.lparams.length ∧
+      context.TrExprS domain domainSemantic ∧ context.TrExprS relation relationSemantic ∧
+      context.TrExprS target targetSemantic ∧ context.TrExprS function functionSemantic ∧
+      context.TrExprS respect respectSemantic ∧ context.TrExprS major majorSemantic ∧
+      context.HasType domainSemantic (.sort sourceUniverse) ∧
+      context.HasType relationSemantic
+        (.forallE domainSemantic (.forallE domainSemantic.lift (.sort .zero))) ∧
+      context.HasType targetSemantic (.sort targetUniverse) ∧
+      context.HasType functionSemantic (.forallE domainSemantic targetSemantic.lift) ∧
+      context.HasType respectSemantic
+        (.forallE domainSemantic (.forallE domainSemantic.lift
+          (.forallE (.app (.app (relationSemantic.liftN 2) (.bvar 1)) (.bvar 0))
+            (.app (.app (.app (.const ``Eq [targetUniverse]) (targetSemantic.liftN 3))
+              (.app (functionSemantic.liftN 3) (.bvar 2)))
+                (.app (functionSemantic.liftN 3) (.bvar 1)))))) ∧
+      context.HasType majorSemantic
+        (.app (.app (.const ``Quot [sourceUniverse]) domainSemantic) relationSemantic) := by
+  let .app functionTyped argumentTyped respectTranslation majorTranslation := translated
+  let .app _ _ functionTranslation respectArgumentTranslation := respectTranslation
+  let .app _ _ targetTranslation functionArgumentTranslation := functionTranslation
+  let .app _ _ relationTranslation targetArgumentTranslation := targetTranslation
+  let .app _ _ domainTranslation relationArgumentTranslation := relationTranslation
+  let .app _ _ headTranslation domainArgumentTranslation := domainTranslation
+  let .const _ levelsTranslation _ := headTranslation
+  obtain ⟨sourceUniverse, targetUniverse, levelsEqual, sourceUniverseWF, targetUniverseWF,
+    domainTyped, relationTyped, targetTyped, appliedTyped, respectTyped, majorTyped, _⟩ :=
+      VEnv.quotLift_inv context.Ewf context.Δwf
+        (context.trenv.quotientObjects initialized).2.2.1 (functionTyped.app argumentTyped)
+  cases levelsEqual
+  exact ⟨sourceUniverse, targetUniverse, _, _, _, _, _, _, rfl, levelsTranslation,
+    sourceUniverseWF, targetUniverseWF, domainArgumentTranslation, relationArgumentTranslation,
+    targetArgumentTranslation, functionArgumentTranslation, respectArgumentTranslation,
+    majorTranslation, domainTyped, relationTyped, targetTyped, appliedTyped, respectTyped, majorTyped⟩
+
+theorem _root_.Lean4Lean.TypeChecker.VContext.quotIndArguments {context : VContext}
+    {levels : List Level} {domain relation motive minor major : Expr} {semantic : VExpr}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS
+      (.app (.app (.app (.app (.app (.const ``Quot.ind levels)
+        domain) relation) motive) minor) major) semantic) :
+    ∃ sourceUniverse domainSemantic relationSemantic motiveSemantic minorSemantic majorSemantic,
+      semantic = .app (.app (.app (.app (.app (.const ``Quot.ind [sourceUniverse])
+        domainSemantic) relationSemantic) motiveSemantic) minorSemantic) majorSemantic ∧
+      levels.mapM (VLevel.ofLevel context.lparams) = some [sourceUniverse] ∧
+      sourceUniverse.WF context.lparams.length ∧
+      context.TrExprS domain domainSemantic ∧ context.TrExprS relation relationSemantic ∧
+      context.TrExprS motive motiveSemantic ∧ context.TrExprS minor minorSemantic ∧
+      context.TrExprS major majorSemantic ∧
+      context.HasType domainSemantic (.sort sourceUniverse) ∧
+      context.HasType relationSemantic
+        (.forallE domainSemantic (.forallE domainSemantic.lift (.sort .zero))) ∧
+      context.HasType motiveSemantic
+        (.forallE (.app (.app (.const ``Quot [sourceUniverse]) domainSemantic) relationSemantic)
+          (.sort .zero)) ∧
+      context.HasType minorSemantic
+        (.forallE domainSemantic (.app motiveSemantic.lift
+          (.app (.app (.app (.const ``Quot.mk [sourceUniverse]) domainSemantic.lift)
+            relationSemantic.lift) (.bvar 0)))) ∧
+      context.HasType majorSemantic
+        (.app (.app (.const ``Quot [sourceUniverse]) domainSemantic) relationSemantic) := by
+  let .app functionTyped argumentTyped minorTranslation majorTranslation := translated
+  let .app _ _ motiveTranslation minorArgumentTranslation := minorTranslation
+  let .app _ _ relationTranslation motiveArgumentTranslation := motiveTranslation
+  let .app _ _ domainTranslation relationArgumentTranslation := relationTranslation
+  let .app _ _ headTranslation domainArgumentTranslation := domainTranslation
+  let .const _ levelsTranslation _ := headTranslation
+  obtain ⟨sourceUniverse, levelsEqual, sourceUniverseWF, domainTyped, relationTyped,
+    motiveTyped, minorTyped, majorTyped, _⟩ := VEnv.quotInd_inv context.Ewf context.Δwf
+      (context.trenv.quotientObjects initialized).2.1 (functionTyped.app argumentTyped)
+  cases levelsEqual
+  exact ⟨sourceUniverse, _, _, _, _, _, rfl, levelsTranslation, sourceUniverseWF,
+    domainArgumentTranslation, relationArgumentTranslation, motiveArgumentTranslation,
+    minorArgumentTranslation, majorTranslation, domainTyped, relationTyped, motiveTyped,
+    minorTyped, majorTyped⟩
 
 theorem _root_.Lean4Lean.TypeChecker.VContext.quotientDefEq (context : VContext)
     (initialized : context.env.quotInit = true) (levels : List VLevel)
@@ -30,6 +145,17 @@ private theorem quotMkShape {expression : Expr}
       | _ => simp [Expr.isAppOfArity] at shape
     | _ => simp [Expr.isAppOfArity] at shape
   | _ => simp [Expr.isAppOfArity] at shape
+
+theorem _root_.Lean4Lean.TypeChecker.VContext.quotMkPayload {context : VContext}
+    {expression : Expr} {semantic : VExpr}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS expression semantic)
+    (shape : expression.isAppOfArity ``Quot.mk 3 = true) :
+    ∃ domain value, context.TrExprS expression.appArg! value ∧ context.HasType value domain := by
+  obtain ⟨levels, domain, relation, value, rfl⟩ := quotMkShape shape
+  obtain ⟨_, _, _, _, _, _, _, _, _, valueTranslated, _, _, valueTyped⟩ :=
+    context.quotMkArguments initialized translated
+  exact ⟨_, _, valueTranslated, valueTyped⟩
 
 private theorem quotArgumentBelow {context : VContext} {expression : Expr} (position : Nat)
     (bound : position < expression.getAppArgs.size) :
@@ -172,9 +298,334 @@ theorem quotReduceRec.fvarsBelow {context : VContext} {state : VState}
     · simp only [Bool.eq_false_iff.mpr isInductiveName, Bool.false_eq_true, if_false]
       exact .pure nofun
 
+theorem _root_.Lean4Lean.TypeChecker.VContext.quotLiftReduction {context : VContext}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS
+      (.app (.app (.app (.app (.app (.app (.const ``Quot.lift levels)
+        domain) relation) target) function) respect) major) semantic)
+    (majorTranslated : context.TrExprS major majorSemantic)
+    (normalizedTranslated : context.TrExpr normalized majorSemantic)
+    (shape : normalized.isAppOfArity ``Quot.mk 3 = true) :
+    context.TrExpr (.app function normalized.appArg!) semantic := by
+  let .app prefixTyped majorTyped prefixTranslation sourceMajorTranslation := translated
+  let .app _ _ functionTranslation _ := prefixTranslation
+  let .app _ _ targetTranslation sourceFunctionTranslation := functionTranslation
+  let .app _ _ relationTranslation _ := targetTranslation
+  let .app _ _ domainTranslation _ := relationTranslation
+  let .app _ _ headTranslation _ := domainTranslation
+  let .const _ _ _ := headTranslation
+  have normalizedTranslation := normalizedTranslated.defeq context.Ewf context.Δwf
+    (majorTranslated.uniq context.Ewf (.refl context.Ewf context.Δwf) sourceMajorTranslation)
+  obtain ⟨_, _, _, _, rfl⟩ := quotMkShape shape
+  obtain ⟨_, normalizedStructural, majorEqual⟩ := normalizedTranslation
+  let .app _ _ constructorRelationTranslation payloadTranslation := normalizedStructural
+  let .app _ _ constructorDomainTranslation _ := constructorRelationTranslation
+  let .app _ _ constructorHeadTranslation _ := constructorDomainTranslation
+  let .const _ _ _ := constructorHeadTranslation
+  have reduction := VEnv.quotLift_beta_of_normalizedMajor context.Ewf context.Δwf
+    (context.trenv.quotientObjects initialized).1 (prefixTyped.app majorTyped) majorEqual.symm
+  obtain ⟨_, _, functionTyped, payloadTyped⟩ := reduction.hasType.2.app_inv context.Ewf.ordered context.Δwf
+  exact ⟨_, .app functionTyped payloadTyped sourceFunctionTranslation payloadTranslation, reduction.symm.toU⟩
+
+theorem _root_.Lean4Lean.TypeChecker.VContext.quotIndReduction {context : VContext}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS
+      (.app (.app (.app (.app (.app (.const ``Quot.ind levels)
+        domain) relation) motive) minor) major) semantic)
+    (majorTranslated : context.TrExprS major majorSemantic)
+    (normalizedTranslated : context.TrExpr normalized majorSemantic)
+    (shape : normalized.isAppOfArity ``Quot.mk 3 = true) :
+    context.TrExpr (.app minor normalized.appArg!) semantic := by
+  let .app prefixTyped majorTyped prefixTranslation sourceMajorTranslation := translated
+  let .app _ _ motiveTranslation sourceMinorTranslation := prefixTranslation
+  let .app _ _ relationTranslation _ := motiveTranslation
+  let .app _ _ domainTranslation _ := relationTranslation
+  let .app _ _ headTranslation _ := domainTranslation
+  let .const _ _ _ := headTranslation
+  have normalizedTranslation := normalizedTranslated.defeq context.Ewf context.Δwf
+    (majorTranslated.uniq context.Ewf (.refl context.Ewf context.Δwf) sourceMajorTranslation)
+  obtain ⟨_, _, _, _, rfl⟩ := quotMkShape shape
+  obtain ⟨_, normalizedStructural, majorEqual⟩ := normalizedTranslation
+  let .app _ _ constructorRelationTranslation payloadTranslation := normalizedStructural
+  let .app _ _ constructorDomainTranslation _ := constructorRelationTranslation
+  let .app _ _ constructorHeadTranslation _ := constructorDomainTranslation
+  let .const _ _ _ := constructorHeadTranslation
+  have reduction := VEnv.quotInd_beta_of_normalizedMajor context.Ewf context.Δwf
+    (context.trenv.quotientObjects initialized).1 (prefixTyped.app majorTyped) majorEqual.symm
+  obtain ⟨_, _, minorTyped, payloadTyped⟩ := reduction.hasType.2.app_inv context.Ewf.ordered context.Δwf
+  exact ⟨_, .app minorTyped payloadTyped sourceMinorTranslation payloadTranslation, reduction.symm.toU⟩
+
+private theorem quotLiftArgumentShape (arguments : Array Expr) (bound : 5 < arguments.size) :
+    ∃ domain relation target function respect major trailing,
+      arguments.toList = domain :: relation :: target :: function :: respect :: major :: trailing := by
+  have listBound : 5 < arguments.toList.length := by simpa using bound
+  generalize equal : arguments.toList = values at listBound ⊢
+  rcases values with _ | ⟨domain, _ | ⟨relation, _ | ⟨target,
+    _ | ⟨function, _ | ⟨respect, _ | ⟨major, trailing⟩⟩⟩⟩⟩⟩ <;> simp_all
+
+private theorem quotIndArgumentShape (arguments : Array Expr) (bound : 4 < arguments.size) :
+    ∃ domain relation motive minor major trailing,
+      arguments.toList = domain :: relation :: motive :: minor :: major :: trailing := by
+  have listBound : 4 < arguments.toList.length := by simpa using bound
+  generalize equal : arguments.toList = values at listBound ⊢
+  rcases values with _ | ⟨domain, _ | ⟨relation, _ | ⟨motive,
+    _ | ⟨minor, _ | ⟨major, trailing⟩⟩⟩⟩⟩ <;> simp_all
+
+private theorem quotReapplyTranslation {context : VContext}
+    (translated : context.TrExprS expression semantic)
+    (argumentsEqual : expression.getAppArgs.toList = initialArguments ++ trailing)
+    (prefixTranslated : context.TrExprS (expression.getAppFn.mkAppList initialArguments) prefixSemantic)
+    (reducedTranslated : context.TrExpr reduced prefixSemantic) :
+    context.TrExpr
+      (if initialArguments.length < expression.getAppArgs.size then
+        mkAppRange reduced initialArguments.length expression.getAppArgs.size expression.getAppArgs
+      else reduced) semantic := by
+  have fullTranslated : context.TrExprS
+      ((expression.getAppFn.mkAppList initialArguments).mkAppList trailing) semantic := by
+    rw [← Expr.mkAppList_append, ← argumentsEqual, Expr.getAppArgs_toList,
+      Expr.mkAppList_getAppArgsList]
+    exact translated
+  have rebuilt := reducedTranslated.rebuild_mkAppList context.Ewf context.Δwf
+    prefixTranslated fullTranslated
+  split
+  · rw [Expr.mkAppRange_eq (l₁ := initialArguments) (l₂ := trailing) (l₃ := [])
+      (by simpa using argumentsEqual) rfl (by simpa using (congrArg List.length argumentsEqual).symm)]
+    exact rebuilt
+  · have lengthEqual := congrArg List.length argumentsEqual
+    have noTrailing : trailing = [] := by
+      apply List.eq_nil_of_length_eq_zero
+      simp only [Array.length_toList, List.length_append] at lengthEqual
+      omega
+    simpa [noTrailing] using rebuilt
+
+private theorem quotLiftArrayReduction {context : VContext}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS expression semantic)
+    (headEqual : expression.getAppFn = .const ``Quot.lift levels)
+    (bound : 5 < expression.getAppArgs.size)
+    (majorTranslated : context.TrExprS expression.getAppArgs[5] majorSemantic)
+    (normalizedTranslated : context.TrExpr normalized majorSemantic)
+    (shape : normalized.isAppOfArity ``Quot.mk 3 = true) :
+    context.TrExpr
+      (if 6 < expression.getAppArgs.size then
+        mkAppRange (.app expression.getAppArgs[3]! normalized.appArg!)
+          6 expression.getAppArgs.size expression.getAppArgs
+      else .app expression.getAppArgs[3]! normalized.appArg!) semantic := by
+  obtain ⟨domain, relation, target, function, respect, major, trailing, argumentsEqual⟩ :=
+    quotLiftArgumentShape expression.getAppArgs bound
+  have sourceTranslated : context.TrExprS
+      ((Expr.const ``Quot.lift levels).mkAppList expression.getAppArgs.toList) semantic := by
+    rw [← headEqual, Expr.getAppArgs_toList, Expr.mkAppList_getAppArgsList]
+    exact translated
+  obtain ⟨_, stack⟩ := AppStack.build sourceTranslated
+  rw [argumentsEqual] at stack
+  let .app _ _ _ _ afterDomain := stack
+  let .app _ _ _ _ afterRelation := afterDomain
+  let .app _ _ _ _ afterTarget := afterRelation
+  let .app _ _ _ _ afterFunction := afterTarget
+  let .app _ _ _ _ afterRespect := afterFunction
+  let .app _ _ _ _ afterMajor := afterRespect
+  have majorAt : expression.getAppArgs[5] = major := by
+    simpa [argumentsEqual] using (Array.getElem_toList (xs := expression.getAppArgs) bound).symm
+  have functionAt : expression.getAppArgs[3]! = function := by
+    rw [getElem!_pos _ _ (by omega)]
+    simpa [argumentsEqual] using
+      (Array.getElem_toList (xs := expression.getAppArgs) (i := 3)
+        (by simpa only [Array.length_toList] using (show 3 < expression.getAppArgs.size by omega))).symm
+  rw [majorAt] at majorTranslated
+  have reducedTranslation := context.quotLiftReduction initialized afterMajor.tr
+    majorTranslated normalizedTranslated shape
+  have prefixTranslated := afterMajor.tr
+  change context.TrExprS
+    ((Expr.const ``Quot.lift levels).mkAppList [domain, relation, target, function, respect, major]) _
+    at prefixTranslated
+  rw [← headEqual] at prefixTranslated
+  simpa only [List.length_cons, List.length_nil, functionAt] using
+    quotReapplyTranslation translated (initialArguments := [domain, relation, target, function, respect, major])
+      (trailing := trailing) argumentsEqual prefixTranslated reducedTranslation
+
+private theorem quotIndArrayReduction {context : VContext}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS expression semantic)
+    (headEqual : expression.getAppFn = .const ``Quot.ind levels)
+    (bound : 4 < expression.getAppArgs.size)
+    (majorTranslated : context.TrExprS expression.getAppArgs[4] majorSemantic)
+    (normalizedTranslated : context.TrExpr normalized majorSemantic)
+    (shape : normalized.isAppOfArity ``Quot.mk 3 = true) :
+    context.TrExpr
+      (if 5 < expression.getAppArgs.size then
+        mkAppRange (.app expression.getAppArgs[3]! normalized.appArg!)
+          5 expression.getAppArgs.size expression.getAppArgs
+      else .app expression.getAppArgs[3]! normalized.appArg!) semantic := by
+  obtain ⟨domain, relation, motive, minor, major, trailing, argumentsEqual⟩ :=
+    quotIndArgumentShape expression.getAppArgs bound
+  have sourceTranslated : context.TrExprS
+      ((Expr.const ``Quot.ind levels).mkAppList expression.getAppArgs.toList) semantic := by
+    rw [← headEqual, Expr.getAppArgs_toList, Expr.mkAppList_getAppArgsList]
+    exact translated
+  obtain ⟨_, stack⟩ := AppStack.build sourceTranslated
+  rw [argumentsEqual] at stack
+  let .app _ _ _ _ afterDomain := stack
+  let .app _ _ _ _ afterRelation := afterDomain
+  let .app _ _ _ _ afterMotive := afterRelation
+  let .app _ _ _ _ afterMinor := afterMotive
+  let .app _ _ _ _ afterMajor := afterMinor
+  have majorAt : expression.getAppArgs[4] = major := by
+    simpa [argumentsEqual] using (Array.getElem_toList (xs := expression.getAppArgs) bound).symm
+  have minorAt : expression.getAppArgs[3]! = minor := by
+    rw [getElem!_pos _ _ (by omega)]
+    simpa [argumentsEqual] using
+      (Array.getElem_toList (xs := expression.getAppArgs) (i := 3)
+        (by simpa only [Array.length_toList] using (show 3 < expression.getAppArgs.size by omega))).symm
+  rw [majorAt] at majorTranslated
+  have reducedTranslation := context.quotIndReduction initialized afterMajor.tr
+    majorTranslated normalizedTranslated shape
+  have prefixTranslated := afterMajor.tr
+  change context.TrExprS
+    ((Expr.const ``Quot.ind levels).mkAppList [domain, relation, motive, minor, major]) _ at prefixTranslated
+  rw [← headEqual] at prefixTranslated
+  simpa only [List.length_cons, List.length_nil, minorAt] using
+    quotReapplyTranslation translated (initialArguments := [domain, relation, motive, minor, major])
+      (trailing := trailing) argumentsEqual prefixTranslated reducedTranslation
+
+theorem quotReduceRec.trExpr {context : VContext} {state : VState}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS expression semantic) :
+    RecM.WF context state (quotReduceRec expression whnf) fun outcome _ =>
+      ∀ reduced, outcome = some reduced → context.TrExpr reduced semantic := by
+  intro methods valid
+  unfold quotReduceRec
+  cases head : expression.getAppFn <;> try exact .pure nofun
+  rename_i name levels
+  dsimp only
+  have continuation (constructorPosition : Nat)
+      (sound : ∀ {majorSemantic normalized} (bound : constructorPosition < expression.getAppArgs.size),
+        context.TrExprS expression.getAppArgs[constructorPosition] majorSemantic →
+        context.TrExpr normalized majorSemantic → normalized.isAppOfArity ``Quot.mk 3 = true →
+        context.TrExpr
+          (if constructorPosition + 1 < expression.getAppArgs.size then
+            mkAppRange (.app expression.getAppArgs[3]! normalized.appArg!)
+              (constructorPosition + 1) expression.getAppArgs.size expression.getAppArgs
+          else .app expression.getAppArgs[3]! normalized.appArg!) semantic) :
+      ((do
+        let arguments := expression.getAppArgs
+        if bound : constructorPosition < arguments.size then
+          let constructor ← whnf arguments[constructorPosition]
+          if !constructor.isAppOfArity ``Quot.mk 3 then return none
+          let result := Expr.app arguments[3]! constructor.appArg!
+          let arity := constructorPosition + 1
+          if arity < arguments.size then
+            return some (mkAppRange result arity arguments.size arguments)
+          else return some result
+        else return none) methods).WF context state
+        (fun outcome _ => ∀ reduced, outcome = some reduced → context.TrExpr reduced semantic) := by
+    dsimp only
+    split
+    · rename_i bound
+      dsimp only [Bind.bind, ReaderT.bind, whnf]
+      obtain ⟨_, majorTranslation⟩ :=
+        quotTranslatedApplicationArgument (context := context) translated bound
+      refine (valid.whnf majorTranslation).bind fun normalized _ _ ⟨_, normalizedTranslation⟩ => ?_
+      split
+      · exact .pure nofun
+      · rename_i shape
+        have shape' : normalized.isAppOfArity ``Quot.mk 3 = true := by
+          simp at shape ⊢
+          exact shape
+        have resultTranslation := sound bound majorTranslation normalizedTranslation shape'
+        split
+        · rename_i trailing
+          exact .pure (by rintro _ ⟨⟩; simpa only [if_pos trailing] using resultTranslation)
+        · rename_i noTrailing
+          exact .pure (by rintro _ ⟨⟩; simpa only [if_neg noTrailing] using resultTranslation)
+    · exact .pure nofun
+  by_cases isLiftName : name == ``Quot.lift
+  · simp only [isLiftName, if_true]
+    have nameEqual : name = ``Quot.lift := by simpa using isLiftName
+    exact continuation 5 fun bound majorTranslation normalizedTranslation shape =>
+      quotLiftArrayReduction initialized translated (by simpa [nameEqual] using head)
+        bound majorTranslation normalizedTranslation shape
+  · simp only [Bool.eq_false_iff.mpr isLiftName, Bool.false_eq_true, if_false]
+    by_cases isInductiveName : name == ``Quot.ind
+    · simp only [isInductiveName, if_true]
+      have nameEqual : name = ``Quot.ind := by simpa using isInductiveName
+      exact continuation 4 fun bound majorTranslation normalizedTranslation shape =>
+        quotIndArrayReduction initialized translated (by simpa [nameEqual] using head)
+          bound majorTranslation normalizedTranslation shape
+    · simp only [Bool.eq_false_iff.mpr isInductiveName, Bool.false_eq_true, if_false]
+      exact .pure nofun
+
+theorem quotReduceRec.WF {context : VContext} {state : VState}
+    (initialized : context.env.quotInit = true)
+    (translated : context.TrExprS expression semantic) :
+    RecM.WF context state (quotReduceRec expression whnf) fun outcome _ =>
+      ∀ reduced, outcome = some reduced →
+        context.FVarsBelow expression reduced ∧ context.TrExpr reduced semantic := by
+  intro methods valid stateWF outcome finalState successful
+  obtain ⟨after, stateEqual, extension, afterWF, below⟩ :=
+    quotReduceRec.fvarsBelow translated methods valid stateWF outcome finalState successful
+  obtain ⟨_, _, _, _, translation⟩ :=
+    quotReduceRec.trExpr initialized translated methods valid stateWF outcome finalState successful
+  exact ⟨after, stateEqual, extension, afterWF, fun reduced equal =>
+    ⟨below reduced equal, translation reduced equal⟩⟩
+
+theorem reduceRecursor.none_of_translation {context : VContext} {state : VState}
+    (notInitialized : context.env.quotInit = false)
+    (translated : context.TrExprS expression semantic) :
+    (reduceRecursor expression).WF context state
+      (fun outcome _ => outcome = none) := by
+  unfold reduceRecursor
+  refine RecM.WF.getEnv ?_
+  simp [notInitialized]
+  refine (inductiveReduceRec.none_of_translation translated _ _ _).bind fun outcome _ _ h => ?_
+  cases outcome with
+  | none => exact .pure rfl
+  | some value => cases h
+
+theorem reduceRecursor.fvarsBelow {context : VContext} {state : VState}
+    (translated : context.TrExprS expression semantic) :
+    RecM.WF context state (reduceRecursor expression) fun outcome _ =>
+      ∀ reduced, outcome = some reduced → context.FVarsBelow expression reduced := by
+  by_cases initialized : context.env.quotInit = true
+  · unfold reduceRecursor
+    refine RecM.WF.getEnv ?_
+    simp [initialized]
+    refine (quotReduceRec.fvarsBelow translated).bind fun outcome _ _ h => ?_
+    cases outcome with
+    | some reduced =>
+      exact .pure (by intro value equality; cases equality; exact h _ rfl)
+    | none =>
+      refine (inductiveReduceRec.none_of_translation translated _ _ _).bind
+        fun outcome _ _ h => ?_
+      cases outcome with
+      | none => exact .pure nofun
+      | some reduced => cases h
+  · have notInitialized : context.env.quotInit = false := by
+      cases value : context.env.quotInit <;> simp_all
+    exact (reduceRecursor.none_of_translation notInitialized translated).mono
+      fun _ _ _ rejected _ successful => by cases rejected.symm.trans successful
+
 theorem reduceRecursor.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
     RecM.WF c s (reduceRecursor e) fun oe _ =>
-      ∀ e₁, oe = some e₁ → c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' := sorry
+      ∀ e₁, oe = some e₁ → c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' := by
+  by_cases initialized : c.env.quotInit = true
+  · unfold reduceRecursor
+    refine RecM.WF.getEnv ?_
+    simp [initialized]
+    refine (quotReduceRec.WF initialized he).bind fun outcome _ _ result => ?_
+    cases outcome with
+    | some reduced =>
+      exact .pure (by intro value equal; cases equal; exact result _ rfl)
+    | none =>
+      refine (inductiveReduceRec.none_of_translation he _ _ _).bind
+        fun outcome _ _ rejected => ?_
+      cases outcome with
+      | none => exact .pure nofun
+      | some reduced => cases rejected
+  · have notInitialized : c.env.quotInit = false := by
+      cases value : c.env.quotInit <;> simp_all
+    exact (reduceRecursor.none_of_translation notInitialized he).mono
+      fun _ _ _ rejected _ successful => by cases rejected.symm.trans successful
 
 theorem whnfFVar.WF {c : VContext} {s : VState} (he : c.TrExprS (.fvar fv) e') :
     RecM.WF c s (whnfFVar (.fvar fv) cheapProj) fun e₁ _ =>
