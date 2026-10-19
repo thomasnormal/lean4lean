@@ -35,6 +35,15 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (henv : evidence.constructorEnv.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    ∀ entry ∈ evidence.recursors, entry.model.toVConstant.WF evidence.constructorEnv :=
+  evidence.recursorWF_of_sourceTypehood henv hsource
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)
     (hrecursors : ∀ entry ∈ evidence.recursors, entry.model.toVConstant.WF
       evidence.constructorEnv) :

@@ -195,6 +195,33 @@ theorem RegistrationEvidence.resultWF
       exact hrecursors entry hentry)
     evidence.recursorAdd
 
+theorem RegistrationEvidence.recursorWF_of_sourceTypehood
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (henv : evidence.constructorEnv.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    ∀ entry ∈ evidence.recursors, entry.model.toVConstant.WF evidence.constructorEnv := by
+  intro entry hmem
+  obtain ⟨semantic, sourceTranslation, sourceTypehood⟩ := hsource entry hmem
+  have modelReceipt := evidence.recursorTranslation entry hmem
+  have modelTranslation := modelReceipt.1.2.2
+  have modelUvars := modelReceipt.1.2.1
+  have contextEquality : VLCtx.IsDefEq evidence.constructorEnv
+      entry.info.levelParams.length [] [] :=
+    VLCtx.IsDefEq.refl henv.ordered (show VLCtx.WF evidence.constructorEnv
+      entry.info.levelParams.length [] from trivial)
+  obtain ⟨_, translatedEquality⟩ :=
+    TrExprS.uniq (henv := henv) contextEquality modelTranslation sourceTranslation
+  obtain ⟨sourceLevel, sourceType⟩ := sourceTypehood
+  obtain ⟨_, typeEquality⟩ := translatedEquality.uniq henv (by trivial) sourceType
+  have modelTypehood : evidence.constructorEnv.HasType entry.info.levelParams.length []
+      entry.model.type (.sort sourceLevel) := by
+    simpa only [VLCtx.toCtx] using typeEquality.defeq translatedEquality.hasType.1
+  change evidence.constructorEnv.IsType entry.model.uvars [] entry.model.type
+  rw [← modelUvars]
+  exact ⟨sourceLevel, modelTypehood⟩
+
 theorem RegistrationEvidence.registrationWF
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)
