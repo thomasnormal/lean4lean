@@ -85,6 +85,18 @@ integration `b7b7d92c9ba916916111f0e1e2b0ae290a6fd499`, based on official
 `lean4lean-candidate-simulation-` stems dated 20261019 in the fleet logs.
 Earlier accounts of an open candidate-step simulation are superseded here.
 
+## Inhabited normal-equality context conversion — 2026-10-19
+
+`NormalEq.weak_inv_of_hasType` is the constructive one-binder inverse for a
+lifted normal equality when the removed domain has a typed inhabitant. It is
+derived by instantiating the lifted equality with that inhabitant through
+`NormalEq.instDF`; no unrestricted strengthening, `NormalEq.trans`, or
+confluence theorem is used. `tests/NormalSubstitution.lean` exercises the
+`Prop` inhabitant control and audits the new production theorem and control
+with exactly `propext` and `Quot.sound`. The general inverse-weakening theorem
+remains false for arbitrary unused binders, so this result does not claim
+confluence or unconditional frontend soundness.
+
 
 ## Universal original-core simulation by repaired paths — 2026-10-19
 

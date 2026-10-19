@@ -161,4 +161,17 @@ theorem NormalEq.instDF
   simpa only [VExpr.inst_eq] using bodyNormal.substDF localsWF
     (NormalSubstitution.one localsWF domainTyped argumentTyped argumentNormal)
 
+/-! A lifted normal equality can be pulled back through a binder when the
+inserted domain has a typed inhabitant.  The unrestricted inverse weakening
+statement is false; this is the constructive inhabited replacement used by
+context-conversion callers. -/
+theorem NormalEq.weak_inv_of_hasType
+    (localsWF : OnCtx locals (env.IsType univs))
+    (domainTyped : env.HasType univs locals domain (.sort level))
+    (argumentTyped : env.HasType univs locals argument domain)
+    (normal : NormalEq (domain :: locals) first.lift second.lift) :
+    NormalEq locals first second := by
+  simpa only [VExpr.inst_lift] using
+    NormalEq.instDF localsWF domainTyped argumentTyped (.refl argumentTyped) normal
+
 end Lean4Lean.VEnv
