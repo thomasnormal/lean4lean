@@ -39,8 +39,20 @@ native restoration receipts also remain open. The Nat-closing and successor
 arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
-Full default builds pass (426 integration / 423 main review jobs), as do all
-49 selected integration fixtures and 20 selected main fixtures. No new admission is introduced.
+Full default builds pass (427 integration / 424 main review jobs), as do all
+50 selected integration fixtures and 21 selected main fixtures. No new admission is introduced.
+
+**General application beta simulation:** an arbitrary normally related
+function can now follow beta on the right, with different normally related
+arguments, without a left lambda-shape restriction or recursive simulation
+premise in the beta-joining theorem. Forward beta preservation beneath retained
+eta spines replaces inverse weakening; simultaneous substitution replaces
+normal transitivity. The general application beta clause consumes just the
+function/argument induction hypotheses and retains both original endpoint
+types. Proof-valued functions also have their complete application clause.
+Exact audits retain only the two existing typing admissions and exclude choice
+and false confluence. Checked EXTRA is the remaining general application
+branch; universal simulation, confluence and actual-consumer migration are open.
 
 **Simultaneous substitution and lambda beta simulation:** related arguments
 can now be substituted simultaneously into both endpoints of normal equality,
@@ -50,9 +62,9 @@ transitivity and inverse weakening. Arbitrary candidate argument paths propagate
 through duplicated occurrences beneath dependent binders. The actual lambda
 beta clause combines recursive body/argument simulation, converted domains and
 both endpoint typings at the original application type. Its exact trust boundary
-is the two existing typing admissions. General beta across arbitrary eta-related
-function shapes, checked EXTRA and the universal simulation remain open. The
-independent substitution proof and strict regression are submitted as
+is the two existing typing admissions. The general beta clause is now proved
+above; checked EXTRA and the universal simulation remain open. The independent
+substitution proof and strict regression are submitted as
 [upstream PR #65](https://github.com/digama0/lean4lean/pull/65), with the official
 master's additional inductive admissions explicitly audited there.
 
@@ -62,9 +74,9 @@ further eta steps. Eta/application joins also allow simultaneous candidate paths
 in the function and argument and retain the original dependent result type.
 The replacement `CoreSimulates` obligation has proved recursive clauses for all
 eight non-application normal-equality constructors and application congruence.
-These clauses still take their recursive simulation hypotheses; application's
-general root beta and checked EXTRA cases remain open. All 15 new production
-proofs exclude inverse weakening, false confluence and choice, with exactly the
+These clauses still take their recursive simulation hypotheses. The general
+application beta clause is now proved above; checked EXTRA remains open.
+The eta proofs exclude inverse weakening, false confluence and choice, with exactly the
 two independent typing admissions. Actual consumer manifests are unchanged.
 
 **Canonical unfolding versus arbitrary core reduction:** every original
@@ -222,7 +234,7 @@ themselves satisfy any of these goals.
 | Remove inherited admissions from the frontend | **Not complete.** Dependency audits identify the remaining trust gaps. | Foundational admissions also remain. | Must close the actual metatheory/checker dependencies, not add another wrapper around them. |
 | Supply simultaneous substitution for arbitrary typing/equality derivations | **Proved API now available:** `55b7b4d` ports strong/weak cross-substitution and audits its dependencies as only `propext` and `Quot.sound`. | Already proved upstream in `6ba54db`/`8223d22`. | Foundation integration, not a newly solved upstream obligation; the frontend's inherited admissions remain. |
 | Verify actual checked inductive registration | **Not complete.** Header/constructor checks and staging invariants are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, and prelude translation. |
-| Complete confluence and semantic reduction correctness | **Original simulation contract refuted:** the actual quotient model has a checked counterexample to `NormalEq.parRed`. The candidate relation proves exact joins for all six prefix-application beta overlaps and a normal-equality local join for canonical unfolding versus every original core reduction. | Confluence and related semantic obligations remain open. | General quotient simulation, other eta/rewrite overlaps, migration of actual consumers, non-circular injectivity/strengthening, genuine projection and inductive recursor semantics. |
+| Complete confluence and semantic reduction correctness | **Original simulation contract refuted:** the actual quotient model has a checked counterexample to `NormalEq.parRed`. The candidate relation proves forward eta joins, general application beta simulation, exact joins for all six prefix-application beta overlaps, and a normal-equality local join for canonical unfolding versus every original core reduction. | Confluence and related semantic obligations remain open. | General quotient simulation, other eta/rewrite overlaps, migration of actual consumers, non-circular injectivity/strengthening, genuine projection and inductive recursor semantics. |
 | Reject projection reduction outside the current semantic model | **Upstream-ready candidate in PR #57:** `reduceProjCore.none_of_translation` and `reduceProj.none_of_translation` prove that translated terms cannot reduce through constructor-family lookups while `TrEnv` remains constructor-free; the existing `WF` contracts now derive from that rejection proof. | Official master still carries the original admitted projection `WF` contract. | This is deliberately a rejection theorem for the non-inductive fragment, not inductive projection semantics; `AddInduct`, model registration, and recursor obligations remain open. |
 | Reject projection type inference outside the current semantic model | **Upstream-ready candidate in PR #58:** `inferProj.rejects` proves that translated structure types cannot pass the inductive-header lookup, and the existing `inferProj.WF` contract now follows without an admission. | Official master still carries the original admitted `inferProj.WF` contract. | This closes only the constructor-free semantic fragment; successful inductive projection inference still requires `AddInduct`, model registration, and dependent-field semantics. |
 | Reject structure-eta and unit-like comparison outside the current semantic model | **Upstream-ready candidate in PR #59:** `tryEtaStructCore.false_of_translation` and `isDefEqUnitLike.false_of_translation` prove both comparison workers return false for translated constructor-family heads; their existing `WF` contracts now derive without admissions. | Official master still carries both comparison admissions. | This closes only the constructor-free semantic fragment; inductive eta and unit-like semantics still require constructive model registration. |
@@ -606,9 +618,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current Lean 4.29.0 proof source passes all default targets (**423 jobs**)
-on October 19 and all 20 selected regressions. The separate Lean 4.33.0-rc2
-integration passes its full default build (**426 jobs**) and all 49 selected
+The current Lean 4.29.0 proof source passes all default targets (**424 jobs**)
+on October 19 and all 21 selected regressions. The separate Lean 4.33.0-rc2
+integration passes its full default build (**427 jobs**) and all 50 selected
 regressions. The independent current-master substitution PR passes its default
 build and standalone regression. These receipts validate their respective
 snapshots; the main branch retains its earlier history. Detailed logs and exact
