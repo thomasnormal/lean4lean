@@ -4,6 +4,56 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Unused-let telescope reconstruction — 2026-10-19
+
+The actual `MLCtx.WF.mkForall_trS`, `mkLambda_trS` and `mkLet_trS` proofs now
+use `TrExprS.eraseAbstractedLet` in their unused-local-let branches. The existing
+abstraction guard supplies absence of the removed identifier; native closedness
+comes from translation. A local let adds no semantic binder, so structural erasure
+preserves the exact model context and expression, including retained projections
+and native lambdas/lets. The environment parameter and every existing theorem
+contract remain in place. Checker definitions and accepted inputs are unchanged.
+
+On integration, the three complete structural graphs drop from 4649/4650/4658
+dependencies with exactly `TrProj` and `TrProj.weak'` to 4158/4159/4169 with
+exactly `TrProj`. The helper has 3863 dependencies and the same sole admission.
+These four roots retain precisely `propext`, `Classical.choice`, `Quot.sound`
+and `sorryAx`. The converted forall/lambda APIs drop projection weakening but
+still inherit `IsDefEqU.sort_inv` and `forallE_inv_stratified`; their seven-axiom
+manifests include three existing native persistent-container interfaces. Main's
+three repaired structural graphs have 4013/4013/4023 dependencies and the same
+exact admission/axiom boundary. Its helper has 3740 dependencies. This reduces
+actual reconstruction dependencies without proving general strengthening.
+
+`tests/TelescopeLetErasure.lean` exercises all three production APIs over a
+nonempty proposition/dependent-proof context, a projected removed value, a
+retained projection, a nested native lambda/let body, and a mixed telescope.
+Used lets and both explicit `nd` flags remain; four `rfl` controls pin executable
+results. Strict gates pin exact per-root admission AND axiom sets, exclude generic
+weakening/substitution, inverse weakening, false confluence and derived quotient
+injectivity from reconstruction, and check the actual inference consumers.
+Whole integration inference still has exactly 9/10/8 admissions and 12/14/17
+axioms for forall/lambda/let. Main retains its older 9/10/10-admission and
+12/15/18-axiom manifests. Genuine projection, arbitrary lambda restoration,
+confluence, checked inductive registration and frontend soundness remain open.
+
+The official-master extension of existing PR #64 uses the same proof. Its
+structural builders drop FIVE admissions to exactly `TrProj`, also losing
+`VEnv.addInduct`, `addInduct_WF` and `VInductDecl.WF` through the former
+substitution path. Those three still occur in its converted APIs, which now
+have six admissions; the candidate's larger inference manifests are pinned
+separately. No unrelated binder-opening or inductive proof is imported.
+
+Full default builds pass: 420 main, 423 integration and 162 PR-branch jobs.
+All 44 selected integration fixtures, 12 main fixtures, and both PR fixtures
+(`LetCacheRestoration`, `TelescopeLetErasure`) pass. Existing production theorem
+headers are unchanged. Source admission censuses are unchanged: main
+119 matching lines / 19 files / 123 occurrences, integration 124 / 23 / 128,
+PR branch 133 / 29 / 137. No new admission, axiom or kernel discrepancy.
+Receipts use `/var/tmp/thomas-ahle/fleet2/logs/lean4lean-telescope-let-` stems
+dated `20261019`; final fixture logs use `integration-fixture-final`,
+`main-fixture-final` and `upstream-fixture-final2`.
+
 ## Restore the integration projection core proof — 2026-10-19
 
 The Lean 4.33.0-rc2 integration now discharges the existing

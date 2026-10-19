@@ -19,7 +19,7 @@ not completion of frontend soundness.
 older base on Lean **4.29.0**, including the direct binder-naming proof below.
 This separate integration snapshot is based on official
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` on Lean **4.33.0-rc2**,
-extending checkpoint `43a47d9`. It integrates the later quotient semantics,
+extending checkpoint `c65a7a0`. It integrates the later quotient semantics,
 the actual native quotient/recursor dispatcher proof, the checked confluence
 obstruction, and the typed Prop-source/prefix repair ingredients. Upstream's
 mutual-definition declarations and executable behavior are retained. This is
@@ -52,8 +52,8 @@ outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
 All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
 inherited projection admissions, and its equality bridge pins five.
-Full default builds pass (423 integration / 419 main review jobs), as do all
-38 current integration fixtures. No new admission is introduced.
+Full default builds pass (423 integration / 420 main review jobs), as do all
+44 selected integration fixtures and 12 selected main fixtures. No new admission is introduced.
 
 **Local-let cache transport:** entering and leaving local definitions preserve
 the exact model context and expressions. All five actual state/cache producer
@@ -83,6 +83,17 @@ behavior are unchanged, and the proof is validated on both toolchains. Broader
 inference/frontend admissions remain. A focused master-based candidate is kept
 separate; draft PR #53 already repairs this API through its larger redesign,
 so no duplicate upstream PR is opened.
+
+**Unused-let telescope reconstruction:** the actual `mkForall_trS`,
+`mkLambda_trS` and `mkLet_trS` proofs now erase an unused native let directly.
+A local let contributes no semantic binder, so retained projection evidence stays
+in its original context. Each complete structural builder graph now inherits
+exactly `TrProj`, dropping projection weakening; the converted APIs still inherit
+other typing gaps. Existing contracts and checker behavior are unchanged.
+Dependent-context, mixed-telescope and retained-let controls pass on both
+versions. The focused [PR #64](https://github.com/digama0/lean4lean/pull/64)
+now includes this consumer of its structural let-erasure proof. Arbitrary lambda
+strengthening and whole inference/frontend soundness remain open.
 
 **Projection core contract:** the Lean 4.33.0-rc2 integration now proves the
 existing `reduceProjCore.WF` contract used by lazy projection comparison and

@@ -61,6 +61,23 @@ theorem TrExprS.eraseLet (W : VLCtx.EraseLet removed Δ Δ')
   | mdata _ ih => exact .mdata (ih W unused)
   | proj _ h ih => exact .proj (ih W unused) (W.toCtx_eq ▸ h)
 
+/-- Reconstructing a telescope may drop a let whose abstraction mentions no
+bound occurrence. Erasure keeps the exact model context and result; the let
+value is never substituted beneath retained binders. -/
+theorem TrExprS.eraseAbstractedLet
+    (H : TrExprS env Us ((some (removed, support), .vlet domain value) :: Δ) e e')
+    (closed : Closed e)
+    (unused : (e.abstract1 removed).hasLooseBVar' 0 = false) :
+    TrExprS env Us Δ ((e.abstract1 removed).lowerLooseBVars' 1 1) e' := by
+  have scope := closed.looseBVarRange_le
+  have unchanged : e.abstract1 removed = e := by
+    rw [Expr.abstract1_eq_liftLooseBVars unused, Expr.liftLooseBVars_eq_self scope]
+  have free : FVarsIn (· ≠ removed) e := (H.fvarsIn.of_abstract1 (v := removed) (k := 0)
+    (by simpa only [unchanged] using scope)).mono
+    (fun _ member => member.2)
+  rw [Expr.lowerLooseBVars_eq_instantiate unused (v := e)]
+  simpa only [unchanged, Expr.instantiate1'_eq_self scope] using H.eraseLet .zero free
+
 theorem TrExpr.eraseLet (W : VLCtx.EraseLet removed Δ Δ')
     (H : TrExpr env Us Δ' e e') (unused : FVarsIn (· ≠ removed) e) :
     TrExpr env Us Δ e e' :=
