@@ -4,6 +4,49 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Direct native binder naming — 2026-10-19
+
+The existing `TrExprS.inst_fvar` now names an anonymous native binder directly,
+using `VLCtx.Abstract.find?` and exact equality of the semantic contexts. Both
+lambda and let declarations retain their original model expressions, including
+beneath dependent native lambdas, lets, and projections. The fresh name comes
+from the original well-formedness premise. All existing theorem headers and
+executable behavior are unchanged; no model binder is removed and no inhabitant
+is assumed. This proof is present on both the Lean 4.29.0 main branch and the
+Lean 4.33.0-rc2 integration.
+
+The complete integration graph for `inst_fvar` drops from **4202 dependencies /
+three inherited admissions** (`TrProj`, `TrProj.weak'`, `TrProj.instN`) to
+**3719 / exactly `TrProj`**. Its existing `TrExpr.openFreshFVar` consumer drops
+from 4205 to 3722 dependencies with the same reduction. The new generalized
+`instantiateFVar` helper has 3707 dependencies and exactly `TrProj`. All retain
+the exact four-axiom set `propext`, `Classical.choice`, `Quot.sound`, `sorryAx`;
+the placeholder projection relation remains. The strict fixture rejects generic
+weakening/substitution, inverse weakening, false confluence and derived quotient
+injectivity throughout these graphs, and checks that the actual lambda/forall/let
+inference loops still consume this repaired API. Whole `inferLambda.WF` and
+`inferLet.WF` retain their original axiom and direct-admission manifests through
+other paths. This is a repair to native opening, not unconditional inference or
+frontend soundness.
+
+`tests/BinderOpening.lean` covers a nonempty dependent proof context, both
+binder kinds, retained lambdas/lets, a remaining ambient anonymous binder,
+unchanged projection evidence, freshness, and opening/abstraction round trips.
+Its per-root axiom and admission manifests are exact. The two older integration
+fixtures for annotation translation and parameter-prefix typing now explicitly
+reduce concrete contexts/universes for Lean 4.33.0-rc2; numeric runtime counters
+are typed, and the obsolete `mkAppRangeAux.eq_def` axiom is removed from exact
+manifests. Direct lookup and universe-mismatch proofs preserve the annotation
+fixture's existing exclusion of choice. No validation contract is weakened.
+
+A focused two-file candidate also builds on unchanged official `67f63b0`.
+Open draft [PR #53](https://github.com/digama0/lean4lean/pull/53), reviewed at
+`5a8c0d5f111809a95f4924c71e0e9bc8738d72e0`, replaces this API through a larger
+`TrSyn`/`TrTyped` redesign. The direct proof here preserves the current API;
+no duplicate upstream PR is opened. Build, census and regression receipts use
+`/var/tmp/thomas-ahle/fleet2/logs/lean4lean-binder-opening-` stems dated 20261019.
+
+
 ## Conditional gadget transport at checked inhabitants — 2026-10-19
 
 The actual `Condition.check.gadget_pieces` now obtains all four closed native

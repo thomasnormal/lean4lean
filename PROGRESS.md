@@ -15,8 +15,8 @@ fully integrated into the published branch. Its admission-free simultaneous
 substitution proof is narrowly ported here; that is foundation integration,
 not completion of frontend soundness.
 
-**Published versus upstream integration:** the main review branch is at
-proof source `1337f871caea000219b8da408b4dea3c31718690` on Lean **4.29.0**.
+**Published versus upstream integration:** the main review branch retains its
+older base on Lean **4.29.0**, including the direct binder-naming proof below.
 This separate integration snapshot is based on official
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` on Lean **4.33.0-rc2**,
 extending checkpoint `43a47d9`. It integrates the later quotient semantics,
@@ -73,6 +73,16 @@ with local projection-free transport proofs preserving the existing contracts.
 Its complete extraction graph drops general strengthening and inherits exactly
 three existing projection/typing gaps; the whole recognizer's 33-axiom manifest
 and broader checker gaps remain. No executable behavior changes.
+
+**Native binder naming:** the actual `TrExprS.inst_fvar` API now preserves the
+exact semantic context directly, across both declaration kinds and nested native
+binders/projections. Its complete graph drops projection weakening and
+instantiation, retaining exactly the existing `TrProj` placeholder. The existing
+`TrExpr.openFreshFVar` consumer shares that reduction. Contracts and executable
+behavior are unchanged, and the proof is validated on both toolchains. Broader
+inference/frontend admissions remain. A focused master-based candidate is kept
+separate; draft PR #53 already repairs this API through its larger redesign,
+so no duplicate upstream PR is opened.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.

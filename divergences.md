@@ -20,6 +20,18 @@ This is a list of places where lean4lean deliberately has different behavior fro
 * [`Lean4Lean.addDefinition`](Lean4Lean/Environment.lean) (`unsafe` branch), [`addMutual`](Lean4Lean/Environment.lean): an `unsafe`/`partial` definition may be recursive, so its body is checked in an environment that already contains the declaration. The C++ kernel adds `constant_info(d)` there -- the full definition, value included -- so the body can delta-unfold the very constant being defined. Lean4lean adds it as an axiom of the same type instead: the body may still *refer* to the block's constants, but cannot unfold them. So for example `unsafe def foo : Nat := (fun (_ : foo = 1) => 1) rfl` is accepted by the C++ kernel, but rejected by L4L: checking the argument requires `foo =?= 1`, which succeeds by unfolding `foo` to its own body and reducing. Read literally, that rule makes a typing fact about the constant available while establishing it, and implementing this in `IsDefEq` directly degenerates completely, allowing even things like `unsafe def bar : Nat := "hi"` by using the typing judgment to justify itself. The gap is confined to `unsafe`/`partial` code, which carries no logical content.
 * [`Lean4Lean.addMutual`](Lean4Lean/Environment.lean): lean4lean requires the declarations of a mutual block to carry the same universe parameters and to have distinct names. Both checks are in kernel PRs that are not yet released ([leanprover/lean4#14608](https://github.com/leanprover/lean4/pull/14608), [#14632](https://github.com/leanprover/lean4/pull/14632)); the released kernel checks only that the safety annotations agree. Lean4lean needs them rather than merely matching them: the block is checked under a single `M.run`, whose level parameters are fixed for the whole run, and the model adds the block's constants one at a time with `VEnv.addConsts`, which fails on a repeated name.
 
+## Native binder naming preserves the model context (2026-10-19)
+
+`TrExprS.inst_fvar` now renames an anonymous native binder directly. Its original
+freshness/well-formedness premise prevents capture; naming either a lambda or a
+let preserves the exact semantic context and expression. Projection evidence
+is reused in that context, removing the inherited projection weakening and
+instantiation admissions from the complete opening proof and the existing
+`TrExpr.openFreshFVar` consumer. Their integration graphs retain exactly `TrProj`;
+broader inference and frontend gaps remain. The original API and accepted inputs
+are unchanged. See `tests/BinderOpening.lean`. This is a metatheory repair, not a
+new native kernel discrepancy.
+
 ## Inhabited telescope transport in recursion (2026-10-19)
 
 The general inverse-weakening admission reported in upstream issue #50 remains

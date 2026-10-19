@@ -119,7 +119,7 @@ private theorem ambientPrefixTyping :
   have argumentTranslated : TrExprS VEnv.empty [] [(none, .vlam (.sort .zero))] (.bvar 0) (.bvar 0) :=
     .bvar (A := .sort .zero) rfl
   have argumentTyped : VEnv.empty.HasType 0 [.sort .zero] (.bvar 0) (.sort .zero) := .bvar .zero
-  simpa [Expr.getAppArgs_eq, Expr.getAppArgsList, Expr.getAppArgsRevList] using
+  simpa [VLCtx.toCtx, Expr.getAppFn, Expr.getAppArgs_eq, Expr.getAppArgsList, Expr.getAppArgsRevList] using
     nestedApp_prefixTyping (.app functionTyped argumentTyped functionTranslated argumentTranslated)
       (functionTyped.app argumentTyped) 0 (Nat.zero_le _)
 
@@ -254,9 +254,9 @@ run_meta do
   for name in [``withParams.typedContext, ``withParams.getTypedContext, ``actualNativeOpening] do
     auditExact name (inherited ++ [``Expr.instantiate1_eq])
   for name in [``nestedApp_prefixTyping, ``isNestedInductiveApp?.typedPrefix] do
-    auditExact name (logical ++ [``sorryAx, `Lean.Expr.mkAppRangeAux.eq_def])
+    auditExact name (logical ++ [``sorryAx])
   auditExact ``isNestedInductiveApp?.typedRebinding
-    (replacementInterfaces ++ [`Lean.Expr.mkAppRangeAux.eq_def])
+    replacementInterfaces
   let fixtures := [``sourceWellFormed, ``targetWellFormed, ``sameDependentDomains,
     ``familyTranslation, ``familyTyping, ``independentArguments, ``freshTargetIsNotInRemovedBase,
     ``typedIndependentFamily, ``telescopeTranslation, ``telescopeTyping, ``actualNativeOpening,
