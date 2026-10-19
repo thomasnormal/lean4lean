@@ -185,14 +185,14 @@ theorem StateWF.restoreLet {context : RestrictedContext safety env venv}
     intro expression type lookup
     have typed := correct lookup
     simp only [withMLC, MLCtx.vlctx, context.scope_eq] at typed
-    exact typed.weakN_inv context.checker.wf
+    exact typed.weakLet_inv
       (by simpa only [MLCtx.vlctx, context.scope_eq] using extendedScopeWF)
   have normalization {cache} (correct : (context.withMLC _ extendedWF).WHNFCacheWF state cache) :
       context.WHNFCacheWF state cache := by
     intro expression result lookup
     have normalized := correct lookup
     simp only [withMLC, MLCtx.vlctx, context.scope_eq] at normalized
-    exact normalized.weakN_inv context.checker.wf
+    exact normalized.weakLet_inv
       (by simpa only [MLCtx.vlctx, context.scope_eq] using extendedScopeWF)
   refine ⟨?_, ?_, inference stateWF.inferI, inference stateWF.inferC,
     normalization stateWF.whnfCore, normalization stateWF.whnf, stateWF.unfold⟩

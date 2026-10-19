@@ -186,11 +186,11 @@ theorem TypeChecker.RecM.ScopeWF.withLetDecl {c : VContext} {m : MLCtx}
   have inferCache {cache} (cacheWF : InferCache.WF (c.withMLC m') updated cache) :
       InferCache.WF (c.withMLC m) updated cache := by
     intro expression type found
-    exact (cacheWF found).weakN_inv c.Ewf updatedWF.trctx.wf
+    exact (cacheWF found).weakLet_inv updatedWF.trctx.wf
   have whnfCache {cache} (cacheWF : WHNFCache.WF (c.withMLC m') updated cache) :
       WHNFCache.WF (c.withMLC m) updated cache := by
     intro expression value found
-    exact (cacheWF found).weakN_inv c.Ewf updatedWF.trctx.wf
+    exact (cacheWF found).weakLet_inv updatedWF.trctx.wf
   have baseWF : updated.WF (c.withMLC m) := by
     let ⟨_, _, levelsWF, contextLift, managerWF, reserved⟩ := updatedWF.ectx
     exact {

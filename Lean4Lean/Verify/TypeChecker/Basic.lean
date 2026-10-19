@@ -573,9 +573,9 @@ protected theorem RecM.WF.withLetDecl {c : VContext} {m} [cwf : c.MLCWF m]
   let ⟨s', hs1, hs2, wf', hs4⟩ := H _ _ _ (hs.trans le) h1 _ mwf this a s' e
   refine ⟨s', hs1, le.trans hs2, ?_, hs4⟩
   have hic {ic} (H : InferCache.WF (c.withMLC m') s' ic) :
-      InferCache.WF (c.withMLC m) s' ic := fun _ _ h => (H h).weakN_inv c.Ewf wf'.trctx.wf
+      InferCache.WF (c.withMLC m) s' ic := fun _ _ h => (H h).weakLet_inv wf'.trctx.wf
   have hwc {wc} (H : WHNFCache.WF (c.withMLC m') s' wc) :
-      WHNFCache.WF (c.withMLC m) s' wc := fun _ _ h => (H h).weakN_inv c.Ewf wf'.trctx.wf
+      WHNFCache.WF (c.withMLC m) s' wc := fun _ _ h => (H h).weakLet_inv wf'.trctx.wf
   let ⟨_, _, a1, a2, a3⟩ := wf'.ectx
   exact {
     ngen_wf := (by simpa [VContext.withMLC] using wf'.ngen_wf :).2

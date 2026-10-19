@@ -52,8 +52,18 @@ outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
 All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
 inherited projection admissions, and its equality bridge pins five.
-Full default builds pass (422 integration / 419 main review jobs), as do all
-36 current integration fixtures. No new admission is introduced.
+Full default builds pass (423 integration / 419 main review jobs), as do all
+37 current integration fixtures. No new admission is introduced.
+
+**Local-let cache restoration:** removing a local definition leaves the model
+context identical. Structural erasure now restores type and WHNF caches in all
+three actual let-restoration paths, preserving the original expressions,
+dependency scopes, contracts, and accepted inputs. Their full dependency audits
+exclude general strengthening and false confluence, with exactly one or two
+existing projection admissions per path. The generic lambda paths and the
+frontend's broader inherited obligations remain open. The focused master-based
+patch is [upstream PR #64](https://github.com/digama0/lean4lean/pull/64), validated
+independently on the current official toolchain.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.

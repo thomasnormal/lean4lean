@@ -4,6 +4,55 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Local-let cache restoration — 2026-10-19
+
+A native local let adds zero model binders: its value is already inlined and
+its removal leaves `VLCtx.toCtx` unchanged. `VLCtx.EraseLet` tracks removal
+beneath retained anonymous native binders. Structural `TrExprS.eraseLet` and
+`TrExpr.eraseLet` preserve the exact model expression without semantic inverse
+weakening or translation uniqueness. Freshness and the existing `FVarsBelow`
+dependency/up-set invariant supply the unused-variable premises for cached
+sources, inferred types, and WHNF results.
+
+The three conditional cache predicates now have specialized `weakLet_inv`
+proofs. Actual `RecM.WF.withLetDecl`, `RecM.ScopeWF.withLetDecl`, and
+`RestrictedContext.StateWF.restoreLet` use them for all six type/WHNF cache
+restorations. Existing cache definitions and all three actual theorem headers
+are byte-for-byte unchanged; executable behavior and accepted inputs are
+unchanged. General lambda restoration still uses the old strengthening path.
+
+The helper/witness audit traverses 3869 dependencies and inherits exactly the
+existing `TrProj` placeholder. The complete actual checker let methods traverse
+7283 and 7320 dependencies respectively and inherit exactly `TrProj` and
+`TrProj.weak'`; restricted-context restoration traverses 5781 and inherits only
+`TrProj`. All three full proof graphs exclude general strengthening, translation
+uniqueness, false confluence, and derived quotient injectivity. Their seven-axiom
+manifests include standard logic, `sorryAx`, and the three existing persistent
+array/map interfaces. These remaining projection obligations and the frontend's
+other binder paths still prevent unconditional checker soundness.
+
+`tests/LetCacheRestoration.lean` pins those exact admission/axiom manifests and
+actual consumers. It exercises a nonempty dependent base, erasure beneath native
+lambda/let binders, all three cache helpers, an inferred type reached through a
+retained proof variable's dependency list, and a distinct WHNF result.
+Full integration default build passes 423 jobs; all 37 fixtures and the final
+strict actual-consumer audit pass. Main review separately passes 419 default
+jobs. Census is unchanged: integration 125 matching lines / 24 files / 129
+occurrences; main 119 / 19 / 123. Receipt prefix:
+`/var/tmp/thomas-ahle/fleet2/logs/lean4lean-let-erasure-` (`default`, `regressions`,
+`fixture-strict`, `main-build`, and `census-contracts`, dated 20261019).
+
+The focused official-master patch is submitted as
+[upstream PR #64](https://github.com/digama0/lean4lean/pull/64), commit
+`fed313e1ce9137f0cf2f40de4704a0a593eddba1`, based on official `67f63b0`.
+Its independent default build passes 162 jobs and its strict fixture passes;
+source census remains 133 / 29 / 137. The complete upstream `withLetDecl` proof's
+inherited direct admissions fall from twelve to five: the two projection
+placeholders above plus `VEnv.addInduct`, `VEnv.addInduct_WF`, and
+`VInductDecl.WF`. Its full proof graph also excludes false strengthening.
+This zero-depth case complements #51's inhabited-binder transport and #53's
+broader cache/strengthening redesign. It introduces no new admission or axiom.
+
 ## Fuel replacement within its original context — 2026-10-19
 
 This item extends `fd16eef` by removing the last direct general context
