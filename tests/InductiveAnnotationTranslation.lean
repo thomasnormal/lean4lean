@@ -775,10 +775,16 @@ private def auditFoundationBoundary : MetaM Unit := do
     unless environment.getModuleIdxFor? name == some moduleIndex do
       throwError "annotation-translation inherited admission root changed origin: {name}"
     let axioms ← collectAxioms name
-    unless axioms.contains ``sorryAx do
-      throwError "annotation-translation inherited foundation admission unexpectedly vanished: {name}"
-    auditDeclaration name [``propext, ``Classical.choice, ``Quot.sound, ``sorryAx]
-    logInfo m!"pinned inherited admitted foundation: {name} from {moduleName}"
+    let proved := [``VEnv.IsDefEqU.forallE_inv, ``VEnv.IsDefEq.uniq].contains name
+    if proved then
+      unless axioms.size == 2 && [``propext, ``Quot.sound].all axioms.contains do
+        throwError "annotation-translation proved foundation manifest changed: {name}"
+    else
+      unless axioms.contains ``sorryAx do
+        throwError "annotation-translation inherited foundation admission unexpectedly vanished: {name}"
+    auditDeclaration name (if proved then [``propext, ``Quot.sound]
+      else [``propext, ``Classical.choice, ``Quot.sound, ``sorryAx])
+    logInfo m!"pinned annotation foundation: {name} from {moduleName}; proved = {proved}"
 
 #print axioms TypedAnnotationSpine.ofTrExprS
 #print axioms OpenedTelescope.translatedDomains

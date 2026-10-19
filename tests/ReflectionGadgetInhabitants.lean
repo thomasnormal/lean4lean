@@ -69,7 +69,7 @@ run_meta
     ``TrProj.weak', ``TrProj.instN, ``TrProj.wf, ``TrExprS.instN, ``TrExprS.instN_var,
     ``TrExprS.weakBV, ``TrExprS.wf]
   let projection := [``TrProj]
-  let typing := [``VEnv.IsDefEqU.forallE_inv_stratified]
+  let typing : List Name := []
   let witnesses := [``propositionTyped, ``propositionTranslation, ``proofTyped,
     ``proofTranslation, ``nestedTranslation, ``retainedDependentProofBinder, ``closeActualProof]
   let transport := [``TrExprS.weakBV_noProj, ``TrExprS.instN_var_noProj,

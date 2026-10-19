@@ -51,9 +51,22 @@ The intermediate `Step` witness states that equality instead of asserting an
 outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
 All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
-inherited projection admissions, and its equality bridge pins five.
-Full default builds pass (456 integration / 453 main review jobs), as do all
-66 selected integration fixtures and 38 selected main fixtures. No new admission is introduced.
+inherited projection admissions, and its equality bridge pins three projection admissions.
+Full default builds and all selected regression fixtures pass on both
+toolchains. No new admission is introduced.
+
+**Type uniqueness and dependent Pi injectivity:** the original stratified Pi
+inversion now has a proof with both exact height bounds. Structural Strong
+uniqueness gives heterogeneous type chains; collapsing them at the actual left
+universe proves ordinary uniqueness and inverts arbitrary untyped Pi equality.
+The original `IsDefEq.uniq` proof is unchanged and now excludes admissions,
+choice and confluence. Its equality/conversion consequences are independently
+audited. Dependent beta domains/codomains, heterogeneous chains, real delta and
+quotient derivations, converted types, and unequal heights with distinct
+but equivalent codomain universes pass on both toolchains. The lower uniqueness
+module has no import path through the original consumers or confluence.
+Inverse weakening later in `UniqueTyping.lean`, the false reduction/confluence
+contract, projection translation and frontend soundness remain open.
 
 **Ordinary soundness and head separation:** the original sort-injectivity and
 sort/Pi-separation admissions are now proved with unchanged contracts, using
@@ -65,9 +78,10 @@ The model also separates actual rigid Quot spines from Pi types. Its import
 graph excludes the old injectivity, uniqueness and confluence modules. Strict
 197/204-root audits include the moved foundational helpers and existing
 consumer names. Dependent beta chains, real ordinary/Strong quotient EXTRA
-and a two-argument Quot spine are checked. Original dependent-Pi injectivity,
-type uniqueness, nonzero reduction simulation and frontend soundness remain
-open. Earlier dated checkpoint accounts below are superseded by this boundary.
+and a two-argument Quot spine are checked. Original dependent-Pi injectivity
+and type uniqueness are now proved above; nonzero reduction simulation and
+frontend soundness remain open. Earlier dated checkpoint accounts below are
+superseded by this boundary.
 
 **Actual rule validity and Strong-derivation soundness:** declaration history now
 supplies quotient constants, family/constructor rigidity and unique ownership.

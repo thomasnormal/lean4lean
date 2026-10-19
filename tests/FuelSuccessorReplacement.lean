@@ -121,8 +121,7 @@ run_meta
     throwError "fuel replacement admission manifest changed: {repr admissions}"
   logInfo m!"{visited.size} same-context replacement dependencies; exact inherited direct admissions {repr admissions}"
   -- Translation uniqueness is a separate inherited equality obligation.
-  let bridgeInherited := [``TrProj, ``TrProj.uniq, ``TrProj.wf,
-    ``VEnv.IsDefEqU.forallE_inv_stratified]
+  let bridgeInherited := [``TrProj, ``TrProj.uniq, ``TrProj.wf]
   pending := #[``TrExprS.uniq]
   visited := {}
   admissions := #[]

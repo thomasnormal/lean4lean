@@ -131,8 +131,7 @@ run_meta
     throwError "projection admission manifest changed: {repr foundAdmissions}"
   let helperCount := visited.size
   -- Aligning the retained domain is a separate existing conversion obligation.
-  let bridgeInherited := [``TrProj, ``TrProj.defeqDFC, ``TrProj.uniq, ``TrProj.wf,
-    ``VEnv.IsDefEqU.forallE_inv_stratified]
+  let bridgeInherited := [``TrProj, ``TrProj.defeqDFC, ``TrProj.uniq, ``TrProj.wf]
   pending := #[``TrExprS.defeqDFC]
   visited := {}
   foundAdmissions := #[]
