@@ -55,6 +55,16 @@ inherited projection admissions, and its equality bridge pins three projection a
 Full default builds and all selected regression fixtures pass on both
 toolchains. No new admission is introduced.
 
+**Universal candidate reduction simulation:** every actual `NormalEq` in a
+well-formed environment with the quotient rule registered now simulates every
+candidate `Step`, and every finite candidate `Steps` path, using candidate
+paths on the left and a direct final normal comparison. Both outputs retain
+any supplied original type. This includes neutral Prop-source unfolding,
+root eta expansion, original checked reduction and congruence under changing
+dependent binders. All 155 audited roots exclude admissions and choice on
+both versions. Confluence, admission-free normal-equality transitivity,
+conversion-consumer migration and frontend soundness remain open.
+
 **Universal original-core simulation:** every actual `NormalEq` in a
 well-formed environment with the checked quotient rule registered now simulates
 any original parallel step, and any finite original-core path, using the
@@ -63,8 +73,8 @@ functions and majors, actual capture reductions/checks, retained eta binders,
 root beta and congruence. Both outputs keep the supplied original type. All 100
 audited roots exclude admissions and choice on both versions. The original
 Prop-source counterexample is simulated by repaired paths and still refutes
-the old core-only target. Candidate-step simulation, confluence/conversion
-consumer migration and frontend soundness remain open.
+the old core-only target. The broader candidate-step and finite-path result
+is proved above; confluence, consumer migration and frontend soundness remain open.
 
 **Nonzero quotient exposure and actual EXTRA replay:** a normal comparison
 with `Quot.mk` now exposes an actual left constructor at a nonzero source.
@@ -105,7 +115,8 @@ consumer names. Dependent beta chains, real ordinary/Strong quotient EXTRA
 and a two-argument Quot spine are checked. Original dependent-Pi injectivity
 and type uniqueness are now proved above; concrete nonzero root replay is supplied
 above, and universal original-core simulation is now proved with repaired paths.
-Candidate-step simulation and frontend soundness remain open.
+Universal candidate-step simulation is also proved above; confluence and
+frontend soundness remain open.
 Earlier dated checkpoint accounts below are superseded by this boundary.
 
 **Actual rule validity and Strong-derivation soundness:** declaration history now
@@ -417,7 +428,7 @@ themselves satisfy any of these goals.
 | Remove inherited admissions from the frontend | **Not complete.** Dependency audits identify the remaining trust gaps. | Foundational admissions also remain. | Must close the actual metatheory/checker dependencies, not add another wrapper around them. |
 | Supply simultaneous substitution for arbitrary typing/equality derivations | **Proved API now available:** `55b7b4d` ports strong/weak cross-substitution and audits its dependencies as only `propext` and `Quot.sound`. | Already proved upstream in `6ba54db`/`8223d22`. | Foundation integration, not a newly solved upstream obligation; the frontend's inherited admissions remain. |
 | Verify actual checked inductive registration | **Not complete.** Header/constructor checks and staging invariants are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, and prelude translation. |
-| Complete confluence and semantic reduction correctness | **Original simulation contract refuted:** the actual quotient model has a checked counterexample to `NormalEq.parRed`. The candidate relation proves forward eta joins, general application beta simulation, exact joins for all six prefix-application beta overlaps, and a normal-equality local join for canonical unfolding versus every original core reduction. | Confluence and related semantic obligations remain open. | General quotient simulation, other eta/rewrite overlaps, migration of actual consumers, non-circular injectivity/strengthening, genuine projection and inductive recursor semantics. |
+| Complete confluence and semantic reduction correctness | **Original simulation contract refuted:** the actual quotient model has a checked counterexample to `NormalEq.parRed`. Every actual normal equality now simulates every candidate step and finite candidate path, including original checked reduction, neutral Prop-source unfolding, eta expansion and congruence. Both outputs retain the supplied original type. | Confluence and related semantic obligations remain open. | Candidate confluence, admission-free normal-equality transitivity, migration of actual consumers, general strengthening, genuine projection and inductive recursor semantics. |
 | Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
 | Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Native Lean 4.33.0-rc2 rejects this exact source constructor with `declHasFVars`, now regression-tested. | Version-bounded validation result, not a current native bug or a proof of logical unsoundness. |
 | New semantic guarantees in the October 13 integration checkpoint | **None claimed.** Recursor/restoration, binder, header-typing, and transport proofs are restored against current APIs while preserving their existing contracts. | Compatibility preserves prior contracts; it is not a newly solved upstream obligation. | Submit only independently reviewable semantic or correctness changes after publication; keep compatibility repairs out of the progress score. |
@@ -693,8 +704,8 @@ precise boundaries and reproducers.
 ## Validation and admission accounting
 
 The current main Lean 4.29.0 proof source passes all default targets (456 jobs)
-and all 41 selected regressions on October 19. This Lean 4.33.0-rc2 integration
-passes its full default build (459 jobs) and all 69 selected regressions. The
+and all 42 selected regressions on October 19. This Lean 4.33.0-rc2 integration
+passes its full default build (459 jobs) and all 70 selected regressions. The
 independent current-master substitution PR passes its default build and
 standalone regression. Each receipt validates its respective source snapshot;
 exact trust bounds are recorded in `PROOF_STATUS.md`.

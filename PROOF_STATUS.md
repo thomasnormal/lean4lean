@@ -4,6 +4,78 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Universal candidate-step and finite-path simulation — 2026-10-19
+
+`normal_candidate_simulates` proves that every actual `NormalEq` in a
+well-formed environment with the actual quotient rule registered simulates
+**every candidate `Step`** on the right by finite candidate `Steps` on the left,
+ending in a direct normal comparison. `normal_step_join` retains any supplied
+original type on both outputs; `normal_steps_join` covers every finite
+candidate path. Each intermediate comparison is consumed directly. No
+transitivity of `NormalEq`, inverse weakening or confluence is assumed.
+
+The new root unfolding join accepts the actual saturated Prop-source lift
+computation, including a neutral major. Hereditary exposure handles arbitrary
+left shapes and related pending arguments. Equivalent stored source universes
+transfer the actual zero check to the left root. Actual lift typing recovers
+both selectors; ordinary domain equality retypes the right selector at the
+left proposition, and proof irrelevance supplies the argument comparison.
+Proof-valued spines and retained dependent eta binders are covered directly.
+Root eta expansion retypes the left function at the actual right Pi, takes
+an actual candidate eta step, and compares the two retained bodies.
+
+The complete normal-equality induction combines these root joins with the
+previous universal original-core simulation. Structural application simulates
+both children. Lambda and Pi clauses transport actual body steps and paths
+through the domain conversions; changing right domains remain explicit.
+Eta-left forwards an arbitrary right step under its retained binder. Eta-right
+expands the left source before the recursive body path. The proof preserves
+all actual normal comparison constructors and handles arbitrary environments
+and contexts satisfying the stated WF and quotient-registration premises.
+
+The strict fixture traverses declaration/constructor types and every body,
+including opaque integration bodies, for all nine new production declarations
+and all 146 named fixture declarations: **155 roots per version**. Missing
+declarations fail. Exact per-root axiom manifests agree across versions and
+allow only the recorded subset of `propext` and `Quot.sound`. Admissions,
+choice, the false original reduction/confluence interface, quotient
+injectivity, inverse weakening and `NormalEq.trans` are forbidden. Dependency
+pins require the actual unfolding, eta, original-core and context-conversion
+proofs, retained binders and the concrete mixed paths.
+
+Controls include an applied eta-shaped left prefix compared with a neutral
+right lift; unfolding beneath lambdas and Pis while their actual domains
+beta-reduce; two dependent eta binders with one consumed by a pending argument
+and one retained; a converted supplied result type; root unfolding against a
+neutral proof variable; eta-right with a changing domain; and three changing
+candidate steps consisting of unfolding, eta in the function and beta. The
+original Prop-source obstruction has a candidate-step simulation. The previous
+strict fixture still independently refutes its original core-only target.
+
+The production module is byte-identical on Lean 4.29.0 and 4.33.0-rc2. Full
+default builds pass **457 main / 460 integration jobs**. The 41/69 previous
+selected fixtures plus the new strict fixture pass: **42/70 total**. Census is
+unchanged: main 116 matching lines / 18 files / 120 whole-word sorry|admit
+occurrences; integration 121 / 22 / 125. All old production files, theorem
+contracts and previous fixtures are unchanged. No executable change, new
+axiom declaration or kernel discrepancy is introduced.
+
+Candidate simulation is now proved, while confluence of the candidate
+relation and frontend soundness remain open. In particular, the existing
+`NormalEq.trans` proof still uses inverse weakening in its eta overlap; the
+new theorem does not discharge that obligation or migrate consumers of the
+known-false `NormalEq.parRed` specification. Other remaining work includes
+contexts without the registered quotient rule, genuine projection translation
+and inductive constructor/recursor semantics. The broad PR53 repair remains
+the upstream reference; this adaptation does not open a duplicate PR.
+
+This item extends main `e11a0fecfe088438c918304902b36d58471d64c6` and detached
+integration `b7b7d92c9ba916916111f0e1e2b0ae290a6fd499`, based on official
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`. Evidence uses
+`lean4lean-candidate-simulation-` stems dated 20261019 in the fleet logs.
+Earlier accounts of an open candidate-step simulation are superseded here.
+
+
 ## Universal original-core simulation by repaired paths — 2026-10-19
 
 `normal_core_simulates` now proves the complete `NormalEq` induction for the
@@ -64,8 +136,8 @@ the validated source, and both failed receipts are retained.
 
 This proves original-core simulation with the repaired left target, not
 confluence of the repaired relation or frontend soundness. Remaining work
-includes simulation of candidate unfolding/eta steps in arbitrary comparisons,
-conversion/confluence consumer migration, contexts without the registered
+includes conversion/confluence consumer migration, admission-free normal-equality
+transitivity, contexts without the registered
 quotient rule, general inverse weakening, genuine projection translation and
 inductive constructor/recursor semantics. The false `NormalEq.parRed` contract
 and its existing consumers remain unchanged and conditional.
