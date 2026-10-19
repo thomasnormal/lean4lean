@@ -52,8 +52,18 @@ outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
 All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
 inherited projection admissions, and its equality bridge pins five.
-Full default builds pass (449 integration / 446 main review jobs), as do all
-64 selected integration fixtures and 35 selected main fixtures. No new admission is introduced.
+Full default builds pass (450 integration / 447 main review jobs), as do all
+65 selected integration fixtures and 36 selected main fixtures. No new admission is introduced.
+
+**Actual rule validity and Strong-derivation soundness:** declaration history now
+supplies quotient constants, family/constructor rigidity and unique ownership.
+The actual quotient equation is valid at its stored type, including its
+zero-level proof-field case. Together with delta validity this discharges every
+stored-rule obligation of the simultaneous induction. `sound_of_wf` proves both
+semantic inclusions and both endpoint semantic typings for actual Strong
+derivations in a well-formed source included in a well-formed target. Its 131
+strictly audited roots exclude admissions and choice. Ordinary frontend
+soundness, quotient/Pi separation and consumer migration remain open.
 
 **Constructor-pattern rule soundness:** the rule argument now proves both
 semantic inclusions for the current constructor-observation and proof-binding
@@ -62,8 +72,8 @@ dependent binder typing and the actual endpoint equality. Finite extraction,
 first occurrences, field indices and the level-zero decision avoid choice.
 Actual declaration history identifies every stored constructor pattern as the
 quotient equation and excludes competing delta equations at its head. All 200
-audited roots exclude admissions and choice. Instantiating the remaining
-quotient family and proof-field premises still precedes general model soundness.
+audited roots exclude admissions and choice. The remaining quotient family
+and proof-field premises are now instantiated by actual quotient validity above.
 
 **Finite dependent telescope round trips:** reverse spine transfer now
 recovers actual argument typings and reconstructs each domain/result type
@@ -74,8 +84,8 @@ ones; winding those keys rebuilds a typed head observation at the actual
 application class. Controls exercise a dependent two-argument spine through
 beta conversion, partial application, representative replacement and discovery
 of an earlier demand omitted from the input. All 138 audited roots exclude
-admissions and choice on both versions. Actual quotient-rule validity remains
-open.
+admissions and choice on both versions. Actual quotient-rule validity is now
+supplied above.
 
 **Constructive rule binding:** the rule-soundness foundation now recovers
 actual dependent binder types, splits typed key telescopes, transfers typed
@@ -85,7 +95,8 @@ finite induction, without choice. Controls transfer nonempty observations
 between distinct beta-equivalent anchors and recover the actual third argument
 class of the installed Quot.mk constructor. The exact 173-root audit excludes
 admissions, choice and the false confluence foundation on both versions.
-Validity of the actual quotient equation and full model soundness remain open.
+Actual quotient validity and Strong-derivation soundness are now supplied above;
+ordinary frontend foundations remain open.
 
 **Actual delta-rule validity:** every stored bare-constant equation of a
 well-formed environment is now valid in its observation model, using actual
@@ -97,7 +108,8 @@ environments containing the actual quotient equation. Controls include two
 polymorphic unfoldings, related anchors, and a function-valued definition with
 nonempty finite observation keys and a typed application. The 99-root audit
 excludes admissions and choice on both versions. Validity of the quotient
-equation, full model soundness and the frontend foundation remain open.
+equation and unrestricted Strong-derivation soundness are now supplied above;
+the ordinary frontend foundation remains open.
 
 **Semantic typing and simultaneous induction:** actual strong derivations now
 produce observation soundness and semantic typing for both endpoints together,
@@ -109,8 +121,8 @@ Lambda spines recover body typing through dependent binders and nonreflexive
 type conversion. The 121-root audit excludes admissions and choice on both
 versions. HTS's syntax fallback alone does not certify actual typing; the
 simultaneous theorem retains the actual strong derivation. Actual general
-stored-rule and declaration-history validity, full model soundness, quotient/Pi
-separation and nonzero EXTRA remain open.
+stored-rule and declaration-history validity and Strong-derivation soundness
+are now supplied above; quotient/Pi separation and nonzero EXTRA remain open.
 
 **Structural observation soundness:** application, lambda, conversion,
 beta, eta, proof irrelevance and constant-level equality now preserve both
@@ -122,8 +134,8 @@ reduce a dependent beta redex under a binder, change both an application's
 function and argument, transport a lambda across different beta-equal anchors,
 and retain duplicate eta demands and the original dependent result type.
 These individual cases feed the simultaneous induction above. Actual stored-rule
-soundness and declaration-history validity remain open, as do quotient/Pi
-separation and nonzero EXTRA.
+soundness and declaration-history validity are now supplied above; quotient/Pi
+separation and nonzero EXTRA remain open.
 
 **Level invariance and dependent telescopes:** observations and their typing
 now transfer across equivalent well-formed levels, including actual stored
