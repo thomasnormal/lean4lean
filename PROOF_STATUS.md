@@ -14,6 +14,57 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Quotient-prefix application overlap — 2026-10-19
+
+The existing candidate quotient reduction now has a proved application overlap
+for every partial `Quot.lift` spine, from zero through five supplied arguments.
+`unfoldPrefix_apply` proves that applying its generated lambda and expanding the
+next prefix compute exactly the same body after substitution. The general
+`expand_inst` theorem commutes with substitution at arbitrary depth, including
+beneath retained binders; `expand_apply` exposes the dependent residual type.
+All existing algorithm definitions and 17 theorem contracts are unchanged.
+
+`prefix_apply_join` connects that computation to the actual compatible reduction
+presentation. Given only the original application typing, successful expansion
+and the partial-spine bound, it produces the function-expansion path, one actual
+parallel beta step, the alternative application-expansion path, and an identical
+endpoint at the ORIGINAL application type. `expand_apply_join` supplies the
+corresponding general dependent-function result. These are exact term joins,
+without appealing to normal-equality simulation or strengthening.
+
+The five new computation lemmas have no inherited source admission or choice:
+spine/type composition use exactly `propext`; substitution/application expansion
+use exactly `propext` and `Quot.sound`. The two general typed joins inherit exactly
+`IsDefEqU.sort_inv` and `forallE_inv_stratified`, with precisely `propext`,
+`Quot.sound`, `sorryAx`. Main's generic/algorithm joins have 2805/2853 dependencies;
+integration's have 3001/3054. Exact admission AND axiom gates exclude the false
+`NormalEq.parRed` contract, all its confluence/quotient-injectivity consequences,
+general inverse weakening, projection placeholders/transport and choice.
+
+`tests/QuotPrefixApplication.lean` proves all six typed application joins in a
+concrete reachable Eq/Quot model over the nonempty dependent obstruction context.
+The source typings/model construction have no source admissions. Both paths also
+survive a retained dependent proof binder and typed instantiation at its checked
+witness. Fifty-four computational controls combine three zero-equivalent source
+universes, three target-universe syntaxes and all six partial lengths. Saturated
+extra application and non-function expansion rejection controls remain. Strict
+gates cover all seven new lemmas, five fixture proofs and the control program.
+
+This closes the prefix-expansion/application beta overlap in the CANDIDATE
+relation. The original `NormalEq.parRed` specification remains false/admitted;
+whole-checker dependencies are unchanged. General quotient simulation, other eta
+and rewrite overlaps, confluence and downstream migration remain open. The
+upstream #53 prefix-unfolding direction is already being developed in a broader
+model; this checkpoint is kept on main/integration, without a duplicate PR or a
+claim of whole-frontend soundness.
+
+Full default builds pass (420 main / 423 integration jobs). All 45 selected
+integration and 16 selected main fixtures pass. Source census remains main
+119 matching lines / 19 files / 123 occurrences, integration 124 / 23 / 128.
+No new admission, axiom declaration, executable change or kernel discrepancy.
+Receipts use `/var/tmp/thomas-ahle/fleet2/logs/lean4lean-prefix-eta-` stems dated
+`20261019`; final fixtures enforce the exact measured manifests on both toolchains.
+
 ## Unused-let telescope reconstruction — 2026-10-19
 
 The actual `MLCtx.WF.mkForall_trS`, `mkLambda_trS` and `mkLet_trS` proofs now
@@ -533,8 +584,8 @@ No force push or duplicate upstream proof PR is used for these snapshots.
   construction retain the separate `sorryAx` baseline. Native prefix and full
   function equalities use only `Quot.sound`; native selector and saturated
   unfolding equalities use no axioms. These are semantic controls, not native
-  reduction-completeness claims. General simulation/Church–Rosser, eta critical
-  pairs, and downstream migration remain open. The eta/prefix direction is
+  reduction-completeness claims. General simulation/Church–Rosser, other eta/rewrite
+  overlaps, and downstream migration remain open. The eta/prefix direction is
   already present in upstream draft PR #53.
 - `QuotPropReduction` supplies a concrete repair ingredient without changing
   the existing false `NormalEq.parRed` contract. `zeroLike_iff` constructively
