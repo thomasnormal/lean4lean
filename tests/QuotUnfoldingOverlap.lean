@@ -2,6 +2,8 @@ import Lean4Lean.Theory.Typing.QuotPrefixReduction
 import Lean4Lean.Theory.Typing.QuotConfluenceObstruction
 import Lean.Util.CollectAxioms
 
+open private constMatches_name spineMatches_count from Lean4Lean.Theory.Typing.QuotPropReduction
+
 namespace QuotUnfoldingOverlapTest
 open Lean Lean4Lean Lean4Lean.VEnv
 open Lean4Lean.VEnv.QuotConfluenceObstruction
@@ -239,16 +241,135 @@ theorem allArgumentsChange (path : quotLiftPattern.Path) : values path ≠ origi
 example : values (.inl (some (some (some (some none))))) ≠ values (.inr (some (some none))) := by decide
 example : values (.inl (some (some (some none)))) ≠ values (.inr (some none)) := by decide
 
+def canonicalUnfolded : VExpr :=
+  .app (.bvar 3) (selector (.bvar 5) (.bvar 4) constructor)
+
+theorem canonicalComputes : QuotPropReduction.unfold redex = some canonicalUnfolded := rfl
+
+theorem sourceCongruence : ParRed locals source redex := by
+  exact .app (.app (.app (.app (.app (.app .rfl
+    (argumentsReduce (.inl (some (some (some (some none)))))))
+    (argumentsReduce (.inl (some (some (some none))))))
+    (argumentsReduce (.inl (some (some none)))))
+    (argumentsReduce (.inl (some none)))) (argumentsReduce (.inl none)))
+    (.app (.app (.app .rfl (argumentsReduce (.inr (some (some none)))))
+      (argumentsReduce (.inr (some none)))) (argumentsReduce (.inr none)))
+
+theorem unfoldedCongruence : ParRed locals unfolded canonicalUnfolded := by
+  exact .app (argumentsReduce (.inl (some none)))
+    (selector_parRed (argumentsReduce (.inl (some (some (some (some none))))))
+      (argumentsReduce (.inl (some (some (some none)))))
+      (.app (.app (.app .rfl (argumentsReduce (.inr (some (some none)))))
+        (argumentsReduce (.inr (some none)))) (argumentsReduce (.inr none))))
+
+theorem exactCongruencePaths :
+    Steps quotientEnvironmentWF 0 locals source canonicalUnfolded ∧
+    Steps quotientEnvironmentWF 0 locals source canonicalUnfolded ∧
+    quotientEnvironment.HasType 0 locals canonicalUnfolded (.sort .zero) := by
+  have typed := (unfold_sound quotientEnvironmentWF
+    (localsWF quotientEnvironmentWF quotientRegistered) quotientRegistered computes sourceTyped).hasType.2
+  exact ⟨.tail (.tail .rfl (.unfold computes)) (.core unfoldedCongruence),
+    .tail (.tail .rfl (.core sourceCongruence)) (.unfold canonicalComputes),
+    unfoldedCongruence.hasType (localsWF quotientEnvironmentWF quotientRegistered) typed⟩
+
+theorem checkedRewrite : ParRed locals source reduced :=
+  .extra (.quot quotientRegistered) matched (checked _) argumentsReduce
+
+theorem congruenceCoreJoin : ∃ left right,
+    Step quotientEnvironmentWF 0 locals unfolded left ∧
+    Steps quotientEnvironmentWF 0 locals redex right ∧ NormalEq locals left right ∧
+    quotientEnvironment.HasType 0 locals left (.sort .zero) ∧
+    quotientEnvironment.HasType 0 locals right (.sort .zero) :=
+  unfold_parRed_join quotientRegistered (localsWF quotientEnvironmentWF quotientRegistered)
+    sourceTyped computes sourceCongruence
+
+theorem extraCoreJoin : ∃ left right,
+    Step quotientEnvironmentWF 0 locals unfolded left ∧
+    Steps quotientEnvironmentWF 0 locals reduced right ∧ NormalEq locals left right ∧
+    quotientEnvironment.HasType 0 locals left (.sort .zero) ∧
+    quotientEnvironment.HasType 0 locals right (.sort .zero) :=
+  unfold_parRed_join quotientRegistered (localsWF quotientEnvironmentWF quotientRegistered)
+    sourceTyped computes checkedRewrite
+
+-- The generalized theorem receives only the ACTUAL reduction. It must classify
+-- that reduction itself, and both resulting paths retain the dependent local.
+theorem arbitraryCoreRetained {target : VExpr} (reduction : ParRed locals source target) :
+    ∃ left right,
+      Steps quotientEnvironmentWF 0 (.bvar 5 :: locals) source.lift left.lift ∧
+      Steps quotientEnvironmentWF 0 (.bvar 5 :: locals) source.lift right.lift ∧
+      NormalEq (.bvar 5 :: locals) left.lift right.lift ∧
+      Steps quotientEnvironmentWF 0 locals source left ∧
+      Steps quotientEnvironmentWF 0 locals source right ∧ NormalEq locals left right := by
+  obtain ⟨left, right, leftStep, rightSteps, normal, _, _⟩ :=
+    unfold_parRed_join quotientRegistered (localsWF quotientEnvironmentWF quotientRegistered)
+      sourceTyped computes reduction
+  have leftPath : Steps quotientEnvironmentWF 0 locals source left :=
+    .tail (.tail .rfl (.unfold computes)) leftStep
+  have rightPath : Steps quotientEnvironmentWF 0 locals source right :=
+    (ReflTransGen.tail .rfl (.core reduction)).trans rightSteps
+  have leftRetained := leftPath.weakN (Ctx.LiftN.one (A := .bvar 5))
+  have rightRetained := rightPath.weakN (Ctx.LiftN.one (A := .bvar 5))
+  have normalRetained := normal.weakN (Ctx.LiftN.one (A := .bvar 5))
+  have witness := argumentsTyped (.inr none)
+  exact ⟨left, right, leftRetained, rightRetained, normalRetained,
+    by simpa only [VExpr.inst_lift] using leftRetained.instN Ctx.InstN.zero witness,
+    by simpa only [VExpr.inst_lift] using rightRetained.instN Ctx.InstN.zero witness,
+    by simpa only [VExpr.inst_lift] using normalRetained.instN witness Ctx.InstN.zero⟩
+
+-- Five is the proper-prefix bound: the sixth application can change the head
+-- through the original checked quotient rule.
+theorem saturatedMatches : ∃ values,
+    (Pattern.varN (.const ``Quot.lift) 6).Matches source [.zero, .succ .zero] values := by
+  have prefixMatched := Pattern.Matches.const (c := ``Quot.lift) (ls := [VLevel.zero, .succ .zero])
+    |>.var (a' := values (.inl (some (some (some (some none))))))
+    |>.var (a' := values (.inl (some (some (some none)))))
+    |>.var (a' := values (.inl (some (some none))))
+    |>.var (a' := values (.inl (some none))) |>.var (a' := values (.inl none))
+  exact ⟨_, prefixMatched.var⟩
+
+theorem saturatedResultNotPrefix : ¬∃ values,
+    (Pattern.varN (.const ``Quot.lift) 6).Matches reduced [.zero, .succ .zero] values := by
+  rintro ⟨_, matched⟩
+  cases matched with
+  | var matched => cases matched
+
+theorem alternateCoreReduction {sourceUniverse constructorUniverse target}
+    (sourceWF : sourceUniverse.WF 0) (constructorWF : constructorUniverse.WF 0)
+    (sourceZero : zeroLike sourceUniverse = true) (constructorZero : zeroLike constructorUniverse = true)
+    (reduction : ParRed locals (sourceAt sourceUniverse constructorUniverse) target) :
+    ∃ unfolded left right,
+      QuotPropReduction.unfold (sourceAt sourceUniverse constructorUniverse) = some unfolded ∧
+      Step quotientEnvironmentWF 0 locals unfolded left ∧
+      Steps quotientEnvironmentWF 0 locals target right ∧ NormalEq locals left right ∧
+      quotientEnvironment.HasType 0 locals left (.sort .zero) ∧
+      quotientEnvironment.HasType 0 locals right (.sort .zero) := by
+  have computed : ∃ unfolded, QuotPropReduction.unfold (sourceAt sourceUniverse constructorUniverse) = some unfolded := by
+    simp [sourceAt, QuotPropReduction.unfold, sourceZero]
+  obtain ⟨unfolded, computed⟩ := computed
+  obtain ⟨left, right, leftStep, rightSteps, normal, leftTyped, rightTyped⟩ :=
+    unfold_parRed_join quotientRegistered (localsWF quotientEnvironmentWF quotientRegistered)
+      (sourceAtTyped sourceWF constructorWF ((zeroLike_iff _).mp sourceZero)
+        ((zeroLike_iff _).mp constructorZero)) computed reduction
+  exact ⟨unfolded, left, right, computed, leftStep, rightSteps, normal, leftTyped, rightTyped⟩
+
 run_meta
   let environment ← getEnv
   let roots := [``unfold_extra_join, ``quotientEnvironmentWF, ``quotientRegistered,
     ``delayEqual, ``delayReduction, ``argumentsTyped, ``valueEqual, ``sourceAtTyped,
     ``sourceTyped, ``matchedAt, ``matched, ``checked, ``argumentsReduce, ``computes,
     ``checkedOverlap, ``retainedDependentBinder, ``alternateUniverses, ``allArgumentsChange,
-    ``prefixAlgorithmComputes]
+    ``prefixAlgorithmComputes, ``constMatches_name, ``spineMatches_count,
+    ``liftPrefix_parRed_inv, ``selector_parRed, ``unfold_parRed_join,
+    ``canonicalComputes, ``sourceCongruence, ``unfoldedCongruence, ``exactCongruencePaths,
+    ``checkedRewrite, ``congruenceCoreJoin, ``extraCoreJoin, ``arbitraryCoreRetained,
+    ``saturatedMatches, ``saturatedResultNotPrefix, ``alternateCoreReduction]
   let usesTyping := [``unfold_extra_join, ``delayReduction, ``argumentsReduce,
-    ``checkedOverlap, ``retainedDependentBinder, ``alternateUniverses]
-  let onlyPropext := [``computes, ``prefixAlgorithmComputes]
+    ``checkedOverlap, ``retainedDependentBinder, ``alternateUniverses,
+    ``liftPrefix_parRed_inv, ``unfold_parRed_join, ``sourceCongruence, ``unfoldedCongruence,
+    ``exactCongruencePaths, ``checkedRewrite, ``congruenceCoreJoin, ``extraCoreJoin,
+    ``arbitraryCoreRetained, ``alternateCoreReduction]
+  let onlyPropext := [``computes, ``prefixAlgorithmComputes, ``canonicalComputes, ``saturatedMatches]
+  let noAxioms := [``constMatches_name, ``spineMatches_count, ``saturatedResultNotPrefix]
   let typingAdmissions := [``IsDefEqU.sort_inv, ``IsDefEqU.forallE_inv_stratified]
   let forbidden := [``NormalEq.parRed, ``NormalEq.parRedS, ``IsDefEq.church_rosser,
     ``IsDefEqU.quot_inj, ``IsDefEqU.weakN_iff, ``NormalEq.weakN_iff, ``NormalEq.weakN_inv_DFC,
@@ -259,7 +380,8 @@ run_meta
     let some proof := info.value? | throwError "missing unfolding-overlap proof {root}"
     if proof.hasSorry then throwError "direct unfolding-overlap admission {root}"
     let expectedAdmissions := if usesTyping.contains root then typingAdmissions else []
-    let expectedAxioms := if onlyPropext.contains root then [``propext]
+    let expectedAxioms := if noAxioms.contains root then []
+      else if onlyPropext.contains root then [``propext]
       else if usesTyping.contains root then [``propext, ``Quot.sound, ``sorryAx]
       else [``propext, ``Quot.sound]
     let axioms ← collectAxioms root
@@ -296,6 +418,34 @@ run_meta
       unless [``checkedOverlap, ``NormalEq.weakN, ``NormalEq.instN,
           ``Steps.weakN, ``Steps.instN].all visited.contains do
         throwError "dependent control bypassed typed binder transport"
+    if root == ``liftPrefix_parRed_inv then
+      unless [``constMatches_name, ``spineMatches_count, ``WF.rewriteMetadata,
+          ``RewriteMetadata.quotientNames].all visited.contains do
+        throwError "prefix inversion bypassed protected names or exact arity"
+    if root == ``selector_parRed then
+      unless [``ParRed.weakN, ``ParRed.lam].all visited.contains do
+        throwError "selector congruence bypassed its generated binders"
+    if root == ``unfold_parRed_join then
+      unless [``liftPrefix_parRed_inv, ``selector_parRed, ``unfold_extra_join,
+          ``ParRed.hasType, ``Step.unfold].all visited.contains do
+        throwError "general core overlap bypassed classification, congruence, or checked rewriting"
+    if root == ``congruenceCoreJoin then
+      unless [``unfold_parRed_join, ``sourceCongruence].all visited.contains do
+        throwError "congruence control bypassed the general theorem"
+    if root == ``extraCoreJoin then
+      unless [``unfold_parRed_join, ``checkedRewrite].all visited.contains do
+        throwError "EXTRA control bypassed the actual rule or general theorem"
+    if root == ``exactCongruencePaths then
+      unless [``sourceCongruence, ``unfoldedCongruence, ``canonicalComputes,
+          ``computes, ``Step.core, ``Step.unfold].all visited.contains do
+        throwError "identical-endpoint control bypassed either path"
+    if root == ``arbitraryCoreRetained then
+      unless [``unfold_parRed_join, ``Steps.weakN, ``Steps.instN,
+          ``NormalEq.weakN, ``NormalEq.instN].all visited.contains do
+        throwError "arbitrary-core control bypassed typed binder transport"
+    if root == ``alternateCoreReduction then
+      unless [``unfold_parRed_join, ``sourceAtTyped].all visited.contains do
+        throwError "alternate-universe core control bypassed source typing or the general theorem"
     logInfo m!"{root}: {visited.size} dependencies; exact admissions {repr admissions}; exact axioms {repr axioms}"
 
 end QuotUnfoldingOverlapTest
