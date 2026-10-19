@@ -5,6 +5,11 @@ import Lean4Lean.Theory.Typing.InductiveLemmas
 
 namespace Lean4Lean
 
+theorem VEnv.WF.decl {env env' : VEnv} {d : VDecl}
+    (henv : env.WF) (hdecl : VDecl.WF env d env') : env'.WF := by
+  obtain ⟨declarations, hdeclarations⟩ := henv
+  exact ⟨d :: declarations, .decl hdecl hdeclarations⟩
+
 theorem VEnv.WF.ordered : WF env → Ordered env
   | ⟨ds, H⟩ => by
     induction H with
