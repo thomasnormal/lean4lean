@@ -4,6 +4,57 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Local-let entry without projection weakening — 2026-10-19
+
+This item extends `fe2ab45` from restoration to the complete local-let scope.
+`TrExprS.insertLet` and `TrExpr.insertLet` use the same structural relation's
+lookup/context identities to preserve the exact model expression when entering
+a let. `ConditionallyTyped.freshLet`, `ConditionallyHasType.freshLet`, and
+`ConditionallyWHNF.freshLet` preserve the existing cache witnesses without an
+environment-WF or semantic-weakening hypothesis. The reservation/freshness
+bridge `FVarsIn.not_curr` uses no axioms.
+
+`EquivManager.IsDefEqE.insertLet` and `WF.insertLet` transport checked leaves
+and preserve reflexivity and congruence nodes. A reflexive node may mention the
+fresh identifier, so the proof deliberately does not require whole-expression
+absence of that identifier. The actual state/equivalence-manager producer and
+consumer contracts are retained.
+
+Actual `RecM.WF.withLetDecl`, `VState.WF.mkLetDecl` (used by the scoped checker),
+and `RestrictedContext.StateWF.freshLet` now use exact-context cache and manager
+transport. Together with the preceding restoration repair, FIVE complete proof
+graphs inherit only the existing `TrProj` placeholder: RecM.WF (7249 dependencies),
+ScopeWF (7286), restricted restoration (5781), VState.mkLetDecl (7068), and
+restricted freshLet (6478). All five exclude generic native/projection
+weakening, false strengthening, translation uniqueness, false confluence and
+derived quotient injectivity. Their exact seven-axiom manifests retain standard
+logic, `sorryAx`, and the three existing persistent array/map interfaces. This
+removes `TrProj.weak'` from the complete actual let scope; `TrProj` itself and
+the frontend's unrelated binder/model obligations remain open.
+
+The helper/witness graph traverses 4391 dependencies with exactly `TrProj` as
+its inherited direct admission. `tests/LetCacheRestoration.lean` now checks
+insertion beneath retained binders, all three entry-cache helpers, inferred-type
+and WHNF entry/exit round trips over a nonempty dependent base, and mixed
+reflexive/typed equivalence nodes that mention the fresh identifier. It pins
+both helper and all five actual-consumer manifests, with tighter exclusions.
+Existing cache definitions and all five actual theorem headers are unchanged.
+No executable or accepted-input change.
+
+Full integration default build passes 423 jobs and all 37 fixtures pass;
+main review separately passes 419 default jobs. Source census remains integration
+125 matching lines / 24 files / 129 occurrences; main 119 / 19 / 123. Receipts:
+`/var/tmp/thomas-ahle/fleet2/logs/lean4lean-let-insertion-` (`default`, `regressions`,
+`LetCacheRestoration`, `main-build`, and `census-contracts`, dated 20261019).
+
+Extended [upstream PR #64](https://github.com/digama0/lean4lean/pull/64) with
+`f192c8692029a26d2afca0bc4212df89f5303e2e`, a normal fast-forward after `fed313e`.
+Its independent default build passes 162 jobs and its expanded strict fixture
+passes. The complete upstream `withLetDecl` graph now has FOUR inherited
+admissions: `TrProj`, `VEnv.addInduct`, `VEnv.addInduct_WF`, and `VInductDecl.WF`
+(down from twelve before the PR, then five after restoration alone). The upstream
+census remains 133 / 29 / 137. No duplicate PR, new admission or axiom.
+
 ## Local-let cache restoration — 2026-10-19
 
 A native local let adds zero model binders: its value is already inlined and

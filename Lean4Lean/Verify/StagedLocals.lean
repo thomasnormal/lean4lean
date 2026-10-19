@@ -96,7 +96,6 @@ theorem StateWF.freshLet {context : RestrictedContext safety env venv}
     (extendedWF : (MLCtx.vlet ⟨state.ngen.curr⟩ name domain value semanticDomain semanticValue
       context.mlctx).WF venv context.lparams) :
     (context.withMLC _ extendedWF).StateWF { state with ngen := state.ngen.next } := by
-  have extendedScopeWF := extendedWF.tr.wf
   have allocated := state.ngen.next_reserves_self
   have fresh := state.ngen.not_reserves_self
   have increase : state.ngen ≤ state.ngen.next := .next
@@ -104,14 +103,12 @@ theorem StateWF.freshLet {context : RestrictedContext safety env venv}
       (context.withMLC _ extendedWF).InferCacheWF { state with ngen := state.ngen.next } cache := by
     intro expression type lookup
     simp only [withMLC, MLCtx.vlctx, context.scope_eq] at ⊢
-    exact ((correct lookup).fresh context.checker.wf.ordered
-      (by simpa only [MLCtx.vlctx, context.scope_eq] using extendedScopeWF)).mono increase
+    exact ((correct lookup).freshLet).mono increase
   have normalization {cache} (correct : context.WHNFCacheWF state cache) :
       (context.withMLC _ extendedWF).WHNFCacheWF { state with ngen := state.ngen.next } cache := by
     intro expression result lookup
     simp only [withMLC, MLCtx.vlctx, context.scope_eq] at ⊢
-    exact ((correct lookup).fresh context.checker.wf
-      (by simpa only [MLCtx.vlctx, context.scope_eq] using extendedScopeWF)).mono increase
+    exact ((correct lookup).freshLet).mono increase
   refine ⟨?_, ?_, inference stateWF.inferI, inference stateWF.inferC,
     normalization stateWF.whnfCore, normalization stateWF.whnf, stateWF.unfold⟩
   · intro identifier member
@@ -138,7 +135,7 @@ theorem StateWF.freshLet {context : RestrictedContext safety env venv}
       cases same
       exact ⟨fun member => fresh (reserved _ member), combinedScope.trans inserted.fvars_sublist.subset⟩
     refine ⟨_, shift, nextScopeWF, ?_,
-      equivalent.weak' context.checker.wf (.skip_fvar _ _ .refl) nextScopeWF, ?_⟩
+      equivalent.insertLet (fun member => fresh (reserved _ member)), ?_⟩
     · simpa only [withMLC, MLCtx.vlctx, context.scope_eq, VLocalDecl.lift', VLocalDecl.depth,
         Lift.consN] using
         inserted.cons_fvar (⟨state.ngen.curr⟩, domain.fvarsList ++ value.fvarsList)

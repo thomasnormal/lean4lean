@@ -46,12 +46,13 @@ false strengthening and confluence are excluded from both. See
 `tests/InhabitedTelescope.lean`, `tests/UnusedNatTranslation.lean`, and
 `tests/FuelSuccessorReplacement.lean`. These remove all direct general-extraction
 calls in WF′, while its transitive checker obligations remain conditional.
-The three actual local-let restoration paths now use structural erasure:
-local lets add no semantic binder, so the exact model context and expressions
-survive removal. Their full proof graphs exclude general strengthening and false
-confluence; the checker paths retain two existing projection admissions and the
-restricted-context path one. Generic lambda restoration remains unresolved.
-See `tests/LetCacheRestoration.lean` and upstream PR #64.
+The five actual local-let entry/restoration proofs now use structural
+insertion/erasure: local lets add no semantic binder, so the exact model context
+and expressions survive both directions. Cache and equivalence-manager transport
+avoid generic native/projection weakening as well as false strengthening and
+confluence. Each full proof graph inherits only the existing `TrProj` placeholder.
+Generic lambda restoration remains unresolved. See `tests/LetCacheRestoration.lean`
+and upstream PR #64.
 These are metatheory repairs, not new native kernel discrepancies.
 
 ## False quotient confluence simulation contract (2026-10-15)

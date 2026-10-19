@@ -86,14 +86,86 @@ theorem restoredWHNF (proofReserved : ngen.Reserves proofId)
     .mk rfl below source refl ⟨propositionReserved, proofReserved, trivial⟩ proofReserved
   exact cached.weakLet_inv extendedWF
 
+theorem reinsertBeneathNativeBinders :
+    TrExprS VEnv.empty [] extended nested (.lam (.bvar 1) (.bvar 0)) := by
+  exact eraseBeneathNativeBinders.insertLet .zero
+    ⟨by simp [FVarsIn, propositionId, removedId],
+      by simp [FVarsIn, propositionId, removedId]⟩
+
+abbrev freshContext (ngen : NameGenerator) : VLCtx :=
+  (some (⟨ngen.curr⟩, [proofId, propositionId]), .vlet (.bvar 1) (.bvar 0)) :: base
+
+theorem freshContextWF (proofReserved : ngen.Reserves proofId)
+    (propositionReserved : ngen.Reserves propositionId) :
+    VLCtx.WF VEnv.empty 0 (freshContext ngen) := by
+  refine ⟨extendedWF.1, ?_, .bvar .zero⟩
+  intro fv dependencies equal
+  cases Option.some.inj equal
+  constructor
+  · intro member
+    simp only [base, VLCtx.fvars_cons_some, VLCtx.fvars_nil, List.mem_cons,
+      List.not_mem_nil, or_false] at member
+    rcases member with equal | equal
+    · exact ngen.not_reserves_self (by simpa only [equal] using proofReserved)
+    · exact ngen.not_reserves_self (by simpa only [equal] using propositionReserved)
+  · simp [VLCtx.fvars, base]
+
+theorem enteredSyntax (reserved : ngen.Reserves propositionId) :
+    ConditionallyTyped ngen VEnv.empty [] (freshContext ngen) nested :=
+  (restoredSyntax reserved).freshLet
+
+theorem enteredType (proofReserved : ngen.Reserves proofId)
+    (propositionReserved : ngen.Reserves propositionId) :
+    ConditionallyHasType ngen VEnv.empty [] (freshContext ngen)
+      (.fvar proofId) (.fvar propositionId) :=
+  (restoredType proofReserved propositionReserved).freshLet
+
+theorem enteredWHNF (proofReserved : ngen.Reserves proofId)
+    (propositionReserved : ngen.Reserves propositionId) :
+    ConditionallyWHNF ngen VEnv.empty [] (freshContext ngen)
+      (.letE `alias (.fvar propositionId) (.fvar proofId) (.bvar 0) false) (.fvar proofId) :=
+  (restoredWHNF proofReserved propositionReserved).freshLet
+
+theorem typeRoundTrip (proofReserved : ngen.Reserves proofId)
+    (propositionReserved : ngen.Reserves propositionId) :
+    ConditionallyHasType ngen VEnv.empty [] base (.fvar proofId) (.fvar propositionId) :=
+  (enteredType proofReserved propositionReserved).weakLet_inv
+    (freshContextWF proofReserved propositionReserved)
+
+theorem whnfRoundTrip (proofReserved : ngen.Reserves proofId)
+    (propositionReserved : ngen.Reserves propositionId) :
+    ConditionallyWHNF ngen VEnv.empty [] base
+      (.letE `alias (.fvar propositionId) (.fvar proofId) (.bvar 0) false) (.fvar proofId) :=
+  (enteredWHNF proofReserved propositionReserved).weakLet_inv
+    (freshContextWF proofReserved propositionReserved)
+
+-- Reflexive nodes may mention the fresh identifier. Only the typed leaves
+-- require transport, so insertion must not require the whole expression to omit it.
+theorem mixedEquivalence : EquivManager.IsDefEqE VEnv.empty [] extended
+    (.app (.fvar removedId) (.fvar proofId))
+    (.app (.fvar removedId) (.mdata {} (.fvar proofId))) := by
+  have typed : EquivManager.IsDefEqE VEnv.empty [] base
+      (.fvar proofId) (.mdata {} (.fvar proofId)) :=
+    .defeq (.fvar rfl) ⟨_, .mdata (.fvar rfl), _, .bvar .zero⟩
+  exact (EquivManager.IsDefEqE.app .rfl typed).insertLet
+    (by simp [VLCtx.fvars, base, removedId, proofId, propositionId])
+
 run_meta
   let environment ← getEnv
   let roots := #[``VLCtx.EraseLet.toCtx_eq, ``VLCtx.EraseLet.find?_eq,
     ``TrExprS.eraseLet, ``TrExpr.eraseLet, ``ConditionallyTyped.weakLet_inv,
     ``ConditionallyHasType.weakLet_inv, ``ConditionallyWHNF.weakLet_inv,
     ``extendedWF, ``nestedTranslation, ``eraseBeneathNativeBinders, ``restoredSyntax,
-    ``typeBelow, ``restoredType, ``restoredWHNF]
-  let forbidden := [``TrExprS.weakFV_inv, ``TrExprS.weakFV'_inv,
+    ``typeBelow, ``restoredType, ``restoredWHNF,
+    ``FVarsIn.not_curr, ``TrExprS.insertLet, ``TrExpr.insertLet,
+    ``ConditionallyTyped.freshLet, ``ConditionallyHasType.freshLet,
+    ``ConditionallyWHNF.freshLet, ``EquivManager.IsDefEqE.insertLet,
+    ``EquivManager.WF.insertLet, ``reinsertBeneathNativeBinders, ``freshContextWF,
+    ``enteredSyntax, ``enteredType, ``enteredWHNF, ``typeRoundTrip, ``whnfRoundTrip,
+    ``mixedEquivalence]
+  let forbidden := [``TrProj.weak', ``TrExprS.weakFV, ``TrExprS.weakFV',
+    ``ConditionallyTyped.fresh, ``ConditionallyHasType.fresh, ``ConditionallyWHNF.fresh,
+    ``EquivManager.IsDefEqE.weak', ``EquivManager.WF.weak', ``TrExprS.weakFV_inv, ``TrExprS.weakFV'_inv,
     ``ConditionallyTyped.weakN_inv, ``ConditionallyHasType.weakN_inv,
     ``ConditionallyWHNF.weakN_inv, ``TrExprS.uniq,
     ``VEnv.IsDefEqU.weakN_iff, ``VEnv.IsDefEq.weakN_iff, ``VEnv.HasType.weakN_iff,
@@ -104,10 +176,11 @@ run_meta
     if info matches .axiomInfo _ then throwError "new let erasure axiom {name}"
     let some value := info.value? (allowOpaque := true) | throwError "missing proof {name}"
     if value.hasSorry then throwError "direct let erasure admission {name}"
-    let expected := if name == ``VLCtx.EraseLet.toCtx_eq || name == ``typeBelow then
+    let expected := if name == ``FVarsIn.not_curr then []
+      else if name == ``VLCtx.EraseLet.toCtx_eq || name == ``typeBelow then
         [``propext]
       else if name == ``VLCtx.EraseLet.find?_eq then [``propext, ``Quot.sound]
-      else if name == ``extendedWF then [``propext, ``Quot.sound, ``Classical.choice]
+      else if name == ``extendedWF || name == ``freshContextWF then [``propext, ``Quot.sound, ``Classical.choice]
       else [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx]
     let axioms ← collectAxioms name
     unless expected.length == axioms.size && expected.all axioms.contains do
@@ -138,19 +211,26 @@ run_meta
   unless inherited.all admissions.contains && admissions.size == inherited.length do
     throwError "let erasure admission manifest changed: {repr admissions}"
   logInfo m!"{visited.size} let erasure dependencies; exact inherited admissions {repr admissions}"
-  for consumer in [``RecM.WF.withLetDecl, ``RecM.ScopeWF.withLetDecl,
-      ``RestrictedContext.StateWF.restoreLet] do
+  let restorationConsumers := [``RecM.WF.withLetDecl, ``RecM.ScopeWF.withLetDecl,
+    ``RestrictedContext.StateWF.restoreLet]
+  let insertionConsumers := [``VState.WF.mkLetDecl, ``RestrictedContext.StateWF.freshLet]
+  for consumer in restorationConsumers ++ insertionConsumers do
     let some value := (← getConstInfo consumer).value? (allowOpaque := true)
       | throwError "missing actual let restoration {consumer}"
     if value.hasSorry then throwError "direct actual let restoration admission {consumer}"
     let direct := value.getUsedConstants
-    for helper in [``ConditionallyHasType.weakLet_inv, ``ConditionallyWHNF.weakLet_inv] do
+    let required := if insertionConsumers.contains consumer then
+        [``ConditionallyHasType.freshLet, ``ConditionallyWHNF.freshLet, ``EquivManager.WF.insertLet]
+      else [``ConditionallyHasType.weakLet_inv, ``ConditionallyWHNF.weakLet_inv]
+    let required := if consumer == ``RecM.WF.withLetDecl then
+        required ++ [``ConditionallyHasType.freshLet, ``ConditionallyWHNF.freshLet,
+          ``EquivManager.WF.insertLet]
+      else required
+    for helper in required do
       unless direct.contains helper do throwError "actual let restoration {consumer} lost {helper}"
     for name in forbidden do
       if direct.contains name then throwError "actual let restoration {consumer} directly uses {name}"
-    let consumerInherited := if consumer == ``RestrictedContext.StateWF.restoreLet then
-        [``TrProj]
-      else [``TrProj, ``TrProj.weak']
+    let consumerInherited := [``TrProj]
     let expectedAxioms := [``propext, ``Quot.sound, ``Classical.choice, ``sorryAx,
       ``Lean.PersistentArray.toList'_push, ``Lean.PersistentHashMap.WF.find?_eq,
       ``Lean.PersistentHashMap.WF.toList'_insert]

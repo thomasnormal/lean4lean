@@ -83,10 +83,10 @@ theorem TypeChecker.VState.WF.mkLetDecl {c : VContext} {m : MLCtx}
     valid.trctx.mkLetDecl fresh typeTranslation valueTranslation valueType
   have inferCache {cache} (cacheWF : InferCache.WF (c.withMLC m) state cache) :
       InferCache.WF (c.withMLC m') state.next cache :=
-    fun _ _ found => ((cacheWF found).fresh c.Ewf.ordered trctx.wf).mono le
+    fun _ _ found => ((cacheWF found).freshLet).mono le
   have whnfCache {cache} (cacheWF : WHNFCache.WF (c.withMLC m) state cache) :
       WHNFCache.WF (c.withMLC m') state.next cache :=
-    fun _ _ found => ((cacheWF found).fresh c.Ewf trctx.wf).mono le
+    fun _ _ found => ((cacheWF found).freshLet).mono le
   exact {
     ngen_wf := by
       simp [m', VContext.withMLC]
@@ -97,7 +97,7 @@ theorem TypeChecker.VState.WF.mkLetDecl {c : VContext} {m : MLCtx}
       refine
         have b1 := ⟨a1, ?_, valueType.weak' c.Ewf.ordered a2.toCtx⟩
         ⟨_, _, b1, a2.cons_fvar _ _ values,
-          a3.weak' c.Ewf (.skip_fvar _ _ .refl) b1,
+          a3.insertLet ((b1.2.1 _ _ rfl).1),
           fun _ h => by obtain _ | ⟨_, h⟩ := h <;> [exact h0; exact (a4 _ h).mono le]⟩
       rintro _ _ ⟨⟩
       exact ⟨mt (a4 _) h1, values.trans a2.fvars_sublist.subset⟩

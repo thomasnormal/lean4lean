@@ -55,15 +55,16 @@ inherited projection admissions, and its equality bridge pins five.
 Full default builds pass (423 integration / 419 main review jobs), as do all
 37 current integration fixtures. No new admission is introduced.
 
-**Local-let cache restoration:** removing a local definition leaves the model
-context identical. Structural erasure now restores type and WHNF caches in all
-three actual let-restoration paths, preserving the original expressions,
-dependency scopes, contracts, and accepted inputs. Their full dependency audits
-exclude general strengthening and false confluence, with exactly one or two
-existing projection admissions per path. The generic lambda paths and the
-frontend's broader inherited obligations remain open. The focused master-based
-patch is [upstream PR #64](https://github.com/digama0/lean4lean/pull/64), validated
-independently on the current official toolchain.
+**Local-let cache transport:** entering and leaving local definitions preserve
+the exact model context and expressions. All five actual state/cache producer
+and restoration proofs now avoid generic native/projection weakening, false
+strengthening and confluence, with only the existing `TrProj` placeholder in
+each complete graph. Equivalence-manager transport preserves reflexive nodes
+that mention the fresh identifier and carries their checked leaves unchanged.
+Cache definitions, theorem contracts and accepted inputs are unchanged. Generic
+lambda paths and broader frontend/model obligations remain open. The focused
+master-based [PR #64](https://github.com/digama0/lean4lean/pull/64) now covers both
+directions, with its own full build and strict provenance gates.
 
 The main remaining barrier is semantic: the non-inductive frontend is proved
 without a direct admission, but its dependencies still include `sorryAx`.
