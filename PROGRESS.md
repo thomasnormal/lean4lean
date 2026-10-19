@@ -52,8 +52,20 @@ outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
 All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
 inherited projection admissions, and its equality bridge pins five.
-Full default builds pass (426 integration / 423 main review jobs), as do all
-49 selected integration fixtures and 20 selected main fixtures. No new admission is introduced.
+Full default builds pass (427 integration / 424 main review jobs), as do all
+50 selected integration fixtures and 21 selected main fixtures. No new admission is introduced.
+
+**General application beta simulation:** an arbitrary normally related
+function can now follow beta on the right, with different normally related
+arguments, without a left lambda-shape restriction or recursive simulation
+premise in the beta-joining theorem. Forward beta preservation beneath retained
+eta spines replaces inverse weakening; simultaneous substitution replaces
+normal transitivity. The general application beta clause consumes just the
+function/argument induction hypotheses and retains both original endpoint
+types. Proof-valued functions also have their complete application clause.
+Exact audits retain only the two existing typing admissions and exclude choice
+and false confluence. Checked EXTRA is the remaining general application
+branch; universal simulation, confluence and actual-consumer migration are open.
 
 **Simultaneous substitution and lambda beta simulation:** related arguments
 can now be substituted simultaneously into both endpoints of normal equality,
@@ -63,9 +75,9 @@ transitivity and inverse weakening. Arbitrary candidate argument paths propagate
 through duplicated occurrences beneath dependent binders. The actual lambda
 beta clause combines recursive body/argument simulation, converted domains and
 both endpoint typings at the original application type. Its exact trust boundary
-is the two existing typing admissions. General beta across arbitrary eta-related
-function shapes, checked EXTRA and the universal simulation remain open. The
-independent substitution proof and strict regression are submitted as
+is the two existing typing admissions. The general beta clause is now proved
+above; checked EXTRA and the universal simulation remain open. The independent
+substitution proof and strict regression are submitted as
 [upstream PR #65](https://github.com/digama0/lean4lean/pull/65), with the official
 master's additional inductive admissions explicitly audited there.
 
@@ -75,9 +87,9 @@ further eta steps. Eta/application joins also allow simultaneous candidate paths
 in the function and argument and retain the original dependent result type.
 The replacement `CoreSimulates` obligation has proved recursive clauses for all
 eight non-application normal-equality constructors and application congruence.
-These clauses still take their recursive simulation hypotheses; application's
-general root beta and checked EXTRA cases remain open. All 15 new production
-proofs exclude inverse weakening, false confluence and choice, with exactly the
+These clauses still take their recursive simulation hypotheses. The general
+application beta clause is now proved above; checked EXTRA remains open.
+The eta proofs exclude inverse weakening, false confluence and choice, with exactly the
 two independent typing admissions. Actual consumer manifests are unchanged.
 
 **Canonical unfolding versus arbitrary core reduction:** every original
@@ -176,7 +188,7 @@ themselves satisfy any of these goals.
 | Remove inherited admissions from the frontend | **Not complete.** Dependency audits identify the remaining trust gaps. | Foundational admissions also remain. | Must close the actual metatheory/checker dependencies, not add another wrapper around them. |
 | Supply simultaneous substitution for arbitrary typing/equality derivations | **Proved API now available:** `55b7b4d` ports strong/weak cross-substitution and audits its dependencies as only `propext` and `Quot.sound`. | Already proved upstream in `6ba54db`/`8223d22`. | Foundation integration, not a newly solved upstream obligation; the frontend's inherited admissions remain. |
 | Verify actual checked inductive registration | **Not complete.** Header/constructor checks and staging invariants are proved. | The inductive frontend case remains admitted. | Constructive `AddInduct`, model registration, constructor/recursor generation, and prelude translation. |
-| Complete confluence and semantic reduction correctness | **Original simulation contract refuted:** the actual quotient model has a checked counterexample to `NormalEq.parRed`. The candidate relation proves exact joins for all six prefix-application beta overlaps and a normal-equality local join for canonical unfolding versus every original core reduction. | Confluence and related semantic obligations remain open. | General quotient simulation, other eta/rewrite overlaps, migration of actual consumers, non-circular injectivity/strengthening, genuine projection and inductive recursor semantics. |
+| Complete confluence and semantic reduction correctness | **Original simulation contract refuted:** the actual quotient model has a checked counterexample to `NormalEq.parRed`. The candidate relation proves forward eta joins, general application beta simulation, exact joins for all six prefix-application beta overlaps, and a normal-equality local join for canonical unfolding versus every original core reduction. | Confluence and related semantic obligations remain open. | General quotient simulation, other eta/rewrite overlaps, migration of actual consumers, non-circular injectivity/strengthening, genuine projection and inductive recursor semantics. |
 | Verify the full native arithmetic set | **Not complete:** many arithmetic contracts are proved, but GCD/AND/OR/XOR native reductions are disabled. | Newer primitive checking proofs and guards are available for review. | Restore those four operations with the actual primitive-extension proofs; close the well-founded validation gap. |
 | Prevent demonstrated inductive source capture | **Concrete repair:** source preflight rejects capture inputs before generated names can bind them; native Lean 4.29.0 reproducer retained. | Native Lean 4.33.0-rc2 rejects this exact source constructor with `declHasFVars`, now regression-tested. | Version-bounded validation result, not a current native bug or a proof of logical unsoundness. |
 | New semantic guarantees in the October 13 integration checkpoint | **None claimed.** Recursor/restoration, binder, header-typing, and transport proofs are restored against current APIs while preserving their existing contracts. | Compatibility preserves prior contracts; it is not a newly solved upstream obligation. | Submit only independently reviewable semantic or correctness changes after publication; keep compatibility repairs out of the progress score. |
@@ -451,9 +463,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current main Lean 4.29.0 proof source passes all default targets (423 jobs)
-and all 20 selected regressions on October 19. This Lean 4.33.0-rc2 integration
-passes its full default build (426 jobs) and all 49 selected regressions. The
+The current main Lean 4.29.0 proof source passes all default targets (424 jobs)
+and all 21 selected regressions on October 19. This Lean 4.33.0-rc2 integration
+passes its full default build (427 jobs) and all 50 selected regressions. The
 independent current-master substitution PR passes its default build and
 standalone regression. Each receipt validates its respective source snapshot;
 exact trust bounds are recorded in `PROOF_STATUS.md`.
