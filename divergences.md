@@ -11,6 +11,18 @@ This is a list of places where lean4lean deliberately has different behavior fro
 * [`Lean4Lean.TypeChecker.Inner.inferLambda`](Lean4Lean/TypeChecker.lean), `inferLet`: lean4lean does the `ensureSort` call before extending the context, while [`infer_lambda`](https://github.com/leanprover/lean4/blob/v4.26.0/src/kernel/type_checker.cpp#L124-L126) does it afterward. It's not clear whether this is actually unsound but it would require some very weird invariants to justify having unchecked things in the local context and hoping that they won't be used in the typing proof of that same expression.
 * [`Lean4Lean.checkConstantVal`](Lean4Lean/Environment.lean): The original implementation would call `check` which sets the level params and then unsets them afterward, and then `ensure_sort` would run in a context without any level params. In lean4lean the monad is parameterized over level params, so they remain the same across the two calls.
 
+## Native binder naming preserves the model context (2026-10-19)
+
+`TrExprS.inst_fvar` now renames an anonymous native binder directly. Its original
+freshness/well-formedness premise prevents capture; naming either a lambda or a
+let preserves the exact semantic context and expression. Projection evidence
+is reused in that context, removing the inherited projection weakening and
+instantiation admissions from the complete opening proof and the existing
+`TrExpr.openFreshFVar` consumer. Their integration graphs retain exactly `TrProj`;
+broader inference and frontend gaps remain. The original API and accepted inputs
+are unchanged. See `tests/BinderOpening.lean`. This is a metatheory repair, not a
+new native kernel discrepancy.
+
 ## Inhabited inverse weakening (2026-10-19)
 
 General inverse weakening through an arbitrary unused binder is false for
