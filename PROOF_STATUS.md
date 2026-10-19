@@ -14,6 +14,69 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Quotient source universes and nonzero major classification — 2026-10-19
+
+`quot_source_eq` proves that definitionally equal quotient types have equivalent
+source universes, using their actual canonical sort typings and uniqueness.
+This does not use `IsDefEqU.quot_inj` or confluence, and does not assert injectivity
+of the domain/relation parameters. `quotMk_source_eq` recovers the constructor
+universe from its actual supplied quotient result type, allowing syntactically
+different parameter pairs. `quot_proof_source` shows that ANY proof inhabiting a
+quotient forces `zeroLike sourceUniverse = true`; its major may be neutral.
+
+`normal_quot_major_expose` classifies an arbitrary normal comparison to a
+saturated constructor at a nonzero quotient source. It constructs an ACTUAL
+original `ParRedS` path. Its literal-constructor alternative supplies the level
+equivalence, all THREE normal capture relations and the original quotient typing.
+Its eta alternative supplies an actual path to a lambda, normal comparison to
+the original right constructor, the original quotient typing, and an explicit
+semantic equality between that quotient type and the lambda's Pi type. Both the
+whole-major and constant-head proof alternatives are eliminated by real source
+classification. No caller exposure, firing, separation or postcondition
+certificate is assumed.
+
+This is a classification theorem, NOT completion of the nonzero EXTRA clause.
+Quotient/Pi separation is still needed to exclude its eta alternative; actual
+matching/check recovery, universal simulation, confluence and consumer migration
+remain open. The existing false/admitted `NormalEq.parRed` and all actual
+frontend contracts/manifests are unchanged.
+
+`tests/QuotMajorExposure.lean` uses a reachable Eq/Quot environment at a NONZERO
+source. A constructor with an eta-expanded head takes an actual beta path; its
+right universe is equivalent but syntactically different. A separate actual
+definitional equality compares quotient types with different universes AND a
+beta-delayed relation. Neutral proof controls derive the zero-source check,
+including at a nonliteral `max 0 0` universe. A negative control excludes any
+propositional typing of the nonzero major, and syntax controls pin each intended
+difference. Exact admission AND axiom manifests audit 32 production/control
+roots, traversing declaration types, inductive constructor types and explicitly
+opaque bodies on integration. All four production roots inherit exactly
+`IsDefEqU.sort_inv`, `IsDefEqU.forallE_inv_stratified`, and exactly the axioms
+`propext`, `Quot.sound`, `sorryAx`. They exclude choice, false confluence, derived
+quotient injectivity, inverse transport, normal transitivity and the admitted
+sort/Pi separation lemma. Required-dependency gates pin the actual proofs.
+
+PR #53 at `5a8c0d5f111809a95f4924c71e0e9bc8738d72e0` derives its general rigid/Pi
+separation from `WF.headInversion`, assembled from a glued observation model's
+soundness and declaration-history environment validity. The inspected files do
+not provide a small standalone quotient/Pi proof, and a full transitive/model
+compatibility audit remains open. We have not ported that model or strengthened
+our environment obligations. This fork-specific classification is not submitted
+as a duplicate general-rigidity PR.
+
+Full defaults pass 428 main / 431 integration jobs. All 24/53 previous selected
+fixtures and the new strict fixture pass: 25/54 total. Source census is unchanged:
+main 119 matching lines / 19 files / 123 occurrences; integration 124 / 23 / 128.
+The complete exposure graph has 2930 main / 3136 integration dependencies.
+Existing production bytes/contracts are unchanged, and the new production is
+identical across both toolchains. No new admission, checker behavior change or
+kernel discrepancy. Authoritative receipts use `lean4lean-quot-major-` stems
+dated `20261019` under the fleet log directory: `*-default`, `*-regressions`,
+main `*-fixture-final`, integration `*-fixture-final2`, `final-manifests.json`
+and `final-gates.json`. An integration fixture launched before its dependency
+build finished recorded a missing object file; that diagnostic is superseded by
+the successful strict run after the same build's completion.
+
 ## General Prop-source hereditary EXTRA simulation — 2026-10-19
 
 `normal_quot_prop_join` follows ACTUAL checked Prop-source quotient firing from
