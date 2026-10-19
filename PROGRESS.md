@@ -17,8 +17,7 @@ not completion of frontend soundness.
 
 **Published versus upstream integration:** this main review branch retains
 its older base on Lean **4.29.0**, now including direct native binder naming.
-The separate Lean **4.33.0-rc2** snapshot is `6bf537cf7bb2af387a1174d560ac959813a42027`,
-extending `c51fccf` on
+The separate Lean **4.33.0-rc2** snapshot extends `c65a7a0` on
 `poc-verified-noninductive-upstream-20261019`, based on official
 `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`.
 It retains upstream mutual definitions, integrates the quotient proofs and
@@ -40,8 +39,8 @@ native restoration receipts also remain open. The Nat-closing and successor
 arguments follow draft [PR #53](https://github.com/digama0/lean4lean/pull/53);
 no duplicate PR is opened. Publishing this snapshot separately does not rebase
 or replace the main review branch.
-Full default builds pass (423 integration / 419 main review jobs), as do all
-38 current integration fixtures. No new admission is introduced.
+Full default builds pass (423 integration / 420 main review jobs), as do all
+44 selected integration fixtures and 12 selected main fixtures. No new admission is introduced.
 
 **Local-let cache transport:** entering and leaving local definitions preserve
 the exact model context and expressions. All five actual state/cache producer
@@ -71,6 +70,17 @@ behavior are unchanged, and the proof is validated on both toolchains. Broader
 inference/frontend admissions remain. A focused master-based candidate is kept
 separate; draft PR #53 already repairs this API through its larger redesign,
 so no duplicate upstream PR is opened.
+
+**Unused-let telescope reconstruction:** the actual `mkForall_trS`,
+`mkLambda_trS` and `mkLet_trS` proofs now erase an unused native let directly.
+A local let contributes no semantic binder, so retained projection evidence stays
+in its original context. Each complete structural builder graph now inherits
+exactly `TrProj`, dropping projection weakening; the converted APIs still inherit
+other typing gaps. Existing contracts and checker behavior are unchanged.
+Dependent-context, mixed-telescope and retained-let controls pass on both
+versions. The focused [PR #64](https://github.com/digama0/lean4lean/pull/64)
+now includes this consumer of its structural let-erasure proof. Arbitrary lambda
+strengthening and whole inference/frontend soundness remain open.
 
 **Projection core contract:** the Lean 4.33.0-rc2 integration now proves the
 existing `reduceProjCore.WF` contract used by lazy projection comparison and
