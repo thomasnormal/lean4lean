@@ -44,6 +44,22 @@ theorem applyArguments_spine (source : VExpr) :
     simp only [spine, applyArguments_append, applyArguments, functionIH]
   | _ => rfl
 
+theorem spine_applyArguments (source : VExpr) (arguments : List VExpr) :
+    spine (applyArguments source arguments) = ((spine source).1, (spine source).2 ++ arguments) := by
+  induction arguments generalizing source with
+  | nil => simp only [applyArguments, List.append_nil]
+  | cons argument arguments induction =>
+    simpa only [applyArguments, spine, List.append_assoc, List.singleton_append] using
+      induction (.app source argument)
+
+theorem applyType_append (type : VExpr) (first second : List VExpr) :
+    applyType type (first ++ second) = (applyType type first >>= fun residual => applyType residual second) := by
+  induction first generalizing type with
+  | nil => rfl
+  | cons argument arguments induction =>
+    cases type <;> simp only [List.cons_append, applyType, bind, Option.bind] <;> try rfl
+    exact induction _
+
 theorem unfoldPrefix_complete {sourceUniverse targetUniverse : VLevel} {arguments : List VExpr}
     (zeroChecked : zeroLike sourceUniverse = true)
     (bounded : arguments.length ≤ 6) :
@@ -56,6 +72,59 @@ theorem unfoldPrefix_complete {sourceUniverse targetUniverse : VLevel} {argument
   | _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ =>
     simp only [List.length_cons] at bounded
     omega
+
+/-- Prefix expansion commutes with substitution beneath every retained binder. -/
+theorem expand_inst {source type result : VExpr}
+    (expanded : expand remaining source type = some result) (argument : VExpr) (depth : Nat) :
+    expand remaining (source.inst argument depth) (type.inst argument depth) =
+      some (result.inst argument depth) := by
+  induction remaining generalizing source type result depth with
+  | zero => exact unfold_inst expanded argument depth
+  | succ remaining induction =>
+    cases type <;> try contradiction
+    rename_i domain body
+    simp only [expand, Option.map_eq_some_iff] at expanded
+    obtain ⟨expandedBody, bodyExpanded, rfl⟩ := expanded
+    have substituted := induction bodyExpanded (depth + 1)
+    simpa only [expand, VExpr.inst, ← VExpr.lift_instN_lo, VExpr.instVar_lower, Option.map_some] using
+      congrArg (Option.map (VExpr.lam (domain.inst argument depth))) substituted
+
+/-- Applying an expanded prefix exposes exactly the remaining expansion. -/
+theorem expand_apply {source domain body result : VExpr}
+    (expanded : expand (remaining + 1) source (.forallE domain body) = some result)
+    (argument : VExpr) :
+    ∃ expandedBody, result = .lam domain expandedBody ∧
+      expand remaining (.app source argument) (body.inst argument) =
+        some (expandedBody.inst argument) := by
+  simp only [expand, Option.map_eq_some_iff] at expanded
+  obtain ⟨expandedBody, bodyExpanded, rfl⟩ := expanded
+  refine ⟨expandedBody, rfl, ?_⟩
+  simpa [VExpr.inst, VExpr.instVar, VExpr.inst_lift] using expand_inst bodyExpanded argument 0
+
+/-- For every partial quotient-lift spine, applying the generated lambda and
+expanding the next prefix produce definitionally identical bodies. -/
+theorem unfoldPrefix_apply {levels : List VLevel} {arguments : List VExpr} {result : VExpr}
+    (bounded : arguments.length < 6)
+    (expanded : unfoldPrefix (applyArguments (.const ``Quot.lift levels) arguments) = some result)
+    (argument : VExpr) :
+    ∃ domain expandedBody, result = .lam domain expandedBody ∧
+      unfoldPrefix (applyArguments (.const ``Quot.lift levels) (arguments ++ [argument])) =
+        some (expandedBody.inst argument) := by
+  have remaining : 6 - arguments.length = (5 - arguments.length) + 1 := by omega
+  simp only [unfoldPrefix, spine_applyArguments, spine, List.nil_append] at expanded
+  simp only [show ¬arguments.length > 6 by omega, ↓reduceIte, bind, Option.bind_eq_some_iff] at expanded
+  obtain ⟨type, computed, expanded⟩ := expanded
+  rw [remaining] at expanded
+  cases type <;> try contradiction
+  rename_i domain body
+  obtain ⟨expandedBody, resultShape, appliedExpanded⟩ := expand_apply expanded argument
+  refine ⟨domain, expandedBody, resultShape, ?_⟩
+  have appliedBound : ¬(arguments ++ [argument]).length > 6 := by simp only [List.length_append, List.length_singleton]; omega
+  have appliedRemaining : 6 - (arguments ++ [argument]).length = 5 - arguments.length := by
+    simp only [List.length_append, List.length_singleton]; omega
+  simpa only [unfoldPrefix, spine_applyArguments, spine, List.nil_append, appliedBound, ↓reduceIte,
+    applyType_append, computed, bind, Option.bind, applyType, appliedRemaining,
+    applyArguments_append, applyArguments] using appliedExpanded
 
 variable {environment : VEnv} {universes : Nat} {locals : List VExpr}
 
@@ -197,6 +266,35 @@ theorem expand_sound {environmentWF : environment.WF} {source result type : VExp
     environment.IsDefEq universes locals source result type :=
   (expand_steps (environmentWF := environmentWF) localsWF typed expanded).defeq registered localsWF typed
 
+/-- The eta/application critical pair has an identical endpoint: expanding the
+function and beta reducing its application agrees with expanding the applied
+function. The endpoint retains the original dependent result type. -/
+theorem expand_apply_join {environmentWF : environment.WF}
+    {source domain body result argument : VExpr}
+    (registered : environment.defeqs quotDefEq)
+    (localsWF : OnCtx locals (environment.IsType universes))
+    (functionTyped : environment.HasType universes locals source (.forallE domain body))
+    (argumentTyped : environment.HasType universes locals argument domain)
+    (expanded : expand (remaining + 1) source (.forallE domain body) = some result) :
+    ∃ expandedBody, result = .lam domain expandedBody ∧
+      expand remaining (.app source argument) (body.inst argument) =
+        some (expandedBody.inst argument) ∧
+      Steps environmentWF universes locals (.app source argument) (.app result argument) ∧
+      @ParRed (environmentWF.reductionParams universes) locals
+        (.app result argument) (expandedBody.inst argument) ∧
+      Steps environmentWF universes locals (.app source argument) (expandedBody.inst argument) ∧
+      environment.HasType universes locals (expandedBody.inst argument) (body.inst argument) := by
+  letI := environmentWF.reductionParams universes
+  obtain ⟨expandedBody, resultShape, appliedExpanded⟩ := expand_apply expanded argument
+  have functionSteps := expand_steps (environmentWF := environmentWF) localsWF functionTyped expanded
+  have functionApplication := functionSteps.app (show Steps environmentWF universes locals argument argument from .rfl)
+  have beta : ParRed locals (.app result argument) (expandedBody.inst argument) :=
+    resultShape ▸ ParRed.beta .rfl .rfl
+  have appliedSteps := expand_steps (environmentWF := environmentWF) localsWF
+    (functionTyped.app argumentTyped) appliedExpanded
+  exact ⟨expandedBody, resultShape, appliedExpanded, functionApplication, beta, appliedSteps,
+    appliedSteps.hasType registered localsWF (functionTyped.app argumentTyped)⟩
+
 theorem prefix_steps {environmentWF : environment.WF} {source result type : VExpr}
     (registered : environment.defeqs quotDefEq)
     (localsWF : OnCtx locals (environment.IsType universes))
@@ -252,5 +350,38 @@ theorem prefix_reduces {environmentWF : environment.WF}
     (unfoldPrefix_complete ((zeroLike_iff _).mpr zeroEquivalent) bounded (targetUniverse := targetUniverse))
   have steps := prefix_steps (environmentWF := environmentWF) registered localsWF typed computed
   exact ⟨result, computed, steps, steps.defeq registered localsWF typed⟩
+
+/-- The actual prefix algorithm closes its eta/beta application overlap at every
+partial spine. Both paths reach exactly the same term at the original application
+type; no normal-equality simulation or strengthening principle is used. -/
+theorem prefix_apply_join {environmentWF : environment.WF}
+    {levels : List VLevel} {arguments : List VExpr} {result argument type : VExpr}
+    (registered : environment.defeqs quotDefEq)
+    (localsWF : OnCtx locals (environment.IsType universes))
+    (bounded : arguments.length < 6)
+    (typed : environment.HasType universes locals
+      (.app (applyArguments (.const ``Quot.lift levels) arguments) argument) type)
+    (expanded : unfoldPrefix (applyArguments (.const ``Quot.lift levels) arguments) = some result) :
+    ∃ domain expandedBody, result = .lam domain expandedBody ∧
+      unfoldPrefix (.app (applyArguments (.const ``Quot.lift levels) arguments) argument) =
+        some (expandedBody.inst argument) ∧
+      Steps environmentWF universes locals
+        (.app (applyArguments (.const ``Quot.lift levels) arguments) argument) (.app result argument) ∧
+      @ParRed (environmentWF.reductionParams universes) locals
+        (.app result argument) (expandedBody.inst argument) ∧
+      Steps environmentWF universes locals
+        (.app (applyArguments (.const ``Quot.lift levels) arguments) argument) (expandedBody.inst argument) ∧
+      environment.HasType universes locals (expandedBody.inst argument) type := by
+  letI := environmentWF.reductionParams universes
+  obtain ⟨domain, expandedBody, resultShape, appliedExpanded⟩ := unfoldPrefix_apply bounded expanded argument
+  rw [applyArguments_append] at appliedExpanded
+  obtain ⟨_, _, functionTyped, _⟩ := typed.app_inv environmentWF.ordered localsWF
+  have functionSteps := prefix_steps (environmentWF := environmentWF) registered localsWF functionTyped expanded
+  have functionApplication := functionSteps.app (show Steps environmentWF universes locals argument argument from .rfl)
+  have beta : ParRed locals (.app result argument) (expandedBody.inst argument) :=
+    resultShape ▸ ParRed.beta .rfl .rfl
+  have appliedSteps := prefix_steps (environmentWF := environmentWF) registered localsWF typed appliedExpanded
+  exact ⟨domain, expandedBody, resultShape, appliedExpanded, functionApplication, beta, appliedSteps,
+    appliedSteps.hasType registered localsWF typed⟩
 
 end Lean4Lean.VEnv.QuotPropReduction
