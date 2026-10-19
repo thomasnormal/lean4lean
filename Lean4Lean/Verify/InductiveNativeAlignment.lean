@@ -216,9 +216,8 @@ theorem RegistrationEvidence.inductiveDeclWF
 theorem RegistrationEvidence.inductiveHistoryWF
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF) :
-    ∃ declarations, VEnv.WF' (.induct decl :: declarations) evidence.constructorEnv := by
-  obtain ⟨declarations, hdeclarations⟩ := henv
-  exact ⟨declarations, .decl evidence.inductiveDeclWF hdeclarations⟩
+    evidence.constructorEnv.WF := by
+  exact VEnv.WF.decl henv evidence.inductiveDeclWF
 
 end NativeInductive
 end Lean4Lean
