@@ -4,6 +4,71 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Constructor-pattern rule soundness — 2026-10-19
+
+Model.RuleSound adapts the pattern-rule proof from
+[PR #53](https://github.com/digama0/lean4lean/pull/53), exact head
+5a8c0d5f111809a95f4924c71e0e9bc8738d72e0, to the actual current constant-head
+and RuleBind definitions. The rule clause retains actual equation membership,
+its syntactic pattern, actual constant lookup, typing at observations of the
+stored head type, first-occurrence leading bindings and constructor-field or
+proof bindings. No expression forms or environment invariants are added.
+
+pat_rhs_sub reconstructs observations of the actual left side from those of
+the right. It extracts finite lists for all rule binders through the proved
+TeleKeys.inner_lists, obtains typed head keys from the actual HTS spine, and
+reads a rigid family indicator from the major's domain. A constructive
+zeroLike decision selects proof binding when its level is identically zero;
+otherwise a second spine pass collects actual constructor observations needed
+for the field variables. Input demands remain covered, and every resulting
+observation set is backed. Both passes preserve the stored-type filter.
+
+pat_lhs_sub recovers observations of the right side from actual observations
+of the left. Actual rigidity and delta ownership exclude non-rule clauses.
+Rule uniqueness and the actual constructor observations identify the stored
+equation. Binding coverage recovers the fields' observations. Dependent head
+induction relates the rule anchors to the actual variables, using typed class
+membership for constructor bindings and actual proof irrelevance for proof
+bindings. Sound domains transfer the valuation, and right-body soundness then
+gives the required semantic inclusion. sound_pat combines both directions and
+retains the endpoint observation typings supplied by actual recursive premises.
+HTS by itself still does not certify ordinary typing.
+
+The finite first-occurrence and field-index searches are constructive. The
+first audit found choice in List.getElem_idxOf through its length lemma; a
+replacement using library idxOf_cons still reached choice through Nat's order
+instance. Direct recursive natural-number search replaces both library paths.
+The trust gate was retained. The already proved zeroLike specification and
+all other transitive dependencies pass the same choice exclusion.
+
+Actual declaration-history metadata proves that every stored constructor
+pattern is quotDefEq. With the actual quotient equation installed, no delta
+rule competes at Quot.lift. These discharge equation identity and head
+uniqueness from actual history rather than an arbitrary firing certificate.
+Full actual quotient validity still needs its concrete family/constructor
+data and proof-field premises instantiated in sound_pat. General model
+soundness, quotient/Pi separation, nonzero exposure, simulation and consumer
+migration remain open. Ordinary frontend soundness retains its foundational
+admissions.
+
+The strict ModelRuleSound fixture audits all 36 production and 164 fixture
+declarations with exact admission and axiom manifests. Full traversal covers
+declaration/constructor types and bodies, explicitly opaque bodies on
+integration, and pins substantive dependencies. Every root has exactly its
+listed subset of propext and Quot.sound, with no admission or choice. False
+NormalEq.parRed/confluence, admitted quotient injectivity, inverse weakening
+and admitted sort/Pi separation remain excluded.
+
+Controls use actual Strong variable typing to bind a positive sort observation
+through both a leading key and a constructor-field demand. Duplicate occurrences
+select the first match, and an absent variable is rejected constructively.
+A checked Eq declaration and actual addQuot installation exercise actual
+quotient equation classification/head uniqueness and recover all finite
+constructor demands from actual Quot.mk observations. Earlier dependent-anchor,
+spine and constructor inversion controls remain audited. Both full default
+builds and all selected regressions pass. All prior production files/contracts
+and the admission census are unchanged; no kernel discrepancy was found.
+
 ## Finite dependent telescope round trips — 2026-10-19
 
 The reverse-spine, telescope compactness/valuation and winding arguments adapt

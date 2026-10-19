@@ -52,8 +52,18 @@ outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
 All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
 inherited projection admissions, and its equality bridge pins five.
-Full default builds pass (448 integration / 445 main review jobs), as do all
-63 selected integration fixtures and 34 selected main fixtures. No new admission is introduced.
+Full default builds pass (449 integration / 446 main review jobs), as do all
+64 selected integration fixtures and 35 selected main fixtures. No new admission is introduced.
+
+**Constructor-pattern rule soundness:** the rule argument now proves both
+semantic inclusions for the current constructor-observation and proof-binding
+alternatives. It retains actual stored membership, head-type filtering,
+dependent binder typing and the actual endpoint equality. Finite extraction,
+first occurrences, field indices and the level-zero decision avoid choice.
+Actual declaration history identifies every stored constructor pattern as the
+quotient equation and excludes competing delta equations at its head. All 200
+audited roots exclude admissions and choice. Instantiating the remaining
+quotient family and proof-field premises still precedes general model soundness.
 
 **Finite dependent telescope round trips:** reverse spine transfer now
 recovers actual argument typings and reconstructs each domain/result type
@@ -616,9 +626,9 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current main Lean 4.29.0 proof source passes all default targets (445 jobs)
-and all 34 selected regressions on October 19. This Lean 4.33.0-rc2 integration
-passes its full default build (448 jobs) and all 63 selected regressions. The
+The current main Lean 4.29.0 proof source passes all default targets (446 jobs)
+and all 35 selected regressions on October 19. This Lean 4.33.0-rc2 integration
+passes its full default build (449 jobs) and all 64 selected regressions. The
 independent current-master substitution PR passes its default build and
 standalone regression. Each receipt validates its respective source snapshot;
 exact trust bounds are recorded in `PROOF_STATUS.md`.
