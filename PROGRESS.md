@@ -52,8 +52,19 @@ outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
 All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
 inherited projection admissions, and its equality bridge pins five.
-Full default builds pass (430 integration / 427 main review jobs), as do all
-53 selected integration fixtures and 24 selected main fixtures. No new admission is introduced.
+Full default builds pass (431 integration / 428 main review jobs), as do all
+54 selected integration fixtures and 25 selected main fixtures. No new admission is introduced.
+
+**Nonzero quotient-major classification:** actual sort typings now prove
+source-universe agreement for definitionally equal quotient types and recover a
+constructor's source universe from its supplied result type. Any proof inhabiting
+a quotient forces a zero-equivalent source, even for a neutral major. At a
+nonzero source, arbitrary normal comparison to a constructor now exposes an
+actual core path either to a literal constructor with all three related captures,
+or to a lambda carrying an explicit equality between the original quotient type
+and a Pi type. This eliminates both proof alternatives without false confluence.
+Excluding the eta alternative still needs quotient/Pi separation; nonzero EXTRA,
+universal simulation and actual-consumer migration remain open.
 
 **General Prop-source application EXTRA:** hereditary exposure now follows
 actual checked quotient firing from an arbitrary normally related left source,
