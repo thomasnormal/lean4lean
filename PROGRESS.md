@@ -65,6 +65,13 @@ dependent binders. All 155 audited roots exclude admissions and choice on
 both versions. Confluence, admission-free normal-equality transitivity,
 conversion-consumer migration and frontend soundness remain open.
 
+**Inhabited normal-equality context conversion:** `NormalEq.weak_inv_of_hasType`
+pulls a lifted normal equality back through one binder by instantiating a
+typed inhabitant. The proof is a direct use of the admission-free simultaneous
+normal-substitution API and its audit allows only `propext` and `Quot.sound`.
+It supplies the constructive inhabited case while the unrestricted inverse
+weakening theorem remains false and conditional.
+
 **Universal original-core simulation:** every actual `NormalEq` in a
 well-formed environment with the checked quotient rule registered now simulates
 any original parallel step, and any finite original-core path, using the

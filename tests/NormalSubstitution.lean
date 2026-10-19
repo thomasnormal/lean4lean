@@ -75,6 +75,23 @@ theorem bothApplication : NormalEq locals (domain.inst (.bvar 1)) (domain.inst (
     (.refl functionTyped) (.refl valueTyped)
   exact NormalEq.instDF localsWF propositionTyped leftTyped argumentsNormal normal
 
+-- Inverse weakening is constructive when the removed binder has a typed
+-- inhabitant. This control uses `Prop` as that inhabitant.
+def inhabitedLocals : List VExpr := [.sort .zero]
+
+theorem inhabitedLocalsWF : OnCtx inhabitedLocals (env.IsType univs) := by
+  exact ⟨trivial, _, HasType.sort (by trivial)⟩
+
+theorem inhabitedWeakening : NormalEq inhabitedLocals (.bvar 0) (.bvar 0) := by
+  have domainTyped : env.HasType univs inhabitedLocals (.sort .zero) (.sort (.succ .zero)) :=
+    .sort trivial
+  have argumentTyped : env.HasType univs inhabitedLocals (.bvar 0) (.sort .zero) :=
+    .bvar .zero
+  have lifted : NormalEq (VExpr.sort .zero :: inhabitedLocals)
+      (VExpr.bvar 0).lift (VExpr.bvar 0).lift :=
+    .refl (HasType.bvar (.succ .zero))
+  exact NormalEq.weak_inv_of_hasType inhabitedLocalsWF domainTyped argumentTyped lifted
+
 example : domain.inst (.bvar 1) = leftDomain := rfl
 example : domain.inst (.bvar 0) = rightDomain := rfl
 example : leftDomain ≠ rightDomain := by intro equal; cases equal
@@ -118,7 +135,7 @@ example : twoVariableBody.subst twiceRight =
 
 run_meta
   let environment ← getEnv
-  let roots := [``NormalSubstitution.lift_at, ``NormalSubstitution.lift, ``NormalSubstitution.expression, ``NormalEq.substDF, ``NormalSubstitution.id, ``NormalSubstitution.one, ``NormalEq.instDF, ``localsWF, ``propositionTyped, ``leftTyped, ``rightTyped, ``argumentsNormal, ``sourceWF, ``domainTyped, ``identityTyped, ``etaBodyTyped, ``bothEtaRight, ``bothEtaLeft, ``bothLambda, ``bothReflexive, ``bothForall, ``bothApplication, ``doubleSubstitution, ``twoVariableImages]
+  let roots := [``NormalSubstitution.lift_at, ``NormalSubstitution.lift, ``NormalSubstitution.expression, ``NormalEq.substDF, ``NormalSubstitution.id, ``NormalSubstitution.one, ``NormalEq.instDF, ``NormalEq.weak_inv_of_hasType, ``localsWF, ``propositionTyped, ``leftTyped, ``rightTyped, ``argumentsNormal, ``sourceWF, ``domainTyped, ``identityTyped, ``etaBodyTyped, ``bothEtaRight, ``bothEtaLeft, ``bothLambda, ``bothReflexive, ``bothForall, ``bothApplication, ``inhabitedLocalsWF, ``inhabitedWeakening, ``doubleSubstitution, ``twoVariableImages]
   let forbidden := [``NormalEq.parRed, ``NormalEq.parRedS, ``IsDefEq.church_rosser,
     `Lean4Lean.VEnv.IsDefEqU.quot_inj, ``IsDefEqU.weakN_iff, ``NormalEq.weakN_iff, ``NormalEq.weakN_inv_DFC,
     ``ParRed.weakN_inv, ``NormalEq.trans,
@@ -131,6 +148,7 @@ run_meta
     (`Lean4Lean.VEnv.NormalSubstitution.id, [], [`propext, `Quot.sound]),
     (`Lean4Lean.VEnv.NormalSubstitution.one, [], [`propext, `Quot.sound]),
     (`Lean4Lean.VEnv.NormalEq.instDF, [], [`propext, `Quot.sound]),
+    (`Lean4Lean.VEnv.NormalEq.weak_inv_of_hasType, [], [`propext, `Quot.sound]),
     (`NormalSubstitutionTest.localsWF, [], [`propext, `Quot.sound]),
     (`NormalSubstitutionTest.propositionTyped, [], [`propext, `Quot.sound]),
     (`NormalSubstitutionTest.leftTyped, [], [`propext, `Quot.sound]),
@@ -146,6 +164,8 @@ run_meta
     (`NormalSubstitutionTest.bothReflexive, [], [`propext, `Quot.sound]),
     (`NormalSubstitutionTest.bothForall, [], [`propext, `Quot.sound]),
     (`NormalSubstitutionTest.bothApplication, [], [`propext, `Quot.sound]),
+    (`NormalSubstitutionTest.inhabitedLocalsWF, [], [`propext, `Quot.sound]),
+    (`NormalSubstitutionTest.inhabitedWeakening, [], [`propext, `Quot.sound]),
     (`NormalSubstitutionTest.doubleSubstitution, [], [`propext, `Quot.sound]),
     (`NormalSubstitutionTest.twoVariableImages, [], [`propext, `Quot.sound])]
   for root in roots do
@@ -188,12 +208,14 @@ run_meta
       else if root == ``NormalSubstitution.expression then [``NormalSubstitution.lift, ``NormalEq.lamDF, ``NormalEq.forallEDF, ``NormalEq.appDF]
       else if root == ``NormalEq.substDF then [``NormalSubstitution.expression, ``NormalSubstitution.lift_at, ``NormalEq.etaR, ``NormalEq.etaL]
       else if root == ``NormalEq.instDF then [``NormalEq.substDF, ``NormalSubstitution.one]
+      else if root == ``NormalEq.weak_inv_of_hasType then [``NormalEq.instDF]
       else if root == ``bothEtaRight then [``NormalEq.instDF, ``NormalEq.etaR, ``NormalSubstitution.lift_at]
       else if root == ``bothEtaLeft then [``NormalEq.instDF, ``NormalEq.etaL]
       else if root == ``bothLambda then [``NormalEq.instDF, ``NormalEq.lamDF]
       else if root == ``bothReflexive then [``NormalEq.instDF, ``NormalSubstitution.expression]
       else if root == ``bothForall then [``NormalEq.instDF, ``NormalEq.forallEDF]
       else if root == ``bothApplication then [``NormalEq.instDF, ``NormalEq.appDF]
+      else if root == ``inhabitedWeakening then [``NormalEq.weak_inv_of_hasType, ``NormalEq.instDF]
       else if root == ``twoVariableImages then [``NormalSubstitution.expression, ``doubleSubstitution]
       else []
     unless required.all visited.contains do
