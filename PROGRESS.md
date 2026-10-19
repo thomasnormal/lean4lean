@@ -59,6 +59,16 @@ normal-substitution API and its audit allows only `propext` and `Quot.sound`.
 It supplies the constructive inhabited case while the unrestricted inverse
 weakening theorem remains false and conditional.
 
+**Constructive inductive registration alignment:**
+`NativeInductive.RegistrationEvidence.aligned` now consumes the existing
+header, constructor, and generated-recursor registration receipts and
+transports `Aligned` through all three staged model extensions. The proof
+checks each native constant's translated type, freshness, model-name shape,
+and map equation against the corresponding `VEnv` insertion. It covers
+arbitrary definition-safety levels by lowering the safe receipt. The
+executable frontend is unchanged; `AddInduct` and full recursor semantics
+remain open.
+
 **Universal original-core simulation:** every actual `NormalEq` in a
 well-formed environment with the checked quotient rule registered now simulates
 any original parallel step, and any finite original-core path, using the
