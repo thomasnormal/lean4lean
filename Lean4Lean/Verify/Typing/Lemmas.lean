@@ -1658,6 +1658,42 @@ theorem TrExpr.abstract (W : VLCtx.Abstract Δ₀ v₀ d₀ dk k Δ₁ Δ) (H : 
     TrExpr env Us Δ (e.abstract1 v₀ dk) e' :=
   let ⟨_, s, h⟩ := H; ⟨_, s.abstract W, W.toCtx ▸ h⟩
 
+/-- Naming an anonymous native binder changes variable lookup, but neither the
+semantic context nor the translated expression. Freshness prevents capture of
+an existing free variable, including below retained native lambdas and lets. -/
+theorem TrExprS.instantiateFVar (W : VLCtx.Abstract Δ₀ v₀ d₀ dk k Δ₁ Δ)
+    (fresh : v₀ ∉ Δ₀.fvars) (H : TrExprS env Us Δ e e') :
+    TrExprS env Us Δ₁ (e.instantiate1' (.fvar v₀) dk) e' := by
+  induction H generalizing dk k Δ₁ with
+  | @bvar _ _ _ i h =>
+    have lookup := (W.find? (v := .inl i) (by nofun)).symm.trans h
+    simp only [Expr.instantiate1']
+    split <;> rename_i below
+    · exact .bvar (by simpa [below] using lookup)
+    · split <;> rename_i equal
+      · simpa [Expr.liftLooseBVars'] using TrExprS.fvar (by simpa [below, equal] using lookup)
+      · exact .bvar (by simpa [below, equal] using lookup)
+  | @fvar _ _ _ fv h =>
+    have member : fv ∈ Δ₀.fvars := by
+      rw [← W.fvars_eq.2, ← VLCtx.find?_eq_some]
+      exact ⟨_, h⟩
+    have different : fv ≠ v₀ := fun equal => fresh (equal ▸ member)
+    exact .fvar ((W.find? (v := .inr fv) (by simpa using different)).symm.trans h)
+  | sort h => exact .sort h
+  | const h1 h2 h3 => exact .const h1 h2 h3
+  | app h1 h2 _ _ ih1 ih2 =>
+    exact .app (W.toCtx.symm ▸ h1) (W.toCtx.symm ▸ h2) (ih1 W) (ih2 W)
+  | lam h _ _ ih1 ih2 =>
+    exact .lam (W.toCtx.symm ▸ h) (ih1 W) (ih2 W.succ)
+  | forallE h1 h2 _ _ ih1 ih2 =>
+    exact .forallE (W.toCtx.symm ▸ h1) (W.toCtx.symm ▸ h2) (ih1 W) (ih2 W.succ)
+  | letE h _ _ _ ih1 ih2 ih3 =>
+    exact .letE (W.toCtx.symm ▸ h) (ih1 W) (ih2 W) (ih3 W.succ)
+  | lit h _ ih =>
+    exact .lit h (Expr.instantiate1'_eq_self Closed.toConstructor.looseBVarRange_le ▸ ih W)
+  | mdata _ ih => exact .mdata (ih W)
+  | proj _ h ih => exact .proj (ih W) (W.toCtx.symm ▸ h)
+
 def TrExprS.IsUnique : Expr → Prop
   | .bvar _
   | .fvar _
@@ -2154,23 +2190,13 @@ theorem TrExpr.uninstantiate
     (sc : FVarsIn (· ≠ v) e) :
     TrExpr env Us ((none, d) :: Δ) e e' := H.uninstantiateN .zero sc
 
+-- Retain the original API, although direct naming no longer needs orderedness.
+set_option linter.unusedVariables false in
 theorem TrExprS.inst_fvar {Δ : VLCtx} (henv : Ordered env)
     (hΔ : VLCtx.WF env Us.length ((some (a, deps), d) :: Δ))
     (H : TrExprS env Us ((none, d) :: Δ) e e') :
     TrExprS env Us ((some (a, deps), d) :: Δ) (e.instantiate1' (.fvar a)) e' := by
-  refine
-    have W := .skip_fvar (a, deps) d .refl
-    have := H.weakFV henv (.cons_bvar _ W) ⟨hΔ, nofun, hΔ.2.2.weakN henv W.toCtx⟩
-    ?_
-  have hf := TrExprS.fvar (env := env) (Us := Us) (fv := a) (Δ := (some (a, deps), d) :: Δ) <| by
-    simp [VLCtx.find?, VLCtx.next]; exact ⟨rfl, rfl⟩
-  match d with
-  | .vlam A₀ =>
-    have := this.inst henv (.bvar .zero) (Δ := (some (a, deps), .vlam _) :: Δ) hf
-    rwa [VLocalDecl.depth, VExpr.instN_bvar0] at this
-  | .vlet A₀ e₀ =>
-    simp [VLocalDecl.depth, VLocalDecl.liftN] at this
-    exact this.inst_let henv hf
+  exact H.instantiateFVar .zero (hΔ.2.1 _ _ rfl).1
 
 theorem TrExpr.rebuild_mkAppRevList (henv : env.WF) (hΔ : Δ.WF env Us.length)
     (he : TrExprS env Us Δ e e') (h1 : TrExprS env Us Δ (e.mkAppRevList as) ea')
