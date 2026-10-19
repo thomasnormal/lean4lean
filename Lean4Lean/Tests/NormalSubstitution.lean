@@ -98,12 +98,23 @@ theorem doubleSubstitution : NormalSubstitution locals twiceLeft twiceRight (.bv
     | zero => exact argumentsNormal
     | succ lookup => exact first.normal lookup
 
+def twoVariableBody : VExpr :=
+  .forallE (.app (.bvar 4) (.bvar 0)) (.app (.bvar 5) (.bvar 2))
+
 theorem twoVariableImages : NormalEq locals
-    ((.app (.bvar 4) (.bvar 1) : VExpr).subst twiceLeft)
-    ((.app (.bvar 4) (.bvar 1) : VExpr).subst twiceRight) := by
-  apply NormalSubstitution.expression (type := .sort .zero) localsWF doubleSubstitution
-  unfold source locals
-  type_tac
+    (twoVariableBody.subst twiceLeft) (twoVariableBody.subst twiceRight) := by
+  apply NormalSubstitution.expression (type := .sort (.imax .zero .zero)) localsWF doubleSubstitution
+  unfold twoVariableBody
+  apply HasType.forallE
+  · exact HasType.app' (B := .sort .zero) (by unfold source locals; type_tac)
+      (by unfold source locals; type_tac) rfl
+  · exact HasType.app' (B := .sort .zero) (by unfold source locals; type_tac)
+      (by unfold source locals; type_tac) rfl
+
+example : twoVariableBody.subst twiceLeft =
+    .forallE (.app (.bvar 2) (.bvar 1)) (.app (.bvar 3) (.bvar 2)) := rfl
+example : twoVariableBody.subst twiceRight =
+    .forallE (.app (.bvar 2) (.bvar 0)) (.app (.bvar 3) (.bvar 1)) := rfl
 
 run_meta
   let environment ← getEnv
