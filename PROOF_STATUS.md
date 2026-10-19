@@ -14,6 +14,76 @@ the results below. See `bugs-found.md` for the full obstruction and native
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Finite dependent telescope round trips — 2026-10-19
+
+The reverse-spine, telescope compactness/valuation and winding arguments adapt
+[PR #53](https://github.com/digama0/lean4lean/pull/53), exact head
+5a8c0d5f111809a95f4924c71e0e9bc8738d72e0, to the current expression language.
+They use actual constant heads and their stored types. The few argument
+substitution/list helpers needed from upstream projection infrastructure are
+proved here without importing a projection language or adding environment
+metadata. Equal-length argument substitutions determine their actual arguments.
+
+HTS.spineRev retains actual SD typing of each argument and reconstructs domain
+class, domain-type and supplied-result observations as codomain chains at the
+actual stored constant type. ChainArgs records class membership and coverage
+by observations of the actual arguments. The finite keys may differ for each
+observation; no common finite basis for all observations is asserted.
+
+Obs.compact_all collects finite observation demands for every free variable of
+a term closed at the given bound. Any valuation covering those demands
+preserves the observations. tele_compact starts with an actual typed
+substitution and typed valuation of a closed dependent telescope. Its finite
+backed keys retain the original demands, remain subsets of the supplied
+observation sets, and have the actual argument classes at the instantiated
+domains. Compacting a later binder's typing can create new demands on earlier
+binders. The input observation sets need not themselves be finite.
+
+spine_tele_prefix and spine_tele build actual typed substitutions and typed
+valuations from all observations of the actual arguments. They consume a
+proved sound telescope and subsumption from observations of the stored head
+type to that telescope. Splitting codomain chains, transferring valuations
+between related anchors, and soundness of the domains perform the dependent
+class/type transport. These are logical proof premises, not new environment
+invariants or substitutes for stored-rule validity.
+
+tele_wind consumes actual ordinary typing of a function and typed telescope
+keys. It returns actual typing of the application to the key anchors and
+winds a typed endpoint observation back to a typed head observation. The
+endpoint class is the element class of that actual application, using proved
+application-class equality. Supporting lemmas recover sort-ending chains
+from typed rigid observations and identify the endpoint sort of a syntactic
+Pi telescope. No projection/eta registration is postulated.
+
+The strict ModelSpineTele fixture checks 138 exact admission and axiom
+manifests: every new production declaration and every fixture declaration.
+Traversal checks declaration/constructor types and bodies, including opaque
+bodies on integration, and pins substantive dependencies. Each root has
+exactly its listed subset of propext and Quot.sound. Admissions, choice,
+false NormalEq.parRed/confluence, derived quotient injectivity, inverse
+weakening and admitted sort/Pi separation remain excluded.
+
+A checked axiom has the dependent type forall X : Sort 2, X -> X. Its actual
+Strong derivation applies it to a beta-redex type and to Sort 0, with the
+result converted from that redex to Sort 1. Reverse transfer reconstructs
+positive result/domain observations and actual argument SD typing. Full and
+partial spines produce typed prefix valuations. Finite compaction is asked
+only for the inner argument's positive observation; the result discovers a
+nonempty earlier key needed to type it, despite the empty first input demand.
+Those keys rebuild a positive lambda observation. Winding them with actual
+constant typing rebuilds a positive rigid head observation. Separate controls
+cover all free variables and replace a beta-redex anchor by its canonical
+representative through actual substitution equality.
+
+The first audits caught a standard-library choice dependency in arithmetic
+simplification of an impossible nil case. Nil/concat construction and direct
+constructor elimination replace it in both list helpers; the trust gate was
+retained. All prior production bytes/contracts and the admission census are
+unchanged. Both full defaults and all selected fixtures pass. These structural
+round trips are foundations for actual quotient-rule validity, which remains
+open along with full model soundness, quotient/Pi separation and consumer
+migration. Ordinary frontend soundness still inherits foundational admissions.
+
 ## Constructive rule-binding foundation — 2026-10-19
 
 Model.RuleLemmas adapts the rule foundation of
