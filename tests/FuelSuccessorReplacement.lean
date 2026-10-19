@@ -122,7 +122,7 @@ run_meta
   logInfo m!"{visited.size} same-context replacement dependencies; exact inherited direct admissions {repr admissions}"
   -- Translation uniqueness is a separate inherited equality obligation.
   let bridgeInherited := [``TrProj, ``TrProj.uniq, ``TrProj.wf,
-    ``VEnv.IsDefEqU.sort_inv, ``VEnv.IsDefEqU.forallE_inv_stratified]
+    ``VEnv.IsDefEqU.forallE_inv_stratified]
   pending := #[``TrExprS.uniq]
   visited := {}
   admissions := #[]

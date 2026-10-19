@@ -129,8 +129,8 @@ run_meta
     (`Lean4Lean.VEnv.NormalSubstitution.expression, [], [`propext, `Quot.sound]),
     (`Lean4Lean.VEnv.NormalEq.substDF, [], [`propext, `Quot.sound]),
     (`Lean4Lean.VEnv.NormalSubstitution.id, [], [`propext, `Quot.sound]),
-    (`Lean4Lean.VEnv.NormalSubstitution.one, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
-    (`Lean4Lean.VEnv.NormalEq.instDF, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
+    (`Lean4Lean.VEnv.NormalSubstitution.one, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
+    (`Lean4Lean.VEnv.NormalEq.instDF, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
     (`NormalSubstitutionTest.localsWF, [], [`propext, `Quot.sound]),
     (`NormalSubstitutionTest.propositionTyped, [], [`propext, `Quot.sound]),
     (`NormalSubstitutionTest.leftTyped, [], [`propext, `Quot.sound]),
@@ -140,14 +140,14 @@ run_meta
     (`NormalSubstitutionTest.domainTyped, [], [`propext, `Quot.sound]),
     (`NormalSubstitutionTest.identityTyped, [], [`propext, `Quot.sound]),
     (`NormalSubstitutionTest.etaBodyTyped, [], [`propext, `Quot.sound]),
-    (`NormalSubstitutionTest.bothEtaRight, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
-    (`NormalSubstitutionTest.bothEtaLeft, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
-    (`NormalSubstitutionTest.bothLambda, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
-    (`NormalSubstitutionTest.bothReflexive, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
-    (`NormalSubstitutionTest.bothForall, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
-    (`NormalSubstitutionTest.bothApplication, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
-    (`NormalSubstitutionTest.doubleSubstitution, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
-    (`NormalSubstitutionTest.twoVariableImages, [`Lean4Lean.VEnv.IsDefEqU.sort_inv, `Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound])]
+    (`NormalSubstitutionTest.bothEtaRight, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
+    (`NormalSubstitutionTest.bothEtaLeft, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
+    (`NormalSubstitutionTest.bothLambda, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
+    (`NormalSubstitutionTest.bothReflexive, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
+    (`NormalSubstitutionTest.bothForall, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
+    (`NormalSubstitutionTest.bothApplication, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
+    (`NormalSubstitutionTest.doubleSubstitution, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound]),
+    (`NormalSubstitutionTest.twoVariableImages, [`Lean4Lean.VEnv.IsDefEqU.forallE_inv_stratified], [`propext, `sorryAx, `Quot.sound])]
   for root in roots do
     let some (_, expectedAdmissions, expectedAxioms) := manifests.find? (fun entry => entry.1 == root)
       | throwError "missing manifest {root}"

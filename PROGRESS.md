@@ -52,8 +52,22 @@ outer-context translation. WF′/WF/WF₂ keep their exact top-level contracts.
 All direct general-strengthening/extraction calls in WF′ are now removed;
 transitive checker admissions remain. The new replacement helper pins three
 inherited projection admissions, and its equality bridge pins five.
-Full default builds pass (450 integration / 447 main review jobs), as do all
-65 selected integration fixtures and 36 selected main fixtures. No new admission is introduced.
+Full default builds pass (456 integration / 453 main review jobs), as do all
+66 selected integration fixtures and 38 selected main fixtures. No new admission is introduced.
+
+**Ordinary soundness and head separation:** the original sort-injectivity and
+sort/Pi-separation admissions are now proved with unchanged contracts, using
+only `propext` and `Quot.sound`. Actual ordinary derivations inherit simultaneous
+model soundness through the independently clean Strong conversion. Actual WF
+history supplies all four chain-injectivity fields: universe equality, dependent
+Pi chains, rigid head/argument equality and stored-telescope argument equality.
+The model also separates actual rigid Quot spines from Pi types. Its import
+graph excludes the old injectivity, uniqueness and confluence modules. Strict
+197/204-root audits include the moved foundational helpers and existing
+consumer names. Dependent beta chains, real ordinary/Strong quotient EXTRA
+and a two-argument Quot spine are checked. Original dependent-Pi injectivity,
+type uniqueness, nonzero reduction simulation and frontend soundness remain
+open. Earlier dated checkpoint accounts below are superseded by this boundary.
 
 **Actual rule validity and Strong-derivation soundness:** declaration history now
 supplies quotient constants, family/constructor rigidity and unique ownership.
@@ -63,7 +77,8 @@ stored-rule obligation of the simultaneous induction. `sound_of_wf` proves both
 semantic inclusions and both endpoint semantic typings for actual Strong
 derivations in a well-formed source included in a well-formed target. Its 131
 strictly audited roots exclude admissions and choice. Ordinary frontend
-soundness, quotient/Pi separation and consumer migration remain open.
+soundness and the remaining consumer migration remain open; ordinary source
+soundness and head separation are supplied above.
 
 **Constructor-pattern rule soundness:** the rule argument now proves both
 semantic inclusions for the current constructor-observation and proof-binding
@@ -638,18 +653,18 @@ precise boundaries and reproducers.
 
 ## Validation and admission accounting
 
-The current main Lean 4.29.0 proof source passes all default targets (446 jobs)
-and all 35 selected regressions on October 19. This Lean 4.33.0-rc2 integration
-passes its full default build (449 jobs) and all 64 selected regressions. The
+The current main Lean 4.29.0 proof source passes all default targets (453 jobs)
+and all 38 selected regressions on October 19. This Lean 4.33.0-rc2 integration
+passes its full default build (456 jobs) and all 66 selected regressions. The
 independent current-master substitution PR passes its default build and
 standalone regression. Each receipt validates its respective source snapshot;
 exact trust bounds are recorded in `PROOF_STATUS.md`.
 
 | Whole-word `sorry` or `admit` source census, October 19 | Published proof source | Local integration | Official master |
 | --- | --- | --- | --- |
-| Matching lines | 119 | 124 | 133 |
+| Matching lines | 117 | 122 | 133 |
 | Files containing matches | 19 | 23 | 29 |
-| Occurrences | 123 | 128 | 137 |
+| Occurrences | 121 | 126 | 137 |
 
 This deliberately includes comments and `Experimental` sources. It is a source
 census, **not an audit of theorem trust**: removing one admission does not make
@@ -659,7 +674,8 @@ retain foundational admissions. Our actual frontend's transitive `sorryAx`
 dependency is the more important signal.
 
 This integration removes three abstract signature/model placeholders and the
-actual recursor dispatcher admission, with no new admissions. The remaining
+actual recursor dispatcher admission. Proved sort injectivity and sort/Pi
+separation remove two more occurrences in both trees, with no new admissions. The remaining
 `sorryAx` dependencies, including the known-false confluence contract, remain
 explicitly conditional. Raw counts do not replace the dependency audits.
 

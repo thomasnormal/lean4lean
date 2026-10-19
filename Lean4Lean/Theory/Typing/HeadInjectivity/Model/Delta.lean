@@ -1,5 +1,5 @@
 import Lean4Lean.Theory.Typing.HeadInjectivity.Model.Sound
-import Lean4Lean.Theory.Typing.RewriteRules
+import Lean4Lean.Theory.Typing.RewriteMetadata
 
 /-! # Validity of actual delta equations
 

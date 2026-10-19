@@ -1,15 +1,18 @@
+import Lean4Lean.Theory.Typing.HeadInjectivity.Model.Separation
 import Lean4Lean.Theory.Typing.EnvLemmas
 import Lean4Lean.Theory.Typing.Strong
 
 /-!
-A bunch of important structural theorems which we can't prove :(
+Sort injectivity and sort/Pi separation follow from the observation model.
+The stratified dependent-Pi injectivity proof remains open.
 -/
 
 namespace Lean4Lean
 namespace VEnv
 
 theorem IsDefEqU.sort_inv (henv : VEnv.WF env) (hΓ : OnCtx Γ (env.IsType U))
-    (h1 : env.IsDefEqU U Γ (.sort u) (.sort v)) : u ≈ v := sorry
+    (h1 : env.IsDefEqU U Γ (.sort u) (.sort v)) : u ≈ v :=
+  Model.sort_injective henv hΓ h1
 
 theorem IsDefEqU.forallE_inv_stratified (henv : VEnv.WF env) (hΓ : OnCtx Γ (env.IsType U))
     (h1 : env.IsDefEqU U Γ (.forallE A B) (.forallE A' B'))
@@ -31,4 +34,5 @@ theorem IsDefEqU.forallE_inv (henv : VEnv.WF env) (hΓ : OnCtx Γ (env.IsType U)
   ⟨⟨_, a1⟩, _, a2⟩
 
 theorem IsDefEqU.sort_forallE_inv (henv : VEnv.WF env) (hΓ : OnCtx Γ (env.IsType U)) :
-    ¬env.IsDefEqU U Γ (.sort u) (.forallE A B) := sorry
+    ¬env.IsDefEqU U Γ (.sort u) (.forallE A B) :=
+  Model.sort_forallE_separated henv hΓ

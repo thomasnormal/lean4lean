@@ -146,7 +146,7 @@ run_meta
       unless #[``propext, ``Quot.sound].contains dependency do
         throwError "constructor/induction beta lost its admission-free boundary: {dependency} in {name}"
   let mut visited : NameSet := {}
-  for _ in [:100000] do
+  for _ in [:1000000] do
     if pending.isEmpty then break
     let name := pending.back!
     pending := pending.pop
@@ -159,6 +159,6 @@ run_meta
   for name in #[``VEnv.IsDefEq.church_rosser, ``VEnv.NormalEq.parRed,
       ``VEnv.WF.reductionParams, ``VEnv.WF.rewriteMetadata, ``VEnv.IsDefEqU.sort_inv] do
     unless visited.contains name do throwError "expected inherited quotient dependency absent: {name}"
-  logInfo m!"{owned} owned quotient injectivity/alignment values have no direct admission or new axiom; the concrete model protects registered Quot spines, telescope typing rules out every proof-irrelevance branch, and both typed/normalized-major beta rules infer parameters without caller checks; existing confluence and sort-injectivity admissions remain explicit: {repr baseline}"
+  logInfo m!"{owned} owned quotient injectivity/alignment values have no direct admission or new axiom; the concrete model protects registered Quot spines, telescope typing rules out every proof-irrelevance branch, and both typed/normalized-major beta rules infer parameters without caller checks; existing confluence admissions remain explicit; sort injectivity is now proved: {repr baseline}"
 
 end QuotientInjectivityTest

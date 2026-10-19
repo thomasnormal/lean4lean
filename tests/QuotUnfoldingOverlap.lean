@@ -370,7 +370,7 @@ run_meta
     ``arbitraryCoreRetained, ``alternateCoreReduction]
   let onlyPropext := [``computes, ``prefixAlgorithmComputes, ``canonicalComputes, ``saturatedMatches]
   let noAxioms := [``constMatches_name, ``spineMatches_count, ``saturatedResultNotPrefix]
-  let typingAdmissions := [``IsDefEqU.sort_inv, ``IsDefEqU.forallE_inv_stratified]
+  let typingAdmissions := [``IsDefEqU.forallE_inv_stratified]
   let forbidden := [``NormalEq.parRed, ``NormalEq.parRedS, ``IsDefEq.church_rosser,
     ``IsDefEqU.quot_inj, ``IsDefEqU.weakN_iff, ``NormalEq.weakN_iff, ``NormalEq.weakN_inv_DFC,
     `Lean4Lean.TrProj, `Lean4Lean.TrProj.weak', `Lean4Lean.TrProj.instN, ``Classical.choice]

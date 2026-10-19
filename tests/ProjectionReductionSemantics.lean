@@ -192,8 +192,7 @@ run_meta
   let methodAxioms := loopAxioms ++ [``Lean.Expr.abstractRange_eq, ``Lean.Expr.abstract_eq,
     ``Lean.Expr.hasLooseBVar_eq, ``Lean.Expr.instantiate1_eq, ``Lean.Expr.instantiateRange_eq,
     ``Lean.Expr.instantiateRevRange_eq, ``Lean.Expr.lowerLooseBVars_eq]
-  let comparisonAdmissions := [``VEnv.IsDefEqU.sort_inv,
-    ``VEnv.IsDefEqU.forallE_inv_stratified, ``TrProj, ``TrProj.uniq]
+  let comparisonAdmissions := [``VEnv.IsDefEqU.forallE_inv_stratified, ``TrProj, ``TrProj.uniq]
   let loopAdmissions := comparisonAdmissions ++ [``TrProj.defeqDFC, ``TrProj.wf,
     ``TrProj.weak', ``VEnv.IsDefEqU.weakN_iff, ``TrProj.weak'_inv, ``TrProj.instL]
   let methodAdmissions := loopAdmissions ++ [``TrProj.instN, `Lean4Lean.VEnv.NormalEq.parRed]

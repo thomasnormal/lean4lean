@@ -4,6 +4,88 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Ordinary soundness and proved head separation — 2026-10-19
+
+The original `IsDefEqU.sort_inv` and `IsDefEqU.sort_forallE_inv` contracts now
+have proofs through the observation model. They retain arbitrary actual untyped
+equality, well-formed environment and context premises. `sort_type_chain` peels
+actual Strong conversions; `sort_equality` retypes an ordinary equality beginning
+at a sort at its canonical successor without assuming type uniqueness.
+Both consumer theorems have exactly the axioms `propext` and `Quot.sound`,
+with no admission, choice or confluence dependency.
+
+`Model.sound_ordinary` converts actual ordinary source derivations with the
+existing `IsDefEq.strong` theorem and applies actual-history soundness. It
+retains distinct well-formed source and target environments, their inclusion,
+source-context validity and target-context validity. The existing conversion,
+its context theorem and the typing inversions are independently audited and
+already exclude admissions and choice. `WF.soundEnv` discharges the Strong
+soundness premise for every actual well-formed environment.
+
+`ChainHeadInjectivity` has four actual ordinary-chain fields. Soundness carries
+observations along every heterogeneous sort-typed link. Sort observations give
+universe equivalence. Pi domain observations and the codomain observation at a
+fresh variable give dependent domain/codomain chains. Rigid spine observations
+give the same constant, equivalent universe lists and actual argument equality;
+`tele_spine` relates those arguments at the stored dependent telescope domains.
+`WF.chainHeadInjectivity` supplies all four fields from actual WF history.
+Sort/Pi, sort/rigid and Pi/rigid chain separation follow from incompatible head
+observations. In particular, actual rigid Quot/Pi separation now has a proof.
+The extraction, chain record and separation adapt
+[PR #53](https://github.com/digama0/lean4lean/pull/53), exact head
+5a8c0d5f111809a95f4924c71e0e9bc8738d72e0, to the current four constant clauses.
+No projection or eliminator metadata is invented.
+
+The import graph is acyclic without the old Injectivity, UniqueTyping or
+ChurchRosser modules. Unchanged proofs of zero-level recognition, actual
+quotient-object recovery and rewrite-history metadata move into lower modules.
+The integration tree also moves its unchanged mutual-definition prerequisites.
+Exact source checks verify every moved proof and the unchanged consumer
+contracts; unrelated production bytes are unchanged. Two main-tree list-sublist
+statements spell `List.Sublist` explicitly after the expanded imports.
+
+`tests/ModelExtract.lean` strictly audits 197 roots on Lean 4.29.0 and 204 on
+Lean 4.33.0-rc2. These include every new proof/definition, record constructor
+and projection, moved private helper, both original consumers, conversion
+foundations, and all 139 fixture declarations. Every declaration/constructor
+type and every body is traversed, explicitly including opaque integration
+bodies; missing declarations fail. Exact manifests allow only each root's
+listed subset of `propext` and `Quot.sound`. Required dependencies pin the
+actual histories, ordinary conversion, real quotient EXTRA, dependent beta
+chains, rigid arguments and existing consumer names.
+
+Positive controls construct complete ordinary and Strong quotient equations
+at `[max 0 0, 1]`, ordinary equations at `[1, 1]`, and simultaneous soundness
+for both. A dependent Pi has beta-equal domain and codomain; extraction retains
+the left-domain context. A heterogeneous two-link sort chain and an actual
+two-argument Quot spine exercise the remaining record fields. All three head
+separation pairs are checked in both chain orientations. The prior checked
+delta histories and nonempty valuation controls remain present.
+
+Full default builds pass 453 main / 456 integration jobs. The 37/65 existing
+fixtures (including the extended quotient-injectivity traversal) and
+the new strict fixture pass: 38/66 total. Historical manifests lose only the
+two newly proved admission expectations; remaining stratified Pi injectivity
+is still explicit. Its known-false confluence users remain conditional.
+Source census decreases by exactly two in each tree: main 119 to 117 matching
+lines, 19 files, 123 to 121 whole-word sorry|admit occurrences; integration
+124 to 122 lines, 23 files, 128 to 126 occurrences. No executable behavior
+change, new admission or new kernel discrepancy is claimed.
+
+This milestone extends main b2b9e02b6bf29e99af4b04c2e274fd2da7d9362c and detached
+integration 1b49dcd40717b18063b3c3f8919757ae711f7e45, based on official
+67f63b0c818920dfaed2ad07ccff187a6a8fe1e3. Receipts use
+`lean4lean-model-extract-` stems dated 20261019 under the fleet logs directory.
+Earlier dated counts/manifests below describe their original checkpoints;
+the current fixtures and this section give the updated trust boundary.
+
+Remaining work includes original dependent-Pi injectivity, type uniqueness,
+nonzero major exposure, matching/check recovery, universal reduction simulation,
+replacement of false NormalEq.parRed/confluence and the remaining consumer
+migration. Ordinary frontend soundness still inherits foundational admissions;
+genuine inductive constructor/recursor semantics remains open.
+
+
 ## Actual quotient validity and Strong-derivation soundness — 2026-10-19
 
 Model.QuotRule adapts the quotient argument of

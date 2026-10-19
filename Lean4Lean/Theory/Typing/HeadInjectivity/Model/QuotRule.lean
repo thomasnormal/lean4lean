@@ -1,5 +1,5 @@
 import Lean4Lean.Theory.Typing.HeadInjectivity.Model.RuleSound
-import Lean4Lean.Theory.Typing.QuotPatternSoundness
+import Lean4Lean.Theory.Typing.QuotObjects
 
 /-! # The quotient rule as a pattern rule
 
