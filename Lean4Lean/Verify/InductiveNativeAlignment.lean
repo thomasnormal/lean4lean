@@ -196,5 +196,14 @@ theorem RegistrationEvidence.resultWF
       exact hrecursors entry hentry)
     evidence.recursorAdd
 
+theorem RegistrationEvidence.registrationWF
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (henv : env.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors, entry.model.toVConstant.WF
+      evidence.constructorEnv) :
+    env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result ∧
+      result.WF :=
+  ⟨evidence.to_addInduct, evidence.resultWF henv hrecursors⟩
+
 end NativeInductive
 end Lean4Lean
