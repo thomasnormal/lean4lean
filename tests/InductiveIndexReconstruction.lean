@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveIndexDomainCorrespondence
+import Lean4Lean.Verify.InductiveRecursiveTailInputs
 import Lean.Util.CollectAxioms
 
 namespace InductiveIndexReconstructionTest
@@ -140,6 +140,11 @@ private def runtime : MetaM Unit := do
                   throwError "target does not reconstruct actual raw recursor type"
                 let changed := #[natural, .const ``Nat.zero [], mkApp2 (.const ``Eq.refl [.succ .zero]) natural (.const ``Nat.zero [])]
                 let (sourceEnd, targetEnd) ← compareDomains reconstructed target changed full
+                unless tail.instantiateSelected (binderArrayIds indices) changed.toList == targetEnd do
+                  throwError "simultaneous selected substitution differs from actual binder consumption"
+                let (_, originalEnd) ← compareDomains reconstructed target indices full
+                unless originalEnd == tail && tail.instantiateSelected (binderArrayIds indices) indices.toList == tail do
+                  throwError "original selected identifiers failed exact identity substitution"
                 unless sourceEnd == sortType do throwError "reconstructed sort tail changed after actual substitution"
                 let family := mkAppN stats.indConsts[0]! changed
                 let expectedTail := Expr.forallE `t family
