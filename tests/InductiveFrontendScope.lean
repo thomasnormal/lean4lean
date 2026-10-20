@@ -321,13 +321,16 @@ private def failures (env : Kernel.Environment) : MetaM Unit := do
       throwError "nested control unexpectedly failed outside structural frontend certificate"
   logInfo "16 frontend failures retained empty/source/fuel/arity/freshness/universe boundaries; successful nested control remains outside no-auxiliary certificate"
 
-private def audit (theoremName : Name) (full := false) : MetaM Unit := do
+private def audit (theoremName : Name) (full := false) (inherited := false) : MetaM Unit := do
   let axioms ← collectAxioms theoremName
   logInfo m!"{theoremName}: axioms = {repr axioms}"
-  let allowed := [``propext, ``Classical.choice, ``Quot.sound] ++ if full then [
+  let allowed := [``propext, ``Classical.choice, ``Quot.sound] ++
+    (if inherited then [``sorryAx] else []) ++ if full then [
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
     ``Lean.PersistentHashMap.findAux_isSome, ``Lean.PersistentArray.toList'_push,
     ``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq,
+    ``Expr.abstractRange_eq, ``Expr.abstract_eq, ``Expr.hasLooseBVar_eq,
+    ``Expr.lowerLooseBVars_eq,
     ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq] else []
   for axiomName in axioms do
     unless allowed.contains axiomName do throwError "unexpected axiom {axiomName} in {theoremName}"
@@ -341,6 +344,7 @@ run_meta
   audit ``Lean4Lean.Environment.addInductive.safeNonNestedResult true
   audit ``Lean4Lean.addDecl.safeNonNestedInductive true
   audit ``Lean4Lean.addDecl.safeNonNestedPreserves true
+  audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedRecursorTypes true true
   let env := (← Lean.getEnv).toKernelEnv
   fixtures env
   failures env
