@@ -835,6 +835,49 @@ private theorem registeredAppliedGetterKeepsReceiptsWithEnvironmentRegistration
     envWF constants definitions fieldOnly model modelWF native reserved nativeEnvWF mapped
     parentSupport minorSupport domainSupport
 
+private theorem registeredAppliedGetterExposesCombinedTypehoodWithEnvironmentRegistration
+    {env : VEnv} {universes : List Name}
+    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) (reader : Context)
+    (envWF : env.WF) (constants : CanonicalAnnotationConstants env)
+    (definitions : CanonicalAnnotationDefinitions env) (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF env universes) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (nativeEnvWF : reader.env.constants.WF)
+    {semanticElimLevel : VLevel} (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport env universes trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass env universes parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport env universes trace)
+    (domainSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        RecursorSelectedDomainSupport env universes stats result.1 parent result.2.lctx model) :
+    (mkRecInfos.scopeRegistration stats types elimLevel lparams isK isUnsafe reader).WF fun result =>
+      reader.RecursorScopeFrame result.2.2 ∧ RecursorInfoCounts types result.2.1 ∧
+      (∃ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.2.1 result.2.2 model finalModel ∧
+        (RecursorInitialTypehood env universes stats types elimLevel result.2.1 result.2.2
+            model lparams isK isUnsafe rules ∧
+          RecursorFinalTypehood env universes stats types elimLevel result.2.1 result.2.2
+            finalModel lparams isK isUnsafe rules)) ∧
+      result.1.constants.WF ∧
+      (∀ name info, reader.env.find? name = some info → result.1.find? name = some info) ∧
+      stats.RecursorOffsetMetadata types elimLevel result.2.1 lparams result.2.2.lctx
+        isK isUnsafe result.2.2 result.1 ∧
+      LocalRecursorRuleRhsScope stats types result.2.1 result.2.2 result.1 :=
+  mkRecInfos.registeredTranslatedAppliedInitialAndFinalTypehood stats types elimLevel lparams isK
+    isUnsafe rules reader envWF constants definitions fieldOnly model modelWF native reserved nativeEnvWF
+    mapped parentSupport minorSupport domainSupport
+
 private def captureFull (stats : InductiveStats) (types : Array InductiveType) :
     M ((Array RecInfo × Context) × Context) := do
   let result ← mkRecInfos stats types (.succ .zero) fun infos =>
@@ -1232,6 +1275,7 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms scopedAppliedGetterPassesAllInitialAndFinalTypehoodToContinuation
 #print axioms scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate
 #print axioms registeredAppliedGetterKeepsReceiptsWithEnvironmentRegistration
+#print axioms registeredAppliedGetterExposesCombinedTypehoodWithEnvironmentRegistration
 #print axioms runtimeFixtures
 
 run_meta
@@ -1285,7 +1329,8 @@ run_meta
       ``scopedAppliedGetterPassesAllInitialTypehoodToContinuation,
       ``scopedAppliedGetterPassesAllInitialAndFinalTypehoodToContinuation,
       ``scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate,
-      ``registeredAppliedGetterKeepsReceiptsWithEnvironmentRegistration] do
+      ``registeredAppliedGetterKeepsReceiptsWithEnvironmentRegistration,
+      ``registeredAppliedGetterExposesCombinedTypehoodWithEnvironmentRegistration] do
     auditDeclaration name inherited
   for name in [``Lean.Expr.instantiate1'_abstract1,
       ``Lean4Lean.AddInductive.mkForall_selected_cons] do
