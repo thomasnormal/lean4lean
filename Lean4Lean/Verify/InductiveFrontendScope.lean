@@ -196,6 +196,82 @@ theorem InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedRecursorTyp
     fieldOnly model modelWF native reserved nativeEnvWF mapped parentSupport minorSupport domainSupport
     nextWF
 
+theorem InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedInitialAndFinalTypehood
+    {ResultType : Type} {venv : VEnv} {universes : List Name}
+    {nparams numNested : Nat} {types : Array InductiveType}
+    {original root : Context} {constructors registeredEnv : Kernel.Environment}
+    (hscope : InductiveStats.SafeRunScope stats nparams types numNested original root constructors
+      registeredEnv)
+    (elimLevel : Level) (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule)
+    (next : Kernel.Environment → Array RecInfo → M ResultType) (post : ResultType → Prop)
+    (envWF : venv.WF) (constants : CanonicalAnnotationConstants venv)
+    (definitions : CanonicalAnnotationDefinitions venv) (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF venv universes)
+    (native : model.lctx = ({ root with env := constructors } : Context).lctx)
+    (reserved : ContextReserved ({ root with env := constructors } : Context).lctx
+      ({ root with env := constructors } : Context).ngen)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context))
+        ({ root with env := constructors } : Context)).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[]
+          ({ root with env := constructors } : Context) result.1 result.2,
+        RecursorParentPassTranslationSupport venv universes trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[]
+        ({ root with env := constructors } : Context) parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass venv universes parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport venv universes trace)
+    (domainSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context))
+        ({ root with env := constructors } : Context)).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint venv universes stats types elimLevel
+        ({ root with env := constructors } : Context) result.1 result.2 model finalModel →
+        ∀ parent, parent < types.size →
+          RecursorSelectedDomainSupport venv universes stats result.1 parent result.2.lctx model)
+    (nextWF : ∀ registeredEnv finalInfos finalReader finalModel,
+      ({ root with env := constructors } : Context).RecursorScopeFrame finalReader →
+      RecursorInfoCounts types finalInfos →
+      RecursorInfoModelEndpoint venv universes stats types elimLevel
+        ({ root with env := constructors } : Context) finalInfos finalReader model finalModel →
+      (RecursorInitialTypehood venv universes stats types elimLevel finalInfos finalReader
+          model lparams isK isUnsafe rules ∧
+        RecursorFinalTypehood venv universes stats types elimLevel finalInfos finalReader
+          finalModel lparams isK isUnsafe rules) →
+      registeredEnv.constants.WF →
+      (∀ name info, ({ root with env := constructors } : Context).env.find? name = some info →
+        registeredEnv.find? name = some info) →
+      stats.RecursorOffsetMetadata types elimLevel finalInfos lparams finalReader.lctx
+        isK isUnsafe finalReader registeredEnv →
+      LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
+      (next registeredEnv finalInfos finalReader).WF post) :
+    (do let result ← mkRecInfos.scopeRegistration stats types elimLevel lparams isK isUnsafe
+          ({ root with env := constructors } : Context)
+        next result.1 result.2.1 result.2.2).WF post := by
+  refine hscope.registeredScopedTranslatedAppliedRecursorTypes elimLevel lparams isK isUnsafe
+    next post envWF constants definitions fieldOnly model modelWF native reserved mapped parentSupport
+    minorSupport domainSupport ?_
+  intro registeredEnv finalInfos finalReader finalModel frame counts endpoint receipts
+    registeredWF retained metadata rhsScope
+  have initial : RecursorInitialTypehood venv universes stats types elimLevel finalInfos finalReader
+      model lparams isK isUnsafe rules := by
+    intro parent bound
+    have receipt := receipts parent bound
+    exact ⟨receipt.rawTypehood, receipt.storedTypehood,
+      receipt.metadataTypehood types elimLevel lparams isK isUnsafe rules⟩
+  have final : RecursorFinalTypehood venv universes stats types elimLevel finalInfos finalReader
+      finalModel lparams isK isUnsafe rules := by
+    intro parent bound
+    have receipt := receipts parent bound
+    exact ⟨receipt.finalRawTypehood, receipt.finalStoredTypehood,
+      receipt.finalMetadataTypehood types elimLevel lparams isK isUnsafe rules⟩
+  exact nextWF registeredEnv finalInfos finalReader finalModel frame counts endpoint
+    ⟨initial, final⟩ registeredWF retained metadata rhsScope
+
 end AddInductive
 
 end Lean4Lean
