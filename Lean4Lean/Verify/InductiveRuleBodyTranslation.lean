@@ -1387,6 +1387,50 @@ theorem RecursorRuleRhsReceipt.applyIotaWeakFVKind
     (kind.weak' envWF.ordered insertion.toCtx)
   exact ⟨receipt, translated, typed, resultKind⟩
 
+/- Compose the base-context iota/kind receipt with its target-context weak-FV
+   transport.  Keeping both applications in one result lets a recursor-level
+   consumer retain the exact base semantic before insertion as well as the
+   lifted semantic after insertion. -/
+theorem RecursorRuleRhsReceipt.applyIotaKindWeakFVKind
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr}
+    {ctx : Context} {constructor : Constructor} {minor : Expr} {rule : RecursorRule}
+    (receipt : RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule)
+    {base target : MLCtx} {insertionLift : Lift}
+    {rhsSemantic rhsType : VExpr}
+    (rhsTranslated : TrExprS env universes base.vlctx rule.rhs rhsSemantic)
+    (rhsTyped : env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType)
+    {replacements : List Expr} {arguments : List VExpr} {resultType : VExpr}
+    (argumentTyping : ElimNestedInductive.TypedParameterArguments env universes base rhsType
+      replacements arguments resultType)
+    (envWF : env.WF) (baseWF : base.WF env universes)
+    (kind : env.SortArity universes.length base.vlctx.toCtx
+      (count + replacements.length) rhsType)
+    (targetWF : target.WF env universes)
+    (insertion : VLCtx.FVLift' base.vlctx target.vlctx 0 insertionLift 0) :
+    RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule ∧
+      TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
+      env.HasType universes.length base.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType ∧
+      env.SortArity universes.length base.vlctx.toCtx count resultType ∧
+      TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift))) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift)))
+        (resultType.lift' insertionLift) ∧
+      env.SortArity universes.length target.vlctx.toCtx count
+        (resultType.lift' insertionLift) := by
+  obtain ⟨baseReceipt, baseTranslated, baseTyped, baseKind⟩ := receipt.applyIotaKind
+    rhsTranslated rhsTyped argumentTyping envWF baseWF kind
+  obtain ⟨targetReceipt, targetTranslated, targetTyped, targetKind⟩ :=
+    baseReceipt.applyIotaWeakFVKind rhsTranslated rhsTyped argumentTyping envWF targetWF
+      insertion kind
+  exact ⟨baseReceipt, baseTranslated, baseTyped, baseKind, targetTranslated, targetTyped,
+    targetKind⟩
+
 /-- Compose the checked constructor-rule body with the typed replacement
 telescope.  The caller supplies the telescope for the value produced by the
 rule bridge; this keeps the RHS type, replacement list, semantic arguments,
@@ -2097,14 +2141,11 @@ theorem MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAn
     step.abstractConstructorRuleRhs scopeReceipt.fvars.counts.receipt extension receiptShape'
       nestedTranslated bodyTyped
       envWF
-  obtain ⟨baseReceipt, baseResultTranslated, baseResultTyped, baseResultKind⟩ :=
-    ruleReceipt.applyIotaKind rhsTranslated rhsTyped
-      (argumentTyping rhsTranslated rhsTyped) envWF baseWF
-      (kind rhsTranslated rhsTyped)
-  obtain ⟨ruleReceipt, resultTranslated, resultTyped, resultKind⟩ :=
-    baseReceipt.applyIotaWeakFVKind rhsTranslated rhsTyped
-      (argumentTyping rhsTranslated rhsTyped) envWF targetWF insertion
-      (kind rhsTranslated rhsTyped)
+  obtain ⟨ruleReceipt, baseResultTranslated, baseResultTyped, baseResultKind,
+    resultTranslated, resultTyped, resultKind⟩ :=
+    ruleReceipt.applyIotaKindWeakFVKind rhsTranslated rhsTyped
+      (argumentTyping rhsTranslated rhsTyped) envWF baseWF (kind rhsTranslated rhsTyped)
+      targetWF insertion
   exact ⟨fieldModel, terminal, fields, hypotheses, replacements, replacementTerminal, values,
     bodySemantic, rhsSemantic, rhsType, sourceEq, nativeReceipt, typedArguments,
     bodyTranslated, bodyTyped, nestedTranslated, ruleReceipt, rhsTranslated, rhsTyped,
@@ -2234,14 +2275,11 @@ theorem MinorModelStep.generatedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourc
     step.abstractConstructorRuleRhs receipt extension receiptShape'
       nestedTranslated bodyTyped
       envWF
-  obtain ⟨baseReceipt, baseResultTranslated, baseResultTyped, baseResultKind⟩ :=
-    ruleReceipt.applyIotaKind rhsTranslated rhsTyped
-      (argumentTyping rhsTranslated rhsTyped) envWF baseWF
-      (kind rhsTranslated rhsTyped)
-  obtain ⟨ruleReceipt, resultTranslated, resultTyped, resultKind⟩ :=
-    baseReceipt.applyIotaWeakFVKind rhsTranslated rhsTyped
-      (argumentTyping rhsTranslated rhsTyped) envWF targetWF insertion
-      (kind rhsTranslated rhsTyped)
+  obtain ⟨ruleReceipt, baseResultTranslated, baseResultTyped, baseResultKind,
+    resultTranslated, resultTyped, resultKind⟩ :=
+    ruleReceipt.applyIotaKindWeakFVKind rhsTranslated rhsTyped
+      (argumentTyping rhsTranslated rhsTyped) envWF baseWF (kind rhsTranslated rhsTyped)
+      targetWF insertion
   exact ⟨fieldModel, terminal, fields, hypotheses, replacements, replacementTerminal, values,
     bodySemantic, rhsSemantic, rhsType, sourceEq, nativeReceipt, typedArguments,
     bodyTranslated, bodyTyped, nestedTranslated, ruleReceipt, rhsTranslated, rhsTyped,
