@@ -167,10 +167,10 @@ private def checkBatch (types : Array InductiveType) (parameters : Nat := 0)
   let levelLists := if universes.isEmpty then [[]] else
     [universes.map Level.param, List.replicate universes.length (.param `SignatureElimination),
       List.replicate universes.length (.succ .zero), universes.reverse.map Level.param]
-  let mut outcomes := 0
-  let mut incompatibleParameters := 0
+  let mut outcomes : Nat := 0
+  let mut incompatibleParameters : Nat := 0
   for isUnsafe in [false, true] do
-    unless types.isEmpty || (host.addDeclCore 0 (.inductDecl universes parameters types.toList isUnsafe) none).isOk do
+    unless types.isEmpty || (host.addDeclCore 0 0 (.inductDecl universes parameters types.toList isUnsafe) none).isOk do
       throwError "native kernel rejected recursor signature controls"
     let reader : Context := {
       env := environment, lparams := universes,

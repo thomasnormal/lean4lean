@@ -78,6 +78,22 @@ before it. The audit retains the existing projection admission and excludes
 known-false strengthening/confluence dependencies. Full rule translation and
 iota soundness remain open.
 
+**Typed recursive calls and values:** a translated inserted recursor signature
+now supplies a typed constant in the caller's universes and local context.
+The application proof substitutes each actual argument through its dependent
+telescope, derives the final major argument from the recursive-field opening
+trace, and closes the higher-order field arguments with lambdas. Shared
+selected declarations supply their argument receipts directly from context
+well-formedness. Signature/telescope matching, individual index-argument
+support and field-opening support remain explicit; full rule translation is
+still open. The proofs retain existing projection and native-interface
+dependencies, exclude known-false strengthening/confluence results, and add
+no admission. A generated parameterized indexed higher-order rule passes
+application/result checks and rejects malformed calls on both toolchains.
+Proof-dependency traversal now explicitly requests theorem values on Lean
+4.33; its default accessor skipped them. The call and rule-stage audits are
+corrected. Older audits relying on that traversal still need review.
+
 **Universal candidate reduction simulation:** every actual `NormalEq` in a
 well-formed environment with the quotient rule registered now simulates every
 candidate `Step`, and every finite candidate `Steps` path, using candidate

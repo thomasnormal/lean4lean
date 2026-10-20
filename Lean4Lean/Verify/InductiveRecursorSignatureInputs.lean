@@ -16,7 +16,7 @@ structure RecursorConstantInput (environment : VEnv) (universes : List Name) (vi
   valueTranslated : TrExprS environment universes virtual (.const name levels) semanticValue
   valueTyped : environment.HasType universes.length virtual.toCtx semanticValue semanticType
 
-private theorem constantInputFromTranslation
+theorem RecursorConstantInput.ofTranslation
     (environmentWF : environment.WF)
     (lookup : environment.constants name = some constant)
     (translated : TrExprS environment originalUniverses [] source constant.type)
@@ -65,7 +65,7 @@ theorem ConstructorConstantRegistration.constructorInput
       (source.type.instantiateLevelParams root.lparams levels)) := by
   obtain ⟨constructor, _, nativeLookup, semanticLookup, translated⟩ :=
     registration.constructorConstant typeMember index source sourceGet
-  apply constantInputFromTranslation registration.semanticWF semanticLookup
+  apply RecursorConstantInput.ofTranslation registration.semanticWF semanticLookup
     (originalUniverses := root.lparams)
   · simpa only [declareConstructors.metadataVal, ConstantInfo.type, ConstantInfo.levelParams,
       ConstantInfo.toConstantVal]
@@ -92,7 +92,7 @@ theorem ConstructorConstantRegistration.headerInput
     (VEnv.addInductHeaders.constants receipts.registered member)
   have nativeLookup : registration.semantic.constants type.name = some header.toVConstant := by
     simpa only [translated.1] using lookup
-  exact constantInputFromTranslation registration.semanticWF nativeLookup
+  exact RecursorConstantInput.ofTranslation registration.semanticWF nativeLookup
     (translated.2.2.1.mono ((VEnv.addInductHeaders.le receipts.registered).trans registration.increase))
     translated.2.1 model modelWF mapped arity
 

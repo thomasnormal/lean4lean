@@ -207,7 +207,7 @@ run_meta
   for (name, information) in environment.constants do
     if environment.getModuleIdxFor? name == some moduleIndex then
       if information matches .axiomInfo _ then throwError "rule staging: new module axiom {name}"
-      if let some proof := information.value? then
+      if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule staging: direct admission in {name}"
       auditDeclaration name inherited
       pending := pending.push name
@@ -228,7 +228,7 @@ run_meta
     if forbidden.contains name then throwError "rule staging: forbidden dependency {name}"
     if let some information := environment.find? name then
       pending := pending ++ information.type.getUsedConstants
-      if let some proof := information.value? then pending := pending ++ proof.getUsedConstants
+      if let some proof := information.value? (allowOpaque := true) then pending := pending ++ proof.getUsedConstants
   unless pending.isEmpty do throwError "rule staging: dependency traversal bound exceeded"
   runtimeFixtures
   logInfo "rule staging: all new module declarations and private helpers exclude direct admissions, new axioms, native interface axioms and known-false strengthening/confluence dependencies; inherited projection dependency sets pinned, with a negative logical-only audit control"
