@@ -176,6 +176,116 @@ theorem RecursorRuleRhsScope.impScopedReceipts
   exact List.Forall₂.imp (fun entry rule hreceipt =>
     head entry rule hreceipt (hreceipt.fvars.counts.receipt)) hscope
 
+/- The generated constructor-RHS producer returns a large dependent package.
+   Name that package so an all-rule consumer can retain every witness while
+   still using the aligned scoped receipt as its source invariant. -/
+abbrev GeneratedConstructorRuleRhsResult
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {constructor : Constructor} {motives minors : Array Expr} {ctx : Context}
+    {minor : Expr} {rule : RecursorRule} : Prop :=
+  ∃ (infos : Array RecInfo) (domainReader : Context) (domain : Expr) (ids : List FVarId)
+    (final base target : MLCtx) (count : Nat) (arguments : List VExpr)
+    (resultType : VExpr) (insertionLift : Lift) (peeled minorSemantic : VExpr)
+    (fieldModel : MLCtx) (terminal : Expr) (fields hypotheses : Array Expr)
+    (replacements : List Expr) (replacementTerminal : Expr)
+    (values : List VExpr) (bodySemantic rhsSemantic rhsType : VExpr),
+    IndexMLCtxExtension base ids final ∧
+    VLCtx.FVLift' base.vlctx target.vlctx 0 insertionLift 0 ∧
+    peelTypeAnnotations domain =
+      fieldModel.lctx.mkForall fields
+        (domainReader.lctx.mkForall hypotheses
+          (recursorMinorBody stats infos constructor terminal fields)) ∧
+    NativeTelescopeArguments env universes final
+      (fieldModel.lctx.mkForall fields
+        (domainReader.lctx.mkForall hypotheses
+          (recursorMinorBody stats infos constructor terminal fields)))
+      (fields.toList ++ replacements) replacementTerminal ∧
+    TypedParameterApplications env universes final peeled
+      (fields.toList ++ replacements) values bodySemantic ∧
+    TrExprS env universes final.vlctx
+      (minor.mkAppList (fields.toList ++ replacements))
+      (ElimNestedInductive.applyParameterArguments minorSemantic values) ∧
+    env.HasType universes.length final.vlctx.toCtx
+      (ElimNestedInductive.applyParameterArguments minorSemantic values) bodySemantic ∧
+    TrExprS env universes final.vlctx
+      (mkAppN (mkAppN minor fields) replacements.toArray)
+      (ElimNestedInductive.applyParameterArguments minorSemantic values) ∧
+    RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule ∧
+    TrExprS env universes base.vlctx rule.rhs rhsSemantic ∧
+    env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType ∧
+    env.SortArity universes.length base.vlctx.toCtx
+      (count + replacements.length) rhsType ∧
+    TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
+    env.HasType universes.length base.vlctx.toCtx
+      (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType ∧
+    env.SortArity universes.length base.vlctx.toCtx count resultType ∧
+    TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift))) ∧
+    env.HasType universes.length target.vlctx.toCtx
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift)))
+      (resultType.lift' insertionLift) ∧
+    env.SortArity universes.length target.vlctx.toCtx count
+      (resultType.lift' insertionLift)
+
+/- Lift the explicit generated constructor-RHS package through every aligned
+   rule.  The callback remains the producer/consumer boundary: it supplies
+   the minor step, opening, extension, and context premises needed to obtain
+   the package, while this theorem preserves constructor/index and rule order. -/
+theorem RecursorRuleRhsScope.impGeneratedConstructorRuleRhs
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+          (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule)) :
+    List.Forall₂ (fun entry rule =>
+      GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+        (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+        (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule))
+      (ctors.zipIdx initial) rules := by
+  exact hscope.impScopedReceipts head
+
+/- The indexed local form keeps the recursor and minor lookups in addition to
+   the explicit generated result package. -/
+theorem LocalRecursorRuleRhsScope.impGeneratedConstructorRuleRhs
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := infos.map (·.motive))
+          (minors := infos.flatMap (·.minors)) (ctx := ctx)
+          (constructor := ctor) (minor := minor) (rule := rule)) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+            (stats := stats) (motives := infos.map (·.motive))
+            (minors := infos.flatMap (·.minors)) (ctx := ctx)
+            (constructor := ctor) (minor := minor) (rule := rule) := by
+  intro parent hparent
+  obtain ⟨recursor, hfind, hreceipts⟩ := hscope parent hparent
+  refine ⟨recursor, hfind, ?_⟩
+  intro index ctor hctor
+  obtain ⟨rule, minor, hrule, hminor, hreceipt⟩ := hreceipts index ctor hctor
+  exact ⟨rule, minor, hrule, hminor,
+    head parent recursor index ctor rule minor hreceipt (hreceipt.fvars.counts.receipt)⟩
+
 theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.resultKind
     (arguments : ElimNestedInductive.TypedParameterArguments environment universes model
       source replacements values result)
