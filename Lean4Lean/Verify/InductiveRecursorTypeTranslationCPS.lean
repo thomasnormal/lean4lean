@@ -87,6 +87,132 @@ theorem RecursorTypeModelReceipt.storedTypehood
   obtain ⟨semantic, level, _, stored, typed, _⟩ := receipt
   exact ⟨semantic, stored, ⟨level, typed⟩⟩
 
+theorem RecursorTypeModelReceipt.initialStoredWF
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (constant : VConstVal)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (constantUvars : constant.uvars = universes.length)
+    (constantType : TrExprS env universes initial.vlctx
+      ((recursorRawType stats infos parent reader.lctx).inferImplicit 1000 false) constant.type)
+    (empty : initial.vlctx.toCtx = []) : constant.toVConstant.WF env := by
+  obtain ⟨semantic, level, _, stored, typed, _⟩ := receipt
+  have contextEquality : VLCtx.IsDefEq env universes.length initial.vlctx initial.vlctx :=
+    VLCtx.IsDefEq.refl envWF.ordered initialWF.tr.wf
+  obtain ⟨_, translatedEquality⟩ :=
+    TrExprS.uniq (henv := envWF) contextEquality stored constantType
+  have constantTyped := typed.defeqU_l envWF initialWF.tr.wf.toCtx translatedEquality.toU
+  change env.IsType constant.uvars [] constant.type
+  rw [constantUvars]
+  exact ⟨level, empty ▸ constantTyped⟩
+
+theorem RecursorTypeModelReceipt.initialStoredWF_of_closedTranslation
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (constant : VConstVal)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (constantUvars : constant.uvars = universes.length)
+    (storedTranslated : TrExprS env universes []
+      ((recursorRawType stats infos parent reader.lctx).inferImplicit 1000 false) constant.type)
+    (empty : initial.vlctx.toCtx = []) : constant.toVConstant.WF env := by
+  apply receipt.initialStoredWF constant envWF initialWF constantUvars
+    (empty := empty)
+  have initialLength : initial.vlctx.toCtx.length = 0 := by simp [empty]
+  simpa only [initialLength, VExpr.liftN_zero] using storedTranslated.weakFV envWF.ordered
+    (VLCtx.FVLift.from_nil initial.noBV) initialWF.tr.wf
+
+theorem RecursorTypeModelReceipt.initialStoredWF_of_recursorTranslation
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (constant : VConstVal) (info : RecursorVal)
+    (native : TrConstVal .safe env (.recInfo info) constant)
+    (levels : info.levelParams = universes)
+    (type : info.type =
+      (recursorRawType stats infos parent reader.lctx).inferImplicit 1000 false)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (empty : initial.vlctx.toCtx = []) : constant.toVConstant.WF env := by
+  apply receipt.initialStoredWF_of_closedTranslation constant envWF initialWF
+    (empty := empty)
+  · rw [← levels]
+    exact native.1.2.1.symm
+  · rw [← levels, ← type]
+    exact native.1.2.2
+
+theorem RecursorTypeModelReceipt.initialStoredWF_of_declaredRecursor
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {infos : Array RecInfo}
+    {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (constant : VConstVal) (lparams : List Name) (isK isUnsafe : Bool)
+    (rules : List RecursorRule)
+    (native : TrConstVal .safe env
+      (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+        isK isUnsafe parent rules)) constant)
+    (levels : (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+      isK isUnsafe parent rules).levelParams = universes)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (empty : initial.vlctx.toCtx = []) : constant.toVConstant.WF env := by
+  apply receipt.initialStoredWF_of_recursorTranslation constant
+    (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+      isK isUnsafe parent rules) native levels
+    (declareRecursors.metadataVal_type stats types elimLevel infos lparams reader.lctx
+      isK isUnsafe parent rules) envWF initialWF empty
+
+theorem RecursorTypeModelReceipt.initialStoredWFOfDeclaredRecursors
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {infos : Array RecInfo}
+    {reader : Context} {initial final : MLCtx}
+    (receipts : ∀ parent, parent < types.size →
+      RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (constants : ∀ parent, parent < types.size → VConstVal)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule)
+    (native : ∀ parent (bound : parent < types.size),
+      TrConstVal .safe env
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+          isK isUnsafe parent rules)) (constants parent bound))
+    (levels : ∀ parent (_bound : parent < types.size),
+      (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+        isK isUnsafe parent rules).levelParams = universes)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (empty : initial.vlctx.toCtx = []) :
+    ∀ parent (bound : parent < types.size), (constants parent bound).toVConstant.WF env := by
+  intro parent bound
+  exact (receipts parent bound).initialStoredWF_of_declaredRecursor (constants parent bound)
+    lparams isK isUnsafe rules (native parent bound) (levels parent bound) envWF initialWF empty
+
+/-- An empty native translation context lets the receipt supply the model constant itself.
+An empty `toCtx` alone would still permit native free variables from let bindings. -/
+theorem RecursorTypeModelReceipt.existsDeclaredRecursor
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {infos : Array RecInfo}
+    {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = universes)
+    (empty : initial.vlctx = []) :
+    ∃ constant : VConstVal,
+      TrConstVal .safe env
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+          isK false parent rules)) constant ∧ constant.toVConstant.WF env := by
+  obtain ⟨semantic, level, translated, typed, _⟩ :=
+    receipt.metadataType types elimLevel lparams isK false rules
+  let constant : VConstVal :=
+    { name := mkRecName types[parent]!.name, uvars := universes.length, type := semantic }
+  refine ⟨constant, ⟨⟨?_, ?_, ?_⟩, rfl⟩, ?_⟩
+  · simp [ConstantInfo.safety, ConstantInfo.isUnsafe, ConstantInfo.isPartial,
+      declareRecursors.metadataVal]
+  · exact congrArg List.length levels
+  · change TrExprS env (getRecLevelParams elimLevel lparams) []
+      (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+        isK false parent rules).type semantic
+    rw [levels]
+    simpa only [empty] using translated
+  · change env.IsType universes.length [] semantic
+    exact ⟨level, by simpa only [empty, VLCtx.toCtx] using typed⟩
+
 theorem RecursorTypeModelReceipt.rawTypehood
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
