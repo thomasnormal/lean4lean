@@ -166,6 +166,30 @@ theorem RecursorInfoModelEndpoint.initialTypehoodFromDomains
   exact ⟨receipt.rawTypehood, receipt.storedTypehood,
     receipt.metadataTypehood types elimLevel lparams isK isUnsafe rules⟩
 
+theorem RecursorInfoModelEndpoint.initialStoredWF_of_declaredRecursorFromDomains
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
+    {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
+    {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0) (parent : Nat) (bound : parent < types.size)
+    (source : RecursorInfoIndexSource stats types elimLevel parent reader infos[parent]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (support : RecursorSelectedDomainSupport env universes stats infos parent finalReader.lctx initial)
+    (constant : VConstVal) (lparams : List Name) (isK isUnsafe : Bool)
+    (rules : List RecursorRule)
+    (native : TrConstVal .safe env
+      (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams finalReader.lctx
+        isK isUnsafe parent rules)) constant)
+    (levels : (declareRecursors.metadataVal stats types elimLevel infos lparams finalReader.lctx
+      isK isUnsafe parent rules).levelParams = universes)
+    (empty : initial.vlctx.toCtx = []) : constant.toVConstant.WF env := by
+  exact (endpoint.recursorTypeFromDomains envWF initialWF parameterFree parent bound source mapped support)
+    |>.initialStoredWF_of_declaredRecursor constant lparams isK isUnsafe rules native levels
+      envWF initialWF empty
+
 theorem RecursorInfoModelEndpoint.finalTypehoodFromDomains
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
     {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
