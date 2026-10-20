@@ -19,6 +19,7 @@ private def audit : MetaM Unit := do
   exactAxioms ``LocalRecursorRuleRhsScope.atReceipt logical
   exactAxioms ``LocalRecursorRuleRhsScope.impReceipts logical
   exactAxioms ``LocalRecursorRuleRhsScope.impScopedReceipts logical
+  exactAxioms ``LocalRecursorRuleRhsScope.ruleSemantics [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
   exactAxioms ``RecursorRuleRhsScope.receipts logical
   exactAxioms ``RecursorRuleRhsScope.atReceipt logical
   exactAxioms ``RecursorRuleRhsScope.impReceipts logical
@@ -80,8 +81,8 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 123 do throwError "rule body: expected one hundred twenty-three owned declarations, got {count}"
-  logInfo m!"all-rule scoped-and-ordinary receipt consumer adapter with indexed local scoped-and-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt lookup, all-rule scoped receipt consumer adapter, indexed scoped-to-ordinary receipt lookup, all-rule scoped-to-ordinary receipt projection, direct scoped/fvar/count result transport, generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
+  unless count == 124 do throwError "rule body: expected one hundred twenty-four owned declarations, got {count}"
+  logInfo m!"indexed local rule-semantics receipt/result consumer with all-rule scoped-and-ordinary receipt consumer adapter, indexed local scoped-and-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt lookup, all-rule scoped receipt consumer adapter, indexed scoped-to-ordinary receipt lookup, all-rule scoped-to-ordinary receipt projection, direct scoped/fvar/count result transport, generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
 
 run_meta
   audit
@@ -91,6 +92,7 @@ run_meta
 #print axioms LocalRecursorRuleRhsScope.atReceipt
 #print axioms LocalRecursorRuleRhsScope.impReceipts
 #print axioms LocalRecursorRuleRhsScope.impScopedReceipts
+#print axioms LocalRecursorRuleRhsScope.ruleSemantics
 #print axioms RecursorRuleRhsScope.receipts
 #print axioms RecursorRuleRhsScope.atReceipt
 #print axioms RecursorRuleRhsScope.impReceipts
