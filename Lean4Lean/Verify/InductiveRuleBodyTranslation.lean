@@ -365,6 +365,71 @@ inductive GeneratedIHNativeSuffix (env : VEnv) (universes : List Name)
         (TranslatedRecursorIHTrace.step bound source tail head rest)
         sourceExpr (nativeValue :: arguments) terminal
 
+set_option maxHeartbeats 800000 in
+/-- Build the generated IH suffix recursively from a native forall shape.  The
+shape carries the exact source telescope and terminal; each step generator
+supplies the native recursive value, its semantic/domain receipts, and the
+explicit peeled-binder source equation.  Instantiation of the shape supplies
+the dependent source for the tail, so no structural equality between the
+minor domain and the generated source is inferred here. -/
+theorem GeneratedIHNativeSuffix.ofNativeForallTail
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {fields : Array Expr} {infos : Array RecInfo}
+    {index : Nat} {hypotheses : Array Expr} {suffixReader : Context}
+    {finalHypotheses : Array Expr} {finalReader : Context}
+    {trace : RecursorIHTrace stats fields infos index hypotheses suffixReader finalHypotheses finalReader}
+    {initial final : MLCtx}
+    (history : TranslatedRecursorIHTrace env universes trace initial final)
+    {source terminal : Expr} {count : Nat}
+    (shape : NativeForallTail source count terminal)
+    (countShape : count = fields.size - index)
+    (generated : ∀ {index : Nat} {hypotheses finalHypotheses : Array Expr}
+      {reader finalReader : Context} {domain : Expr}
+      {source : RecursorIHDomainSource stats infos fields[index]! reader domain}
+      {tail : RecursorIHTrace stats fields infos (index + 1)
+        (hypotheses.push (.fvar ⟨reader.ngen.curr⟩))
+        (recursorIHContext reader fields[index]! domain) finalHypotheses finalReader}
+      {initial middle final : MLCtx}
+      (bound : index < fields.size)
+      (head : IHModelStep env universes source initial middle)
+      (rest : TranslatedRecursorIHTrace env universes tail middle final)
+      (sourceExpr : Expr),
+      ∃ nativeValue value domainSemantic name body binder,
+        TrExprS env universes initial.vlctx nativeValue value ∧
+        TrExprS env universes initial.vlctx domain domainSemantic ∧
+        env.HasType universes.length initial.vlctx.toCtx value domainSemantic ∧
+        sourceExpr = .forallE name (peelTypeAnnotations domain) body binder) :
+    ∃ replacements terminal,
+      GeneratedIHNativeSuffix env universes history source replacements terminal := by
+  revert source count terminal
+  induction history with
+  | stop complete modelWF native =>
+    intro source terminal count shape countShape
+    have countZero : count = 0 := by omega
+    cases shape with
+    | nil =>
+      refine ⟨[], _, .stop complete modelWF native rfl⟩
+    | cons shape =>
+      omega
+  | @step idx hypotheses₁ finalHypotheses₁ reader₁ finalReader₁ domain₁ initial₁ middle₁ final₁
+      bound sourceInfo tail head rest tailInduction =>
+    intro source terminal count shape countShape
+    obtain ⟨nativeValue, value, domainSemantic, name, body, binder,
+      nativeTranslated, domainTranslated, valueTyped, sourceEq⟩ :=
+      generated bound head rest source
+    cases sourceEq
+    cases shape with
+    | @cons tailBody tailCount tailTerminal tailName tailDomain tailBinder shape =>
+      have tailCountEq : tailCount = fields.size - (idx + 1) := by omega
+      obtain ⟨arguments, terminal, tailWitness⟩ :=
+        tailInduction (source := body.instantiate1' nativeValue)
+          (shape := shape.instantiate1' nativeValue 0)
+          tailCountEq
+      refine ⟨nativeValue :: arguments, terminal, .step bound head rest
+        nativeTranslated domainTranslated valueTyped rfl tailWitness⟩
+    | nil =>
+      omega
+
 /-- A generated IH value can be checked in a later model by weakening the
 step-local opening and value receipts through the actual intervening extension. -/
 theorem IHModelStep.generatedNativeArgumentAtTarget
