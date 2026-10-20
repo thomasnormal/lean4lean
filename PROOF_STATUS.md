@@ -66,6 +66,51 @@ Source admission censuses remain 116 lines / 18 files / 120 occurrences on main
 and 121 / 22 / 125 on integration. Production proof files are byte-identical;
 the native fixture differs only in the `addDeclCore` argument count.
 
+## Canonical major/motive tails and generated IH values — 2026-10-20
+
+`NativeForallTail` and `NativeTelescopeArguments.terminalOfTail` recover the
+actual terminal after dependent argument substitution. `instantiateSelected`
+models simultaneous replacement of selected free variables, including changed
+arguments that mention other selected identifiers. `mkForall_selected_tail`
+and `NativeTelescopeArguments.terminalOfSelected` connect that replacement to
+actual local-context closure.
+
+`recursorMajorTail_eq` derives the native major declaration and motive result
+from the selected context. `recursorMajorTail_substitution` proves its exact
+changed-index substitution. Accepted family recognition is preserved by
+`familyIndexApplicationMatches`; `canonicalRecursorTail_matchesFieldTerminal`
+therefore aligns the stored recursor tail with the actual field terminal by
+Expr boolean equality, without asserting structural equality of accepted
+parameter applications. The call and generated IH-value consumers now accept
+this comparison-based tail and derive the translated recursive value and its
+canonical generated IH domain.
+
+`recursiveValueInGeneratedIHDomainFromCanonicalTail` retains actual premises:
+checked recursor metadata, selected shared declarations, context agreement,
+accepted family recognition, parent selection, index arity, native closure and
+freshness/disjointness obligations. It does not assume complete-call typing or
+individual index typing. Rule-wide field-opening/shared-binding production,
+minor/RHS assembly, iota semantics, rejection-consumer migration and `AddInduct`
+remain open. No executable kernel behavior changed and no discrepancy was found.
+
+The regression `InductiveRecursiveTailInputs` checks simultaneous selected
+substitution, zero-argument tails, 16 combinations of stored/actual binder
+annotations, generated recursor calls with the expected motive result, and
+rejection of wrong-result and malformed-index controls. Existing source/domain,
+family-input and changed-index fixtures remain passing.
+
+Production manifests remain exact across Lean 4.29 and 4.33: native tail
+substitution uses only existing logical/native interfaces; selected-tail and
+native comparison helpers retain their existing Expr abstraction/equality
+interfaces; the converted selected-index consumer has the inherited projection
+and context interfaces; call/IH-value consumers retain their inherited
+projection admissions plus Expr comparison. Full theorem/opaque traversal
+reaches six existing projection admission roots (`TrProj`, `TrProj.instN`,
+`TrProj.weak'`, `TrProj.uniq`, `TrProj.wf`, `TrProj.instL`) and excludes the
+known-false strengthening/confluence/quotient-injectivity roots. Logical-only
+negative audits reject the semantic endpoints. No direct admissions or new
+axioms were added.
+
 ## Complete fixture proof-value extraction — 2026-10-20
 
 All fixture audit reads now explicitly request `allowOpaque := true` when
