@@ -123,6 +123,24 @@ theorem RecursorTypeModelReceipt.initialStoredWF_of_closedTranslation
   simpa only [initialLength, VExpr.liftN_zero] using storedTranslated.weakFV envWF.ordered
     (VLCtx.FVLift.from_nil initial.noBV) initialWF.tr.wf
 
+theorem RecursorTypeModelReceipt.initialStoredWF_of_recursorTranslation
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (constant : VConstVal) (info : RecursorVal)
+    (native : TrConstVal .safe env (.recInfo info) constant)
+    (levels : info.levelParams = universes)
+    (type : info.type =
+      (recursorRawType stats infos parent reader.lctx).inferImplicit 1000 false)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (empty : initial.vlctx.toCtx = []) : constant.toVConstant.WF env := by
+  apply receipt.initialStoredWF_of_closedTranslation constant envWF initialWF
+    (empty := empty)
+  · rw [← levels]
+    exact native.1.2.1.symm
+  · rw [← levels, ← type]
+    exact native.1.2.2
+
 theorem RecursorTypeModelReceipt.rawTypehood
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
