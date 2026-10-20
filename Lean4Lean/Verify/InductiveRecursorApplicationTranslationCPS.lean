@@ -288,6 +288,61 @@ theorem mkRecInfos.getTranslatedAppliedRecursorTypes
   exact endpoint.recursorTypeFromDomains envWF modelWF fieldOnly parent bound
     (sources.2 parent bound) mapped (domainSupport result success finalModel endpoint parent bound)
 
+theorem mkRecInfos.getTranslatedAppliedInitialStoredWFOfDeclaredRecursors
+    {env : VEnv} {universes : List Name}
+    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)
+    (envWF : env.WF) (constants : CanonicalAnnotationConstants env)
+    (definitions : CanonicalAnnotationDefinitions env) (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF env universes) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    {semanticElimLevel : VLevel} (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport env universes trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass env universes parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport env universes trace)
+    (domainSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        RecursorSelectedDomainSupport env universes stats result.1 parent result.2.lctx model)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule)
+    (recursorConstant : ∀ (_finalInfos : Array RecInfo) (_finalReader : Context) (_finalModel : MLCtx)
+      parent, parent < types.size → VConstVal)
+    (recursorNative : ∀ (finalInfos : Array RecInfo) (finalReader : Context) (finalModel : MLCtx)
+      parent (bound : parent < types.size),
+      TrConstVal .safe env
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel finalInfos lparams
+          finalReader.lctx isK isUnsafe parent rules))
+        (recursorConstant finalInfos finalReader finalModel parent bound))
+    (recursorLevels : ∀ (finalInfos : Array RecInfo) (finalReader : Context) (_finalModel : MLCtx)
+      parent (_bound : parent < types.size),
+      (declareRecursors.metadataVal stats types elimLevel finalInfos lparams finalReader.lctx
+        isK isUnsafe parent rules).levelParams = universes)
+    (empty : model.vlctx.toCtx = []) :
+    (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      reader.RecursorScopeFrame result.2 ∧ RecursorInfoCounts types result.1 ∧
+      ∃ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel ∧ ∀ parent, parent < types.size →
+        ∀ bound, (recursorConstant result.1 result.2 finalModel parent bound).toVConstant.WF env := by
+  intro result success
+  obtain ⟨frame, counts, finalModel, endpoint, receipts⟩ :=
+    mkRecInfos.getTranslatedAppliedRecursorTypes stats types elimLevel reader envWF constants definitions
+      fieldOnly model modelWF native reserved mapped parentSupport minorSupport domainSupport result success
+  refine ⟨frame, counts, finalModel, endpoint, ?_⟩
+  intro parent parentBound bound
+  exact (receipts parent parentBound).initialStoredWF_of_declaredRecursor
+    (recursorConstant result.1 result.2 finalModel parent bound) lparams isK isUnsafe rules
+    (recursorNative result.1 result.2 finalModel parent bound)
+    (recursorLevels result.1 result.2 finalModel parent bound) envWF modelWF empty
+
 theorem mkRecInfos.getTranslatedAppliedFinalStoredTypehood
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)
