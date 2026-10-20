@@ -50,6 +50,59 @@ are retained; the removed cheap-recursion API is not simulated as a flag.
 No production kernel or semantic theorem changed. Full default builds pass
 on Lean 4.29.0 and Lean 4.33.0-rc2; admission censuses remain unchanged.
 
+## Changed-index typing from actual family applications — 2026-10-20
+
+`InductiveRecursiveIndexArguments` recovers semantic index argument support
+from `UArgModelEndpoint.terminalTranslation`, the actual terminal family
+application in a recursive-field opening. `familyIndexPrefix_apply` splits
+that native terminal into its actual parameter prefix and precisely the
+indices selected by `getIIndices`. It retains the actual native prefix;
+boolean header/parameter equality does not imply structural expression equality.
+
+`NativeTelescopeDomains` records native domain agreement after each actual
+argument substitution. Binder names, implicit annotations and terminal results
+may differ. It contains no semantic typing evidence. Given a translation and
+typing of the partial family header at its expected native index signature,
+`argumentsFromApplication` inverts the actual application stack. Type uniqueness
+and Pi injectivity align each argument domain with the translated source
+signature, then dependent substitution proceeds through both telescopes.
+`UArgModelEndpoint.indexArguments` supplies the target index support without
+assuming individual index translations/typings or the whole recursive call.
+
+`recursiveValueInGeneratedIHDomainFromFamily` composes this producer with the
+existing generated-context value theorem. Complete recursive-value translation,
+IH-domain translation and typing remain conclusions. It retains translated
+recursor signature/insertion, context WF, field opening, shared declaration
+preservation and index-tail closure. Its new premises type only the partial
+family header and specify a native domain correspondence ending in the actual
+major/canonical motive result. Producing those premises for all generated
+rules is still open. Complete minor application/RHS production, iota semantics,
+rejection-consumer migration and `AddInduct` remain open.
+
+The new fixture proves a two-index dependent recovery with distinct native
+binder names and visibility flags, checks substitution below the major binder,
+and rejects mismatched domains and consuming a non-Pi source. Native controls
+check four actual higher-order recursive values across parameterized indexed,
+mutual indexed and dependent-index families. The last family indexes by a type
+and a value of that type. Each actual terminal is recognized, its partial family
+header reconstructs it, and each index matches the successively substituted
+native domain. Values match reconstructed IH types and actual minor domains;
+wrong first/final indices, other-parent motives and malformed higher-order
+arguments reject. These native controls retain only logical axiom dependencies.
+
+All 42 owned declarations are checked for direct admissions/new axioms with
+explicit theorem/opaque value access. Exact argument-recovery manifests contain
+seven inherited axioms (logic, existing projection `sorryAx` and three native
+context interfaces). The complete generated-IH-value endpoint retains eleven,
+adding four existing binding interfaces. Native correspondence/rejection proofs
+are axiom-free; prefix reconstruction uses only logic. Full proof traversal
+reaches exactly six existing projection admission declarations: `TrProj`,
+`TrProj.instN`, `TrProj.weak'`, `TrProj.uniq`, `TrProj.wf` and `TrProj.instL`.
+It excludes known-false strengthening/confluence/injectivity roots; logical-only
+negative audits reject both semantic endpoints. No source admission/native
+interface axiom is introduced. The production module is byte-identical on
+Lean 4.29.0 and 4.33.0-rc2; full default builds pass on both.
+
 ## Generated recursive values at their IH domains — 2026-10-20
 
 `InductiveRecursiveValueDomains` derives the native IH type of a generated
