@@ -69,12 +69,25 @@ def RegistrationEntry.Metadata (decl : VInductDecl) (constructors : List Constru
     entry.info.all = decl.types.map (·.name) ∧
       ∀ rule ∈ entry.info.rules, ∃ ctor ∈ constructors, rule.ctor = ctor.info.name
 
-def RegistrationEntry.RuleSemantics (constructorEnv : VEnv) : RegistrationEntry → Prop
+/-- Rule bodies may call any registered recursor, including a later mutual parent.
+Their translation is checked after all recursor signatures have been inserted. -/
+def RegistrationEntry.RuleSemantics (ruleEnv : VEnv) : RegistrationEntry → Prop
   | .header _ => True
   | .constructor _ => True
   | .recursor entry =>
     ∀ rule ∈ entry.info.rules, ∃ semantic,
-      TrExprS constructorEnv entry.info.levelParams [] rule.rhs semantic
+      TrExprS ruleEnv entry.info.levelParams [] rule.rhs semantic
+
+theorem RegistrationEntry.RuleSemantics.mono
+    {before after : VEnv} {entry : RegistrationEntry}
+    (rules : entry.RuleSemantics before) (extension : before ≤ after) :
+    entry.RuleSemantics after := by
+  cases entry with
+  | header _ | constructor _ => trivial
+  | recursor entry =>
+    intro rule member
+    obtain ⟨semantic, translated⟩ := rules rule member
+    exact ⟨semantic, translated.mono extension⟩
 
 def RegistrationEntry.ModelShape : RegistrationEntry → Prop
   | .header entry => entry.model.name = entry.info.name ∧
@@ -331,8 +344,9 @@ structure RegistrationEvidence (constants : ConstMap) (env : VEnv) (decl : VIndu
     entry.info.all = decl.types.map (·.name)
   recursorRules : ∀ entry ∈ recursors, ∀ rule ∈ entry.info.rules,
     ∃ ctor ∈ constructors, rule.ctor = ctor.info.name
+  /-- Recursor types translate before insertion; recursive rule bodies translate afterwards. -/
   recursorRuleTranslation : ∀ entry ∈ recursors, ∀ rule ∈ entry.info.rules, ∃ semantic,
-    TrExprS constructorEnv entry.info.levelParams [] rule.rhs semantic
+    TrExprS result entry.info.levelParams [] rule.rhs semantic
 
 def RegistrationEvidence.orderedEntries
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
@@ -433,7 +447,7 @@ theorem RegistrationEvidence.orderedMetadata
 theorem RegistrationEvidence.orderedRuleSemantics
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.orderedEntries,
-      entry.RuleSemantics evidence.constructorEnv := by
+      entry.RuleSemantics result := by
   intro entry hmem
   simp only [RegistrationEvidence.orderedEntries, List.mem_append] at hmem
   rcases hmem with hphase | hrecursors
