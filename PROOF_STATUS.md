@@ -14,6 +14,73 @@ unconditional kernel soundness follows from the results below. See `bugs-found.m
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Typed generated recursive calls and values — 2026-10-20
+
+`InductiveRecursiveCallTranslation` derives the recursive call inside
+`mkRecRules` after the full recursor signature batch. Its independent
+`recursorInputAfterInsertion` uses a translated closed signature, membership
+and actual insertion, final environment/context WF, and explicit caller
+universe mapping/arity. It obtains both constant typing and translation of
+the universe-instantiated native signature. The existing closed-signature
+proof is now public as `RecursorConstantInput.ofTranslation`, with its
+contract unchanged.
+
+`NativeTelescopeArguments` records only individual argument/domain
+translations and typing, in order through successively instantiated native
+Pi bodies. Its translation theorem aligns domains by translation uniqueness
+and performs dependent substitution, producing typed semantic arguments and
+translation of the residual type. `cdeclCons` derives each local argument's
+translation and typing from mixed-context WF; `selected` discharges a whole
+shared selected telescope without argument receipts. The application theorem
+derives the complete application and its result rather than assuming either.
+
+`UArgModelEndpoint.recursiveCallAfterInsertion` applies parameters, motives,
+minors and actual indices in the generated order. It obtains `ui xs` and its
+type from the actual translated field-opening endpoint, aligns the major
+domain, and derives the final call and the substituted native result type.
+`recursiveValueAfterInsertion` closes precisely the opened `xs` using the
+endpoint's context extension and native `mkLambda` equality. It derives
+translation and typing of the higher-order recursive value in the context
+before those arguments were opened, together with translation of its native
+Pi type over the substituted call result.
+
+This remains conditional on a translated signature, successful batch
+insertion, final WF, explicit level mapping/arity, a translated field opening,
+and native prefix/telescope argument support. It does not derive those
+premises for every generated rule or relate the resulting values to all
+minor/induction-hypothesis types. Complete RHS production, rule type
+preservation, iota equations, `AddInduct` and frontend soundness remain open.
+
+The regression derives dependent applications from actual cdecl lookups with
+different signature/local names, checks substitution below the major binder,
+rejects argument consumption from a non-Pi source, and allows caller
+universes in arbitrary well-formed local contexts. Runtime controls inspect
+the actual generated rule for a fresh parameterized indexed family with a
+higher-order recursive field: parameter, motive, two minors, changed index, applied major,
+result substitution and the closing lambda all agree. Wrong majors, wrong
+indices, extra arguments and wrong universe arity are rejected.
+
+Every new module-owned declaration is audited for direct admissions/new
+axioms and exact bounded inherited dependencies. Application inherits the
+existing projection admission and three context interfaces; signature
+instantiation adds existing universe/expression interfaces (five on Lean 4.29,
+eight on Lean 4.33 including two existing bit-vector decision certificates),
+and native lambda closing adds four existing binding interfaces. The complete
+value theorem retains their union (16 axioms on Lean 4.29; 19 on Lean 4.33). Exact
+foundation pins and a negative logical-only audit make this boundary explicit.
+Dependency traversal excludes the known-false general strengthening and quotient
+confluence/injectivity roots. The reached direct admission roots are pinned
+exactly to `TrProj`, `TrProj.instN`, `TrProj.weak'`, `TrProj.uniq`, `TrProj.wf`,
+`TrProj.instL` and `TrProj.defeqDFC` on both toolchains. Traversal explicitly
+requests theorem/opaque proof values: Lean 4.33's default `value?` skips
+theorem proofs. The preceding rule-stage fixture is corrected likewise; its
+axiom manifests were already checked independently, but the old traversal
+could not justify exclusion of theorem dependencies on that toolchain.
+Other older fixtures using the default accessor still need review. No new
+admission or interface axiom is added.
+Focused and full default builds and the new/existing regression fixtures pass
+on Lean 4.29.0 and the separate Lean 4.33.0-rc2 integration candidate.
+
 ## Correcting the environment for recursive rule translation — 2026-10-20
 
 `RegistrationEvidence.recursorRuleTranslation` now requires each rule body's
