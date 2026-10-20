@@ -4,6 +4,39 @@
 * https://github.com/leanprover/lean4/issues/10475
 * https://github.com/leanprover/lean4/issues/10511
 
+## Legacy header normalization inherits false strengthening (2026-10-20)
+
+**Verification dependency finding; no native kernel discrepancy.** When composing
+the checked-header producer with changed-index recovery, explicit proof-value
+traversal found this path from `acceptedHeaderNormalization`:
+
+```text
+acceptedHeaderNormalization → TypeChecker.whnf.WF → RecM.WF.run
+→ Methods.withFuel.WF → Inner.inferType'.WF → inferLet.WF
+→ inferLet.loop.WF → RecM.WF.withLetDecl
+→ ConditionallyWHNF.weakN_inv → VEnv.IsDefEqU.weakN_iff
+```
+
+The final general strengthening theorem is already known false. Therefore
+`RecursorIndexParameterPrefix.normalizationSupport` and the older
+`RecursorIndexTrace.headerApplicationsOfChecker` route retain that trust
+limitation. Their inherited axiom manifests alone cannot distinguish this
+false specification from other existing projection admissions.
+
+Minimal audit: import `Lean4Lean.Verify.InductiveRecursiveFamilyInputs`, start
+from `acceptedHeaderNormalization`, and recursively visit each declaration's
+type and `information.value? (allowOpaque := true)` references. The traversal
+reaches `VEnv.IsDefEqU.weakN_iff`. `tests/InductiveRecursiveFamilyInputs.lean`
+retains this as a negative control and prints the full path, including generated
+unary wrappers. It separately forbids that root throughout all new production
+proofs on both Lean versions.
+
+The new batch producer retains explicit original-header/parameter-normalization
+support, and its `SortTelescope` specialization derives those supports from
+actual native head-shape behavior. This avoids the legacy dependency while
+preserving the general normalization obligation. It does not repair unrestricted
+WHNF verification or establish all generated-rule producer premises.
+
 ## Proof audit skipped theorem bodies on Lean 4.33 (2026-10-20)
 
 **Regression-audit defect; no kernel acceptance or theorem contract changed.**

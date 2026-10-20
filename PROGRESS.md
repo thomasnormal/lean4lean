@@ -96,9 +96,15 @@ typing from a typed partial family header and a native correspondence of
 successively instantiated domains. This handles dependent indices without
 assuming their individual translations or typings. The argument recovery
 inherits seven axioms; the complete generated IH-value proof retains eleven
-on both toolchains. Producing the partial-header signature, native domain
-correspondence and canonical major/result shape for every rule remains open,
-as do field-opening support and shared-binding preservation. Full RHS translation,
+on both toolchains. The checked header batch now supplies the partial-family
+input and its actual normalized residual signature. Native sort telescopes
+discharge header/parameter normalization support constructively; general
+headers retain those support obligations. The input transports through recursor
+registration, universe extension and rule-context insertion. The older generic
+checker normalization route still reaches known-false strengthening and is
+excluded by the new proof audit. Native source/target domain correspondence,
+canonical major/result shape, field-opening support and shared-binding
+preservation for every rule remain open. Full RHS translation,
 rule/iota semantics and frontend soundness remain open. The proofs exclude
 known-false strengthening/confluence results and add no admission. Three
 actual higher-order values in parameterized indexed and mutual indexed

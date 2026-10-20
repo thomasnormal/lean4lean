@@ -40,6 +40,74 @@ are retained; the removed cheap-recursion API is not simulated as a flag.
 No production kernel or semantic theorem changed. Full default builds pass
 on Lean 4.29.0 and Lean 4.33.0-rc2; admission censuses remain unchanged.
 
+## Partial-family signatures from checked header traces — 2026-10-20
+
+`InductiveRecursiveFamilyInputs` derives the partial-family receipt needed by
+changed-index recovery from the existing checked header batch and its actual
+parameter/index endpoint. The endpoint's translated normalized residual and
+conversion supply the expected index signature. Native family recognition
+aligns the stored parameter application with the actual field terminal's
+prefix using boolean expression equality and `TrExprS.eqv`. It does not assert
+structural equality: native binder annotations/names may differ.
+
+`FamilyIndexInput.monoEnv`, `.reindexUniverses` and `.weakFV` carry that receipt
+through recursor-environment extension, an added elimination universe and
+actual rule-context insertion. `familyIndexInputInRule` composes these steps
+with the checked-header producer, retaining the actual residual parameter-prefix
+trace. Neither individual index typing nor partial-family typing is a premise
+of the batch producer. Formal consumers recover changed-index support from
+these derived receipts, including a canonical-header consumer with no partial
+family receipt/typing premise.
+
+General headers retain explicit original-header and parameter-normalization
+support, plus existing index annotation/normalization support.
+`familyIndexInputOfSortTelescope` discharges header/parameter and index-tail
+normalization support from the native sort-telescope shape and actual successful
+WHNF result. It retains index-annotation support. This is constructive head-shape
+reasoning; it does not call the older unrestricted checker normalizer theorem.
+Native source/target domain correspondence, canonical major/result shape,
+field-opening/shared-binding support, and producing all receipts for every rule
+remain open. Full minor/RHS production, iota semantics, rejection-consumer
+migration and `AddInduct` remain open.
+
+**Legacy trust boundary discovered during composition:**
+`acceptedHeaderNormalization` reaches `IsDefEqU.weakN_iff` through
+`TypeChecker.whnf.WF`, the methods/inference closure, let inference and
+`ConditionallyWHNF.weakN_inv`. Thus the older `.headerApplicationsOfChecker`
+route inherits a known-false strengthening dependency. Its source theorem is
+unchanged, and its earlier conditional status is not upgraded here. The new
+producer uses explicit normalization support and a constructively discharged
+sort-telescope variant. Its full proof traversal excludes that strengthening
+root and the known-false confluence/quotient-injectivity roots. A separate
+negative control reads theorem/opaque proof bodies and must reach the legacy
+strengthening dependency; see `bugs-found.md` for the path and reproducer.
+
+Runtime controls check 864 actual family prefixes/index signatures, including
+zero/one/two/dependent parameters, differing mutual index counts, registered and
+fully generated environments, local/let contexts, original/fresh/reordered
+universes, both safety/primitive modes and let/beta/metadata head wrappers.
+They observe 576 parameter-opening and 192 initial-header normalization changes,
+and reject 672 unchecked wrong-domain parameter arrays. A native fixture
+accepts parameter lambdas with different binder annotations; their native
+expressions are formally unequal but their family prefixes have the same
+boolean equality and expected type. Its invalid-domain parameter control is
+recognized syntactically and rejected by genuine type checking, preserving the
+distinction between recognition and semantic support. Runtime checks do not
+fabricate semantic environments or discharge general normalization support.
+
+All 21 owned declarations have no direct admission/new axiom. Exact manifests
+pin prefix matching to six inherited logical/native equality interfaces,
+the endpoint family-input producer and transported index consumer to ten, and
+the supported/canonical header-batch producers to eleven on both toolchains.
+The latter add the existing native `Expr.instantiate1_eq` interface. Full proof
+traversal reaches exactly the seven existing projection admission roots:
+`TrProj`, `TrProj.instN`, `TrProj.weak'`, `TrProj.uniq`, `TrProj.wf`,
+`TrProj.instL`, `TrProj.defeqDFC`. Logical-only negative audits reject the semantic
+endpoints. Native fixture helpers retain only logical dependencies. No source
+admission or native-interface axiom was added. The production module is
+byte-identical on Lean 4.29.0 and 4.33.0-rc2. Both full default builds and the new
+family-input/existing changed-index regressions pass.
+
 ## Changed-index typing from actual family applications — 2026-10-20
 
 `InductiveRecursiveIndexArguments` recovers semantic index argument support
