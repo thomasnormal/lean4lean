@@ -25,4 +25,19 @@ theorem TrExpr.inferImplicit {env : VEnv} {universes : List Name} {virtual : VLC
   obtain ⟨strictSemantic, strictTranslated, equality⟩ := translated
   exact ⟨strictSemantic, strictTranslated.inferImplicit count considerRange, equality⟩
 
+/-- Inferred binder annotations do not change a signature's translation. -/
+theorem TrExprS.of_inferImplicit {env : VEnv} {universes : List Name} {virtual : VLCtx}
+    {expression : Expr} {semantic : VExpr} (count : Nat) (considerRange : Bool)
+    (translated : TrExprS env universes virtual (expression.inferImplicit count considerRange)
+      semantic) :
+    TrExprS env universes virtual expression semantic := by
+  induction count generalizing virtual expression semantic with
+  | zero => cases expression <;> exact translated
+  | succ count tailInduction =>
+    cases expression <;> try exact translated
+    case forallE name domain body binderInfo =>
+      cases translated with
+      | forallE domainTyped bodyTyped domainTranslated bodyTranslated =>
+        exact .forallE domainTyped bodyTyped domainTranslated (tailInduction bodyTranslated)
+
 end Lean4Lean

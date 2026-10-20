@@ -123,6 +123,44 @@ theorem recursorInputAfterInsertion
     (signature.1.2.2.mono (VEnv.addConstructorHeaders.le inserted)) signature.1.2.1
     model modelWF mapped arity
 
+/-- Apply an available recursor input to its individually checked arguments
+and the field application derived from the actual opening trace. -/
+theorem UArgModelEndpoint.recursiveCallFromInput
+    {env : VEnv} {universes : List Name}
+    {argument terminal : Expr} {arguments : Array Expr} {reader finalReader : Context}
+    {opening : RecursorUArgOpeningTrace argument reader terminal arguments finalReader}
+    {initial final : MLCtx} (endpoint : UArgModelEndpoint env universes opening initial final)
+    {name : Name} {levels : List Level} {source : Expr}
+    (input : RecursorConstantInput env universes final.vlctx name levels source)
+    (envWF : env.WF) (stats : InductiveStats) (motives minors indices : Array Expr)
+    {majorName : Name} {majorBody : Expr} {majorBinder : BinderInfo}
+    (prefixArguments : NativeTelescopeArguments env universes final source
+      (stats.params ++ motives ++ minors ++ indices).toList
+      (.forallE majorName terminal majorBody majorBinder)) :
+    ∃ value resultType,
+      TrExprS env universes final.vlctx
+        ((mkAppN (mkAppN (mkAppN (mkAppN (.const name levels) stats.params)
+          motives) minors) indices).app (mkAppN argument arguments)) value ∧
+      TrExprS env universes final.vlctx
+        (majorBody.instantiate1' (mkAppN argument arguments)) resultType ∧
+      env.HasType universes.length final.vlctx.toCtx value resultType := by
+  have modelWF := endpoint.context.1
+  obtain ⟨prefixValue, prefixType, prefixTranslated, prefixTypeTranslated, prefixTyped⟩ :=
+    prefixArguments.application envWF modelWF input.sourceTranslated input.valueTranslated input.valueTyped
+  cases prefixTypeTranslated with
+  | forallE _ _ domainTranslated bodyTranslated =>
+    obtain ⟨majorValue, majorType, majorTranslated, majorTypeTranslated, majorTyped⟩ :=
+      endpoint.application envWF
+    have equality := majorTypeTranslated.uniq envWF
+      (.refl envWF modelWF.tr.wf) domainTranslated
+    have converted := majorTyped.defeqU_r envWF modelWF.tr.wf.toCtx equality
+    refine ⟨_, _, ?_, bodyTranslated.inst envWF.ordered converted majorTranslated,
+      prefixTyped.app converted⟩
+    have translated := TrExprS.app prefixTyped converted prefixTranslated majorTranslated
+    have applicationConstructor : mkApp = Expr.app := rfl
+    simpa only [Array.toList_append, Expr.mkAppList_append, Expr.mkAppList_eq_foldl,
+      mkAppN, ← Array.foldl_toList, List.foldl_append, applicationConstructor] using translated
+
 /-- The recursive call generated inside `mkRecRules.loopU`: apply the signature
 to parameters, motives, minors and actual indices, then to the opened field.
 Only individual prefix arguments and the existing field-opening trace are
@@ -152,23 +190,8 @@ theorem UArgModelEndpoint.recursiveCallAfterInsertion
       TrExprS env universes final.vlctx
         (majorBody.instantiate1' (mkAppN argument arguments)) resultType ∧
       env.HasType universes.length final.vlctx.toCtx value resultType := by
-  have modelWF := endpoint.context.1
-  obtain ⟨input⟩ := recursorInputAfterInsertion signature member inserted envWF modelWF mapped arity
-  obtain ⟨prefixValue, prefixType, prefixTranslated, prefixTypeTranslated, prefixTyped⟩ :=
-    prefixArguments.application envWF modelWF input.sourceTranslated input.valueTranslated input.valueTyped
-  cases prefixTypeTranslated with
-  | forallE _ _ domainTranslated bodyTranslated =>
-    obtain ⟨majorValue, majorType, majorTranslated, majorTypeTranslated, majorTyped⟩ :=
-      endpoint.application envWF
-    have equality := majorTypeTranslated.uniq envWF
-      (.refl envWF modelWF.tr.wf) domainTranslated
-    have converted := majorTyped.defeqU_r envWF modelWF.tr.wf.toCtx equality
-    refine ⟨_, _, ?_, bodyTranslated.inst envWF.ordered converted majorTranslated,
-      prefixTyped.app converted⟩
-    have translated := TrExprS.app prefixTyped converted prefixTranslated majorTranslated
-    have applicationConstructor : mkApp = Expr.app := rfl
-    simpa only [Array.toList_append, Expr.mkAppList_append, Expr.mkAppList_eq_foldl,
-      mkAppN, ← Array.foldl_toList, List.foldl_append, applicationConstructor] using translated
+  obtain ⟨input⟩ := recursorInputAfterInsertion signature member inserted envWF endpoint.context.1 mapped arity
+  exact endpoint.recursiveCallFromInput input envWF stats motives minors indices prefixArguments
 
 theorem IndexMLCtxExtension.typedValueAbstraction
     (extension : IndexMLCtxExtension initial ids final)
@@ -208,6 +231,46 @@ theorem UArgModelEndpoint.typedValueAbstraction
     extension.typedValueAbstraction envWF modelWF translated typed
   exact ⟨_, _, by simpa only [← native, arrays] using abstracted, abstractedTyped⟩
 
+/-- Close an available recursive call and its dependent result type over
+exactly the arguments introduced by the field opening. -/
+theorem UArgModelEndpoint.recursiveValueFromInput
+    {env : VEnv} {universes : List Name}
+    {argument terminal : Expr} {arguments : Array Expr} {reader finalReader : Context}
+    {opening : RecursorUArgOpeningTrace argument reader terminal arguments finalReader}
+    {initial final : MLCtx} (endpoint : UArgModelEndpoint env universes opening initial final)
+    {name : Name} {levels : List Level} {source : Expr}
+    (input : RecursorConstantInput env universes final.vlctx name levels source)
+    (envWF : env.WF) (stats : InductiveStats) (motives minors indices : Array Expr)
+    {majorName : Name} {majorBody : Expr} {majorBinder : BinderInfo}
+    (prefixArguments : NativeTelescopeArguments env universes final source
+      (stats.params ++ motives ++ minors ++ indices).toList
+      (.forallE majorName terminal majorBody majorBinder)) :
+    ∃ value valueType,
+      TrExprS env universes initial.vlctx
+        (finalReader.lctx.mkLambda arguments
+          ((mkAppN (mkAppN (mkAppN (mkAppN (.const name levels) stats.params)
+            motives) minors) indices).app (mkAppN argument arguments))) value ∧
+      TrExprS env universes initial.vlctx
+        (finalReader.lctx.mkForall arguments
+          (majorBody.instantiate1' (mkAppN argument arguments))) valueType ∧
+      env.HasType universes.length initial.vlctx.toCtx value valueType := by
+  obtain ⟨_, _, translated, resultTranslated, typed⟩ := endpoint.recursiveCallFromInput input envWF stats motives minors indices prefixArguments
+  obtain ⟨_, _, _, modelWF, native, _, ids, extension, selected⟩ := endpoint
+  have arrays : arguments = (ids.map Expr.fvar).toArray := by
+    apply Array.toList_inj.mp
+    simpa only [List.toList_toArray] using selected
+  obtain ⟨valueTranslated, valueTyped⟩ :=
+    extension.typedValueAbstraction envWF modelWF translated typed
+  have closed : (majorBody.instantiate1' (mkAppN argument arguments)).looseBVarRange' = 0 :=
+    (final.noBV ▸ resultTranslated.closed).looseBVarRange_zero
+  have resultBinding := extension.nativeBodyAbstraction modelWF closed
+  have typeTranslated := (modelWF.mkForall_trS envWF resultTranslated
+    (typed.isType envWF modelWF.tr.wf.toCtx) ids.length extension.bound).1
+  rw [extension.drop_eq, ← resultBinding] at typeTranslated
+  refine ⟨_, _, ?_, ?_, valueTyped⟩
+  · simpa only [← native, arrays] using valueTranslated
+  · simpa only [← native, arrays] using typeTranslated
+
 /-- Translate and type the complete recursive value, including the lambdas
 over higher-order field arguments, in the context preceding their opening. -/
 theorem UArgModelEndpoint.recursiveValueAfterInsertion
@@ -237,22 +300,7 @@ theorem UArgModelEndpoint.recursiveValueAfterInsertion
         (finalReader.lctx.mkForall arguments
           (majorBody.instantiate1' (mkAppN argument arguments))) valueType ∧
       env.HasType universes.length initial.vlctx.toCtx value valueType := by
-  obtain ⟨_, _, translated, resultTranslated, typed⟩ := endpoint.recursiveCallAfterInsertion signature member
-    inserted envWF mapped arity stats motives minors indices prefixArguments
-  obtain ⟨_, _, _, modelWF, native, _, ids, extension, selected⟩ := endpoint
-  have arrays : arguments = (ids.map Expr.fvar).toArray := by
-    apply Array.toList_inj.mp
-    simpa only [List.toList_toArray] using selected
-  obtain ⟨valueTranslated, valueTyped⟩ :=
-    extension.typedValueAbstraction envWF modelWF translated typed
-  have closed : (majorBody.instantiate1' (mkAppN argument arguments)).looseBVarRange' = 0 :=
-    (final.noBV ▸ resultTranslated.closed).looseBVarRange_zero
-  have resultBinding := extension.nativeBodyAbstraction modelWF closed
-  have typeTranslated := (modelWF.mkForall_trS envWF resultTranslated
-    (typed.isType envWF modelWF.tr.wf.toCtx) ids.length extension.bound).1
-  rw [extension.drop_eq, ← resultBinding] at typeTranslated
-  refine ⟨_, _, ?_, ?_, valueTyped⟩
-  · simpa only [← native, arrays] using valueTranslated
-  · simpa only [← native, arrays] using typeTranslated
+  obtain ⟨input⟩ := recursorInputAfterInsertion signature member inserted envWF endpoint.context.1 mapped arity
+  exact endpoint.recursiveValueFromInput input envWF stats motives minors indices prefixArguments
 
 end Lean4Lean.AddInductive
