@@ -174,7 +174,7 @@ run_meta
       ``Inner.inferProj.scopeWF, ``RecM.ScopeWF.of_rejects] do
     let information ← getConstInfo theoremName
     if information matches .axiomInfo _ then throwError "projection axiom {theoremName}"
-    let some proof := information.value? | throwError "projection proof absent {theoremName}"
+    let some proof := information.value? (allowOpaque := true) | throwError "projection proof absent {theoremName}"
     if proof.hasSorry then throwError "projection proof admission {theoremName}"
     let dependencies ← collectAxioms theoremName
     for dependency in dependencies do
@@ -185,7 +185,7 @@ run_meta
   for (theoremName, information) in environment.constants do
     if environment.getModuleIdxFor? theoremName == some modelModule then
       if information matches .axiomInfo _ then throwError "owned environment axiom {theoremName}"
-      if let some proof := information.value? then
+      if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "owned environment admission {theoremName}"
   for theoremName in #[``projectionContract, ``projectionTypeAlignment] do
     let dependencies ← collectAxioms theoremName

@@ -51,7 +51,7 @@ run_meta
   for name in names do
     let some information := environment.find? name | throwError "missing inhabited proof {name}"
     if information matches .axiomInfo _ then throwError "new inhabited axiom {name}"
-    if let some proof := information.value? then
+    if let some proof := information.value? (allowOpaque := true) then
       if proof.hasSorry then throwError "direct inhabited admission {name}"
     for dependency in (← collectAxioms name) do
       unless baseline.contains dependency do throwError "inhabited proof gained {dependency}"
@@ -72,7 +72,7 @@ run_meta
     if forbidden.contains name then throwError "forbidden inhabited dependency {name}: {path.reverse}"
     if let some information := environment.find? name then
       pending := pending ++ information.type.getUsedConstants.map (fun dependency => (dependency, name :: path))
-      if let some proof := information.value? then
+      if let some proof := information.value? (allowOpaque := true) then
         pending := pending ++ proof.getUsedConstants.map (fun dependency => (dependency, name :: path))
   unless pending.isEmpty do throwError "inhabited dependency traversal exceeded its bound"
   for name in names do

@@ -130,7 +130,7 @@ run_meta
     for (name, information) in environment.constants do
       if environment.getModuleIdxFor? name == some moduleIndex then
         if information matches .axiomInfo _ then throwError "owned concrete reduction axiom: {name}"
-        if let some proof := information.value? then
+        if let some proof := information.value? (allowOpaque := true) then
           if proof.hasSorry then throwError "owned concrete reduction direct admission: {name}"
           let dependencies ← collectAxioms name
           for dependency in dependencies do
@@ -165,7 +165,7 @@ run_meta
     if forbidden.contains name then throwError "concrete model depends on its reduction/confluence consumer: {name}"
     if let some information := environment.find? name then
       pending := pending ++ information.type.getUsedConstants
-      if let some proof := information.value? then
+      if let some proof := information.value? (allowOpaque := true) then
         pending := pending ++ proof.getUsedConstants
   unless pending.isEmpty do throwError "concrete reduction dependency traversal exceeded its bound"
   logInfo m!"every WF environment supplies a concrete definition/quotient Params model; equation coverage, unique definition origins, primitive-name protection and all non-overlap obligations are derived from the declaration history; actual parallel reduction and the unchanged confluence theorem instantiate the model; metadata is admission-free, rule soundness retains existing unique-typing dependencies, and the generic confluence admission remains explicit"

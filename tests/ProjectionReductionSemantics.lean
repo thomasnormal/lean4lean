@@ -134,7 +134,7 @@ run_meta
   for root in [``Inner.reduceProj.none_of_translation, ``Inner.reduceProj.WF] do
     let information ← getConstInfo root
     if information matches .axiomInfo _ then throwError "projection theorem is an axiom: {root}"
-    let some proof := information.value? | throwError "projection proof missing: {root}"
+    let some proof := information.value? (allowOpaque := true) | throwError "projection proof missing: {root}"
     if proof.hasSorry then throwError "projection theorem has an admission: {root}"
     let axioms ← collectAxioms root
     unless expectedAxioms.length == axioms.size && expectedAxioms.all axioms.contains do
@@ -151,7 +151,7 @@ run_meta
       if forbidden.contains name then throwError "forbidden projection dependency {name} in {root}"
       if let some declaration := environment.find? name then
         pending := pending ++ declaration.type.getUsedConstants
-        if let some value := declaration.value? then
+        if let some value := declaration.value? (allowOpaque := true) then
           if value.hasSorry then
             unless name == ``TrProj do throwError "unapproved projection admission {name} in {root}"
             admissions := admissions.push name

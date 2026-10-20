@@ -827,7 +827,7 @@ run_meta
       | throwError "missing application-simulation manifest {root}"
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new application-simulation axiom {root}"
-    let some proof := info.value? | throwError "missing application-simulation proof {root}"
+    let some proof := info.value? (allowOpaque := true) | throwError "missing application-simulation proof {root}"
     if proof.hasSorry then throwError "direct application-simulation admission {root}"
     let mut pending := #[root]
     let mut visited : NameSet := {}
@@ -845,7 +845,7 @@ run_meta
       if declaration.type.hasSorry then throwError "admitted application-simulation type {name} in {root}"
       pending := pending ++ declaration.type.getUsedConstants
       if let .inductInfo ii := declaration then pending := pending ++ ii.ctors.toArray
-      if let some value := declaration.value? then
+      if let some value := declaration.value? (allowOpaque := true) then
         if value.hasSorry then throwError "application-simulation admission {name} in {root}"
         pending := pending ++ value.getUsedConstants
     unless pending.isEmpty do throwError "application-simulation traversal exceeded bound"

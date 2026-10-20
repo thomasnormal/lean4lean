@@ -135,7 +135,7 @@ run_meta
   for root in structural ++ converted ++ fixtures do
     let declaration ← getConstInfo root
     if declaration matches .axiomInfo _ then throwError "new telescope erasure axiom {root}"
-    let some value := declaration.value?
+    let some value := declaration.value? (allowOpaque := true)
       | throwError "missing telescope erasure proof {root}"
     if value.hasSorry then throwError "direct telescope erasure admission {root}"
     let pure := [``emptyWF, ``propositionsWF, ``baseWF, ``nestedTranslation, ``nestedTyped].contains root
@@ -159,7 +159,7 @@ run_meta
       if forbidden.contains name then throwError "forbidden telescope erasure dependency {name} in {root}"
       if let some info := environment.find? name then
         pending := pending ++ info.type.getUsedConstants
-        if let some proof := info.value? then
+        if let some proof := info.value? (allowOpaque := true) then
           if proof.hasSorry then
             unless expectedAdmissions.contains name do
               throwError "unapproved telescope erasure admission {name} in {root}"
@@ -207,7 +207,7 @@ run_meta
       visited := visited.insert name
       if let some info := environment.find? name then
         pending := pending ++ info.type.getUsedConstants
-        if let some proof := info.value? then
+        if let some proof := info.value? (allowOpaque := true) then
           if proof.hasSorry then
             unless expectedAdmissions.contains name do throwError "unapproved inference admission {name} in {root}"
             admissions := admissions.push name

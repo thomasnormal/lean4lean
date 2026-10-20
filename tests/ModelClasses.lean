@@ -187,7 +187,7 @@ run_meta
       | throwError "missing model-class manifest {root}"
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new model-class axiom {root}"
-    let some proof := info.value? | throwError "missing model-class proof {root}"
+    let some proof := info.value? (allowOpaque := true) | throwError "missing model-class proof {root}"
     if proof.hasSorry then throwError "direct model-class admission {root}"
     let axioms ← collectAxioms root
     unless axioms.size == expectedAxioms.length && expectedAxioms.all axioms.contains do
@@ -206,7 +206,7 @@ run_meta
         pending := pending ++ declaration.type.getUsedConstants
         if let .inductInfo inductiveInfo := declaration then
           pending := pending ++ inductiveInfo.ctors.toArray
-        if let some value := declaration.value? then
+        if let some value := declaration.value? (allowOpaque := true) then
           if value.hasSorry then throwError "model-class admission {name} in {root}"
           pending := pending ++ value.getUsedConstants
     unless pending.isEmpty do throwError "model-class traversal exceeded bound"

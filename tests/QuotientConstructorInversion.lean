@@ -100,7 +100,7 @@ run_meta
         (name.toString.endsWith ".applicationArgumentTyped" &&
           environment.getModuleIdxFor? name == some semanticModule) then
       if information matches .axiomInfo _ then throwError "quotient inversion axiom: {name}"
-      let some proof := information.value? | throwError "quotient inversion proof absent: {name}"
+      let some proof := information.value? (allowOpaque := true) | throwError "quotient inversion proof absent: {name}"
       if proof.hasSorry then throwError "direct quotient inversion admission: {name}"
       let dependencies ← collectAxioms name
       for dependency in dependencies do

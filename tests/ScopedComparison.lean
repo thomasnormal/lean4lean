@@ -201,7 +201,7 @@ run_meta
   for (name, information) in environment.constants do
     if environment.getModuleIdxFor? name == some moduleIndex then
       if information matches .axiomInfo _ then throwError "owned scoped comparison axiom {name}"
-      if let some proof := information.value? then
+      if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "owned scoped comparison admission {name}"
       let dependencies ← collectAxioms name
       for dependency in dependencies do

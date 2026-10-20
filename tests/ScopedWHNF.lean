@@ -201,7 +201,7 @@ run_meta
   for (name, information) in environment.constants do
     if environment.getModuleIdxFor? name == some moduleIndex then
       if information matches .axiomInfo _ then throwError "owned scoped normalizer axiom {name}"
-      if let some proof := information.value? then
+      if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "owned scoped normalizer admission {name}"
       let dependencies ← collectAxioms name
       for dependency in dependencies do
@@ -213,7 +213,7 @@ run_meta
       ``TrEnv.recursorNotInModel, ``inductiveReduceRec.eq_none, ``ignoredRecursorSupported] do
     let information ← getConstInfo theoremName
     if information matches .axiomInfo _ then throwError "recursor scope axiom {theoremName}"
-    let some proof := information.value? | throwError "recursor scope proof absent {theoremName}"
+    let some proof := information.value? (allowOpaque := true) | throwError "recursor scope proof absent {theoremName}"
     if proof.hasSorry then throwError "recursor scope admission {theoremName}"
     let dependencies ← collectAxioms theoremName
     for dependency in dependencies do

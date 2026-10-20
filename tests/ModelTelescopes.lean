@@ -515,7 +515,7 @@ run_meta
       | throwError "missing model-telescope manifest {root}"
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new model-telescope axiom {root}"
-    if let some proof := info.value? then
+    if let some proof := info.value? (allowOpaque := true) then
       if proof.hasSorry then throwError "direct model-telescope admission {root}"
     else
       match info with
@@ -537,7 +537,7 @@ run_meta
         pending := pending ++ declaration.type.getUsedConstants
         if let .inductInfo inductiveInfo := declaration then
           pending := pending ++ inductiveInfo.ctors.toArray
-        if let some value := declaration.value? then
+        if let some value := declaration.value? (allowOpaque := true) then
           if value.hasSorry then throwError "model-telescope admission {name} in {root}"
           pending := pending ++ value.getUsedConstants
       else

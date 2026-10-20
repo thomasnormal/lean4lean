@@ -417,7 +417,7 @@ run_meta
       | throwError "missing model-observation manifest {root}"
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new model-observation axiom {root}"
-    let some proof := info.value? | throwError "missing model-observation proof {root}"
+    let some proof := info.value? (allowOpaque := true) | throwError "missing model-observation proof {root}"
     if proof.hasSorry then throwError "direct model-observation admission {root}"
     let axioms ← collectAxioms root
     unless axioms.size == expectedAxioms.length && expectedAxioms.all axioms.contains do
@@ -436,7 +436,7 @@ run_meta
         pending := pending ++ declaration.type.getUsedConstants
         if let .inductInfo inductiveInfo := declaration then
           pending := pending ++ inductiveInfo.ctors.toArray
-        if let some value := declaration.value? then
+        if let some value := declaration.value? (allowOpaque := true) then
           if value.hasSorry then throwError "model-observation admission {name} in {root}"
           pending := pending ++ value.getUsedConstants
     unless pending.isEmpty do throwError "model-observation traversal exceeded bound"

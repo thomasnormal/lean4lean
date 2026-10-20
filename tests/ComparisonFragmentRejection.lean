@@ -146,7 +146,7 @@ run_meta
       ``Inner.isDefEqUnitLike.scopeWF, ``ignoredConstructorSupported] do
     let information ← getConstInfo theoremName
     if information matches .axiomInfo _ then throwError "comparison boundary axiom {theoremName}"
-    let some proof := information.value? | throwError "comparison boundary proof absent {theoremName}"
+    let some proof := information.value? (allowOpaque := true) | throwError "comparison boundary proof absent {theoremName}"
     if proof.hasSorry then throwError "comparison boundary admission {theoremName}"
     let dependencies ← collectAxioms theoremName
     for dependency in dependencies do
@@ -158,7 +158,7 @@ run_meta
     for (name, information) in environment.constants do
       if environment.getModuleIdxFor? name == some moduleIndex then
         if information matches .axiomInfo _ then throwError "owned comparison boundary axiom {name}"
-        if let some proof := information.value? then
+        if let some proof := information.value? (allowOpaque := true) then
           if proof.hasSorry then throwError "owned comparison boundary admission {name}"
         owned := owned + 1
   logInfo m!"{owned} exhaustive owned environment/comparison declarations have no direct proof admissions or axioms; structure eta and unit-like inference cannot return true in the current TrEnv fragment; inherited semantic/native baseline remains explicit: {repr baseline}"

@@ -350,7 +350,7 @@ run_meta
       | throwError "missing spine exposure manifest {root}"
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new spine exposure axiom {root}"
-    let some proof := info.value? | throwError "missing spine exposure proof {root}"
+    let some proof := info.value? (allowOpaque := true) | throwError "missing spine exposure proof {root}"
     if proof.hasSorry then throwError "direct spine exposure admission {root}"
     let axioms ← collectAxioms root
     unless axioms.size == expectedAxioms.length && expectedAxioms.all axioms.contains do
@@ -370,7 +370,7 @@ run_meta
         if let .inductInfo inductiveInfo := declaration then
           pending := pending ++ inductiveInfo.ctors.toArray
         if declaration.type.hasSorry then throwError "admitted type {name} in {root}"
-        if let some value := declaration.value? then
+        if let some value := declaration.value? (allowOpaque := true) then
           if value.hasSorry then
             unless expectedAdmissions.contains name do throwError "unapproved spine exposure admission {name} in {root}"
             admissions := admissions.push name

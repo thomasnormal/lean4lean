@@ -14,8 +14,9 @@ run_meta
   let theoremName := ``TypeChecker.VContext.quotientDefEq
   let information ← getConstInfo theoremName
   if information matches .axiomInfo _ then throwError "quotient defeq theorem is an axiom"
-  if let some proof := information.value? then
-    if proof.hasSorry then throwError "quotient defeq theorem has an admission"
-  logInfo m!"quotient defeq theorem is theorem-backed and admission-free"
+  let some proof := information.value? (allowOpaque := true)
+    | throwError "quotient defeq theorem proof is missing"
+  if proof.hasSorry then throwError "quotient defeq theorem has a direct admission"
+  logInfo m!"quotient defeq: inspected theorem proof has no direct admission; inherited axioms = {repr (← collectAxioms theoremName)}"
 
 end QuotientDefEqTest

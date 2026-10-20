@@ -106,7 +106,7 @@ run_meta
   for name in ownedTheorems do
     let information ← getConstInfo name
     if information matches .axiomInfo _ then throwError "substitution axiom: {name}"
-    let some proof := information.value? | throwError "substitution proof absent: {name}"
+    let some proof := information.value? (allowOpaque := true) | throwError "substitution proof absent: {name}"
     if proof.hasSorry then throwError "substitution direct admission: {name}"
     let dependencies ← collectAxioms name
     for dependency in dependencies do

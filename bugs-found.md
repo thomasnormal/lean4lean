@@ -28,8 +28,13 @@ proof values for direct-admission checks and dependency traversal. The new
 fixture also pins all seven reached admission declarations, so skipping
 proof bodies fails the audit. Its exact inherited axiom manifests and
 known-false strengthening/confluence exclusions pass on both toolchains.
-Other older fixtures using the default accessor remain an audit-migration
-item. This corrects fork-specific audit code, not the documented native API.
+The subsequent migration covers all remaining fixture proof-audit value
+reads, with the same explicit accessor on both toolchains. A separate
+regression reads definition/theorem/opaque values and rejects a forbidden
+admission reached through a theorem proof. Three older quotient diagnostics
+also overstated direct checks as transitive admission freedom; they now
+report the inherited axioms explicitly. This corrects fork-specific audit
+code, not the documented native API or a kernel soundness theorem.
 
 ## Recursor rule translation staged before fresh recursor signatures (2026-10-20)
 

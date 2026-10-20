@@ -124,7 +124,7 @@ run_meta
     for (name, information) in environment.constants do
       if environment.getModuleIdxFor? name == some moduleIndex then
         if information matches .axiomInfo _ then throwError "owned quotient injectivity axiom: {name}"
-        let some proof := information.value? | throwError "owned quotient injectivity proof/value absent: {name}"
+        let some proof := information.value? (allowOpaque := true) | throwError "owned quotient injectivity proof/value absent: {name}"
         if proof.hasSorry then throwError "owned quotient injectivity direct admission: {name}"
         let dependencies ← collectAxioms name
         for dependency in dependencies do
@@ -154,7 +154,7 @@ run_meta
     visited := visited.insert name
     if let some information := environment.find? name then
       pending := pending ++ information.type.getUsedConstants
-      if let some proof := information.value? then pending := pending ++ proof.getUsedConstants
+      if let some proof := information.value? (allowOpaque := true) then pending := pending ++ proof.getUsedConstants
   unless pending.isEmpty do throwError "quotient injectivity dependency traversal exceeded its bound"
   for name in #[``VEnv.IsDefEq.church_rosser, ``VEnv.NormalEq.parRed,
       ``VEnv.WF.reductionParams, ``VEnv.WF.rewriteMetadata, ``VEnv.IsDefEqU.sort_inv] do

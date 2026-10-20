@@ -101,7 +101,7 @@ run_meta
   for name in owned do
     let information ← getConstInfo name
     if information matches .axiomInfo _ then throwError "constant confluence axiom: {name}"
-    let some proof := information.value? | throwError "constant confluence proof absent: {name}"
+    let some proof := information.value? (allowOpaque := true) | throwError "constant confluence proof absent: {name}"
     if proof.hasSorry then throwError "constant confluence direct admission: {name}"
     let dependencies ← collectAxioms name
     for dependency in dependencies do
@@ -125,7 +125,7 @@ run_meta
     if forbidden.contains name then throwError "circular constant confluence dependency: {name}"
     if let some information := environment.find? name then
       pending := pending ++ information.type.getUsedConstants
-      if let some proof := information.value? then
+      if let some proof := information.value? (allowOpaque := true) then
         pending := pending ++ proof.getUsedConstants
   unless pending.isEmpty do throwError "constant confluence dependency traversal exceeded its bound"
   logInfo m!"five owned proofs have no direct admissions or axioms; two structural transports exclude inherited metatheory admissions; the constant extra-reduction branch is independent of the remaining application/extra confluence admission; existing semantic baseline: {repr baseline}"

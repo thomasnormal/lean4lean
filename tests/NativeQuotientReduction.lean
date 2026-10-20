@@ -93,7 +93,7 @@ run_meta
       (name.toString.splitOn ".").any (privateSegments.contains ·)
     unless owned do continue
     if information matches .axiomInfo _ then throwError "owned native quotient axiom: {name}"
-    let some proof := information.value? | throwError "native quotient proof/value absent: {name}"
+    let some proof := information.value? (allowOpaque := true) | throwError "native quotient proof/value absent: {name}"
     if proof.hasSorry then throwError "direct native quotient admission: {name}"
     let dependencies ← collectAxioms name
     for dependency in dependencies do
@@ -122,7 +122,7 @@ run_meta
     if forbidden.contains name then throwError "circular native quotient/normalizer proof: {name}"
     if let some information := environment.find? name then
       let mut dependencies := information.type.getUsedConstants
-      if let some proof := information.value? then dependencies := dependencies ++ proof.getUsedConstants
+      if let some proof := information.value? (allowOpaque := true) then dependencies := dependencies ++ proof.getUsedConstants
       for dependency in dependencies do
         unless scheduled.contains dependency do
           scheduled := scheduled.insert dependency
