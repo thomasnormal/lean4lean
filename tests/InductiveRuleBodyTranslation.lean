@@ -35,6 +35,10 @@ private def audit : MetaM Unit := do
   exactAxioms ``GeneratedIHNativeSuffix.applyNativePeeledFieldAndIHArguments structural
   exactAxioms ``MinorModelStep.nativeFieldArguments fieldStructural
   exactAxioms ``MinorModelStep.peeledDomainSource fieldStructural
+  exactAxioms ``GeneratedIHNativeSuffix.ofCanonicalForallTail canonicalStructural
+  exactAxioms ``MinorModelStep.generatedNativeIHArguments canonicalStructural
+  exactAxioms ``MinorModelStep.generatedNativeFieldAndIHArguments canonicalStructural
+  exactAxioms ``MinorModelStep.consumeGeneratedFieldAndIHArguments structural
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveRuleBodyTranslation
     | throwError "rule body: module absent"
   let mut count := 0
@@ -45,8 +49,8 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 43 do throwError "rule body: expected forty-three owned declarations, got {count}"
-  logInfo m!"rule body: generated IH openings, recursive native suffix, field/IH receipts, peeled minor source and application bridge audited ({count} declarations)"
+  unless count == 91 do throwError "rule body: expected ninety-one owned declarations, got {count}"
+  logInfo m!"rule body: generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and application bridge audited ({count} declarations)"
 
 run_meta
   audit
@@ -67,5 +71,9 @@ run_meta
 #print axioms GeneratedIHNativeSuffix.nativeArgumentsAtTarget
 #print axioms GeneratedIHNativeSuffix.applyNativePeeledFieldAndIHArguments
 #print axioms MinorModelStep.nativeFieldArguments
+#print axioms GeneratedIHNativeSuffix.ofCanonicalForallTail
+#print axioms MinorModelStep.generatedNativeIHArguments
+#print axioms MinorModelStep.generatedNativeFieldAndIHArguments
+#print axioms MinorModelStep.consumeGeneratedFieldAndIHArguments
 
 end InductiveRuleBodyTranslationTest
