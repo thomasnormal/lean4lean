@@ -89,9 +89,17 @@ discharge header/parameter normalization support constructively; general
 headers retain those support obligations. The input transports through recursor
 registration, universe extension and rule-context insertion. The older generic
 checker normalization route still reaches known-false strengthening and is
-excluded by the new proof audit. Native source/target domain correspondence,
-canonical major/result shape, field-opening support and shared-binding
-preservation for every rule remain open. Full RHS translation,
+excluded by the new proof audit. The actual translated index trace now
+reconstructs a definitionally equal signature from the peeled declarations;
+selected binding agreement derives native domain correspondence after changed
+dependent substitutions. This removes the complete domain-correspondence premise
+from the new field consumer. Its reconstruction/converted-consumer manifests
+contain seven/eleven inherited axioms and exactly five existing projection
+admission roots, excluding known-false strengthening/confluence. The new fixture
+checks 384 actual generated telescopes, including 576 normalization changes and
+384 peeled dependent domains. Formal canonical major/result alignment,
+field-opening support and shared-binding preservation for every rule remain open.
+Full RHS translation,
 rule/iota semantics and frontend soundness remain open. The proofs exclude
 known-false strengthening/confluence results and add no admission. Three
 actual higher-order values in parameterized indexed and mutual indexed
