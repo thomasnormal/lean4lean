@@ -481,14 +481,17 @@ theorem mkRecInfos.getTranslatedAppliedFinalTypehood
         RecursorFinalTypehood env universes stats types elimLevel result.1 result.2
           finalModel lparams isK isUnsafe rules := by
   intro result success
-  obtain ⟨frame, counts, finalModel, endpoint, receipts⟩ :=
-    mkRecInfos.getTranslatedAppliedRecursorTypes stats types elimLevel reader envWF constants definitions
-      fieldOnly model modelWF native reserved mapped parentSupport minorSupport domainSupport result success
+  obtain ⟨frame, _, counts, finalModel, endpoint⟩ := mkRecInfos.getTranslatedPasses stats types elimLevel
+    reader envWF constants definitions fieldOnly model modelWF native reserved mapped
+    parentSupport minorSupport result success
+  have readerWF : reader.lctx.WF := native ▸ modelWF.tr.1
+  obtain ⟨_, _, sources⟩ := mkRecInfos.getIndexSources stats types elimLevel
+    reader readerWF reserved result success
   refine ⟨frame, counts, finalModel, endpoint, ?_⟩
-  intro parent bound
-  exact ⟨(receipts parent bound).finalRawTypehood,
-    (receipts parent bound).finalStoredTypehood,
-    (receipts parent bound).finalMetadataTypehood types elimLevel lparams isK isUnsafe rules⟩
+  exact endpoint.finalTypehoodFromDomains envWF modelWF fieldOnly
+    (fun parent bound => sources.2 parent bound) mapped
+    (fun parent bound => domainSupport result success finalModel endpoint parent bound)
+    lparams isK isUnsafe rules
 
 theorem mkRecInfos.scopedTranslatedAppliedFinalTypehood {ResultType : Type}
     {env : VEnv} {universes : List Name}
