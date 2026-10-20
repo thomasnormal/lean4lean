@@ -535,6 +535,30 @@ theorem mkRecInfos.getTranslatedAppliedFinalTypehood
     (fun parent bound => domainSupport result success finalModel endpoint parent bound)
     lparams isK isUnsafe rules
 
+theorem RecursorInfoModelEndpoint.initialAndFinalTypehoodFromDomains
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
+    {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
+    {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0)
+    (sources : ∀ parent, parent < types.size →
+      RecursorInfoIndexSource stats types elimLevel parent reader infos[parent]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (supports : ∀ parent, parent < types.size →
+      RecursorSelectedDomainSupport env universes stats infos parent finalReader.lctx initial)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) :
+    RecursorInitialTypehood env universes stats types elimLevel infos finalReader initial
+        lparams isK isUnsafe rules ∧
+      RecursorFinalTypehood env universes stats types elimLevel infos finalReader final
+        lparams isK isUnsafe rules := by
+  exact ⟨endpoint.initialTypehoodFromDomains envWF initialWF parameterFree sources mapped supports
+      lparams isK isUnsafe rules,
+    endpoint.finalTypehoodFromDomains envWF initialWF parameterFree sources mapped supports
+      lparams isK isUnsafe rules⟩
+
 theorem mkRecInfos.getTranslatedAppliedInitialTypehood
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)
@@ -576,6 +600,53 @@ theorem mkRecInfos.getTranslatedAppliedInitialTypehood
     reader readerWF reserved result success
   refine ⟨frame, counts, finalModel, endpoint, ?_⟩
   exact endpoint.initialTypehoodFromDomains envWF modelWF fieldOnly
+    (fun parent bound => sources.2 parent bound) mapped
+    (fun parent bound => domainSupport result success finalModel endpoint parent bound)
+    lparams isK isUnsafe rules
+
+theorem mkRecInfos.getTranslatedAppliedInitialAndFinalTypehood
+    {env : VEnv} {universes : List Name}
+    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)
+    (envWF : env.WF) (constants : CanonicalAnnotationConstants env)
+    (definitions : CanonicalAnnotationDefinitions env) (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF env universes) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    {semanticElimLevel : VLevel} (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport env universes trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass env universes parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport env universes trace)
+    (domainSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        RecursorSelectedDomainSupport env universes stats result.1 parent result.2.lctx model)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) :
+    (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      reader.RecursorScopeFrame result.2 ∧ RecursorInfoCounts types result.1 ∧
+      ∃ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel ∧
+        (RecursorInitialTypehood env universes stats types elimLevel result.1 result.2
+          model lparams isK isUnsafe rules ∧
+          RecursorFinalTypehood env universes stats types elimLevel result.1 result.2
+            finalModel lparams isK isUnsafe rules) := by
+  intro result success
+  obtain ⟨frame, _, counts, finalModel, endpoint⟩ := mkRecInfos.getTranslatedPasses stats types elimLevel
+    reader envWF constants definitions fieldOnly model modelWF native reserved mapped
+    parentSupport minorSupport result success
+  have readerWF : reader.lctx.WF := native ▸ modelWF.tr.1
+  obtain ⟨_, _, sources⟩ := mkRecInfos.getIndexSources stats types elimLevel
+    reader readerWF reserved result success
+  refine ⟨frame, counts, finalModel, endpoint, ?_⟩
+  exact endpoint.initialAndFinalTypehoodFromDomains envWF modelWF fieldOnly
     (fun parent bound => sources.2 parent bound) mapped
     (fun parent bound => domainSupport result success finalModel endpoint parent bound)
     lparams isK isUnsafe rules
@@ -662,6 +733,51 @@ theorem mkRecInfos.scopedTranslatedAppliedInitialTypehood {ResultType : Type}
   refine (mkRecInfos.getTranslatedAppliedInitialTypehood stats types elimLevel reader envWF constants
     definitions fieldOnly model modelWF native reserved mapped parentSupport minorSupport domainSupport
     lparams isK isUnsafe rules).bind ?_
+  rintro ⟨finalInfos, finalReader⟩ ⟨frame, counts, finalModel, endpoint, typehood⟩
+  exact nextWF finalInfos finalReader finalModel frame counts endpoint typehood
+
+theorem mkRecInfos.scopedTranslatedAppliedInitialAndFinalTypehood {ResultType : Type}
+    {env : VEnv} {universes : List Name}
+    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (next : Array RecInfo → M ResultType) (reader : Context) (post : ResultType → Prop)
+    (envWF : env.WF) (constants : CanonicalAnnotationConstants env)
+    (definitions : CanonicalAnnotationDefinitions env) (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF env universes) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    {semanticElimLevel : VLevel} (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport env universes trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass env universes parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport env universes trace)
+    (domainSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        RecursorSelectedDomainSupport env universes stats result.1 parent result.2.lctx model)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule)
+    (nextWF : ∀ finalInfos finalReader finalModel,
+      reader.RecursorScopeFrame finalReader → RecursorInfoCounts types finalInfos →
+      RecursorInfoModelEndpoint env universes stats types elimLevel reader finalInfos finalReader
+        model finalModel →
+      (RecursorInitialTypehood env universes stats types elimLevel finalInfos finalReader
+          model lparams isK isUnsafe rules ∧
+        RecursorFinalTypehood env universes stats types elimLevel finalInfos finalReader
+          finalModel lparams isK isUnsafe rules) →
+      (next finalInfos finalReader).WF post) :
+    (mkRecInfos stats types elimLevel next reader).WF post := by
+  rw [mkRecInfos.morphism stats types elimLevel next
+    (fun finalInfos => do return (finalInfos, ← readThe Context))
+    (fun result => next result.1 result.2) reader (fun _ _ => rfl)]
+  refine (mkRecInfos.getTranslatedAppliedInitialAndFinalTypehood stats types elimLevel reader envWF
+    constants definitions fieldOnly model modelWF native reserved mapped parentSupport minorSupport
+    domainSupport lparams isK isUnsafe rules).bind ?_
   rintro ⟨finalInfos, finalReader⟩ ⟨frame, counts, finalModel, endpoint, typehood⟩
   exact nextWF finalInfos finalReader finalModel frame counts endpoint typehood
 
