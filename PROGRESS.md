@@ -91,13 +91,22 @@ indices and closing the field arguments produces a value at its generated IH
 domain. An alignment bridge supplies the annotation-peeled IH binder type.
 This generated-context proof inherits 11 axioms on both toolchains; arbitrary
 caller-universe instantiation retains its existing 16/19-axiom manifests.
-Changed-index support, its canonical major/result shape, field-opening
-support and shared-binding preservation remain explicit. Full RHS translation,
+The actual translated field terminal now supplies individual changed-index
+typing from a typed partial family header and a native correspondence of
+successively instantiated domains. This handles dependent indices without
+assuming their individual translations or typings. The argument recovery
+inherits seven axioms; the complete generated IH-value proof retains eleven
+on both toolchains. Producing the partial-header signature, native domain
+correspondence and canonical major/result shape for every rule remains open,
+as do field-opening support and shared-binding preservation. Full RHS translation,
 rule/iota semantics and frontend soundness remain open. The proofs exclude
 known-false strengthening/confluence results and add no admission. Three
 actual higher-order values in parameterized indexed and mutual indexed
 families match their instantiated minor/IH domains; malformed indices,
 other-parent motives and higher-order arguments are rejected on both versions.
+A further fixture checks a fourth value with two dependent indices, rebuilding
+the actual family prefix and substituting each index through its domain;
+malformed final indices, mismatched domains and non-Pi sources are rejected.
 Proof audits throughout the fixture suite now explicitly request theorem and
 opaque values, covering Lean 4.33's changed accessor default. A regression
 must reach an existing projection admission through a theorem proof and
