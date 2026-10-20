@@ -123,6 +123,32 @@ theorem RecursorInfoModelEndpoint.finalMetadataTypehoodFromDomains
   exact (endpoint.recursorTypeFromDomains envWF initialWF parameterFree parent bound source mapped support)
     |>.finalMetadataTypehood types elimLevel lparams isK isUnsafe rules
 
+theorem RecursorInfoModelEndpoint.finalTypehoodFromDomains
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
+    {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
+    {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0)
+    (sources : ∀ parent, parent < types.size →
+      RecursorInfoIndexSource stats types elimLevel parent reader infos[parent]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (supports : ∀ parent, parent < types.size →
+      RecursorSelectedDomainSupport env universes stats infos parent finalReader.lctx initial)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) :
+    RecursorFinalTypehood env universes stats types elimLevel infos finalReader final
+      lparams isK isUnsafe rules := by
+  intro parent bound
+  exact ⟨endpoint.finalRawTypehoodFromDomains envWF initialWF parameterFree parent bound
+      (sources parent bound) mapped (supports parent bound),
+    endpoint.finalStoredTypehoodFromDomains envWF initialWF parameterFree parent bound
+      (sources parent bound) mapped (supports parent bound),
+    endpoint.finalMetadataTypehoodFromDomains envWF initialWF parameterFree parent bound
+      (sources parent bound) mapped (supports parent bound)
+      lparams isK isUnsafe rules⟩
+
 theorem mkRecInfos.getTranslatedAppliedRecursorTypes
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)
