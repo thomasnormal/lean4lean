@@ -1227,6 +1227,30 @@ theorem MinorModelStep.abstractConstructorRuleRhs
   exact ⟨value, valueType, ⟨receiptFields, receiptValues, current, hframe, hconstructor, hcount, hrhs⟩,
     valueTranslated, valueTyped⟩
 
+/-- Apply a checked constructor RHS through the actual typed replacement
+telescope.  This is the iota consumer for the rule receipt: each native
+replacement and semantic argument remains recorded by
+`TypedParameterArguments`, and the terminal semantic type is returned rather
+than reconstructed from the RHS shape. -/
+theorem RecursorRuleRhsReceipt.applyIota
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr}
+    {ctx : Context} {constructor : Constructor} {minor : Expr} {rule : RecursorRule}
+    (receipt : RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule)
+    {base : MLCtx} {rhsSemantic rhsType : VExpr}
+    (rhsTranslated : TrExprS env universes base.vlctx rule.rhs rhsSemantic)
+    (rhsTyped : env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType)
+    {replacements : List Expr} {arguments : List VExpr} {resultType : VExpr}
+    (argumentTyping : ElimNestedInductive.TypedParameterArguments env universes base rhsType
+      replacements arguments resultType) :
+    RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule ∧
+      TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
+      env.HasType universes.length base.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType := by
+  obtain ⟨translated, typed⟩ := argumentTyping.apply rhsTranslated rhsTyped
+  exact ⟨receipt, translated, typed⟩
+
 /-- A minor step transports the actual constructor-field prefix receipt from
 the field model through the IH and minor context extensions.  The native body
 is retained as an explicit expression for the subsequent generated IH values. -/
