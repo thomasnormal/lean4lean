@@ -365,6 +365,25 @@ theorem GeneratedIHNativeSuffix.nativeArguments
       ⟨_, _, nativeTranslated, domainTranslated, valueTyped⟩
       (tailInduction head.context.1 finalWF)
 
+/-- A completed generated suffix transports through the actual minor-opening
+extension into a later model without changing its native source or values. -/
+theorem GeneratedIHNativeSuffix.nativeArgumentsAtTarget
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {fields : Array Expr} {infos : Array RecInfo}
+    {index : Nat} {hypotheses : Array Expr} {reader : Context}
+    {finalHypotheses : Array Expr} {finalReader : Context}
+    {trace : RecursorIHTrace stats fields infos index hypotheses reader finalHypotheses finalReader}
+    {initial final target : MLCtx}
+    {history : TranslatedRecursorIHTrace env universes trace initial final}
+    {source : Expr} {replacements : List Expr} {terminal : Expr}
+    (witness : GeneratedIHNativeSuffix env universes
+      (trace := trace) (initial := initial) (final := final) history source replacements terminal)
+    (envWF : env.WF) (initialWF : initial.WF env universes) (targetWF : target.WF env universes)
+    (insertion : VLCtx.FVLift' final.vlctx target.vlctx 0 lift 0) :
+    NativeTelescopeArguments env universes target source replacements terminal := by
+  exact (witness.nativeArguments envWF initialWF history.context.1).weakFV
+    envWF targetWF insertion
+
 /-- A minor step transports the actual constructor-field prefix receipt from
 the field model through the IH and minor context extensions.  The native body
 is retained as an explicit expression for the subsequent generated IH values. -/
