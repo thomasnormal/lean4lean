@@ -332,6 +332,22 @@ private theorem actualEndpointExposesFinalMetadataTypehoodFromExplicitSupport
       env.IsType universes.length final.vlctx.toCtx semantic :=
   endpoint.finalMetadataTypehood envWF initialWF parameterFree parent support lparams false false rules
 
+private theorem actualEndpointExposesFinalRawTypehoodFromExplicitSupport
+    (env : VEnv) (universes : List Name) (stats : InductiveStats) (types : Array InductiveType)
+    (elimLevel : Level) (reader finalReader : Context) (infos : Array RecInfo)
+    (initial final : MLCtx)
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0) (parent : Nat)
+    (support : RecursorRawTypeTranslationSupport env universes stats infos parent
+      finalReader.lctx initial) :
+    ∃ semantic,
+      TrExprS env universes final.vlctx
+        (recursorRawType stats infos parent finalReader.lctx) semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic :=
+  endpoint.finalRawTypehood envWF initialWF parameterFree parent support
+
 private theorem actualFullGetterReturnsEachBoundedParentsReceiptAtItsActualSuccessCheckpoint
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)
@@ -683,6 +699,7 @@ private def auditFoundations (nativeInterfaces : List Name) : MetaM Unit := do
 #print axioms motiveAndMajorComponentsSupplyTheActualBodyApplicationNotWholeRawTyping
 #print axioms rawTypeUsesOnlySelectedDomainAndBodyComponentSupport
 #print axioms actualEndpointKeepsZeroParametersAndUsesRealCombinedSuffixLifting
+#print axioms actualEndpointExposesFinalRawTypehoodFromExplicitSupport
 #print axioms strictInferImplicitThousandKeepsTheSameSemanticAtBothRangePolicies
 #print axioms storedMetadataTypeUsesTheSameSemanticAsTheActuallyProvedRawType
 #print axioms actualFullGetterReturnsEachBoundedParentsReceiptAtItsActualSuccessCheckpoint
@@ -720,6 +737,7 @@ run_meta
       ``abstractionReturnsToTheSameInitialSelectionBase,
       ``rawTypeUsesOnlySelectedDomainAndBodyComponentSupport,
       ``actualEndpointKeepsZeroParametersAndUsesRealCombinedSuffixLifting,
+      ``actualEndpointExposesFinalRawTypehoodFromExplicitSupport,
       ``storedMetadataTypeUsesTheSameSemanticAsTheActuallyProvedRawType,
       ``receiptRestrictsRawAndStoredFreeVariablesToTheSameInitialBase,
       ``receiptDerivesRawAndStoredClosureWithoutTheGlobalNativeRangeAxiom,
