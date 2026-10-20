@@ -71,12 +71,20 @@ The application proof substitutes each actual argument through its dependent
 telescope, derives the final major argument from the recursive-field opening
 trace, and closes the higher-order field arguments with lambdas. Shared
 selected declarations supply their argument receipts directly from context
-well-formedness. Signature/telescope matching, individual index-argument
-support and field-opening support remain explicit; full rule translation is
-still open. The proofs retain existing projection and native-interface
-dependencies, exclude known-false strengthening/confluence results, and add
-no admission. A generated parameterized indexed higher-order rule passes
-application/result checks and rejects malformed calls on both toolchains.
+well-formedness. The stored signature now also supplies its raw type through
+the inverse implicit-binder pass. In the generated universe context, preserved
+shared declarations derive the actual signature prefix; applying the changed
+indices and closing the field arguments produces a value at its generated IH
+domain. An alignment bridge supplies the annotation-peeled IH binder type.
+This generated-context proof inherits 11 axioms on both toolchains; arbitrary
+caller-universe instantiation retains its existing 16/19-axiom manifests.
+Changed-index support, its canonical major/result shape, field-opening
+support and shared-binding preservation remain explicit. Full RHS translation,
+rule/iota semantics and frontend soundness remain open. The proofs exclude
+known-false strengthening/confluence results and add no admission. Three
+actual higher-order values in parameterized indexed and mutual indexed
+families match their instantiated minor/IH domains; malformed indices,
+other-parent motives and higher-order arguments are rejected on both versions.
 Proof audits throughout the fixture suite now explicitly request theorem and
 opaque values, covering Lean 4.33's changed accessor default. A regression
 must reach an existing projection admission through a theorem proof and
