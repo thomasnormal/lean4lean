@@ -1,11 +1,27 @@
 import Lean4Lean.Verify.InductiveRecursiveTailInputs
 import Lean4Lean.Verify.InductiveMinorTranslationCPS
 import Lean4Lean.Verify.InductiveParameterPrefixReplacement
+import Lean4Lean.Verify.InductiveHeaderResidualKinds
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
 open TypeChecker (MLCtx)
 open ElimNestedInductive (ContextReserved TypedParameterApplications)
+
+theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.resultKind
+    (arguments : ElimNestedInductive.TypedParameterArguments environment universes model
+      source replacements values result)
+    (environmentWF : environment.WF) (modelWF : model.WF environment universes)
+    (kind : environment.SortArity universes.length model.vlctx.toCtx
+      (count + replacements.length) source) :
+    environment.SortArity universes.length model.vlctx.toCtx count result := by
+  induction arguments with
+  | nil => simpa only [List.length_nil, Nat.add_zero] using kind
+  | cons translated typed remaining induction =>
+    apply induction
+    exact (VEnv.SortArity.forallBody
+      (by simpa only [List.length_cons, Nat.add_assoc] using kind)
+      environmentWF modelWF.tr.wf.toCtx).instN environmentWF.ordered .zero typed
 
 /-- A generated recursive value can be consumed by the actual annotation-peeled
 IH binder recorded in one translated IH step.  The value and its native domain
@@ -1250,6 +1266,32 @@ theorem RecursorRuleRhsReceipt.applyIota
         (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType := by
   obtain ⟨translated, typed⟩ := argumentTyping.apply rhsTranslated rhsTyped
   exact ⟨receipt, translated, typed⟩
+
+/-- Carry a sort-arity witness through the constructor RHS iota consumer.  The
+typed replacement telescope remains explicit, and the result kind is derived
+from its dependent argument premises rather than reconstructed from syntax. -/
+theorem RecursorRuleRhsReceipt.applyIotaKind
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr}
+    {ctx : Context} {constructor : Constructor} {minor : Expr} {rule : RecursorRule}
+    (receipt : RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule)
+    {base : MLCtx} {rhsSemantic rhsType : VExpr}
+    (rhsTranslated : TrExprS env universes base.vlctx rule.rhs rhsSemantic)
+    (rhsTyped : env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType)
+    {replacements : List Expr} {arguments : List VExpr} {resultType : VExpr}
+    (argumentTyping : ElimNestedInductive.TypedParameterArguments env universes base rhsType
+      replacements arguments resultType)
+    (envWF : env.WF) (modelWF : base.WF env universes)
+    (kind : env.SortArity universes.length base.vlctx.toCtx
+      (count + replacements.length) rhsType) :
+    RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule ∧
+      TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
+      env.HasType universes.length base.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType ∧
+      env.SortArity universes.length base.vlctx.toCtx count resultType := by
+  obtain ⟨receipt, translated, typed⟩ := receipt.applyIota rhsTranslated rhsTyped argumentTyping
+  exact ⟨receipt, translated, typed, argumentTyping.resultKind envWF modelWF kind⟩
 
 /-- Transport a checked constructor RHS iota result through an explicit model
 context extension.  Native replacements stay unchanged while every semantic

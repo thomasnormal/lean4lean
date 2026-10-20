@@ -15,6 +15,7 @@ private def audit : MetaM Unit := do
   let logical := [``propext, ``Classical.choice, ``Quot.sound]
   let structural := logical ++ [``sorryAx, ``PersistentArray.toList'_push,
     ``PersistentHashMap.WF.find?_eq, ``PersistentHashMap.WF.toList'_insert]
+  exactAxioms ``ElimNestedInductive.TypedParameterArguments.resultKind structural
   exactAxioms ``IHModelStep.acceptsGeneratedValue structural
   exactAxioms ``IHModelStep.acceptsGeneratedRecursiveValue structural
   exactAxioms ``RecursorMinorOpening.applyArguments structural
@@ -43,6 +44,7 @@ private def audit : MetaM Unit := do
   exactAxioms ``MinorModelStep.abstractConstructorRhsBody fieldStructural
   exactAxioms ``MinorModelStep.abstractConstructorRuleRhs fieldStructural
   exactAxioms ``RecursorRuleRhsReceipt.applyIota (logical ++ [``sorryAx])
+  exactAxioms ``RecursorRuleRhsReceipt.applyIotaKind structural
   exactAxioms ``RecursorRuleRhsReceipt.applyIotaWeakFV structural
   exactAxioms ``MinorModelStep.abstractConstructorRuleRhsIota fieldStructural
   exactAxioms ``MinorModelStep.abstractConstructorRuleRhsIotaWeakFV fieldStructural
@@ -56,7 +58,7 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 99 do throwError "rule body: expected ninety-nine owned declarations, got {count}"
+  unless count == 101 do throwError "rule body: expected one hundred one owned declarations, got {count}"
   logInfo m!"rule body: generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/context bridges audited ({count} declarations)"
 
 run_meta
@@ -69,6 +71,7 @@ run_meta
 #print axioms RecursorMinorOpening.applyNativePeeledArguments
 #print axioms RecursorMinorOpening.applyNativePeeledFieldAndIHArguments
 #print axioms NativeTelescopeArguments.weakFV
+#print axioms ElimNestedInductive.TypedParameterArguments.resultKind
 #print axioms CtorFieldModelEndpoint.nativeFieldArguments
 #print axioms IHModelStep.generatedNativeArgument
 #print axioms IHModelStep.generatedCanonicalRecursiveValue
@@ -86,6 +89,7 @@ run_meta
 #print axioms MinorModelStep.abstractConstructorRhsBody
 #print axioms MinorModelStep.abstractConstructorRuleRhs
 #print axioms RecursorRuleRhsReceipt.applyIota
+#print axioms RecursorRuleRhsReceipt.applyIotaKind
 #print axioms RecursorRuleRhsReceipt.applyIotaWeakFV
 #print axioms MinorModelStep.abstractConstructorRuleRhsIota
 #print axioms MinorModelStep.abstractConstructorRuleRhsIotaWeakFV
