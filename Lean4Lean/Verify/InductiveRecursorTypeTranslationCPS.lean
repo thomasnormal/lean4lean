@@ -87,6 +87,17 @@ theorem RecursorTypeModelReceipt.storedTypehood
   obtain ⟨semantic, level, _, stored, typed, _⟩ := receipt
   exact ⟨semantic, stored, ⟨level, typed⟩⟩
 
+theorem RecursorTypeModelReceipt.rawTypehood
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final) :
+    ∃ semantic,
+      TrExprS env universes initial.vlctx
+        (recursorRawType stats infos parent reader.lctx) semantic ∧
+      env.IsType universes.length initial.vlctx.toCtx semantic := by
+  obtain ⟨semantic, level, raw, _, typed, _⟩ := receipt
+  exact ⟨semantic, raw, ⟨level, typed⟩⟩
+
 theorem RecursorTypeModelReceipt.finalStoredTypehood
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
