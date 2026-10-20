@@ -97,8 +97,11 @@ from the new field consumer. Its reconstruction/converted-consumer manifests
 contain seven/eleven inherited axioms and exactly five existing projection
 admission roots, excluding known-false strengthening/confluence. The new fixture
 checks 384 actual generated telescopes, including 576 normalization changes and
-384 peeled dependent domains. Formal canonical major/result alignment,
-field-opening support and shared-binding preservation for every rule remain open.
+384 peeled dependent domains. Canonical major/motive-tail alignment is now derived after changed-index
+substitution from selected declarations and accepted family comparison. The
+converted generated-IH consumer retains actual closure, freshness and parent
+selection obligations; field-opening support and shared-binding preservation
+for every rule remain open.
 Full RHS translation,
 rule/iota semantics and frontend soundness remain open. The proofs exclude
 known-false strengthening/confluence results and add no admission. Three
