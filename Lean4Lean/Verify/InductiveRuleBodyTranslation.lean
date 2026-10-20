@@ -263,6 +263,108 @@ theorem IHModelStep.generatedNativeArgument
   have valueTyped := valueTyped.weak' envWF.ordered insertion.toCtx
   exact .cons domainTranslated valueTranslated valueTyped remaining
 
+/-- Explicit recursive IH source decomposition.  Every constructor records the
+step-generated value, its semantic/domain receipts, and the dependent tail
+substitution needed before the next IH binder is consumed. -/
+inductive GeneratedIHNativeSuffix (env : VEnv) (universes : List Name)
+    {stats : InductiveStats} {fields : Array Expr} {infos : Array RecInfo} :
+    {index : Nat} → {hypotheses : Array Expr} → {reader : Context}
+    → {finalHypotheses : Array Expr} → {finalReader : Context}
+    → {trace : RecursorIHTrace stats fields infos index hypotheses reader finalHypotheses finalReader}
+    → {initial final : MLCtx}
+    → TranslatedRecursorIHTrace env universes trace initial final
+    → Expr → List Expr → Expr → Prop where
+  | stop {index : Nat} {hypotheses : Array Expr} {reader : Context}
+      {model : MLCtx} (complete : ¬ index < fields.size) (modelWF : model.WF env universes)
+      (native : model.lctx = reader.lctx) {source terminal : Expr} (sourceEq : source = terminal) :
+      GeneratedIHNativeSuffix env universes
+        (trace := .stop (hypotheses := hypotheses) (reader := reader) complete)
+        (initial := model) (final := model)
+        (TranslatedRecursorIHTrace.stop complete modelWF native) source [] terminal
+  | step {index : Nat} {hypotheses finalHypotheses : Array Expr} {reader finalReader : Context}
+      {domain : Expr} {initial middle final : MLCtx}
+      {source : RecursorIHDomainSource stats infos fields[index]! reader domain}
+      {tail : RecursorIHTrace stats fields infos (index + 1)
+        (hypotheses.push (.fvar ⟨reader.ngen.curr⟩))
+        (recursorIHContext reader fields[index]! domain) finalHypotheses finalReader}
+      (bound : index < fields.size)
+      (head : IHModelStep env universes source initial middle)
+      (rest : TranslatedRecursorIHTrace env universes tail middle final)
+      {nativeValue : Expr} {value domainSemantic : VExpr}
+      (nativeTranslated : TrExprS env universes initial.vlctx nativeValue value)
+      (domainTranslated : TrExprS env universes initial.vlctx domain domainSemantic)
+      (valueTyped : env.HasType universes.length initial.vlctx.toCtx value domainSemantic)
+      {name : Name} {body : Expr} {binder : BinderInfo} {arguments : List Expr} {terminal : Expr}
+      {sourceExpr : Expr}
+      (sourceEq : sourceExpr = .forallE name (peelTypeAnnotations domain) body binder)
+      (tailWitness : GeneratedIHNativeSuffix env universes rest
+        (body.instantiate1' nativeValue) arguments terminal) :
+      GeneratedIHNativeSuffix env universes
+        (trace := .step bound source tail) (initial := initial) (final := final)
+        (TranslatedRecursorIHTrace.step bound source tail head rest)
+        sourceExpr (nativeValue :: arguments) terminal
+
+/-- A generated IH value can be checked in a later model by weakening the
+step-local opening and value receipts through the actual intervening extension. -/
+theorem IHModelStep.generatedNativeArgumentAtTarget
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}
+    {argument domain : Expr} {reader : Context}
+    {source : RecursorIHDomainSource stats infos argument reader domain}
+    {initial final target : MLCtx} (step : IHModelStep env universes source initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes) (targetWF : target.WF env universes)
+    (insertion : VLCtx.FVLift' final.vlctx target.vlctx 0 lift 0)
+    {nativeValue : Expr}
+    (generated : ∃ value domainSemantic,
+      TrExprS env universes initial.vlctx nativeValue value ∧
+      TrExprS env universes initial.vlctx domain domainSemantic ∧
+      env.HasType universes.length initial.vlctx.toCtx value domainSemantic)
+    {name : Name} {body : Expr} {binder : BinderInfo} {arguments : List Expr} {terminal : Expr}
+    (remaining : NativeTelescopeArguments env universes target
+      (body.instantiate1' nativeValue) arguments terminal) :
+    NativeTelescopeArguments env universes target
+      (.forallE name (peelTypeAnnotations domain) body binder)
+      (nativeValue :: arguments) terminal := by
+  obtain ⟨value, domainSemantic, valueTranslated, domainTranslated, generatedTyped⟩ := generated
+  have extension := IHModelStep.extension step
+  obtain ⟨_, _, _, _, _, _, _, _, _, _, ihOpening, _, finalWF, _⟩ := step
+  have valueTyped := ihOpening.acceptsValue envWF initialWF domainTranslated generatedTyped
+  have stepInsertion := extension.weakening.toFVLift'
+  have domainTranslated := ihOpening.peeledTranslated.weakFV' envWF.ordered stepInsertion finalWF.tr.wf
+  have valueTranslated := valueTranslated.weakFV' envWF.ordered stepInsertion finalWF.tr.wf
+  have valueTyped := valueTyped.weak' envWF.ordered stepInsertion.toCtx
+  have domainTranslated := domainTranslated.weakFV' envWF.ordered insertion targetWF.tr.wf
+  have valueTranslated := valueTranslated.weakFV' envWF.ordered insertion targetWF.tr.wf
+  have valueTyped := valueTyped.weak' envWF.ordered insertion.toCtx
+  exact .cons domainTranslated valueTranslated valueTyped remaining
+
+/-- An indexed witness records the generated value and source substitution at
+each actual translated IH step; it then yields the final native suffix receipt. -/
+theorem GeneratedIHNativeSuffix.nativeArguments
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {fields : Array Expr} {infos : Array RecInfo}
+    {index : Nat} {hypotheses : Array Expr} {reader : Context}
+    {finalHypotheses : Array Expr} {finalReader : Context}
+    {trace : RecursorIHTrace stats fields infos index hypotheses reader finalHypotheses finalReader}
+    {initial final : MLCtx}
+    {history : TranslatedRecursorIHTrace env universes trace initial final}
+    {source : Expr} {replacements : List Expr} {terminal : Expr}
+    (witness : GeneratedIHNativeSuffix env universes
+      (trace := trace) (initial := initial) (final := final) history source replacements terminal)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (finalWF : final.WF env universes) :
+    NativeTelescopeArguments env universes final source replacements terminal := by
+  induction witness with
+  | stop complete modelWF native sourceEq =>
+    cases sourceEq
+    exact .nil
+  | step bound head rest nativeTranslated domainTranslated valueTyped sourceEq tailWitness tailInduction =>
+    cases sourceEq
+    obtain ⟨ids, extension, _⟩ := rest.extension
+    exact head.generatedNativeArgumentAtTarget envWF initialWF finalWF
+      extension.weakening.toFVLift'
+      ⟨_, _, nativeTranslated, domainTranslated, valueTyped⟩
+      (tailInduction head.context.1 finalWF)
+
 /-- A minor step transports the actual constructor-field prefix receipt from
 the field model through the IH and minor context extensions.  The native body
 is retained as an explicit expression for the subsequent generated IH values. -/
