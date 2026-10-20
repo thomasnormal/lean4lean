@@ -126,11 +126,13 @@ translation while converting its type through the opening equality. A second
 bridge packages typed field/IH argument sequences into the peeled minor
 application used by a rule RHS. These theorems are producer/consumer seams:
 the all-rule CPS producer still must supply each generated value, shared field
-opening, minor binder and exact argument sequence. Their four owned
+opening, minor binder and exact argument sequence. Their five owned
 declarations add no admissions and retain only the existing structural
 translation interfaces. The native telescope bridge consumes the actual
 successively instantiated argument proof and exposes the same typed minor
-application without hiding any source or terminal premise. Full RHS
+application without hiding any source or terminal premise. The peeled-domain
+specialization reuses the opening translation and leaves only model/context
+conversion explicit. Full RHS
 translation, iota semantics, rejection consumer migration and `AddInduct`
 remain open.
 

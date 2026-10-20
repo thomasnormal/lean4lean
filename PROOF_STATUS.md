@@ -122,11 +122,13 @@ value/domain result produced by the canonical generated-value consumer.
 arguments into the minor application used by a constructor RHS, retaining the
 peeled minor domain as the source type. `applyNativeArguments` consumes the
 actual successively instantiated native telescope proof and exposes the same
-typed application through `TypedParameterApplications`. These are explicit
+typed application through `TypedParameterApplications`. The
+`applyNativePeeledArguments` specialization reuses the opening's peeled
+translation, retaining only the model-to-virtual context equality. These are explicit
 producer/consumer interfaces; they do not fabricate field traces, recursive
 values, shared binding agreements or rule metadata.
 
-The new four-declaration fixture checks exact theorem/opaque proof access,
+The new five-declaration fixture checks exact theorem/opaque proof access,
 rejects owned axioms and direct admissions, and pins identical manifests on
 Lean 4.29 and 4.33: standard logic, the existing projection `sorryAx`, and the
 three persistent map/array interfaces. The bridge adds no executable behavior
