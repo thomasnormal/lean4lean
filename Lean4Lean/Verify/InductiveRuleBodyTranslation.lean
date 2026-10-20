@@ -286,6 +286,65 @@ theorem LocalRecursorRuleRhsScope.impGeneratedConstructorRuleRhs
   exact ⟨rule, minor, hrule, hminor,
     head parent recursor index ctor rule minor hreceipt (hreceipt.fvars.counts.receipt)⟩
 
+/- Pair the closed rule-body semantic witness required by registration with the
+   generated applied-result package.  This is the local indexed seam used by
+   the recursor registration consumer. -/
+theorem LocalRecursorRuleRhsScope.ruleResultSemantics
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := infos.map (·.motive))
+          (minors := infos.flatMap (·.minors)) (ctx := ctx)
+          (constructor := ctor) (minor := minor) (rule := rule)) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+          GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+            (stats := stats) (motives := infos.map (·.motive))
+            (minors := infos.flatMap (·.minors)) (ctx := ctx)
+            (constructor := ctor) (minor := minor) (rule := rule) := by
+  intro parent hparent
+  obtain ⟨recursor, hfind, hreceipts⟩ := hscope parent hparent
+  refine ⟨recursor, hfind, ?_⟩
+  intro index ctor hctor
+  obtain ⟨rule, minor, hrule, hminor, hreceipt⟩ := hreceipts index ctor hctor
+  exact ⟨rule, minor, hrule, hminor,
+    head parent recursor index ctor rule minor hreceipt (hreceipt.fvars.counts.receipt)⟩
+
+/- The aligned all-rule form preserves constructor/index and stored-rule order
+   while returning the same closed semantic and generated-result pair. -/
+theorem RecursorRuleRhsScope.impRuleResultSemantics
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+          (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule)) :
+    List.Forall₂ (fun entry rule =>
+      (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+      GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+        (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+        (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule))
+      (ctors.zipIdx initial) rules := by
+  exact hscope.impScopedReceipts head
+
 theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.resultKind
     (arguments : ElimNestedInductive.TypedParameterArguments environment universes model
       source replacements values result)
