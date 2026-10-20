@@ -104,4 +104,29 @@ theorem RecursorMinorOpening.applyNativeArguments
   exact ⟨values, terminalSemantic, .ofTypedArguments typedArguments,
     appliedTranslated, appliedTyped⟩
 
+/-- The common peeled-domain case uses the opening's own native translation;
+the producer only supplies the checked native argument telescope. -/
+theorem RecursorMinorOpening.applyNativePeeledArguments
+    {env : VEnv} {universes : List Name} {reader : Context} {virtual : VLCtx}
+    {parentName : Name} {constructor : Constructor} {domain : Expr}
+    {rawSemantic peeled : VExpr} {level : VLevel}
+    (opening : RecursorMinorOpening env universes reader virtual parentName constructor
+      domain rawSemantic peeled level)
+    {model : MLCtx}
+    {minor : Expr} {minorSemantic : VExpr} {replacements : List Expr} {terminal : Expr}
+    (nativeArguments : NativeTelescopeArguments env universes model
+      (peelTypeAnnotations domain) replacements terminal)
+    (minorTranslated : TrExprS env universes model.vlctx minor minorSemantic)
+    (minorTyped : env.HasType universes.length model.vlctx.toCtx minorSemantic peeled)
+    (envWF : env.WF) (modelWF : model.WF env universes)
+    (converted : model.vlctx = virtual) :
+    ∃ values terminalSemantic,
+      TypedParameterApplications env universes model peeled replacements values terminalSemantic ∧
+      TrExprS env universes model.vlctx (minor.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) ∧
+      env.HasType universes.length model.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) terminalSemantic := by
+  exact opening.applyNativeArguments (by simpa only [converted] using opening.peeledTranslated)
+    nativeArguments minorTranslated minorTyped envWF modelWF
+
 end Lean4Lean.AddInductive
