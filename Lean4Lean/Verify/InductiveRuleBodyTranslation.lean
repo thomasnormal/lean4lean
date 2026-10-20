@@ -64,6 +64,33 @@ theorem LocalRecursorRuleRhsScope.impReceipts
   exact ⟨rule, minor, hrule, hminor,
     head parent recursor index ctor rule minor hreceipt.fvars.counts.receipt⟩
 
+/- Some result consumers need the stronger scoped receipt as well as its
+   ordinary projection; pass both views without rebuilding either witness. -/
+theorem LocalRecursorRuleRhsScope.impScopedReceipts
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {env : Kernel.Environment}
+    {relation : Nat → RecursorVal → Nat → Constructor → RecursorRule → Expr → Prop}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx env)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat) (ctor : Constructor)
+      (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule → relation parent recursor index ctor rule minor) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      env.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          relation parent recursor index ctor rule minor := by
+  intro parent hparent
+  obtain ⟨recursor, hfind, hreceipts⟩ := hscope parent hparent
+  refine ⟨recursor, hfind, ?_⟩
+  intro index ctor hctor
+  obtain ⟨rule, minor, hrule, hminor, hreceipt⟩ := hreceipts index ctor hctor
+  exact ⟨rule, minor, hrule, hminor,
+    head parent recursor index ctor rule minor hreceipt hreceipt.fvars.counts.receipt⟩
+
 /-- Project every scoped constructor rule in one aligned rule list to the
    ordinary receipt relation.  The constructor/index alignment and stored rule
    order are inherited directly from `List.Forall₂`; no rule is reconstructed
