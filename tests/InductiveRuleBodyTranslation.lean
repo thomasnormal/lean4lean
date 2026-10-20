@@ -32,6 +32,8 @@ private def audit : MetaM Unit := do
     [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
   exactAxioms ``RecursorRuleRhsScope.impRuleResultSemantics
     [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
+  exactAxioms ``RecursorRuleRhsScope.impRuleSemantics
+    [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
   exactAxioms ``ElimNestedInductive.TypedParameterArguments.resultKind structural
   exactAxioms ``VEnv.SortArity.weak' [``propext, ``Quot.sound]
   exactAxioms ``IHModelStep.acceptsGeneratedValue structural
@@ -89,8 +91,8 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 129 do throwError "rule body: expected one hundred twenty-nine owned declarations, got {count}"
-  logInfo m!"paired closed rule-body semantics with generated constructor-RHS result package through local indexed and aligned all-rule dual-receipt consumers, indexed local generated constructor-RHS result consumer with explicit body/source/applied witnesses, all-rule and local dual-receipt adapters, indexed local rule-semantics receipt/result consumer, all-rule scoped-and-ordinary receipt consumer adapter, indexed local scoped-and-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt lookup, all-rule scoped receipt consumer adapter, indexed scoped-to-ordinary receipt lookup, all-rule scoped-to-ordinary receipt projection, direct scoped/fvar/count result transport, generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
+  unless count == 130 do throwError "rule body: expected one hundred thirty owned declarations, got {count}"
+  logInfo m!"projected closed registration RuleSemantics from the paired all-rule callback without reopening generated packages, paired closed rule-body semantics with generated constructor-RHS result package through local indexed and aligned all-rule dual-receipt consumers, indexed local generated constructor-RHS result consumer with explicit body/source/applied witnesses, all-rule and local dual-receipt adapters, indexed local rule-semantics receipt/result consumer, all-rule scoped-and-ordinary receipt consumer adapter, indexed local scoped-and-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt lookup, all-rule scoped receipt consumer adapter, indexed scoped-to-ordinary receipt lookup, all-rule scoped-to-ordinary receipt projection, direct scoped/fvar/count result transport, generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
 
 run_meta
   audit
@@ -109,6 +111,7 @@ run_meta
 #print axioms LocalRecursorRuleRhsScope.impGeneratedConstructorRuleRhs
 #print axioms LocalRecursorRuleRhsScope.ruleResultSemantics
 #print axioms RecursorRuleRhsScope.impRuleResultSemantics
+#print axioms RecursorRuleRhsScope.impRuleSemantics
 #print axioms IHModelStep.acceptsGeneratedRecursiveValue
 #print axioms RecursorMinorOpening.applyArguments
 #print axioms RecursorMinorOpening.applyNativeArguments
