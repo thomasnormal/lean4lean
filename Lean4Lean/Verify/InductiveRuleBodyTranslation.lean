@@ -342,9 +342,9 @@ each actual translated IH step; it then yields the final native suffix receipt. 
 theorem GeneratedIHNativeSuffix.nativeArguments
     {env : VEnv} {universes : List Name}
     {stats : InductiveStats} {fields : Array Expr} {infos : Array RecInfo}
-    {index : Nat} {hypotheses : Array Expr} {reader : Context}
+    {index : Nat} {hypotheses : Array Expr} {suffixReader : Context}
     {finalHypotheses : Array Expr} {finalReader : Context}
-    {trace : RecursorIHTrace stats fields infos index hypotheses reader finalHypotheses finalReader}
+    {trace : RecursorIHTrace stats fields infos index hypotheses suffixReader finalHypotheses finalReader}
     {initial final : MLCtx}
     {history : TranslatedRecursorIHTrace env universes trace initial final}
     {source : Expr} {replacements : List Expr} {terminal : Expr}
@@ -370,9 +370,9 @@ extension into a later model without changing its native source or values. -/
 theorem GeneratedIHNativeSuffix.nativeArgumentsAtTarget
     {env : VEnv} {universes : List Name}
     {stats : InductiveStats} {fields : Array Expr} {infos : Array RecInfo}
-    {index : Nat} {hypotheses : Array Expr} {reader : Context}
+    {index : Nat} {hypotheses : Array Expr} {suffixReader : Context}
     {finalHypotheses : Array Expr} {finalReader : Context}
-    {trace : RecursorIHTrace stats fields infos index hypotheses reader finalHypotheses finalReader}
+    {trace : RecursorIHTrace stats fields infos index hypotheses suffixReader finalHypotheses finalReader}
     {initial final target : MLCtx}
     {history : TranslatedRecursorIHTrace env universes trace initial final}
     {source : Expr} {replacements : List Expr} {terminal : Expr}
@@ -383,6 +383,46 @@ theorem GeneratedIHNativeSuffix.nativeArgumentsAtTarget
     NativeTelescopeArguments env universes target source replacements terminal := by
   exact (witness.nativeArguments envWF initialWF history.context.1).weakFV
     envWF targetWF insertion
+
+/-- Consume a completed generated IH suffix together with the checked
+constructor-field prefix.  The source correspondence with the peeled minor
+domain remains an explicit premise; this theorem only composes the two native
+receipts and delegates the semantic application to the actual minor opening. -/
+theorem GeneratedIHNativeSuffix.applyNativePeeledFieldAndIHArguments
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {fields : Array Expr} {infos : Array RecInfo}
+    {index : Nat} {hypotheses : Array Expr} {suffixReader : Context}
+    {finalHypotheses : Array Expr} {finalReader : Context}
+    {trace : RecursorIHTrace stats fields infos index hypotheses suffixReader finalHypotheses finalReader}
+    {initial final : MLCtx}
+    {history : TranslatedRecursorIHTrace env universes trace initial final}
+    {source : Expr} {replacements : List Expr} {terminal : Expr}
+    (suffix : GeneratedIHNativeSuffix env universes
+      (trace := trace) (initial := initial) (final := final) history source replacements terminal)
+    {minorReader : Context} {virtual : VLCtx} {parentName : Name} {constructor : Constructor}
+    {domain : Expr} {rawSemantic peeled : VExpr} {level : VLevel}
+    (opening : RecursorMinorOpening env universes minorReader virtual parentName constructor
+      domain rawSemantic peeled level)
+    {fieldModel : MLCtx} {minor : Expr} {minorSemantic : VExpr}
+    {minorSource : Expr} {fieldArguments : List Expr}
+    (fieldReceipt : NativeTelescopeArguments env universes final
+      (fieldModel.lctx.mkForall fields minorSource) fieldArguments source)
+    (sourceEq : peelTypeAnnotations domain = fieldModel.lctx.mkForall fields minorSource)
+    (minorTranslated : TrExprS env universes final.vlctx minor minorSemantic)
+    (minorTyped : env.HasType universes.length final.vlctx.toCtx minorSemantic peeled)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (finalWF : final.WF env universes) (converted : final.vlctx = virtual) :
+    ∃ values terminalSemantic,
+      TypedParameterApplications env universes final peeled
+        (fieldArguments ++ replacements) values terminalSemantic ∧
+      TrExprS env universes final.vlctx (minor.mkAppList (fieldArguments ++ replacements))
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) ∧
+      env.HasType universes.length final.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) terminalSemantic := by
+  have ihReceipt := suffix.nativeArguments envWF initialWF finalWF
+  have composed := fieldReceipt.append ihReceipt
+  exact opening.applyNativePeeledFieldAndIHArguments composed sourceEq minorTranslated minorTyped
+    envWF finalWF converted
 
 /-- A minor step transports the actual constructor-field prefix receipt from
 the field model through the IH and minor context extensions.  The native body
