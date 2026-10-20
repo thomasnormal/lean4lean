@@ -76,6 +76,17 @@ theorem RecursorTypeModelReceipt.metadataTypehood
   refine ⟨metadata.choose, metadata.choose_spec.choose_spec.1, ?_⟩
   exact ⟨metadata.choose_spec.choose, metadata.choose_spec.choose_spec.2.1⟩
 
+theorem RecursorTypeModelReceipt.storedTypehood
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final) :
+    ∃ semantic,
+      TrExprS env universes initial.vlctx
+        ((recursorRawType stats infos parent reader.lctx).inferImplicit 1000 false) semantic ∧
+      env.IsType universes.length initial.vlctx.toCtx semantic := by
+  obtain ⟨semantic, level, _, stored, typed, _⟩ := receipt
+  exact ⟨semantic, stored, ⟨level, typed⟩⟩
+
 theorem RecursorInfoModelEndpoint.recursorType
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
     {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
