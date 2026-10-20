@@ -1,6 +1,6 @@
 # Progress and upstream comparison
 
-Last reviewed: **2026-10-19 (UTC)**. This is the readable overview of the
+Last reviewed: **2026-10-20 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
@@ -55,17 +55,18 @@ inherited projection admissions, and its equality bridge pins three projection a
 Full default builds and all selected regression fixtures pass on both
 toolchains. No new admission is introduced.
 
-**Registered recursor model constants (October 20, both toolchains):** the actual
-`scopeRegistration` result now supplies a translated, well-formed model
-constant for each stored safe recursor. The proof constructs the model type
-from the generated-type receipt; it no longer assumes a separate native
-constant translation. It still requires selected-domain and pass support,
-parameter-free statistics, matching universe lists and an empty initial
-virtual context. Generated rules retain their actual offset receipts;
-model insertion, rule semantics, consumer migration and `AddInduct` remain open.
-The proof modules and application fixture now agree on Lean 4.29.0 and
-4.33.0-rc2; the integration retains its additional frontend source guard and
-passes the affected recursor/frontend regressions and the full default build.
+**Registered recursor checker extension (October 20):** the actual generated
+recursor scope now supplies a model extension with `CheckerEnv`. The proof
+constructs each constant from its generated-type receipt and follows the
+native name checks to prove insertion succeeds in parent order, preserving
+old constants, equations and value translations. Selected-domain and pass
+support, parameter-free statistics, matching universe lists and an empty
+initial virtual context remain explicit. The insertion theorem retains the
+existing checker/value-translation admissions and native lookup interfaces;
+no new admission is introduced. Complete inductive registration, rule/iota
+semantics, consumer migration and `AddInduct` remain open.
+The expanded recursor regression and full default builds pass on Lean 4.29.0
+and the separate Lean 4.33.0-rc2 integration candidate.
 
 **Universal candidate reduction simulation:** every actual `NormalEq` in a
 well-formed environment with the quotient rule registered now simulates every
