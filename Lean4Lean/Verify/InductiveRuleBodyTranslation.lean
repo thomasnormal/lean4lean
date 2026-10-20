@@ -345,6 +345,58 @@ theorem IHModelStep.generatedCanonicalRecursiveValue
     value, domainSemantic, translated, ?_, typed⟩
   simpa only [domainEq] using domainTranslated
 
+/-- The premises supplied by a rule producer for one canonical recursive IH.
+They remain a record so suffix assembly can invoke the canonical producer
+without collapsing its environment, family, source and argument obligations. -/
+structure CanonicalRecursiveIHInput
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}
+    {argument domain : Expr} {reader : Context}
+    {source : RecursorIHDomainSource stats infos argument reader domain}
+    {initial middle : MLCtx}
+    (_head : IHModelStep env universes source initial middle) (sourceExpr : Expr) : Type where
+  before : VEnv
+  models : List VConstVal
+  safety : DefinitionSafety
+  info : RecursorVal
+  constant : VConstVal
+  universesEq : universes = info.levelParams
+  signature : TrConstVal safety before (.recInfo info) constant
+  parent : Nat
+  full : LocalContext
+  stored : info.type = (recursorRawType stats infos parent full).inferImplicit 1000 false
+  member : constant ∈ models
+  inserted : before.addConstructorHeaders models = some env
+  fullScope : full.BindingScope
+  ids : List FVarId
+  distinct : ids.Nodup
+  shared : (stats.params ++ infos.map (·.motive) ++ infos.flatMap (·.minors)).toList =
+    ids.map Expr.fvar
+  agreement : ∀ {argument terminal : Expr} {arguments : Array Expr}
+    {reader finalReader : Context}
+    {opening : RecursorUArgOpeningTrace argument reader terminal arguments finalReader}
+    {argumentModel : MLCtx},
+    UArgModelEndpoint env info.levelParams opening initial argumentModel →
+    SelectedCDeclBindingAgreement full argumentModel.lctx ids
+  closed : (full.mkForall infos[parent]!.indices
+    (full.mkForall #[infos[parent]!.major] (recursorTypeBody infos parent))).looseBVarRange' = 0
+  majorName : Name
+  majorBinder : BinderInfo
+  accepted : ∀ terminal : Expr, isValidIndAppIdx stats terminal parent = true
+  selectedParent : ∀ terminal : Expr, parent = (getIIndices stats terminal).1
+  indices : ∀ {argumentModel : MLCtx} (terminal : Expr),
+    NativeTelescopeArguments env info.levelParams argumentModel
+      (full.mkForall infos[parent]!.indices
+        (full.mkForall #[infos[parent]!.major] (recursorTypeBody infos parent)))
+      (getIIndices stats terminal).2.toList
+      (.forallE majorName (mkAppN (mkAppN stats.indConsts[parent]! stats.params)
+        (getIIndices stats terminal).2)
+        (.app ((mkAppN infos[parent]!.motive
+          (getIIndices stats terminal).2).liftLooseBVars' 0 1) (.bvar 0)) majorBinder)
+  name : Name
+  body : Expr
+  binder : BinderInfo
+  sourceEq : sourceExpr = .forallE name (peelTypeAnnotations domain) body binder
+
 /-- Explicit recursive IH source decomposition.  Every constructor records the
 step-generated value, its semantic/domain receipts, and the dependent tail
 substitution needed before the next IH binder is consumed. -/
@@ -450,6 +502,50 @@ theorem GeneratedIHNativeSuffix.ofNativeForallTail
         nativeTranslated domainTranslated valueTyped rfl tailWitness⟩
     | nil =>
       omega
+
+set_option maxHeartbeats 800000 in
+/-- Assemble a generated IH suffix from canonical recursor-tail premises.
+The producer record is instantiated at each actual translated IH step, and its
+source equation is retained as the explicit peeled-binder obligation. -/
+theorem GeneratedIHNativeSuffix.ofCanonicalForallTail
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {fields : Array Expr} {infos : Array RecInfo}
+    {index : Nat} {hypotheses : Array Expr} {suffixReader : Context}
+    {finalHypotheses : Array Expr} {finalReader : Context}
+    {trace : RecursorIHTrace stats fields infos index hypotheses suffixReader finalHypotheses finalReader}
+    {initial final : MLCtx}
+    (history : TranslatedRecursorIHTrace env universes trace initial final)
+    {source terminal : Expr} {count : Nat}
+    (shape : NativeForallTail source count terminal)
+    (countShape : count = fields.size - index)
+    (envWF : env.WF)
+    (canonical : ∀ {index : Nat} {hypotheses finalHypotheses : Array Expr}
+      {reader finalReader : Context} {domain : Expr}
+      {source : RecursorIHDomainSource stats infos fields[index]! reader domain}
+      {tail : RecursorIHTrace stats fields infos (index + 1)
+        (hypotheses.push (.fvar ⟨reader.ngen.curr⟩))
+        (recursorIHContext reader fields[index]! domain) finalHypotheses finalReader}
+      {initial middle : MLCtx}
+      (bound : index < fields.size)
+      (head : IHModelStep env universes source initial middle)
+      (sourceExpr : Expr),
+      CanonicalRecursiveIHInput head sourceExpr) :
+    ∃ replacements terminal,
+      GeneratedIHNativeSuffix env universes history source replacements terminal := by
+  apply GeneratedIHNativeSuffix.ofNativeForallTail history shape countShape
+  intro index hypotheses finalHypotheses reader finalReader domain source tail initial middle final
+    bound head rest sourceExpr
+  obtain ⟨before, models, safety, info, constant, universesEq, signature, parent, full, stored,
+    member, inserted, fullScope, ids, distinct, shared, agreement, closed, majorName, majorBinder,
+    accepted, selectedParent, indices, name, body, binder, sourceEq⟩ :=
+    canonical (index := index) (hypotheses := hypotheses) (finalHypotheses := finalHypotheses)
+      (reader := reader) (finalReader := finalReader) (domain := domain) (source := source)
+      (tail := tail) (initial := initial) (middle := middle) bound head sourceExpr
+  obtain ⟨nativeValue, value, domainSemantic, valueTranslated, domainTranslated, valueTyped⟩ :=
+    head.generatedCanonicalRecursiveValue universesEq signature parent full stored member inserted
+      envWF fullScope ids distinct shared agreement closed accepted selectedParent indices
+  exact ⟨nativeValue, value, domainSemantic, name, body, binder, valueTranslated, domainTranslated,
+    valueTyped, sourceEq⟩
 
 /-- A generated IH value can be checked in a later model by weakening the
 step-local opening and value receipts through the actual intervening extension. -/
@@ -611,6 +707,8 @@ theorem MinorModelStep.peeledDomainSource
   have fieldBindingsModel := extensionCDecls fieldExtension fieldWF
   have fieldBindings : SelectedCDeclBindings fieldReader.lctx fieldIds := by
     simpa only [fieldNative] using fieldBindingsModel
+  have fieldScope : fieldReader.lctx.BindingScope := by
+    simpa only [fieldNative] using fieldWF.bindingScope
   have fieldAgreement : SelectedCDeclBindingAgreement fieldReader.lctx domainReader.lctx fieldIds :=
     fieldBindings.agreementAcross hypothesisFrame fieldFrame.wf
   have fieldArray : fields = (fieldIds.map Expr.fvar).toArray := by
@@ -626,8 +724,6 @@ theorem MinorModelStep.peeledDomainSource
     simpa only [history.context.2.1] using history.context.1.tr.1
   have hypothesisScope : domainReader.lctx.BindingScope := by
     simpa only [history.context.2.1] using history.context.1.bindingScope
-  have fieldScope : fieldReader.lctx.BindingScope := by
-    simpa only [fieldNative] using fieldWF.bindingScope
   have hypothesisDistinct : hypothesisIds.Nodup := by
     have selected := history.context.1.fvarRevList_nodup hypothesisIds.length hypothesisExtension.bound
     rw [hypothesisExtension.selection] at selected
@@ -687,6 +783,290 @@ theorem MinorModelStep.peeledDomainSource
       fieldDistinct fieldAgreement.right
   refine ⟨fieldModel, terminal, fields, hypotheses, ?_⟩
   rw [domainEq, recursorMinorDomain, outerPeeled, outerEquality, fieldNative]
+
+set_option maxHeartbeats 1000000 in
+/-- Build the generated IH argument receipt for one actual minor step.  The
+canonical producer is instantiated at the translated IH history, then the
+receipt is weakened through the real minor-opening extension. -/
+theorem MinorModelStep.generatedNativeIHArguments
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (bodyClosed : ∀ terminal fields,
+      (recursorMinorBody stats infos constructor terminal fields).looseBVarRange' = 0)
+    (envWF : env.WF)
+    (canonical : ∀ {fields : Array Expr} {index : Nat} {hypotheses finalHypotheses : Array Expr}
+      {suffixReader finalReader : Context} {domain : Expr}
+      {source : RecursorIHDomainSource stats infos fields[index]! suffixReader domain}
+      {tail : RecursorIHTrace stats fields infos (index + 1)
+        (hypotheses.push (.fvar ⟨suffixReader.ngen.curr⟩))
+        (recursorIHContext suffixReader fields[index]! domain) finalHypotheses finalReader}
+      {initial middle : MLCtx}
+      (bound : index < fields.size)
+      (head : IHModelStep env universes source initial middle)
+      (sourceExpr : Expr),
+      CanonicalRecursiveIHInput head sourceExpr) :
+    ∃ (hypotheses : Array Expr) (body : Expr) (replacements : List Expr) (terminal : Expr),
+      NativeTelescopeArguments env universes final
+        (domainReader.lctx.mkForall hypotheses body) replacements terminal := by
+  obtain ⟨terminalExpr, finalIndex, fields, recursiveFields, fieldReader, hypotheses,
+    fieldTrace, hypothesisTrace, semantic, fieldModel, hypothesisModel, rawSemantic,
+    peeled, level, domainEq, endpoint, history, opening, finalEq, finalWF, finalNative⟩ := step
+  obtain ⟨fieldVirtual, fieldTerminalSemantic, fieldHistory, fieldWF, fieldNative,
+    fieldConverted, fieldIds, fieldExtension, fieldSelected⟩ := endpoint
+  obtain ⟨hypothesisIds, hypothesisExtension, hypothesisSelected⟩ := history.extension
+  have fieldFrame := fieldHistory.scope reserved
+  have hypothesisFrame := hypothesisTrace.scope fieldFrame.wf fieldFrame.reserved
+  have hypothesisWF : domainReader.lctx.WF := by
+    simpa only [history.context.2.1] using history.context.1.tr.1
+  have hypothesisScope : domainReader.lctx.BindingScope := by
+    simpa only [history.context.2.1] using history.context.1.bindingScope
+  have hypothesisDeclared : RecursorFieldsDeclared domainReader.lctx hypotheses := by
+    have declared : RecursorFieldsDeclared fieldReader.lctx #[] := by
+      intro expression member
+      simp only [Array.not_mem_empty] at member
+    have declared := hypothesisTrace.declared declared
+    simpa only [history.context.2.1] using declared
+  have hypothesisDistinct : hypothesisIds.Nodup := by
+    have selected := history.context.1.fvarRevList_nodup hypothesisIds.length hypothesisExtension.bound
+    rw [hypothesisExtension.selection] at selected
+    exact List.nodup_reverse.mp selected
+  have hypothesisArray : hypotheses = (hypothesisIds.map Expr.fvar).toArray := by
+    apply Array.toList_inj.mp
+    simpa only [List.toList_toArray, Array.toList_empty, List.nil_append] using hypothesisSelected
+  have hypothesisBindings : SelectedCDeclBindings domainReader.lctx hypothesisIds := by
+    have bindings := hypothesisDeclared.selectedBindings hypothesisWF
+    have idsArray : binderArrayIds (hypothesisIds.map Expr.fvar).toArray = hypothesisIds := by
+      simp only [binderArrayIds, List.toList_toArray, List.map_map]
+      change List.map (fun id => id) hypothesisIds = hypothesisIds
+      exact List.map_id' hypothesisIds
+    rw [← idsArray]
+    simpa only [hypothesisArray] using bindings
+  have hypothesisCount : hypotheses.size = recursiveFields.size := by
+    have count := hypothesisTrace.counts
+    simpa only [Array.size_empty, Nat.zero_add, Nat.sub_zero] using count
+  have idsCount : hypothesisIds.length = recursiveFields.size := by
+    have arrayCount := congrArg (fun array : Array Expr => array.toList.length) hypothesisArray
+    have hypothesisLength : hypotheses.size = hypothesisIds.length := by
+      simpa only [Array.length_toList, List.toList_toArray, List.length_map] using arrayCount
+    exact hypothesisLength.symm.trans hypothesisCount
+  let body := recursorMinorBody stats infos constructor terminalExpr fields
+  have bodyClosed' : body.looseBVarRange' = 0 := bodyClosed terminalExpr fields
+  have tail : NativeForallTail (domainReader.lctx.mkForall hypotheses body)
+      hypothesisIds.length (body.abstractList hypothesisIds) := by
+    rw [hypothesisArray]
+    exact mkForall_selected_tail hypothesisIds hypothesisScope bodyClosed'
+      hypothesisDistinct hypothesisBindings
+  have suffixCount : hypothesisIds.length = recursiveFields.size - 0 := by simpa using idsCount
+  obtain ⟨replacements, suffixTerminal, suffix⟩ :=
+    GeneratedIHNativeSuffix.ofCanonicalForallTail history tail suffixCount envWF
+      (fun {index} {hypotheses finalHypotheses suffixReader finalReader domain source tail initial middle}
+        bound head sourceExpr =>
+        canonical (fields := recursiveFields) (index := index) (hypotheses := hypotheses)
+          (finalHypotheses := finalHypotheses) (suffixReader := suffixReader)
+          (finalReader := finalReader) (domain := domain) (source := source) (tail := tail)
+          (initial := initial) (middle := middle) bound head sourceExpr)
+  have suffixAtTarget := suffix.nativeArgumentsAtTarget envWF fieldWF finalWF
+    (by
+      rw [finalEq]
+      exact (opening.extension hypothesisModel).weakening.toFVLift')
+  exact ⟨hypotheses, body, replacements, suffixTerminal, suffixAtTarget⟩
+
+set_option maxHeartbeats 1400000 in
+/-- The actual minor-step bridge: canonical recursive values are assembled into
+the IH suffix, appended to the field receipt, and returned with the explicit
+peeled-domain source equality needed by the minor application. -/
+theorem MinorModelStep.generatedNativeFieldAndIHArguments
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (bodyClosed : ∀ terminal fields,
+      (recursorMinorBody stats infos constructor terminal fields).looseBVarRange' = 0)
+    (bodyPeeled : ∀ terminal fields,
+      peelTypeAnnotations (recursorMinorBody stats infos constructor terminal fields) =
+        recursorMinorBody stats infos constructor terminal fields)
+    (envWF : env.WF)
+    (canonical : ∀ {fields : Array Expr} {index : Nat} {hypotheses finalHypotheses : Array Expr}
+      {suffixReader finalReader : Context} {domain : Expr}
+      {source : RecursorIHDomainSource stats infos fields[index]! suffixReader domain}
+      {tail : RecursorIHTrace stats fields infos (index + 1)
+        (hypotheses.push (.fvar ⟨suffixReader.ngen.curr⟩))
+        (recursorIHContext suffixReader fields[index]! domain) finalHypotheses finalReader}
+      {initial middle : MLCtx}
+      (bound : index < fields.size)
+      (head : IHModelStep env universes source initial middle)
+      (sourceExpr : Expr),
+      CanonicalRecursiveIHInput head sourceExpr) :
+    ∃ (fieldModel : MLCtx) (terminal : Expr) (fields hypotheses : Array Expr)
+      (replacements : List Expr) (suffixTerminal : Expr),
+      peelTypeAnnotations domain =
+        fieldModel.lctx.mkForall fields
+          (domainReader.lctx.mkForall hypotheses
+            (recursorMinorBody stats infos constructor terminal fields)) ∧
+      NativeTelescopeArguments env universes final
+        (fieldModel.lctx.mkForall fields
+          (domainReader.lctx.mkForall hypotheses
+            (recursorMinorBody stats infos constructor terminal fields)))
+        (fields.toList ++ replacements) suffixTerminal := by
+  obtain ⟨terminal, finalIndex, fields, recursiveFields, fieldReader, hypotheses,
+    fieldTrace, hypothesisTrace, semantic, fieldModel, hypothesisModel, rawSemantic,
+    peeled, level, domainEq, endpoint, history, opening, finalEq, finalWF, finalNative⟩ := step
+  let endpoint' := endpoint
+  obtain ⟨fieldVirtual, terminalSemantic, fieldHistory, fieldWF, fieldNative,
+    fieldConverted, fieldIds, fieldExtension, fieldSelected⟩ := endpoint
+  obtain ⟨hypothesisIds, hypothesisExtension, hypothesisSelected⟩ := history.extension
+  have fieldFrame := fieldHistory.scope reserved
+  have hypothesisFrame := hypothesisTrace.scope fieldFrame.wf fieldFrame.reserved
+  have fieldDistinct : fieldIds.Nodup := by
+    have selected := fieldWF.fvarRevList_nodup fieldIds.length fieldExtension.bound
+    rw [fieldExtension.selection] at selected
+    exact List.nodup_reverse.mp selected
+  have fieldBindingsModel := extensionCDecls fieldExtension fieldWF
+  have fieldBindings : SelectedCDeclBindings fieldReader.lctx fieldIds := by
+    simpa only [fieldNative] using fieldBindingsModel
+  have fieldScope : fieldReader.lctx.BindingScope := by
+    simpa only [fieldNative] using fieldWF.bindingScope
+  have fieldAgreement : SelectedCDeclBindingAgreement fieldReader.lctx domainReader.lctx fieldIds :=
+    fieldBindings.agreementAcross hypothesisFrame fieldFrame.wf
+  have fieldArray : fields = (fieldIds.map Expr.fvar).toArray := by
+    apply Array.toList_inj.mp
+    simpa only [List.toList_toArray] using fieldSelected
+  have hypothesisDeclared : RecursorFieldsDeclared domainReader.lctx hypotheses := by
+    have declared : RecursorFieldsDeclared fieldReader.lctx #[] := by
+      intro expression member
+      simp only [Array.not_mem_empty] at member
+    have declared := hypothesisTrace.declared declared
+    simpa only [history.context.2.1] using declared
+  have hypothesisWF : domainReader.lctx.WF := by
+    simpa only [history.context.2.1] using history.context.1.tr.1
+  have hypothesisScope : domainReader.lctx.BindingScope := by
+    simpa only [history.context.2.1] using history.context.1.bindingScope
+  have hypothesisDistinct : hypothesisIds.Nodup := by
+    have selected := history.context.1.fvarRevList_nodup hypothesisIds.length hypothesisExtension.bound
+    rw [hypothesisExtension.selection] at selected
+    exact List.nodup_reverse.mp selected
+  have hypothesisArray : hypotheses = (hypothesisIds.map Expr.fvar).toArray := by
+    apply Array.toList_inj.mp
+    simpa only [List.toList_toArray, Array.toList_empty, List.nil_append] using hypothesisSelected
+  have hypothesisBindings : SelectedCDeclBindings domainReader.lctx hypothesisIds := by
+    have bindings := hypothesisDeclared.selectedBindings hypothesisWF
+    have idsArray : binderArrayIds (hypothesisIds.map Expr.fvar).toArray = hypothesisIds := by
+      simp only [binderArrayIds, List.toList_toArray, List.map_map]
+      change List.map (fun id => id) hypothesisIds = hypothesisIds
+      exact List.map_id' hypothesisIds
+    rw [← idsArray]
+    simpa only [hypothesisArray] using bindings
+  let body := recursorMinorBody stats infos constructor terminal fields
+  have bodyClosed' : body.looseBVarRange' = 0 := bodyClosed terminal fields
+  have bodyPeeled' : peelTypeAnnotations body = body := bodyPeeled terminal fields
+  have innerClosed :
+      (domainReader.lctx.mkForall hypotheses body).looseBVarRange' = 0 := by
+    rw [hypothesisArray]
+    exact mkForall_selected_closed hypothesisIds hypothesisScope bodyClosed'
+      hypothesisDistinct hypothesisBindings
+  have innerPeeled :
+      peelTypeAnnotations (domainReader.lctx.mkForall hypotheses body) =
+        domainReader.lctx.mkForall hypotheses body := by
+    rw [hypothesisArray]
+    exact peelTypeAnnotations_mkForall_selected hypothesisIds hypothesisScope
+      bodyClosed' bodyPeeled' hypothesisDistinct hypothesisBindings
+  have outerEquality :
+      domainReader.lctx.mkForall fields (domainReader.lctx.mkForall hypotheses body) =
+        fieldReader.lctx.mkForall fields (domainReader.lctx.mkForall hypotheses body) := by
+    rw [fieldArray]
+    exact mkForall_congr_selected_cdecl fieldIds hypothesisScope fieldScope
+      (by simpa only [body] using innerClosed) fieldDistinct (by
+        intro id member
+        obtain ⟨leftIndex, rightIndex, name, domain', bi, leftKind, rightKind,
+          leftLookup, rightLookup⟩ := fieldAgreement id member
+        exact ⟨rightIndex, leftIndex, name, domain', bi, rightKind, leftKind,
+          rightLookup, leftLookup⟩)
+  have outerPeeled :
+      peelTypeAnnotations (domainReader.lctx.mkForall fields
+        (domainReader.lctx.mkForall hypotheses body)) =
+        domainReader.lctx.mkForall fields (domainReader.lctx.mkForall hypotheses body) := by
+    rw [fieldArray]
+    exact peelTypeAnnotations_mkForall_selected fieldIds hypothesisScope
+      (by simpa only [body] using innerClosed) (by simpa only [body] using innerPeeled)
+      fieldDistinct fieldAgreement.right
+  have sourceEq :
+      peelTypeAnnotations domain =
+        fieldModel.lctx.mkForall fields (domainReader.lctx.mkForall hypotheses body) := by
+    rw [domainEq, recursorMinorDomain, outerPeeled, outerEquality, fieldNative]
+  have hypothesisCount : hypotheses.size = recursiveFields.size := by
+    have count := hypothesisTrace.counts
+    simpa only [Array.size_empty, Nat.zero_add, Nat.sub_zero] using count
+  have arrayCount := congrArg (fun array : Array Expr => array.toList.length) hypothesisArray
+  have hypothesisLength : hypotheses.size = hypothesisIds.length := by
+    simpa only [Array.length_toList, List.toList_toArray, List.length_map] using arrayCount
+  have suffixShape : NativeForallTail (domainReader.lctx.mkForall hypotheses body)
+      hypothesisIds.length (body.abstractList hypothesisIds) := by
+    rw [hypothesisArray]
+    exact mkForall_selected_tail hypothesisIds hypothesisScope bodyClosed'
+      hypothesisDistinct hypothesisBindings
+  have suffixCount : hypothesisIds.length = recursiveFields.size - 0 := by
+    simpa [hypothesisLength] using hypothesisCount
+  obtain ⟨replacements, suffixTerminal, suffix⟩ :=
+    GeneratedIHNativeSuffix.ofCanonicalForallTail history suffixShape suffixCount envWF
+      (fun {index} {hypotheses finalHypotheses suffixReader finalReader domain source tail initial middle}
+        bound head sourceExpr =>
+        canonical (fields := recursiveFields) (index := index) (hypotheses := hypotheses)
+          (finalHypotheses := finalHypotheses) (suffixReader := suffixReader)
+          (finalReader := finalReader) (domain := domain) (source := source) (tail := tail)
+          (initial := initial) (middle := middle) bound head sourceExpr)
+  have suffixAtTarget := suffix.nativeArgumentsAtTarget envWF fieldWF finalWF
+    (by
+      rw [finalEq]
+      exact (opening.extension hypothesisModel).weakening.toFVLift')
+  have fieldArgs := CtorFieldModelEndpoint.nativeFieldArguments endpoint' envWF innerClosed
+  have extension : IndexMLCtxExtension fieldModel
+      (hypothesisIds ++ [⟨domainReader.ngen.curr⟩]) final := by
+    rw [finalEq]
+    exact hypothesisExtension.trans (opening.extension hypothesisModel)
+  have fieldArgs := fieldArgs.weakFV envWF finalWF extension.weakening.toFVLift'
+  exact ⟨fieldModel, terminal, fields, hypotheses, replacements, suffixTerminal, sourceEq,
+    fieldArgs.append suffixAtTarget⟩
+
+/-- Consume the generated field/IH receipt at the actual peeled minor.  The
+minor opening, source equality, binder translation and final context conversion
+are explicit inputs to this semantic application bridge. -/
+theorem MinorModelStep.consumeGeneratedFieldAndIHArguments
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    {minorReader : Context} {virtual : VLCtx} {rawSemantic peeled : VExpr} {level : VLevel}
+    (opening : RecursorMinorOpening env universes minorReader virtual parentName constructor
+      domain rawSemantic peeled level)
+    {fieldModel : MLCtx} {fields : Array Expr} {ihSource : Expr}
+    {replacements : List Expr} {terminal : Expr}
+    (receipt : NativeTelescopeArguments env universes final
+      (fieldModel.lctx.mkForall fields ihSource) (fields.toList ++ replacements) terminal)
+    (sourceEq : peelTypeAnnotations domain = fieldModel.lctx.mkForall fields ihSource)
+    {minor : Expr} {minorSemantic : VExpr}
+    (minorTranslated : TrExprS env universes final.vlctx minor minorSemantic)
+    (minorTyped : env.HasType universes.length final.vlctx.toCtx minorSemantic peeled)
+    (envWF : env.WF) (converted : final.vlctx = virtual) :
+    ∃ values terminalSemantic,
+      TypedParameterApplications env universes final peeled
+        (fields.toList ++ replacements) values terminalSemantic ∧
+      TrExprS env universes final.vlctx (minor.mkAppList (fields.toList ++ replacements))
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) ∧
+      env.HasType universes.length final.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) terminalSemantic := by
+  have finalWF := step.context.1
+  exact opening.applyNativePeeledFieldAndIHArguments receipt sourceEq minorTranslated minorTyped
+    envWF finalWF converted
 
 /-- A minor step transports the actual constructor-field prefix receipt from
 the field model through the IH and minor context extensions.  The native body
