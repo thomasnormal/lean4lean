@@ -206,6 +206,27 @@ private theorem extensionCDecls {env : VEnv} {universes : List Name} {initial fi
       simp only [beq_self_eq_true, ↓reduceIte]
       simp only [modelWF.decls_size]
 
+private theorem peelTypeAnnotations_mkForall_selected {lctx : LocalContext} {body : Expr}
+    (ids : List FVarId) (scope : lctx.BindingScope) (closed : body.looseBVarRange' = 0)
+    (peeled : peelTypeAnnotations body = body)
+    (distinct : ids.Nodup) (bindings : SelectedCDeclBindings lctx ids) :
+    peelTypeAnnotations (lctx.mkForall (ids.map Expr.fvar).toArray body) =
+      lctx.mkForall (ids.map Expr.fvar).toArray body := by
+  cases ids with
+  | nil =>
+    simp only [List.map_nil]
+    change peelTypeAnnotations (lctx.mkForall #[] body) = lctx.mkForall #[] body
+    simp only [LocalContext.mkForall, LocalContext.mkBinding, Array.size_empty,
+      Nat.foldRev_zero, Expr.abstractRange_eq]
+    have abstractEmpty : body.abstract #[] = body := by
+      have h := Expr.abstract_eq body []
+      simpa only [List.map_nil] using h.trans (Expr.abstractFVars_nil body 0)
+    rw [abstractEmpty]
+    exact peeled
+  | cons identifier ids =>
+    exact peelTypeAnnotations_mkForall_selected_nonempty _ scope closed
+      (by simp [distinct]) bindings (by simp)
+
 /-- The constructor-field trace supplies a checked native telescope for the
 field fvars.  The body remains explicit so later IH arguments can be appended
 after their actual dependent substitutions. -/
@@ -549,6 +570,123 @@ theorem GeneratedIHNativeSuffix.applyNativePeeledFieldAndIHArguments
   have composed := fieldReceipt.append ihReceipt
   exact opening.applyNativePeeledFieldAndIHArguments composed sourceEq minorTranslated minorTyped
     envWF finalWF converted
+
+set_option maxHeartbeats 800000 in
+/-- The peeled minor domain has the native field prefix followed by the native
+IH telescope.  The two contexts remain explicit: field declarations are
+looked up in the field reader, while IH declarations are looked up in the
+later domain reader.  The closure and annotation-peeled body obligations are
+therefore supplied by the caller rather than inferred from a structural
+context equality. -/
+theorem MinorModelStep.peeledDomainSource
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (bodyClosed : ∀ terminal fields,
+      (recursorMinorBody stats infos constructor terminal fields).looseBVarRange' = 0)
+    (bodyPeeled : ∀ terminal fields,
+      peelTypeAnnotations (recursorMinorBody stats infos constructor terminal fields) =
+        recursorMinorBody stats infos constructor terminal fields) :
+    ∃ (fieldModel : MLCtx) (terminal : Expr) (fields hypotheses : Array Expr),
+      peelTypeAnnotations domain =
+        fieldModel.lctx.mkForall fields
+          (domainReader.lctx.mkForall hypotheses
+            (recursorMinorBody stats infos constructor terminal fields)) := by
+  obtain ⟨terminal, finalIndex, fields, recursiveFields, fieldReader, hypotheses,
+    fieldTrace, hypothesisTrace, semantic, fieldModel, hypothesisModel, rawSemantic,
+    peeled, level, domainEq, endpoint, history, opening, finalEq, finalWF, finalNative⟩ := step
+  obtain ⟨fieldVirtual, terminalSemantic, fieldHistory, fieldWF, fieldNative,
+    fieldConverted, fieldIds, fieldExtension, fieldSelected⟩ := endpoint
+  obtain ⟨hypothesisIds, hypothesisExtension, hypothesisSelected⟩ := history.extension
+  have fieldFrame := fieldHistory.scope reserved
+  have hypothesisFrame := hypothesisTrace.scope fieldFrame.wf fieldFrame.reserved
+  have fieldDistinct : fieldIds.Nodup := by
+    have selected := fieldWF.fvarRevList_nodup fieldIds.length fieldExtension.bound
+    rw [fieldExtension.selection] at selected
+    exact List.nodup_reverse.mp selected
+  have fieldBindingsModel := extensionCDecls fieldExtension fieldWF
+  have fieldBindings : SelectedCDeclBindings fieldReader.lctx fieldIds := by
+    simpa only [fieldNative] using fieldBindingsModel
+  have fieldAgreement : SelectedCDeclBindingAgreement fieldReader.lctx domainReader.lctx fieldIds :=
+    fieldBindings.agreementAcross hypothesisFrame fieldFrame.wf
+  have fieldArray : fields = (fieldIds.map Expr.fvar).toArray := by
+    apply Array.toList_inj.mp
+    simpa only [List.toList_toArray] using fieldSelected
+  have hypothesisDeclared : RecursorFieldsDeclared domainReader.lctx hypotheses := by
+    have declared : RecursorFieldsDeclared fieldReader.lctx #[] := by
+      intro expression member
+      simp only [Array.not_mem_empty] at member
+    have declared := hypothesisTrace.declared declared
+    simpa only [history.context.2.1] using declared
+  have hypothesisWF : domainReader.lctx.WF := by
+    simpa only [history.context.2.1] using history.context.1.tr.1
+  have hypothesisScope : domainReader.lctx.BindingScope := by
+    simpa only [history.context.2.1] using history.context.1.bindingScope
+  have fieldScope : fieldReader.lctx.BindingScope := by
+    simpa only [fieldNative] using fieldWF.bindingScope
+  have hypothesisDistinct : hypothesisIds.Nodup := by
+    have selected := history.context.1.fvarRevList_nodup hypothesisIds.length hypothesisExtension.bound
+    rw [hypothesisExtension.selection] at selected
+    exact List.nodup_reverse.mp selected
+  have hypothesisArray : hypotheses = (hypothesisIds.map Expr.fvar).toArray := by
+    apply Array.toList_inj.mp
+    simpa only [List.toList_toArray, Array.toList_empty, List.nil_append] using hypothesisSelected
+  have hypothesisBindings : SelectedCDeclBindings domainReader.lctx hypothesisIds := by
+    have bindings := hypothesisDeclared.selectedBindings hypothesisWF
+    have idsArray : binderArrayIds (hypothesisIds.map Expr.fvar).toArray = hypothesisIds := by
+      simp only [binderArrayIds, List.toList_toArray, List.map_map]
+      change List.map (fun id => id) hypothesisIds = hypothesisIds
+      exact List.map_id' hypothesisIds
+    rw [← idsArray]
+    simpa only [hypothesisArray] using bindings
+  have bodyClosed' := bodyClosed terminal fields
+  have bodyPeeled' := bodyPeeled terminal fields
+  have innerClosed :
+      (domainReader.lctx.mkForall hypotheses
+        (recursorMinorBody stats infos constructor terminal fields)).looseBVarRange' = 0 := by
+    rw [hypothesisArray]
+    exact mkForall_selected_closed hypothesisIds hypothesisScope bodyClosed'
+      hypothesisDistinct hypothesisBindings
+  have innerPeeled :
+      peelTypeAnnotations (domainReader.lctx.mkForall hypotheses
+        (recursorMinorBody stats infos constructor terminal fields)) =
+        domainReader.lctx.mkForall hypotheses
+          (recursorMinorBody stats infos constructor terminal fields) := by
+    rw [hypothesisArray]
+    exact peelTypeAnnotations_mkForall_selected hypothesisIds hypothesisScope
+      bodyClosed' bodyPeeled' hypothesisDistinct hypothesisBindings
+  have outerEquality :
+      domainReader.lctx.mkForall fields
+          (domainReader.lctx.mkForall hypotheses
+            (recursorMinorBody stats infos constructor terminal fields)) =
+        fieldReader.lctx.mkForall fields
+          (domainReader.lctx.mkForall hypotheses
+            (recursorMinorBody stats infos constructor terminal fields)) := by
+    rw [fieldArray]
+    exact mkForall_congr_selected_cdecl fieldIds hypothesisScope fieldScope
+      (fieldArray ▸ innerClosed) fieldDistinct (by
+        intro id member
+        obtain ⟨leftIndex, rightIndex, name, domain, bi, leftKind, rightKind,
+          leftLookup, rightLookup⟩ := fieldAgreement id member
+        exact ⟨rightIndex, leftIndex, name, domain, bi, rightKind, leftKind,
+          rightLookup, leftLookup⟩)
+  have outerPeeled :
+      peelTypeAnnotations (domainReader.lctx.mkForall fields
+        (domainReader.lctx.mkForall hypotheses
+          (recursorMinorBody stats infos constructor terminal fields))) =
+        domainReader.lctx.mkForall fields
+          (domainReader.lctx.mkForall hypotheses
+            (recursorMinorBody stats infos constructor terminal fields)) := by
+    rw [fieldArray]
+    exact peelTypeAnnotations_mkForall_selected fieldIds hypothesisScope
+      (fieldArray ▸ innerClosed) (fieldArray ▸ innerPeeled)
+      fieldDistinct fieldAgreement.right
+  refine ⟨fieldModel, terminal, fields, hypotheses, ?_⟩
+  rw [domainEq, recursorMinorDomain, outerPeeled, outerEquality, fieldNative]
 
 /-- A minor step transports the actual constructor-field prefix receipt from
 the field model through the IH and minor context extensions.  The native body
