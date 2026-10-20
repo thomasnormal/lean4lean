@@ -87,6 +87,26 @@ theorem RecursorTypeModelReceipt.storedTypehood
   obtain ⟨semantic, level, _, stored, typed, _⟩ := receipt
   exact ⟨semantic, stored, ⟨level, typed⟩⟩
 
+theorem RecursorTypeModelReceipt.initialStoredWF
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (constant : VConstVal)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (constantUvars : constant.uvars = universes.length)
+    (constantType : TrExprS env universes initial.vlctx
+      ((recursorRawType stats infos parent reader.lctx).inferImplicit 1000 false) constant.type)
+    (empty : initial.vlctx.toCtx = []) : constant.toVConstant.WF env := by
+  obtain ⟨semantic, level, _, stored, typed, _⟩ := receipt
+  have contextEquality : VLCtx.IsDefEq env universes.length initial.vlctx initial.vlctx :=
+    VLCtx.IsDefEq.refl envWF.ordered initialWF.tr.wf
+  obtain ⟨_, translatedEquality⟩ :=
+    TrExprS.uniq (henv := envWF) contextEquality stored constantType
+  have constantTyped := typed.defeqU_l envWF initialWF.tr.wf.toCtx translatedEquality.toU
+  change env.IsType constant.uvars [] constant.type
+  rw [constantUvars]
+  exact ⟨level, empty ▸ constantTyped⟩
+
 theorem RecursorTypeModelReceipt.rawTypehood
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
