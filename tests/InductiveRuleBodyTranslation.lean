@@ -16,6 +16,7 @@ private def audit : MetaM Unit := do
   let structural := logical ++ [``sorryAx, ``PersistentArray.toList'_push,
     ``PersistentHashMap.WF.find?_eq, ``PersistentHashMap.WF.toList'_insert]
   exactAxioms ``LocalRecursorRuleRhsScope.receipts logical
+  exactAxioms ``LocalRecursorRuleRhsScope.atReceipt logical
   exactAxioms ``RecursorRuleRhsScope.receipts logical
   exactAxioms ``RecursorRuleRhsScope.atReceipt logical
   exactAxioms ``RecursorRuleRhsScope.impReceipts logical
@@ -76,14 +77,15 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 119 do throwError "rule body: expected one hundred nineteen owned declarations, got {count}"
-  logInfo m!"all-rule scoped receipt consumer adapter with indexed scoped-to-ordinary receipt lookup, all-rule scoped-to-ordinary receipt projection, direct scoped/fvar/count result transport, generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
+  unless count == 120 do throwError "rule body: expected one hundred twenty owned declarations, got {count}"
+  logInfo m!"indexed local scoped-to-ordinary receipt lookup with all-rule scoped receipt consumer adapter, indexed scoped-to-ordinary receipt lookup, all-rule scoped-to-ordinary receipt projection, direct scoped/fvar/count result transport, generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
 
 run_meta
   audit
 
 #print axioms IHModelStep.acceptsGeneratedValue
 #print axioms LocalRecursorRuleRhsScope.receipts
+#print axioms LocalRecursorRuleRhsScope.atReceipt
 #print axioms RecursorRuleRhsScope.receipts
 #print axioms RecursorRuleRhsScope.atReceipt
 #print axioms RecursorRuleRhsScope.impReceipts

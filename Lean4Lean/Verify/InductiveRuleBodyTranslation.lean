@@ -12,6 +12,21 @@ open ElimNestedInductive (ContextReserved TypedParameterApplications)
    constructor-RHS consumer needs the smaller receipt that retains only the
    native rule shape; carry it through the existing fvar and count views
    without reconstructing any fields, values, or context equalities. -/
+theorem LocalRecursorRuleRhsScope.atReceipt
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {env : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx env)
+    (parent : Nat) (hparent : parent < types.size)
+    (index : Nat) (ctor : Constructor) (hctor : types[parent]!.ctors[index]? = some ctor) :
+    ∃ recursor, env.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∃ rule minor, recursor.rules[index]? = some rule ∧
+        infos[parent]!.minors[index]? = some minor ∧
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule := by
+  obtain ⟨recursor, hfind, hreceipts⟩ := hscope parent hparent
+  obtain ⟨rule, minor, hrule, hminor, hreceipt⟩ := hreceipts index ctor hctor
+  exact ⟨recursor, hfind, rule, minor, hrule, hminor, hreceipt.fvars.counts.receipt⟩
+
 theorem LocalRecursorRuleRhsScope.receipts
     {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
     {ctx : Context} {env : Kernel.Environment}
