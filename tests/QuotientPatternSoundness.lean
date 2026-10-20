@@ -104,7 +104,7 @@ run_meta
   for (name, information) in environment.constants do
     if environment.getModuleIdxFor? name == some moduleIndex then
       if information matches .axiomInfo _ then throwError "owned quotient pattern axiom: {name}"
-      let some proof := information.value? | throwError "owned quotient pattern proof absent: {name}"
+      let some proof := information.value? (allowOpaque := true) | throwError "owned quotient pattern proof absent: {name}"
       if proof.hasSorry then throwError "owned quotient pattern direct admission: {name}"
       let dependencies ← collectAxioms name
       for dependency in dependencies do
@@ -130,7 +130,7 @@ run_meta
     if forbidden.contains name then throwError "quotient pattern soundness uses its confluence consumer: {name}"
     if let some information := environment.find? name then
       pending := pending ++ information.type.getUsedConstants
-      if let some proof := information.value? then
+      if let some proof := information.value? (allowOpaque := true) then
         pending := pending ++ proof.getUsedConstants
   unless pending.isEmpty do throwError "quotient pattern dependency traversal exceeded its bound"
   logInfo m!"the concrete quotient pattern preserves arbitrary supplied result types using its actual domain/relation checks; all argument typings, universe arities/equivalence and payload transport are derived; quotient equation registration recovers primitive signatures from the WF declaration history without admissions; no Params instance or confluence theorem is assumed"

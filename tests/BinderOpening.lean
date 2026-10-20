@@ -115,7 +115,7 @@ run_meta
   for root in roots do
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new binder-opening axiom {root}"
-    let some value := info.value?
+    let some value := info.value? (allowOpaque := true)
       | throwError "missing binder-opening proof {root}"
     if value.hasSorry then throwError "direct binder-opening admission {root}"
     let expected := if [``baseWF, ``namedWF, ``freshRequired, ``lambdaTranslation, ``letTranslation].contains root then [] else [``TrProj]
@@ -139,7 +139,7 @@ run_meta
       if forbidden.contains name then throwError "forbidden binder-opening dependency {name} in {root}"
       if let some information := environment.find? name then
         pending := pending ++ information.type.getUsedConstants
-        if let some value := information.value? then
+        if let some value := information.value? (allowOpaque := true) then
           if value.hasSorry then
             unless expected.contains name do throwError "unapproved binder-opening admission {name} in {root}"
             admissions := admissions.push name
@@ -149,14 +149,14 @@ run_meta
       throwError "binder-opening manifest changed for {root}: {repr admissions}"
     logInfo m!"{root}: {visited.size} dependencies; exact admissions {repr admissions}"
 
-  let some opening := (← getConstInfo ``TrExprS.inst_fvar).value?
+  let some opening := (← getConstInfo ``TrExprS.inst_fvar).value? (allowOpaque := true)
     | throwError "missing actual binder-opening proof"
   unless opening.getUsedConstants.contains ``TrExprS.instantiateFVar do
     throwError "actual binder opening no longer consumes direct renaming"
   for consumer in [``Lean4Lean.TypeChecker.Inner.inferLambda.loop.WF,
       ``Lean4Lean.TypeChecker.Inner.inferForall.loop.WF,
       ``Lean4Lean.TypeChecker.Inner.inferLet.loop.WF] do
-    let some proof := (← getConstInfo consumer).value?
+    let some proof := (← getConstInfo consumer).value? (allowOpaque := true)
       | throwError "missing actual binder-opening consumer {consumer}"
     if proof.hasSorry then throwError "direct binder-opening consumer admission {consumer}"
     let mut pending := proof.getUsedConstants
@@ -172,7 +172,7 @@ run_meta
       if visited.contains name then continue
       visited := visited.insert name
       if let some information := environment.find? name then
-        if let some value := information.value? then
+        if let some value := information.value? (allowOpaque := true) then
           pending := pending ++ value.getUsedConstants
     unless usesOpening do
       throwError "actual checker consumer {consumer} no longer uses binder opening"

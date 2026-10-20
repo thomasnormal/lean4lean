@@ -1250,7 +1250,7 @@ run_meta
       | throwError "missing candidate-simulation manifest {root}"
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new candidate-simulation axiom {root}"
-    let some proof := info.value? | throwError "missing candidate-simulation proof {root}"
+    let some proof := info.value? (allowOpaque := true) | throwError "missing candidate-simulation proof {root}"
     if proof.hasSorry then throwError "direct candidate-simulation admission {root}"
     let mut pending := #[root]
     let mut visited : NameSet := {}
@@ -1268,7 +1268,7 @@ run_meta
       if declaration.type.hasSorry then throwError "admitted candidate-simulation type {name} in {root}"
       pending := pending ++ declaration.type.getUsedConstants
       if let .inductInfo ii := declaration then pending := pending ++ ii.ctors.toArray
-      if let some value := declaration.value? then
+      if let some value := declaration.value? (allowOpaque := true) then
         if value.hasSorry then throwError "candidate-simulation admission {name} in {root}"
         pending := pending ++ value.getUsedConstants
     unless pending.isEmpty do throwError "candidate-simulation traversal exceeded bound"

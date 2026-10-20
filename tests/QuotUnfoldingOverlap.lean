@@ -377,7 +377,7 @@ run_meta
   for root in roots do
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new unfolding-overlap axiom {root}"
-    let some proof := info.value? | throwError "missing unfolding-overlap proof {root}"
+    let some proof := info.value? (allowOpaque := true) | throwError "missing unfolding-overlap proof {root}"
     if proof.hasSorry then throwError "direct unfolding-overlap admission {root}"
     let expectedAdmissions := if usesTyping.contains root then typingAdmissions else []
     let expectedAxioms := if noAxioms.contains root then []
@@ -399,7 +399,7 @@ run_meta
       if forbidden.contains name then throwError "forbidden unfolding-overlap dependency {name} in {root}"
       if let some declaration := environment.find? name then
         pending := pending ++ declaration.type.getUsedConstants
-        if let some value := declaration.value? then
+        if let some value := declaration.value? (allowOpaque := true) then
           if value.hasSorry then
             unless expectedAdmissions.contains name do throwError "unapproved unfolding-overlap admission {name} in {root}"
             admissions := admissions.push name

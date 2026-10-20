@@ -108,7 +108,7 @@ run_meta
   for theoremName in [``addDecl.WF, ``addDecl.WF_noninductive] do
     let information ← getConstInfo theoremName
     if information matches .axiomInfo _ then throwError "regular declaration theorem is an axiom"
-    let some proof := information.value? | throwError "regular declaration theorem proof missing"
+    let some proof := information.value? (allowOpaque := true) | throwError "regular declaration theorem proof missing"
     if proof.hasSorry then throwError "regular declaration theorem has an admission"
     let dependencies ← collectAxioms theoremName
     for dependency in dependencies do
@@ -118,7 +118,7 @@ run_meta
       ``addDecl.foldlM_WF_noninductive, ``addDecl.fromEmpty_noninductive] do
     let information ← getConstInfo theoremName
     if information matches .axiomInfo _ then throwError "non-inductive frontend axiom: {theoremName}"
-    let some proof := information.value? | throwError "non-inductive frontend proof absent: {theoremName}"
+    let some proof := information.value? (allowOpaque := true) | throwError "non-inductive frontend proof absent: {theoremName}"
     if proof.hasSorry then throwError "non-inductive frontend direct admission: {theoremName}"
     let dependencies ← collectAxioms theoremName
     for dependency in dependencies do

@@ -227,7 +227,7 @@ run_meta
       | throwError "missing manifest {root}"
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new axiom {root}"
-    let some proof := info.value? | throwError "missing proof {root}"
+    let some proof := info.value? (allowOpaque := true) | throwError "missing proof {root}"
     if proof.hasSorry then throwError "direct admission {root}"
     let axioms ← collectAxioms root
     unless axioms.size == expectedAxioms.length && expectedAxioms.all axioms.contains do
@@ -248,7 +248,7 @@ run_meta
           pending := pending ++ inductiveInfo.ctors.toArray
         if declaration.type.hasSorry then
           throwError "admitted declaration type {name} in {root}"
-        if let some value := declaration.value? then
+        if let some value := declaration.value? (allowOpaque := true) then
           if value.hasSorry then
             unless expectedAdmissions.contains name do
               throwError "unapproved admission {name} in {root}"

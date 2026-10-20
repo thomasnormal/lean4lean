@@ -523,7 +523,7 @@ run_meta
       | throwError "missing nonzero-replay manifest {root}"
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new nonzero-replay axiom {root}"
-    let some proof := info.value? | throwError "missing nonzero-replay proof {root}"
+    let some proof := info.value? (allowOpaque := true) | throwError "missing nonzero-replay proof {root}"
     if proof.hasSorry then throwError "direct nonzero-replay admission {root}"
     let mut pending := #[root]
     let mut visited : NameSet := {}
@@ -541,7 +541,7 @@ run_meta
       if declaration.type.hasSorry then throwError "admitted nonzero-replay type {name} in {root}"
       pending := pending ++ declaration.type.getUsedConstants
       if let .inductInfo ii := declaration then pending := pending ++ ii.ctors.toArray
-      if let some value := declaration.value? then
+      if let some value := declaration.value? (allowOpaque := true) then
         if value.hasSorry then throwError "nonzero-replay admission {name} in {root}"
         pending := pending ++ value.getUsedConstants
     unless pending.isEmpty do throwError "nonzero-replay traversal exceeded bound"

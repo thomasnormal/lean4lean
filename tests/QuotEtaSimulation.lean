@@ -300,7 +300,7 @@ run_meta
   for root in roots do
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new eta-simulation axiom {root}"
-    let some proof := info.value? | throwError "missing eta-simulation proof {root}"
+    let some proof := info.value? (allowOpaque := true) | throwError "missing eta-simulation proof {root}"
     if proof.hasSorry then throwError "direct eta-simulation admission {root}"
     let expectedAdmissions := if noAdmissions.contains root then [] else typingAdmissions
     let expectedAxioms := if noAdmissions.contains root then [``propext, ``Quot.sound]
@@ -320,7 +320,7 @@ run_meta
       if forbidden.contains name then throwError "forbidden eta-simulation dependency {name} in {root}"
       if let some declaration := environment.find? name then
         pending := pending ++ declaration.type.getUsedConstants
-        if let some value := declaration.value? then
+        if let some value := declaration.value? (allowOpaque := true) then
           if value.hasSorry then
             unless expectedAdmissions.contains name do
               throwError "unapproved eta-simulation admission {name} in {root}"

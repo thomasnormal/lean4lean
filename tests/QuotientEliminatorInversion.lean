@@ -212,7 +212,7 @@ run_meta
     let some information := environment.find? name
       | throwError "quotient eliminator inversion absent: {name}"
     if information matches .axiomInfo _ then throwError "quotient eliminator inversion axiom: {name}"
-    let some proof := information.value?
+    let some proof := information.value? (allowOpaque := true)
       | throwError "quotient eliminator inversion proof absent: {name}"
     if proof.hasSorry then throwError "direct quotient eliminator inversion admission: {name}"
     let dependencies ← collectAxioms name

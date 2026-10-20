@@ -68,7 +68,7 @@ run_meta
   for name in pureTheorems do
     let information ← getConstInfo name
     if information matches .axiomInfo _ then throwError "quotient equation axiom: {name}"
-    let some proof := information.value? | throwError "quotient equation proof absent: {name}"
+    let some proof := information.value? (allowOpaque := true) | throwError "quotient equation proof absent: {name}"
     if proof.hasSorry then throwError "quotient equation direct admission: {name}"
     let dependencies ← collectAxioms name
     for dependency in dependencies do
@@ -78,7 +78,7 @@ run_meta
   let bridge := ``Pattern.Equation.parRed
   let information ← getConstInfo bridge
   if information matches .axiomInfo _ then throwError "equation reduction bridge is an axiom"
-  let some proof := information.value? | throwError "equation reduction bridge proof absent"
+  let some proof := information.value? (allowOpaque := true) | throwError "equation reduction bridge proof absent"
   if proof.hasSorry then throwError "equation reduction bridge has a direct admission"
   let baseline ← collectAxioms ``VEnv.NormalEq.defeq
   let dependencies ← collectAxioms bridge
@@ -98,7 +98,7 @@ run_meta
     if forbidden.contains name then throwError "equation reduction uses admitted confluence: {name}"
     if let some information := environment.find? name then
       pending := pending ++ information.type.getUsedConstants
-      if let some value := information.value? then pending := pending ++ value.getUsedConstants
+      if let some value := information.value? (allowOpaque := true) then pending := pending ++ value.getUsedConstants
   unless pending.isEmpty do throwError "equation reduction dependency traversal exceeded its bound"
   logInfo m!"the actual six-binder quotient equation has an admission-free guarded pattern certificate at arbitrary level instances; old root-pattern certificates remain valid; its direct parallel-reduction bridge avoids admitted confluence and retains only the existing Params/model baseline {repr dependencies}; no concrete quotient Params instance or full confluence theorem is claimed"
 

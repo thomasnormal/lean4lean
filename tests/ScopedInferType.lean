@@ -442,7 +442,7 @@ run_meta
         environment.getModuleIdxFor? name == some normalizerModuleIndex then
       if information matches .axiomInfo _ then
         throwError "owned scoped inference axiom {name}"
-      if let some proof := information.value? then
+      if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "owned scoped inference admission {name}"
       let dependencies ← collectAxioms name
       for dependency in dependencies do

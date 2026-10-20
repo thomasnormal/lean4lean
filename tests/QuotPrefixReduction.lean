@@ -106,7 +106,7 @@ run_meta
     for (name, information) in environment.constants do
       if environment.getModuleIdxFor? name == some moduleIndex then
         if information matches .axiomInfo _ then throwError "new prefix axiom {name}"
-        if let some proof := information.value? then
+        if let some proof := information.value? (allowOpaque := true) then
           if proof.hasSorry then throwError "direct prefix admission {name}"
         for dependency in (← collectAxioms name) do
           unless [``propext, ``Quot.sound, ``sorryAx].contains dependency do
@@ -125,7 +125,7 @@ run_meta
     if forbidden.contains name then throwError "forbidden prefix dependency {name}"
     if let some information := environment.find? name then
       pending := pending ++ information.type.getUsedConstants
-      if let some proof := information.value? then pending := pending ++ proof.getUsedConstants
+      if let some proof := information.value? (allowOpaque := true) then pending := pending ++ proof.getUsedConstants
   unless pending.isEmpty do throwError "prefix dependency traversal exceeded its bound"
   for theoremName in [``etaBody_hasType, ``applyArguments_headTyped, ``unfoldPrefix_complete,
       ``sourcesTyped, ``allPrefixesCompute] do

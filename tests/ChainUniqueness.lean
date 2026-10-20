@@ -1132,7 +1132,7 @@ run_meta
       | throwError "missing uniqueness manifest {root}"
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new chain-uniqueness axiom {root}"
-    if let some proof := info.value? then
+    if let some proof := info.value? (allowOpaque := true) then
       if proof.hasSorry then throwError "direct chain-uniqueness admission {root}"
     else
       match info with
@@ -1156,7 +1156,7 @@ run_meta
         pending := pending ++ declaration.type.getUsedConstants
         if let .inductInfo inductiveInfo := declaration then
           pending := pending ++ inductiveInfo.ctors.toArray
-        if let some value := declaration.value? then
+        if let some value := declaration.value? (allowOpaque := true) then
           if value.hasSorry then throwError "chain-uniqueness admission {name} in {root}"
           pending := pending ++ value.getUsedConstants
       else

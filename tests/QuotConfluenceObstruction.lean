@@ -75,7 +75,7 @@ run_meta
   for (name, information) in environment.constants do
     if environment.getModuleIdxFor? name == some moduleIndex then
       if information matches .axiomInfo _ then throwError "new obstruction axiom {name}"
-      if let some proof := information.value? then
+      if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "direct obstruction admission {name}"
       for dependency in (← collectAxioms name) do
         unless allowed.contains dependency do throwError "unexpected obstruction dependency {dependency}"
@@ -94,7 +94,7 @@ run_meta
     if forbidden.contains name then throwError "forbidden confluence obstruction dependency: {name}"
     if let some information := environment.find? name then
       pending := pending ++ information.type.getUsedConstants
-      if let some proof := information.value? then pending := pending ++ proof.getUsedConstants
+      if let some proof := information.value? (allowOpaque := true) then pending := pending ++ proof.getUsedConstants
   unless pending.isEmpty do throwError "obstruction dependency traversal exceeded its bound"
   for theoremName in [``nativeMajor, ``nativeFirst, ``nativeSecond, ``nativeTransitive] do
     for dependency in (← collectAxioms theoremName) do

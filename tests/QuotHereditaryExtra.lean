@@ -784,7 +784,7 @@ run_meta
       | throwError "missing hereditary EXTRA manifest {root}"
     let info ← getConstInfo root
     if info matches .axiomInfo _ then throwError "new hereditary EXTRA axiom {root}"
-    let some proof := info.value? | throwError "missing hereditary EXTRA proof {root}"
+    let some proof := info.value? (allowOpaque := true) | throwError "missing hereditary EXTRA proof {root}"
     if proof.hasSorry then throwError "direct hereditary EXTRA admission {root}"
     let axioms ← collectAxioms root
     unless axioms.size == expectedAxioms.length && expectedAxioms.all axioms.contains do
@@ -804,7 +804,7 @@ run_meta
         if let .inductInfo inductiveInfo := declaration then
           pending := pending ++ inductiveInfo.ctors.toArray
         if declaration.type.hasSorry then throwError "admitted type {name} in {root}"
-        if let some value := declaration.value? then
+        if let some value := declaration.value? (allowOpaque := true) then
           if value.hasSorry then
             unless expectedAdmissions.contains name do
               throwError "unapproved hereditary EXTRA admission {name} in {root}"
