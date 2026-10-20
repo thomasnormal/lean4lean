@@ -227,6 +227,27 @@ private theorem actualEndpointExposesFinalRawTypehoodFromSelectedDomains
       env.IsType universes.length final.vlctx.toCtx semantic :=
   endpoint.finalRawTypehoodFromDomains envWF initialWF parameterFree parent bound source mapped support
 
+private theorem actualEndpointExposesFinalMetadataTypehoodFromSelectedDomains
+    (env : VEnv) (universes : List Name) (stats : InductiveStats) (types : Array InductiveType)
+    (elimLevel : Level) (reader finalReader : Context) (infos : Array RecInfo)
+    (initial final : MLCtx)
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0) (parent : Nat) (bound : parent < types.size)
+    (source : RecursorInfoIndexSource stats types elimLevel parent reader infos[parent]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (support : RecursorSelectedDomainSupport env universes stats infos parent finalReader.lctx initial)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) :
+    ∃ semantic,
+      TrExprS env universes final.vlctx
+        (declareRecursors.metadataVal stats types elimLevel infos lparams finalReader.lctx
+          isK isUnsafe parent rules).type semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic :=
+  endpoint.finalMetadataTypehoodFromDomains envWF initialWF parameterFree parent bound source mapped support
+    lparams isK isUnsafe rules
+
 private theorem actualGetterRecoversSourcesAtItsSameSuccessAndNeedsOnlySelectedDomainSupport
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)
@@ -674,6 +695,7 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms actualEndpointDerivesRawStoredReceiptsFromDomainsWithoutWholeBodyTyping
 #print axioms actualEndpointExposesFinalStoredTypehoodFromSelectedDomains
 #print axioms actualEndpointExposesFinalRawTypehoodFromSelectedDomains
+#print axioms actualEndpointExposesFinalMetadataTypehoodFromSelectedDomains
 #print axioms actualGetterRecoversSourcesAtItsSameSuccessAndNeedsOnlySelectedDomainSupport
 #print axioms scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate
 #print axioms runtimeFixtures
@@ -712,6 +734,7 @@ run_meta
       ``actualEndpointDerivesRawStoredReceiptsFromDomainsWithoutWholeBodyTyping,
       ``actualEndpointExposesFinalStoredTypehoodFromSelectedDomains,
       ``actualEndpointExposesFinalRawTypehoodFromSelectedDomains,
+      ``actualEndpointExposesFinalMetadataTypehoodFromSelectedDomains,
       ``actualGetterRecoversSourcesAtItsSameSuccessAndNeedsOnlySelectedDomainSupport,
       ``scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate] do
     auditDeclaration name inherited

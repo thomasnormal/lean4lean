@@ -83,6 +83,27 @@ theorem RecursorInfoModelEndpoint.finalRawTypehoodFromDomains
       env.IsType universes.length final.vlctx.toCtx semantic := by
   exact (endpoint.recursorTypeFromDomains envWF initialWF parameterFree parent bound source mapped support).finalRawTypehood
 
+theorem RecursorInfoModelEndpoint.finalMetadataTypehoodFromDomains
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
+    {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
+    {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0) (parent : Nat) (bound : parent < types.size)
+    (source : RecursorInfoIndexSource stats types elimLevel parent reader infos[parent]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (support : RecursorSelectedDomainSupport env universes stats infos parent finalReader.lctx initial)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) :
+    ∃ semantic,
+      TrExprS env universes final.vlctx
+        (declareRecursors.metadataVal stats types elimLevel infos lparams finalReader.lctx
+          isK isUnsafe parent rules).type semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic := by
+  exact (endpoint.recursorTypeFromDomains envWF initialWF parameterFree parent bound source mapped support)
+    |>.finalMetadataTypehood types elimLevel lparams isK isUnsafe rules
+
 theorem mkRecInfos.getTranslatedAppliedRecursorTypes
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)
