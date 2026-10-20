@@ -18,6 +18,7 @@ private def audit : MetaM Unit := do
   exactAxioms ``IHModelStep.acceptsGeneratedValue structural
   exactAxioms ``IHModelStep.acceptsGeneratedRecursiveValue structural
   exactAxioms ``RecursorMinorOpening.applyArguments structural
+  exactAxioms ``RecursorMinorOpening.applyNativeArguments structural
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveRuleBodyTranslation
     | throwError "rule body: module absent"
   let mut count := 0
@@ -28,7 +29,7 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 3 do throwError "rule body: expected three owned declarations, got {count}"
+  unless count == 4 do throwError "rule body: expected four owned declarations, got {count}"
   logInfo m!"rule body: generated IH openings and typed minor application bridge audited ({count} declarations)"
 
 run_meta
@@ -37,5 +38,6 @@ run_meta
 #print axioms IHModelStep.acceptsGeneratedValue
 #print axioms IHModelStep.acceptsGeneratedRecursiveValue
 #print axioms RecursorMinorOpening.applyArguments
+#print axioms RecursorMinorOpening.applyNativeArguments
 
 end InductiveRuleBodyTranslationTest
