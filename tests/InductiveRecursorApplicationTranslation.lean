@@ -209,6 +209,24 @@ private theorem actualEndpointExposesFinalStoredTypehoodFromSelectedDomains
       env.IsType universes.length final.vlctx.toCtx semantic :=
   endpoint.finalStoredTypehoodFromDomains envWF initialWF parameterFree parent bound source mapped support
 
+private theorem actualEndpointExposesFinalRawTypehoodFromSelectedDomains
+    (env : VEnv) (universes : List Name) (stats : InductiveStats) (types : Array InductiveType)
+    (elimLevel : Level) (reader finalReader : Context) (infos : Array RecInfo)
+    (initial final : MLCtx)
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0) (parent : Nat) (bound : parent < types.size)
+    (source : RecursorInfoIndexSource stats types elimLevel parent reader infos[parent]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (support : RecursorSelectedDomainSupport env universes stats infos parent finalReader.lctx initial) :
+    ∃ semantic,
+      TrExprS env universes final.vlctx
+        (recursorRawType stats infos parent finalReader.lctx) semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic :=
+  endpoint.finalRawTypehoodFromDomains envWF initialWF parameterFree parent bound source mapped support
+
 private theorem actualGetterRecoversSourcesAtItsSameSuccessAndNeedsOnlySelectedDomainSupport
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)
@@ -655,6 +673,7 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms domainOnlySupportDerivesWholeRawSupportFromTheSameActualSource
 #print axioms actualEndpointDerivesRawStoredReceiptsFromDomainsWithoutWholeBodyTyping
 #print axioms actualEndpointExposesFinalStoredTypehoodFromSelectedDomains
+#print axioms actualEndpointExposesFinalRawTypehoodFromSelectedDomains
 #print axioms actualGetterRecoversSourcesAtItsSameSuccessAndNeedsOnlySelectedDomainSupport
 #print axioms scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate
 #print axioms runtimeFixtures
@@ -692,6 +711,7 @@ run_meta
       ``domainOnlySupportDerivesWholeRawSupportFromTheSameActualSource,
       ``actualEndpointDerivesRawStoredReceiptsFromDomainsWithoutWholeBodyTyping,
       ``actualEndpointExposesFinalStoredTypehoodFromSelectedDomains,
+      ``actualEndpointExposesFinalRawTypehoodFromSelectedDomains,
       ``actualGetterRecoversSourcesAtItsSameSuccessAndNeedsOnlySelectedDomainSupport,
       ``scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate] do
     auditDeclaration name inherited
