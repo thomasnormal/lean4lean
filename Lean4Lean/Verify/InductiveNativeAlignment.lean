@@ -222,6 +222,21 @@ theorem RegistrationEvidence.recursorWF_of_sourceTypehood
   rw [← modelUvars]
   exact ⟨sourceLevel, modelTypehood⟩
 
+theorem RegistrationEvidence.sourceTypehood_of_recursorWF
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hrecursors : ∀ entry ∈ evidence.recursors, entry.model.toVConstant.WF
+      evidence.constructorEnv) :
+    ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic := by
+  intro entry hmem
+  have translation := evidence.recursorTranslation entry hmem
+  have levelParams : (ConstantInfo.recInfo entry.info).levelParams = entry.info.levelParams := rfl
+  have modelTypehood : evidence.constructorEnv.IsType
+      (ConstantInfo.recInfo entry.info).levelParams.length [] entry.model.type := by
+    simpa only [VConstant.WF, ← translation.1.2.1] using hrecursors entry hmem
+  exact ⟨entry.model.type, translation.1.2.2, levelParams ▸ modelTypehood⟩
+
 theorem RegistrationEvidence.registrationWF
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)
