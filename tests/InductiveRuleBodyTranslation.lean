@@ -57,6 +57,7 @@ private def audit : MetaM Unit := do
   exactAxioms ``MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKind canonicalStructural
   exactAxioms ``MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBody canonicalStructural
   exactAxioms ``MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAndSource canonicalStructural
+  exactAxioms ``MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourceApplied canonicalStructural
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveRuleBodyTranslation
     | throwError "rule body: module absent"
   let mut count := 0
@@ -67,8 +68,8 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 110 do throwError "rule body: expected one hundred ten owned declarations, got {count}"
-  logInfo m!"rule body: generated scoped constructor RHS weak-FV/kind producer-consumer with retained body and source-RHS witness, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
+  unless count == 111 do throwError "rule body: expected one hundred eleven owned declarations, got {count}"
+  logInfo m!"rule body: generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
 
 run_meta
   audit
@@ -111,5 +112,6 @@ run_meta
 #print axioms MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKind
 #print axioms MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBody
 #print axioms MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAndSource
+#print axioms MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourceApplied
 
 end InductiveRuleBodyTranslationTest
