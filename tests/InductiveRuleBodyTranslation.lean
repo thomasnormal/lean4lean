@@ -34,6 +34,7 @@ private def audit : MetaM Unit := do
   exactAxioms ``GeneratedIHNativeSuffix.nativeArgumentsAtTarget structural
   exactAxioms ``GeneratedIHNativeSuffix.applyNativePeeledFieldAndIHArguments structural
   exactAxioms ``MinorModelStep.nativeFieldArguments fieldStructural
+  exactAxioms ``MinorModelStep.peeledDomainSource fieldStructural
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveRuleBodyTranslation
     | throwError "rule body: module absent"
   let mut count := 0
@@ -44,8 +45,8 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 36 do throwError "rule body: expected thirty-six owned declarations, got {count}"
-  logInfo m!"rule body: generated IH openings, recursive native suffix, field/IH receipts and peeled minor application bridge audited ({count} declarations)"
+  unless count == 43 do throwError "rule body: expected forty-three owned declarations, got {count}"
+  logInfo m!"rule body: generated IH openings, recursive native suffix, field/IH receipts, peeled minor source and application bridge audited ({count} declarations)"
 
 run_meta
   audit
