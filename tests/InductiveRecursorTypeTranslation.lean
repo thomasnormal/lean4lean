@@ -315,6 +315,23 @@ private theorem actualEndpointBuildsRawAndStoredReceiptsFromOnlyComponentSupport
     RecursorTypeModelReceipt env universes stats infos parent finalReader initial final :=
   endpoint.recursorType envWF initialWF parameterFree parent support
 
+private theorem actualEndpointExposesFinalMetadataTypehoodFromExplicitSupport
+    (env : VEnv) (universes : List Name) (stats : InductiveStats) (types : Array InductiveType)
+    (elimLevel : Level) (reader finalReader : Context) (infos : Array RecInfo)
+    (initial final : MLCtx)
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0) (parent : Nat)
+    (support : RecursorRawTypeTranslationSupport env universes stats infos parent
+      finalReader.lctx initial) (lparams : List Name) (rules : List RecursorRule) :
+    ∃ semantic,
+      TrExprS env universes final.vlctx
+        (declareRecursors.metadataVal stats types elimLevel infos lparams finalReader.lctx
+          false false parent rules).type semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic :=
+  endpoint.finalMetadataTypehood envWF initialWF parameterFree parent support lparams false false rules
+
 private theorem actualFullGetterReturnsEachBoundedParentsReceiptAtItsActualSuccessCheckpoint
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)

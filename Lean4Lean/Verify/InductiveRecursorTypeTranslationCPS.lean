@@ -154,6 +154,26 @@ theorem RecursorInfoModelEndpoint.recursorType
   exact ⟨semantic, level, raw, raw.inferImplicit 1000 false, typed,
     currentRaw, currentRaw.inferImplicit 1000 false, currentTyped⟩
 
+theorem RecursorInfoModelEndpoint.finalMetadataTypehood
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
+    {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
+    {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0)
+    (parent : Nat)
+    (support : RecursorRawTypeTranslationSupport env universes stats infos parent
+      finalReader.lctx initial)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) :
+    ∃ semantic,
+      TrExprS env universes final.vlctx
+        (declareRecursors.metadataVal stats types elimLevel infos lparams finalReader.lctx
+          isK isUnsafe parent rules).type semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic := by
+  exact (endpoint.recursorType envWF initialWF parameterFree parent support).finalMetadataTypehood
+    types elimLevel lparams isK isUnsafe rules
+
 theorem mkRecInfos.getTranslatedRecursorTypes
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)
