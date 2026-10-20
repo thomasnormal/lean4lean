@@ -794,6 +794,47 @@ private theorem scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistra
   mkRecInfos.scopedTranslatedAppliedRecursorTypes stats types elimLevel next reader post envWF constants
     definitions fieldOnly model modelWF native reserved mapped parentSupport minorSupport domainSupport nextWF
 
+private theorem registeredAppliedGetterKeepsReceiptsWithEnvironmentRegistration
+    {env : VEnv} {universes : List Name}
+    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (lparams : List Name) (isK isUnsafe : Bool) (reader : Context)
+    (envWF : env.WF) (constants : CanonicalAnnotationConstants env)
+    (definitions : CanonicalAnnotationDefinitions env) (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF env universes) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (nativeEnvWF : reader.env.constants.WF)
+    {semanticElimLevel : VLevel} (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport env universes trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass env universes parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport env universes trace)
+    (domainSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        RecursorSelectedDomainSupport env universes stats result.1 parent result.2.lctx model) :
+    (mkRecInfos.scopeRegistration stats types elimLevel lparams isK isUnsafe reader).WF fun result =>
+      reader.RecursorScopeFrame result.2.2 ∧ RecursorInfoCounts types result.2.1 ∧
+      (∃ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.2.1 result.2.2 model finalModel ∧
+        ∀ parent, parent < types.size →
+          RecursorTypeModelReceipt env universes stats result.2.1 parent result.2.2 model finalModel) ∧
+      result.1.constants.WF ∧
+      (∀ name info, reader.env.find? name = some info → result.1.find? name = some info) ∧
+      stats.RecursorOffsetMetadata types elimLevel result.2.1 lparams result.2.2.lctx
+        isK isUnsafe result.2.2 result.1 ∧
+      LocalRecursorRuleRhsScope stats types result.2.1 result.2.2 result.1 :=
+  mkRecInfos.registeredTranslatedAppliedRecursorTypes stats types elimLevel lparams isK isUnsafe reader
+    envWF constants definitions fieldOnly model modelWF native reserved nativeEnvWF mapped
+    parentSupport minorSupport domainSupport
+
 private def captureFull (stats : InductiveStats) (types : Array InductiveType) :
     M ((Array RecInfo × Context) × Context) := do
   let result ← mkRecInfos stats types (.succ .zero) fun infos =>
@@ -1190,6 +1231,7 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms scopedAppliedGetterPassesAllInitialTypehoodToContinuation
 #print axioms scopedAppliedGetterPassesAllInitialAndFinalTypehoodToContinuation
 #print axioms scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate
+#print axioms registeredAppliedGetterKeepsReceiptsWithEnvironmentRegistration
 #print axioms runtimeFixtures
 
 run_meta
@@ -1197,7 +1239,7 @@ run_meta
   let abstraction := [``Expr.abstractRange_eq, ``Expr.abstract_eq,
     ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq]
   let allocation := [``PersistentArray.toList'_push, ``PersistentHashMap.WF.find?_eq,
-    ``PersistentHashMap.WF.toList'_insert]
+    ``PersistentHashMap.WF.toList'_insert, ``PersistentHashMap.findAux_isSome]
   let nativeInterfaces := abstraction ++ allocation ++ [``Expr.instantiate1_eq]
   let native := logical ++ nativeInterfaces
   let inherited := native ++ [``sorryAx]
@@ -1242,7 +1284,8 @@ run_meta
       ``scopedAppliedGetterPassesAllFinalTypehoodToContinuation,
       ``scopedAppliedGetterPassesAllInitialTypehoodToContinuation,
       ``scopedAppliedGetterPassesAllInitialAndFinalTypehoodToContinuation,
-      ``scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate] do
+      ``scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate,
+      ``registeredAppliedGetterKeepsReceiptsWithEnvironmentRegistration] do
     auditDeclaration name inherited
   for name in [``Lean.Expr.instantiate1'_abstract1,
       ``Lean4Lean.AddInductive.mkForall_selected_cons] do
@@ -1265,6 +1308,6 @@ run_meta
   let reader : Context := {
     env := (← getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   runtimeFixtures reader
-  logInfo "recursor-application audits: every module-owned declaration including private/generated helpers transitively checked; clean annotation/binder core and runtime helpers exclude sorryAx; facts/native exclude inherited admissions; semantic/CPS retain explicitly pinned inherited admissions; seven exact foundation dependency/provenance pins and eight existing native-interface pins; eight negative audit controls including whole-module policy and forbidden range even if whitelisted"
+  logInfo "recursor-application audits: every module-owned declaration including private/generated helpers transitively checked; clean annotation/binder core and runtime helpers exclude sorryAx; facts/native exclude inherited admissions; semantic/CPS retain explicitly pinned inherited admissions; seven exact foundation dependency/provenance pins and nine existing native-interface pins; eight negative audit controls including whole-module policy and forbidden range even if whitelisted"
 
 end InductiveRecursorApplicationTranslationTest
