@@ -1431,10 +1431,84 @@ theorem RecursorRuleRhsReceipt.applyIotaKindWeakFVKind
   exact ⟨baseReceipt, baseTranslated, baseTyped, baseKind, targetTranslated, targetTyped,
     targetKind⟩
 
+/- The count receipt has the same result transport once its native field/count
+   witnesses are projected through the ordinary rule receipt. -/
+theorem RecursorRuleRhsCountReceipt.applyIotaKindWeakFVKind
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr}
+    {ctx : Context} {constructor : Constructor} {minor : Expr} {rule : RecursorRule}
+    (countReceipt : RecursorRuleRhsCountReceipt stats motives minors ctx constructor minor rule)
+    {base target : MLCtx} {insertionLift : Lift}
+    {rhsSemantic rhsType : VExpr}
+    (rhsTranslated : TrExprS env universes base.vlctx rule.rhs rhsSemantic)
+    (rhsTyped : env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType)
+    {replacements : List Expr} {arguments : List VExpr} {resultType : VExpr}
+    (argumentTyping : ElimNestedInductive.TypedParameterArguments env universes base rhsType
+      replacements arguments resultType)
+    (envWF : env.WF) (baseWF : base.WF env universes)
+    (kind : env.SortArity universes.length base.vlctx.toCtx
+      (count + replacements.length) rhsType)
+    (targetWF : target.WF env universes)
+    (insertion : VLCtx.FVLift' base.vlctx target.vlctx 0 insertionLift 0) :
+    RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule ∧
+      TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
+      env.HasType universes.length base.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType ∧
+      env.SortArity universes.length base.vlctx.toCtx count resultType ∧
+      TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift))) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift)))
+        (resultType.lift' insertionLift) ∧
+      env.SortArity universes.length target.vlctx.toCtx count
+        (resultType.lift' insertionLift) := by
+  exact countReceipt.receipt.applyIotaKindWeakFVKind rhsTranslated rhsTyped argumentTyping
+    envWF baseWF kind targetWF insertion
+
+/- The fvar receipt preserves the same consumer contract while making its
+   count projection explicit. -/
+theorem RecursorRuleRhsFVarReceipt.applyIotaKindWeakFVKind
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr}
+    {ctx : Context} {constructor : Constructor} {minor : Expr} {rule : RecursorRule}
+    (fvarReceipt : RecursorRuleRhsFVarReceipt stats motives minors ctx constructor minor rule)
+    {base target : MLCtx} {insertionLift : Lift}
+    {rhsSemantic rhsType : VExpr}
+    (rhsTranslated : TrExprS env universes base.vlctx rule.rhs rhsSemantic)
+    (rhsTyped : env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType)
+    {replacements : List Expr} {arguments : List VExpr} {resultType : VExpr}
+    (argumentTyping : ElimNestedInductive.TypedParameterArguments env universes base rhsType
+      replacements arguments resultType)
+    (envWF : env.WF) (baseWF : base.WF env universes)
+    (kind : env.SortArity universes.length base.vlctx.toCtx
+      (count + replacements.length) rhsType)
+    (targetWF : target.WF env universes)
+    (insertion : VLCtx.FVLift' base.vlctx target.vlctx 0 insertionLift 0) :
+    RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule ∧
+      TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
+      env.HasType universes.length base.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType ∧
+      env.SortArity universes.length base.vlctx.toCtx count resultType ∧
+      TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift))) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift)))
+        (resultType.lift' insertionLift) ∧
+      env.SortArity universes.length target.vlctx.toCtx count
+        (resultType.lift' insertionLift) := by
+  exact fvarReceipt.counts.applyIotaKindWeakFVKind rhsTranslated rhsTyped argumentTyping
+    envWF baseWF kind targetWF insertion
+
 /- The checked scoped receipt has the same result transport once its
-   declaration-scope witnesses are projected through the existing fvar/count
-   views.  Keep this adapter at the scoped boundary so callers that retain the
-   stronger receipt need not repeat that projection. -/
+   declaration-scope witnesses are projected through the named fvar/count
+   adapters.  Keep this adapter at the scoped boundary so callers that retain
+   the stronger receipt need not repeat that projection. -/
 theorem RecursorRuleRhsScopeReceipt.applyIotaKindWeakFVKind
     {env : VEnv} {universes : List Name}
     {stats : InductiveStats} {motives minors : Array Expr}
@@ -1467,7 +1541,7 @@ theorem RecursorRuleRhsScopeReceipt.applyIotaKindWeakFVKind
         (resultType.lift' insertionLift) ∧
       env.SortArity universes.length target.vlctx.toCtx count
         (resultType.lift' insertionLift) := by
-  exact scopeReceipt.fvars.counts.receipt.applyIotaKindWeakFVKind rhsTranslated rhsTyped
+  exact scopeReceipt.fvars.applyIotaKindWeakFVKind rhsTranslated rhsTyped
     argumentTyping envWF baseWF kind targetWF insertion
 
 /-- Compose the checked constructor-rule body with the typed replacement

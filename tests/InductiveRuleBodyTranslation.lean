@@ -50,6 +50,8 @@ private def audit : MetaM Unit := do
   exactAxioms ``RecursorRuleRhsReceipt.applyIotaWeakFV structural
   exactAxioms ``RecursorRuleRhsReceipt.applyIotaWeakFVKind structural
   exactAxioms ``RecursorRuleRhsReceipt.applyIotaKindWeakFVKind structural
+  exactAxioms ``RecursorRuleRhsCountReceipt.applyIotaKindWeakFVKind structural
+  exactAxioms ``RecursorRuleRhsFVarReceipt.applyIotaKindWeakFVKind structural
   exactAxioms ``RecursorRuleRhsScopeReceipt.applyIotaKindWeakFVKind structural
   exactAxioms ``MinorModelStep.abstractConstructorRuleRhsIota fieldStructural
   exactAxioms ``MinorModelStep.abstractConstructorRuleRhsIotaKind fieldStructural
@@ -71,8 +73,8 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 114 do throwError "rule body: expected one hundred fourteen owned declarations, got {count}"
-  logInfo m!"rule body: generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, direct scoped receipt result transport, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
+  unless count == 116 do throwError "rule body: expected one hundred sixteen owned declarations, got {count}"
+  logInfo m!"rule body: generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, direct scoped/fvar/count receipt result transport, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
 
 run_meta
   audit
@@ -108,6 +110,8 @@ run_meta
 #print axioms RecursorRuleRhsReceipt.applyIotaWeakFV
 #print axioms RecursorRuleRhsReceipt.applyIotaWeakFVKind
 #print axioms RecursorRuleRhsReceipt.applyIotaKindWeakFVKind
+#print axioms RecursorRuleRhsCountReceipt.applyIotaKindWeakFVKind
+#print axioms RecursorRuleRhsFVarReceipt.applyIotaKindWeakFVKind
 #print axioms RecursorRuleRhsScopeReceipt.applyIotaKindWeakFVKind
 #print axioms MinorModelStep.abstractConstructorRuleRhsIota
 #print axioms MinorModelStep.abstractConstructorRuleRhsIotaKind
