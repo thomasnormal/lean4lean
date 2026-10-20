@@ -40,6 +40,69 @@ are retained; the removed cheap-recursion API is not simulated as a flag.
 No production kernel or semantic theorem changed. Full default builds pass
 on Lean 4.29.0 and Lean 4.33.0-rc2; admission censuses remain unchanged.
 
+## Generated recursive values at their IH domains — 2026-10-20
+
+`InductiveRecursiveValueDomains` derives the native IH type of a generated
+recursive value after the whole recursor-signature batch is inserted.
+`TrExprS.of_inferImplicit` recovers raw-signature translation from actual
+stored metadata, without requiring a second translation premise. The existing
+call/value proofs now expose input-based cores; their previous public
+insertion contracts are retained.
+
+`NativeTelescopeArguments.selectedPrefix` discharges parameters, motives
+and minors from actual selected cdecls and composes the remaining changed
+indices through their dependent native telescope. `recursiveValueInIHDomain`
+derives the value, its native `recursorIHDomain` translation and typing;
+complete-call/value typing and IH-domain translation are conclusions.
+For arbitrary caller universes, the instantiated raw-prefix equation,
+individual changed-index support and canonical major/motive-result shape
+remain explicit.
+
+The stronger `recursiveValueInGeneratedIHDomain` uses actual
+`recursorRawType` metadata in the recursor's own universe context.
+`recursorRawType_sharedPrefix` flattens the generator's parameter/motive/minor
+binder groups and transports them through selected declaration agreement,
+deriving the signature-prefix equation. `recursorRawOriginalInputAfterInsertion`
+reuses original-level semantic instantiation to supply the raw signature
+directly. It does not assume native universe substitution is syntactically
+the identity; native substitution may normalize level expressions.
+`declaredRecursor_callLevels` identifies the generated call's level list
+with the declared metadata's parameter levels from checked statistics.
+
+The generated-context theorem still requires translated signature and batch
+insertion, final environment/context WF, a translated recursive-field opening,
+shared cdecl shape/distinctness/preservation, closure of the formal index tail,
+and changed-index argument support ending in the actual major and canonical
+motive result. These have not all been produced for every generated rule.
+`RecursorIHOpening.acceptsValue` aligns the derived raw IH type with an
+existing generated annotation-peeled IH opening. This supplies the semantic
+argument type needed by a minor; it does not yet assemble all minor
+applications, close complete rule bodies, establish iota equations, migrate
+constructor-free rejection consumers or wire `AddInduct`.
+
+The new fixture derives a dependent shared-prefix/changed-index application
+from actual local lookups, recovers raw translation from the real declared
+metadata constructor and checks implicit-pass reversal. Runtime controls
+inspect three actual higher-order recursive values in a parameterized indexed
+family and an indexed mutual pair. Each matches both its independently
+reconstructed IH type and the current minor's instantiated domain; actual
+call levels match declared parameter names. Wrong indices, other-parent
+motives, unrelated Nat domains and malformed higher-order arguments are
+rejected. The runtime controls have only logical axiom dependencies.
+
+Exact manifests are pinned for all new endpoints and the refactored cores.
+The generated-context value proof inherits 11 axioms on both versions:
+standard logic, `sorryAx`, three existing context interfaces and four native
+binding interfaces. The arbitrary-universe IH-domain theorem retains 16
+axioms on Lean 4.29 and 19 on Lean 4.33. Native prefix-shape proof has only
+logic/binding interfaces; the level-list identity has only logical axioms.
+All owned declarations have no direct admission/new axiom. Full proof-value
+traversal reaches exactly the same seven existing projection admission roots
+and excludes known-false strengthening/confluence/injectivity roots; both
+logical-only negative audits reject the inherited dependencies. No source
+admission or native-interface axiom is introduced. Full default builds and
+new/existing signature/call regressions pass on both toolchains.
+
 ## Typed generated recursive calls and values — 2026-10-20
 
 `InductiveRecursiveCallTranslation` derives the recursive call inside
@@ -73,8 +136,9 @@ Pi type over the substituted call result.
 This remains conditional on a translated signature, successful batch
 insertion, final WF, explicit level mapping/arity, a translated field opening,
 and native prefix/telescope argument support. It does not derive those
-premises for every generated rule or relate the resulting values to all
-minor/induction-hypothesis types. Complete RHS production, rule type
+premises for every generated rule. The subsequent IH-domain theorem above
+relates individual values to generated IH types under explicit changed-index
+and shared-binding support. Complete minor/RHS production, rule type
 preservation, iota equations, `AddInduct` and frontend soundness remain open.
 
 The regression derives dependent applications from actual cdecl lookups with
