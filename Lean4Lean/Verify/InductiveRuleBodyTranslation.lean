@@ -24,6 +24,17 @@ theorem LocalRecursorRuleRhsScope.receipts
   obtain ⟨rule, minor, hrule, hminor, hreceipt⟩ := hreceipts index ctor hctor
   exact ⟨rule, minor, hrule, hminor, hreceipt.fvars.counts.receipt⟩
 
+/-- Project every scoped constructor rule in one aligned rule list to the
+   ordinary receipt relation.  The constructor/index alignment and stored rule
+   order are inherited directly from `List.Forall₂`; no rule is reconstructed
+   from its expression. -/
+theorem RecursorRuleRhsScope.receipts
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial) :
+    RecursorRuleRhs stats motives minors ctx ctors rules initial := by
+  exact List.Forall₂.imp (fun _ _ head => head.fvars.counts.receipt) hscope
+
 theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.resultKind
     (arguments : ElimNestedInductive.TypedParameterArguments environment universes model
       source replacements values result)
