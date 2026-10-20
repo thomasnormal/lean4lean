@@ -1380,6 +1380,7 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_closedTranslation
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_recursorTranslation
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_declaredRecursor
+#print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWFOfDeclaredRecursors
 #print axioms Lean4Lean.AddInductive.RecursorInfoModelEndpoint.initialStoredWF_of_declaredRecursorFromDomains
 #print axioms Lean4Lean.AddInductive.RecursorInfoModelEndpoint.initialStoredWFOfDeclaredRecursorsFromDomains
 #print axioms runtimeFixtures
@@ -1442,7 +1443,8 @@ run_meta
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF,
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_closedTranslation,
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_recursorTranslation,
-      ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_declaredRecursor] do
+      ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_declaredRecursor,
+      ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWFOfDeclaredRecursors] do
     auditDeclaration name inherited
   auditDeclaration ``actualEndpointDerivesInitialStoredWFOfDeclaredRecursorFromSelectedDomains inherited
   auditDeclaration ``actualEndpointDerivesInitialStoredWFForDeclaredRecursorsFromSelectedDomains inherited
