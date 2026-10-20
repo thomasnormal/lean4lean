@@ -128,6 +128,21 @@ theorem RecursorRuleRhsScope.impReceipts
   exact List.Forall₂.imp (fun entry rule hreceipt =>
     head entry rule hreceipt.fvars.counts.receipt) hscope
 
+/- Preserve both receipt views for all-rule consumers that need scoped context
+   witnesses alongside the ordinary RHS relation. -/
+theorem RecursorRuleRhsScope.impScopedReceipts
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    {relation : Constructor × Nat → RecursorRule → Prop}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        relation entry rule) :
+    List.Forall₂ relation (ctors.zipIdx initial) rules := by
+  exact List.Forall₂.imp (fun entry rule hreceipt =>
+    head entry rule hreceipt (hreceipt.fvars.counts.receipt)) hscope
+
 theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.resultKind
     (arguments : ElimNestedInductive.TypedParameterArguments environment universes model
       source replacements values result)
