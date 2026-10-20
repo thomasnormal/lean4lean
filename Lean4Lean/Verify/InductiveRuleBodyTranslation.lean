@@ -1974,9 +1974,10 @@ theorem MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAn
     kind rhsTranslated rhsTyped, resultTranslated, resultTyped, resultKind⟩
 
 /- Retain the semantic value produced by the typed replacement telescope.
-   This is the final shape needed by a recursor-level consumer: the applied RHS
-   translation is exposed as the lifted `applyParameterArguments` expression,
-   rather than only as an existential result semantic. -/
+   This is the final shape needed by a recursor-level consumer: both the base
+   and lifted applied RHS translations are exposed as exact
+   `applyParameterArguments` expressions, rather than only as existential
+   result semantics. -/
 theorem MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourceApplied
     {env : VEnv} {universes : List Name} {parentName : Name}
     {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
@@ -2035,6 +2036,7 @@ theorem MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAn
       env.HasType universes.length base.vlctx.toCtx value valueType →
       env.SortArity universes.length base.vlctx.toCtx
         (count + replacements.length) valueType)
+    (baseWF : base.WF env universes)
     (targetWF : target.WF env universes)
     {insertionLift : Lift}
     (insertion : VLCtx.FVLift' base.vlctx target.vlctx 0 insertionLift 0) :
@@ -2065,6 +2067,11 @@ theorem MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAn
       env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType ∧
       env.SortArity universes.length base.vlctx.toCtx
         (count + replacements.length) rhsType ∧
+      TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
+      env.HasType universes.length base.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType ∧
+      env.SortArity universes.length base.vlctx.toCtx count resultType ∧
       TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
         (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
           (arguments.map (VExpr.lift' · insertionLift))) ∧
@@ -2090,14 +2097,19 @@ theorem MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAn
     step.abstractConstructorRuleRhs scopeReceipt.fvars.counts.receipt extension receiptShape'
       nestedTranslated bodyTyped
       envWF
+  obtain ⟨baseReceipt, baseResultTranslated, baseResultTyped, baseResultKind⟩ :=
+    ruleReceipt.applyIotaKind rhsTranslated rhsTyped
+      (argumentTyping rhsTranslated rhsTyped) envWF baseWF
+      (kind rhsTranslated rhsTyped)
   obtain ⟨ruleReceipt, resultTranslated, resultTyped, resultKind⟩ :=
-    ruleReceipt.applyIotaWeakFVKind rhsTranslated rhsTyped
+    baseReceipt.applyIotaWeakFVKind rhsTranslated rhsTyped
       (argumentTyping rhsTranslated rhsTyped) envWF targetWF insertion
       (kind rhsTranslated rhsTyped)
   exact ⟨fieldModel, terminal, fields, hypotheses, replacements, replacementTerminal, values,
     bodySemantic, rhsSemantic, rhsType, sourceEq, nativeReceipt, typedArguments,
     bodyTranslated, bodyTyped, nestedTranslated, ruleReceipt, rhsTranslated, rhsTyped,
-    kind rhsTranslated rhsTyped, resultTranslated, resultTyped, resultKind⟩
+    kind rhsTranslated rhsTyped, baseResultTranslated, baseResultTyped, baseResultKind,
+    resultTranslated, resultTyped, resultKind⟩
 
 /-- A minor step transports the actual constructor-field prefix receipt from
 the field model through the IH and minor context extensions.  The native body
