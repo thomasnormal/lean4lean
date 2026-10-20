@@ -111,6 +111,28 @@ known-false strengthening/confluence/quotient-injectivity roots. Logical-only
 negative audits reject the semantic endpoints. No direct admissions or new
 axioms were added.
 
+## Generated IH openings and minor application bridge — 2026-10-20
+
+`IHModelStep.acceptsGeneratedValue` consumes the generated recursive value
+translation and its native-domain typing in the actual field model, then uses
+the translated `RecursorIHOpening` to derive typing at the annotation-peeled IH
+binder. `acceptsGeneratedRecursiveValue` packages that seam for the existential
+value/domain result produced by the canonical generated-value consumer.
+`RecursorMinorOpening.applyArguments` assembles a typed sequence of field and IH
+arguments into the minor application used by a constructor RHS, retaining the
+peeled minor domain as the source type. These are explicit producer/consumer
+interfaces; they do not fabricate field traces, recursive values, shared
+binding agreements or rule metadata.
+
+The new three-declaration fixture checks exact theorem/opaque proof access,
+rejects owned axioms and direct admissions, and pins identical manifests on
+Lean 4.29 and 4.33: standard logic, the existing projection `sorryAx`, and the
+three persistent map/array interfaces. The bridge adds no executable behavior
+and no native-kernel discrepancy. Full all-rule CPS production, minor binder
+lookup, exact generated argument sequencing, iota semantics, rejection
+consumer migration and `AddInduct` remain open. The inherited structural
+interfaces retain their existing transitive admission boundary.
+
 ## Complete fixture proof-value extraction — 2026-10-20
 
 All fixture audit reads now explicitly request `allowOpaque := true` when
