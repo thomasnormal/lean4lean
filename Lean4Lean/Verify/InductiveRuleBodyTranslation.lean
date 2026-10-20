@@ -345,6 +345,25 @@ theorem RecursorRuleRhsScope.impRuleResultSemantics
       (ctors.zipIdx initial) rules := by
   exact hscope.impScopedReceipts head
 
+/- Registration only needs the closed RHS translation from the paired result
+   callback.  Project it without reopening or rebuilding the generated package.
+   The aligned rule list remains available to the continuation unchanged. -/
+theorem RecursorRuleRhsScope.impRuleSemantics
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+          (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule)) :
+    List.Forall₂ (fun entry rule => ∃ semantic, TrExprS env universes [] rule.rhs semantic)
+      (ctors.zipIdx initial) rules := by
+  exact List.Forall₂.imp (fun _ _ result => result.1) (hscope.impRuleResultSemantics head)
+
 theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.resultKind
     (arguments : ElimNestedInductive.TypedParameterArguments environment universes model
       source replacements values result)
