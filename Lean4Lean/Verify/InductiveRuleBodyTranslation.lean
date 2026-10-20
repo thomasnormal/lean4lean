@@ -263,6 +263,67 @@ theorem IHModelStep.generatedNativeArgument
   have valueTyped := valueTyped.weak' envWF.ordered insertion.toCtx
   exact .cons domainTranslated valueTranslated valueTyped remaining
 
+set_option maxHeartbeats 800000 in
+/-- The canonical recursor-tail producer supplies the native recursive lambda
+and its generated IH domain for one actual translated IH step.  The step's
+source equation is used only to expose that domain under the source expression
+recorded by the IH trace; no equality between the canonical call syntax and
+the trace domain is inferred. -/
+theorem IHModelStep.generatedCanonicalRecursiveValue
+    {env before : VEnv} {models : List VConstVal} {safety : DefinitionSafety}
+    {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}
+    {argument domain : Expr} {reader : Context}
+    {source : RecursorIHDomainSource stats infos argument reader domain}
+    {initial final : MLCtx} (step : IHModelStep env universes source initial final)
+    {info : RecursorVal} {constant : VConstVal}
+    (universesEq : universes = info.levelParams)
+    (signature : TrConstVal safety before (.recInfo info) constant)
+    (parent : Nat) (full : LocalContext)
+    (stored : info.type = (recursorRawType stats infos parent full).inferImplicit 1000 false)
+    (member : constant ∈ models) (inserted : before.addConstructorHeaders models = some env)
+    (envWF : env.WF) (fullScope : full.BindingScope)
+    (ids : List FVarId) (distinct : ids.Nodup)
+    (shared : (stats.params ++ infos.map (·.motive) ++ infos.flatMap (·.minors)).toList =
+      ids.map Expr.fvar)
+    (agreement : ∀ {argument terminal : Expr} {arguments : Array Expr}
+      {reader finalReader : Context}
+      {opening : RecursorUArgOpeningTrace argument reader terminal arguments finalReader}
+      {argumentModel : MLCtx},
+      UArgModelEndpoint env info.levelParams opening initial argumentModel →
+      SelectedCDeclBindingAgreement full argumentModel.lctx ids)
+    (closed : (full.mkForall infos[parent]!.indices
+      (full.mkForall #[infos[parent]!.major] (recursorTypeBody infos parent))).looseBVarRange' = 0)
+    {majorName : Name} {majorBinder : BinderInfo}
+    (accepted : ∀ terminal : Expr, isValidIndAppIdx stats terminal parent = true)
+    (selectedParent : ∀ terminal : Expr, parent = (getIIndices stats terminal).1)
+    (indices : ∀ {argumentModel : MLCtx} (terminal : Expr),
+      NativeTelescopeArguments env info.levelParams argumentModel
+      (full.mkForall infos[parent]!.indices
+        (full.mkForall #[infos[parent]!.major] (recursorTypeBody infos parent)))
+      (getIIndices stats terminal).2.toList
+      (.forallE majorName (mkAppN (mkAppN stats.indConsts[parent]! stats.params)
+        (getIIndices stats terminal).2)
+        (.app ((mkAppN infos[parent]!.motive
+          (getIIndices stats terminal).2).liftLooseBVars' 0 1) (.bvar 0)) majorBinder)) :
+    ∃ nativeValue value domainSemantic,
+      TrExprS env universes initial.vlctx nativeValue value ∧
+      TrExprS env universes initial.vlctx domain domainSemantic ∧
+      env.HasType universes.length initial.vlctx.toCtx value domainSemantic := by
+  subst universes
+  obtain ⟨terminal, arguments, argumentReader, opening, argumentModel, rawSemantic,
+    peeled, level, domainEq, endpoint, ihOpening, finalEq, finalWF, finalNative⟩ := step
+  obtain ⟨value, domainSemantic, translated, domainTranslated, typed⟩ :=
+    endpoint.recursiveValueInGeneratedIHDomainFromCanonicalTail signature stats infos parent full
+      stored member inserted envWF fullScope ids distinct shared (agreement endpoint) closed
+      (accepted terminal) (selectedParent terminal) (indices terminal)
+  refine ⟨argumentReader.lctx.mkLambda arguments
+      ((mkAppN (mkAppN (mkAppN (mkAppN (.const info.name
+        (info.levelParams.map Level.param)) stats.params)
+        (infos.map (·.motive))) (infos.flatMap (·.minors)))
+        (getIIndices stats terminal).2).app (mkAppN argument arguments)),
+    value, domainSemantic, translated, ?_, typed⟩
+  simpa only [domainEq] using domainTranslated
+
 /-- Explicit recursive IH source decomposition.  Every constructor records the
 step-generated value, its semantic/domain receipts, and the dependent tail
 substitution needed before the next IH binder is consumed. -/
