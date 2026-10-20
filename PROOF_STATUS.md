@@ -14,6 +14,43 @@ unconditional kernel soundness follows from the results below. See `bugs-found.m
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Inserting generated recursor constants into the checker model — 2026-10-20
+
+`declareRecursors.refinesChecker` follows the actual native registration loop.
+Each successful native name check supplies freshness in the aligned model;
+the proof inserts the corresponding model constant and preserves `CheckerEnv`.
+The result is an actual `addConstructorHeaders` extension in parent order,
+with the existing value translations retained. It assumes translated,
+well-formed constant types, without assuming that model insertion succeeds.
+
+`declareRecursors.refinesChecker_of_typeReceipts` constructs those constants
+from closed generated-type receipts. `mkRecInfos.registeredTranslatedAppliedChecker`
+connects this to the actual generated recursor scope. Parent/minor-pass and
+selected-domain support, parameter-free statistics, environment/model WF,
+universe alignment, reserved names and the empty initial virtual context
+remain explicit.
+
+The regression consumes the extension to prove exact model lookups,
+preservation of old constants and equality of the old/new equation predicates.
+Seven native fresh registrations check nine exact recursor lookups and their
+generated-rule offsets; seven preexisting-name and two duplicate-parent-name
+collisions are rejected. Transitive audits pin the existing `CheckerEnv.addConst`
+and `CheckerEnv.of_valueFrame` dependencies: insertion retains inherited
+projection/value-translation admissions and native lookup interfaces. No new
+admission or executable change is introduced.
+
+The focused module, expanded recursor-application fixture and full default
+build pass on Lean 4.29.0 and the separate Lean 4.33.0-rc2 integration candidate.
+The application fixture is identical across versions; the insertion proof
+retains the newer native name-check interface and option-bind adaptation on
+4.33. Admission censuses remain main 116 / 18 / 120 and integration 121 / 22 / 125
+(matching lines / files / whole-word occurrences).
+
+Recursor constant insertion is proved under these premises. Deriving all
+support, assembling complete inductive registration, rule/iota semantics,
+constructor-free consumer migration, `AddInduct` and unconditional frontend
+soundness remain open.
+
 ## Constructing model constants for registered recursors — 2026-10-20
 
 `RecursorTypeModelReceipt.existsDeclaredRecursor` constructs a `VConstVal`
@@ -59,8 +96,8 @@ on integration base `e0485ce42634eb2182a26658d03d6fb200694fdb`, above official
 main 116 matching lines / 18 files / 120 whole-word admission occurrences;
 integration 121 / 22 / 125. Default builds pass 458 main / 463 integration jobs.
 
-These are constant type receipts for actual native registrations. Model
-insertion, recursor rule semantics, the constructor-free consumer migration,
+These are constant type receipts for actual native registrations. Complete
+inductive registration, recursor rule semantics, the constructor-free consumer migration,
 `AddInduct`, and unconditional frontend soundness remain open.
 
 ## Universal candidate-step and finite-path simulation — 2026-10-19

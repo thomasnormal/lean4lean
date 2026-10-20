@@ -3,6 +3,7 @@ import Lean4Lean.Verify.InductiveRecursorApplicationTranslation
 import Lean4Lean.Verify.InductiveRecursorApplicationNative
 import Lean4Lean.Verify.InductiveRecursorApplicationTranslationCPS
 import Lean4Lean.Verify.InductiveBinderTyping
+import Lean4Lean.Verify.RecursorHeaders
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -980,6 +981,36 @@ private theorem actualRegisteredRecursorsHaveModelsAndGeneratedRules
   refine ⟨_, constant, lookup, generated, translated.2.symm, ?_, translated, wellFormed⟩
   exact translated.1.2.1.symm.trans (congrArg List.length levels)
 
+private theorem insertedRecursorModelsHaveExactLookupsAndKeepOldEquations
+    {safety : DefinitionSafety} {env : VEnv} {universes : List Name}
+    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (infos : Array RecInfo) (lparams : List Name) (isK : Bool) (reader : Context)
+    (initial final : MLCtx) (checker : CheckerEnv safety reader.env env)
+    (receipts : ∀ index, index < types.size →
+      RecursorTypeModelReceipt env universes stats infos index reader initial final)
+    (levels : getRecLevelParams elimLevel lparams = universes) (empty : initial.vlctx = []) :
+    (declareRecursors stats types elimLevel infos lparams reader.lctx isK false reader).WF
+      fun result => ∃ (models : Nat → VConstVal) (extended : VEnv),
+        CheckerEnv safety result extended ∧ env ≤ extended ∧ extended.defeqs = env.defeqs ∧
+        ∀ index, index < types.size →
+          extended.constants (mkRecName types[index]!.name) = some (models index).toVConstant ∧
+          (models index).toVConstant.WF env ∧
+          ∀ rules, TrConstVal .safe env (.recInfo
+            (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+              isK false index rules)) (models index) := by
+  refine (declareRecursors.refinesChecker_of_typeReceipts stats types elimLevel infos lparams
+    isK reader initial final checker receipts levels empty).mono ?_
+  rintro result ⟨models, extended, properties, added, finalChecker⟩
+  refine ⟨models, extended, finalChecker, VEnv.addConstructorHeaders.le added,
+    VEnv.addConstructorHeaders.defeqs_eq added, ?_⟩
+  intro index bound
+  have member : models index ∈ (List.range types.size).map models :=
+    List.mem_map.mpr ⟨index, List.mem_range.mpr bound, rfl⟩
+  have name : (models index).name = mkRecName types[index]!.name :=
+    (properties index bound []).1.2.symm
+  refine ⟨?_, (properties index bound []).2, fun rules => (properties index bound rules).1⟩
+  simpa only [name] using VEnv.addConstructorHeaders.constants added member
+
 private theorem letOnlyContextIsNotAClosedNativeTranslationContext (identifier : FVarId) :
     let model := MLCtx.vlet identifier `alias (.sort (.succ .zero)) (.sort .zero)
       (.sort (.succ .zero)) (.sort .zero) .nil
@@ -1275,6 +1306,37 @@ private def statsFor (reader : Context) (types : Array InductiveType) (counts : 
   { lctx := reader.lctx, resultLevel := .succ .zero, levels, params, isNotZero := true,
     nindices := counts, indConsts := types.map fun type => .const type.name levels }
 
+private def checkRegistrationNameControls (stats : InductiveStats)
+    (types : Array InductiveType) (infos : Array RecInfo) (reader : Context) : MetaM Unit := do
+  let renamed := types.map fun type => { type with name := type.name.appendAfter "_header_receipt" }
+  let .ok registered := declareRecursors stats renamed (.succ .zero) infos [] reader.lctx
+      false false reader
+    | throwError "recursor-header actual registration with fresh recursor names failed"
+  for parent in [:renamed.size] do
+    let name := mkRecName renamed[parent]!.name
+    let some (.recInfo info) := registered.find? name
+      | throwError "recursor-header exact native recursor lookup absent"
+    unless info.name == name && !info.isUnsafe do
+      throwError "recursor-header native name or safety changed"
+    let .ok (rules, offset) := mkRecRules renamed (.succ .zero) stats parent
+        (infos.map (·.motive)) (infos.flatMap (·.minors))
+        (recursorMinorOffset renamed parent) reader
+      | throwError "recursor-header original rule generator failed"
+    unless info.rules == rules && offset == recursorMinorOffset renamed (parent + 1) do
+      throwError "recursor-header original generated rules or minor offset changed"
+  if renamed.size > 0 then
+    let firstName := mkRecName renamed[0]!.name
+    let .error (.alreadyDeclared _ name) := declareRecursors stats renamed (.succ .zero)
+        infos [] reader.lctx false false { reader with env := registered }
+      | throwError "recursor-header preexisting recursor collision was accepted"
+    unless name == firstName do throwError "recursor-header wrong preexisting collision"
+    if renamed.size > 1 then
+      let duplicate := renamed.map fun type => { type with name := renamed[0]!.name }
+      let .error (.alreadyDeclared _ name) := declareRecursors stats duplicate (.succ .zero)
+          infos [] reader.lctx false false reader
+        | throwError "recursor-header repeated recursor name was accepted"
+      unless name == firstName do throwError "recursor-header wrong duplicate collision"
+
 private def checkFixture (reader : Context) (types : Array InductiveType) (counts : Array Nat)
     (params : Array Expr := #[]) (levels : List Level := []) : MetaM Unit := do
   let stats := statsFor reader types counts params levels
@@ -1286,6 +1348,7 @@ private def checkFixture (reader : Context) (types : Array InductiveType) (count
     checkApplication stats infos parent reader finalReader
     checkProjectedApplication stats infos parent finalReader
     checkNegativeApplications finalReader infos parent
+  checkRegistrationNameControls stats types infos finalReader
 
 private def checkAllocationOnlyControl (reader : Context) (natural : InductiveType) : MetaM Unit := do
   let untyped := Expr.mvar ⟨`ApplicationUntypedIndex⟩
@@ -1348,6 +1411,7 @@ private def runtimeFixtures (reader : Context) : MetaM Unit := do
   checkFixture seeded #[parameterized] #[1] #[.fvar carrier]
   checkAllocationOnlyControl seeded natural
   checkCancellationFixtures
+  logInfo "recursor-header runtime: seven fresh registrations, nine exact recursor lookups and generated-rule offset checks; seven preexisting-name collisions and two duplicate-parent-name collisions rejected"
   logInfo "recursor-application runtime: seven actual full mkRecInfos captures and nine selected-parent complete applications; independent original motive/major/index cdecl lookups, exact nested motive domains and step-by-step instantiated actual argument domains; full domain/partial-arrow/complete-sort checking, seeded local/let base and retained mutual/other-parent residual fields/IHs/minors; original-parameter controls remain native-only; omitted-major stays a function, duplicate-major/reordered-dependent/duplicate-index/cross-parent-major applications rejected; one untyped-index allocation-only boundary"
 
 private def auditDeclaration (name : Name) (allowed : List Name) : MetaM Unit := do
@@ -1500,6 +1564,10 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.existsDeclaredRecursor
 #print axioms Lean4Lean.AddInductive.mkRecInfos.registeredTranslatedAppliedDeclaredRecursors
 #print axioms actualRegisteredRecursorsHaveModelsAndGeneratedRules
+#print axioms insertedRecursorModelsHaveExactLookupsAndKeepOldEquations
+#print axioms Lean4Lean.AddInductive.declareRecursors.refinesChecker
+#print axioms Lean4Lean.AddInductive.declareRecursors.refinesChecker_of_typeReceipts
+#print axioms Lean4Lean.AddInductive.mkRecInfos.registeredTranslatedAppliedChecker
 #print axioms letOnlyContextIsNotAClosedNativeTranslationContext
 #print axioms runtimeFixtures
 
@@ -1512,6 +1580,8 @@ run_meta
   let nativeInterfaces := abstraction ++ allocation ++ [``Expr.instantiate1_eq]
   let native := logical ++ nativeInterfaces
   let inherited := native ++ [``sorryAx]
+  let checkerInsertion := logical ++ [``sorryAx, ``PersistentHashMap.findAux_isSome,
+    ``PersistentHashMap.WF.find?_eq, ``PersistentHashMap.WF.toList'_insert]
   for name in [``actualBodyHasExactlyTheSelectedMotiveIndicesAndMajor,
       ``realDependentApplicationCannotReplaceCombinedSuffixLiftingWithIdentity,
       ``mismatchedCancellationDepthDoesNotRestoreTheOriginalBoundVariable,
@@ -1519,7 +1589,7 @@ run_meta
       ``captureFull, ``checkSameReader, ``requireCDecl, ``requireSort,
       ``checkInstantiatedDomains, ``projectSelected, ``checkProjectedApplication,
       ``checkRetained, ``checkApplication, ``expectIllTyped, ``checkNegativeApplications,
-      ``typeFor, ``statsFor, ``checkFixture, ``checkAllocationOnlyControl,
+      ``typeFor, ``statsFor, ``checkFixture, ``checkRegistrationNameControls, ``checkAllocationOnlyControl,
       ``checkCancellationFixtures, ``runtimeFixtures, ``auditDeclaration, ``auditModule,
       ``auditProvenance, ``auditFoundation, ``auditFoundations,
       ``expectAuditRejection, ``checkAuditRejections] do
@@ -1570,6 +1640,12 @@ run_meta
   auditDeclaration ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.existsDeclaredRecursor
     (logical ++ [``sorryAx])
   auditDeclaration ``actualRegisteredRecursorsHaveModelsAndGeneratedRules inherited
+  auditDeclaration ``insertedRecursorModelsHaveExactLookupsAndKeepOldEquations checkerInsertion
+  auditDeclaration ``Lean4Lean.AddInductive.declareRecursors.refinesChecker checkerInsertion
+  auditDeclaration ``Lean4Lean.AddInductive.declareRecursors.refinesChecker_of_typeReceipts
+    checkerInsertion
+  auditFoundation ``CheckerEnv.addConst `Lean4Lean.Verify.Environment.Checker checkerInsertion
+  auditFoundation ``CheckerEnv.of_valueFrame `Lean4Lean.Verify.Environment.Checker (logical ++ [``sorryAx])
   auditDeclaration ``letOnlyContextIsNotAClosedNativeTranslationContext (logical ++ [``sorryAx])
   for name in [``Lean.Expr.instantiate1'_abstract1,
       ``Lean4Lean.AddInductive.mkForall_selected_cons] do
@@ -1587,11 +1663,12 @@ run_meta
   auditModule `Lean4Lean.Verify.InductiveRecursorApplicationTranslation
     (logical ++ abstraction ++ allocation ++ [``sorryAx])
   auditModule `Lean4Lean.Verify.InductiveRecursorApplicationTranslationCPS inherited
+  auditModule `Lean4Lean.Verify.RecursorHeaders inherited
   auditFoundations nativeInterfaces
   checkAuditRejections logical
   let reader : Context := {
     env := (← getEnv).toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   runtimeFixtures reader
-  logInfo "recursor-application audits: every module-owned declaration including private/generated helpers transitively checked; clean annotation/binder core and runtime helpers exclude sorryAx; facts/native exclude inherited admissions; semantic/CPS retain explicitly pinned inherited admissions; seven exact foundation dependency/provenance pins and nine existing native-interface pins; eight negative audit controls including whole-module policy and forbidden range even if whitelisted"
+  logInfo "recursor-application audits: every module-owned declaration including private/generated helpers transitively checked; clean annotation/binder core and runtime helpers exclude sorryAx; facts/native exclude inherited admissions; semantic/CPS retain explicitly pinned inherited admissions; seven exact foundation dependency/provenance pins, two existing CheckerEnv pins and nine existing native-interface pins; eight negative audit controls including whole-module policy and forbidden range even if whitelisted"
 
 end InductiveRecursorApplicationTranslationTest
