@@ -119,6 +119,18 @@ toolchains. Three older quotient diagnostics now distinguish direct proof
 checks from their measured inherited admissions. Kernel proof obligations
 and admission counts are unchanged.
 
+**Generated IH opening and minor application bridge (October 20):** the actual
+translated IH step now consumes a generated recursive value and its translated
+native domain at the annotation-peeled IH binder, preserving the value
+translation while converting its type through the opening equality. A second
+bridge packages typed field/IH argument sequences into the peeled minor
+application used by a rule RHS. These theorems are producer/consumer seams:
+the all-rule CPS producer still must supply each generated value, shared field
+opening, minor binder and exact argument sequence. Their three owned
+declarations add no admissions and retain only the existing structural
+translation interfaces. Full RHS translation, iota semantics, rejection
+consumer migration and `AddInduct` remain open.
+
 **Universal candidate reduction simulation:** every actual `NormalEq` in a
 well-formed environment with the quotient rule registered now simulates every
 candidate `Step`, and every finite candidate `Steps` path, using candidate
