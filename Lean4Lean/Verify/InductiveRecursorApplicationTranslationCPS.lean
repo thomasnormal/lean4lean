@@ -992,6 +992,62 @@ theorem mkRecInfos.registeredTranslatedAppliedRecursorTypes
   obtain ⟨_, _, finalModel, endpoint, receipts⟩ := translatedApplied result success
   exact ⟨frame, counts, ⟨finalModel, endpoint, receipts⟩, registeredWF, retained, metadata, rhsScope⟩
 
+/-- Construct translated model constants for the recursors actually stored by registration.
+This supplies their type receipts; rule semantics and model insertion remain separate. -/
+theorem mkRecInfos.registeredTranslatedAppliedDeclaredRecursors
+    {env : VEnv} {universes : List Name}
+    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (lparams : List Name) (isK : Bool) (reader : Context)
+    (envWF : env.WF) (constants : CanonicalAnnotationConstants env)
+    (definitions : CanonicalAnnotationDefinitions env) (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF env universes) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (nativeEnvWF : reader.env.constants.WF)
+    {semanticElimLevel : VLevel} (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport env universes trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass env universes parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport env universes trace)
+    (domainSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        RecursorSelectedDomainSupport env universes stats result.1 parent result.2.lctx model)
+    (levels : getRecLevelParams elimLevel lparams = universes) (empty : model.vlctx = []) :
+    (mkRecInfos.scopeRegistration stats types elimLevel lparams isK false reader).WF fun result =>
+      reader.RecursorScopeFrame result.2.2 ∧ RecursorInfoCounts types result.2.1 ∧
+      (∃ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.2.1 result.2.2 model finalModel ∧
+        ∀ parent, parent < types.size →
+          RecursorTypeModelReceipt env universes stats result.2.1 parent result.2.2 model finalModel) ∧
+      result.1.constants.WF ∧
+      (∀ name info, reader.env.find? name = some info → result.1.find? name = some info) ∧
+      stats.RecursorOffsetMetadata types elimLevel result.2.1 lparams result.2.2.lctx
+        isK false result.2.2 result.1 ∧
+      LocalRecursorRuleRhsScope stats types result.2.1 result.2.2 result.1 ∧
+      ∀ parent, parent < types.size → ∃ (info : RecursorVal) (constant : VConstVal),
+        result.1.find? (mkRecName types[parent]!.name) = some (.recInfo info) ∧
+        TrConstVal .safe env (.recInfo info) constant ∧ constant.toVConstant.WF env := by
+  refine (mkRecInfos.registeredTranslatedAppliedRecursorTypes stats types elimLevel
+    lparams isK false reader envWF constants definitions fieldOnly model modelWF native reserved
+    nativeEnvWF mapped parentSupport minorSupport domainSupport).mono ?_
+  rintro result ⟨frame, counts, ⟨finalModel, endpoint, receipts⟩, registeredWF, retained,
+    metadata, rhsScope⟩
+  refine ⟨frame, counts, ⟨finalModel, endpoint, receipts⟩, registeredWF, retained,
+    metadata, rhsScope, ?_⟩
+  intro parent bound
+  obtain ⟨rules, _, lookup⟩ := metadata parent bound
+  obtain ⟨constant, translated, wellFormed⟩ :=
+    (receipts parent bound).existsDeclaredRecursor lparams isK rules levels empty
+  exact ⟨_, constant, lookup, translated, wellFormed⟩
+
 theorem mkRecInfos.registeredTranslatedAppliedInitialAndFinalTypehood
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)

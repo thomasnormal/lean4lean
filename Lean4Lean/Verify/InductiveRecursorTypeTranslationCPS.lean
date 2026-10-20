@@ -183,6 +183,36 @@ theorem RecursorTypeModelReceipt.initialStoredWFOfDeclaredRecursors
   exact (receipts parent bound).initialStoredWF_of_declaredRecursor (constants parent bound)
     lparams isK isUnsafe rules (native parent bound) (levels parent bound) envWF initialWF empty
 
+/-- An empty native translation context lets the receipt supply the model constant itself.
+An empty `toCtx` alone would still permit native free variables from let bindings. -/
+theorem RecursorTypeModelReceipt.existsDeclaredRecursor
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {infos : Array RecInfo}
+    {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = universes)
+    (empty : initial.vlctx = []) :
+    ∃ constant : VConstVal,
+      TrConstVal .safe env
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+          isK false parent rules)) constant ∧ constant.toVConstant.WF env := by
+  obtain ⟨semantic, level, translated, typed, _⟩ :=
+    receipt.metadataType types elimLevel lparams isK false rules
+  let constant : VConstVal :=
+    { name := mkRecName types[parent]!.name, uvars := universes.length, type := semantic }
+  refine ⟨constant, ⟨⟨?_, ?_, ?_⟩, rfl⟩, ?_⟩
+  · simp [ConstantInfo.safety, ConstantInfo.isUnsafe, ConstantInfo.isPartial,
+      declareRecursors.metadataVal]
+  · exact congrArg List.length levels
+  · change TrExprS env (getRecLevelParams elimLevel lparams) []
+      (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+        isK false parent rules).type semantic
+    rw [levels]
+    simpa only [empty] using translated
+  · change env.IsType universes.length [] semantic
+    exact ⟨level, by simpa only [empty, VLCtx.toCtx] using typed⟩
+
 theorem RecursorTypeModelReceipt.rawTypehood
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}

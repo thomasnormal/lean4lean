@@ -42,6 +42,15 @@ or replace the main review branch.
 Full default builds and all selected regression fixtures pass on both
 toolchains. No new admission is introduced.
 
+**Registered recursor model constants (October 20, Lean 4.29.0):** the actual
+`scopeRegistration` result now supplies a translated, well-formed model
+constant for each stored safe recursor. The proof constructs the model type
+from the generated-type receipt; it no longer assumes a separate native
+constant translation. It still requires selected-domain and pass support,
+parameter-free statistics, matching universe lists and an empty initial
+virtual context. Generated rules retain their actual offset receipts;
+model insertion, rule semantics, consumer migration and `AddInduct` remain open.
+
 **Universal candidate reduction simulation:** every actual `NormalEq` in a
 well-formed environment with the quotient rule registered now simulates every
 candidate `Step`, and every finite candidate `Steps` path, using candidate
