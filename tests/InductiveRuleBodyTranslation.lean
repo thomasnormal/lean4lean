@@ -15,6 +15,7 @@ private def audit : MetaM Unit := do
   let logical := [``propext, ``Classical.choice, ``Quot.sound]
   let structural := logical ++ [``sorryAx, ``PersistentArray.toList'_push,
     ``PersistentHashMap.WF.find?_eq, ``PersistentHashMap.WF.toList'_insert]
+  exactAxioms ``LocalRecursorRuleRhsScope.receipts logical
   exactAxioms ``ElimNestedInductive.TypedParameterArguments.resultKind structural
   exactAxioms ``VEnv.SortArity.weak' [``propext, ``Quot.sound]
   exactAxioms ``IHModelStep.acceptsGeneratedValue structural
@@ -62,13 +63,14 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 105 do throwError "rule body: expected one hundred five owned declarations, got {count}"
-  logInfo m!"rule body: generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
+  unless count == 106 do throwError "rule body: expected one hundred six owned declarations, got {count}"
+  logInfo m!"rule body: scoped-to-final rule receipts, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
 
 run_meta
   audit
 
 #print axioms IHModelStep.acceptsGeneratedValue
+#print axioms LocalRecursorRuleRhsScope.receipts
 #print axioms IHModelStep.acceptsGeneratedRecursiveValue
 #print axioms RecursorMinorOpening.applyArguments
 #print axioms RecursorMinorOpening.applyNativeArguments

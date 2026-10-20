@@ -8,6 +8,22 @@ open Lean hiding Environment Exception
 open TypeChecker (MLCtx)
 open ElimNestedInductive (ContextReserved TypedParameterApplications)
 
+/- The scoped receipt is the form produced by the checked recursor pass.  The
+   constructor-RHS consumer needs the smaller receipt that retains only the
+   native rule shape; carry it through the existing fvar and count views
+   without reconstructing any fields, values, or context equalities. -/
+theorem LocalRecursorRuleRhsScope.receipts
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {env : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx env) :
+    LocalRecursorRuleRhs stats types infos ctx env := by
+  intro parent hparent
+  obtain ⟨recursor, hfind, hreceipts⟩ := hscope parent hparent
+  refine ⟨recursor, hfind, ?_⟩
+  intro index ctor hctor
+  obtain ⟨rule, minor, hrule, hminor, hreceipt⟩ := hreceipts index ctor hctor
+  exact ⟨rule, minor, hrule, hminor, hreceipt.fvars.counts.receipt⟩
+
 theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.resultKind
     (arguments : ElimNestedInductive.TypedParameterArguments environment universes model
       source replacements values result)
