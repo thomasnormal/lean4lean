@@ -238,6 +238,18 @@ private theorem receiptMatchesTheActualMetadataTypeAtBothModelsWithRealSuffixLif
         (semantic.liftN (final.length - initial.length)) (.sort level) :=
   receipt.metadataType types elimLevel reader.lparams false false rules
 
+private theorem receiptExposesMetadataTypehoodAtTheInitialModelContext
+    (env : VEnv) (universes : List Name) (stats : InductiveStats) (infos : Array RecInfo)
+    (parent : Nat) (reader : Context) (initial final : MLCtx)
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (types : Array InductiveType) (elimLevel : Level) (rules : List RecursorRule) :
+    ∃ semantic,
+      TrExprS env universes initial.vlctx
+        (declareRecursors.metadataVal stats types elimLevel infos reader.lparams reader.lctx
+          false false parent rules).type semantic ∧
+      env.IsType universes.length initial.vlctx.toCtx semantic :=
+  receipt.metadataTypehood types elimLevel reader.lparams false false rules
+
 private theorem actualEndpointBuildsRawAndStoredReceiptsFromOnlyComponentSupports
     (env : VEnv) (universes : List Name) (stats : InductiveStats) (types : Array InductiveType)
     (elimLevel : Level) (reader finalReader : Context) (infos : Array RecInfo)
@@ -569,8 +581,7 @@ private def auditFoundations (nativeInterfaces : List Name) : MetaM Unit := do
   for (name, moduleName) in [(``TrProj, `Lean4Lean.Verify.Typing.Expr),
       (``TrProj.weak', `Lean4Lean.Verify.Typing.Lemmas),
       (``TrExprS.defeqDFC', `Lean4Lean.Verify.Typing.Lemmas),
-      (``TrExprS.inst_fvar, `Lean4Lean.Verify.Typing.Lemmas),
-      (``VEnv.HasType.defeqU_r, `Lean4Lean.Theory.Typing.UniqueTyping)] do
+      (``TrExprS.inst_fvar, `Lean4Lean.Verify.Typing.Lemmas)] do
     unless environment.getModuleIdxFor? name == environment.getModuleIdx? moduleName do
       throwError "recursor-type inherited foundation provenance changed: {name}"
     let axioms ← collectAxioms name
@@ -578,6 +589,11 @@ private def auditFoundations (nativeInterfaces : List Name) : MetaM Unit := do
       throwError "recursor-type inherited foundation admission unexpectedly vanished: {name}"
     auditDeclaration name (logical ++ [``sorryAx])
     logInfo m!"pinned inherited recursor-type foundation: {name} from {moduleName}"
+  let name := ``VEnv.HasType.defeqU_r
+  unless environment.getModuleIdxFor? name == environment.getModuleIdx? `Lean4Lean.Theory.Typing.UniqueTyping do
+    throwError "recursor-type inherited foundation provenance changed: {name}"
+  auditDeclaration name logical
+  logInfo m!"verified inherited recursor-type foundation: {name} from Lean4Lean.Theory.Typing.UniqueTyping"
   for name in [``TypeChecker.MLCtx.WF.mkForall_eq, ``TypeChecker.MLCtx.WF.mkForall_tr,
       ``TypeChecker.MLCtx.WF.mkForall_trS] do
     unless environment.getModuleIdxFor? name == environment.getModuleIdx? `Lean4Lean.Verify.TypeChecker.Basic do
