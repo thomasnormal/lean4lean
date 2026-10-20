@@ -14,6 +14,47 @@ unconditional kernel soundness follows from the results below. See `bugs-found.m
 Lean 4.29.0 / 4.33.0-rc2 controls.
 
 
+## Constructing model constants for registered recursors — 2026-10-20
+
+`RecursorTypeModelReceipt.existsDeclaredRecursor` constructs a `VConstVal`
+from the receipt's translated stored type, with the declared native name and
+universe arity. It proves both `TrConstVal .safe` for the exact
+`declareRecursors.metadataVal` and the model constant's `VConstant.WF`.
+The native recursor is safe; its level-parameter list must equal the receipt's
+universe list, and the initial virtual context must be empty. The proof uses
+the receipt's own translation and typehood rather than assuming a separate
+native-to-model constant translation.
+
+`mkRecInfos.registeredTranslatedAppliedDeclaredRecursors` connects that
+construction to the actual `scopeRegistration` result. Every bounded parent
+has a recursor lookup in the returned native environment and a translated,
+well-formed model constant. The existing frame, counts, model endpoint,
+per-parent type receipts, native map preservation, generated-rule offsets and
+rule scope are retained. Parent/minor-pass and selected-domain support,
+parameter-free statistics, environment/model WF, reserved names and elimination
+level translation remain explicit premises.
+
+The regression consumes the actual registered lookup and checks that the same
+native recursor's rules come from `mkRecRules` at its exact minor offset,
+and that its model has the declared name and universe count. A separate control
+exhibits a well-formed let-only virtual context with empty `toCtx`: its native
+free variable translates there but has no translation in `[]`. Thus the new
+construction does not confuse an empty semantic context with a closed native
+translation context. The helper's axiom audit retains the existing logical
+and projection-type admission dependencies; the registered bridge retains the
+existing audited checker/native interfaces. No new admission is added.
+
+On the published Lean 4.29.0 branch, the focused module build and
+`tests/InductiveRecursorApplicationTranslation.lean` pass, including runtime
+fixtures and transitive audits; the full default build passes all 458 jobs.
+The source census remains 116 matching lines / 18 files / 120 whole-word
+admission occurrences. The recent recursor changes still need replay and
+validation on the separate Lean 4.33.0-rc2 integration candidate.
+
+These are constant type receipts for actual native registrations. Model
+insertion, recursor rule semantics, the constructor-free consumer migration,
+`AddInduct`, and unconditional frontend soundness remain open.
+
 ## Universal candidate-step and finite-path simulation — 2026-10-19
 
 `normal_candidate_simulates` proves that every actual `NormalEq` in a
