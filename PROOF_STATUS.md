@@ -4,6 +4,42 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Complete fixture proof-value extraction — 2026-10-20
+
+All fixture audit reads now explicitly request `allowOpaque := true` when
+inspecting meta-level constant values. Operational `Kernel.ConstantInfo`
+and `LocalDecl` value reads remain unchanged. This restores theorem proof
+inspection on Lean 4.33 and includes opaque proof values on both toolchains.
+Most integration dependency traversals were already explicit; the remaining
+gaps were direct proof checks in the older scoped-checker/quotient fixtures.
+The corresponding main-branch audits now use the same explicit access.
+
+`tests/ProofValueAudit.lean` verifies access to definition, theorem and opaque
+values. It traverses `TrExprS.instL` and must reach both `TrProj.instL` and
+`sorryAx` through the theorem proof. Two exact negative controls reject the
+path when either declaration is forbidden. The same traversal excludes the
+known-false strengthening and quotient confluence/injectivity roots. Missing
+proof values fail the control instead of being silently skipped. The
+regression introduces no new admission or axiom.
+
+Three quotient fixtures previously called their results "admission-free"
+after checking only the immediate proof term. Their messages now state the
+actual direct-proof check and print inherited axiom dependencies; all retain
+`sorryAx`. Missing proof values are errors. This corrects the audit claim,
+without discharging those inherited admissions.
+
+All 57 updated main fixtures pass, together with the new control. All 11
+updated integration fixtures pass, together with the same control. Six older
+integration fixtures also required replay against existing upstream APIs:
+`TrEnv'.ignore`, the additional native declaration recursion-depth argument,
+explicit Nat counters, the single cheap-projection flag, public inference's
+boolean argument and the current reduction-status constructors. False
+reduction statuses compare both retained expressions; their payloads are
+checked exactly. The runtime assertions and actual supported flag coverage
+are retained; the removed cheap-recursion API is not simulated as a flag.
+No production kernel or semantic theorem changed. Full default builds pass
+on Lean 4.29.0 and Lean 4.33.0-rc2; admission censuses remain unchanged.
+
 ## Typed generated recursive calls and values — 2026-10-20
 
 `InductiveRecursiveCallTranslation` derives the recursive call inside
@@ -66,8 +102,8 @@ requests theorem/opaque proof values: Lean 4.33's default `value?` skips
 theorem proofs. The preceding rule-stage fixture is corrected likewise; its
 axiom manifests were already checked independently, but the old traversal
 could not justify exclusion of theorem dependencies on that toolchain.
-Other older fixtures using the default accessor still need review. No new
-admission or interface axiom is added.
+The subsequent fixture migration recorded above completes the remaining
+audit-accessor correction. No new admission or interface axiom is added.
 Focused and full default builds and the new/existing regression fixtures pass
 on Lean 4.29.0 and the separate Lean 4.33.0-rc2 integration candidate.
 

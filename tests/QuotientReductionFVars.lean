@@ -15,8 +15,9 @@ run_meta
   let theoremName := ``TypeChecker.Inner.quotReduceRec.fvarsBelow
   let information ← getConstInfo theoremName
   if information matches .axiomInfo _ then throwError "quotient FVarsBelow theorem is an axiom"
-  if let some proof := information.value? then
-    if proof.hasSorry then throwError "quotient FVarsBelow theorem has an admission"
-  logInfo m!"quotient reduction FVarsBelow theorem is theorem-backed and admission-free"
+  let some proof := information.value? (allowOpaque := true)
+    | throwError "quotient FVarsBelow theorem proof is missing"
+  if proof.hasSorry then throwError "quotient FVarsBelow theorem has a direct admission"
+  logInfo m!"quotient FVarsBelow: inspected theorem proof has no direct admission; inherited axioms = {repr (← collectAxioms theoremName)}"
 
 end QuotientReductionFVarsTest

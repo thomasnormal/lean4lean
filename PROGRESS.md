@@ -90,9 +90,13 @@ still open. The proofs retain existing projection and native-interface
 dependencies, exclude known-false strengthening/confluence results, and add
 no admission. A generated parameterized indexed higher-order rule passes
 application/result checks and rejects malformed calls on both toolchains.
-Proof-dependency traversal now explicitly requests theorem values on Lean
-4.33; its default accessor skipped them. The call and rule-stage audits are
-corrected. Older audits relying on that traversal still need review.
+Proof audits throughout the fixture suite now explicitly request theorem and
+opaque values, covering Lean 4.33's changed accessor default. A regression
+must reach an existing projection admission through a theorem proof and
+reject that path when forbidden. All updated audits pass on their respective
+toolchains. Three older quotient diagnostics now distinguish direct proof
+checks from their measured inherited admissions. Kernel proof obligations
+and admission counts are unchanged.
 
 **Universal candidate reduction simulation:** every actual `NormalEq` in a
 well-formed environment with the quotient rule registered now simulates every

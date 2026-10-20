@@ -87,14 +87,17 @@ private def stableCaches (locals : LocalContext) (state : State) : Bool :=
     state.whnfCache.toList.all (fun entry => stableHead locals entry.2)
 
 private def sameStatus : ReductionStatus → ReductionStatus → Bool
-  | .bool first, .bool second => first == second
+  | .true, .true => true
+  | .false firstLeft firstRight, .false secondLeft secondRight =>
+    firstLeft == secondLeft && firstRight == secondRight
   | .unknown firstLeft firstRight, .unknown secondLeft secondRight
   | .continue firstLeft firstRight, .continue secondLeft secondRight =>
     firstLeft == secondLeft && firstRight == secondRight
   | _, _ => false
 
 private def describeStatus : ReductionStatus → MessageData
-  | .bool equal => m!"Boolean {equal}"
+  | .true => "true"
+  | .false first second => m!"false {repr first}, {repr second}"
   | .unknown first second => m!"unknown {repr first}, {repr second}"
   | .continue first second => m!"continue {repr first}, {repr second}"
 
@@ -129,31 +132,32 @@ private def nativeControls : MetaM Unit := do
     |>.mkLetDecl aliasIdentifier `alias (.sort (.succ .zero)) natural
   let steps : Array (Expr × Expr × ReductionStatus × Bool) := #[
     (natural, boolean, .unknown natural boolean, false),
-    (firstDefinition, literal, .bool true, false),
-    (literal, firstDefinition, .bool true, false),
-    (firstDefinition, secondDefinition, .bool false, false),
-    (aliasDefinition, firstDefinition, .bool true, false),
-    (firstDefinition, aliasDefinition, .bool true, false),
+    (firstDefinition, literal, .true, false),
+    (literal, firstDefinition, .true, false),
+    (firstDefinition, secondDefinition, .false literal different, false),
+    (aliasDefinition, firstDefinition, .true, false),
+    (firstDefinition, aliasDefinition, .true, false),
     (aliasDefinition, literal, .continue firstDefinition literal, false),
     (firstDefinition, projection, .continue firstDefinition literal, false),
     (projection, firstDefinition, .continue literal firstDefinition, false),
-    (.app constant literal, .app constant literal, .bool true, false),
-    (.app constant literal, .app constant different, .bool true, true),
+    (.app constant literal, .app constant literal, .true, false),
+    (.app constant literal, .app constant different, .true, true),
     (.app successor literal, .app successor different,
       .continue (.app (.const ``Nat.succ []) literal) (.app (.const ``Nat.succ []) different), true),
     (ordinaryDefinition, literal, .continue wrappedLiteral literal, false),
     (stuckProjection, stuckProjection, .unknown stuckProjection stuckProjection, false)]
   let loops : Array (Expr × Expr × ReductionStatus) := #[
     (natural, boolean, .unknown natural boolean),
-    (firstDefinition, literal, .bool true),
-    (literal, firstDefinition, .bool true),
-    (firstDefinition, secondDefinition, .bool false),
-    (aliasDefinition, literal, .bool true),
-    (firstDefinition, projection, .bool true),
-    (projection, firstDefinition, .bool true),
-    (.app constant literal, .app constant different, .bool true),
-    (.app successor literal, .app successor different, .bool false),
-    (literal, literal, .bool true), (literal, different, .bool false),
+    (firstDefinition, literal, .true),
+    (literal, firstDefinition, .true),
+    (firstDefinition, secondDefinition, .false literal different),
+    (aliasDefinition, literal, .true),
+    (firstDefinition, projection, .true),
+    (projection, firstDefinition, .true),
+    (.app constant literal, .app constant different, .true),
+    (.app successor literal, .app successor different,
+      .false (.app (.const ``Nat.succ []) literal) (.app (.const ``Nat.succ []) different)),
+    (literal, literal, .true), (literal, different, .false literal different),
     (stuckProjection, stuckProjection, .unknown stuckProjection stuckProjection)]
   let strings : List (RecM LBool × LBool) := [
     (Inner.tryStringLitExpansionCore (.lit (.strVal "ab")) (.strLitToConstructor "ab"), .true),
@@ -168,11 +172,11 @@ private def nativeControls : MetaM Unit := do
   let mismatchedStrings : List (RecM LBool) := [
     Inner.tryStringLitExpansionCore (.lit (.strVal "ab")) (.strLitToConstructor "ac"),
     Inner.tryStringLitExpansion (.strLitToConstructor "ac") (.lit (.strVal "ab"))]
-  let mut stepCount := 0
-  let mut loopCount := 0
-  let mut stringOffsetCount := 0
-  let mut mismatchCount := 0
-  let mut projectionCount := 0
+  let mut stepCount : Nat := 0
+  let mut loopCount : Nat := 0
+  let mut stringOffsetCount : Nat := 0
+  let mut mismatchCount : Nat := 0
+  let mut projectionCount : Nat := 0
   for safety in [DefinitionSafety.safe, .unsafe] do
     for eager in [false, true] do
       for fuel in [32, 128] do
@@ -254,7 +258,7 @@ private def nativeControls : MetaM Unit := do
   let context : Context := { env := environment, lctx := locals }
   let .ok (result, finalState) := Inner.lazyDeltaReduction.loop (.lit (.natVal 0)) .natZero 1
       (Methods.withFuel 0) context {} | throwError "pure zero-callback-fuel offset control rejected"
-  unless sameStatus result (.bool true) && stableCaches locals finalState do
+  unless sameStatus result (.true) && stableCaches locals finalState do
     throwError "pure offset control loses result/frame"
   unless !(Inner.lazyDeltaReductionStep firstDefinition literal (Methods.withFuel 0) context {}).isOk do
     throwError "zero callback fuel delta unfolding unexpectedly succeeds"
@@ -281,11 +285,11 @@ run_meta
     ``Lean.Expr.eqv_eq, ``Lean.Level.instLawfulBEqLevel, ``Lean.Syntax.structEq_eq,
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
     ``Lean.PersistentArray.toList'_push]
-  let mut owned := 0
+  let mut owned : Nat := 0
   for (name, information) in environment.constants do
     if environment.getModuleIdxFor? name == some moduleIndex then
       if information matches .axiomInfo _ then throwError "owned scoped delta axiom {name}"
-      if let some proof := information.value? then
+      if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "owned scoped delta admission {name}"
       let dependencies ← collectAxioms name
       for dependency in dependencies do
