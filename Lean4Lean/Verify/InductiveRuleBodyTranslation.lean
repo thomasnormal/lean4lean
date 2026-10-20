@@ -1511,6 +1511,56 @@ theorem MinorModelStep.abstractConstructorRuleRhsIotaWeakFV
       (argumentTyping rhsTranslated rhsTyped) envWF targetWF insertion
   exact ⟨_, ruleReceipt, appliedTranslated, appliedTyped⟩
 
+/-- Transport the complete constructor-rule iota result and its sort-arity
+witness through an explicit model-context extension.  The body bridge,
+replacement telescope, and base-context kind remain caller-supplied. -/
+theorem MinorModelStep.abstractConstructorRuleRhsIotaWeakFVKind
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final base target : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    {motives minors : Array Expr} {ctx : Context} {minor : Expr} {rule : RecursorRule}
+    (receipt : RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule)
+    {ids : List FVarId} (extension : IndexMLCtxExtension base ids final)
+    {fields : Array Expr} {replacements : List Expr} {bodySemantic bodyType : VExpr}
+    (receiptShape : ∀ (receiptFields receiptValues : Array Expr) (current : Context),
+      ctx.HeaderFrame current → rule.ctor = constructor.name →
+      rule.nfields = receiptFields.size →
+      ∃ _ : fields = receiptFields, ∃ _ : receiptValues = replacements.toArray,
+        recursorRuleRhs stats motives minors receiptFields receiptValues current.lctx minor =
+          final.lctx.mkLambda (ids.map Expr.fvar).toArray
+            (mkAppN (mkAppN minor fields) replacements.toArray))
+    (bodyTranslated : TrExprS env universes final.vlctx
+      (mkAppN (mkAppN minor fields) replacements.toArray) bodySemantic)
+    (bodyTyped : env.HasType universes.length final.vlctx.toCtx bodySemantic bodyType)
+    (envWF : env.WF) {insertionLift : Lift}
+    {arguments : List VExpr} {resultType : VExpr}
+    (argumentTyping : ∀ {value valueType},
+      TrExprS env universes base.vlctx rule.rhs value →
+      env.HasType universes.length base.vlctx.toCtx value valueType →
+      ElimNestedInductive.TypedParameterArguments env universes base valueType
+        replacements arguments resultType)
+    (kind : ∀ {value valueType},
+      TrExprS env universes base.vlctx rule.rhs value →
+      env.HasType universes.length base.vlctx.toCtx value valueType →
+      env.SortArity universes.length base.vlctx.toCtx
+        (count + replacements.length) valueType)
+    (targetWF : target.WF env universes)
+    (insertion : VLCtx.FVLift' base.vlctx target.vlctx 0 insertionLift 0) :
+    ∃ resultSemantic,
+      RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule ∧
+      TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements) resultSemantic ∧
+      env.HasType universes.length target.vlctx.toCtx resultSemantic (resultType.lift' insertionLift) ∧
+      env.SortArity universes.length target.vlctx.toCtx count (resultType.lift' insertionLift) := by
+  obtain ⟨value, valueType, ruleReceipt, rhsTranslated, rhsTyped⟩ :=
+    step.abstractConstructorRuleRhs receipt extension receiptShape bodyTranslated bodyTyped envWF
+  obtain ⟨ruleReceipt, appliedTranslated, appliedTyped, resultKind⟩ :=
+    ruleReceipt.applyIotaWeakFVKind rhsTranslated rhsTyped
+      (argumentTyping rhsTranslated rhsTyped) envWF targetWF insertion (kind rhsTranslated rhsTyped)
+  exact ⟨_, ruleReceipt, appliedTranslated, appliedTyped, resultKind⟩
+
 /-- A minor step transports the actual constructor-field prefix receipt from
 the field model through the IH and minor context extensions.  The native body
 is retained as an explicit expression for the subsequent generated IH values. -/
