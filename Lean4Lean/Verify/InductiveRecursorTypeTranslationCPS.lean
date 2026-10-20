@@ -61,6 +61,21 @@ theorem RecursorTypeModelReceipt.metadataType
   obtain ⟨semantic, level, _, stored, typed, _, currentStored, currentTyped⟩ := receipt
   exact ⟨semantic, level, stored, typed, currentStored, currentTyped⟩
 
+theorem RecursorTypeModelReceipt.metadataTypehood
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (types : Array InductiveType) (elimLevel : Level) (lparams : List Name)
+    (isK isUnsafe : Bool) (rules : List RecursorRule) :
+    ∃ semantic,
+      TrExprS env universes initial.vlctx
+        (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+          isK isUnsafe parent rules).type semantic ∧
+      env.IsType universes.length initial.vlctx.toCtx semantic := by
+  have metadata := receipt.metadataType types elimLevel lparams isK isUnsafe rules
+  refine ⟨metadata.choose, metadata.choose_spec.choose_spec.1, ?_⟩
+  exact ⟨metadata.choose_spec.choose, metadata.choose_spec.choose_spec.2.1⟩
+
 theorem RecursorInfoModelEndpoint.recursorType
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
     {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
