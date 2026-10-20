@@ -509,6 +509,43 @@ private theorem scopedAppliedGetterPassesFinalRawTypehoodToContinuation
   mkRecInfos.scopedTranslatedAppliedFinalRawTypehood stats types elimLevel next reader post envWF constants
     definitions fieldOnly model modelWF native reserved mapped parentSupport minorSupport domainSupport nextWF
 
+private theorem scopedAppliedGetterPassesAllFinalTypehoodToContinuation
+    {ResultType : Type} {env : VEnv} {universes : List Name}
+    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (next : Array RecInfo → M ResultType) (reader : Context) (post : ResultType → Prop)
+    (envWF : env.WF) (constants : CanonicalAnnotationConstants env)
+    (definitions : CanonicalAnnotationDefinitions env) (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF env universes) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    {semanticElimLevel : VLevel} (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport env universes trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass env universes parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport env universes trace)
+    (domainSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        RecursorSelectedDomainSupport env universes stats result.1 parent result.2.lctx model)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule)
+    (nextWF : ∀ finalInfos finalReader finalModel,
+      reader.RecursorScopeFrame finalReader → RecursorInfoCounts types finalInfos →
+      RecursorInfoModelEndpoint env universes stats types elimLevel reader finalInfos finalReader model finalModel →
+      RecursorFinalTypehood env universes stats types elimLevel finalInfos finalReader
+        finalModel lparams isK isUnsafe rules →
+      (next finalInfos finalReader).WF post) :
+    (mkRecInfos stats types elimLevel next reader).WF post :=
+  mkRecInfos.scopedTranslatedAppliedFinalTypehood stats types elimLevel next reader post envWF constants
+    definitions fieldOnly model modelWF native reserved mapped parentSupport minorSupport domainSupport
+    lparams isK isUnsafe rules nextWF
+
 private theorem scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate
     {ResultType : Type} {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
@@ -931,6 +968,7 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms scopedAppliedGetterPassesFinalMetadataTypehoodToContinuation
 #print axioms scopedAppliedGetterPassesFinalStoredTypehoodToContinuation
 #print axioms scopedAppliedGetterPassesFinalRawTypehoodToContinuation
+#print axioms scopedAppliedGetterPassesAllFinalTypehoodToContinuation
 #print axioms scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate
 #print axioms runtimeFixtures
 
@@ -976,6 +1014,7 @@ run_meta
       ``scopedAppliedGetterPassesFinalMetadataTypehoodToContinuation,
       ``scopedAppliedGetterPassesFinalStoredTypehoodToContinuation,
       ``scopedAppliedGetterPassesFinalRawTypehoodToContinuation,
+      ``scopedAppliedGetterPassesAllFinalTypehoodToContinuation,
       ``scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate] do
     auditDeclaration name inherited
   for name in [``Lean.Expr.instantiate1'_abstract1,
