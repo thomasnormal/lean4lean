@@ -4,6 +4,33 @@
 * https://github.com/leanprover/lean4/issues/10475
 * https://github.com/leanprover/lean4/issues/10511
 
+## Proof audit skipped theorem bodies on Lean 4.33 (2026-10-20)
+
+**Regression-audit defect; no kernel acceptance or theorem contract changed.**
+`ConstantInfo.value?` returns theorem proofs by default on Lean 4.29, but
+requires `allowOpaque := true` on Lean 4.33. Traversals using the default
+accessor therefore inspected theorem types but skipped their proof
+references on the newer toolchain. `collectAxioms` still checked axiom
+manifests independently; the traversal's separate claim to exclude specific
+admitted theorem dependencies was not justified.
+
+For example, after importing
+`Lean4Lean.Verify.InductiveRecursiveCallTranslation`, obtain the constant
+information for `UArgModelEndpoint.recursiveValueAfterInsertion` in `run_meta`
+and inspect `information.value?.isSome`: it is false on Lean 4.33, while
+`(information.value? (allowOpaque := true)).isSome` is true. A full traversal
+of that theorem using the default accessor reported no direct admission
+roots on Lean 4.33; requesting proof values reaches the same seven existing
+projection admissions as Lean 4.29.
+
+The recursive-call and preceding rule-stage fixtures now explicitly request
+proof values for direct-admission checks and dependency traversal. The new
+fixture also pins all seven reached admission declarations, so skipping
+proof bodies fails the audit. Its exact inherited axiom manifests and
+known-false strengthening/confluence exclusions pass on both toolchains.
+Other older fixtures using the default accessor remain an audit-migration
+item. This corrects fork-specific audit code, not the documented native API.
+
 ## Recursor rule translation staged before fresh recursor signatures (2026-10-20)
 
 **Verification-receipt defect; no native kernel discrepancy demonstrated.**
