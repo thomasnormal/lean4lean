@@ -45,6 +45,7 @@ private def audit : MetaM Unit := do
   exactAxioms ``RecursorRuleRhsReceipt.applyIota (logical ++ [``sorryAx])
   exactAxioms ``RecursorRuleRhsReceipt.applyIotaWeakFV structural
   exactAxioms ``MinorModelStep.abstractConstructorRuleRhsIota fieldStructural
+  exactAxioms ``MinorModelStep.abstractConstructorRuleRhsIotaWeakFV fieldStructural
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveRuleBodyTranslation
     | throwError "rule body: module absent"
   let mut count := 0
@@ -55,7 +56,7 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 98 do throwError "rule body: expected ninety-eight owned declarations, got {count}"
+  unless count == 99 do throwError "rule body: expected ninety-nine owned declarations, got {count}"
   logInfo m!"rule body: generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/context bridges audited ({count} declarations)"
 
 run_meta
@@ -87,5 +88,6 @@ run_meta
 #print axioms RecursorRuleRhsReceipt.applyIota
 #print axioms RecursorRuleRhsReceipt.applyIotaWeakFV
 #print axioms MinorModelStep.abstractConstructorRuleRhsIota
+#print axioms MinorModelStep.abstractConstructorRuleRhsIotaWeakFV
 
 end InductiveRuleBodyTranslationTest
