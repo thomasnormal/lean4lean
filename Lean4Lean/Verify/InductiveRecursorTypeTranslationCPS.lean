@@ -107,6 +107,22 @@ theorem RecursorTypeModelReceipt.initialStoredWF
   rw [constantUvars]
   exact ⟨level, empty ▸ constantTyped⟩
 
+theorem RecursorTypeModelReceipt.initialStoredWF_of_closedTranslation
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (constant : VConstVal)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (constantUvars : constant.uvars = universes.length)
+    (storedTranslated : TrExprS env universes []
+      ((recursorRawType stats infos parent reader.lctx).inferImplicit 1000 false) constant.type)
+    (empty : initial.vlctx.toCtx = []) : constant.toVConstant.WF env := by
+  apply receipt.initialStoredWF constant envWF initialWF constantUvars
+    (empty := empty)
+  have initialLength : initial.vlctx.toCtx.length = 0 := by simp [empty]
+  simpa only [initialLength, VExpr.liftN_zero] using storedTranslated.weakFV envWF.ordered
+    (VLCtx.FVLift.from_nil initial.noBV) initialWF.tr.wf
+
 theorem RecursorTypeModelReceipt.rawTypehood
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
