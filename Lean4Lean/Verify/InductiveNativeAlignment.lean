@@ -237,6 +237,17 @@ theorem RegistrationEvidence.sourceTypehood_of_recursorWF
     simpa only [VConstant.WF, ← translation.1.2.1] using hrecursors entry hmem
   exact ⟨entry.model.type, translation.1.2.2, levelParams ▸ modelTypehood⟩
 
+theorem RegistrationEvidence.sourceTypehood_iff_recursorWF
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (henv : evidence.constructorEnv.WF) :
+    (∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) ↔
+    (∀ entry ∈ evidence.recursors, entry.model.toVConstant.WF evidence.constructorEnv) := by
+  constructor
+  · exact evidence.recursorWF_of_sourceTypehood henv
+  · exact evidence.sourceTypehood_of_recursorWF
+
 theorem RegistrationEvidence.registrationWF
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)

@@ -755,3 +755,7 @@ The alignment layer also exposes the converse transport lemma
 recovers the source type's translation and `IsType` witness.  This packages
 the correspondence between source and model typehood; it does not construct
 the model witness from native metadata or close the frontend obligation.
+Together with `recursorWF_of_sourceTypehood`, the public
+`RegistrationEvidence.sourceTypehood_iff_recursorWF` theorem now packages the
+equivalence under constructor-environment WF, while keeping both witnesses
+explicit at the frontend boundary.
