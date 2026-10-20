@@ -129,6 +129,32 @@ theorem RecursorMinorOpening.applyNativePeeledArguments
   exact opening.applyNativeArguments (by simpa only [converted] using opening.peeledTranslated)
     nativeArguments minorTranslated minorTyped envWF modelWF
 
+/-- The composed field/IH receipt can be consumed directly by the peeled minor
+application once the actual minor-domain source correspondence is supplied. -/
+theorem RecursorMinorOpening.applyNativePeeledFieldAndIHArguments
+    {env : VEnv} {universes : List Name} {reader : Context} {virtual : VLCtx}
+    {parentName : Name} {constructor : Constructor} {domain : Expr}
+    {rawSemantic peeled : VExpr} {level : VLevel}
+    (opening : RecursorMinorOpening env universes reader virtual parentName constructor
+      domain rawSemantic peeled level)
+    {model : MLCtx} {fieldModel : MLCtx} {fields : Array Expr}
+    {ihSource : Expr} {replacements : List Expr} {terminal : Expr}
+    (nativeArguments : NativeTelescopeArguments env universes model
+      (fieldModel.lctx.mkForall fields ihSource) replacements terminal)
+    (sourceEq : peelTypeAnnotations domain = fieldModel.lctx.mkForall fields ihSource)
+    (minorTranslated : TrExprS env universes model.vlctx minor minorSemantic)
+    (minorTyped : env.HasType universes.length model.vlctx.toCtx minorSemantic peeled)
+    (envWF : env.WF) (modelWF : model.WF env universes)
+    (converted : model.vlctx = virtual) :
+    ∃ values terminalSemantic,
+      TypedParameterApplications env universes model peeled replacements values terminalSemantic ∧
+      TrExprS env universes model.vlctx (minor.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) ∧
+      env.HasType universes.length model.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) terminalSemantic := by
+  exact opening.applyNativePeeledArguments (sourceEq.symm ▸ nativeArguments)
+    minorTranslated minorTyped envWF modelWF converted
+
 /-- Native argument receipts transport across a context extension without
 changing the native telescope or replacement expressions. -/
 theorem NativeTelescopeArguments.weakFV
@@ -260,5 +286,34 @@ theorem MinorModelStep.nativeFieldArguments
     rw [finalEq]
     exact hypothesisExtension.trans (opening.extension hypothesisModel)
   exact ⟨fieldModel, fields, fieldArgs.weakFV envWF finalWF extension.weakening.toFVLift'⟩
+
+/-- Compose the checked constructor-field prefix with the actual native IH suffix.
+The suffix receipt carries the generated recursive replacements and their dependent
+translations; only its source/terminal shape is abstracted here. -/
+theorem MinorModelStep.nativeFieldAndIHArguments
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    (envWF : env.WF) {ihSource : Expr} (ihSourceClosed : ihSource.looseBVarRange' = 0)
+    {replacements : List Expr} {terminal : Expr}
+    (ihSuffix : NativeTelescopeArguments env universes final ihSource replacements terminal) :
+    ∃ (fieldModel : MLCtx) (fields : Array Expr),
+      NativeTelescopeArguments env universes final
+        (fieldModel.lctx.mkForall fields ihSource)
+        (fields.toList ++ replacements) terminal := by
+  obtain ⟨terminalExpr, finalIndex, fields, recursiveFields, fieldReader, hypotheses,
+    fieldTrace, hypothesisTrace, semantic, fieldModel, hypothesisModel, rawSemantic,
+    peeled, level, domainEq, endpoint, history, opening, finalEq, finalWF, finalNative⟩ := step
+  have fieldArgs := CtorFieldModelEndpoint.nativeFieldArguments endpoint envWF ihSourceClosed
+  obtain ⟨hypothesisIds, hypothesisExtension, _⟩ := history.extension
+  have extension : IndexMLCtxExtension fieldModel
+      (hypothesisIds ++ [⟨domainReader.ngen.curr⟩]) final := by
+    rw [finalEq]
+    exact hypothesisExtension.trans (opening.extension hypothesisModel)
+  have fieldArgs := fieldArgs.weakFV envWF finalWF extension.weakening.toFVLift'
+  exact ⟨fieldModel, fields, fieldArgs.append ihSuffix⟩
 
 end Lean4Lean.AddInductive

@@ -20,6 +20,7 @@ private def audit : MetaM Unit := do
   exactAxioms ``RecursorMinorOpening.applyArguments structural
   exactAxioms ``RecursorMinorOpening.applyNativeArguments structural
   exactAxioms ``RecursorMinorOpening.applyNativePeeledArguments structural
+  exactAxioms ``RecursorMinorOpening.applyNativePeeledFieldAndIHArguments structural
   exactAxioms ``NativeTelescopeArguments.weakFV structural
   let fieldStructural := structural ++ [``Expr.abstractRange_eq, ``Expr.abstract_eq,
     ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq]
@@ -36,8 +37,8 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 12 do throwError "rule body: expected twelve owned declarations, got {count}"
-  logInfo m!"rule body: generated IH openings, native field/IH receipts and typed minor application bridge audited ({count} declarations)"
+  unless count == 14 do throwError "rule body: expected fourteen owned declarations, got {count}"
+  logInfo m!"rule body: generated IH openings, native field/IH receipts and peeled minor application bridge audited ({count} declarations)"
 
 run_meta
   audit
@@ -47,6 +48,7 @@ run_meta
 #print axioms RecursorMinorOpening.applyArguments
 #print axioms RecursorMinorOpening.applyNativeArguments
 #print axioms RecursorMinorOpening.applyNativePeeledArguments
+#print axioms RecursorMinorOpening.applyNativePeeledFieldAndIHArguments
 #print axioms NativeTelescopeArguments.weakFV
 #print axioms CtorFieldModelEndpoint.nativeFieldArguments
 #print axioms IHModelStep.generatedNativeArgument
