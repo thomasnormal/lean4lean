@@ -161,6 +161,28 @@ theorem RecursorTypeModelReceipt.initialStoredWF_of_declaredRecursor
     (declareRecursors.metadataVal_type stats types elimLevel infos lparams reader.lctx
       isK isUnsafe parent rules) envWF initialWF empty
 
+theorem RecursorTypeModelReceipt.initialStoredWFOfDeclaredRecursors
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {infos : Array RecInfo}
+    {reader : Context} {initial final : MLCtx}
+    (receipts : ∀ parent, parent < types.size →
+      RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (constants : ∀ parent, parent < types.size → VConstVal)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule)
+    (native : ∀ parent (bound : parent < types.size),
+      TrConstVal .safe env
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+          isK isUnsafe parent rules)) (constants parent bound))
+    (levels : ∀ parent (_bound : parent < types.size),
+      (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+        isK isUnsafe parent rules).levelParams = universes)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (empty : initial.vlctx.toCtx = []) :
+    ∀ parent (bound : parent < types.size), (constants parent bound).toVConstant.WF env := by
+  intro parent bound
+  exact (receipts parent bound).initialStoredWF_of_declaredRecursor (constants parent bound)
+    lparams isK isUnsafe rules (native parent bound) (levels parent bound) envWF initialWF empty
+
 theorem RecursorTypeModelReceipt.rawTypehood
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
