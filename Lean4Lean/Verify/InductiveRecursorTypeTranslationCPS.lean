@@ -191,6 +191,23 @@ theorem RecursorInfoModelEndpoint.finalRawTypehood
       env.IsType universes.length final.vlctx.toCtx semantic := by
   exact (endpoint.recursorType envWF initialWF parameterFree parent support).finalRawTypehood
 
+theorem RecursorInfoModelEndpoint.finalStoredTypehood
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
+    {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
+    {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0)
+    (parent : Nat)
+    (support : RecursorRawTypeTranslationSupport env universes stats infos parent
+      finalReader.lctx initial) :
+    ∃ semantic,
+      TrExprS env universes final.vlctx
+        ((recursorRawType stats infos parent finalReader.lctx).inferImplicit 1000 false) semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic := by
+  exact (endpoint.recursorType envWF initialWF parameterFree parent support).finalStoredTypehood
+
 theorem mkRecInfos.getTranslatedRecursorTypes
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)
