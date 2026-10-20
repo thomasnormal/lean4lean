@@ -270,6 +270,16 @@ private theorem receiptExposesRawRecursorTypehoodAtTheInitialModelContext
       env.IsType universes.length initial.vlctx.toCtx semantic :=
   receipt.rawTypehood
 
+private theorem receiptExposesRawRecursorTypehoodAtTheFinalModelContext
+    (env : VEnv) (universes : List Name) (stats : InductiveStats) (infos : Array RecInfo)
+    (parent : Nat) (reader : Context) (initial final : MLCtx)
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final) :
+    ∃ semantic,
+      TrExprS env universes final.vlctx
+        (recursorRawType stats infos parent reader.lctx) semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic :=
+  receipt.finalRawTypehood
+
 private theorem receiptExposesStoredRecursorTypehoodAtTheFinalModelContext
     (env : VEnv) (universes : List Name) (stats : InductiveStats) (infos : Array RecInfo)
     (parent : Nat) (reader : Context) (initial final : MLCtx)
