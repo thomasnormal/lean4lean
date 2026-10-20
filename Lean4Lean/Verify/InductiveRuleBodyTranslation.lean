@@ -129,4 +129,18 @@ theorem RecursorMinorOpening.applyNativePeeledArguments
   exact opening.applyNativeArguments (by simpa only [converted] using opening.peeledTranslated)
     nativeArguments minorTranslated minorTyped envWF modelWF
 
+/-- Native argument receipts transport across a context extension without
+changing the native telescope or replacement expressions. -/
+theorem NativeTelescopeArguments.weakFV
+    (arguments : NativeTelescopeArguments env universes model source replacements terminal)
+    (envWF : env.WF) (targetWF : target.WF env universes)
+    (insertion : VLCtx.FVLift' model.vlctx target.vlctx 0 lift 0) :
+    NativeTelescopeArguments env universes target source replacements terminal := by
+  induction arguments with
+  | nil => exact .nil
+  | cons domainTranslated argumentTranslated argumentTyped remaining induction =>
+    exact .cons (domainTranslated.weakFV' envWF.ordered insertion targetWF.tr.wf)
+      (argumentTranslated.weakFV' envWF.ordered insertion targetWF.tr.wf)
+      (argumentTyped.weak' envWF.ordered insertion.toCtx) induction
+
 end Lean4Lean.AddInductive
