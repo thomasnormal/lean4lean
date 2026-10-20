@@ -1153,6 +1153,34 @@ theorem MinorModelStep.generatedConstructorRhsBody
   rw [applicationShape]
   exact applicationTranslated
 
+/-- Abstract a checked constructor-rule body through the caller's actual
+context extension.  The native RHS shape is an explicit premise, so this
+consumer can be instantiated with a `RecursorRuleRhsReceipt` without guessing
+which declarations belong to its lambda wrapper. -/
+theorem MinorModelStep.abstractConstructorRhsBody
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final base : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    {ids : List FVarId} (extension : IndexMLCtxExtension base ids final)
+    {minor : Expr} {fields : Array Expr} {replacements : List Expr} {rhs : Expr}
+    {bodySemantic bodyType : VExpr}
+    (rhsShape : rhs = final.lctx.mkLambda (ids.map Expr.fvar).toArray
+      (mkAppN (mkAppN minor fields) replacements.toArray))
+    (bodyTranslated : TrExprS env universes final.vlctx
+      (mkAppN (mkAppN minor fields) replacements.toArray) bodySemantic)
+    (bodyTyped : env.HasType universes.length final.vlctx.toCtx bodySemantic bodyType)
+    (envWF : env.WF) :
+    ∃ value valueType,
+      TrExprS env universes base.vlctx rhs value ∧
+      env.HasType universes.length base.vlctx.toCtx value valueType := by
+  obtain ⟨valueTranslated, valueTyped⟩ := extension.typedValueAbstraction envWF
+    step.context.1 bodyTranslated bodyTyped
+  refine ⟨_, _, ?_, valueTyped⟩
+  simpa only [rhsShape] using valueTranslated
+
 /-- A minor step transports the actual constructor-field prefix receipt from
 the field model through the IH and minor context extensions.  The native body
 is retained as an explicit expression for the subsequent generated IH values. -/
