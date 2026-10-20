@@ -1323,6 +1323,7 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate
 #print axioms registeredAppliedGetterKeepsReceiptsWithEnvironmentRegistration
 #print axioms registeredAppliedGetterExposesCombinedTypehoodWithEnvironmentRegistration
+#print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedTranslatedAppliedRecursorTypes
 #print axioms registeredScopedGetterPassesCombinedTypehoodToContinuation
 #print axioms runtimeFixtures
 
@@ -1379,6 +1380,7 @@ run_meta
       ``scopedAppliedGetterKeepsOneDerivedModelAndLeavesRulesAndRegistrationSeparate,
       ``registeredAppliedGetterKeepsReceiptsWithEnvironmentRegistration,
       ``registeredAppliedGetterExposesCombinedTypehoodWithEnvironmentRegistration,
+      ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedTranslatedAppliedRecursorTypes,
       ``registeredScopedGetterPassesCombinedTypehoodToContinuation] do
     auditDeclaration name inherited
   for name in [``Lean.Expr.instantiate1'_abstract1,
