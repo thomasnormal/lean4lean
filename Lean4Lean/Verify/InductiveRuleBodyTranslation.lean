@@ -74,4 +74,34 @@ theorem RecursorMinorOpening.applyArguments
         (ElimNestedInductive.applyParameterArguments minorSemantic argumentSemantics) resultSemantic := by
   exact arguments.apply envWF modelWF minorTranslated minorTyped
 
+/-- The native telescope proof used by a generated rule can be converted to the
+peeled minor application without hiding the individual argument checks. -/
+theorem RecursorMinorOpening.applyNativeArguments
+    {env : VEnv} {universes : List Name} {reader : Context} {virtual : VLCtx}
+    {parentName : Name} {constructor : Constructor} {domain : Expr}
+    {rawSemantic peeled : VExpr} {level : VLevel}
+    (_opening : RecursorMinorOpening env universes reader virtual parentName constructor
+      domain rawSemantic peeled level)
+    {model : MLCtx}
+    {minor : Expr} {minorSemantic : VExpr} {source : Expr} {replacements : List Expr}
+    {terminal : Expr}
+    (sourceTranslated : TrExprS env universes model.vlctx source peeled)
+    (nativeArguments : NativeTelescopeArguments env universes model source replacements terminal)
+    (minorTranslated : TrExprS env universes model.vlctx minor minorSemantic)
+    (minorTyped : env.HasType universes.length model.vlctx.toCtx minorSemantic peeled)
+    (envWF : env.WF) (modelWF : model.WF env universes) :
+    ∃ values terminalSemantic,
+      TypedParameterApplications env universes model peeled replacements values terminalSemantic ∧
+      TrExprS env universes model.vlctx (minor.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) ∧
+      env.HasType universes.length model.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) terminalSemantic := by
+  obtain ⟨values, terminalSemantic, typedArguments, terminalTranslated⟩ :=
+    nativeArguments.translated envWF modelWF sourceTranslated
+  obtain ⟨appliedTranslated, appliedTyped⟩ :=
+    (TypedParameterApplications.ofTypedArguments typedArguments).apply
+      envWF modelWF minorTranslated minorTyped
+  exact ⟨values, terminalSemantic, .ofTypedArguments typedArguments,
+    appliedTranslated, appliedTyped⟩
+
 end Lean4Lean.AddInductive
