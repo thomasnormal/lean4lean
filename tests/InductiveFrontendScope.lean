@@ -345,6 +345,7 @@ run_meta
   audit ``Lean4Lean.addDecl.safeNonNestedInductive true
   audit ``Lean4Lean.addDecl.safeNonNestedPreserves true
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedRecursorTypes true true
+  audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedInitialAndFinalTypehood true true
   let env := (← Lean.getEnv).toKernelEnv
   fixtures env
   failures env
