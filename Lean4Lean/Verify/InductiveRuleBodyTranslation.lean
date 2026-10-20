@@ -35,6 +35,18 @@ theorem RecursorRuleRhsScope.receipts
     RecursorRuleRhs stats motives minors ctx ctors rules initial := by
   exact List.Forall₂.imp (fun _ _ head => head.fvars.counts.receipt) hscope
 
+/- An indexed all-rule lookup can cross the same scoped-to-ordinary receipt
+   boundary without asking the caller to destruct the aligned list. -/
+theorem RecursorRuleRhsScope.atReceipt
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial index : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (ctor : Constructor) (hctor : ctors[index]? = some ctor) :
+    ∃ rule, rules[index]? = some rule ∧
+      RecursorRuleRhsReceipt stats motives minors ctx ctor minors[initial + index]! rule := by
+  obtain ⟨rule, hrule, hreceipt⟩ := hscope.at index ctor hctor
+  exact ⟨rule, hrule, hreceipt.fvars.counts.receipt⟩
+
 theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.resultKind
     (arguments : ElimNestedInductive.TypedParameterArguments environment universes model
       source replacements values result)
