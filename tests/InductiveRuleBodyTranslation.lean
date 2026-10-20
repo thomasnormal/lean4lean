@@ -26,6 +26,8 @@ private def audit : MetaM Unit := do
     ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq]
   exactAxioms ``CtorFieldModelEndpoint.nativeFieldArguments fieldStructural
   exactAxioms ``IHModelStep.generatedNativeArgument structural
+  let canonicalStructural := fieldStructural ++ [``Expr.eqv_eq, ``Level.instLawfulBEqLevel, ``Syntax.structEq_eq]
+  exactAxioms ``IHModelStep.generatedCanonicalRecursiveValue canonicalStructural
   exactAxioms ``IHModelStep.generatedNativeArgumentAtTarget structural
   exactAxioms ``GeneratedIHNativeSuffix.nativeArguments structural
   exactAxioms ``GeneratedIHNativeSuffix.nativeArgumentsAtTarget structural
@@ -41,7 +43,7 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 30 do throwError "rule body: expected thirty owned declarations, got {count}"
+  unless count == 31 do throwError "rule body: expected thirty owned declarations, got {count}"
   logInfo m!"rule body: generated IH openings, recursive native suffix, field/IH receipts and peeled minor application bridge audited ({count} declarations)"
 
 run_meta
@@ -56,6 +58,7 @@ run_meta
 #print axioms NativeTelescopeArguments.weakFV
 #print axioms CtorFieldModelEndpoint.nativeFieldArguments
 #print axioms IHModelStep.generatedNativeArgument
+#print axioms IHModelStep.generatedCanonicalRecursiveValue
 #print axioms IHModelStep.generatedNativeArgumentAtTarget
 #print axioms GeneratedIHNativeSuffix.nativeArguments
 #print axioms GeneratedIHNativeSuffix.nativeArgumentsAtTarget
