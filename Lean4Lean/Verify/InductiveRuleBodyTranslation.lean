@@ -143,4 +143,122 @@ theorem NativeTelescopeArguments.weakFV
       (argumentTranslated.weakFV' envWF.ordered insertion targetWF.tr.wf)
       (argumentTyped.weak' envWF.ordered insertion.toCtx) induction
 
+private theorem extensionCDecls {env : VEnv} {universes : List Name} {initial final : MLCtx}
+    {ids : List FVarId} (extension : IndexMLCtxExtension initial ids final)
+    (finalWF : final.WF env universes) :
+    SelectedCDeclBindings final.lctx ids := by
+  induction extension with
+  | nil => intro id member; simp at member
+  | @push ids model earlier id name domain semantic bi ih =>
+    have modelWF := finalWF.1
+    intro selected member
+    rw [List.mem_append] at member
+    rcases member with member | member
+    · obtain ⟨index, name', domain', bi', kind', lookup⟩ := ih finalWF.1 selected member
+      refine ⟨index, name', domain', bi', kind', ?_⟩
+      have selectedPresent : selected ∈ model.vlctx.fvars := by
+        have selectedPrefix := MLCtx.fvarRevList_prefix model (n := ids.length) (hn := earlier.bound)
+        rw [earlier.selection] at selectedPrefix
+        exact selectedPrefix.subset (List.mem_reverse.mpr member)
+      have newAbsent : id ∉ model.vlctx.fvars := by
+        have nodup := finalWF.fvars_nodup
+        intro member
+        exact (List.pairwise_cons.mp nodup).1 id member rfl
+      have hne : id ≠ selected := by
+        intro equality
+        subst id
+        exact newAbsent selectedPresent
+      change (model.lctx.fvarIdToDecl.insert id _).find? selected = _
+      rw [modelWF.tr.1.map_wf.find?_insert]
+      simp only [beq_iff_eq, hne, ↓reduceIte]
+      exact lookup
+    · simp only [List.mem_singleton] at member
+      subst selected
+      refine ⟨model.length, name, domain, bi, .default, ?_⟩
+      change (model.lctx.fvarIdToDecl.insert id _).find? id = _
+      rw [modelWF.tr.1.map_wf.find?_insert]
+      simp only [beq_self_eq_true, ↓reduceIte]
+      simp only [modelWF.decls_size]
+
+/-- The constructor-field trace supplies a checked native telescope for the
+field fvars.  The body remains explicit so later IH arguments can be appended
+after their actual dependent substitutions. -/
+theorem CtorFieldModelEndpoint.nativeFieldArguments
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {source terminal : Expr} {finalIndex : Nat} {fields recursiveFields : Array Expr}
+    {reader finalReader : Context}
+    {trace : RecursorCtorFieldTrace stats source 0 #[] #[] reader
+      terminal finalIndex fields recursiveFields finalReader}
+    {initial fieldModel : MLCtx} {semantic : VExpr}
+    (endpoint : CtorFieldModelEndpoint env universes trace initial fieldModel semantic)
+    (envWF : env.WF) {body : Expr} (bodyClosed : body.looseBVarRange' = 0) :
+    NativeTelescopeArguments env universes fieldModel
+      (fieldModel.lctx.mkForall fields body) fields.toList body := by
+  obtain ⟨_, _, _, modelWF, _, _, ids, extension, selected⟩ := endpoint
+  have distinct : ids.Nodup := by
+    have selected := modelWF.fvarRevList_nodup ids.length extension.bound
+    rw [extension.selection] at selected
+    exact List.nodup_reverse.mp selected
+  have bindings := extensionCDecls extension modelWF
+  have selected' : fields = (ids.map Expr.fvar).toArray := by
+    apply Array.toList_inj.mp
+    simpa only [List.toList_toArray] using selected
+  rw [selected']
+  exact NativeTelescopeArguments.selected envWF modelWF ids distinct bindings bodyClosed
+
+/-- A generated recursive value from one actual IH trace step is checked as an
+argument of that step's annotation-peeled native domain.  The receipt is then
+weakened through the step's real model extension; the remaining telescope is
+left explicit for the caller's dependent IH sequence. -/
+theorem IHModelStep.generatedNativeArgument
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}
+    {argument domain : Expr} {reader : Context}
+    {source : RecursorIHDomainSource stats infos argument reader domain}
+    {initial final : MLCtx} (step : IHModelStep env universes source initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    {nativeValue : Expr}
+    (generated : ∃ value domainSemantic,
+      TrExprS env universes initial.vlctx nativeValue value ∧
+      TrExprS env universes initial.vlctx domain domainSemantic ∧
+      env.HasType universes.length initial.vlctx.toCtx value domainSemantic)
+    {name : Name} {body : Expr} {binder : BinderInfo} {arguments : List Expr} {terminal : Expr}
+    (remaining : NativeTelescopeArguments env universes final
+      (body.instantiate1' nativeValue) arguments terminal) :
+    NativeTelescopeArguments env universes final
+      (.forallE name (peelTypeAnnotations domain) body binder)
+      (nativeValue :: arguments) terminal := by
+  obtain ⟨value, domainSemantic, valueTranslated, domainTranslated, generatedTyped⟩ := generated
+  have extension := IHModelStep.extension step
+  obtain ⟨_, _, _, _, _, _, _, _, _, _, ihOpening, _, finalWF, _⟩ := step
+  have valueTyped := ihOpening.acceptsValue envWF initialWF domainTranslated generatedTyped
+  have insertion := extension.weakening.toFVLift'
+  have domainTranslated := ihOpening.peeledTranslated.weakFV' envWF.ordered insertion finalWF.tr.wf
+  have valueTranslated := valueTranslated.weakFV' envWF.ordered insertion finalWF.tr.wf
+  have valueTyped := valueTyped.weak' envWF.ordered insertion.toCtx
+  exact .cons domainTranslated valueTranslated valueTyped remaining
+
+/-- A minor step transports the actual constructor-field prefix receipt from
+the field model through the IH and minor context extensions.  The native body
+is retained as an explicit expression for the subsequent generated IH values. -/
+theorem MinorModelStep.nativeFieldArguments
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final : MLCtx} (step : MinorModelStep env universes parentName source initial final)
+    (envWF : env.WF) {body : Expr} (bodyClosed : body.looseBVarRange' = 0) :
+    ∃ (fieldModel : MLCtx) (fields : Array Expr),
+      NativeTelescopeArguments env universes final
+        (fieldModel.lctx.mkForall fields body) fields.toList body := by
+  obtain ⟨terminal, finalIndex, fields, recursiveFields, fieldReader, hypotheses,
+    fieldTrace, hypothesisTrace, semantic, fieldModel, hypothesisModel, rawSemantic,
+    peeled, level, domainEq, endpoint, history, opening, finalEq, finalWF, finalNative⟩ := step
+  have fieldArgs := CtorFieldModelEndpoint.nativeFieldArguments endpoint envWF bodyClosed
+  obtain ⟨hypothesisIds, hypothesisExtension, _⟩ := history.extension
+  have extension : IndexMLCtxExtension fieldModel
+      (hypothesisIds ++ [⟨domainReader.ngen.curr⟩]) final := by
+    rw [finalEq]
+    exact hypothesisExtension.trans (opening.extension hypothesisModel)
+  exact ⟨fieldModel, fields, fieldArgs.weakFV envWF finalWF extension.weakening.toFVLift'⟩
+
 end Lean4Lean.AddInductive
