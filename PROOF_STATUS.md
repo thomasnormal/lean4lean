@@ -4,6 +4,51 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Correcting the environment for recursive rule translation — 2026-10-20
+
+`RegistrationEvidence.recursorRuleTranslation` now requires each rule body's
+`TrExprS` in the result environment after the whole recursor signature batch.
+The earlier constructor-stage premise was impossible for fresh recursive
+calls. Recursor type translation remains in the constructor environment;
+`RegistrationEntry.RuleSemantics` and its ordered consumer use the corrected
+rule-body stage. This changes the required environment, without deriving
+rule translation from constant insertion or claiming reduction semantics.
+
+`InductiveRuleTranslation.explicitConstPresent` proves that every explicit
+native constant occurrence in a translated expression is present in the
+model. Its absence corollary supplies the recursive-call obstruction.
+`recursorHeadAfterInsertion` supplies call-head translation from just a
+translated signature and its actual insertion, using the caller's universe
+mapping; it does not require any rule-body receipt or complete registration
+evidence.
+The registration API proves recursor absence before insertion, exact head
+translation with explicit level mapping/arity after the full batch, and
+the distinct before/after obligations for any recursive rule receipt.
+
+The regression identifies the exact fresh Nat-shaped generated successor
+RHS and both mutual-call directions, including a later recursor. Five full
+RHSs typecheck after registration; the three recursive RHSs fail on the
+missing recursor at the constructor stage, while the two base RHSs typecheck
+there. Formal controls retain the whole-batch and universe-arity boundaries.
+This is a verification-receipt defect recorded in `bugs-found.md`, with no
+executable change or demonstrated native kernel discrepancy.
+
+The new proofs inherit the existing `TrProj` admission through the definition
+of `TrExprS`, even when their proof only inspects constant occurrences. The
+fixture pins that dependency and its constructor/recursor manifests, audits
+every new module-owned declaration for direct admissions/new axioms and
+traverses dependencies to exclude known-false strengthening/confluence
+results. No new admission or native interface axiom is introduced. Full
+rule-body translation, type preservation, iota equations and complete
+inductive frontend soundness remain open.
+
+Focused builds, the new staging fixture, bridge/alignment consumers and full
+default builds pass on Lean 4.29.0 and the separate Lean 4.33.0-rc2 candidate.
+The new production module and theorem contracts agree across versions; the
+fixture pins each toolchain's measured foundation dependencies separately.
+Admission censuses remain main 116 / 18 / 120 and integration 121 / 22 / 125
+(matching lines / files / whole-word occurrences).
+
 ## Inserting generated recursor constants into the checker model — 2026-10-20
 
 `declareRecursors.refinesChecker` follows the actual native registration loop.

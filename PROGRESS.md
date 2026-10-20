@@ -68,6 +68,16 @@ semantics, consumer migration and `AddInduct` remain open.
 The expanded recursor regression and full default builds pass on Lean 4.29.0
 and the separate Lean 4.33.0-rc2 integration candidate.
 
+**Recursive rule translation stage:** rule-body receipts now use the model
+after all mutual recursor signatures are inserted. The old constructor-stage
+premise is impossible for fresh recursive calls; a formal constant-occurrence
+obstruction and exact generated single/mutual RHS controls establish why.
+Recursor types still translate before insertion. All five checked rule bodies
+typecheck after registration; recursive bodies fail on missing recursors
+before it. The audit retains the existing projection admission and excludes
+known-false strengthening/confluence dependencies. Full rule translation and
+iota soundness remain open.
+
 **Universal candidate reduction simulation:** every actual `NormalEq` in a
 well-formed environment with the quotient rule registered now simulates every
 candidate `Step`, and every finite candidate `Steps` path, using candidate

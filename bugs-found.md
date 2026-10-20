@@ -4,6 +4,52 @@
 * https://github.com/leanprover/lean4/issues/10475
 * https://github.com/leanprover/lean4/issues/10511
 
+## Recursor rule translation staged before fresh recursor signatures (2026-10-20)
+
+**Verification-receipt defect; no native kernel discrepancy demonstrated.**
+`NativeInductive.RegistrationEvidence.recursorRuleTranslation` previously
+required every recursor rule body to translate in `constructorEnv`, before
+the recursor signatures were inserted. That premise is impossible for a
+generated rule containing a fresh recursive recursor call.
+
+For a fresh Nat-shaped inductive `RuleStageNat`, the actual generated
+successor RHS has the form
+
+```text
+fun motive zero succ n => succ n (RuleStageNat.rec motive zero succ n)
+```
+
+including the actual dependent binder domains. The recursor name is absent
+in the constructor environment. `TrExprS.const` requires a model constant
+lookup, and `InductiveRuleTranslation.explicitConstPresent` propagates that
+requirement through the whole RHS. The regression fixes the full generated
+expression and proves it cannot translate in any model lacking that recursor.
+Mutual rules also call recursors inserted later in the batch, so staging
+translation immediately after the current signature is insufficient.
+
+The repaired receipt keeps recursor **type** translation in `constructorEnv`
+and checks rule-body translation in the **result environment after all
+recursor signatures**. It still requires an actual `TrExprS` proof for every
+rule; insertion does not derive that proof or install an iota equation.
+`RegistrationEntry.RuleSemantics` and its ordered consumer use that same stage.
+The new stage API proves all recursor head lookups there and their absence
+before insertion, preserving the actual universe-arity requirement. Its
+producer-facing head helper needs only the translated signature and insertion,
+without assuming rule-body translation or complete registration evidence;
+the caller's universe names are mapped explicitly.
+
+Run `lake env lean tests/InductiveRuleTranslation.lean`. On Lean 4.29.0 and
+4.33.0-rc2, the fixture checks the exact generated successor RHS and both
+mutual call directions. Five complete single/mutual RHSs typecheck after
+registration; three recursive RHSs fail on their missing recursor at the
+constructor stage, while two base RHSs typecheck there. Formal controls also
+reject translating a later mutual head after only the first insertion and
+reject the wrong universe arity. The proof audit retains the existing
+`TrProj` admission inherited by `TrExprS`'s constructors/recursor; it excludes
+direct new admissions, new axioms, native interface axioms and the known-false
+strengthening/confluence dependencies. Full rule translation and iota
+soundness remain open. No executable acceptance behavior was changed.
+
 ## False quotient confluence simulation specification (2026-10-15)
 
 **Verification-model defect, not a demonstrated native kernel soundness bug.**
