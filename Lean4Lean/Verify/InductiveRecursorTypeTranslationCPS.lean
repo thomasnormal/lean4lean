@@ -141,6 +141,26 @@ theorem RecursorTypeModelReceipt.initialStoredWF_of_recursorTranslation
   · rw [← levels, ← type]
     exact native.1.2.2
 
+theorem RecursorTypeModelReceipt.initialStoredWF_of_declaredRecursor
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {infos : Array RecInfo}
+    {parent : Nat} {reader : Context} {initial final : MLCtx}
+    (receipt : RecursorTypeModelReceipt env universes stats infos parent reader initial final)
+    (constant : VConstVal) (lparams : List Name) (isK isUnsafe : Bool)
+    (rules : List RecursorRule)
+    (native : TrConstVal .safe env
+      (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+        isK isUnsafe parent rules)) constant)
+    (levels : (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+      isK isUnsafe parent rules).levelParams = universes)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (empty : initial.vlctx.toCtx = []) : constant.toVConstant.WF env := by
+  apply receipt.initialStoredWF_of_recursorTranslation constant
+    (declareRecursors.metadataVal stats types elimLevel infos lparams reader.lctx
+      isK isUnsafe parent rules) native levels
+    (declareRecursors.metadataVal_type stats types elimLevel infos lparams reader.lctx
+      isK isUnsafe parent rules) envWF initialWF empty
+
 theorem RecursorTypeModelReceipt.rawTypehood
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {infos : Array RecInfo} {parent : Nat} {reader : Context} {initial final : MLCtx}
