@@ -4,6 +4,58 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Reconstructing the selected index signature — 2026-10-20
+
+`TranslatedRecursorIndexTrace.reconstructedModel` proves that the original
+semantic index signature is definitionally equal to the telescope obtained by
+closing the actual peeled index declarations around the normalized terminal.
+It composes the recorded body-normalization equalities and converts the binder
+contexts before Pi congruence. Annotation peeling therefore need not preserve
+literal native source domains. The theorem supplies the actual mixed-context
+extension, selected identifiers, final translation context and terminal typehood.
+
+`FamilyIndexInput.reconstruct` strictly translates this native reconstructed
+signature and converts the partial-family input to it. `mkForall_selected_domains`
+then derives native domain correspondence from common selected declarations,
+including after arbitrary changed dependent indices are substituted. The
+`UArgModelEndpoint.indexArgumentsFromSelectedTrace` consumer combines these
+steps with the actual field-terminal translation. It requires neither a complete
+native domain-correspondence receipt nor individual index typings. Its remaining
+inputs include the checked translated trace, the partial-family input produced
+by the earlier header stage, actual context insertion, selected binding agreement,
+index arity and closure of the target tail. It returns argument support with an
+existential terminal: formal canonical major/motive-tail alignment remains open.
+Producing these inputs for every generated rule, minor/RHS assembly, iota semantics,
+rejection-consumer migration and `AddInduct` remain open. General normalization
+support and the older checker's strengthening limitation are unchanged.
+
+The regression checks 384 actual source/recursor telescopes on each toolchain,
+using native-accepted dependent families and the actual `mkRecInfos` output. It
+measures 576 body-normalization changes and 384 peeled dependent domains, checks
+the reconstructed signature by genuine type checking/conversion, and substitutes
+changed carrier/element/equality-witness indices through both telescopes. The
+resulting target is the exact generated canonical major/motive tail. All 384
+malformed dependent applications are rejected. Coverage includes let/beta/metadata
+bodies, plain/annotated indices, registered/full environments, local/let contexts,
+both elimination universes, safety and primitive modes. These executable checks
+do not discharge the remaining formal canonical-tail obligation.
+
+All 27 owned declarations have no direct admissions or new axioms. Exact
+semantic manifests contain seven inherited axioms for reconstruction and eleven
+for converted-family/selected-trace consumers, identical on Lean 4.29 and 4.33.
+The latter include four existing native abstraction/binding interfaces.
+The native selected-domain theorem has seven logical/native-binding axioms and
+no `sorryAx`. Full theorem/opaque proof traversal reaches exactly five existing
+direct admission roots: `TrProj`, `TrProj.instN`, `TrProj.weak'`, `TrProj.uniq`,
+`TrProj.wf`. It excludes `NormalEq.parRed`, `NormalEq.parRedS`,
+`IsDefEq.church_rosser`, `IsDefEqU.quot_inj` and `IsDefEqU.weakN_iff`.
+Logical-only negative audits reject the semantic endpoints. Runtime helpers
+retain only logical dependencies. Both full default builds pass (466 main /
+471 integration jobs), with the new and existing family/changed-index fixtures.
+Source admission censuses remain 116 lines / 18 files / 120 occurrences on main
+and 121 / 22 / 125 on integration. Production proof files are byte-identical;
+the native fixture differs only in the `addDeclCore` argument count.
+
 ## Complete fixture proof-value extraction — 2026-10-20
 
 All fixture audit reads now explicitly request `allowOpaque := true` when
@@ -65,9 +117,11 @@ support, plus existing index annotation/normalization support.
 normalization support from the native sort-telescope shape and actual successful
 WHNF result. It retains index-annotation support. This is constructive head-shape
 reasoning; it does not call the older unrestricted checker normalizer theorem.
-Native source/target domain correspondence, canonical major/result shape,
-field-opening/shared-binding support, and producing all receipts for every rule
-remain open. Full minor/RHS production, iota semantics, rejection-consumer
+The later reconstruction result above derives native source/target domain
+correspondence from the actual translated trace and selected binding agreement.
+Canonical major/result shape, field-opening/shared-binding support, and producing
+all receipts for every rule remain open. Full minor/RHS production, iota semantics,
+rejection-consumer
 migration and `AddInduct` remain open.
 
 **Legacy trust boundary discovered during composition:**
