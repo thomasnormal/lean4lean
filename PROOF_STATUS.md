@@ -44,12 +44,20 @@ translation context. The helper's axiom audit retains the existing logical
 and projection-type admission dependencies; the registered bridge retains the
 existing audited checker/native interfaces. No new admission is added.
 
-On the published Lean 4.29.0 branch, the focused module build and
-`tests/InductiveRecursorApplicationTranslation.lean` pass, including runtime
-fixtures and transitive audits; the full default build passes all 458 jobs.
-The source census remains 116 matching lines / 18 files / 120 whole-word
-admission occurrences. The recent recursor changes still need replay and
-validation on the separate Lean 4.33.0-rc2 integration candidate.
+The full default builds pass on Lean 4.29.0 main and the separate Lean
+4.33.0-rc2 integration candidate `d58de636ddb5cd24d49ffd38dee1f92297c0ea18`.
+The latter also passes the recursor-type, recursor-application and
+frontend-scope fixtures, including the new model construction, rule-offset
+and closure controls and the transitive axiom audits. The two recursor proof
+modules and the application fixture are byte-identical across versions; the
+integration retains its additional frontend source guard, reserved
+nested-prefix controls and existing native-interface audit pins.
+
+This checkpoint replays main `c1a42668bfd941fc9973e5640b67e8fbfe74e9c2`
+on integration base `e0485ce42634eb2182a26658d03d6fb200694fdb`, above official
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`. Both source censuses are unchanged:
+main 116 matching lines / 18 files / 120 whole-word admission occurrences;
+integration 121 / 22 / 125. Default builds pass 458 main / 463 integration jobs.
 
 These are constant type receipts for actual native registrations. Model
 insertion, recursor rule semantics, the constructor-free consumer migration,
