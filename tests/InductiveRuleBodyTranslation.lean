@@ -26,6 +26,8 @@ private def audit : MetaM Unit := do
     ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq]
   exactAxioms ``CtorFieldModelEndpoint.nativeFieldArguments fieldStructural
   exactAxioms ``IHModelStep.generatedNativeArgument structural
+  exactAxioms ``IHModelStep.generatedNativeArgumentAtTarget structural
+  exactAxioms ``GeneratedIHNativeSuffix.nativeArguments structural
   exactAxioms ``MinorModelStep.nativeFieldArguments fieldStructural
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveRuleBodyTranslation
     | throwError "rule body: module absent"
@@ -37,8 +39,8 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 14 do throwError "rule body: expected fourteen owned declarations, got {count}"
-  logInfo m!"rule body: generated IH openings, native field/IH receipts and peeled minor application bridge audited ({count} declarations)"
+  unless count == 28 do throwError "rule body: expected twenty-eight owned declarations, got {count}"
+  logInfo m!"rule body: generated IH openings, recursive native suffix, field/IH receipts and peeled minor application bridge audited ({count} declarations)"
 
 run_meta
   audit
@@ -52,6 +54,8 @@ run_meta
 #print axioms NativeTelescopeArguments.weakFV
 #print axioms CtorFieldModelEndpoint.nativeFieldArguments
 #print axioms IHModelStep.generatedNativeArgument
+#print axioms IHModelStep.generatedNativeArgumentAtTarget
+#print axioms GeneratedIHNativeSuffix.nativeArguments
 #print axioms MinorModelStep.nativeFieldArguments
 
 end InductiveRuleBodyTranslationTest
