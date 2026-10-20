@@ -271,6 +271,34 @@ private theorem actualEndpointDerivesInitialStoredWFOfDeclaredRecursorFromSelect
   endpoint.initialStoredWF_of_declaredRecursorFromDomains envWF initialWF parameterFree parent bound
     source mapped support constant lparams isK isUnsafe rules native levels empty
 
+private theorem actualEndpointDerivesInitialStoredWFForDeclaredRecursorsFromSelectedDomains
+    (env : VEnv) (universes : List Name) (stats : InductiveStats) (types : Array InductiveType)
+    (elimLevel : Level) (reader finalReader : Context) (infos : Array RecInfo)
+    (initial final : MLCtx)
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0)
+    (sources : ∀ parent, parent < types.size →
+      RecursorInfoIndexSource stats types elimLevel parent reader infos[parent]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (supports : ∀ parent, parent < types.size →
+      RecursorSelectedDomainSupport env universes stats infos parent finalReader.lctx initial)
+    (constants : ∀ parent, parent < types.size → VConstVal)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule)
+    (native : ∀ parent (bound : parent < types.size),
+      TrConstVal .safe env
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams finalReader.lctx
+          isK isUnsafe parent rules)) (constants parent bound))
+    (levels : ∀ parent (_bound : parent < types.size),
+      (declareRecursors.metadataVal stats types elimLevel infos lparams finalReader.lctx
+        isK isUnsafe parent rules).levelParams = universes)
+    (empty : initial.vlctx.toCtx = []) :
+    ∀ parent (bound : parent < types.size), (constants parent bound).toVConstant.WF env :=
+  endpoint.initialStoredWFOfDeclaredRecursorsFromDomains envWF initialWF parameterFree sources mapped
+    supports constants lparams isK isUnsafe rules native levels empty
+
 private theorem actualEndpointExposesAllFinalTypehoodFromSelectedDomains
     (env : VEnv) (universes : List Name) (stats : InductiveStats) (types : Array InductiveType)
     (elimLevel : Level) (reader finalReader : Context) (infos : Array RecInfo)
@@ -1353,6 +1381,7 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_recursorTranslation
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_declaredRecursor
 #print axioms Lean4Lean.AddInductive.RecursorInfoModelEndpoint.initialStoredWF_of_declaredRecursorFromDomains
+#print axioms Lean4Lean.AddInductive.RecursorInfoModelEndpoint.initialStoredWFOfDeclaredRecursorsFromDomains
 #print axioms runtimeFixtures
 
 run_meta
@@ -1416,6 +1445,7 @@ run_meta
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_declaredRecursor] do
     auditDeclaration name inherited
   auditDeclaration ``actualEndpointDerivesInitialStoredWFOfDeclaredRecursorFromSelectedDomains inherited
+  auditDeclaration ``actualEndpointDerivesInitialStoredWFForDeclaredRecursorsFromSelectedDomains inherited
   for name in [``Lean.Expr.instantiate1'_abstract1,
       ``Lean4Lean.AddInductive.mkForall_selected_cons] do
     auditDeclaration name native

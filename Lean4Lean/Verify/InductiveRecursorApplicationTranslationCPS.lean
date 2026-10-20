@@ -190,6 +190,36 @@ theorem RecursorInfoModelEndpoint.initialStoredWF_of_declaredRecursorFromDomains
     |>.initialStoredWF_of_declaredRecursor constant lparams isK isUnsafe rules native levels
       envWF initialWF empty
 
+theorem RecursorInfoModelEndpoint.initialStoredWFOfDeclaredRecursorsFromDomains
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
+    {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
+    {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0)
+    (sources : ∀ parent, parent < types.size →
+      RecursorInfoIndexSource stats types elimLevel parent reader infos[parent]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (supports : ∀ parent, parent < types.size →
+      RecursorSelectedDomainSupport env universes stats infos parent finalReader.lctx initial)
+    (constants : ∀ parent, parent < types.size → VConstVal)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule)
+    (native : ∀ parent (bound : parent < types.size),
+      TrConstVal .safe env
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams finalReader.lctx
+          isK isUnsafe parent rules)) (constants parent bound))
+    (levels : ∀ parent (_bound : parent < types.size),
+      (declareRecursors.metadataVal stats types elimLevel infos lparams finalReader.lctx
+        isK isUnsafe parent rules).levelParams = universes)
+    (empty : initial.vlctx.toCtx = []) :
+    ∀ parent (bound : parent < types.size), (constants parent bound).toVConstant.WF env := by
+  intro parent bound
+  exact endpoint.initialStoredWF_of_declaredRecursorFromDomains envWF initialWF parameterFree parent
+    bound (sources parent bound) mapped (supports parent bound) (constants parent bound) lparams
+    isK isUnsafe rules (native parent bound) (levels parent bound) empty
+
 theorem RecursorInfoModelEndpoint.finalTypehoodFromDomains
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
     {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
