@@ -41,6 +41,7 @@ private def audit : MetaM Unit := do
   exactAxioms ``MinorModelStep.consumeGeneratedFieldAndIHArguments structural
   exactAxioms ``MinorModelStep.generatedConstructorRhsBody canonicalStructural
   exactAxioms ``MinorModelStep.abstractConstructorRhsBody fieldStructural
+  exactAxioms ``MinorModelStep.abstractConstructorRuleRhs fieldStructural
   let some moduleIndex := environment.getModuleIdx? `Lean4Lean.Verify.InductiveRuleBodyTranslation
     | throwError "rule body: module absent"
   let mut count := 0
@@ -51,8 +52,8 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 94 do throwError "rule body: expected ninety-four owned declarations, got {count}"
-  logInfo m!"rule body: generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda bridges audited ({count} declarations)"
+  unless count == 95 do throwError "rule body: expected ninety-five owned declarations, got {count}"
+  logInfo m!"rule body: generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule bridges audited ({count} declarations)"
 
 run_meta
   audit
@@ -79,5 +80,6 @@ run_meta
 #print axioms MinorModelStep.consumeGeneratedFieldAndIHArguments
 #print axioms MinorModelStep.generatedConstructorRhsBody
 #print axioms MinorModelStep.abstractConstructorRhsBody
+#print axioms MinorModelStep.abstractConstructorRuleRhs
 
 end InductiveRuleBodyTranslationTest
