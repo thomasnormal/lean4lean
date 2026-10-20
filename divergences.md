@@ -45,6 +45,13 @@ The registration receipt therefore does not claim complete recursor type checkin
 obligations still requires the recursor/frontend bridge and the coordinated
 migration of the constructor-free rejection consumers described above.
 
+The alignment layer also exposes the converse transport lemma
+`RegistrationEvidence.sourceTypehood_of_recursorWF`: an existing model
+`VConstant.WF` witness, together with the stored recursor translation receipt,
+recovers the source type's translation and `IsType` witness.  This packages
+the correspondence between source and model typehood; it does not construct
+the model witness from native metadata or close the frontend obligation.
+
 # Divergences from the Lean Kernel
 
 This is a list of places where lean4lean deliberately has different behavior from the kernel. Unless specified here, any divergence between lean4lean and [lean4](https://github.com/leanprover/lean4/tree/master/src/kernel) is a bug.
