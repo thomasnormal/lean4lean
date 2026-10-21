@@ -472,9 +472,7 @@ theorem RegistrationEvidence.orderedRuleResultsOf
     {Result : RecursorEntry → RecursorRule → Prop}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (ruleResults : ∀ (entry : RecursorEntry), entry ∈ evidence.recursors →
-      ∀ rule, rule ∈ entry.info.rules →
-        (∃ semantic, TrExprS result entry.info.levelParams [] rule.rhs semantic) ∧
-          Result entry rule) :
+      ∀ rule, rule ∈ entry.info.rules → Result entry rule) :
     ∀ entry ∈ evidence.orderedEntries,
       entry.RuleSemantics result ∧ match entry with
         | .header _ | .constructor _ => True
@@ -490,9 +488,9 @@ theorem RegistrationEvidence.orderedRuleResultsOf
   · rcases List.mem_map.mp hrecursors with ⟨recursor, hmem, rfl⟩
     refine ⟨?_, ?_⟩
     · intro rule hrule
-      exact (ruleResults recursor hmem rule hrule).1
+      exact evidence.recursorRuleTranslation recursor hmem rule hrule
     · intro rule hrule
-      exact (ruleResults recursor hmem rule hrule).2
+      exact ruleResults recursor hmem rule hrule
 
 theorem RegistrationEvidence.orderedRuleSemantics
     (evidence : RegistrationEvidence constants env decl resultConstants result) :

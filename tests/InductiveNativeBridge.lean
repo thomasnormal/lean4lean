@@ -132,8 +132,7 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (ruleResults : ∀ (entry : RecursorEntry), entry ∈ evidence.recursors →
-      ∀ rule, rule ∈ entry.info.rules →
-        (∃ semantic, TrExprS result entry.info.levelParams [] rule.rhs semantic) ∧ True) :
+      ∀ rule, rule ∈ entry.info.rules → True) :
     ∀ entry ∈ evidence.orderedEntries,
       entry.RuleSemantics result ∧ match entry with
         | .header _ | .constructor _ => True
