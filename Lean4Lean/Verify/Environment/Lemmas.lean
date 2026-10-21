@@ -542,6 +542,17 @@ theorem TrEnv.rejectsInductiveFamilies (valid : TrEnv safety native environment)
   recursorNotInModel := valid.recursorNotInModel
   constructorNotInModel := valid.constructorNotInModel
 
+theorem AddInductEvidence.sf_mono (hsf : safety ≤ safety')
+    (H : AddInductEvidence safety' m₁ env₁ decl m₂ env₂) :
+    AddInductEvidence safety m₁ env₁ decl m₂ env₂ := by
+  cases H with
+  | intro headers constructors headerEnv hheaders hconstructors headerAdd constructorAdd
+      headerNodup constructorNodup headerFresh constructorFresh mapEq =>
+    refine .intro headers constructors headerEnv ?_ ?_ headerAdd constructorAdd
+      headerNodup constructorNodup headerFresh constructorFresh mapEq
+    · exact List.Forall₂.imp (fun _ _ h => ⟨h.1, h.2.sf_mono hsf⟩) hheaders
+    · exact List.Forall₂.imp (fun _ _ h => ⟨h.1, h.2.sf_mono hsf⟩) hconstructors
+
 theorem TrEnv'.quotientObjects (valid : TrEnv' safety constants true environment) :
     environment.HasObjects [.defeq quotDefEq, .const ``Quot.ind quotIndConst,
       .const ``Quot.lift quotLiftConst, .const ``Quot.mk quotMkConst, .const ``Quot quotConst] := by

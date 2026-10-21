@@ -730,6 +730,13 @@ theorem RegistrationEvidence.to_addInductEvidence
   · simpa [headers, List.map_map, Function.comp_def] using hheaderNodup
   · simpa [constructors, List.map_map, Function.comp_def] using hconstructorNodup
 
+theorem RegistrationEvidence.to_addInductEvidence_at
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (safety : DefinitionSafety) (hconstants : constants.WF) :
+    AddInductEvidence safety constants env decl evidence.constructorConstants
+      evidence.constructorEnv :=
+  (evidence.to_addInductEvidence hconstants).sf_mono DefinitionSafety.le_safe
+
 theorem RegistrationEvidence.to_addInduct
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     env.addInductWithRecursors decl

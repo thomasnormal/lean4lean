@@ -24,6 +24,13 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (safety : DefinitionSafety) (hconstants : constants.WF) :
+    AddInductEvidence safety constants env decl evidence.constructorConstants
+      evidence.constructorEnv :=
+  evidence.to_addInductEvidence_at safety hconstants
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF) : evidence.headerEnv.WF :=
   evidence.headerEnvWF henv
 
