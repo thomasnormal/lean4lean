@@ -260,12 +260,6 @@ theorem InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultCPS
             (finalInfos.flatMap (·.minors)) finalReader ctor minor rule →
         GeneratedRecursorRuleResult venv universes stats
           (finalInfos.map (·.motive)) (finalInfos.flatMap (·.minors)) finalReader ctor minor rule)
-    (ruleSemantics : ∀ (registeredEnv : Kernel.Environment) (finalInfos : Array RecInfo)
-      (finalReader : Context),
-      LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
-      ∀ parent, parent < types.size → ∃ recursor,
-        registeredEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
-        ∀ rule ∈ recursor.rules, ∃ semantic, TrExprS venv universes [] rule.rhs semantic)
     (nextWF : ∀ registeredEnv finalInfos finalReader finalModel,
       ({ root with env := constructors } : Context).RecursorScopeFrame finalReader →
       RecursorInfoCounts types finalInfos →
@@ -308,7 +302,7 @@ theorem InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultCPS
       scopedReceipt ordinaryReceipt =>
       generatedHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
         scopedReceipt ordinaryReceipt)
-    ruleSemantics nextWF
+    nextWF
 
 theorem InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedInitialAndFinalTypehood
     {ResultType : Type} {venv : VEnv} {universes : List Name}

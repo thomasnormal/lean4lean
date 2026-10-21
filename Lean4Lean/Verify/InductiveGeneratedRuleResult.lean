@@ -124,6 +124,43 @@ theorem LocalRecursorRuleRhsScope.ruleSemantics
   obtain ⟨semantic, translated⟩ := head parent recursor index ctor rule minor hreceipt ordinaryReceipt
   exact ⟨rule, minor, hrule, hminor, hreceipt, ordinaryReceipt, semantic, translated⟩
 
+/- Indexed receipts cover every stored rule only when the rule list has the
+   exact constructor count.  Registration supplies this additional invariant;
+   the local scope alone deliberately does not assert it. -/
+theorem LocalRecursorRuleRhsScope.completeRuleSemantics
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    {env : VEnv} {universes : List Name}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (ordered : OrderedRecursorRules types kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat) (ctor : Constructor)
+      (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        ∃ semantic, TrExprS env universes [] rule.rhs semantic) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ rule ∈ recursor.rules, ∃ semantic, TrExprS env universes [] rule.rhs semantic := by
+  intro parent bound
+  obtain ⟨recursor, lookup, entries⟩ := hscope parent bound
+  obtain ⟨stored, storedLookup, _, count⟩ := ordered parent bound
+  have same : recursor = stored := ConstantInfo.recInfo.inj (Option.some.inj (lookup.symm.trans storedLookup))
+  subst stored
+  refine ⟨recursor, lookup, ?_⟩
+  intro rule member
+  obtain ⟨index, indexBound, atIndex⟩ := List.mem_iff_getElem.mp member
+  have ctorBound : index < types[parent]!.ctors.length := by omega
+  have ctorLookup : types[parent]!.ctors[index]? = some types[parent]!.ctors[index] :=
+    List.getElem?_eq_getElem ctorBound
+  obtain ⟨matched, minor, ruleLookup, _, receipt⟩ := entries index _ ctorLookup
+  have sameRule : matched = rule := by
+    exact Option.some.inj (ruleLookup.symm.trans
+      ((List.getElem?_eq_getElem indexBound).trans (congrArg some atIndex)))
+  subst matched
+  exact head parent recursor index _ rule minor receipt receipt.fvars.counts.receipt
+
 /-- Project every scoped constructor rule in one aligned rule list to the
    ordinary receipt relation.  The constructor/index alignment and stored rule
    order are inherited directly from `List.Forall₂`; no rule is reconstructed

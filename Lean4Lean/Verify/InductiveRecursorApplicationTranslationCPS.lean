@@ -1221,12 +1221,6 @@ theorem mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResults
         RecursorRuleRhsReceipt stats (finalInfos.map (·.motive))
             (finalInfos.flatMap (·.minors)) finalReader ctor minor rule →
         RuleResult finalInfos finalReader ctor minor rule)
-    (ruleSemantics : ∀ (registeredEnv : Kernel.Environment) (finalInfos : Array RecInfo)
-      (finalReader : Context),
-      LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
-      ∀ parent, parent < types.size → ∃ recursor,
-        registeredEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
-        ∀ rule ∈ recursor.rules, ∃ semantic, TrExprS env universes [] rule.rhs semantic)
     (nextWF : ∀ registeredEnv finalInfos finalReader finalModel,
       reader.RecursorScopeFrame finalReader → RecursorInfoCounts types finalInfos →
       RecursorInfoModelEndpoint env universes stats types elimLevel reader finalInfos finalReader
@@ -1273,9 +1267,12 @@ theorem mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResults
         hreceipt hreceipt.fvars.counts.receipt,
       resultHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
         hreceipt hreceipt.fvars.counts.receipt⟩
+  have completeRuleSemantics := rhsScope.completeRuleSemantics metadata.metadata.orderedRules
+    (fun parent recursor index ctor rule minor scopedReceipt ordinaryReceipt =>
+      closedHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
+        scopedReceipt ordinaryReceipt)
   exact nextWF registeredEnv finalInfos finalReader finalModel frame counts endpoint receipts
-    registeredWF retained metadata rhsScope results
-    (ruleSemantics registeredEnv finalInfos finalReader rhsScope)
+    registeredWF retained metadata rhsScope results completeRuleSemantics
 
 /- Instantiate the registration CPS boundary with the named generated
    constructor-RHS package.  The complete closed rule-body premise remains a
@@ -1329,12 +1326,6 @@ theorem mkRecInfos.registeredScopedGeneratedRuleResultCPS
             (finalInfos.flatMap (·.minors)) finalReader ctor minor rule →
         GeneratedRecursorRuleResult env universes stats
           (finalInfos.map (·.motive)) (finalInfos.flatMap (·.minors)) finalReader ctor minor rule)
-    (ruleSemantics : ∀ (registeredEnv : Kernel.Environment) (finalInfos : Array RecInfo)
-      (finalReader : Context),
-      LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
-      ∀ parent, parent < types.size → ∃ recursor,
-        registeredEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
-        ∀ rule ∈ recursor.rules, ∃ semantic, TrExprS env universes [] rule.rhs semantic)
     (nextWF : ∀ registeredEnv finalInfos finalReader finalModel,
       reader.RecursorScopeFrame finalReader → RecursorInfoCounts types finalInfos →
       RecursorInfoModelEndpoint env universes stats types elimLevel reader finalInfos finalReader
@@ -1376,7 +1367,6 @@ theorem mkRecInfos.registeredScopedGeneratedRuleResultCPS
       scopedReceipt ordinaryReceipt =>
       generatedHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
         scopedReceipt ordinaryReceipt)
-    ruleSemantics
     (fun registeredEnv finalInfos finalReader finalModel frame counts endpoint receipts
       registeredWF retained metadata rhsScope _results completeRuleSemantics =>
       nextWF registeredEnv finalInfos finalReader finalModel frame counts endpoint receipts
