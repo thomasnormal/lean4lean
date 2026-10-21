@@ -15,6 +15,13 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
   evidence.to_addInduct
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) :
+    AddInductEvidence .safe constants env decl evidence.constructorConstants
+      evidence.constructorEnv :=
+  evidence.to_addInductEvidence hconstants
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     resultConstants = insertRecursors (insertConstructors (insertHeaders constants evidence.headers)
       evidence.constructors) evidence.recursors :=
