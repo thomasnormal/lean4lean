@@ -1552,6 +1552,8 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms registeredAppliedGetterKeepsReceiptsWithEnvironmentRegistration
 #print axioms registeredAppliedGetterExposesCombinedTypehoodWithEnvironmentRegistration
 #print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedTranslatedAppliedRecursorTypes
+#print axioms Lean4Lean.AddInductive.RecursorRuleRhsScope.impRegistrationRuleSemantics
+#print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResults
 #print axioms registeredScopedGetterPassesCombinedTypehoodToContinuation
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_closedTranslation
@@ -1627,6 +1629,7 @@ run_meta
       ``registeredAppliedGetterKeepsReceiptsWithEnvironmentRegistration,
       ``registeredAppliedGetterExposesCombinedTypehoodWithEnvironmentRegistration,
       ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedTranslatedAppliedRecursorTypes,
+      ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResults,
       ``registeredScopedGetterPassesCombinedTypehoodToContinuation,
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF,
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_closedTranslation,
@@ -1634,6 +1637,8 @@ run_meta
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_declaredRecursor,
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWFOfDeclaredRecursors] do
     auditDeclaration name inherited
+  auditDeclaration ``Lean4Lean.AddInductive.RecursorRuleRhsScope.impRegistrationRuleSemantics
+    (logical ++ [``sorryAx])
   auditDeclaration ``actualEndpointDerivesInitialStoredWFOfDeclaredRecursorFromSelectedDomains inherited
   auditDeclaration ``actualEndpointDerivesInitialStoredWFForDeclaredRecursorsFromSelectedDomains inherited
   auditDeclaration ``actualGetterExposesInitialStoredWFOfDeclaredRecursors inherited
