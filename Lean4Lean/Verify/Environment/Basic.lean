@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.LocalContext
 import Lean4Lean.Theory.Typing.EnvLemmas
+import Lean4Lean.Std.SMap
 
 namespace Lean4Lean
 open Lean hiding Environment Exception
@@ -100,11 +101,110 @@ nonrec theorem AddQuot.to_addQuot (H : AddQuot m₁ m₂ env₁ env₂) : env₁
 nonrec theorem AddQuot.le (H : AddQuot m₁ m₂ env₁ env₂) : env₁ ≤ env₂ :=
   open AddQuot1 in (le <| le <| le <| le fun _ _ h => h.2 ▸ VEnv.addDefEq_le) _ _ H
 
-/-- This definition is essentially a `sorry`: it should relate `addInductive`'s
-effect on the constant map to `VEnv.addInduct` (which is itself a `sorry`,
-see `Lean4Lean.Theory.Inductive`), but it currently has no constructors, so the
-`TrEnv'.induct` case below can never fire and environments containing inductives
-are outside the verified `TrEnv` relation. -/
+/-! ### Constructive evidence for the shared inductive stages
+
+The current `TrEnv` relation still uses the legacy admission boundary below.  This
+separate witness records the constructive header and constructor stages so frontend
+bridges can consume them while the family-lookup consumers are migrated.
+ -/
+
+def insertConsts (C : ConstMap) (cis : List ConstantInfo) : ConstMap :=
+  cis.foldl (fun C ci => C.insert ci.name ci) C
+
+inductive AddInductEvidence (safety : DefinitionSafety) (m₁ : ConstMap) (env₁ : VEnv)
+    (decl : VInductDecl) (m₂ : ConstMap) (env₂ : VEnv) : Prop where
+  | intro (headers : List InductiveVal) (constructors : List ConstructorVal)
+    (headerEnv : VEnv) :
+    List.Forall₂
+      (fun info header => info.name = header.name ∧
+        TrConstant safety env₁ (.inductInfo info) header.toVConstant)
+      headers decl.types →
+    List.Forall₂
+      (fun info ctor => info.name = ctor.name ∧
+        TrConstant safety headerEnv (.ctorInfo info) ctor.toVConstant)
+      constructors decl.constructorHeaders →
+    env₁.addInductHeaders decl.types = some headerEnv →
+    headerEnv.addConstructorHeaders decl.constructorHeaders = some env₂ →
+    (headers.map (·.name)).Nodup →
+    (constructors.map (·.name)).Nodup →
+    (∀ info ∈ headers, m₁.find? info.name = none) →
+    (∀ info ∈ constructors,
+      (insertConsts m₁ (headers.map (.inductInfo ·))).find? info.name = none) →
+    m₂ = insertConsts m₁
+      (headers.map (.inductInfo ·) ++ constructors.map (.ctorInfo ·)) →
+    AddInductEvidence safety m₁ env₁ decl m₂ env₂
+
+namespace AddInductEvidence
+
+variable {safety : DefinitionSafety} {m₁ m₂ : ConstMap} {env₁ env₂ : VEnv}
+  {decl : VInductDecl}
+
+theorem to_addInduct
+    (H : AddInductEvidence safety m₁ env₁ decl m₂ env₂) :
+    env₁.addInduct decl = some env₂ := by
+  cases H with
+  | intro _ _ _ _ _ headerAdd constructorAdd _ _ _ _ _ =>
+    unfold VEnv.addInduct
+    rw [headerAdd]
+    exact constructorAdd
+
+theorem le (H : AddInductEvidence safety m₁ env₁ decl m₂ env₂) : env₁ ≤ env₂ :=
+  VEnv.addInduct.le H.to_addInduct
+
+
+end AddInductEvidence
+
+theorem insertConsts_append (C : ConstMap) (first second : List ConstantInfo) :
+    insertConsts C (first ++ second) = insertConsts (insertConsts C first) second := by
+  induction first generalizing C with
+  | nil => rfl
+  | cons ci first ih =>
+    simp only [insertConsts, List.foldl_cons, List.cons_append]
+    exact ih (C.insert ci.name ci)
+
+theorem insertConsts_wf : ∀ {cis : List ConstantInfo} {C : ConstMap}, C.WF →
+    (∀ ci ∈ cis, C.find? ci.name = none) → (cis.map (·.name)).Nodup →
+    (insertConsts C cis).WF
+  | [], _, hC, _, _ => hC
+  | ci :: cis, C, hC, hfr, hnd => by
+    rw [show insertConsts C (ci :: cis) = insertConsts (C.insert ci.name ci) cis by rfl]
+    have hnd' := List.nodup_cons.mp hnd
+    apply insertConsts_wf (hC.insert _ _ (hfr ci (.head _)))
+    · intro d hd
+      rw [hC.find?_insert]
+      split
+      · rename_i equal
+        simp only [beq_iff_eq] at equal
+        exact False.elim (hnd'.1 (by simpa [equal] using List.mem_map.mpr ⟨d, hd, rfl⟩))
+      · exact hfr d (.tail _ hd)
+    · exact hnd'.2
+
+theorem insertConsts_find? : ∀ {cis : List ConstantInfo} {C : ConstMap} {name ci}, C.WF →
+    (∀ d ∈ cis, C.find? d.name = none) → (cis.map (·.name)).Nodup →
+    (insertConsts C cis).find? name = some ci →
+    C.find? name = some ci ∨ ∃ d ∈ cis, d.name = name ∧ d = ci
+  | [], _, _, _, _, _, _, h => .inl h
+  | d :: ds, C, name, ci, hC, hfr, hnd, h => by
+    have hnd' := List.nodup_cons.mp hnd
+    have hfr' : ∀ e ∈ ds, (C.insert d.name d).find? e.name = none := by
+      intro e he
+      rw [hC.find?_insert]
+      split
+      · rename_i equal
+        simp only [beq_iff_eq] at equal
+        exact False.elim (hnd'.1 (by simpa [equal] using List.mem_map.mpr ⟨e, he, rfl⟩))
+      · exact hfr e (.tail _ he)
+    rcases insertConsts_find? (hC.insert _ _ (hfr _ (.head _))) hfr' hnd'.2 h with h | ⟨e, he, hn, heq⟩
+    · rw [hC.find?_insert] at h
+      split at h
+      · rename_i equal
+        simp only [beq_iff_eq] at equal
+        exact .inr ⟨d, .head _, equal, by cases h; rfl⟩
+      · exact .inl h
+    · exact .inr ⟨e, .tail _ he, hn, heq⟩
+
+
+/-- The legacy inductive admission boundary remains explicit until lookup consumers migrate. -/
 inductive AddInduct (m₁ : ConstMap) (env₁ : VEnv) (decl : VInductDecl)
     (m₂ : ConstMap) (env₂ : VEnv) : Prop
   -- TODO
