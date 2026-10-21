@@ -230,6 +230,17 @@ abbrev GeneratedConstructorRuleRhsResult
     env.SortArity universes.length target.vlctx.toCtx count
       (resultType.lift' insertionLift)
 
+/- Named relation for callers that feed the concrete generated package into
+   the generic registration CPS theorem. -/
+abbrev GeneratedRecursorRuleResult
+    (env : VEnv) (universes : List Name) (stats : InductiveStats)
+    (infos : Array RecInfo) (ctx : Context) (constructor : Constructor)
+    (minor : Expr) (rule : RecursorRule) : Prop :=
+  GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+    (stats := stats) (motives := infos.map (·.motive))
+    (minors := infos.flatMap (·.minors)) (ctx := ctx)
+    (constructor := constructor) (minor := minor) (rule := rule)
+
 /- Lift the explicit generated constructor-RHS package through every aligned
    rule.  The callback remains the producer/consumer boundary: it supplies
    the minor step, opening, extension, and context premises needed to obtain
