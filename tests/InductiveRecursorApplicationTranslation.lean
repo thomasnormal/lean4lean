@@ -2,7 +2,6 @@ import Lean4Lean.Verify.InductiveRecursorTypeTranslationCPS
 import Lean4Lean.Verify.InductiveRecursorApplicationTranslation
 import Lean4Lean.Verify.InductiveRecursorApplicationNative
 import Lean4Lean.Verify.InductiveRecursorApplicationTranslationCPS
-import Lean4Lean.Verify.InductiveRuleBodyTranslation
 import Lean4Lean.Verify.InductiveBinderTyping
 import Lean4Lean.Verify.RecursorHeaders
 import Lean.Util.CollectAxioms
@@ -1121,110 +1120,6 @@ private theorem registeredScopedGetterPassesCombinedTypehoodToContinuation
     lparams isK isUnsafe rules reader next post envWF constants definitions fieldOnly model modelWF native
     reserved nativeEnvWF mapped parentSupport minorSupport domainSupport nextWF
 
-/- Instantiate the registration CPS boundary with the named generated
-   constructor-RHS package.  The complete closed rule-body premise remains a
-   separate callback, while the result relation carried into the continuation
-   is the concrete generated package rather than an abstract placeholder. -/
-private theorem registeredScopedGeneratedRuleResultCPS
-    {ResultType : Type} {env : VEnv} {universes : List Name}
-    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
-    (lparams : List Name) (isK isUnsafe : Bool) (reader : Context)
-    (next : Kernel.Environment → Array RecInfo → M ResultType) (post : ResultType → Prop)
-    (envWF : env.WF) (constants : CanonicalAnnotationConstants env)
-    (definitions : CanonicalAnnotationDefinitions env) (fieldOnly : stats.params.size = 0)
-    (model : MLCtx) (modelWF : model.WF env universes) (native : model.lctx = reader.lctx)
-    (reserved : ContextReserved reader.lctx reader.ngen)
-    (nativeEnvWF : reader.env.constants.WF)
-    {semanticElimLevel : VLevel} (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
-    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
-      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
-      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
-        RecursorParentPassTranslationSupport env universes trace)
-    (minorSupport : ∀ parentInfos parentReader
-      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
-      parentModel, TranslatedRecursorParentPass env universes parentTrace model parentModel →
-      (mkRecInfos.loopInd2 stats types 0 parentInfos
-        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
-        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
-          MinorPassTranslationSupport env universes trace)
-    (domainSupport : (mkRecInfos stats types elimLevel
-      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
-      ∀ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
-        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
-        RecursorSelectedDomainSupport env universes stats result.1 parent result.2.lctx model)
-    (ruleHead : ∀ (registeredEnv : Kernel.Environment) (finalInfos : Array RecInfo)
-      (finalReader : Context),
-      LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
-      ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat) (ctor : Constructor)
-        (rule : RecursorRule) (minor : Expr),
-        RecursorRuleRhsScopeReceipt stats (finalInfos.map (·.motive))
-            (finalInfos.flatMap (·.minors)) finalReader ctor minor rule →
-        RecursorRuleRhsReceipt stats (finalInfos.map (·.motive))
-            (finalInfos.flatMap (·.minors)) finalReader ctor minor rule →
-        GeneratedRecursorRuleResultSemantics env universes stats
-          (finalInfos.map (·.motive)) (finalInfos.flatMap (·.minors)) finalReader ctor minor rule)
-    (ruleSemantics : ∀ (registeredEnv : Kernel.Environment) (finalInfos : Array RecInfo)
-      (finalReader : Context),
-      LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
-      ∀ parent, parent < types.size → ∃ recursor,
-        registeredEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
-        ∀ rule ∈ recursor.rules, ∃ semantic, TrExprS env universes [] rule.rhs semantic)
-    (nextWF : ∀ registeredEnv finalInfos finalReader finalModel,
-      reader.RecursorScopeFrame finalReader → RecursorInfoCounts types finalInfos →
-      RecursorInfoModelEndpoint env universes stats types elimLevel reader finalInfos finalReader
-        model finalModel →
-      (∀ parent, parent < types.size →
-        RecursorTypeModelReceipt env universes stats finalInfos parent finalReader model finalModel) →
-      registeredEnv.constants.WF →
-      (∀ name info, reader.env.find? name = some info → registeredEnv.find? name = some info) →
-      stats.RecursorOffsetMetadata types elimLevel finalInfos lparams finalReader.lctx
-        isK isUnsafe finalReader registeredEnv →
-      LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
-      (∀ parent, parent < types.size → ∃ recursor,
-        registeredEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
-        ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
-          ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
-            finalInfos[parent]!.minors[index]? = some minor ∧
-            (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
-            GeneratedRecursorRuleResult env universes stats
-              (finalInfos.map (·.motive)) (finalInfos.flatMap (·.minors))
-              finalReader ctor minor rule) →
-      (∀ parent, parent < types.size → ∃ recursor,
-        registeredEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
-        ∀ rule ∈ recursor.rules, ∃ semantic, TrExprS env universes [] rule.rhs semantic) →
-      (next registeredEnv finalInfos finalReader).WF post) :
-    (do let result ← mkRecInfos.scopeRegistration stats types elimLevel lparams isK isUnsafe reader
-        next result.1 result.2.1 result.2.2).WF post := by
-  exact mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResults
-    (RuleResult := fun finalInfos finalReader ctor minor rule =>
-      GeneratedRecursorRuleResult env universes stats
-        (finalInfos.map (·.motive)) (finalInfos.flatMap (·.minors))
-        finalReader ctor minor rule)
-    stats types elimLevel lparams isK isUnsafe reader next post envWF constants definitions fieldOnly
-    model modelWF native reserved nativeEnvWF mapped parentSupport minorSupport domainSupport
-    (fun registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
-      scopedReceipt ordinaryReceipt =>
-      ruleHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
-        scopedReceipt ordinaryReceipt)
-    ruleSemantics
-    (fun registeredEnv finalInfos finalReader finalModel frame counts endpoint receipts
-      registeredWF retained metadata rhsScope _results completeRuleSemantics =>
-      nextWF registeredEnv finalInfos finalReader finalModel frame counts endpoint receipts
-        registeredWF retained metadata rhsScope
-        (fun parent hparent => by
-          obtain ⟨recursor, hlookup, hentries⟩ :=
-            LocalRecursorRuleRhsScope.registrationRuleHead rhsScope
-              (fun parent recursor index ctor rule minor scopedReceipt ordinaryReceipt =>
-                ruleHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
-                  scopedReceipt ordinaryReceipt)
-              parent hparent
-          refine ⟨recursor, hlookup, ?_⟩
-          intro index ctor hctor
-          obtain ⟨rule, minor, hrule, hminor, hpair⟩ :=
-            hentries index ctor hctor
-          exact ⟨rule, minor, hrule, hminor, hpair.1, hpair.2⟩)
-        completeRuleSemantics)
-
 private def captureFull (stats : InductiveStats) (types : Array InductiveType) :
     M ((Array RecInfo × Context) × Context) := do
   let result ← mkRecInfos stats types (.succ .zero) fun infos =>
@@ -1659,8 +1554,8 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedTranslatedAppliedRecursorTypes
 #print axioms Lean4Lean.AddInductive.RecursorRuleRhsScope.impRegistrationRuleSemantics
 #print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResults
+#print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultCPS
 #print axioms registeredScopedGetterPassesCombinedTypehoodToContinuation
-#print axioms registeredScopedGeneratedRuleResultCPS
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_closedTranslation
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_recursorTranslation
@@ -1736,8 +1631,8 @@ run_meta
       ``registeredAppliedGetterExposesCombinedTypehoodWithEnvironmentRegistration,
       ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedTranslatedAppliedRecursorTypes,
       ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResults,
+      ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultCPS,
       ``registeredScopedGetterPassesCombinedTypehoodToContinuation,
-      ``registeredScopedGeneratedRuleResultCPS,
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF,
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_closedTranslation,
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_recursorTranslation,

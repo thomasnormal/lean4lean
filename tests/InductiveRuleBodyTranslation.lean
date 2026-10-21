@@ -21,6 +21,22 @@ private def exactAxioms (name : Name) (expected : List Name) : MetaM Unit := do
   unless actual.size == expected.length && expected.all actual.contains do
     throwError "rule body: dependency manifest changed for {name}: {repr actual}"
 
+private def auditOwnedModule (moduleName : Name) (expected : Nat) : MetaM Unit := do
+  let environment ← getEnv
+  let some moduleIndex := environment.getModuleIdx? moduleName
+    | throwError "rule body: audited module absent: {moduleName}"
+  let mut count := 0
+  for (name, information) in environment.constants do
+    if environment.getModuleIdxFor? name == some moduleIndex then
+      if information matches .axiomInfo _ then
+        throwError "rule body: owned axiom {name} in {moduleName}"
+      if let some proof := information.value? (allowOpaque := true) then
+        if proof.hasSorry then throwError "rule body: direct admission {name} in {moduleName}"
+      count := count + 1
+  unless count == expected do
+    throwError "rule body: expected {expected} owned declarations in {moduleName}, got {count}"
+  logInfo m!"{moduleName}: {count} owned declarations have no direct admission or axiom"
+
 private def audit : MetaM Unit := do
   let environment ← getEnv
   let logical := [``propext, ``Classical.choice, ``Quot.sound]
@@ -114,7 +130,9 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 138 do throwError "rule body: expected one hundred thirty-eight owned declarations, got {count}"
+  unless count == 115 do throwError "rule body: expected one hundred fifteen owned declarations, got {count}"
+  auditOwnedModule `Lean4Lean.Verify.InductiveGeneratedRuleResult 23
+  auditOwnedModule `Lean4Lean.Verify.InductiveNativeTelescopeArguments 12
   logInfo m!"projected closed registration RuleSemantics from the paired all-rule callback without reopening generated packages, paired closed rule-body semantics with generated constructor-RHS result package through local indexed and aligned all-rule dual-receipt consumers, indexed local generated constructor-RHS result consumer with explicit body/source/applied witnesses, all-rule and local dual-receipt adapters, indexed local rule-semantics receipt/result consumer, all-rule scoped-and-ordinary receipt consumer adapter, indexed local scoped-and-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt lookup, all-rule scoped receipt consumer adapter, indexed scoped-to-ordinary receipt lookup, all-rule scoped-to-ordinary receipt projection, direct scoped/fvar/count result transport, generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
 
 run_meta
