@@ -18,6 +18,12 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (haligned : Aligned .safe constants env) :
+    Aligned .safe evidence.constructorConstants evidence.constructorEnv :=
+  haligned.addInductEvidence (evidence.to_addInductEvidence haligned.map_wf)
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF) : evidence.headerEnv.WF :=
   evidence.headerEnvWF henv
 

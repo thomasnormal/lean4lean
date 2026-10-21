@@ -83,6 +83,120 @@ theorem Aligned.addInduct (H : AddInduct C₁ venv₁ decl C₂ venv₂) :
     Aligned safety C₁ env₁ → Aligned safety C₂ env₂ :=
   nomatch H
 
+theorem Aligned.addInductEvidence
+    (H : AddInductEvidence safety C₁ venv₁ decl C₂ venv₂)
+    (h : Aligned safety C₁ venv₁) : Aligned safety C₂ venv₂ := by
+  cases H with
+  | @intro headers constructors headerEnv hheaders hconstructors headerAdd constructorAdd
+      headerNodup constructorNodup headerFresh constructorFresh mapEq =>
+    have addHeaders : ∀ {infos : List InductiveVal} {types : List VInductiveType}
+        {C : ConstMap} {env env' : VEnv},
+        Aligned safety C env →
+        List.Forall₂
+          (fun info type => info.name = type.name ∧
+            TrConstant safety env (.inductInfo info) type.toVConstant) infos types →
+        (∀ info ∈ infos, C.find? info.name = none) →
+        (infos.map (·.name)).Nodup →
+        env.addInductHeaders types = some env' →
+        Aligned safety (insertConsts C (infos.map (.inductInfo ·))) env' := by
+      intro infos
+      induction infos with
+      | nil =>
+        intro types C env env' aligned pairs fresh nodup added
+        cases types with
+        | nil =>
+          cases pairs
+          cases added
+          simpa [insertConsts] using aligned
+        | cons type types => cases pairs
+      | cons info infos ih =>
+        intro types C env env' aligned pairs fresh nodup added
+        cases types with
+        | nil => cases pairs
+        | cons type types =>
+          cases pairs with
+          | cons pair pairs =>
+            have nodup' := List.nodup_cons.mp nodup
+            simp [VEnv.addInductHeaders, Option.bind_eq_some_iff] at added
+            obtain ⟨next, step, rest⟩ := added
+            have step' : env.addConst info.name type.toVConstant = some next := by
+              rw [pair.1]
+              exact step
+            have freshTail : ∀ d ∈ infos,
+                (C.insert info.name (.inductInfo info)).find? d.name = none := by
+              intro d hd
+              rw [aligned.map_wf.find?_insert]
+              split
+              · rename_i equal
+                simp only [beq_iff_eq] at equal
+                exact False.elim (nodup'.1 (by
+                  simpa [equal] using List.mem_map.mpr ⟨d, hd, rfl⟩))
+              · exact fresh d (.tail _ hd)
+            have nextAligned := aligned.const (fresh info (.head _)) pair.2 step' rfl
+            have pairs' : List.Forall₂
+                (fun info type => info.name = type.name ∧
+                  TrConstant safety next (.inductInfo info) type.toVConstant) infos types :=
+              Lean4Lean.List.Forall₂.imp
+                (fun _ _ h => ⟨h.1, h.2.mono (VEnv.addConst_le step')⟩) pairs
+            have tailAligned := ih nextAligned pairs' freshTail nodup'.2 rest
+            simpa [insertConsts, ConstantInfo.name, ConstantInfo.toConstantVal] using tailAligned
+    have addConstructors : ∀ {infos : List ConstructorVal} {ctors : List VConstVal}
+        {C : ConstMap} {env env' : VEnv},
+        Aligned safety C env →
+        List.Forall₂
+          (fun info ctor => info.name = ctor.name ∧
+            TrConstant safety env (.ctorInfo info) ctor.toVConstant) infos ctors →
+        (∀ info ∈ infos, C.find? info.name = none) →
+        (infos.map (·.name)).Nodup →
+        env.addConstructorHeaders ctors = some env' →
+        Aligned safety (insertConsts C (infos.map (.ctorInfo ·))) env' := by
+      intro infos
+      induction infos with
+      | nil =>
+        intro ctors C env env' aligned pairs fresh nodup added
+        cases ctors with
+        | nil =>
+          cases pairs
+          cases added
+          simpa [insertConsts] using aligned
+        | cons ctor ctors => cases pairs
+      | cons info infos ih =>
+        intro ctors C env env' aligned pairs fresh nodup added
+        cases ctors with
+        | nil => cases pairs
+        | cons ctor ctors =>
+          cases pairs with
+          | cons pair pairs =>
+            have nodup' := List.nodup_cons.mp nodup
+            simp [VEnv.addConstructorHeaders, Option.bind_eq_some_iff] at added
+            obtain ⟨next, step, rest⟩ := added
+            have step' : env.addConst info.name ctor.toVConstant = some next := by
+              rw [pair.1]
+              exact step
+            have freshTail : ∀ d ∈ infos,
+                (C.insert info.name (.ctorInfo info)).find? d.name = none := by
+              intro d hd
+              rw [aligned.map_wf.find?_insert]
+              split
+              · rename_i equal
+                simp only [beq_iff_eq] at equal
+                exact False.elim (nodup'.1 (by
+                  simpa [equal] using List.mem_map.mpr ⟨d, hd, rfl⟩))
+              · exact fresh d (.tail _ hd)
+            have nextAligned := aligned.const (fresh info (.head _)) pair.2 step' rfl
+            have pairs' : List.Forall₂
+                (fun info ctor => info.name = ctor.name ∧
+                  TrConstant safety next (.ctorInfo info) ctor.toVConstant) infos ctors :=
+              Lean4Lean.List.Forall₂.imp
+                (fun _ _ h => ⟨h.1, h.2.mono (VEnv.addConst_le step')⟩) pairs
+            have tailAligned := ih nextAligned pairs' freshTail nodup'.2 rest
+            simpa [insertConsts, ConstantInfo.name, ConstantInfo.toConstantVal] using tailAligned
+    have hheaders := addHeaders h hheaders headerFresh headerNodup headerAdd
+    have hconstructors := addConstructors hheaders hconstructors constructorFresh
+      constructorNodup constructorAdd
+    rw [mapEq, insertConsts_append]
+    exact hconstructors
+
 theorem Aligned.addDefEqs {C : ConstMap} : ∀ {cis' : List VDefVal} {venv},
     Aligned safety C venv → Aligned safety C (venv.addDefEqs cis')
   | [], _, H => H
