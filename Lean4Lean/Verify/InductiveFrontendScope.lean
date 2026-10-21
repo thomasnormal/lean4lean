@@ -239,7 +239,7 @@ theorem InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultCPS
         ({ root with env := constructors } : Context) result.1 result.2 model finalModel →
         ∀ parent, parent < types.size →
         RecursorSelectedDomainSupport venv universes stats result.1 parent result.2.lctx model)
-    (ruleHead : ∀ (registeredEnv : Kernel.Environment) (finalInfos : Array RecInfo)
+    (closedHead : ∀ (registeredEnv : Kernel.Environment) (finalInfos : Array RecInfo)
       (finalReader : Context),
       LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
       ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat) (ctor : Constructor)
@@ -248,7 +248,17 @@ theorem InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultCPS
             (finalInfos.flatMap (·.minors)) finalReader ctor minor rule →
         RecursorRuleRhsReceipt stats (finalInfos.map (·.motive))
             (finalInfos.flatMap (·.minors)) finalReader ctor minor rule →
-        GeneratedRecursorRuleResultSemantics venv universes stats
+        ∃ semantic, TrExprS venv universes [] rule.rhs semantic)
+    (generatedHead : ∀ (registeredEnv : Kernel.Environment) (finalInfos : Array RecInfo)
+      (finalReader : Context),
+      LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
+      ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat) (ctor : Constructor)
+        (rule : RecursorRule) (minor : Expr),
+        RecursorRuleRhsScopeReceipt stats (finalInfos.map (·.motive))
+            (finalInfos.flatMap (·.minors)) finalReader ctor minor rule →
+        RecursorRuleRhsReceipt stats (finalInfos.map (·.motive))
+            (finalInfos.flatMap (·.minors)) finalReader ctor minor rule →
+        GeneratedRecursorRuleResult venv universes stats
           (finalInfos.map (·.motive)) (finalInfos.flatMap (·.minors)) finalReader ctor minor rule)
     (ruleSemantics : ∀ (registeredEnv : Kernel.Environment) (finalInfos : Array RecInfo)
       (finalReader : Context),
@@ -289,7 +299,15 @@ theorem InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultCPS
     simpa only [Context.env] using hscope.registration.resultWF
   exact mkRecInfos.registeredScopedGeneratedRuleResultCPS stats types elimLevel lparams isK isUnsafe
     ({ root with env := constructors } : Context) next post envWF constants definitions fieldOnly model
-    modelWF native reserved nativeEnvWF mapped parentSupport minorSupport domainSupport ruleHead
+    modelWF native reserved nativeEnvWF mapped parentSupport minorSupport domainSupport
+    (fun registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
+      scopedReceipt ordinaryReceipt =>
+      closedHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
+        scopedReceipt ordinaryReceipt)
+    (fun registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
+      scopedReceipt ordinaryReceipt =>
+      generatedHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
+        scopedReceipt ordinaryReceipt)
     ruleSemantics nextWF
 
 theorem InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedInitialAndFinalTypehood
