@@ -138,6 +138,61 @@ theorem RestoredRecordEvidence.fromRegistrationEvidence
   rw [← halign]
   exact hmem
 
+theorem RestoredRecordEvidence.registrationReceipt
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Environment} {records : List ConstantInfo}
+    (restored : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries) :
+    ∀ entry ∈ restored.entries,
+      entry.Semantic semanticEnv producer.headerEnv producer.constructorEnv ∧
+        entry.Metadata decl producer.constructors ∧
+        entry.RuleSemantics semanticResult ∧
+        entry.model.name = entry.toConstantInfo.name ∧
+        entry.model.uvars = entry.toConstantInfo.levelParams.length ∧
+        result.find? entry.toConstantInfo.name = some entry.toConstantInfo ∧
+        RestoredInductiveRecord preprocessing staged allIndNames recNameMap
+          entry.toConstantInfo ∧
+        ∃ name info, staged.find? name = some info := by
+  intro entry hmem
+  have hproducer : entry ∈ producer.orderedEntries := by
+    rw [← halign]
+    exact hmem
+  have hsemantic := producer.orderedSemantic entry hproducer
+  have hmetadata := producer.orderedMetadata entry hproducer
+  have hrules := producer.orderedRuleSemantics entry hproducer
+  have hshape := producer.orderedModelShape entry hproducer
+  rcases restored.entryModelReceipt hmem hshape with
+    ⟨hname, huvars, hinstalled, htyped, hsource⟩
+  exact ⟨hsemantic, hmetadata, hrules, hname, huvars, hinstalled, htyped, hsource⟩
+
+theorem RestoredRecordEvidence.registrationMap
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Environment} {records : List ConstantInfo}
+    (restored : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hresultConstants : result.constants = resultConstants) :
+    result.constants = insertOrdered constants restored.entries := by
+  calc
+    result.constants = resultConstants := hresultConstants
+    _ = insertOrdered constants producer.orderedEntries := producer.orderedMap
+    _ = insertOrdered constants restored.entries :=
+      congrArg (insertOrdered constants) halign.symm
+    _ = insertOrdered original.constants restored.entries :=
+      congrArg (fun c => insertOrdered c restored.entries) hconstants.symm
+    _ = insertOrdered constants restored.entries :=
+      congrArg (fun c => insertOrdered c restored.entries) hconstants
+
 theorem RestoredRecordEvidence.installed
     {preprocessing : ElimNestedInductive.Result} {staged : Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name}

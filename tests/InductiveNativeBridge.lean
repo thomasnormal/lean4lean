@@ -315,6 +315,41 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
         ∃ name info, staged.find? name = some info :=
   restored.fromRegistrationEvidence producer halign
 
+example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries) :
+    ∀ entry ∈ restored.entries,
+      entry.Semantic semanticEnv producer.headerEnv producer.constructorEnv ∧
+        entry.Metadata decl producer.constructors ∧
+        entry.RuleSemantics semanticResult ∧
+        entry.model.name = entry.toConstantInfo.name ∧
+        entry.model.uvars = entry.toConstantInfo.levelParams.length ∧
+        result.find? entry.toConstantInfo.name = some entry.toConstantInfo ∧
+        RestoredInductiveRecord preprocessing staged allIndNames recNameMap
+          entry.toConstantInfo ∧
+        ∃ name info, staged.find? name = some info :=
+  restored.registrationReceipt producer halign
+
+example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hresultConstants : result.constants = resultConstants) :
+    result.constants = NativeInductive.insertOrdered constants restored.entries :=
+  restored.registrationMap producer halign hconstants hresultConstants
+
 example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
     (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap
