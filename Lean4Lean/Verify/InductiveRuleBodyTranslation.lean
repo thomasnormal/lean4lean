@@ -240,6 +240,13 @@ abbrev GeneratedRecursorRuleResult
     (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
     (constructor := constructor) (minor := minor) (rule := rule)
 
+abbrev GeneratedRecursorRuleResultSemantics
+    (env : VEnv) (universes : List Name) (stats : InductiveStats)
+    (motives minors : Array Expr) (ctx : Context) (constructor : Constructor)
+    (minor : Expr) (rule : RecursorRule) : Prop :=
+  (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+    GeneratedRecursorRuleResult env universes stats motives minors ctx constructor minor rule
+
 /- Lift the explicit generated constructor-RHS package through every aligned
    rule.  The callback remains the producer/consumer boundary: it supplies
    the minor step, opening, extension, and context premises needed to obtain
@@ -334,6 +341,50 @@ theorem LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResult
   exact hscope.impGeneratedConstructorRuleRhs
     (fun parent recursor index ctor rule minor scopedReceipt ordinaryReceipt =>
       head parent recursor index ctor rule minor scopedReceipt ordinaryReceipt)
+
+theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResultSemantics
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        GeneratedRecursorRuleResultSemantics env universes stats motives minors ctx
+          entry.1 minors[entry.2]! rule) :
+    List.Forall₂ (fun entry rule => GeneratedRecursorRuleResultSemantics env universes stats
+      motives minors ctx entry.1 minors[entry.2]! rule) (ctors.zipIdx initial) rules := by
+  exact hscope.impScopedReceipts (fun entry rule scopedReceipt ordinaryReceipt =>
+    head entry rule scopedReceipt ordinaryReceipt)
+
+theorem LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResultSemantics
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        GeneratedRecursorRuleResultSemantics env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          GeneratedRecursorRuleResultSemantics env universes stats (infos.map (·.motive))
+            (infos.flatMap (·.minors)) ctx ctor minor rule := by
+  intro parent hparent
+  obtain ⟨recursor, hfind, hreceipts⟩ := hscope parent hparent
+  refine ⟨recursor, hfind, ?_⟩
+  intro index ctor hctor
+  obtain ⟨rule, minor, hrule, hminor, hreceipt⟩ := hreceipts index ctor hctor
+  obtain ⟨semantic, translated⟩ := head parent recursor index ctor rule minor hreceipt
+    hreceipt.fvars.counts.receipt
+  exact ⟨rule, minor, hrule, hminor, semantic, translated⟩
 
 /- Pair the closed rule-body semantic witness required by registration with the
    generated applied-result package.  This is the local indexed seam used by
