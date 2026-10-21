@@ -1206,7 +1206,24 @@ private theorem registeredScopedGeneratedRuleResultCPS
       scopedReceipt ordinaryReceipt =>
       ruleHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
         scopedReceipt ordinaryReceipt)
-    ruleSemantics nextWF
+    ruleSemantics
+    (fun registeredEnv finalInfos finalReader finalModel frame counts endpoint receipts
+      registeredWF retained metadata rhsScope _results completeRuleSemantics =>
+      nextWF registeredEnv finalInfos finalReader finalModel frame counts endpoint receipts
+        registeredWF retained metadata rhsScope
+        (fun parent hparent => by
+          obtain ⟨recursor, hlookup, hentries⟩ :=
+            LocalRecursorRuleRhsScope.registrationRuleHead rhsScope
+              (fun parent recursor index ctor rule minor scopedReceipt ordinaryReceipt =>
+                ruleHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
+                  scopedReceipt ordinaryReceipt)
+              parent hparent
+          refine ⟨recursor, hlookup, ?_⟩
+          intro index ctor hctor
+          obtain ⟨rule, minor, hrule, hminor, hpair⟩ :=
+            hentries index ctor hctor
+          exact ⟨rule, minor, hrule, hminor, hpair.1, hpair.2⟩)
+        completeRuleSemantics)
 
 private def captureFull (stats : InductiveStats) (types : Array InductiveType) :
     M ((Array RecInfo × Context) × Context) := do
