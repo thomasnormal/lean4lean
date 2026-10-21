@@ -444,10 +444,15 @@ theorem RegistrationEvidence.orderedMetadata
   · rcases List.mem_map.mp hrecursors with ⟨recursor, hmem, rfl⟩
     exact ⟨evidence.recursorParents recursor hmem, evidence.recursorRules recursor hmem⟩
 
-theorem RegistrationEvidence.orderedRuleSemantics
-    (evidence : RegistrationEvidence constants env decl resultConstants result) :
-    ∀ entry ∈ evidence.orderedEntries,
-      entry.RuleSemantics result := by
+/- Keep the registration-level rule callback explicit.  A producer that has
+   indexed constructor/RHS receipts can project its complete stored-rule
+   semantics here without reconstructing any recursor or rule entry. -/
+theorem RegistrationEvidence.orderedRuleSemanticsOf
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (ruleSemantics : ∀ (entry : RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules →
+        ∃ semantic, TrExprS result entry.info.levelParams [] rule.rhs semantic) :
+    ∀ entry ∈ evidence.orderedEntries, entry.RuleSemantics result := by
   intro entry hmem
   simp only [RegistrationEvidence.orderedEntries, List.mem_append] at hmem
   rcases hmem with hphase | hrecursors
@@ -458,7 +463,14 @@ theorem RegistrationEvidence.orderedRuleSemantics
       trivial
   · rcases List.mem_map.mp hrecursors with ⟨recursor, hmem, rfl⟩
     intro rule hrule
-    exact evidence.recursorRuleTranslation recursor hmem rule hrule
+    exact ruleSemantics recursor hmem rule hrule
+
+theorem RegistrationEvidence.orderedRuleSemantics
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.RuleSemantics result :=
+  evidence.orderedRuleSemanticsOf fun recursor hmem =>
+    evidence.recursorRuleTranslation recursor hmem
 
 theorem RegistrationEvidence.to_addInduct
     (evidence : RegistrationEvidence constants env decl resultConstants result) :

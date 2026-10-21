@@ -121,6 +121,14 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
       entry.RuleSemantics result :=
   evidence.orderedRuleSemantics
 
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (ruleSemantics : ∀ (entry : RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules →
+        ∃ semantic, TrExprS result entry.info.levelParams [] rule.rhs semantic) :
+    ∀ entry ∈ evidence.orderedEntries, entry.RuleSemantics result :=
+  evidence.orderedRuleSemanticsOf ruleSemantics
+
 example {entry : RegistrationEntry} {env headerEnv constructorEnv : VEnv}
     (hsemantic : entry.Semantic env headerEnv constructorEnv) :
     entry.ModelShape :=
