@@ -234,11 +234,10 @@ abbrev GeneratedConstructorRuleRhsResult
    the generic registration CPS theorem. -/
 abbrev GeneratedRecursorRuleResult
     (env : VEnv) (universes : List Name) (stats : InductiveStats)
-    (infos : Array RecInfo) (ctx : Context) (constructor : Constructor)
+    (motives minors : Array Expr) (ctx : Context) (constructor : Constructor)
     (minor : Expr) (rule : RecursorRule) : Prop :=
   GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
-    (stats := stats) (motives := infos.map (·.motive))
-    (minors := infos.flatMap (·.minors)) (ctx := ctx)
+    (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
     (constructor := constructor) (minor := minor) (rule := rule)
 
 /- Lift the explicit generated constructor-RHS package through every aligned
@@ -296,6 +295,45 @@ theorem LocalRecursorRuleRhsScope.impGeneratedConstructorRuleRhs
   obtain ⟨rule, minor, hrule, hminor, hreceipt⟩ := hreceipts index ctor hctor
   exact ⟨rule, minor, hrule, hminor,
     head parent recursor index ctor rule minor hreceipt (hreceipt.fvars.counts.receipt)⟩
+
+/- Named-result wrappers avoid unfolding the generated package at each caller. -/
+theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResult
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        GeneratedRecursorRuleResult env universes stats motives minors ctx entry.1 minors[entry.2]! rule) :
+    List.Forall₂ (fun entry rule => GeneratedRecursorRuleResult env universes stats motives minors ctx
+      entry.1 minors[entry.2]! rule) (ctors.zipIdx initial) rules := by
+  exact hscope.impGeneratedConstructorRuleRhs (fun entry rule scopedReceipt ordinaryReceipt =>
+    head entry rule scopedReceipt ordinaryReceipt)
+
+theorem LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResult
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        GeneratedRecursorRuleResult env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          GeneratedRecursorRuleResult env universes stats (infos.map (·.motive))
+            (infos.flatMap (·.minors)) ctx ctor minor rule := by
+  exact hscope.impGeneratedConstructorRuleRhs
+    (fun parent recursor index ctor rule minor scopedReceipt ordinaryReceipt =>
+      head parent recursor index ctor rule minor scopedReceipt ordinaryReceipt)
 
 /- Pair the closed rule-body semantic witness required by registration with the
    generated applied-result package.  This is the local indexed seam used by
