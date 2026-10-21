@@ -524,6 +524,24 @@ theorem TrEnv.constructorNotInModel (valid : TrEnv safety native environment)
   rintro ⟨semantic, translated⟩
   exact valid.constructorLookupRejected found (valid.find?_uniq found translated).2.1
 
+/-! A typechecker context may use a non-inductive optimization only when this
+    rejection contract is available. Keeping it as a separate witness lets
+    `TrEnv'` allow constructive inductive families without silently invalidating
+    the optimizer proofs that still target the non-inductive fragment. -/
+structure TrEnv.RejectsInductiveFamilies (valid : TrEnv safety native environment) : Prop where
+  inductiveNotInModel : ∀ {name header},
+    native.find? name = some (.inductInfo header) → ¬environment.contains name
+  recursorNotInModel : ∀ {name header},
+    native.find? name = some (.recInfo header) → ¬environment.contains name
+  constructorNotInModel : ∀ {name header},
+    native.find? name = some (.ctorInfo header) → ¬environment.contains name
+
+theorem TrEnv.rejectsInductiveFamilies (valid : TrEnv safety native environment) :
+    TrEnv.RejectsInductiveFamilies valid where
+  inductiveNotInModel := valid.inductiveNotInModel
+  recursorNotInModel := valid.recursorNotInModel
+  constructorNotInModel := valid.constructorNotInModel
+
 theorem TrEnv'.quotientObjects (valid : TrEnv' safety constants true environment) :
     environment.HasObjects [.defeq quotDefEq, .const ``Quot.ind quotIndConst,
       .const ``Quot.lift quotLiftConst, .const ``Quot.mk quotMkConst, .const ``Quot quotConst] := by

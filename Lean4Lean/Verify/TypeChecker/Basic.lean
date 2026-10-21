@@ -220,6 +220,7 @@ structure VContext extends Context where
   safePrimitives : env.find? n = some ci →
     Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = []
   trenv : TrEnv safety env venv
+  trenv_rejects : TrEnv.RejectsInductiveFamilies trenv
   mlctx : MLCtx
   mlctx_wf : mlctx.WF venv lparams
   lctx_eq : mlctx.lctx = lctx

@@ -422,7 +422,7 @@ theorem inferProj.rejects (translated : c.TrExprS ety semanticType) :
     · rintro _ _ _ _ _ accepted; cases accepted
     · refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ nativeLookup => ?_
       cases information <;> try exact RecM.WF.getLCtx RecM.WF.throw
-      exact False.elim <| c.trenv.inductiveNotInModel nativeLookup ⟨_, semanticLookup⟩
+      exact False.elim <| c.trenv_rejects.inductiveNotInModel nativeLookup ⟨_, semanticLookup⟩
 
 theorem inferProj.WF
     (typed : c.TrTyping e ety e' ety') :

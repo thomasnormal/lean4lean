@@ -37,7 +37,7 @@ theorem _root_.Lean4Lean.inductiveReduceRec.eq_none {monad : Type → Type} [Mon
     | none => rfl
     | some information =>
       cases information <;> try rfl
-      exact False.elim <| context.trenv.recursorNotInModel found ⟨_, semanticLookup⟩
+      exact False.elim <| context.trenv_rejects.recursorNotInModel found ⟨_, semanticLookup⟩
 
 theorem inductiveReduceRec.none_of_translation {context : VContext} {state : VState}
     (translated : context.TrExprS expression semantic)
@@ -200,7 +200,7 @@ theorem reduceProjCore.none_of_translation {context : VContext} {state : VState}
       refine RecM.WF.getEnv ?_
       refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ found => ?_
       cases information <;> try exact RecM.WF.pure rfl
-      exact False.elim <| context.trenv.constructorNotInModel found inModel
+      exact False.elim <| context.trenv_rejects.constructorNotInModel found inModel
   unfold reduceProjCore
   dsimp only
   split

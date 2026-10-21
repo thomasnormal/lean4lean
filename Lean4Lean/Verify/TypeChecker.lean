@@ -68,6 +68,7 @@ def VContext.mk1 {env : Environment} {safety : DefinitionSafety} {venv : VEnv}
   hasPrimitives := wf.hasPrimitives
   safePrimitives := wf.safePrimitives
   trenv := wf.tr
+  trenv_rejects := wf.tr.rejectsInductiveFamilies
   mlctx := .nil
   mlctx_wf := trivial
   lctx_eq := rfl

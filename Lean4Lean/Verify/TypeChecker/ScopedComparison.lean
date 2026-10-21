@@ -292,7 +292,7 @@ theorem tryEtaStructCore.scopeFalse {context : VContext} {state : VState}
     refine RecM.ScopeWF.getEnv ?_
     refine (RecM.ScopeWF.liftExcept envGet.WF).bind fun information _ _ found => ?_
     cases information <;> try exact RecM.ScopeWF.pure rfl
-    exact False.elim <| context.trenv.constructorNotInModel found inModel
+    exact False.elim <| context.trenv_rejects.constructorNotInModel found inModel
 
 theorem tryEtaStructCore.scopeWF {context : VContext} {state : VState}
     (_firstTranslation : context.TrExprS first firstSemantic)
@@ -328,7 +328,7 @@ theorem isDefEqUnitLike.scopeFalse {context : VContext} {state : VState}
     refine RecM.ScopeWF.getEnv ?_
     refine (RecM.ScopeWF.liftExcept envGet.WF).bind fun information _ _ found => ?_
     cases information <;> try exact RecM.ScopeWF.pure rfl
-    exact False.elim <| context.trenv.inductiveNotInModel found inModel
+    exact False.elim <| context.trenv_rejects.inductiveNotInModel found inModel
 
 theorem isDefEqUnitLike.scopeWF {context : VContext} {state : VState}
     (firstTranslation : context.TrExprS first firstSemantic)

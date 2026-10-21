@@ -269,6 +269,7 @@ def TypeChecker.VContext.inHeaderAxiomView (checker : TypeChecker.VContext)
   env := shadow
   venv := semantic
   trenv := history
+  trenv_rejects := history.rejectsInductiveFamilies
   hasPrimitives := checker.trenv.checkerEnv.hasPrimitives_of_frame history.checkerEnv increase
     checker.hasPrimitives primitives
   safePrimitives := by

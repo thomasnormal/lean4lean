@@ -240,7 +240,7 @@ theorem tryEtaStructCore.false_of_translation {context : VContext} {state : VSta
     refine RecM.WF.getEnv ?_
     refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ found => ?_
     cases information <;> try exact RecM.WF.pure rfl
-    exact False.elim <| context.trenv.constructorNotInModel found inModel
+    exact False.elim <| context.trenv_rejects.constructorNotInModel found inModel
 
 theorem tryEtaStructCore.WF {c : VContext} {s : VState}
     (_he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
@@ -518,7 +518,7 @@ theorem isDefEqUnitLike.false_of_translation {context : VContext} {state : VStat
     refine RecM.WF.getEnv ?_
     refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ found => ?_
     cases information <;> try exact RecM.WF.pure rfl
-    exact False.elim <| context.trenv.inductiveNotInModel found inModel
+    exact False.elim <| context.trenv_rejects.inductiveNotInModel found inModel
 
 theorem isDefEqUnitLike.WF {c : VContext} {s : VState}
     (he₁ : c.TrExprS e₁ e₁') (_he₂ : c.TrExprS e₂ e₂') :
