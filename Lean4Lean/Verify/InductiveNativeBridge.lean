@@ -465,6 +465,35 @@ theorem RegistrationEvidence.orderedRuleSemanticsOf
     intro rule hrule
     exact ruleSemantics recursor hmem rule hrule
 
+/- Pair the complete stored-rule semantic witness with an arbitrary retained
+   per-rule result.  The result is exposed only for recursor entries; headers
+   and constructors still receive the ordinary trivial registration receipt. -/
+theorem RegistrationEvidence.orderedRuleResultsOf
+    {Result : RecursorEntry → RecursorRule → Prop}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (ruleResults : ∀ (entry : RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules →
+        (∃ semantic, TrExprS result entry.info.levelParams [] rule.rhs semantic) ∧
+          Result entry rule) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.RuleSemantics result ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, Result entry rule := by
+  intro entry hmem
+  simp only [RegistrationEvidence.orderedEntries, List.mem_append] at hmem
+  rcases hmem with hphase | hrecursors
+  · rcases hphase with hheaders | hconstructors
+    · rcases List.mem_map.mp hheaders with ⟨header, hmem, rfl⟩
+      exact ⟨trivial, trivial⟩
+    · rcases List.mem_map.mp hconstructors with ⟨constructor, hmem, rfl⟩
+      exact ⟨trivial, trivial⟩
+  · rcases List.mem_map.mp hrecursors with ⟨recursor, hmem, rfl⟩
+    refine ⟨?_, ?_⟩
+    · intro rule hrule
+      exact (ruleResults recursor hmem rule hrule).1
+    · intro rule hrule
+      exact (ruleResults recursor hmem rule hrule).2
+
 theorem RegistrationEvidence.orderedRuleSemantics
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.orderedEntries,
