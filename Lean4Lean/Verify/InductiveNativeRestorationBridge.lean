@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveNativeBridge
+import Lean4Lean.Verify.InductiveNativeAlignment
 import Lean4Lean.Verify.InductiveRestorationMetadata
 
 namespace Lean4Lean
@@ -192,6 +192,29 @@ theorem RestoredRecordEvidence.registrationMap
       congrArg (fun c => insertOrdered c restored.entries) hconstants.symm
     _ = insertOrdered constants restored.entries :=
       congrArg (fun c => insertOrdered c restored.entries) hconstants
+
+theorem RestoredRecordEvidence.registrationAlignment
+    {safety : DefinitionSafety}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Environment} {records : List ConstantInfo}
+    (restored : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (haligned : Aligned safety constants semanticEnv) :
+    Aligned safety resultConstants semanticResult ∧
+      result.constants = insertOrdered original.constants restored.entries := by
+  refine ⟨producer.aligned haligned, ?_⟩
+  calc
+    result.constants = insertOrdered constants restored.entries :=
+      restored.registrationMap producer halign hconstants hresultConstants
+    _ = insertOrdered original.constants restored.entries :=
+      congrArg (fun c => insertOrdered c restored.entries) hconstants.symm
 
 theorem RestoredRecordEvidence.installed
     {preprocessing : ElimNestedInductive.Result} {staged : Environment}

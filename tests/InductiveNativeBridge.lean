@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.InductiveNativeBridge
+import Lean4Lean.Verify.InductiveNativeAlignment
 import Lean4Lean.Verify.InductiveNativeTrace
 import Lean4Lean.Verify.InductiveRestorationMetadata
 import Lean4Lean.Verify.InductiveNativeRestorationBridge
@@ -349,6 +350,23 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
     (hresultConstants : result.constants = resultConstants) :
     result.constants = NativeInductive.insertOrdered constants restored.entries :=
   restored.registrationMap producer halign hconstants hresultConstants
+
+example {safety : DefinitionSafety}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (haligned : Aligned safety constants semanticEnv) :
+    Aligned safety resultConstants semanticResult ∧
+      result.constants = NativeInductive.insertOrdered original.constants restored.entries :=
+  restored.registrationAlignment producer halign hconstants hresultConstants haligned
 
 example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
