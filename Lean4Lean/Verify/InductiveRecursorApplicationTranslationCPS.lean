@@ -1157,6 +1157,114 @@ theorem mkRecInfos.registeredScopedTranslatedAppliedRecursorTypes
   exact nextWF registeredEnv finalInfos finalReader finalModel frame counts endpoint receipts
     registeredWF retained metadata rhsScope
 
+/- Registration can consume closed rule semantics while a later RHS consumer
+   keeps a richer per-rule result.  The result relation is abstract here so
+   this CPS layer does not depend on the concrete generated-body package. -/
+theorem RecursorRuleRhsScope.impRegistrationRuleSemantics
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        ∃ semantic, TrExprS env universes [] rule.rhs semantic) :
+    List.Forall₂ (fun entry rule => ∃ semantic, TrExprS env universes [] rule.rhs semantic)
+      (ctors.zipIdx initial) rules := by
+  exact List.Forall₂.imp (fun entry rule receipt => head entry rule receipt) hscope
+
+theorem mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResults
+    {ResultType : Type} {env : VEnv} {universes : List Name}
+    {RuleResult : Array RecInfo → Context → Constructor → Expr → RecursorRule → Prop}
+    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (lparams : List Name) (isK isUnsafe : Bool) (reader : Context)
+    (next : Kernel.Environment → Array RecInfo → M ResultType) (post : ResultType → Prop)
+    (envWF : env.WF) (constants : CanonicalAnnotationConstants env)
+    (definitions : CanonicalAnnotationDefinitions env) (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF env universes) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (nativeEnvWF : reader.env.constants.WF)
+    {semanticElimLevel : VLevel} (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport env universes trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass env universes parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport env universes trace)
+    (domainSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        RecursorSelectedDomainSupport env universes stats result.1 parent result.2.lctx model)
+    (ruleHead : ∀ (registeredEnv : Kernel.Environment) (finalInfos : Array RecInfo)
+      (finalReader : Context),
+      LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
+      ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat) (ctor : Constructor)
+        (rule : RecursorRule) (minor : Expr),
+        RecursorRuleRhsScopeReceipt stats (finalInfos.map (·.motive))
+            (finalInfos.flatMap (·.minors)) finalReader ctor minor rule →
+        RecursorRuleRhsReceipt stats (finalInfos.map (·.motive))
+            (finalInfos.flatMap (·.minors)) finalReader ctor minor rule →
+        (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+        RuleResult finalInfos finalReader ctor minor rule)
+    (ruleSemantics : ∀ (registeredEnv : Kernel.Environment) (finalInfos : Array RecInfo)
+      (finalReader : Context),
+      LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
+      ∀ parent, parent < types.size → ∃ recursor,
+        registeredEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+        ∀ rule ∈ recursor.rules, ∃ semantic, TrExprS env universes [] rule.rhs semantic)
+    (nextWF : ∀ registeredEnv finalInfos finalReader finalModel,
+      reader.RecursorScopeFrame finalReader → RecursorInfoCounts types finalInfos →
+      RecursorInfoModelEndpoint env universes stats types elimLevel reader finalInfos finalReader
+        model finalModel →
+      (∀ parent, parent < types.size →
+        RecursorTypeModelReceipt env universes stats finalInfos parent finalReader model finalModel) →
+      registeredEnv.constants.WF →
+      (∀ name info, reader.env.find? name = some info → registeredEnv.find? name = some info) →
+      stats.RecursorOffsetMetadata types elimLevel finalInfos lparams finalReader.lctx
+        isK isUnsafe finalReader registeredEnv →
+      LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
+      (∀ parent, parent < types.size → ∃ recursor,
+        registeredEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+        ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+          ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+            finalInfos[parent]!.minors[index]? = some minor ∧
+            (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+            RuleResult finalInfos finalReader ctor minor rule) →
+      (∀ parent, parent < types.size → ∃ recursor,
+        registeredEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+        ∀ rule ∈ recursor.rules, ∃ semantic, TrExprS env universes [] rule.rhs semantic) →
+      (next registeredEnv finalInfos finalReader).WF post) :
+    (do let result ← mkRecInfos.scopeRegistration stats types elimLevel lparams isK isUnsafe reader
+        next result.1 result.2.1 result.2.2).WF post := by
+  refine mkRecInfos.registeredScopedTranslatedAppliedRecursorTypes stats types elimLevel
+    lparams isK isUnsafe reader next post envWF constants definitions fieldOnly model modelWF native
+    reserved nativeEnvWF mapped parentSupport minorSupport domainSupport ?_
+  intro registeredEnv finalInfos finalReader finalModel frame counts endpoint receipts
+    registeredWF retained metadata rhsScope
+  have results : ∀ parent, parent < types.size → ∃ recursor,
+      registeredEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          finalInfos[parent]!.minors[index]? = some minor ∧
+          (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+          RuleResult finalInfos finalReader ctor minor rule := by
+    intro parent hparent
+    obtain ⟨recursor, hlookup, hentries⟩ := rhsScope parent hparent
+    refine ⟨recursor, hlookup, ?_⟩
+    intro index ctor hctor
+    obtain ⟨rule, minor, hrule, hminor, hreceipt⟩ := hentries index ctor hctor
+    exact ⟨rule, minor, hrule, hminor,
+      ruleHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
+        hreceipt hreceipt.fvars.counts.receipt⟩
+  exact nextWF registeredEnv finalInfos finalReader finalModel frame counts endpoint receipts
+    registeredWF retained metadata rhsScope results
+    (ruleSemantics registeredEnv finalInfos finalReader rhsScope)
+
 theorem mkRecInfos.registeredScopedTranslatedAppliedInitialAndFinalTypehood
     {ResultType : Type} {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
