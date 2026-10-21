@@ -2182,47 +2182,9 @@ theorem MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAn
     (targetWF : target.WF env universes)
     {insertionLift : Lift}
     (insertion : VLCtx.FVLift' base.vlctx target.vlctx 0 insertionLift 0) :
-    ∃ (fieldModel : MLCtx) (terminal : Expr) (fields hypotheses : Array Expr)
-      (replacements : List Expr) (replacementTerminal : Expr)
-      (values : List VExpr) (bodySemantic rhsSemantic rhsType : VExpr),
-      peelTypeAnnotations domain =
-        fieldModel.lctx.mkForall fields
-          (domainReader.lctx.mkForall hypotheses
-            (recursorMinorBody stats infos constructor terminal fields)) ∧
-      NativeTelescopeArguments env universes final
-        (fieldModel.lctx.mkForall fields
-          (domainReader.lctx.mkForall hypotheses
-            (recursorMinorBody stats infos constructor terminal fields)))
-        (fields.toList ++ replacements) replacementTerminal ∧
-      TypedParameterApplications env universes final peeled
-        (fields.toList ++ replacements) values bodySemantic ∧
-      TrExprS env universes final.vlctx
-        (minor.mkAppList (fields.toList ++ replacements))
-        (ElimNestedInductive.applyParameterArguments minorSemantic values) ∧
-      env.HasType universes.length final.vlctx.toCtx
-        (ElimNestedInductive.applyParameterArguments minorSemantic values) bodySemantic ∧
-      TrExprS env universes final.vlctx
-        (mkAppN (mkAppN minor fields) replacements.toArray)
-        (ElimNestedInductive.applyParameterArguments minorSemantic values) ∧
-      RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule ∧
-      TrExprS env universes base.vlctx rule.rhs rhsSemantic ∧
-      env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType ∧
-      env.SortArity universes.length base.vlctx.toCtx
-        (count + replacements.length) rhsType ∧
-      TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
-        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
-      env.HasType universes.length base.vlctx.toCtx
-        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType ∧
-      env.SortArity universes.length base.vlctx.toCtx count resultType ∧
-      TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
-        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
-          (arguments.map (VExpr.lift' · insertionLift))) ∧
-      env.HasType universes.length target.vlctx.toCtx
-        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
-          (arguments.map (VExpr.lift' · insertionLift)))
-        (resultType.lift' insertionLift) ∧
-      env.SortArity universes.length target.vlctx.toCtx count
-        (resultType.lift' insertionLift) := by
+    GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+      (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+      (constructor := constructor) (minor := minor) (rule := rule) := by
   obtain ⟨fieldModel, terminal, fields, hypotheses, replacements, replacementTerminal,
     values, bodySemantic, sourceEq, nativeReceipt, typedArguments, bodyTranslated, bodyTyped,
     nestedTranslated⟩ := step.generatedConstructorRhsBody opening reserved bodyClosed bodyPeeled
@@ -2244,11 +2206,13 @@ theorem MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAn
     scopeReceipt.applyIotaKindWeakFVKind rhsTranslated rhsTyped
       (argumentTyping rhsTranslated rhsTyped) envWF baseWF (kind rhsTranslated rhsTyped)
       targetWF insertion
-  exact ⟨fieldModel, terminal, fields, hypotheses, replacements, replacementTerminal, values,
-    bodySemantic, rhsSemantic, rhsType, sourceEq, nativeReceipt, typedArguments,
-    bodyTranslated, bodyTyped, nestedTranslated, ruleReceipt, rhsTranslated, rhsTyped,
-    kind rhsTranslated rhsTyped, baseResultTranslated, baseResultTyped, baseResultKind,
-    resultTranslated, resultTyped, resultKind⟩
+  exact ⟨infos, domainReader, domain, ids, final, base, target, count, arguments, resultType,
+    insertionLift, peeled, minorSemantic, fieldModel, terminal, fields, hypotheses,
+    replacements, replacementTerminal, values, bodySemantic, rhsSemantic, rhsType,
+    extension, insertion, sourceEq, nativeReceipt, typedArguments, bodyTranslated, bodyTyped,
+    nestedTranslated, ruleReceipt, rhsTranslated, rhsTyped, kind rhsTranslated rhsTyped,
+    baseResultTranslated, baseResultTyped, baseResultKind, resultTranslated, resultTyped,
+    resultKind⟩
 
 /-- Consume the generated constructor body at an ordinary recursor-rule
 receipt.  This is the recursor-level result seam: callers that have already
