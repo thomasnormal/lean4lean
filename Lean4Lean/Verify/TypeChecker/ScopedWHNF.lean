@@ -28,7 +28,7 @@ def TypeChecker.M.ScopeWF (context : VContext) (state : VState) (action : M Resu
 structure TypeChecker.Methods.ScopeWF (methods : Methods) : Prop where
   base : methods.WF
   whnfCore : context.TrExprS expression translated →
-    (methods.whnfCore expression cheapRec cheapProj).ScopeWF context state fun normalized _ =>
+    (methods.whnfCore expression cheapProj).ScopeWF context state fun normalized _ =>
       context.FVarsBelow expression normalized ∧ context.TrExpr normalized translated ∧
       NativeHeadScoped context.lctx' normalized
   whnf : context.TrExprS expression translated →
@@ -198,7 +198,7 @@ theorem TypeChecker.Inner.addEquiv.scopeWF {context : VContext} {state : VState}
         exact .defeq (firstTranslation.weakFV' context.Ewf contextLift levelsWF)
           (secondTranslation.weakFV' context.Ewf contextLift levelsWF)
   · constructor
-    · simpa [TypeChecker.VState.toState] using caches
+    · exact caches
     · trivial
 
 theorem TypeChecker.Inner.isDefEqCore.scopeWF {context : VContext} {state : VState}
@@ -233,7 +233,7 @@ theorem TypeChecker.Inner.unfoldDefinition.scopeWF {context : VContext} {state :
 
 theorem TypeChecker.Inner.whnfCore.scopeWF {context : VContext} {state : VState}
     (translated : context.TrExprS expression semantic) :
-    (Inner.whnfCore expression cheapRec cheapProj).ScopeWF context state fun normalized _ =>
+    (Inner.whnfCore expression cheapProj).ScopeWF context state fun normalized _ =>
       context.FVarsBelow expression normalized ∧ context.TrExpr normalized semantic ∧
       NativeHeadScoped context.lctx' normalized := fun _ valid => valid.whnfCore translated
 
@@ -289,7 +289,7 @@ theorem quotReduceRec.scopeFrame {context : VContext} {state : VState}
         else return none).ScopeWF context state (fun _ _ => True) := by
     dsimp only
     split
-    · simp only [pure_bind]
+    ·
       obtain ⟨_, argumentTranslation⟩ := translatedApplicationArgument translated ‹_›
       refine (Inner.whnf.scopeWF argumentTranslation).bind fun constructor _ _ _ => ?_
       split
@@ -304,13 +304,12 @@ theorem quotReduceRec.scopeFrame {context : VContext} {state : VState}
 
 theorem TypeChecker.Inner.reduceRecursor.scopeFrame {context : VContext} {state : VState}
     (translated : context.TrExprS expression semantic) :
-    (Inner.reduceRecursor expression cheapRec cheapProj).ScopeWF context state (fun _ _ => True) := by
+    (Inner.reduceRecursor expression).ScopeWF context state (fun _ _ => True) := by
   unfold Inner.reduceRecursor
-  simp only [pure_bind]
   refine RecM.ScopeWF.getEnv ?_
   have inductiveFrame {state : VState} : (do
       if let some reduced ← inductiveReduceRec context.env expression
-          (fun current => if cheapRec then Inner.whnfCore current cheapRec cheapProj else Inner.whnf current)
+          (fun current => Inner.whnf current)
           Inner.inferType Inner.isDefEq then return some reduced
       return none).ScopeWF context state (fun _ _ => True) := by
     rw [inductiveReduceRec.eq_none translated]
@@ -495,7 +494,6 @@ theorem TypeChecker.Inner.reduceNat.scopeHeadWF {context : VContext} {state : VS
       (fun result _ => NativeOptionalHeadScoped context.lctx' result) := by
   unfold Inner.reduceNat
   extract_lets argumentCount fallback function
-  simp only [bind_pure]
   split
   · split
     · rename_i one successor
@@ -520,22 +518,33 @@ theorem TypeChecker.Inner.reduceNat.scopeHeadWF {context : VContext} {state : VS
         · split
           · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
           · split
-            · exact Inner.reducePow.scopeHeadWF firstTranslation secondTranslation
+            · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
             · split
-              · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
+              · exact Inner.reducePow.scopeHeadWF firstTranslation secondTranslation
               · split
-                · exact Inner.reduceBinNatPred.scopeHeadWF _ firstTranslation secondTranslation
+                · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
                 · split
-                  · exact Inner.reduceBinNatPred.scopeHeadWF _ firstTranslation secondTranslation
+                  · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
                   · split
                     · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
                     · split
-                      · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
+                      · exact Inner.reduceBinNatPred.scopeHeadWF _ firstTranslation secondTranslation
                       · split
-                        · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
+                        · exact Inner.reduceBinNatPred.scopeHeadWF _ firstTranslation secondTranslation
                         · split
                           · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
-                          · exact RecM.ScopeWF.pure trivial
+                          · split
+                            · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
+                            · split
+                              · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
+                              · split
+                                · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
+                                · split
+                                  · exact Inner.reduceBinNatOp.scopeHeadWF _ firstTranslation secondTranslation
+                                  · exact RecM.ScopeWF.pure (context := context) (state := state)
+                                      (result := (none : Option Expr))
+                                      (post := fun result _ => NativeOptionalHeadScoped context.lctx' result)
+                                      trivial
       · exact RecM.ScopeWF.pure trivial
     · exact RecM.ScopeWF.pure trivial
 
@@ -543,7 +552,7 @@ theorem TypeChecker.Inner.whnfCore'.save_scopeWF {context : VContext} {state : V
     (translated : context.TrExprS expression semantic)
     (below : context.FVarsBelow expression normalized) (result : context.TrExpr normalized semantic)
     (head : NativeHeadScoped context.lctx' normalized) :
-    (Inner.whnfCore'.save expression cheapRec cheapProj normalized).ScopeWF context state fun actual _ =>
+    (Inner.whnfCore'.save expression cheapProj normalized).ScopeWF context state fun actual _ =>
       context.FVarsBelow expression actual ∧ context.TrExpr actual semantic ∧
       NativeHeadScoped context.lctx' actual := by
   unfold Inner.whnfCore'.save
@@ -567,7 +576,7 @@ theorem TypeChecker.Inner.whnfCore'.save_scopeWF {context : VContext} {state : V
 
 theorem TypeChecker.Inner.whnfFVar.scopeWF {context : VContext} {state : VState}
     (translated : context.TrExprS (.fvar identifier) semantic) :
-    (Inner.whnfFVar (.fvar identifier) cheapRec cheapProj).ScopeWF context state fun normalized _ =>
+    (Inner.whnfFVar (.fvar identifier) cheapProj).ScopeWF context state fun normalized _ =>
       context.FVarsBelow (.fvar identifier) normalized ∧ context.TrExpr normalized semantic ∧
       NativeHeadScoped context.lctx' normalized := by
   refine RecM.ScopeWF.getLCtx ?_
@@ -580,12 +589,10 @@ theorem TypeChecker.Inner.whnfFVar.scopeWF {context : VContext} {state : VState}
     subst equal
     obtain ⟨value, type, lookup, below, _, body, _⟩ :=
       context.trlctx.find?_of_mem context.Ewf (List.mem_of_find?_eq_some found)
-    simp only [bind_pure]
     refine (Inner.whnfCore.scopeWF body).mono fun _ _ _ normalized => ?_
     refine ⟨below.trans normalized.1, normalized.2.1.defeq context.Ewf context.Δwf ?_, normalized.2.2⟩
     exact (TrExprS.fvar lookup).uniq context.Ewf (.refl context.Ewf context.Δwf) translated
   · rename_i absent
-    simp only [pure_bind]
     refine RecM.ScopeWF.pure ⟨.rfl, translated.trExpr context.Ewf context.Δwf, ⟨⟨rfl, rfl⟩, ?_⟩⟩
     intro current equal
     cases equal
@@ -599,9 +606,9 @@ theorem TypeChecker.Inner.whnfFVar.scopeWF {context : VContext} {state : VState}
 
 theorem TypeChecker.Inner.reduceProj.scopeFrame {context : VContext} {state : VState}
     (translated : context.TrExprS source semantic) :
-    (Inner.reduceProj index source cheapRec cheapProj).ScopeWF context state (fun _ _ => True) := by
+    (Inner.reduceProj index source cheapProj).ScopeWF context state (fun _ _ => True) := by
   unfold Inner.reduceProj
-  have initial : (if cheapProj then Inner.whnfCore source cheapRec cheapProj else Inner.whnf source)
+  have initial : (if cheapProj then Inner.whnfCore source cheapProj else Inner.whnf source)
       |>.ScopeWF context state (fun normalized _ =>
         context.FVarsBelow source normalized ∧ context.TrExpr normalized semantic ∧
         NativeHeadScoped context.lctx' normalized) := by
@@ -624,33 +631,53 @@ theorem TypeChecker.Inner.reduceProj.scopeFrame {context : VContext} {state : VS
       (fun _ _ => trivial)).bind ?_
     intro information finalState increasing valid
     cases information <;> exact RecM.ScopeWF.pure trivial
-  split
-  · obtain ⟨_, structural, _⟩ := normalizedResult.2.1
-    cases structural with
-    | lit contains constructor =>
-      simpa only [pure_bind] using (Inner.whnf.scopeWF constructor).bind
-        (fun expression _ _ _ => finish expression)
-  · simpa only [pure_bind] using finish normalized
+  unfold Inner.reduceProjCore
+  cases h : normalized <;> try exact RecM.ScopeWF.pure trivial
+  case const name levels =>
+    subst normalized
+    obtain ⟨_, structural, _⟩ := normalizedResult.2.1
+    change RecM.ScopeWF context middleState
+      ((Expr.const name levels).withApp _) (fun _ _ => True)
+    exact finish (state := middleState) _
+  case app function argument =>
+    subst normalized
+    obtain ⟨_, structural, _⟩ := normalizedResult.2.1
+    change RecM.ScopeWF context middleState
+      ((function.app argument).withApp _) (fun _ _ => True)
+    exact finish (state := middleState) _
+  case lit literal =>
+    subst normalized
+    cases literal with
+    | natVal value => exact RecM.ScopeWF.pure trivial
+    | strVal value =>
+      obtain ⟨_, structural, _⟩ := normalizedResult.2.1
+      cases structural with
+      | lit contains constructor =>
+        change RecM.ScopeWF context middleState (do
+          let constructor ← Inner.whnf (Expr.strLitToConstructor value)
+          constructor.withApp _) (fun _ _ => True)
+        exact (Inner.whnf.scopeWF (state := middleState) constructor).bind
+          (fun expression finalState _ _ => finish (state := finalState) expression)
 
 theorem TypeChecker.Inner.whnfCore'.scopeWF {context : VContext} {state : VState}
     (translated : context.TrExprS expression semantic) :
-    (Inner.whnfCore' expression cheapRec cheapProj).ScopeWF context state fun normalized _ =>
+    (Inner.whnfCore' expression cheapProj).ScopeWF context state fun normalized _ =>
       context.FVarsBelow expression normalized ∧ context.TrExpr normalized semantic ∧
       NativeHeadScoped context.lctx' normalized := by
   unfold Inner.whnfCore'
-  extract_lets continuationCore cacheProgram
+  extract_lets F
   let full := (· matches Expr.fvar _ | .app .. | .letE .. | .proj ..)
   generalize postEqual : (fun normalized (_ : VState) => _) = post
   have identity {state : VState} (head : NativeHeadScoped context.lctx' expression) :
       (pure expression : RecM Expr).ScopeWF context state post :=
     postEqual ▸ RecM.ScopeWF.pure ⟨.rfl, translated.trExpr context.Ewf context.Δwf, head⟩
-  suffices continuation : full expression → (cacheProgram ⟨⟩).ScopeWF context state post by
+  suffices continuation : full expression → (F ⟨⟩).ScopeWF context state post by
     split
     any_goals exact identity (NativeHeadScoped.ofNotFVar ⟨rfl, rfl⟩ rfl)
     any_goals exact continuation rfl
     · let .mdata body := translated
-      exact (Inner.whnfCore'.scopeWF body).bind fun _ _ _ normalized =>
-        postEqual ▸ RecM.ScopeWF.pure normalized
+      exact (Inner.whnfCore'.scopeWF (cheapProj := cheapProj) body).mono
+        (fun normalized finalState _ result => postEqual ▸ result)
     · refine RecM.ScopeWF.getLCtx ?_
       split
       · rename_i identifier notLet
@@ -659,7 +686,7 @@ theorem TypeChecker.Inner.whnfCore'.scopeWF {context : VContext} {state : VState
         cases equal
         simpa using notLet
       · exact continuation rfl
-  simp [cacheProgram]
+  simp [F]
   refine fun active => RecM.ScopeWF.get ?_
   split
   · rename_i normalized found
@@ -670,15 +697,12 @@ theorem TypeChecker.Inner.whnfCore'.scopeWF {context : VContext} {state : VState
   have save {normalized : Expr} {state : VState}
       (below : context.FVarsBelow expression normalized) (result : context.TrExpr normalized semantic)
       (head : NativeHeadScoped context.lctx' normalized) :
-      (Inner.whnfCore'.save expression cheapRec cheapProj normalized).ScopeWF context state post :=
+      (Inner.whnfCore'.save expression cheapProj normalized).ScopeWF context state post :=
     postEqual ▸ Inner.whnfCore'.save_scopeWF translated below result head
-  unfold continuationCore
   split <;> cases active
-  · simp
-    exact postEqual ▸ Inner.whnfFVar.scopeWF translated
+  · exact postEqual ▸ Inner.whnfFVar.scopeWF translated
   · rename_i function argument _
     generalize expressionEqual : function.app argument = expression at *
-    rw [Expr.withRevApp_eq]
     obtain ⟨_, stack⟩ := AppStack.build (expression.mkAppList_getAppArgsList ▸ translated)
     refine (Inner.whnfCore.scopeWF stack.tr).bind fun normalized middleState _ normalizedResult => ?_
     obtain ⟨headBelow, headTranslation, headScoped⟩ := normalizedResult
@@ -686,8 +710,8 @@ theorem TypeChecker.Inner.whnfCore'.scopeWF {context : VContext} {state : VState
     · let rec loopResult {current : Expr} {semanticCurrent : Expr} {index : Nat} {arguments : Array Expr}
           {result : Expr} (lambdas : LambdaBodyN index semanticCurrent result) (bound : index ≤ arguments.size) :
           ∃ count finalBody, LambdaBodyN count semanticCurrent finalBody ∧ count ≤ arguments.size ∧
-            Inner.whnfCore'.loop current cheapRec cheapProj arguments index result =
-              Inner.whnfCore'.loop.cont current cheapRec cheapProj arguments count finalBody := by
+            Inner.whnfCore'.loop current cheapProj arguments index result =
+              Inner.whnfCore'.loop.cont current cheapProj arguments count finalBody := by
         unfold Inner.whnfCore'.loop
         split
         · split
@@ -757,7 +781,6 @@ theorem TypeChecker.Inner.whnfCore'.scopeWF {context : VContext} {state : VState
       refine (Inner.whnfCore.scopeWF source).bind fun _ _ _ result => ?_
       exact save (below.trans result.1) (result.2.1.defeq context.Ewf context.Δwf equal) result.2.2
   · let .letE valueType domainTranslation valueTranslation bodyTranslation := translated
-    simp
     refine (Inner.whnfCore.scopeWF (bodyTranslation.inst_let context.Ewf.ordered valueTranslation)).bind
       fun _ _ _ result => ?_
     exact save (.trans (fun _ _ original => original.2.2.instantiate1 original.2.1) result.1)
@@ -778,18 +801,18 @@ theorem TypeChecker.Inner.whnf'.scopeWF {context : VContext} {state : VState}
       context.FVarsBelow expression normalized ∧ context.TrExpr normalized semantic ∧
       NativeHeadScoped context.lctx' normalized := by
   unfold Inner.whnf'
-  extract_lets continuationFull cacheProgram
+  extract_lets F
   generalize postEqual : (fun normalized (_ : VState) => _) = post
   have identity {state : VState} (head : NativeHeadScoped context.lctx' expression) :
       (pure expression : RecM Expr).ScopeWF context state post :=
     postEqual ▸ RecM.ScopeWF.pure ⟨.rfl, translated.trExpr context.Ewf context.Δwf, head⟩
-  suffices continuation : (cacheProgram ()).ScopeWF context state post by
+  suffices continuation : (F ()).ScopeWF context state post by
     split
     any_goals exact identity (NativeHeadScoped.ofNotFVar ⟨rfl, rfl⟩ rfl)
     any_goals exact continuation
     · let .mdata body := translated
-      exact (Inner.whnf'.scopeWF body).bind fun _ _ _ normalized =>
-        postEqual ▸ RecM.ScopeWF.pure normalized
+      exact (Inner.whnf'.scopeWF body).mono
+        (fun normalized finalState _ result => postEqual ▸ result)
     · refine RecM.ScopeWF.getLCtx ?_
       split
       · apply identity
@@ -798,7 +821,7 @@ theorem TypeChecker.Inner.whnf'.scopeWF {context : VContext} {state : VState}
         cases equal
         simpa using notLet
       · exact continuation
-  simp [cacheProgram]
+  simp [F]
   refine RecM.ScopeWF.get ?_
   split
   · rename_i normalized found
@@ -806,7 +829,6 @@ theorem TypeChecker.Inner.whnf'.scopeWF {context : VContext} {state : VState}
     obtain ⟨_, below, source, result⟩ := (wellFormed.whnf_wf found).2.2.2.2 translated.fvarsIn
     refine postEqual ▸ RecM.ScopeWF.pure ⟨below, result.defeq context.Ewf context.Δwf ?_, caches.2 _ _ found⟩
     exact source.uniq context.Ewf (.refl context.Ewf context.Δwf) translated
-  unfold continuationFull
   have loopScope {current : Expr} {currentSemantic : VExpr} {state : VState} {fuel : Nat}
       (source : context.TrExprS current currentSemantic) :
       (Inner.whnf'.loop current fuel).ScopeWF context state fun normalized _ =>
@@ -822,17 +844,13 @@ theorem TypeChecker.Inner.whnf'.scopeWF {context : VContext} {state : VState}
       extract_lets afterDelta afterNat
       split
       · cases noNative _ rfl
-      · refine RecM.ScopeWF.pureBind ?_
-        unfold afterNat
-        refine ((Inner.reduceNat.scopeHeadWF structural).andWF (Inner.reduceNat.WF structural)).bind
+      · refine ((Inner.reduceNat.scopeHeadWF structural).andWF (Inner.reduceNat.WF structural)).bind
           fun reduced _ _ naturalReduction => ?_
         split
         · obtain ⟨naturalBelow, naturalTranslation⟩ := naturalReduction.2 _ rfl
           exact RecM.ScopeWF.pure ⟨below.trans naturalBelow,
             naturalTranslation.defeq context.Ewf context.Δwf equal, naturalReduction.1⟩
-        · refine RecM.ScopeWF.pureBind ?_
-          unfold afterDelta
-          refine (Inner.unfoldDefinition.scopeWF structural).bind fun unfolded _ _ unfolding => ?_
+        · refine (Inner.unfoldDefinition.scopeWF structural).bind fun unfolded _ _ unfolding => ?_
           split
           · obtain ⟨unfoldedBelow, _, unfoldedTranslation, unfoldedEqual⟩ := unfolding
             refine (inductionHypothesis unfoldedTranslation).mono fun _ _ _ result => ?_

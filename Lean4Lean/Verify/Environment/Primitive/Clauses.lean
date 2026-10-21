@@ -11,6 +11,8 @@ open Kernel
 
 namespace Primitive
 
+variable {fuel : FuelConfig}
+
 /-! ### The clauses
 
 One theorem per clause of the recognizer, each about the definition `checkDef` dispatches to. A
@@ -27,7 +29,7 @@ rewrite per equation. -/
 
 theorem checkNatAdd.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.add) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatAdd v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkNatAdd
   have hnat : ctx.env.contains ``Nat → (ves.venv .safe).contains ``Nat :=
@@ -57,7 +59,7 @@ theorem checkNatAdd.WF {ves : VEnvs} (wf : ves.WF env)
 /-- `Nat.pred`: `pred 0 ≡ 0`, checked outright, and `pred (succ x) ≡ x` under one probe. -/
 theorem checkNatPred.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.pred) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatPred v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkNatPred
   have hnat : ctx.env.contains ``Nat → (ves.venv .safe).contains ``Nat :=
@@ -80,7 +82,7 @@ theorem checkNatPred.WF {ves : VEnvs} (wf : ves.WF env)
 `Nat.pred` rather than `Nat`, so `Nat` itself comes from `Nat.pred`'s recorded type. -/
 theorem checkNatSub.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.sub) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatSub v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkNatSub
   refine .getEnv <| elseFail fun h1 => elseFail fun h2 => ?_
@@ -109,7 +111,7 @@ theorem checkNatSub.WF {ves : VEnvs} (wf : ves.WF env)
 `Nat.add`, whose reflection supplies both the operator and `Nat`. -/
 theorem checkNatMul.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.mul) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatMul v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkNatMul
   refine .getEnv <| elseFail fun h1 => elseFail fun h2 => ?_
@@ -138,7 +140,7 @@ theorem checkNatMul.WF {ves : VEnvs} (wf : ves.WF env)
 guard. The base is spelled as a constructor application, which is `.natLit 1` on the model side. -/
 theorem checkNatPow.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.pow) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatPow v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkNatPow
   refine .getEnv ?_
@@ -171,7 +173,7 @@ theorem checkNatBoolCases.WF {ves : VEnvs} (wf : ves.WF env) {F} (b0s : Bool)
     (hmem : (v.name, .reflectsNatNatBool F) ∈ primSpecs)
     (hF00 : F 0 0 = true) (hF0s : ∀ b, F 0 (b + 1) = b0s) (hFs0 : ∀ a, F (a + 1) 0 = false)
     (hFss : ∀ a b, F (a + 1) (b + 1) = F a b) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatBoolCases v (Lean.toExpr b0s)).WF c state fun _ _ =>
       PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkNatBoolCases
@@ -207,7 +209,7 @@ theorem checkNatBoolCases.WF {ves : VEnvs} (wf : ves.WF env) {F} (b0s : Bool)
 `(succ x) 0`, and the diagonal `beq (succ x) (succ y) ≡ beq x y`. -/
 theorem checkNatBEq.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.beq) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatBEq v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' :=
   checkNatBoolCases.WF wf (F := Nat.beq) false (by simp [primSpecs, hname])
     rfl (fun _ => rfl) (fun _ => rfl) (fun _ _ => rfl)
@@ -215,7 +217,7 @@ theorem checkNatBEq.WF {ves : VEnvs} (wf : ves.WF env)
 /-- `Nat.ble`: the same four cases as `Nat.beq`, with `ble 0 (succ x)` true rather than false. -/
 theorem checkNatBLE.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.ble) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatBLE v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' :=
   checkNatBoolCases.WF wf (F := Nat.ble) true (by simp [primSpecs, hname])
     rfl (fun _ => rfl) (fun _ => rfl) (fun _ _ => rfl)
@@ -224,7 +226,7 @@ theorem checkNatBLE.WF {ves : VEnvs} (wf : ves.WF env)
 `Bool.and`: `op false x ≡ false` and `op true x ≡ x`. -/
 theorem checkNatLAnd.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.land) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatLAnd v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkNatLAnd
   refine .getEnv <| elseFail fun h1 => elseFail fun h2 => ?_; simp at h1
@@ -251,7 +253,7 @@ theorem checkNatLAnd.WF {ves : VEnvs} (wf : ves.WF env)
 `op true x ≡ true`. -/
 theorem checkNatLOr.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.lor) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatLOr v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkNatLOr
   refine .getEnv <| elseFail fun h1 => elseFail fun h2 => ?_; simp at h1
@@ -279,7 +281,7 @@ theorem checkNatLOr.WF {ves : VEnvs} (wf : ves.WF env)
 here, so the four cases are checked outright rather than under a probe. -/
 theorem checkNatXor.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.xor) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatXor v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkNatXor
   refine .getEnv <| elseFail fun h1 => elseFail fun h2 => ?_; simp at h1
@@ -312,7 +314,7 @@ theorem checkNatXor.WF {ves : VEnvs} (wf : ves.WF env)
 *first* argument, over the `Nat.mul` guard. -/
 theorem checkNatShiftLeft.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.shiftLeft) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatShiftLeft v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkNatShiftLeft
   refine .getEnv <| elseFail fun h1 => elseFail fun h2 => ?_
@@ -340,7 +342,7 @@ theorem checkNatShiftLeft.WF {ves : VEnvs} (wf : ves.WF env)
 whose second operand is a literal rather than the first argument. The guard names `Nat.div`. -/
 theorem checkNatShiftRight.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.shiftRight) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatShiftRight v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkNatShiftRight
   refine .getEnv <| elseFail fun h1 => elseFail fun h2 => ?_
@@ -371,7 +373,7 @@ theorem checkNatShiftRight.WF {ves : VEnvs} (wf : ves.WF env)
 assuming it; nothing else in the branch mentions `Char`. -/
 theorem checkCharOfNat.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Char.ofNat) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkCharOfNat v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkCharOfNat
   have hnat : ctx.env.contains ``Nat → (ves.venv .safe).contains ``Nat :=
@@ -393,7 +395,7 @@ theorem checkCharOfNat.WF {ves : VEnvs} (wf : ves.WF env)
 calls settle `List.nil` and `List.cons` at `Char` -- the spec's other two clauses. -/
 theorem checkStringOfList.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``String.ofList) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkStringOfList v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]; unfold checkStringOfList
   refine elseFail fun h1 => ?_

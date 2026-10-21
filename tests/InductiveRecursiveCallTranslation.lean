@@ -145,7 +145,7 @@ private def runtimeFixtures : MetaM Unit := do
             (.forallE `ordinal natural (mkAppN head #[.bvar 1, .bvar 0]) .default)
             (mkAppN head #[.bvar 1, zero]) .default) .implicit }] }
   let host ← getEnv
-  unless (host.addDeclCore 0 (.inductDecl [] 1 [type] false) none).isOk do
+  unless (host.addDeclCore 0 0 (.inductDecl [] 1 [type] false) none).isOk do
     throwError "recursive call: native kernel rejected the higher-order indexed fixture"
   let reader : Context := {
     env := host.toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
@@ -178,8 +178,10 @@ private def auditModule : MetaM Unit := do
   let projection := logical ++ [``sorryAx]
   let contextInterfaces := [``PersistentArray.toList'_push, ``PersistentHashMap.WF.find?_eq,
     ``PersistentHashMap.WF.toList'_insert]
-  let levelInterfaces := [``Expr.hasLevelParam_eq, ``Expr.replace_eq, ``Level.hasMVar_eq,
-    ``Level.hasParam_eq, ``Level.instLawfulBEqLevel]
+  let levelInterfaces := [``Expr.mkAppData_eq, ``Expr.mkData_eq, ``Expr.replace_eq,
+    ``Level.hasMVar_eq, ``Level.hasParam_eq, ``Level.instLawfulBEqLevel,
+    Name.mkNum `_private.Lean4Lean.Verify.Expr 0 ++ `Lean.Expr.mkData_flags._native.bv_decide.ax_1_12,
+    `Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7]
   let bindingInterfaces := [``Expr.abstractRange_eq, ``Expr.abstract_eq,
     ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq]
   let structural := projection ++ contextInterfaces

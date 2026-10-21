@@ -7,10 +7,10 @@ open private Lean4Lean.AddInductive.bindWF from Lean4Lean.Verify.InductiveStats
 open private Lean4Lean.AddInductive.withLocalDeclWF from Lean4Lean.Verify.InductiveStats
 
 private theorem scanFalse_eq (items : List α) (invalid : α → Bool) :
-    (forIn (m := Id) items (⟨none, PUnit.unit⟩ : MProd (Option Bool) PUnit) fun item _ =>
-      if invalid item then ForInStep.done ⟨some false, PUnit.unit⟩ else
-        ForInStep.yield ⟨none, PUnit.unit⟩) =
-      ⟨if items.any invalid then some false else none, PUnit.unit⟩ := by
+    (forIn (m := Id) items (none, ()) fun item _ =>
+      if invalid item then ForInStep.done (some false, ()) else
+        ForInStep.yield (none, ())) =
+      (if items.any invalid then some false else none, ()) := by
   induction items with
   | nil => rfl
   | cons item items ih =>
@@ -169,7 +169,7 @@ private theorem params_ne_of_nodup {stats : InductiveStats}
     (hne : first ≠ second) : stats.params[first] ≠ stats.params[second] := by
   intro heq
   apply hne
-  apply List.getElem?_inj (by simpa using hfirst) hnodup
+  apply (List.getElem?_inj (by simpa using hfirst) hnodup).mp
   simp only [Array.getElem?_toList, Array.getElem?_eq_getElem hfirst,
     Array.getElem?_eq_getElem hsecond, heq]
 
@@ -242,9 +242,7 @@ theorem checkConstructors.loop_positive_spine (stats : InductiveStats)
         apply Lean4Lean.AddInductive.bindWF
         intro equal
         split
-        · apply Lean4Lean.AddInductive.bindWF
-          intro _
-          refine (ih (body.instantiate1 param) (index + 1) ctx).mono ?_
+        · refine (ih (body.instantiate1 param) (index + 1) ctx).mono ?_
           rintro _ ⟨terminal, hspine, hvalid⟩
           exact ⟨terminal, .parameter name domain body bi param terminal hspine, hvalid⟩
         · exact Except.WF.throw
@@ -288,9 +286,7 @@ theorem checkConstructors.loop_spine (stats : InductiveStats) (isUnsafe : Bool)
         apply Lean4Lean.AddInductive.bindWF
         intro equal
         split
-        · apply Lean4Lean.AddInductive.bindWF
-          intro _
-          refine (ih isUnsafe (body.instantiate1 param) (index + 1) ctx).mono ?_
+        · refine (ih isUnsafe (body.instantiate1 param) (index + 1) ctx).mono ?_
           rintro _ ⟨terminal, hspine, hvalid⟩
           exact ⟨terminal, .forallE name domain body bi param terminal hspine, hvalid⟩
         · exact Except.WF.throw
@@ -357,9 +353,7 @@ theorem checkConstructors.loop_arity (stats : InductiveStats) (isUnsafe : Bool)
         apply Lean4Lean.AddInductive.bindWF
         intro equal
         split
-        · apply Lean4Lean.AddInductive.bindWF
-          intro _
-          refine (ih _ (index + 1) ctx hnext).mono ?_
+        · refine (ih _ (index + 1) ctx hnext).mono ?_
           intro _ hbound
           rw [hfvars.arity_consume hmem name domain body bi index]
           exact hbound
@@ -478,8 +472,7 @@ theorem checkConstructors.spine (indTypes : Array InductiveType) (stats : Induct
       dsimp only
       split
       · exact Except.WF.throw
-      · simp only [pure_bind]
-        refine (Lean4Lean.checkNoMVarNoFVar.WF env ctor.name ctor.type).bind ?_
+      · refine (Lean4Lean.checkNoMVarNoFVar.WF env ctor.name ctor.type).bind ?_
         intro _ hclosed
         apply Lean4Lean.AddInductive.bindWF
         intro checkedType
@@ -508,7 +501,6 @@ theorem checkInductiveTypes.registeredConstructorSpine (nparams : Nat)
             isValidIndAppIdx result.1 terminal index = true := by
   apply checkInductiveTypes.frameHeaderSizesParamsDistinct
   intro stats current hsizes hfvars hnodup hframe
-  dsimp only
   apply Lean4Lean.AddInductive.bindWF
   intro headers
   refine (checkConstructors.spine indTypes stats isUnsafe { current with env := headers }).bind ?_
@@ -552,8 +544,7 @@ theorem checkConstructors.arity (indTypes : Array InductiveType) (stats : Induct
       dsimp only
       split
       · exact Except.WF.throw
-      · simp only [pure_bind]
-        refine (Lean4Lean.checkNoMVarNoFVar.WF env ctor.name ctor.type).bind ?_
+      · refine (Lean4Lean.checkNoMVarNoFVar.WF env ctor.name ctor.type).bind ?_
         intro _ hclosed
         apply Lean4Lean.AddInductive.bindWF
         intro checkedType

@@ -30,7 +30,7 @@ run_meta
 
   let some (.defnInfo add) := env.find? ``Nat.add | throwError "missing Nat.add"
   let badAdd := { add with value := q(fun a (_ : Nat) => a) }
-  if ((Lean4Lean.Environment.checkPrimitiveDef badAdd).run env).isOk then
+  if ((Lean4Lean.Primitive.checkDef badAdd).run env).isOk then
     throwError "accepted a Nat.add implementation that ignores its second argument"
 
   for (a, b) in [(0, 0), (17, 0), (0, 23), (1, 29), (31, 1), (1000000, 2000000),
@@ -45,7 +45,7 @@ run_meta
   let some (.defnInfo mul) := env.find? ``Nat.mul | throwError "missing Nat.mul"
   for badMul in [{ mul with value := q(fun (_ _ : Nat) => Nat.zero) },
       { mul with value := q(Nat.add) }] do
-    if ((Lean4Lean.Environment.checkPrimitiveDef badMul).run env).isOk then
+    if ((Lean4Lean.Primitive.checkDef badMul).run env).isOk then
       throwError "accepted an incorrect Nat.mul implementation"
 
   for (a, b) in [(0, 0), (17, 0), (0, 23), (1, 29), (31, 1), (2, 80), (3, 40)] do
@@ -71,7 +71,7 @@ run_meta
   let some (.defnInfo pow) := env.find? ``Nat.pow | throwError "missing Nat.pow"
   for badPow in [{ pow with value := q(fun (_ _ : Nat) => Nat.succ Nat.zero) },
       { pow with value := q(Nat.mul) }] do
-    if ((Lean4Lean.Environment.checkPrimitiveDef badPow).run env).isOk then
+    if ((Lean4Lean.Primitive.checkDef badPow).run env).isOk then
       throwError "accepted an incorrect Nat.pow implementation"
 
   for a in [0, 1, 2, 1208925819614629174706177] do
@@ -84,7 +84,7 @@ run_meta
   let some (.defnInfo pred) := env.find? ``Nat.pred | throwError "missing Nat.pred"
   for badPred in [{ pred with value := q(fun (n : Nat) => n) },
       { pred with value := q(Nat.succ) }] do
-    if ((Lean4Lean.Environment.checkPrimitiveDef badPred).run env).isOk then
+    if ((Lean4Lean.Primitive.checkDef badPred).run env).isOk then
       throwError "accepted an incorrect Nat.pred implementation"
 
   for (a, b) in [(0, 0), (0, 17), (17, 0), (17, 17), (31, 7), (7, 31),
@@ -100,7 +100,7 @@ run_meta
   let some (.defnInfo sub) := env.find? ``Nat.sub | throwError "missing Nat.sub"
   for badSub in [{ sub with value := q(fun (a : Nat) (_ : Nat) => a) },
       { sub with value := q(fun (_ _ : Nat) => Nat.zero) }] do
-    if ((Lean4Lean.Environment.checkPrimitiveDef badSub).run env).isOk then
+    if ((Lean4Lean.Primitive.checkDef badSub).run env).isOk then
       throwError "accepted an incorrect Nat.sub implementation"
 
   let equalityCases : List (Nat × Nat × Bool) := [
@@ -122,7 +122,7 @@ run_meta
   for value in [q(fun (_ _ : Nat) => false), q(fun (_ _ : Nat) => true),
       q(Nat.ble), q(fun a b : Nat => Nat.ble b a),
       q(fun a b : Nat => (Nat.beq a 0) == (Nat.beq b 0))] do
-    if ((Lean4Lean.Environment.checkPrimitiveDef { beq with value }).run env).isOk then
+    if ((Lean4Lean.Primitive.checkDef { beq with value }).run env).isOk then
       throwError "accepted an incorrect Nat.beq implementation"
 
   let orderingCases : List (Nat × Nat × Bool) := [
@@ -143,7 +143,7 @@ run_meta
   for value in [q(fun (_ _ : Nat) => false), q(fun (_ _ : Nat) => true),
       q(Nat.beq), q(fun a b : Nat => Nat.ble b a),
       q(fun a b : Nat => (Nat.beq a 0) || !(Nat.beq b 0))] do
-    if ((Lean4Lean.Environment.checkPrimitiveDef { ble with value }).run env).isOk then
+    if ((Lean4Lean.Primitive.checkDef { ble with value }).run env).isOk then
       throwError "accepted an incorrect Nat.ble implementation"
 
   for (a, b) in [(0, 0), (17, 0), (0, 256), (1, 1), (17, 3), (1, 80),
@@ -159,7 +159,7 @@ run_meta
   let some (.defnInfo shl) := env.find? ``Nat.shiftLeft | throwError "missing Nat.shiftLeft"
   for value in [q(fun (_ _ : Nat) => Nat.zero), q(fun a (_ : Nat) => a),
       q(Nat.add), q(fun a b : Nat => Nat.shiftLeft a (Nat.pred b))] do
-    if ((Lean4Lean.Environment.checkPrimitiveDef { shl with value }).run env).isOk then
+    if ((Lean4Lean.Primitive.checkDef { shl with value }).run env).isOk then
       throwError "accepted an incorrect Nat.shiftLeft implementation"
 
   let rightShiftCases : List (Nat × Nat × Nat) := [
@@ -178,5 +178,5 @@ run_meta
   let some (.defnInfo shr) := env.find? ``Nat.shiftRight | throwError "missing Nat.shiftRight"
   for value in [q(fun (_ _ : Nat) => Nat.zero), q(fun a (_ : Nat) => a),
       q(Nat.shiftLeft), q(fun a b : Nat => Nat.shiftRight a (Nat.pred b))] do
-    if ((Lean4Lean.Environment.checkPrimitiveDef { shr with value }).run env).isOk then
+    if ((Lean4Lean.Primitive.checkDef { shr with value }).run env).isOk then
       throwError "accepted an incorrect Nat.shiftRight implementation"

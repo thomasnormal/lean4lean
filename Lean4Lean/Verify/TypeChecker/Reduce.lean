@@ -124,8 +124,6 @@ theorem reduceBinNatPred.WF {c : VContext}
   have := ha1.appDF a3 |>.toU.of_r c.Ewf c.Δwf hb1
   exact  ⟨_, .appDF this b3⟩
 
--- Split only the current test, without resimplifying the remaining dispatch chain.
-set_option backward.split false in
 theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
     RecM.WF c s (reduceNat e) fun oe _ => ∀ e₁, oe = some e₁ →
       c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' := by
@@ -180,17 +178,43 @@ theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
     refine p2.toU.symm.trans c.Ewf c.Δwf ?_
     exact ⟨_, ha1.appDF <| a3.of_r c.Ewf c.Δwf ha2⟩
 
+/-- In the current constructor-free model, a translated structure cannot
+reduce to a registered constructor application. String expansion is checked
+through the existing normalization contract rather than rejected by syntax. -/
+theorem reduceProjCore.none_of_translation {context : VContext} {state : VState}
+    (translated : context.TrExprS source semantic) :
+    (reduceProjCore index source).WF context state
+      (fun outcome _ => outcome = none) := by
+  have finish {state : VState} {expression : Expr} {result : VExpr}
+      (expressionTranslation : context.TrExprS expression result) :
+      (expression.withApp fun head arguments => do
+        let .const name _ := head | return none
+        let environment ← getEnv
+        let .ctorInfo information ← environment.get name | return none
+        return arguments[information.numParams + index]? : RecM (Option Expr)).WF
+          context state (fun outcome _ => outcome = none) := by
+    rw [Expr.withApp_eq]
+    cases headEq : expression.getAppFn <;> try exact RecM.WF.pure rfl
+    case const name levels =>
+      have inModel := context.constAppHeadInModel expressionTranslation headEq
+      refine RecM.WF.getEnv ?_
+      refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ found => ?_
+      cases information <;> try exact RecM.WF.pure rfl
+      exact False.elim <| context.trenv.constructorNotInModel found inModel
+  unfold reduceProjCore
+  dsimp only
+  split
+  · cases translated with
+    | lit contains constructor =>
+      simpa only [Literal.toConstructor] using (whnf.WF constructor).bind
+        (fun _ _ _ result => by
+          obtain ⟨_, reducedTranslation, _⟩ := result.2
+          exact finish reducedTranslation)
+  · exact finish (state := state) translated
+
 theorem reduceProjCore.WF (he : c.TrExprS (.proj n i e) e') :
     RecM.WF c s (reduceProjCore i e) fun oe _ =>
-      ∀ e₁, oe = some e₁ → c.FVarsBelow (.proj n i e) e₁ ∧ c.TrExpr e₁ e' := sorry
-
-theorem reduceProj.WF (he : c.TrExprS (.proj n i e) e') :
-    RecM.WF c s (reduceProj i e cheapProj) fun oe _ =>
       ∀ e₁, oe = some e₁ → c.FVarsBelow (.proj n i e) e₁ ∧ c.TrExpr e₁ e' := by
-  unfold reduceProj
-  have .proj (e' := s) a1 a2 := he
-  refine .bind (Q := fun e₁ _ => c.FVarsBelow e e₁ ∧ c.TrExpr e₁ s) ?_ fun _ _ _ ⟨h1, h2⟩ => ?_
-  · split <;> [exact whnfCore.WF a1; exact whnf.WF a1]
-  have ⟨_, b1, b2⟩ := h2.proj c.Ewf c.Δwf a2
-  refine (reduceProjCore.WF b1).mono fun _ _ _ H _ eq => ?_
-  have ⟨c1, c2⟩ := H _ eq; exact ⟨h1.trans c1, c2.defeq c.Ewf c.Δwf b2⟩
+  have .proj sourceTranslation _ := he
+  exact (reduceProjCore.none_of_translation sourceTranslation).mono
+    fun _ _ _ rejected _ successful => by cases rejected.symm.trans successful

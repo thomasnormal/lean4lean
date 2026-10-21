@@ -54,7 +54,8 @@ theorem inferConstant.checker {ctx : Context} {semantic : VEnv} {scope : VLCtx}
         .defeqU_r hchecker.wf hscope hequality.symm ?_⟩
       · intro _ _ _
         exact instantiated.fvarsIn.mono nofun
-      · exact .const hconstant (.of_mapM_ofLevel htranslated) (levelModels.length_eq.symm.trans hlength)
+      · exact .const hconstant (.of_mapM_ofLevel htranslated)
+          ((Lean4Lean.List.Forall₂.length_eq levelModels).symm.trans hlength)
     split
     · split
       · exact .throw

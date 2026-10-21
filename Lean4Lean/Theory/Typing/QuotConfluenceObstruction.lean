@@ -23,6 +23,12 @@ theorem equalityRegistered (environmentWF : environment.WF)
       · cases congrArg VDefEq.lhs newEquation
       · rw [VEnv.addConst.defeqs_eq added] at oldEquation
         exact ((VEnv.addConst_le added).trans VEnv.addDefEq_le).constants (induction oldEquation)
+    | mutualDef _ added _ =>
+      rcases (VEnv.addDefEqs_defeqs ..).mp registered with ⟨definition, _, impossible⟩ | old
+      · cases congrArg VDefEq.lhs impossible
+      · rw [VEnv.addConsts_defeqs added] at old
+        exact ((VEnv.addConsts_le added).trans (VEnv.addDefEqs_extension ..)).constants
+          (induction old)
     | «example» _ => exact induction registered
     | quot ready added => exact (quotientExtension added).1.constants ready
     | induct _ added =>

@@ -17,7 +17,6 @@ theorem run.preservesValues (nparams : Nat) (types : List InductiveType)
   apply Lean4Lean.AddInductive.readWF
   dsimp only
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.bindWF
   intro _
   apply checkInductiveTypes.frame
@@ -40,7 +39,6 @@ theorem run.preservesValues (nparams : Nat) (types : List InductiveType)
   apply Lean4Lean.AddInductive.bindWF
   intro isK
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   refine (declareRecursors.preservesValues stats types.toArray elimLevel infos ctx.lparams
     lctx isK _ source (by simpa only [hsource.env] using hconstructors.map_wf)).mono ?_
   intro result hrecursors
@@ -80,10 +78,13 @@ theorem Environment.addInductive.safePreservesValues (env : Environment) (lparam
     (Environment.addInductive env lparams nparams types false allowPrimitive fuel).WF
       (NativeValueFrame env) := by
   unfold Environment.addInductive
-  refine Except.WF.bind (Q := fun _ => True) (fun _ _ => trivial) ?_
+  refine (Environment.checkInductiveSources.WF env types).bind ?_
   intro _ _
   refine Except.WF.bind (Q := fun _ => True) (fun _ _ => trivial) ?_
-  intro preprocessing _
+  intro _ _
+  refine Except.WF.bind (Q := fun preprocessing =>
+    inductivePreprocessing env lparams nparams types fuel = .ok preprocessing) (fun _ hpre => hpre) ?_
+  intro preprocessing hpre
   dsimp only
   refine (AddInductive.run.preservesValues nparams preprocessing.types preprocessing.aux2nested.size
     (inductiveScopeContext env lparams allowPrimitive fuel) hwf).bind ?_
@@ -98,9 +99,10 @@ theorem Environment.addInductive.safePreservesValues (env : Environment) (lparam
           (fun _ hrecord => hrecord.value?_eq_none)
     dsimp only [restoreInductiveEnvironment, restoreInductiveDatatype, restoreInductiveConstructor,
       restoreInductiveRecursor, Lean4Lean.registerRestored, StateT.run] at hrestored
-    simpa only [StateT.run, ConstantInfo.name, ConstantInfo.toConstantVal,
+    simp only [StateT.run, ConstantInfo.name, ConstantInfo.toConstantVal,
       List.mapM_pure, pure_bind, panicWithPosWithDecl, panic, panicCore,
-      bind_assoc, Bool.false_eq_true, if_false] using hrestored
+      bind_assoc, Bool.false_eq_true, if_false] at hrestored ⊢
+    exact hrestored
 
 theorem addDecl.safeInductivePreservesValues (env : Environment) (lparams : List Name)
     (nparams : Nat) (types : List InductiveType) (check : Bool) (fuel : FuelConfig)

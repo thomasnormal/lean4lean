@@ -178,12 +178,12 @@ run_meta
   let common := [``TrProj, ``TrProj.weak', ``TrProj.defeqDFC, ``TrProj.uniq, ``TrProj.wf]
   let forallAdmissions := common ++ [``VEnv.IsDefEqU.weakN_iff, ``TrProj.weak'_inv]
   let lambdaAdmissions := forallAdmissions ++ [``TrProj.instN]
-  let letAdmissions := lambdaAdmissions
+  let letAdmissions := common ++ [``TrProj.instN]
   let forallAxioms := logic ++ native ++ [``Lean.Expr.instantiateRev_eq, ``Lean.Expr.instantiate_eq,
     ``Lean.Level.hasMVar_eq, ``Lean.Level.hasParam_eq, ``Lean.Level.instLawfulBEqLevel]
   let lambdaAxioms := logic ++ native ++ [``Lean.Expr.abstractRange_eq, ``Lean.Expr.abstract_eq,
     ``Lean.Expr.hasLooseBVar_eq, ``Lean.Expr.instantiateRev_eq, ``Lean.Expr.instantiate_eq,
-    ``Lean.Expr.looseBVarRange_eq, ``Lean.Expr.lowerLooseBVars_eq, ``Lean.Expr.mkAppRangeAux.eq_def]
+    ``Lean.Expr.looseBVarRange_eq, ``Lean.Expr.lowerLooseBVars_eq]
   let letAxioms := lambdaAxioms ++ [``Lean.Expr.eqv_eq, ``Lean.Level.instLawfulBEqLevel,
     ``Lean.Syntax.structEq_eq]
   for root in [``Inner.inferForall.WF, ``Inner.inferLambda.WF, ``Inner.inferLet.WF] do

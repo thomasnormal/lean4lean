@@ -9,16 +9,16 @@ example {environment : Kernel.Environment} {models : VEnvs} (wellFormed : models
     (declaration : Declaration)
     (notInductive : ∀ lparams nparams types isUnsafe,
       declaration ≠ .inductDecl lparams nparams types isUnsafe) :
-  (Lean4Lean.addDecl environment declaration true {}).WF fun result =>
-    ∃ models' : VEnvs, models'.WF result ∧
-      ∀ safety, models.venv safety ≤ models'.venv safety :=
+    (Lean4Lean.addDecl environment declaration true {}).WF fun result =>
+      ∃ models' : VEnvs, models'.WF result ∧
+        ∀ safety, models.venv safety ≤ models'.venv safety :=
   addDecl.WF wellFormed declaration notInductive
 
 example {environment : Kernel.Environment} {models : VEnvs} (wellFormed : models.WF environment) :
-  (Lean4Lean.addDecl environment .quotDecl).WF fun result =>
-    ∃ models' : VEnvs, models'.WF result ∧
-      ∀ safety, models.venv safety ≤ models'.venv safety :=
-  addDecl.WF wellFormed .quotDecl (by intros; simp)
+    (Lean4Lean.addDecl environment .quotDecl).WF fun result =>
+      ∃ models' : VEnvs, models'.WF result ∧
+        ∀ safety, models.venv safety ≤ models'.venv safety :=
+  addDecl.WF_noninductive wellFormed .quotDecl (by intros; simp)
 
 example {environment : Kernel.Environment} {models : VEnvs} (wellFormed : models.WF environment)
     (declarations : List Declaration)
@@ -76,7 +76,7 @@ private def nativeControls : MetaM Unit := do
     for name in [`FrontendProposition, `frontendProof, `FrontendOther] do
       let some before := initial.find? name | throwError "frontend prefix constant absent"
       let some after := final.find? name | throwError "actual frontend dropped an old constant"
-      unless before.type == after.type && before.value? == after.value? do
+      unless before.type == after.type && before.value? (allowOpaque := true) == after.value? (allowOpaque := true) do
         throwError "actual frontend changed an old type/value"
     for name in [`frontendDefinition, `frontendTheorem, `frontendOpaque, `frontendMutual] do
       unless (final.find? name).isSome do throwError "actual frontend dropped a new constant"
@@ -99,22 +99,22 @@ private def nativeControls : MetaM Unit := do
   for name in [``Quot, ``Quot.mk, ``Quot.lift, ``Quot.ind] do
     let some before := native.find? name | throwError "native quotient object absent"
     let some after := unchanged.find? name | throwError "initialized quotient object disappeared"
-    unless before.type == after.type && before.value? == after.value? do
+    unless before.type == after.type && before.value? (allowOpaque := true) == after.value? (allowOpaque := true) do
       throwError "initialized actual quotient frontend changed an object"
   logInfo m!"three actual checked non-inductive pipelines cover axioms, safe definitions, theorems, opaques and unsafe mutual definitions, old lookup/type/value preservation, wrong-proof and duplicate-name rejection, empty/nonempty quotient bootstrap rejection; native initialized quotient identity succeeds at zero callback depth outside the current TrEnv bootstrap fragment"
 
 run_meta
+  let theoremName := ``addDecl.WF_noninductive
+  let information ← getConstInfo theoremName
+  if information matches .axiomInfo _ then throwError "regular declaration theorem is an axiom"
+  let some proof := information.value? (allowOpaque := true) | throwError "regular declaration theorem proof missing"
+  if proof.hasSorry then throwError "regular declaration theorem has an admission"
   let baseline ← collectAxioms ``addDeclVerified.WF
-  for theoremName in [``addDecl.WF, ``addDecl.WF_noninductive] do
-    let information ← getConstInfo theoremName
-    if information matches .axiomInfo _ then throwError "regular declaration theorem is an axiom"
-    let some proof := information.value? (allowOpaque := true) | throwError "regular declaration theorem proof missing"
-    if proof.hasSorry then throwError "regular declaration theorem has an admission"
-    let dependencies ← collectAxioms theoremName
-    for dependency in dependencies do
-      unless baseline.contains dependency do
-        throwError "regular declaration theorem has unexpected dependency: {dependency}"
-  for theoremName in #[``checkEqType.no_success, ``Lean4Lean.Environment.addQuot.WF,
+  let dependencies ← collectAxioms theoremName
+  for dependency in dependencies do
+    unless baseline.contains dependency do
+      throwError "regular declaration theorem has unexpected dependency: {dependency}"
+  for theoremName in #[``addDecl.WF, ``checkEqType.WF, ``addQuot.WF,
       ``addDecl.foldlM_WF_noninductive, ``addDecl.fromEmpty_noninductive] do
     let information ← getConstInfo theoremName
     if information matches .axiomInfo _ then throwError "non-inductive frontend axiom: {theoremName}"
@@ -125,7 +125,7 @@ run_meta
       unless baseline.contains dependency do
         throwError "unexpected non-inductive frontend dependency: {dependency} in {theoremName}"
     logInfo m!"{theoremName}: {repr dependencies}"
-  logInfo m!"actual non-inductive declaration frontend, quotient worker and folds have no direct admission; inherited dependencies remain bounded by the verified frontend baseline; quotient bootstrap rejection follows from the existing TrEnv inductive exclusion, not a new caller restriction"
+  logInfo m!"actual non-inductive declaration frontend, quotient worker and folds have no direct admission; inherited dependencies = {repr dependencies}; quotient bootstrap rejection follows from the existing TrEnv inductive exclusion"
   nativeControls
 
 end NonInductiveDeclarationFrontendTest

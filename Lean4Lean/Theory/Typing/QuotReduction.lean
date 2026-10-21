@@ -283,7 +283,8 @@ theorem quotInd_beta {environment : VEnv} {locals : List VExpr} {universes : Nat
   simp [VExpr.inst_lift, VExpr.inst, VExpr.instVar] at inductionValue
   have minorValue := minorTyped.app valueTyped
   simp [VExpr.inst_lift, VExpr.inst, VExpr.instVar] at minorValue
-  exact .proofIrrel (by simpa only [VExpr.inst] using motiveTyped.app constructorValue)
-    inductionValue minorValue
+  have propositionTyped := motiveTyped.app constructorValue
+  simp only [VExpr.inst] at propositionTyped
+  exact .proofIrrel propositionTyped inductionValue minorValue
 
 end Lean4Lean.VEnv

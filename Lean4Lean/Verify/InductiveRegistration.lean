@@ -99,7 +99,6 @@ theorem run.safeConstructorRegistration (nparams : Nat) (types : List InductiveT
   dsimp only
   rw [hsafety]
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.bindWF
   intro _
   apply checkInductiveTypes.safeConstructorRegistration nparams types.toArray numNested _ ctx hwf

@@ -12,7 +12,7 @@ example (depth : Nat) : (Methods.withFuel depth).ScopeWF := Methods.withFuel.sco
 
 example {context : VContext} {state : VState}
     (translated : context.TrExprS expression semantic) :
-    ((Methods.withFuel depth).whnfCore expression cheapRec cheapProj).ScopeWF context state
+    ((Methods.withFuel depth).whnfCore expression cheapProj).ScopeWF context state
       (fun normalized _ => context.FVarsBelow expression normalized ∧
         context.TrExpr normalized semantic ∧ NativeHeadScoped context.lctx' normalized) :=
   Methods.withFuel.scopeWF.whnfCore translated
@@ -143,11 +143,11 @@ private def nativeControls : MetaM Unit := do
   let entries : Array Expr := #[literal, .const ``seven [], addition, projection,
     .mdata {} literal, .letE `value natural literal (.bvar 0) false,
     .app identity literal, .fvar aliasIdentifier]
-  let mut comparisonCount := 0
-  let mut initializedComparisonCount := 0
-  let mut entryCount := 0
-  let mut initializedHeadCount := 0
-  let mut universeCount := 0
+  let mut comparisonCount : Nat := 0
+  let mut initializedComparisonCount : Nat := 0
+  let mut entryCount : Nat := 0
+  let mut initializedHeadCount : Nat := 0
+  let mut universeCount : Nat := 0
   for safety in [DefinitionSafety.safe, .unsafe] do
     for eager in [false, true] do
       for fuel in [32, 128] do
@@ -196,8 +196,7 @@ private def nativeControls : MetaM Unit := do
               state := finalState
               entryCount := entryCount + 1
           let coreActions := [TypeChecker.whnfCore expression] ++
-            ([false, true].flatMap fun cheapRec => [false, true].map fun cheapProj =>
-              methods.whnfCore expression cheapRec cheapProj)
+            ([false, true].map fun cheapProj => methods.whnfCore expression cheapProj)
           for action in coreActions do
             let mut state : State := {}
             for _ in [:2] do
@@ -238,12 +237,12 @@ private def nativeControls : MetaM Unit := do
   let context : Context := { env := environment, lctx := locals }
   let zero := Methods.withFuel 0
   unless !(zero.isDefEqCore literal literal context {}).isOk &&
-      !(zero.whnf literal context {}).isOk && !(zero.whnfCore literal false false context {}).isOk &&
+      !(zero.whnf literal context {}).isOk && !(zero.whnfCore literal false context {}).isOk &&
       !(zero.inferType literal true context {}).isOk do throwError "zero method fields unexpectedly succeed"
   let zeroContext : Context := { context with fuel := { recDepth := 0 } }
   unless !(TypeChecker.isDefEq literal literal zeroContext {}).isOk &&
       !(TypeChecker.whnf literal zeroContext {}).isOk && !(TypeChecker.whnfCore literal zeroContext {}).isOk &&
-      !(TypeChecker.inferType literal zeroContext {}).isOk && !(TypeChecker.checkType literal zeroContext {}).isOk do
+      !(TypeChecker.inferType literal true zeroContext {}).isOk && !(TypeChecker.checkType literal zeroContext {}).isOk do
     throwError "configured zero-depth public entries unexpectedly succeed"
   unless !(M.run environment .safe {} [] { recDepth := 0 } (TypeChecker.whnf literal)).isOk do
     throwError "cold initialized zero-depth normalization unexpectedly succeeds"
@@ -254,7 +253,7 @@ private def nativeControls : MetaM Unit := do
   let .ok (_, poisonedFinal) := (Methods.withFuel 1).isDefEqCore literal literal context poisoned
     | throwError "scoped method cache-premise control rejected"
   unless !stableCaches locals poisonedFinal do throwError "scoped method cache premise disappeared"
-  logInfo m!"{comparisonCount} actual typed cold/warm bidirectional dispatcher/method/public comparisons, {entryCount} method/public inference/checking/core/full entries, {initializedComparisonCount} cold-initialized comparisons, {initializedHeadCount} cold-initialized full heads and {universeCount} polymorphic cold/warm comparisons preserve expected results and scoped caches; both safeties/eager modes, fuels 32/128 and all cheap flags; Boolean shortcut reader policy, universe-equivalent constant levels, proof/eta/unit helpers, primitives, aliases, metadata, lets, beta and projections covered; all zero method fields, configured public entries and cold normalization reject, actual depth-one pure comparison succeeds, poisoned-cache premise retained; arbitrary-fuel Methods.ScopeWF is now formally derived from the actual recursive workers, not fabricated; inherited semantic/native foundations remain explicit"
+  logInfo m!"{comparisonCount} actual typed cold/warm bidirectional dispatcher/method/public comparisons, {entryCount} method/public inference/checking/core/full entries, {initializedComparisonCount} cold-initialized comparisons, {initializedHeadCount} cold-initialized full heads and {universeCount} polymorphic cold/warm comparisons preserve expected results and scoped caches; both safeties/eager modes, fuels 32/128 and both cheap-projection flags; Boolean shortcut reader policy, universe-equivalent constant levels, proof/eta/unit helpers, primitives, aliases, metadata, lets, beta and projections covered; all zero method fields, configured public entries and cold normalization reject, actual depth-one pure comparison succeeds, poisoned-cache premise retained; arbitrary-fuel Methods.ScopeWF is now formally derived from the actual recursive workers, not fabricated; inherited semantic/native foundations remain explicit"
 
 run_meta
   let environment ← getEnv
@@ -266,7 +265,7 @@ run_meta
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
     ``Lean.PersistentArray.toList'_push]
   logInfo m!"existing semantic arbitrary-fuel method baseline: {repr baseline}"
-  let mut owned := 0
+  let mut owned : Nat := 0
   for (name, information) in environment.constants do
     if environment.getModuleIdxFor? name == some moduleIndex then
       if information matches .axiomInfo _ then throwError "owned scoped methods axiom {name}"

@@ -91,10 +91,10 @@ theorem checkInductiveTypes.loopInd.loop.scopedTrace (nparams fuel : Nat) (stats
           apply bindHeaderResultWF
           intro equal hequal
           split
-          · apply Lean4Lean.AddInductive.bindWF
-            intro _
-            have heq : equal = true := by simpa using ‹equal = true›
+          · have heq : equal = true := by simpa using ‹equal = true›
             subst equal
+            change (((monadLift (TypeChecker.whnf (body.instantiate1 stats.params[index]!)) : M Expr) ctx >>= fun normalized =>
+              checkInductiveTypes.loopInd.loop nparams stats normalized (index + 1) nindices fuel next ctx).WF post)
             apply bindHeaderResultWF
             intro normalized hnormalized
             apply ih
@@ -333,14 +333,18 @@ private theorem checkedHeader_loopInd_traces (nparams : Nat) (types : Array Indu
       refine ⟨ctx, stats, inferred, normalized, terminal, finalStats, current, sorted,
         hframe, ?_, ?_, ?_, hsizes.indices, hsizes.constants, hsizes.params, htrace, rfl, hsort,
         .refl current hcurrent.wf hcurrent.reserved⟩
-      · simpa only [getElem!_pos types processed hprocessed] using hguard
+      · simpa only [getElem!_pos types processed hprocessed, liftM, monadLift,
+          MonadLift.monadLift, StateT.run, ReaderT.run, ExceptT.run] using hguard
       · simpa only [getElem!_pos types processed hprocessed] using hinferred
       · simpa only [getElem!_pos types processed hprocessed] using hnormalized
     split
     · apply Lean4Lean.AddInductive.readWF
-      apply Lean4Lean.AddInductive.bindWF
-      intro _
-      apply checkedHeader_loopInd_traces nparams types next (processed + 1) _ original current post
+      apply checkedHeader_loopInd_traces nparams types next (processed + 1)
+        { lctx := current.lctx, levels := finalStats.levels, resultLevel := sorted.sortLevel!,
+          nindices := finalStats.nindices.push count,
+          indConsts := finalStats.indConsts.push (Expr.const types[processed].name finalStats.levels),
+          params := finalStats.params, isNotZero := sorted.sortLevel!.isNeverZero }
+        original current post
       · omega
       · exact hcurrent.wf
       · exact hcurrent.reserved
@@ -357,9 +361,12 @@ private theorem checkedHeader_loopInd_traces (nparams : Nat) (types : Array Indu
       · exact hnext
     · split
       · exact Except.WF.throw
-      · apply Lean4Lean.AddInductive.bindWF
-        intro _
-        apply checkedHeader_loopInd_traces nparams types next (processed + 1) _ original current post
+      · apply checkedHeader_loopInd_traces nparams types next (processed + 1)
+          { lctx := finalStats.lctx, levels := finalStats.levels, resultLevel := finalStats.resultLevel,
+            nindices := finalStats.nindices.push count,
+            indConsts := finalStats.indConsts.push (Expr.const types[processed].name finalStats.levels),
+            params := finalStats.params, isNotZero := finalStats.isNotZero }
+          original current post
         · omega
         · exact hcurrent.wf
         · exact hcurrent.reserved

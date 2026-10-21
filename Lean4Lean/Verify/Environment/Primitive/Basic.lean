@@ -381,6 +381,29 @@ theorem VExpr.liftN_subst_consN : ∀ {vs : List VExpr} {e : VExpr} {γ : VExpr.
       VExpr.liftN_subst_consN (vs := vs) (e := VExpr.liftN 1 e) (γ := γ.cons v)]
     simp [VExpr.lift_subst]
 
+/-- Closing cancels weakening beneath any number of retained binders. -/
+theorem VExpr.Subst.lift_l_consN_liftN (vs : List VExpr) (γ : VExpr.Subst) (k : Nat) :
+    ((γ.consN vs).liftN k).lift_l (.consN (.skipN .refl vs.length) k) = γ.liftN k := by
+  induction k with
+  | zero =>
+    funext i
+    simp only [VExpr.Subst.liftN, Lift.consN, VExpr.Subst.lift_l, Lift.liftVar_skipN,
+      Lift.liftVar]
+    simpa [Nat.add_comm] using VExpr.Subst.consN_add vs γ i
+  | succ k ih =>
+    change ((γ.consN vs).liftN k).lift.lift_l
+      (Lift.consN (Lift.skipN .refl vs.length) k).cons = (γ.liftN k).lift
+    rw [← VExpr.Subst.lift_l_lift, ih]
+
+theorem VExpr.liftN_subst_consN_liftN (e : VExpr) (vs : List VExpr) (k : Nat) :
+    (e.liftN vs.length k).subst ((VExpr.Subst.id.consN vs).liftN k) = e := by
+  rw [VExpr.liftN_subst, VExpr.Subst.lift_l_consN_liftN]
+  have identity : VExpr.Subst.id.liftN k = VExpr.Subst.id := by
+    induction k with
+    | zero => rfl
+    | succ k ih => simpa only [VExpr.Subst.liftN, ih, VExpr.id_lift]
+  rw [identity, VExpr.subst_id]
+
 /-- Closing a telescope's variables is closing at its arguments: the variables translate to
 `bvar 0, bvar 1, …` innermost-first, so read off in telescope order they are the reversed range,
 and `consN` sends them to the arguments in that same order. -/
@@ -505,6 +528,53 @@ theorem VExpr.ArgsTyped.substEq {env : VEnv} {U} {Γ₀ : List VExpr} :
     obtain ⟨u, hAu⟩ : env.IsType U Γ A := (OnCtx.of_append hctx).2
     have hσ' : VEnv.Ctx.SubstEq env U Γ₀ (σ.cons _) (σ.cons _) (A :: Γ) := .cons hσ hAu hv
     exact ih hctx hσ' hargs
+
+theorem VExpr.ArgsTyped.length_eq (arguments : VExpr.ArgsTyped env U Γ As σ vs) :
+    As.length = vs.length := by
+  induction arguments with
+  | nil => rfl
+  | cons _ _ ih => exact congrArg Nat.succ ih
+
+/-- Remove a telescope using actual typed arguments. Closed syntax alone does not
+justify inverse weakening; the arguments supply the missing inhabitants. -/
+theorem VEnv.IsDefEq.weakN_inv_of_argsTyped {env : VEnv} (henv : env.Ordered)
+    (hctx : OnCtx (As.reverse ++ Γ) (env.IsType U))
+    (arguments : VExpr.ArgsTyped env U Γ As .id vs)
+    (equal : env.IsDefEq U (As.reverse ++ Γ)
+      (first.liftN vs.length) (second.liftN vs.length) (type.liftN vs.length)) :
+    env.IsDefEq U Γ first second type := by
+  have hΓ := OnCtx.of_append hctx
+  have closing := arguments.substEq hctx (VEnv.Ctx.SubstEq.id henv hΓ)
+  simpa only [VExpr.liftN_subst_consN, VExpr.subst_id] using equal.subst henv closing hΓ
+
+theorem VEnv.HasType.weakN_inv_of_argsTyped {env : VEnv} (henv : env.Ordered)
+    (hctx : OnCtx (As.reverse ++ Γ) (env.IsType U))
+    (arguments : VExpr.ArgsTyped env U Γ As .id vs)
+    (typed : env.HasType U (As.reverse ++ Γ)
+      (expression.liftN vs.length) (type.liftN vs.length)) :
+    env.HasType U Γ expression type :=
+  VEnv.IsDefEq.weakN_inv_of_argsTyped henv hctx arguments typed
+
+/-- The same retraction beneath a retained binder, whose domain may depend on Γ. -/
+theorem VEnv.IsDefEqU.weakN_inv_of_argsTyped_under {env : VEnv} (henv : env.Ordered)
+    (hctx : OnCtx (As.reverse ++ Γ) (env.IsType U))
+    (arguments : VExpr.ArgsTyped env U Γ As .id vs)
+    (domainTyped : env.HasType U Γ domain (.sort u))
+    (equal : env.IsDefEqU U (domain.liftN vs.length :: (As.reverse ++ Γ))
+      (first.liftN vs.length 1) (second.liftN vs.length 1)) :
+    env.IsDefEqU U (domain :: Γ) first second := by
+  have hΓ := OnCtx.of_append hctx
+  have closing := arguments.substEq hctx (VEnv.Ctx.SubstEq.id henv hΓ)
+  have domainExtended := domainTyped.weakN henv
+    (Ctx.LiftN.zero As.reverse (by simpa using arguments.length_eq))
+  have retained := closing.lift henv domainExtended
+  simp only [VExpr.liftN_subst_consN, VExpr.subst_id] at retained
+  have result := equal.subst henv retained
+    (show OnCtx (domain :: Γ) (env.IsType U) from ⟨hΓ, _, domainTyped⟩)
+  change env.IsDefEqU U (domain :: Γ)
+    ((first.liftN vs.length 1).subst ((VExpr.Subst.id.consN vs).liftN 1))
+    ((second.liftN vs.length 1).subst ((VExpr.Subst.id.consN vs).liftN 1)) at result
+  simpa only [VExpr.liftN_subst_consN_liftN] using result
 
 /-- A lambda telescope is well typed when its body is. Needed because closing a *second* term at
 an already-built substitution cannot re-derive the binder typings from the application's own
@@ -894,6 +964,119 @@ theorem MLCtx.mkLambda_natBinderTypes {env : VEnv} {Us : List Name} :
     have := MLCtx.dropN_toCtx_length (n := n) (hn := Nat.le_of_succ_le_succ hn)
     rw [hctx] at this; simp [hlen] at this; omega
 
+/-- Close an unused free binder at an actual typed native witness. The abstraction
+and instantiation leave the source syntax unchanged, while the model is substituted.
+Projection translation retains its existing definition, weakening and instantiation obligations. -/
+theorem TrExprS.close_unused_fvar (henv : env.Ordered)
+    (witness : TrExprS env Us Δ₀ value value')
+    (typed : env.HasType Us.length Δ₀.toCtx value' domain)
+    (opening : VLCtx.Abstract Δ₀ removed (.vlam domain) dk k Δ₁ Δ₂)
+    (closing : VLCtx.InstN Δ₀ value' domain dk k Δ₂ Δ)
+    (source : TrExprS env Us Δ₁ expression expression')
+    (closed : Closed expression dk) (unused : FVarsIn (· ≠ removed) expression) :
+    TrExprS env Us Δ expression (expression'.inst value' k) := by
+  have result := witness.instN henv typed closing (source.abstract opening)
+  rwa [unused.abstract_eq_self closed,
+    Expr.instantiate1'_eq_self closed.looseBVarRange_le] at result
+
+/-- Replace an unused native free variable by a witness in the same context.
+Unlike closing the binder, this only needs the witness at the lifted domain.
+The abstraction/weakening/instantiation construction follows upstream PR #53's
+fuel-successor proof, factored here for arbitrary typed replacements. -/
+theorem TrExprS.replace_unused_fvar (henv : env.Ordered)
+    (context : VLCtx.WF env Us.length ((some (removed, support), .vlam domain) :: Δ))
+    (witness : TrExprS env Us ((some (removed, support), .vlam domain) :: Δ) value value')
+    (typed : env.HasType Us.length (VLCtx.toCtx ((some (removed, support), .vlam domain) :: Δ))
+      value' domain.lift)
+    (source : TrExprS env Us ((some (removed, support), .vlam domain) :: Δ)
+      expression expression')
+    (closed : Closed expression) (unused : FVarsIn (· ≠ removed) expression) :
+    TrExprS env Us ((some (removed, support), .vlam domain) :: Δ)
+      expression ((expression'.liftN 1 1).inst value') := by
+  have abstracted := source.abstract (v₀ := removed) .zero
+  rw [unused.abstract_eq_self closed] at abstracted
+  have headTyped : env.HasType Us.length
+      (VLCtx.toCtx ((some (removed, support), .vlam domain) :: Δ)) (.bvar 0) domain.lift :=
+    .bvar .zero
+  have extended : VLCtx.WF env Us.length
+      ((none, .vlam domain.lift) :: (some (removed, support), .vlam domain) :: Δ) :=
+    ⟨context, nofun, headTyped.isType henv context.toCtx⟩
+  have weakened := abstracted.weakFV henv
+    (.cons_bvar (.vlam domain) (.skip_fvar _ (.vlam domain) .refl)) extended
+  have result := witness.instN henv typed .zero weakened
+  rwa [Expr.instantiate1'_eq_self closed.looseBVarRange_le] at result
+
+/-- Substitution after replacing the head variable. Ported from upstream PR #53;
+closing the replacement in the retained context extends the same tail. -/
+theorem VExpr.liftN_one_one_inst_subst_cons {e u k : VExpr} {B : VExpr.Subst} :
+    ((e.liftN 1 1).inst u).subst (B.cons k) = e.subst (B.cons (u.subst (B.cons k))) := by
+  rw [VExpr.inst_eq, VExpr.subst_subst, VExpr.liftN_subst]
+  congr 1; funext i; cases i <;>
+    simp [VExpr.Subst.lift_l, VExpr.Subst.comp, VExpr.Subst.cons, Lift.consN, Lift.skipN,
+      Lift.liftVar, VExpr.Subst.id]
+
+/-- Close the guard-certified Nat telescope in a translation of source syntax
+that uses only the remaining context. Every removed binder is instantiated at zero. -/
+theorem MLCtx.WF.dropNat_trS {env : VEnv} {Us : List Name}
+    (henv : env.Ordered) (hprim : env.HasPrimitives) (hnat : env.contains ``Nat) :
+    ∀ {n : Nat} {m : MLCtx} {hn : n ≤ m.length} {expression : Expr} {expression' : VExpr},
+      MLCtx.WF env Us m →
+      m.vlctx.toCtx = List.replicate n VExpr.nat ++ (m.dropN n hn).vlctx.toCtx →
+      TrExprS env Us m.vlctx expression expression' → Closed expression 0 →
+      FVarsIn (· ∈ (m.dropN n hn).vlctx.fvars) expression →
+      ∃ result, TrExprS env Us (m.dropN n hn).vlctx expression result
+  | 0, _, _, _, _, _, _, source, _, _ => ⟨_, source⟩
+  | n+1, .vlam x name ty tyv bi m, hn, expression, _, wf, domains, source, closed, hscope => by
+    simp only [MLCtx.vlctx, VLCtx.toCtx, List.replicate_succ, List.cons_append,
+      List.cons.injEq, MLCtx.dropN] at domains
+    obtain ⟨rfl, domains⟩ := domains
+    have unused : FVarsIn (· ≠ x) expression := hscope.mono fun fv member equal => by
+      subst fv
+      exact wf.1.tr.find?_eq_none.1 wf.2.1 (m.dropN_fvars_subset _ _ member)
+    have zero := TrExprS.natLit (Us := Us) (Δ := m.vlctx) hprim hnat 0
+    have smaller := TrExprS.close_unused_fvar henv zero.1 zero.2 .zero .zero
+      source closed unused
+    exact MLCtx.WF.dropNat_trS henv hprim hnat (n := n) (m := m)
+      (hn := Nat.le_of_succ_le_succ hn) wf.1 domains smaller closed hscope
+  | n+1, .vlet .., hn, _, _, _, domains, _, _, _ => by
+    simp only [MLCtx.vlctx, VLCtx.toCtx, MLCtx.dropN] at domains
+    have bound := MLCtx.dropN_toCtx_length (n := n) (hn := Nat.le_of_succ_le_succ hn)
+    rw [domains] at bound
+    simp only [List.length_append, List.length_replicate] at bound
+    omega
+
+/-- The same closing beneath a retained native binder. Its domain is a lifted
+base type and may depend on the remaining context. -/
+theorem MLCtx.WF.dropNat_trS_under {env : VEnv} {Us : List Name}
+    (henv : env.Ordered) (hprim : env.HasPrimitives) (hnat : env.contains ``Nat) :
+    ∀ {n : Nat} {m : MLCtx} {hn : n ≤ m.length} {expression : Expr} {expression' domain : VExpr},
+      MLCtx.WF env Us m →
+      m.vlctx.toCtx = List.replicate n VExpr.nat ++ (m.dropN n hn).vlctx.toCtx →
+      TrExprS env Us ((none, .vlam (domain.liftN n)) :: m.vlctx) expression expression' →
+      Closed expression 1 → FVarsIn (· ∈ (m.dropN n hn).vlctx.fvars) expression →
+      ∃ result, TrExprS env Us ((none, .vlam domain) :: (m.dropN n hn).vlctx) expression result
+  | 0, _, _, _, _, _, _, _, source, _, _ =>
+    ⟨_, by simpa only [MLCtx.dropN, VExpr.liftN_zero] using source⟩
+  | n+1, .vlam x name ty tyv bi m, hn, expression, _, domain, wf, domains, source, closed, hscope => by
+    simp only [MLCtx.vlctx, VLCtx.toCtx, List.replicate_succ, List.cons_append,
+      List.cons.injEq, MLCtx.dropN] at domains
+    obtain ⟨rfl, domains⟩ := domains
+    have unused : FVarsIn (· ≠ x) expression := hscope.mono fun fv member equal => by
+      subst fv
+      exact wf.1.tr.find?_eq_none.1 wf.2.1 (m.dropN_fvars_subset _ _ member)
+    have zero := TrExprS.natLit (Us := Us) (Δ := m.vlctx) hprim hnat 0
+    have smaller := TrExprS.close_unused_fvar henv zero.1 zero.2 (.succ .zero) (.succ .zero)
+      source closed unused
+    simp only [VLocalDecl.inst, VExpr.inst_liftN'] at smaller
+    exact MLCtx.WF.dropNat_trS_under henv hprim hnat (n := n) (m := m)
+      (hn := Nat.le_of_succ_le_succ hn) wf.1 domains smaller closed hscope
+  | n+1, .vlet .., hn, _, _, _, _, domains, _, _, _ => by
+    simp only [MLCtx.vlctx, VLCtx.toCtx, MLCtx.dropN] at domains
+    have bound := MLCtx.dropN_toCtx_length (n := n) (hn := Nat.le_of_succ_le_succ hn)
+    rw [domains] at bound
+    simp only [List.length_append, List.length_replicate] at bound
+    omega
+
 theorem lambdaTelescope.loop.WF {c : VContext} {α} {k : Array Expr → Expr → M α}
     {Q : α → VState → Prop} {s₀ : VState} {m₀ : MLCtx} [c.MLCWF m₀] {e₀ : Expr} {e₀' : VExpr}
     (H : ∀ (fvs : Array Expr) {m' : MLCtx} [c.MLCWF m'] {s' : VState} {body} body'
@@ -914,7 +1097,14 @@ theorem lambdaTelescope.loop.WF {c : VContext} {α} {k : Array Expr → Expr →
     revert hinv
     let .lam (ty' := domv) (body' := body') domty hdom hbody := Expr.instantiateList_lam ▸ he
     intro hinv
-    rw [Expr.instantiateRev_eq_instantiateList]
+    have hscope : ∀ replacement ∈ arr, replacement.looseBVarRange' = 0 := by
+      intro replacement member
+      have member' : replacement ∈ arr.toList := Array.mem_toList_iff.mpr member
+      have member'' : replacement ∈ arr.toList.reverse := List.mem_reverse.mpr member'
+      rw [harr] at member''
+      obtain ⟨_, _, rfl⟩ := List.mem_map.mp member''
+      rfl
+    rw [Expr.instantiateRev_eq_instantiateList hscope]
     refine M.WF.withLocalDecl hdom domty hs fun fv cwf' s' hs' _ => ?_
     have hinst : Expr.instantiateList body ((arr.push (Expr.fvar fv)).toList.reverse)
         = (Expr.instantiateList body arr.toList.reverse 1).instantiate1' (.fvar fv) := by
@@ -945,7 +1135,14 @@ theorem lambdaTelescope.loop.WF {c : VContext} {α} {k : Array Expr → Expr →
         h.weakFV c.Ewf.ordered (.skip_fvar _ _ .refl) cwf'.wf.tr.wf)
     · exact hinv.lams
     · rw [hinst]; exact hbody.inst_fvar c.Ewf.ordered cwf'.wf.tr.wf
-  · simp only [Expr.instantiateRev_eq_instantiateList]
+  · have hscope : ∀ replacement ∈ arr, replacement.looseBVarRange' = 0 := by
+      intro replacement member
+      have member' : replacement ∈ arr.toList := Array.mem_toList_iff.mpr member
+      have member'' : replacement ∈ arr.toList.reverse := List.mem_reverse.mpr member'
+      rw [harr] at member''
+      obtain ⟨_, _, rfl⟩ := List.mem_map.mp member''
+      rfl
+    simp only [Expr.instantiateRev_eq_instantiateList hscope]
     rename_i hne
     exact H _ _ hn hs hdrop harr he₀ hinv
       (by rw [harity, Expr.lambdaArity_eq_zero hne]; rfl) he

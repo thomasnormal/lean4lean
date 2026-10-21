@@ -8,6 +8,11 @@ open private Lean4Lean.Aligned.constants_eq_none from Lean4Lean.Verify.Inductive
 open private Lean4Lean.boolInductDecl.tr Lean4Lean.natInductDecl.tr
   from Lean4Lean.Verify.Inductive
 
+private theorem forall₂_mono {α β : Type} {R S : α → β → Prop}
+    (h : ∀ a b, R a b → S a b) : ∀ {as bs}, List.Forall₂ R as bs → List.Forall₂ S as bs
+  | _, _, .nil => .nil
+  | _, _, .cons hhead htail => .cons (h _ _ hhead) (forall₂_mono h htail)
+
 private theorem registerConstructorHeaders.WF {safety : DefinitionSafety}
     {env : Kernel.Environment} {venv : VEnv} {lparams : List Name}
     {ctors : List Constructor} {headers : List VConstVal} (index : Nat) (allowPrimitive : Bool)
@@ -29,17 +34,20 @@ private theorem registerConstructorHeaders.WF {safety : DefinitionSafety}
     | cons hctor hrest =>
       rename_i header headers
       simp only [List.foldlM_cons, bind_assoc, pure_bind]
-      refine (checkName.WF env ctor.name allowPrimitive).bind fun _ ⟨hfresh, _⟩ => ?_
+      refine (checkName.WF haligned.map_wf ctor.name allowPrimitive).bind fun _ ⟨hfresh, _⟩ => ?_
       obtain ⟨hname, hinfo⟩ := hmap venv index ctor header hctor
+      have hfresh' : env.constants.find? ctor.name = none := by
+        simpa only [Kernel.Environment.find?, haligned.map_wf.find?'_eq_find?] using hfresh
       have hvfresh : venv.constants header.name = none :=
-        hctor.1 ▸ haligned.constants_eq_none hfresh
+        hctor.1 ▸ haligned.constants_eq_none hfresh'
       obtain ⟨next, hstep⟩ : ∃ next, venv.addConst header.name header.toVConstant = some next := by
         simp [VEnv.addConst, hvfresh]
       have hnext := haligned.const
-        (by simpa [ConstantInfo.name, ConstantInfo.toConstantVal, hname, hctor.1] using hfresh) hinfo
+        (by simpa [ConstantInfo.name, ConstantInfo.toConstantVal, hname, hctor.1] using hfresh') hinfo
         (hname.symm ▸ hstep) rfl
       have hle := VEnv.addConst_le hstep
-      refine (ih (index + 1) hnext (hrest.imp fun _ _ htr => htr.mono hle)).mono ?_
+      refine (ih (index + 1) hnext
+        (forall₂_mono (fun _ _ htr => htr.mono hle) hrest)).mono ?_
       intro state hresult
       obtain ⟨venv', hadd, haligned'⟩ := hresult
       exact ⟨venv', by simpa [VEnv.addConstructorHeaders, hstep] using hadd, haligned'⟩
@@ -74,7 +82,8 @@ private theorem registerConstructorTypes.WF {safety : DefinitionSafety}
       obtain ⟨next, hstep, hnext⟩ := hresult
       have hle := VEnv.addConstructorHeaders.le hstep
       refine (ih hnext
-        (hrest.imp fun _ _ hctors => hctors.imp fun _ _ htr => htr.mono hle)).mono ?_
+        (forall₂_mono (fun _ _ hctors =>
+          forall₂_mono (fun _ _ htr => htr.mono hle) hctors) hrest)).mono ?_
       intro env' hresult
       obtain ⟨venv', hadd, haligned'⟩ := hresult
       exact ⟨venv', by simpa [List.flatMap_cons, VEnv.addConstructorHeaders.append, hstep]
@@ -153,8 +162,10 @@ theorem AddInductive.declareConstructors.preservesValues (ctx : AddInductive.Con
   refine Except.WF.bind ?_ (fun state hframe => .pure hframe)
   apply NativeValueFrame.foldlM Prod.snd _ _ _ hmap
   intro ctor state hmap
-  refine (checkName.WF state.2 ctor.name ctx.allowPrimitive).bind fun _ ⟨hfresh, _⟩ => ?_
-  exact .pure (NativeValueFrame.addConst hmap hfresh rfl)
+  refine (checkName.WF hmap ctor.name ctx.allowPrimitive).bind fun _ ⟨hfresh, _⟩ => ?_
+  exact .pure (NativeValueFrame.addConst hmap
+    (by simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name,
+      ConstantInfo.toConstantVal] using hfresh) rfl)
 
 theorem AddInductive.declareConstructors.refinesChecker (ctx : AddInductive.Context)
     (stats : AddInductive.InductiveStats) (indTypes : Array InductiveType) (isUnsafe : Bool)
@@ -277,7 +288,7 @@ theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorWF
       (fun header hmem => (htypes header hmem).2)).bind ?_
     rintro nativeHeaders ⟨headerEnv, haddHeaders, headerWF, headerAligned⟩
     have htr := htranslation headerEnv haddHeaders
-    have ctorModels := htr.2.2.imp fun _ _ translated => translated.2.2.2
+    have ctorModels := forall₂_mono (fun _ _ translated => translated.2.2.2) htr.2.2
     refine (show (checkConstructors types.toArray stats isUnsafe
       { current with env := nativeHeaders }).WF (fun _ => True) from fun _ _ => trivial).bind ?_
     intro _ _
@@ -293,7 +304,7 @@ theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorWF
   cases hdecl with
   | bool =>
     refine (register boolInductDecl DefinitionSafety.le_safe
-      (by simpa only [huniverses] using
+      (by simpa [huniverses, boolInductDecl] using
         (List.Forall₂.cons ⟨rfl, rfl, TrExprS.sort rfl⟩ List.Forall₂.nil))
       boolInductDecl.headersWF
       (fun headerEnv hadd => by
@@ -304,7 +315,7 @@ theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorWF
       by simpa only [huniverses] using result⟩
   | nat binderName binderInfo =>
     refine (register natInductDecl DefinitionSafety.le_safe
-      (by simpa only [huniverses] using
+      (by simpa [huniverses, natInductDecl] using
         (List.Forall₂.cons ⟨rfl, rfl, TrExprS.sort rfl⟩ List.Forall₂.nil))
       natInductDecl.headersWF
       (fun headerEnv hadd => by

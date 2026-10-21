@@ -165,7 +165,7 @@ theorem ConstructorConstantRegistration.constructorConstant
   refine ⟨constructor, member, (registration.metadata type typeMember index source sourceGet).1, ?_, ?_⟩
   · simpa only [translated.1] using registration.constants member
   · refine ⟨?_, translated.2.1, translated.2.2.mono registration.increase⟩
-    simpa only [declareConstructors.metadataVal, ConstantInfo.safety, ConstantInfo.isUnsafe,
+    simpa [declareConstructors.metadataVal, ConstantInfo.safety, ConstantInfo.isUnsafe,
       ConstantInfo.isPartial] using registration.safetyBound
 
 theorem checkInductiveTypes.constructorConstantContinuation
@@ -238,7 +238,6 @@ theorem run.constructorConstantContinuation (nparams : Nat) (types : List Induct
   apply Lean4Lean.AddInductive.readWF
   dsimp only
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.bindWF
   intro _
   exact checkInductiveTypes.constructorConstantContinuation nparams types.toArray numNested

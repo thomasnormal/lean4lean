@@ -186,7 +186,7 @@ run_meta
   unless environment.getModuleIdxFor? ``TrProj == some projectionModule do
     throwError "rule staging: projection foundation provenance changed"
   for (name, expected) in [( ``TrProj, [``sorryAx]), (``TrExprS.rec, inherited),
-      (``TrExprS.const, inherited), (``TrExprS.mono, inherited)] do
+      (``TrExprS.const, []), (``TrExprS.mono, inherited)] do
     let actual ← collectAxioms name
     unless actual.size == expected.length && expected.all actual.contains do
       throwError "rule staging: inherited foundation dependency set changed for {name}"

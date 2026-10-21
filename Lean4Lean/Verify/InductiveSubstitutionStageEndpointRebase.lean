@@ -49,7 +49,7 @@ theorem TrExprS.strengthenSubstitutionStageEndpointRebased
       closed supported argumentEquality
   have targetDomainTyped : env.HasType universes.length target.toCtx
       (reducedDomain.lift' insertionLift) (.sort domainLevel) := by
-    simpa only [VExpr.lift'] using reducedDomainTyped.weak' envWF.ordered insertion.toCtx
+    simpa only [VExpr.lift', Lift.consN] using reducedDomainTyped.weak' envWF.ordered insertion.toCtx
   have targetBodyWF : VLCtx.WF env universes.length
       ((none, .vlam (reducedDomain.lift' insertionLift)) :: target) :=
     ⟨targetWF, nofun, domainLevel, targetDomainTyped⟩
@@ -57,11 +57,11 @@ theorem TrExprS.strengthenSubstitutionStageEndpointRebased
     (insertion.cons_bvar (.vlam reducedDomain)) targetBodyWF
   have targetBodyTyped : env.HasType universes.length ((reducedDomain.lift' insertionLift) :: target.toCtx)
       (reducedBody.lift' insertionLift.cons) (.sort level) := by
-    simpa only [VExpr.lift'] using reducedBodyTyped.weak' envWF.ordered insertion.toCtx.cons
+    simpa only [VExpr.lift', Lift.consN] using reducedBodyTyped.weak' envWF.ordered insertion.toCtx.cons
   have targetArgumentTyped := reducedArgumentTyped.weak' envWF.ordered insertion.toCtx
   have targetEndpointTyped : env.HasType universes.length target.toCtx
       ((reducedBody.lift' insertionLift.cons).inst (reducedArgument.lift' insertionLift)) (.sort level) := by
-    simpa only [VExpr.lift'_inst_hi, VExpr.lift'] using reducedEndpointTyped.weak' envWF.ordered insertion.toCtx
+    simpa only [VExpr.lift'_inst_hi, VExpr.lift', Lift.consN] using reducedEndpointTyped.weak' envWF.ordered insertion.toCtx
   exact ⟨reducedBody, bodyWeakening, bodyContexts, reducedDomainTyped, reducedBodyTranslation,
     reducedBodyTyped, bodyEquality, reducedArgumentTyped, reducedEndpointTyped, endpointEquality,
     targetBodyTranslation, targetBodyTyped, targetArgumentTyped, targetEndpointTyped⟩

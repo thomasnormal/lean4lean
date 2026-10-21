@@ -33,7 +33,9 @@ theorem ParameterPrefix.insertion (parameters : ParameterPrefix base source iden
     VLCtx.FVLift' base.vlctx source.vlctx 0 (.skipN .refl identifiers.length) 0 := by
   induction parameters with
   | nil => exact .refl
-  | snoc _ induction => simpa using VLCtx.FVLift'.skip_fvar _ _ induction
+  | snoc _ induction =>
+    simp only [List.length_append, List.length_singleton, Lift.skipN]
+    exact VLCtx.FVLift'.skip_fvar _ (.vlam _) induction
 
 theorem ParameterPrefix.arguments (parameters : ParameterPrefix base source identifiers)
     (envWF : env.WF) (sourceWF : source.WF env universes) (resultType : VExpr) :
@@ -219,7 +221,7 @@ private theorem withParams.loop.typedContext
       simp only [Expr.instantiate1_eq]
       refine induction opened (identifiers ++ [(⟨state.ngen.curr⟩ : FVarId)]) (.snoc parameters) openedWF _ _
         (bodyTranslated.inst_fvar envWF.ordered openedWF.tr.wf) bodyTyped
-        (by simpa only [List.length_append, List.length_singleton, MLCtx.mkForall'] using reconstruction)
+        (by simpa only [List.length_append, List.length_singleton, opened, MLCtx.mkForall'] using reconstruction)
         { state with ngen := state.ngen.next } ?_ ?_
       · exact reserved.push_current name domain binder
       intro lctx remainder params state' receipts

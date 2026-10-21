@@ -347,7 +347,7 @@ theorem FVLift'.from_nil : ∀ {Δ : VLCtx}, Δ.NoBV → FVLift' [] Δ 0 (.skipN
   | (some _, .vlam _) :: _, H => .skip_fvar _ _ (.from_nil H)
   | (some _, .vlet _ _) :: _, H => .skip_fvar _ _ (.from_nil H)
 
-theorem FVLift'.fvars_sublist (W : FVLift' Δ Δ' dk n k) : List.Sublist Δ.fvars Δ'.fvars := by
+theorem FVLift'.fvars_sublist (W : FVLift' Δ Δ' dk n k) : Δ.fvars <+ Δ'.fvars := by
   induction W with
   | refl => exact .refl _
   | skip_fvar _ _ _ ih => exact .cons _ ih

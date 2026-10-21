@@ -176,7 +176,7 @@ theorem TypeChecker.Inner.inferType'.entry_transport
       MonadStateOf.get, StateT.get, Pure.pure, Bind.bind, ReaderT.bind, ReaderT.pure,
       StateT.bind, StateT.pure, Except.pure, Except.bind] at accepted ⊢
     cases cached : (state.inferenceCache inferOnly)[expression]? with
-    | some value => simpa only [cached] using accepted
+    | some value => simpa only [cached, Pure.pure, ReaderT.pure, StateT.pure, Except.pure] using accepted
     | none =>
       have entry : NativeInferEntryReceipt state expression inferOnly := ⟨closed, cached⟩
       simp only [cached] at accepted ⊢
@@ -276,7 +276,7 @@ theorem TypeChecker.Inner.nativeInferBody.literal_transport
       | none => simp [Kernel.Environment.get, found] at accepted
       | some info =>
         obtain ⟨shadowInfo, shadowFound⟩ := agreement.present ``Nat info found
-        simpa only [Kernel.Environment.get, found, shadowFound, Except.bind, Except.pure] using accepted
+        simpa only [Kernel.Environment.get, found, shadowFound, Pure.pure, Except.bind, Except.pure] using accepted
     case strVal text =>
       cases charFound : actualContext.env.find? ``Char.ofNat with
       | none => simp [Kernel.Environment.get, charFound] at accepted
@@ -287,7 +287,7 @@ theorem TypeChecker.Inner.nativeInferBody.literal_transport
         | some stringInfo =>
           obtain ⟨shadowString, shadowStringFound⟩ := agreement.present ``String.ofList stringInfo stringFound
           simpa only [Kernel.Environment.get, charFound, shadowCharFound, stringFound, shadowStringFound,
-            Except.bind, Except.pure] using accepted
+            Pure.pure, Except.bind, Except.pure] using accepted
 
 theorem TypeChecker.M.SuccessTransport.liftExcept
     (actual shadow : Except Kernel.Exception resultType) (actualContext shadowContext : TypeChecker.Context)
@@ -320,7 +320,11 @@ theorem TypeChecker.Inner.isDefEq.argument_transport
   have transported := isDefEq.transport actualMethods shadowMethods
     (actualContext.inferComparisonContext argument) (shadowContext.inferComparisonContext argument) state domain argumentType comparison
   by_cases eager : argument.isAppOfArity ``eagerReduce 2 = true
-  · simpa only [TypeChecker.Context.inferComparisonContext, eager, if_true] using transported
+  · simp only [eager, if_true]
+    change TypeChecker.M.SuccessTransport (isDefEq domain argumentType actualMethods)
+      (isDefEq domain argumentType shadowMethods) { actualContext with eagerReduce := true }
+      { shadowContext with eagerReduce := true } state
+    simpa only [TypeChecker.Context.inferComparisonContext, eager, if_true] using transported
   · simpa only [TypeChecker.Context.inferComparisonContext, eager, Bool.false_eq_true, if_false] using transported
 
 theorem TypeChecker.Inner.inferType'.reachable_headerAxiomTransport

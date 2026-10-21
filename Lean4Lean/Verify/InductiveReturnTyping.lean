@@ -16,7 +16,8 @@ theorem TrExprS.constantKind
   | const actualLookup mapped arity =>
     cases Option.some.inj (lookup.symm.trans actualLookup)
     have levelsWF := VLevel.WF.of_mapM_ofLevel mapped
-    refine ⟨_, .const lookup levelsWF ((List.mapM_eq_some.mp mapped).length_eq.symm.trans arity), ?_⟩
+    refine ⟨_, .const lookup levelsWF
+      ((Lean4Lean.List.Forall₂.length_eq (List.mapM_eq_some.mp mapped)).symm.trans arity), ?_⟩
     have specialized := kind.instL levelsWF
     exact specialized.weak0 environmentWF
 
@@ -56,7 +57,8 @@ theorem TrExprS.contextualConstantKind
   | const actualLookup mapped arity =>
     cases Option.some.inj (lookup.symm.trans actualLookup)
     have levelsWF := VLevel.WF.of_mapM_ofLevel mapped
-    exact ⟨_, _, .const lookup levelsWF ((List.mapM_eq_some.mp mapped).length_eq.symm.trans arity),
+    exact ⟨_, _, .const lookup levelsWF
+      ((Lean4Lean.List.Forall₂.length_eq (List.mapM_eq_some.mp mapped)).symm.trans arity),
       contextWF.instL levelsWF, kind.instL levelsWF⟩
 
 theorem TrExprS.saturatedIsTypeOfContextualKinds

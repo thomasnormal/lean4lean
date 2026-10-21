@@ -141,7 +141,8 @@ theorem RegistrationEvidence.aligned
     apply alignedEntries
       (evidence.constructors.map (fun entry => .constructor entry))
       decl.constructorHeaders hheaders
-    · simpa only [List.map_map, Function.comp_def] using evidence.constructorModels
+    · simpa only [List.map_map, Function.comp_def, RegistrationEntry.model] using
+        evidence.constructorModels
     · intro entry hmem
       simp only [List.mem_map] at hmem
       obtain ⟨entry, hmem, rfl⟩ := hmem

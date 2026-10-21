@@ -220,8 +220,8 @@ run_meta
     (.app (.const `dependent []) carrier, .forallE `value carrier carrier .default),
     (.app (.app (.const `dependent []) carrier) value, carrier),
     (.app (.const `polymorphic [.succ .zero]) carrier, .sort (.succ .zero))]
-  let mut accepted := 0
-  let mut rejected := 0
+  let mut accepted : Nat := 0
+  let mut rejected : Nat := 0
   for (methods, allowPolymorphic) in [(leafMethods, false), (betaMethods, false), (nativeMethods, true)] do
     for (expression, expected) in controls do
       if expression.getAppFn.constName! == `polymorphic && !allowPolymorphic then
@@ -285,8 +285,10 @@ run_meta
     ``Lean.Expr.instantiateRev_eq, ``Lean.Expr.instantiate_eq]
   let leaves := logical ++ [``Lean.Level.hasParam_eq, ``Lean.PersistentHashMap.WF.find?_eq,
     ``Lean.PersistentHashMap.WF.toList'_insert, ``Lean.PersistentHashMap.findAux_isSome,
-    ``Lean.Expr.replace_eq, ``Lean.Expr.hasLevelParam_eq, ``Lean.Level.hasMVar_eq,
-    ``Lean.Level.instLawfulBEqLevel]
+    ``Lean.Expr.replace_eq, ``Lean.Level.hasMVar_eq,
+    ``Lean.Level.instLawfulBEqLevel, ``Lean.Expr.mkAppData_eq, ``Lean.Expr.mkData_eq,
+    Name.mkNum `_private.Lean4Lean.Verify.Expr 0 ++ `Lean.Expr.mkData_flags._native.bv_decide.ax_1_12,
+    `Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7]
   for name in [``RestrictedContext.RunWF.pure, ``RestrictedContext.RunWF.throw,
       ``RestrictedContext.RunWF.bind, ``RestrictedContext.RunWF.mono,
       ``RestrictedContext.ensureForall] do
@@ -299,7 +301,7 @@ run_meta
       ``Lean.Expr.instantiateRev_eq, ``Lean.Expr.instantiate_eq])
   audit ``stagedSuccessor (leaves ++ [``Lean.Expr.instantiateRevRange_eq,
     ``Lean.Expr.instantiateRev_eq, ``Lean.Expr.instantiate_eq, ``Lean.Expr.eqv_eq, ``Lean.Syntax.structEq_eq])
-  let beta := leaves ++ [``Lean.Expr.mkAppRangeAux.eq_def, ``Lean.Expr.looseBVarRange_eq]
+  let beta := leaves ++ [``Lean.Expr.looseBVarRange_eq]
   audit ``betaContracts beta
   audit ``betaApplication (beta ++ [``Lean.Expr.instantiateRevRange_eq,
     ``Lean.Expr.instantiateRev_eq, ``Lean.Expr.instantiate_eq])

@@ -28,7 +28,7 @@ private def ignoredHeader : InductiveVal := {
 private theorem ignoredInductiveSupported :
     TrEnv' .safe (({} : ConstMap).insert ignoredHeader.name (.inductInfo ignoredHeader))
       false VEnv.empty :=
-  .ignoreConst (C := {}) (ci := .inductInfo ignoredHeader)
+  .ignore (C := {}) (ci := .inductInfo ignoredHeader)
     (by simp [SMap.find?]) (by decide) .empty
 
 example : ({} : VEnv).constants ignoredHeader.name = none := rfl
@@ -109,9 +109,9 @@ private def nativeControls : MetaM Unit := do
   let methods := Methods.withFuel 256
   let projections := #[(``Prod, 0, pair), (``Prod, 1, pair),
     (``DependentPair, 0, dependent), (``DependentPair, 1, dependent), (``And, 0, conjunction)]
-  let mut accepted := 0
-  let mut alignmentControls := 0
-  let mut dependencyControls := 0
+  let mut accepted : Nat := 0
+  let mut alignmentControls : Nat := 0
+  let mut dependencyControls : Nat := 0
   for safety in [DefinitionSafety.safe, .unsafe] do
     for eagerMode in [false, true] do
       let context : Context := { env := environment, safety, eagerReduce := eagerMode }
@@ -159,7 +159,7 @@ private def nativeControls : MetaM Unit := do
     value := .lam `source natural (.proj ``Prod 0 (.bvar 0)) .default
     hints := .opaque
     safety := .safe }
-  if (host.addDeclCore 0 invalidDeclaration none).isOk then
+  if (host.addDeclCore 0 0 invalidDeclaration none).isOk then
     throwError "native kernel accepted the mismatched-type projection control"
   logInfo m!"projection semantic contract: {accepted} cold/warm ordinary/dependent/Prop controls, {alignmentControls} trusted-type alignment controls, {dependencyControls} native dependency controls, native mismatched-type rejection"
 

@@ -28,7 +28,7 @@ theorem VEnv.addInductHeaders.constants_eq
   | cons header headers ih =>
     obtain ⟨next, hstep, hrest⟩ := Option.bind_eq_some_iff.mp hadd
     exact (ih hrest (fun remaining hmem => hn remaining (by simp [hmem]))).trans
-      (VEnv.addConst_constants hstep (hn header (by simp)))
+      (by rw [VEnv.addConst_constants_eq hstep]; simp [hn header (by simp)])
 
 theorem VEnv.addConstructorHeaders.constants_eq
     (hadd : env.addConstructorHeaders ctors = some env')
@@ -38,7 +38,7 @@ theorem VEnv.addConstructorHeaders.constants_eq
   | cons ctor ctors ih =>
     obtain ⟨next, hstep, hrest⟩ := Option.bind_eq_some_iff.mp hadd
     exact (ih hrest (fun remaining hmem => hn remaining (by simp [hmem]))).trans
-      (VEnv.addConst_constants hstep (hn ctor (by simp)))
+      (by rw [VEnv.addConst_constants_eq hstep]; simp [hn ctor (by simp)])
 
 def VInductDecl.stagedNames (decl : VInductDecl) : List Name :=
   decl.types.map (·.name) ++ (decl.types.flatMap (·.ctors)).map (·.name)
@@ -58,45 +58,80 @@ theorem VInductDecl.stagedConstants_eq (decl : VInductDecl)
     simp only [stagedNames, List.mem_append]
     exact .inl (hname ▸ List.mem_map_of_mem hmem)
 
+private theorem PrimSpec.Holds.mono_of_same {env env' : VEnv} {s : PrimSpec} {n : Name}
+    (H : s.Holds env n) (hle : env ≤ env')
+    (same : env'.constants n = env.constants n) : s.Holds env' n := by
+  have old : env'.contains n → env.contains n := fun ⟨_, h⟩ => ⟨_, same ▸ h⟩
+  have new {m} : env.contains m → env'.contains m := fun ⟨_, h⟩ => ⟨_, hle.constants h⟩
+  cases s with
+  | containsImplies ns => exact fun h m hm => new (H (old h) m hm)
+  | typeEq => exact fun _ h => H _ (same ▸ h)
+  | reflectsNatNat => exact fun h => ⟨(H (old h)).1.mono hle, fun a => ((H (old h)).2 a).mono hle⟩
+  | reflectsNatNatNat =>
+    exact fun h => ⟨(H (old h)).1.mono hle, fun a b => ((H (old h)).2 a b).mono hle⟩
+  | reflectsNatNatBool =>
+    exact fun h => ⟨(H (old h)).1.mono hle, fun a b => ((H (old h)).2 a b).mono hle⟩
+  | reflectsBitwise =>
+    exact fun h => ⟨fun _ hc => (H (old h)).1 _ (same ▸ hc),
+      fun env'' hle' => (H (old h)).2 env'' (hle.trans hle')⟩
+  | stringOfList =>
+    intro _ h
+    obtain ⟨h1, h2, h3⟩ := H _ (same ▸ h)
+    exact ⟨h1, h2.mono hle, h3.mono hle⟩
+
 theorem VEnv.HasPrimitives.mono_of_literals (hp : env.HasPrimitives) (hle : env ≤ env')
     (hliterals : env'.HasPrimitiveLiterals)
     (hconst : ∀ name ∈ [``Char.ofNat, ``String.ofList, ``Nat.add, ``Nat.mul, ``Nat.pow,
       ``Nat.pred, ``Nat.sub, ``Nat.beq, ``Nat.ble, ``Nat.shiftLeft,
-      ``Nat.div, ``Nat.shiftRight, ``Nat.mod], env'.constants name = env.constants name) :
+      ``Nat.div, ``Nat.shiftRight, ``Nat.mod, ``Nat.gcd, ``Nat.bitwise,
+      ``Nat.land, ``Nat.lor, ``Nat.xor], env'.constants name = env.constants name) :
     env'.HasPrimitives := by
-  have hcontains (name : Name)
-      (hn : name ∈ [``Char.ofNat, ``String.ofList, ``Nat.add, ``Nat.mul, ``Nat.pow,
-        ``Nat.pred, ``Nat.sub, ``Nat.beq, ``Nat.ble, ``Nat.shiftLeft,
-        ``Nat.div, ``Nat.shiftRight, ``Nat.mod]) : env'.contains name → env.contains name := by
-    simp only [VEnv.contains, hconst name hn, imp_self]
-  exact {
-    bool := hliterals.bool
-    boolFalse := hliterals.boolFalse
-    boolTrue := hliterals.boolTrue
-    nat := hliterals.nat
-    natZero := hliterals.natZero
-    natSucc := hliterals.natSucc
-    natAdd := fun present left right => (hp.natAdd (hcontains _ (by simp) present) left right).mono hle
-    natAddType := fun present => (hp.natAddType (hcontains _ (by simp) present)).mono hle
-    natMul := fun present left right => (hp.natMul (hcontains _ (by simp) present) left right).mono hle
-    natMulType := fun present => (hp.natMulType (hcontains _ (by simp) present)).mono hle
-    natPow := fun present left right => (hp.natPow (hcontains _ (by simp) present) left right).mono hle
-    natPred := fun present value => (hp.natPred (hcontains _ (by simp) present) value).mono hle
-    natPredType := fun present => (hp.natPredType (hcontains _ (by simp) present)).mono hle
-    natSub := fun present left right => (hp.natSub (hcontains _ (by simp) present) left right).mono hle
-    natSubType := fun present => (hp.natSubType (hcontains _ (by simp) present)).mono hle
-    natBeq := fun present left right => (hp.natBeq (hcontains _ (by simp) present) left right).mono hle
-    natBle := fun present left right => (hp.natBle (hcontains _ (by simp) present) left right).mono hle
-    natShiftLeft := fun present left right => (hp.natShiftLeft (hcontains _ (by simp) present) left right).mono hle
-    natDiv := fun present left right => (hp.natDiv (hcontains _ (by simp) present) left right).mono hle
-    natDivType := fun present => (hp.natDivType (hcontains _ (by simp) present)).mono hle
-    natShiftRight := fun present left right => (hp.natShiftRight (hcontains _ (by simp) present) left right).mono hle
-    natMod := fun present left right => (hp.natMod (hcontains _ (by simp) present) left right).mono hle
-    natModType := fun present => (hp.natModType (hcontains _ (by simp) present)).mono hle
-    charOfNat := fun lookup => hp.charOfNat (hconst ``Char.ofNat (by simp) ▸ lookup)
-    stringOfList := fun lookup =>
-      let ⟨hci, hnil, hcons⟩ := hp.stringOfList (hconst ``String.ofList (by simp) ▸ lookup)
-      ⟨hci, hnil.mono hle, hcons.mono hle⟩ }
+  intro p hp'
+  rcases p with ⟨name, spec⟩
+  simp [primSpecs] at hp'
+  rcases hp' with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
+    ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
+    ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
+    ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
+    ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+  · simp only [PrimSpec.Holds, Prod.fst, Prod.snd]
+    intro h m hm
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hm
+    rcases hm with rfl | rfl
+    · exact (hliterals.bool h).1
+    · exact (hliterals.bool h).2
+  · simp only [PrimSpec.Holds, Prod.fst, Prod.snd]
+    intro ci h; exact hliterals.boolFalse h
+  · simp only [PrimSpec.Holds, Prod.fst, Prod.snd]
+    intro ci h; exact hliterals.boolTrue h
+  · simp only [PrimSpec.Holds, Prod.fst, Prod.snd]
+    intro h m hm
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hm
+    rcases hm with rfl | rfl
+    · exact (hliterals.nat h).1
+    · exact (hliterals.nat h).2
+  · simp only [PrimSpec.Holds, Prod.fst, Prod.snd]
+    intro ci h; exact hliterals.natZero h
+  · simp only [PrimSpec.Holds, Prod.fst, Prod.snd]
+    intro ci h; exact hliterals.natSucc h
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.add, .reflectsNatNatNat Nat.add) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.pred, .reflectsNatNat Nat.pred) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.sub, .reflectsNatNatNat Nat.sub) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.mul, .reflectsNatNatNat Nat.mul) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.pow, .reflectsNatNatNat Nat.pow) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.gcd, .reflectsNatNatNat Nat.gcd) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.mod, .reflectsNatNatNat Nat.mod) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.div, .reflectsNatNatNat Nat.div) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.beq, .reflectsNatNatBool Nat.beq) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.ble, .reflectsNatNatBool Nat.ble) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.bitwise, .reflectsBitwise) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.land, .reflectsNatNatNat Nat.land) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.lor, .reflectsNatNatNat Nat.lor) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.xor, .reflectsNatNatNat Nat.xor) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.shiftLeft, .reflectsNatNatNat Nat.shiftLeft) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Nat.shiftRight, .reflectsNatNatNat Nat.shiftRight) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``String.ofList, .stringOfList) (by simp [primSpecs])) hle (hconst _ (by simp))
+  · exact PrimSpec.Holds.mono_of_same (hp (``Char.ofNat, .typeEq (.forallE .nat .char)) (by simp [primSpecs])) hle (hconst _ (by simp))
 
 theorem boolInductDecl.hasPrimitives (hp : env.HasPrimitives)
     (hheaders : env.addInductHeaders boolInductDecl.types = some headerEnv)
@@ -126,7 +161,8 @@ theorem boolInductDecl.hasPrimitives (hp : env.HasPrimitives)
   apply unchanged name
   intro hname
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hname
-  rcases hname with rfl | rfl | rfl <;> simp at hmem
+  rcases hname with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    simp at hmem
 
 theorem natInductDecl.hasPrimitives (hp : env.HasPrimitives)
     (hheaders : env.addInductHeaders natInductDecl.types = some headerEnv)
@@ -156,7 +192,8 @@ theorem natInductDecl.hasPrimitives (hp : env.HasPrimitives)
   apply unchanged name
   intro hname
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hname
-  rcases hname with rfl | rfl | rfl <;> simp at hmem
+  rcases hname with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    simp at hmem
 
 end Semantic
 
@@ -219,13 +256,26 @@ theorem AddInductive.declareInductiveTypes.preservesPrimitiveSafety
   apply NativePrimitiveSafety.foldlM id _ _ _ hsafe
   intro input env hsafe
   rcases input with ⟨type, index⟩
-  refine (checkName.WF env type.name ctx.allowPrimitive).bind fun _ ⟨hfresh, hprim⟩ => ?_
-  refine .pure (hsafe.addConst hfresh ?_)
+  refine (checkName.WF hsafe.map_wf type.name ctx.allowPrimitive).bind fun _ ⟨hfresh, hprim⟩ => ?_
+  have hfresh' : (id env).constants.find?
+      (ConstantInfo.inductInfo (Function.uncurry (fun indType numIndices => {
+        name := indType.name, levelParams := ctx.lparams, type := indType.type,
+        numParams := numParams, numIndices := numIndices,
+        all := (Array.map (fun x => x.name) types).toList,
+        ctors := List.map (fun x => x.name) indType.ctors, numNested := numNested,
+        isRec := isRec types stats.indConsts, isUnsafe := isUnsafe,
+        isReflexive := isReflexive types stats.indConsts }) (type, index))).name = none := by
+    rw [Kernel.Environment.find?, hsafe.map_wf.find?'_eq_find?] at hfresh
+    simpa only [ConstantInfo.name, ConstantInfo.toConstantVal, Function.uncurry] using hfresh
+  refine .pure (hsafe.addConst hfresh' ?_)
   intro hcontains
   dsimp only [ConstantInfo.name, ConstantInfo.toConstantVal, Function.uncurry] at hcontains
   rcases hguard with hallow | ⟨hunsafe, hparams⟩
-  · rw [hprim hallow] at hcontains
-    contradiction
+  · cases hprimitive : Kernel.Environment.primitives.contains type.name with
+    | false => rw [hprimitive] at hcontains; contradiction
+    | true =>
+      have hallow' : ctx.allowPrimitive = true := hprim (by simp [hprimitive])
+      cases hallow ▸ hallow'
   · simpa [ConstantInfo.safety, ConstantInfo.isUnsafe, ConstantInfo.isPartial,
       ConstantInfo.levelParams, ConstantInfo.toConstantVal, hunsafe] using
       And.intro (Eq.refl DefinitionSafety.safe) hparams
@@ -243,13 +293,25 @@ theorem AddInductive.declareConstructors.preservesPrimitiveSafety
   refine Except.WF.bind ?_ (fun state hnext => .pure hnext)
   apply NativePrimitiveSafety.foldlM Prod.snd _ _ _ hsafe
   intro ctor state hsafe
-  refine (checkName.WF state.2 ctor.name ctx.allowPrimitive).bind fun _ ⟨hfresh, hprim⟩ => ?_
-  refine .pure (hsafe.addConst hfresh ?_)
+  refine (checkName.WF hsafe.map_wf ctor.name ctx.allowPrimitive).bind fun _ ⟨hfresh, hprim⟩ => ?_
+  have hfresh' : state.2.constants.find?
+      (ConstantInfo.ctorInfo {
+        name := ctor.name, levelParams := ctx.lparams, type := ctor.type, induct := type.name,
+        cidx := state.fst, numParams := stats.params.size, numFields :=
+          assert! AddInductive.declareConstructors.arity 0 ctor.type ≥ stats.params.size;
+          AddInductive.declareConstructors.arity 0 ctor.type - stats.params.size,
+        isUnsafe := isUnsafe }).name = none := by
+    simpa only [Kernel.Environment.find?, hsafe.map_wf.find?'_eq_find?, ConstantInfo.name,
+      ConstantInfo.toConstantVal] using hfresh
+  refine .pure (hsafe.addConst hfresh' ?_)
   intro hcontains
   dsimp only [ConstantInfo.name, ConstantInfo.toConstantVal] at hcontains
   rcases hguard with hallow | ⟨hunsafe, hparams⟩
-  · rw [hprim hallow] at hcontains
-    contradiction
+  · cases hprimitive : Kernel.Environment.primitives.contains ctor.name with
+    | false => rw [hprimitive] at hcontains; contradiction
+    | true =>
+      have hallow' : ctx.allowPrimitive = true := hprim (by simp [hprimitive])
+      cases hallow ▸ hallow'
   · simpa [ConstantInfo.safety, ConstantInfo.isUnsafe, ConstantInfo.isPartial,
       ConstantInfo.levelParams, ConstantInfo.toConstantVal, hunsafe] using
       And.intro (Eq.refl DefinitionSafety.safe) hparams

@@ -242,14 +242,14 @@ def TypeChecker.Inner.nativeEtaStructFields (information : ConstructorVal) (firs
   return true
 
 def TypeChecker.Inner.nativeEtaStructField (information : ConstructorVal) (first : Expr) (arguments : Array Expr)
-    (index : Nat) (inBounds : index < arguments.size) (_ : MProd (Option Bool) PUnit) : TypeChecker.RecM (ForInStep (MProd (Option Bool) PUnit)) := do
+    (index : Nat) (inBounds : index < arguments.size) (_ : Prod (Option Bool) PUnit) : TypeChecker.RecM (ForInStep (Prod (Option Bool) PUnit)) := do
   if ← isDefEq (.proj information.induct (index - information.numParams) first) arguments[index] then
     return .yield ⟨none, ⟨⟩⟩
   else return .done ⟨some false, ⟨⟩⟩
 
 def TypeChecker.Inner.nativeEtaStructFieldListStep (information : ConstructorVal) (first : Expr) (arguments : Array Expr)
     (index : Nat) (member : index ∈ List.range' information.numParams (arguments.size - information.numParams))
-    (current : MProd (Option Bool) PUnit) : TypeChecker.RecM (ForInStep (MProd (Option Bool) PUnit)) :=
+    (current : Prod (Option Bool) PUnit) : TypeChecker.RecM (ForInStep (Prod (Option Bool) PUnit)) :=
   nativeEtaStructField information first arguments index (by
     rcases List.mem_range'.mp member with ⟨offset, bound, indexing⟩
     omega) current
@@ -263,7 +263,6 @@ theorem TypeChecker.Inner.nativeEtaStructFields.list_eq (information : Construct
   rw [Std.Legacy.Range.forIn'_eq_forIn'_range']
   simp only [Std.Legacy.Range.size, Nat.add_sub_cancel, Nat.div_one]
   unfold nativeEtaStructFieldListStep nativeEtaStructField
-  simp only [pure_bind]
   congr 1
   funext returned
   cases returned with
@@ -323,23 +322,23 @@ theorem HeaderAxiomLookupAgreement.nativeConstructorLookup
 
 theorem HeaderAxiomLookupAgreement.structureLikeOfFalse
     (agreement : HeaderAxiomLookupAgreement changed actual shadow) (parent : Name)
-    (notStructure : actual.isStructureLike parent = false) : shadow.isStructureLike parent = false := by
+    (notStructure : actual.isNonRecStructure parent = false) : shadow.isNonRecStructure parent = false := by
   rcases agreement parent with same | ⟨_, header, actualLookup, shadowLookup⟩
-  · simpa only [Kernel.Environment.isStructureLike, ← same] using notStructure
-  · simp only [Kernel.Environment.isStructureLike, shadowLookup, headerAxiomInfo]
+  · simpa only [Kernel.Environment.isNonRecStructure, ← same] using notStructure
+  · simp only [Kernel.Environment.isNonRecStructure, shadowLookup, headerAxiomInfo]
 
 def NativeEtaStructMetadataFrame (actual shadow : Kernel.Environment) (second : Expr) : Prop :=
   ∀ name levels information, second.getAppFn = .const name levels →
     actual.find? name = some (.ctorInfo information) →
     (second.getAppNumArgs == information.numParams + information.numFields) = true →
-    actual.isStructureLike information.induct = true → actual.find? information.induct = shadow.find? information.induct
+    actual.isNonRecStructure information.induct = true → actual.find? information.induct = shadow.find? information.induct
 
 theorem NativeEtaStructMetadataFrame.ofShadowParents
     (agreement : HeaderAxiomLookupAgreement changed actual shadow)
     (parents : ∀ name levels information, second.getAppFn = .const name levels →
       actual.find? name = some (.ctorInfo information) →
       (second.getAppNumArgs == information.numParams + information.numFields) = true →
-      actual.isStructureLike information.induct = true →
+      actual.isNonRecStructure information.induct = true →
       ∃ header, shadow.find? information.induct = some (.inductInfo header)) :
     NativeEtaStructMetadataFrame actual shadow second := by
   intro name levels information head lookup arity structureLike
@@ -349,7 +348,7 @@ theorem NativeEtaStructMetadataFrame.ofShadowParents
 structure NativeEtaStructEntryReceipt (context : TypeChecker.Context) (second : Expr) (information : ConstructorVal) : Prop where
   lookup : ∃ name levels, second.getAppFn = .const name levels ∧ context.env.find? name = some (.ctorInfo information)
   arity : (second.getAppNumArgs == information.numParams + information.numFields) = true
-  structureLike : context.env.isStructureLike information.induct = true
+  structureLike : context.env.isNonRecStructure information.induct = true
 
 def TypeChecker.Inner.nativeEtaStructBody (information : ConstructorVal) (first second : Expr) : TypeChecker.RecM Bool := do
   let firstType ← inferType first
@@ -364,7 +363,7 @@ theorem TypeChecker.Inner.tryEtaStructCore.body_eq (first second : Expr) :
       let environment ← TypeChecker.getEnv
       let some information ← nativeConstructorLookup environment name | return false
       unless second.getAppNumArgs == information.numParams + information.numFields do return false
-      unless environment.isStructureLike information.induct do return false
+      unless environment.isNonRecStructure information.induct do return false
       nativeEtaStructBody information first second) := by
   unfold tryEtaStructCore nativeConstructorLookup nativeEtaStructBody nativeEtaStructFields
   simp only [liftM_bind, bind_assoc, pure_bind]
@@ -457,10 +456,11 @@ theorem TypeChecker.Inner.tryEtaStructCore.transport
       | false => simp only [arity, Bool.false_eq_true, if_false] at accepted ⊢; exact accepted
       | true =>
         simp only [arity, if_true] at accepted ⊢
-        cases structureLike : actualContext.env.isStructureLike information.induct with
+        cases structureLike : actualContext.env.isNonRecStructure information.induct with
         | false =>
           have shadowFalse := agreement.structureLikeOfFalse information.induct structureLike
-          simpa only [structureLike, shadowFalse, Bool.false_eq_true, if_false] using accepted
+          simpa only [structureLike, shadowFalse, Bool.false_eq_true, if_false, Pure.pure,
+            ReaderT.pure, StateT.pure, Except.pure] using accepted
         | true =>
           have stable := callbacks.metadata name levels information head present arity structureLike
           have shadowTrue := (agreement.structureLike information.induct stable).symm.trans structureLike

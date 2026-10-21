@@ -61,7 +61,7 @@ theorem ParamValidity.find?_eq {numParams : Nat} {lctx : LocalContext} {params :
     (hvalid : ParamValidity numParams lctx params) {decl : LocalDecl} (hdecl : decl ∈ lctx.toList) :
     lctx.find? decl.fvarId = some decl := by
   have hkeys : (lctx.toList.map fun entry => (entry.fvarId, entry)).NodupKeys := by
-    simpa [List.NodupKeys, List.map_map] using hvalid.wf.nodup
+    simpa [List.NodupKeys, List.map_map, Function.comp_def] using hvalid.wf.nodup
   rw [hvalid.wf.find?_eq_find?_toList, ← List.map_fst_lookup]
   exact hkeys.lookup_eq_some.mpr (List.mem_map.mpr ⟨decl, hdecl, rfl⟩)
 

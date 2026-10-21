@@ -3,6 +3,8 @@ import Lean4Lean.Verify.InductiveBinderIntegrity
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
 
+private theorem parameter_ne_index : ¬ BinderRole.parameter = BinderRole.index := by decide
+
 theorem BinderStep.indexIds_split
     {steps : List BinderStep} {selectedPrefix suffix : List FVarId} {identifier : FVarId}
     (split : (BinderStep.indexValues steps).map Expr.fvarId! =
@@ -19,13 +21,13 @@ theorem BinderStep.indexIds_split
     | parameter =>
       have tailSplit : (BinderStep.indexValues steps).map Expr.fvarId! =
           selectedPrefix ++ identifier :: suffix := by
-        simpa only [BinderStep.indexValues, role, BinderRole.noConfusion, ↓reduceIte] using split
+        simpa only [BinderStep.indexValues, role, parameter_ne_index, ↓reduceIte] using split
       obtain ⟨position, selected, selectedAt, selectedRole, selectedId, prefixEq⟩ :=
         tailInduction tailSplit
       refine ⟨position + 1, selected, ?_, selectedRole, selectedId, ?_⟩
       · simpa only [List.getElem?_cons_succ] using selectedAt
       · simpa only [List.take_succ_cons, BinderStep.indexValues, role,
-          BinderRole.noConfusion, ↓reduceIte] using prefixEq
+          parameter_ne_index, ↓reduceIte] using prefixEq
     | index =>
       cases selectedPrefix with
       | nil =>

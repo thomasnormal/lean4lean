@@ -8,9 +8,9 @@ structure NativeMethodTransport (actualMethods shadowMethods : TypeChecker.Metho
   isDefEqCore : ∀ state first second,
     TypeChecker.M.SuccessTransport (actualMethods.isDefEqCore first second)
       (shadowMethods.isDefEqCore first second) actualContext shadowContext state
-  whnfCore : ∀ state expression cheapRec cheapProj,
-    TypeChecker.M.SuccessTransport (actualMethods.whnfCore expression cheapRec cheapProj)
-      (shadowMethods.whnfCore expression cheapRec cheapProj) actualContext shadowContext state
+  whnfCore : ∀ state expression cheapProj,
+    TypeChecker.M.SuccessTransport (actualMethods.whnfCore expression cheapProj)
+      (shadowMethods.whnfCore expression cheapProj) actualContext shadowContext state
   whnf : ∀ state expression,
     TypeChecker.M.SuccessTransport (actualMethods.whnf expression)
       (shadowMethods.whnf expression) actualContext shadowContext state
@@ -76,25 +76,22 @@ theorem NativeMethodTransport.inductiveReduction
     (transport : NativeMethodTransport actualMethods shadowMethods actualContext shadowContext)
     (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
     (parents : NativeRecursorParentFrame actualContext.env shadowContext.env)
-    (state : TypeChecker.State) (expression : Expr) (cheapRec cheapProj : Bool) :
+    (state : TypeChecker.State) (expression : Expr) :
     TypeChecker.M.SuccessTransport
       (inductiveReduceRec actualContext.env expression
-        (fun major => if cheapRec then TypeChecker.Inner.whnfCore major cheapRec cheapProj else TypeChecker.Inner.whnf major)
+        TypeChecker.Inner.whnf
         TypeChecker.Inner.inferType
         TypeChecker.Inner.isDefEq actualMethods)
       (inductiveReduceRec shadowContext.env expression
-        (fun major => if cheapRec then TypeChecker.Inner.whnfCore major cheapRec cheapProj else TypeChecker.Inner.whnf major)
+        TypeChecker.Inner.whnf
         TypeChecker.Inner.inferType
         TypeChecker.Inner.isDefEq shadowMethods) actualContext shadowContext state := by
-  let normalize := fun major =>
-    if cheapRec then TypeChecker.Inner.whnfCore major cheapRec cheapProj else TypeChecker.Inner.whnf major
+  let normalize := TypeChecker.Inner.whnf
   have normalization : ∀ currentState major,
       TypeChecker.M.SuccessTransport (normalize major actualMethods) (normalize major shadowMethods)
         actualContext shadowContext currentState := by
     intro currentState major
-    cases cheapRec
-    · exact transport.whnf currentState major
-    · exact transport.whnfCore currentState major true cheapProj
+    exact transport.whnf currentState major
   have inferNormalization : ∀ currentState major,
       TypeChecker.M.SuccessTransport
         ((do normalize (← TypeChecker.Inner.inferType major true)) actualMethods)
@@ -137,25 +134,25 @@ theorem NativeMethodTransport.recursorReduction
     (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
     (parents : NativeRecursorParentFrame actualContext.env shadowContext.env)
     (quotInit : actualContext.env.quotInit = shadowContext.env.quotInit)
-    (state : TypeChecker.State) (expression : Expr) (cheapRec cheapProj : Bool) :
-    TypeChecker.M.SuccessTransport (TypeChecker.Inner.reduceRecursor expression cheapRec cheapProj actualMethods)
-      (TypeChecker.Inner.reduceRecursor expression cheapRec cheapProj shadowMethods) actualContext shadowContext state := by
-  apply TypeChecker.Inner.reduceRecursor.headerAxiomTransport _ _ _ _ state expression cheapRec cheapProj quotInit
+    (state : TypeChecker.State) (expression : Expr) :
+    TypeChecker.M.SuccessTransport (TypeChecker.Inner.reduceRecursor expression actualMethods)
+      (TypeChecker.Inner.reduceRecursor expression shadowMethods) actualContext shadowContext state := by
+  apply TypeChecker.Inner.reduceRecursor.headerAxiomTransport _ _ _ _ state expression quotInit
   · intro initialized
     exact transport.quotientReduction state expression
   · intro finalState reached
-    exact transport.inductiveReduction agreement parents finalState expression cheapRec cheapProj
+    exact transport.inductiveReduction agreement parents finalState expression
 
 theorem NativeMethodTransport.projectionReduction
     (transport : NativeMethodTransport actualMethods shadowMethods actualContext shadowContext)
     (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
-    (state : TypeChecker.State) (index : Nat) (source : Expr) (cheapRec cheapProj : Bool) :
-    TypeChecker.M.SuccessTransport (TypeChecker.Inner.reduceProj index source cheapRec cheapProj actualMethods)
-      (TypeChecker.Inner.reduceProj index source cheapRec cheapProj shadowMethods) actualContext shadowContext state := by
-  apply TypeChecker.Inner.reduceProj.headerAxiomTransport _ _ _ _ agreement state index source cheapRec cheapProj
+    (state : TypeChecker.State) (index : Nat) (source : Expr) (cheapProj : Bool) :
+    TypeChecker.M.SuccessTransport (TypeChecker.Inner.reduceProj index source cheapProj actualMethods)
+      (TypeChecker.Inner.reduceProj index source cheapProj shadowMethods) actualContext shadowContext state := by
+  apply TypeChecker.Inner.reduceProj.headerAxiomTransport _ _ _ _ agreement state index source cheapProj
   · cases cheapProj
     · exact transport.whnf state source
-    · exact transport.whnfCore state source cheapRec true
+    · exact transport.whnfCore state source true
   · intro text finalState accepted
     exact transport.whnf finalState (.strLitToConstructor text)
 
@@ -164,27 +161,27 @@ theorem NativeMethodTransport.coreCallbacks
     (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
     (parents : NativeRecursorParentFrame actualContext.env shadowContext.env)
     (quotInit : actualContext.env.quotInit = shadowContext.env.quotInit)
-    (state : TypeChecker.State) (expression : Expr) (cheapRec cheapProj : Bool) :
-    NativeCoreCallbacks actualMethods shadowMethods actualContext shadowContext state expression cheapRec cheapProj := by
+    (state : TypeChecker.State) (expression : Expr) (cheapProj : Bool) :
+    NativeCoreCallbacks actualMethods shadowMethods actualContext shadowContext state expression cheapProj := by
   constructor
   · intro fvar cache declaration value found defined
-    exact transport.whnfCore state value cheapRec cheapProj
+    exact transport.whnfCore state value cheapProj
   · intro name domain value body nondependent shape cache
-    exact transport.whnfCore state _ cheapRec cheapProj
+    exact transport.whnfCore state _ cheapProj
   · intro application cache
-    exact transport.whnfCore state _ cheapRec cheapProj
+    exact transport.whnfCore state _ cheapProj
   · intro name domain body binder finalState receipt
-    exact transport.whnfCore finalState _ cheapRec cheapProj
+    exact transport.whnfCore finalState _ cheapProj
   · intro normalized finalState receipt lambda changed
-    exact transport.whnfCore finalState _ cheapRec cheapProj
+    exact transport.whnfCore finalState _ cheapProj
   · intro normalized finalState receipt lambda unchanged
-    exact transport.recursorReduction agreement parents quotInit finalState expression cheapRec cheapProj
+    exact transport.recursorReduction agreement parents quotInit finalState expression
   · intro normalized finalState reduced reducedState receipt lambda unchanged accepted
-    exact transport.whnfCore reducedState reduced cheapRec cheapProj
+    exact transport.whnfCore reducedState reduced cheapProj
   · intro parent index source shape cache
-    exact transport.projectionReduction agreement state index source cheapRec cheapProj
+    exact transport.projectionReduction agreement state index source cheapProj
   · intro parent index source reduced reducedState shape cache accepted
-    exact transport.whnfCore reducedState reduced cheapRec cheapProj
+    exact transport.whnfCore reducedState reduced cheapProj
 
 theorem NativeMethodTransport.whnfCoreStep
     (transport : NativeMethodTransport actualMethods shadowMethods actualContext shadowContext)
@@ -192,11 +189,11 @@ theorem NativeMethodTransport.whnfCoreStep
     (parents : NativeRecursorParentFrame actualContext.env shadowContext.env)
     (quotInit : actualContext.env.quotInit = shadowContext.env.quotInit)
     (locals : actualContext.lctx = shadowContext.lctx)
-    (state : TypeChecker.State) (expression : Expr) (cheapRec cheapProj : Bool) :
-    TypeChecker.M.SuccessTransport (TypeChecker.Inner.whnfCore' expression cheapRec cheapProj actualMethods)
-      (TypeChecker.Inner.whnfCore' expression cheapRec cheapProj shadowMethods) actualContext shadowContext state :=
-  TypeChecker.Inner.whnfCore'.headerAxiomTransport _ _ _ _ state expression cheapRec cheapProj locals
-    (transport.coreCallbacks agreement parents quotInit state expression.consumeMData cheapRec cheapProj)
+    (state : TypeChecker.State) (expression : Expr) (cheapProj : Bool) :
+    TypeChecker.M.SuccessTransport (TypeChecker.Inner.whnfCore' expression cheapProj actualMethods)
+      (TypeChecker.Inner.whnfCore' expression cheapProj shadowMethods) actualContext shadowContext state :=
+  TypeChecker.Inner.whnfCore'.headerAxiomTransport _ _ _ _ state expression cheapProj locals
+    (transport.coreCallbacks agreement parents quotInit state expression.consumeMData cheapProj)
 
 theorem NativeMethodTransport.naturalReduction
     (transport : NativeMethodTransport actualMethods shadowMethods actualContext shadowContext)
@@ -220,7 +217,7 @@ theorem NativeMethodTransport.whnfCallbacks
     NativeWhnfCallbacks actualMethods shadowMethods actualContext shadowContext state expression := by
   constructor
   · intro current currentState remaining reached
-    exact transport.coreCallbacks agreement parents quotInit currentState current.consumeMData false false
+    exact transport.coreCallbacks agreement parents quotInit currentState current.consumeMData false
   · intro current currentState remaining normalized normalizedState reached accepted native
     exact transport.naturalReduction normalizedState normalized
 
@@ -249,9 +246,9 @@ theorem TypeChecker.Methods.withFuel.normalizationStep
     (quotInit : actualContext.env.quotInit = shadowContext.env.quotInit)
     (locals : actualContext.lctx = shadowContext.lctx)
     (budget : actualContext.whnfBudget ≤ shadowContext.whnfBudget) :
-    (∀ state expression cheapRec cheapProj,
-      M.SuccessTransport ((withFuel (depth + 1)).whnfCore expression cheapRec cheapProj)
-        ((withFuel (depth + 1)).whnfCore expression cheapRec cheapProj) actualContext shadowContext state) ∧
+    (∀ state expression cheapProj,
+      M.SuccessTransport ((withFuel (depth + 1)).whnfCore expression cheapProj)
+        ((withFuel (depth + 1)).whnfCore expression cheapProj) actualContext shadowContext state) ∧
     (∀ state expression,
       M.SuccessTransport ((withFuel (depth + 1)).whnf expression)
         ((withFuel (depth + 1)).whnf expression) actualContext shadowContext state) := by
@@ -266,9 +263,9 @@ theorem TypeChecker.Methods.withFuel.normalizationDepthOne
     (quotInit : actualContext.env.quotInit = shadowContext.env.quotInit)
     (locals : actualContext.lctx = shadowContext.lctx)
     (budget : actualContext.whnfBudget ≤ shadowContext.whnfBudget) :
-    (∀ state expression cheapRec cheapProj,
-      M.SuccessTransport ((withFuel 1).whnfCore expression cheapRec cheapProj)
-        ((withFuel 1).whnfCore expression cheapRec cheapProj) actualContext shadowContext state) ∧
+    (∀ state expression cheapProj,
+      M.SuccessTransport ((withFuel 1).whnfCore expression cheapProj)
+        ((withFuel 1).whnfCore expression cheapProj) actualContext shadowContext state) ∧
     (∀ state expression,
       M.SuccessTransport ((withFuel 1).whnf expression)
         ((withFuel 1).whnf expression) actualContext shadowContext state) :=

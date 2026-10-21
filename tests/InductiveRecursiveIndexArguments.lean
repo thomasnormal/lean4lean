@@ -201,7 +201,7 @@ private def runtimeFixtures : MetaM Unit := do
   let right := indexedFamily `DomainRight `DomainLeft false
   let mut total : Nat := 0
   for (parameters, types, expected) in [(1, [single], 1), (0, [left, right], 2), (0, [dependentFamily], 1)] do
-    unless (host.addDeclCore 0 (.inductDecl [] parameters types false) none).isOk do
+    unless (host.addDeclCore 0 0 (.inductDecl [] parameters types false) none).isOk do
       throwError "recursive indices: native kernel rejected fixture {types.map (·.name)}"
     let context : Context := {
       env := host.toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }

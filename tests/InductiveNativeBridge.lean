@@ -2,6 +2,7 @@ import Lean4Lean.Verify.InductiveNativeBridge
 import Lean4Lean.Verify.InductiveNativeTrace
 import Lean4Lean.Verify.InductiveRestorationMetadata
 import Lean4Lean.Verify.InductiveNativeRestorationBridge
+import Lean.Util.CollectAxioms
 
 namespace Lean4Lean.Tests.InductiveNativeBridge
 
@@ -367,5 +368,24 @@ example {preprocessing : ElimNestedInductive.Result} {staged original result : K
         (original.find? info.name = some info ∨
           RestoredInductiveRecord preprocessing staged allIndNames recNameMap info) :=
   evidence.recordsReceipt hwf
+
+run_meta
+  let environment ← getEnv
+  let some moduleIndex := environment.getModuleIdx?
+      `Lean4Lean.Verify.InductiveNativeRestorationBridge
+    | throwError "restored native record bridge module absent"
+  for (name, information) in environment.constants do
+    if environment.getModuleIdxFor? name == some moduleIndex then
+      if information matches .axiomInfo _ then
+        throwError "restored native record bridge introduces an axiom: {name}"
+      if information.type.hasSorry then
+        throwError "restored native record bridge has an admitted type: {name}"
+      if let some value := information.value? (allowOpaque := true) then
+        if value.hasSorry then
+          throwError "restored native record bridge has an admitted value: {name}"
+      for dependency in (← collectAxioms name) do
+        unless [``propext, ``Classical.choice, ``Quot.sound, ``sorryAx].contains dependency do
+          throwError "unexpected restored native record bridge dependency {dependency} in {name}"
+  logInfo "restored native record bridge: all owned types and proof values checked; only standard logic and the retained translation relation admission are allowed transitively"
 
 end Lean4Lean.Tests.InductiveNativeBridge

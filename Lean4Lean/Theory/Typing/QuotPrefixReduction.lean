@@ -86,7 +86,7 @@ theorem expand_inst {source type result : VExpr}
     simp only [expand, Option.map_eq_some_iff] at expanded
     obtain ⟨expandedBody, bodyExpanded, rfl⟩ := expanded
     have substituted := induction bodyExpanded (depth + 1)
-    simpa only [expand, VExpr.inst, ← VExpr.lift_instN_lo, VExpr.instVar_lower] using
+    simpa only [expand, VExpr.inst, ← VExpr.lift_instN_lo, VExpr.instVar_lower, Option.map_some] using
       congrArg (Option.map (VExpr.lam (domain.inst argument depth))) substituted
 
 /-- Applying an expanded prefix exposes exactly the remaining expansion. -/
@@ -238,7 +238,7 @@ theorem etaBody_hasType
   have lifted := typed.weak environmentOrdered (B := domain)
   change environment.HasType universes (domain :: locals) source.lift
     (.forallE domain.lift (body.liftN 1 1)) at lifted
-  simpa only [VExpr.instN_bvar0] using lifted.appDF (HasType.bvar .zero)
+  simpa only [HasType, VExpr.instN_bvar0] using lifted.appDF (HasType.bvar .zero)
 
 theorem expand_steps {environmentWF : environment.WF} {source result type : VExpr}
     (localsWF : OnCtx locals (environment.IsType universes))

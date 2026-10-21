@@ -29,7 +29,7 @@ theorem NormalizedSortTelescope.mdata {source normalized : Expr}
       { env := ctx.env, safety := ctx.safety, lctx := ctx.lctx,
         lparams := ctx.lparams, fuel := ctx.fuel } {}) = .ok result at hresult
     rw [TypeChecker.Inner.whnf'.eq_def] at hresult
-    simpa only [bind_pure] using hresult
+    simpa only [TypeChecker.Methods.withFuel, bind_pure] using hresult
 
 private theorem singletonRange (body value : Expr) :
     body.instantiateRange 0 1 #[value] = body.instantiate1 value := by
@@ -45,16 +45,16 @@ private theorem emptyRevRange (source : Expr) (args : Array Expr) :
 
 private theorem telescopeCore (normalized : Expr) (hshape : SortTelescope normalized)
     (depth : Nat) (ctx : TypeChecker.Context) (state : TypeChecker.State)
-    (cheapRec cheapProj : Bool) :
-    (TypeChecker.Methods.withFuel (depth + 1)).whnfCore normalized cheapRec cheapProj ctx state =
+    (cheapProj : Bool) :
+    (TypeChecker.Methods.withFuel (depth + 1)).whnfCore normalized cheapProj ctx state =
       .ok (normalized, state) := by
   cases hshape <;> rfl
 
 private theorem lambdaCore (name : Name) (domain body : Expr) (bi : BinderInfo)
     (depth : Nat) (ctx : TypeChecker.Context) (state : TypeChecker.State)
-    (cheapRec cheapProj : Bool) :
+    (cheapProj : Bool) :
     (TypeChecker.Methods.withFuel (depth + 1)).whnfCore (.lam name domain body bi)
-      cheapRec cheapProj ctx state = .ok (.lam name domain body bi, state) := rfl
+      cheapProj ctx state = .ok (.lam name domain body bi, state) := rfl
 
 private theorem telescopeNative {normalized : Expr} (hshape : SortTelescope normalized)
     (env : Kernel.Environment) :
@@ -123,7 +123,7 @@ theorem SortTelescope.normalizedLet (name : Name) (domain value body : Expr) (no
         change Except.error Kernel.Exception.deepRecursion = .ok result at hresult
         cases hresult
       | succ depth =>
-        rw [telescopeCore _ hshape depth _ _ false false] at hresult
+        rw [telescopeCore _ hshape depth _ _ false] at hresult
         simp only [telescopeNative hshape] at hresult
         simp only [StateT.lift, bind, ReaderT.bind, StateT.bind, pure,
           ReaderT.pure, StateT.pure, Except.pure, Except.bind,
@@ -186,7 +186,7 @@ theorem SortTelescope.normalizedBeta {body : Expr} (htype : SortTelescope body)
         change Except.error Kernel.Exception.deepRecursion = .ok result at hresult
         cases hresult
       | succ depth =>
-        rw [lambdaCore name domain body bi depth _ _ false false] at hresult
+        rw [lambdaCore name domain body bi depth _ _ false] at hresult
         simp only [Expr.getAppRevArgs_eq, Expr.getAppArgsRevList] at hresult
         have hnotlambda : ∀ lamName lamDomain lamBody lamBi,
             body = Expr.lam lamName lamDomain lamBody lamBi → False := by
@@ -206,7 +206,7 @@ theorem SortTelescope.normalizedBeta {body : Expr} (htype : SortTelescope body)
             Except.pure, Except.bind, modify, modifyGet,
             MonadStateOf.modifyGet, StateT.modifyGet, Expr.instantiate1_eq,
             Bool.not_false, Bool.true_and, ite_true] at hresult
-          rw [telescopeCore _ hshape depth _ _ false false] at hresult
+          rw [telescopeCore _ hshape depth _ _ false] at hresult
           simp only [telescopeNative hshape] at hresult
           simp only [StateT.lift, bind, ReaderT.bind, StateT.bind, pure,
             ReaderT.pure, StateT.pure, Except.pure, Except.bind,

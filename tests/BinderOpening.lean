@@ -120,10 +120,8 @@ run_meta
     if value.hasSorry then throwError "direct binder-opening admission {root}"
     let expected := if [``baseWF, ``namedWF, ``freshRequired, ``lambdaTranslation, ``letTranslation].contains root then [] else [``TrProj]
     let axioms ← collectAxioms root
-    -- Lean 4.29's concrete context proofs use only propositional extensionality.
-    let expectedAxioms := if [``baseWF, ``namedWF, ``freshRequired].contains root then
-        [``propext]
-      else [``propext, ``Classical.choice, ``Quot.sound, ``sorryAx]
+    let expectedAxioms := [``propext, ``Classical.choice, ``Quot.sound] ++
+      (if [``baseWF, ``namedWF, ``freshRequired].contains root then [] else [``sorryAx])
     unless expectedAxioms.length == axioms.size && expectedAxioms.all axioms.contains do
       throwError "binder-opening axiom manifest changed for {root}: {repr axioms}"
     logInfo m!"{root}: exact axioms {repr axioms}"

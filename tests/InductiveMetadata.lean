@@ -150,7 +150,8 @@ example (numParams : Nat) (types : Array InductiveType) (numNested : Nat) (isUns
           result.1.HeaderMetadata numParams types numNested isUnsafe lparams result.2 ∧
           result.1.ConstructorMetadata lparams types isUnsafe result.2 :=
   (checkInductiveTypes.registeredConstructorMetadata numParams types numNested isUnsafe _
-    SMap.WF.empty).mono fun _ hmetadata => hmetadata.2.2
+    (by
+      exact SMap.WF.emptyStage false)).mono fun _ hmetadata => hmetadata.2.2
 
 private def sortType : Expr := .sort (.succ .zero)
 
@@ -237,8 +238,11 @@ private def audit (theoremName : Name) (interfaces : List Name) : MetaM Unit := 
 run_meta
   let maps := [``Lean.PersistentHashMap.findAux_isSome,
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert]
-  let arity := [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
-    ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
+  let arity := [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.mkAppData_eq,
+    ``Expr.mkData_eq, ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq,
+    ``Level.hasMVar_eq,
+    Name.mkNum `_private.Lean4Lean.Verify.Expr 0 ++ `Lean.Expr.mkData_flags._native.bv_decide.ax_1_12,
+    `Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7]
   audit ``declareInductiveTypes.metadata maps
   audit ``InductiveStats.declaredParameterMetadata []
   audit ``checkInductiveTypes.registeredParameterMetadata (maps ++ arity)

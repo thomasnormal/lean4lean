@@ -33,7 +33,8 @@ theorem PeeledIndexOpening.application {env : VEnv} {universes : List Name}
   have valueTyped : env.HasType universes.length
       (peeledIndexVirtualContext virtual ⟨reader.ngen.curr⟩ domain peeled).toCtx
       semanticValue.lift (.forallE semanticDomain.lift (bodySemantic.liftN 1 1)) := by
-    simpa only [peeledIndexVirtualContext, VLCtx.toCtx, VExpr.lift, VExpr.liftN]
+    simpa only [VEnv.HasType, peeledIndexVirtualContext, VLCtx.toCtx, VExpr.lift, VExpr.liftN,
+      Nat.zero_add]
       using typed.weak envWF.ordered (B := peeled)
   have argumentTranslated : TrExprS env universes
       (peeledIndexVirtualContext virtual ⟨reader.ngen.curr⟩ domain peeled)

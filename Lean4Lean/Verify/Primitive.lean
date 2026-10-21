@@ -577,6 +577,65 @@ theorem VEnv.ReflectsNatNatBool'.toConst {ci' : VDefVal}
   refine congr_head hwfE (fun k Γ => ?_) href hcf (href.1.defeqU_l hwfE trivial hcf.symm)
   exact (hprim.natLitT henv.ordered hnat k Γ).mono (hle.trans le)
 
+namespace VEnv
+
+theorem HasPrimitives.natSucc_type (hp : env.HasPrimitives) (hn : env.contains ``Nat) :
+    env.HasType U Γ .natSucc (.forallE .nat .nat) := by
+  let ⟨_, _, h⟩ := hp.nat hn
+  cases hp.natSucc h
+  exact .const h nofun rfl
+
+theorem HasPrimitives.natLit_type (hp : env.HasPrimitives) (hn : env.contains ``Nat) (n : Nat) :
+    env.HasType U Γ (.natLit n) .nat := by
+  induction n with
+  | zero =>
+    let ⟨⟨_, h⟩, _⟩ := hp.nat hn
+    cases hp.natZero h
+    exact .const h nofun rfl
+  | succ n ih => exact hp.natSucc_type hn |>.app ih
+
+structure NatAddSpec (env : VEnv) (f : VExpr) : Prop where
+  zero : env.IsDefEq 0 [.nat]
+    (.app (.app f.lift (.bvar 0)) .natZero) (.bvar 0) .nat
+  succ : env.IsDefEq 0 [.nat, .nat]
+    (.app (.app f.lift.lift (.bvar 1)) (.app .natSucc (.bvar 0)))
+    (.app .natSucc (.app (.app f.lift.lift (.bvar 1)) (.bvar 0))) .nat
+
+theorem NatAddSpec.mono (h : NatAddSpec env f) (hle : env ≤ env') :
+    NatAddSpec env' f := ⟨h.zero.mono hle, h.succ.mono hle⟩
+
+theorem NatAddSpec.eval (h : NatAddSpec env f) (henv : env.Ordered)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat) (a b : Nat) :
+    env.IsDefEq 0 [] (.app (.app f (.natLit a)) (.natLit b)) (.natLit (a + b)) .nat := by
+  have ha := hp.natLit_type (U := 0) (Γ := []) hn a
+  induction b with
+  | zero =>
+    simpa only [VExpr.inst, VExpr.inst_lift, VExpr.instVar_zero, VExpr.nat, VExpr.natZero,
+      VExpr.natLit, Nat.add_zero] using h.zero.instN henv ha .zero
+  | succ b ih =>
+    have hb := hp.natLit_type (U := 0) (Γ := []) hn b
+    have hb' := hb.weak0 henv (Γ := [.nat])
+    have hs := h.succ.instN henv hb' .zero
+    simp only [VExpr.inst, VExpr.inst_lift, VExpr.instVar_zero, VExpr.instVar_upper,
+      VExpr.nat, VExpr.natSucc] at hs
+    have hs := hs.instN henv ha .zero
+    simp only [VExpr.inst, VExpr.inst_lift, VExpr.instVar_zero,
+      (hb.closedN henv trivial).instN_eq (Nat.zero_le _)] at hs
+    exact hs.trans <| (hp.natSucc_type hn).appDF ih
+
+theorem NatAddSpec.reflects (h : NatAddSpec env f) (henv : env.Ordered)
+    (hp : env.HasPrimitives) (hn : env.contains ``Nat)
+    (hdef : env.IsDefEq 0 [] (.const fc []) f (.forallE .nat (.forallE .nat .nat))) :
+    env.ReflectsNatNatNat fc Nat.add := by
+  intro _
+  refine ⟨hdef.hasType.1, ?_⟩
+  intro a b
+  have ha := hp.natLit_type (U := 0) (Γ := []) hn a
+  have hb := hp.natLit_type (U := 0) (Γ := []) hn b
+  exact ((hdef.appDF ha |>.appDF hb).trans (h.eval henv hp hn a b)).toU
+
+end VEnv
+
 /-- The unary counterpart. The reflection now carries a typing clause, and the constant's is
 exactly what `congr_head` already needs, so it comes along for free. -/
 theorem VEnv.ReflectsNatNat'.toConst {ci' : VDefVal}

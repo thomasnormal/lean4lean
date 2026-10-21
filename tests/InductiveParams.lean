@@ -56,8 +56,7 @@ example (env : Kernel.Environment) (lparams : List Name) (numParams : Nat)
     (type : InductiveType) (types : List InductiveType) (isUnsafe allowPrimitive : Bool)
     (fuel : FuelConfig) (hsmall : AddInductive.declareConstructors.arity 0 type.type < numParams) :
     Lean4Lean.Environment.addInductive env lparams numParams (type :: types) isUnsafe allowPrimitive
-      fuel = (Lean4Lean.Environment.checkInductiveSources env (type :: types) >>= fun _ =>
-        .error (.other "invalid inductive datatype declaration, incorrect number of parameters")) :=
+      fuel ≠ .ok result :=
   Lean4Lean.Environment.addInductive.reject_of_paramArity env lparams numParams type types isUnsafe
     allowPrimitive fuel hsmall
 

@@ -132,7 +132,7 @@ theorem RecursorCtorFieldTrace.allocations {stats : InductiveStats} {type termin
     · simpa only [recursorIndexContext, LocalContext.mkLocalDecl_toList, List.reverse_cons,
         List.append_assoc, List.singleton_append] using declarations
     · simpa only [List.map_cons, Array.toList_push, List.append_assoc, List.singleton_append,
-        declaration, LocalDecl.toExpr] using array
+        declaration, LocalDecl.toExpr, LocalDecl.fvarId, Lean.mkFVar] using array
     · intro current member
       rcases List.mem_cons.mp member with equality | member
       · subst current

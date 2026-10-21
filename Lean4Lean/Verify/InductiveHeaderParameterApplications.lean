@@ -232,7 +232,7 @@ theorem CheckedHeaderTrace.parameterApplicationsWithKind
       by simpa only [sameEnv, sameUniverses] using resultKind⟩
   | @reusedParameter stats name domain body binder index nindices reader stored normalized terminal finalStats
       finalIndices finalReader selected notFirst storedCall equalCall normalizedCall tail induction =>
-    have bound : index < stats.params.size := by simpa only [parameterCount, notFirst, if_false] using selected
+    have bound : index < stats.params.size := by simpa only [parameterCount, if_neg notFirst] using selected
     have member : stats.params[index]! ∈ stats.params := by
       simpa only [getElem!_pos stats.params index bound] using Array.getElem_mem bound
     obtain ⟨identifier, equation, present⟩ := parameters _ member
@@ -247,7 +247,7 @@ theorem CheckedHeaderTrace.parameterApplicationsWithKind
       (by simpa only [equation] using normalizedCall)
     obtain ⟨finalChecker, identifiers, values, result, finalEnv, finalUniverses, finalAligned, finalWF,
       history, finalParameters, arguments, resultKind⟩ := induction checker aligned initialWF reserved different
-        constants definitions (by simpa only [notFirst, if_false] using parameterCount)
+        constants definitions (by simpa only [if_neg notFirst] using parameterCount)
         parameters normalizedTranslated sortedCall
     have finalModelWF : finalChecker.mlctx.WF checker.venv checker.lparams := by
       simpa only [finalEnv, finalUniverses] using finalChecker.mlctx_wf
@@ -355,7 +355,8 @@ theorem HeaderParameterApplicationInput.application
     ∃ value, TrExprS environment universes model.vlctx (mkAppN head stats.params) value ∧
       environment.HasType universes.length model.vlctx.toCtx value input.result := by
   obtain ⟨translated, typed⟩ := input.arguments.apply environmentWF modelWF headTranslated headTyped
-  exact ⟨_, by simpa only [mkAppN, Array.foldl_toList, Expr.mkAppList_eq_foldl] using translated, typed⟩
+  exact ⟨_, by simpa only [mkAppN, ← Array.foldl_toList, Expr.mkAppList_eq_foldl,
+    show mkApp = Expr.app from rfl] using translated, typed⟩
 
 structure HeaderParameterApplicationReceipt (initial : TypeChecker.VContext)
     (stats : InductiveStats) (reader : Context) (source : Expr) where

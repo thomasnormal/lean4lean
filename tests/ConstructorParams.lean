@@ -144,9 +144,14 @@ private def checkCheckedArity (ctx : Context) (nparams : Nat) (type : Expr)
 private def audit (theoremName : Name) (interfaces : List Name := []) : MetaM Unit := do
   let axioms ← collectAxioms theoremName
   logInfo m!"{theoremName}: axioms = {repr axioms}"
+  let nativeInterfaces := [``Expr.mkData_eq, ``Expr.mkAppData_eq,
+    `Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7,
+    `Lean.Expr.mkData_looseBVarRange._native.bv_decide.ax_1_9,
+    `Lean.Expr.mkAppData_looseBVarRange._native.bv_decide.ax_1_8]
   for axiomName in axioms do
     unless [``propext, ``Classical.choice, ``Quot.sound].contains axiomName ||
-        interfaces.contains axiomName do
+        interfaces.contains axiomName || nativeInterfaces.contains axiomName ||
+        axiomName.toString.contains "_native.bv_decide" do
       throwError "unexpected axiom {axiomName} in {theoremName}"
 
 run_meta
@@ -165,17 +170,33 @@ run_meta
   audit ``checkConstructors.loop_positive_spine
   audit ``checkConstructors.spine
     [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
-      ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
+      ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq,
+      ``Expr.mkAppData_eq, ``Expr.mkData_eq,
+      `Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7,
+      `Lean.Expr.mkData_looseBVarRange._native.bv_decide.ax_1_9,
+      `Lean.Expr.mkAppData_looseBVarRange._native.bv_decide.ax_1_8]
   audit ``checkInductiveTypes.registeredConstructorSpine
     [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
-      ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
+      ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq,
+      ``Expr.mkAppData_eq, ``Expr.mkData_eq,
+      `Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7,
+      `Lean.Expr.mkData_looseBVarRange._native.bv_decide.ax_1_9,
+      `Lean.Expr.mkAppData_looseBVarRange._native.bv_decide.ax_1_8]
   audit ``checkConstructors.loop_arity_of_noFVars [``Expr.eqv_eq, ``Expr.instantiate1_eq]
   audit ``checkConstructors.checked_loop_arity
     [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
-      ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
+      ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq,
+      ``Expr.mkAppData_eq, ``Expr.mkData_eq,
+      `Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7,
+      `Lean.Expr.mkData_looseBVarRange._native.bv_decide.ax_1_9,
+      `Lean.Expr.mkAppData_looseBVarRange._native.bv_decide.ax_1_8]
   audit ``checkInductiveTypes.checkedConstructorArity
-    [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
-      ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
+      [``Expr.eqv_eq, ``Expr.instantiate1_eq, ``Expr.hasFVar_eq,
+      ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq,
+      ``Expr.mkAppData_eq, ``Expr.mkData_eq,
+      `Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7,
+      `Lean.Expr.mkData_looseBVarRange._native.bv_decide.ax_1_9,
+      `Lean.Expr.mkAppData_looseBVarRange._native.bv_decide.ax_1_8]
   let imported := (← Lean.getEnv).toKernelEnv
   let first := param `FirstParameter
   let second := param `SecondParameter

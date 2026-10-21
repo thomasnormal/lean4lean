@@ -137,8 +137,8 @@ private def nativeControls : MetaM Unit := do
     (Inner.isDefEqProofIrrel falseProof firstProof, .false),
     (Inner.isDefEqProofIrrel seven eight, .undef),
     (Inner.isDefEqProofIrrel function other, .undef)]
-  let mut booleanCount := 0
-  let mut proofCount := 0
+  let mut booleanCount : Nat := 0
+  let mut proofCount : Nat := 0
   for safety in [DefinitionSafety.safe, .unsafe] do
     for eager in [false, true] do
       for fuel in [32, 128] do
@@ -200,7 +200,7 @@ run_meta
     ``Lean.Expr.eqv_eq, ``Lean.Level.instLawfulBEqLevel, ``Lean.Syntax.structEq_eq,
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
     ``Lean.PersistentArray.toList'_push]
-  let mut owned := 0
+  let mut owned : Nat := 0
   for moduleName in #[`Lean4Lean.Verify.TypeChecker.ScopedInferType,
       `Lean4Lean.Verify.TypeChecker.ScopedComparison] do
     let some moduleIndex := environment.getModuleIdx? moduleName | throwError "scoped auxiliary module absent"

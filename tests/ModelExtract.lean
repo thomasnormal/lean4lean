@@ -780,7 +780,14 @@ run_meta
     (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "definitionNotQuotient"),
     (Name.str (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "RewriteMetadata") "extend"),
     (Name.str (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "RewriteMetadata") "addDefinition"),
-    (Name.str (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "RewriteMetadata") "addQuotient")]
+    (Name.str (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "RewriteMetadata") "addQuotient"),
+    `Lean4Lean.VEnv.addConsts_defeqs,
+    `Lean4Lean.VEnv.addDefEqs_defeqs,
+    `Lean4Lean.VEnv.addDefEqs_constants,
+    `Lean4Lean.VEnv.addDefEqs_extension,
+    (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "addConstsFresh"),
+    (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "addConstsUnique"),
+    (Name.str (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "RewriteMetadata") "addMutualDefinitions")]
   let manifests : List (Name × List Name) := [
     (`Lean4Lean.VEnv.QuotPropReduction.zeroLike, []),
     (`Lean4Lean.VEnv.QuotPropReduction.zeroLike_iff, [`Quot.sound, `propext]),
@@ -978,7 +985,14 @@ run_meta
     ((Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "definitionNotQuotient"), []),
     ((Name.str (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "RewriteMetadata") "extend"), []),
     ((Name.str (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "RewriteMetadata") "addDefinition"), [`Quot.sound, `propext]),
-    ((Name.str (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "RewriteMetadata") "addQuotient"), [`Quot.sound, `propext])]
+    ((Name.str (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "RewriteMetadata") "addQuotient"), [`Quot.sound, `propext]),
+    (`Lean4Lean.VEnv.addConsts_defeqs, [`Quot.sound, `propext]),
+    (`Lean4Lean.VEnv.addDefEqs_defeqs, [`Quot.sound, `propext]),
+    (`Lean4Lean.VEnv.addDefEqs_constants, []),
+    (`Lean4Lean.VEnv.addDefEqs_extension, [`Quot.sound, `propext]),
+    ((Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "addConstsFresh"), [`Quot.sound, `propext]),
+    ((Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "addConstsUnique"), [`Quot.sound, `propext]),
+    ((Name.str (Name.str (Name.str (Name.str (Name.num (Name.str (Name.str (Name.str (Name.str (Name.str (Name.anonymous) "_private") "Lean4Lean") "Theory") "Typing") "RewriteMetadata") 0) "Lean4Lean") "VEnv") "RewriteMetadata") "addMutualDefinitions"), [`Quot.sound, `propext])]
   let forbidden := [`Lean4Lean.VEnv.NormalEq.parRed, `Lean4Lean.VEnv.NormalEq.parRedS,
     `Lean4Lean.VEnv.IsDefEq.church_rosser, `Lean4Lean.VEnv.IsDefEqU.quot_inj, `Lean4Lean.VEnv.IsDefEqU.weakN_iff,
     `Lean4Lean.VEnv.HasType.weakN_iff, `Lean4Lean.VEnv.NormalEq.trans,

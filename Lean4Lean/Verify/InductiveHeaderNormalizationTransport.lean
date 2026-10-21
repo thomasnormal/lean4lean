@@ -29,7 +29,7 @@ theorem TypeChecker.Inner.ensureSortCore.transport
       dsimp only [Except.bind] at accepted ⊢
       rcases returned with ⟨normalized, finalState⟩
       by_cases sorted : normalized.isSort = true
-      · simpa only [sorted, if_true] using accepted
+      · simpa only [sorted, if_true, Pure.pure, ReaderT.pure, StateT.pure, Except.pure] using accepted
       · simp only [sorted, Bool.false_eq_true, if_false] at accepted
         change (Except.error _ : Except Kernel.Exception (Expr × TypeChecker.State)) = .ok result at accepted
         contradiction
@@ -59,10 +59,29 @@ theorem TypeChecker.Inner.ensureForallCore.transport
       dsimp only [Except.bind] at accepted ⊢
       rcases returned with ⟨normalized, finalState⟩
       by_cases quantified : normalized.isForall = true
-      · simpa only [quantified, if_true] using accepted
+      · simpa only [quantified, if_true, Pure.pure, ReaderT.pure, StateT.pure, Except.pure] using accepted
       · simp only [quantified, Bool.false_eq_true, if_false] at accepted
         change (Except.error _ : Except Kernel.Exception (Expr × TypeChecker.State)) = .ok result at accepted
         contradiction
+
+theorem TypeChecker.Inner.getSortLevel.transport
+    (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
+    (state : TypeChecker.State) (expression : Expr)
+    (inference : TypeChecker.M.SuccessTransport (actualMethods.inferType expression true)
+      (shadowMethods.inferType expression true) actualContext shadowContext state)
+    (normalization : ∀ type finalState, actualMethods.inferType expression true actualContext state =
+      .ok (type, finalState) → TypeChecker.M.SuccessTransport (actualMethods.whnf type)
+        (shadowMethods.whnf type) actualContext shadowContext finalState) :
+    TypeChecker.M.SuccessTransport (TypeChecker.Inner.getSortLevel expression actualMethods)
+      (TypeChecker.Inner.getSortLevel expression shadowMethods) actualContext shadowContext state := by
+  dsimp only [TypeChecker.Inner.getSortLevel, Bind.bind, ReaderT.bind, TypeChecker.Inner.inferType]
+  apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _ inference
+  intro type finalState accepted
+  apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
+    (TypeChecker.Inner.ensureSortCore.transport actualMethods shadowMethods actualContext shadowContext
+      finalState type expression fun _ => normalization type finalState accepted)
+  intro normalized normalizedState _
+  cases normalized <;> exact TypeChecker.M.SuccessTransport.pure _ _ _ _
 
 theorem TypeChecker.Inner.isProp.transport
     (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
@@ -74,12 +93,11 @@ theorem TypeChecker.Inner.isProp.transport
         (shadowMethods.whnf type) actualContext shadowContext finalState) :
     TypeChecker.M.SuccessTransport (TypeChecker.Inner.isProp expression actualMethods)
       (TypeChecker.Inner.isProp expression shadowMethods) actualContext shadowContext state := by
-  dsimp only [TypeChecker.Inner.isProp, Bind.bind, ReaderT.bind,
-    TypeChecker.Inner.inferType, TypeChecker.Inner.whnf]
-  apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _ inference
-  intro type finalState accepted
-  apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _ (normalization type finalState accepted)
-  intro normalized normalizedState _
+  have sorts := TypeChecker.Inner.getSortLevel.transport actualMethods shadowMethods
+    actualContext shadowContext state expression inference normalization
+  dsimp only [TypeChecker.Inner.isProp, Bind.bind, ReaderT.bind]
+  apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _ sorts
+  intro level normalizedState _
   exact TypeChecker.M.SuccessTransport.pure _ _ _ _
 
 theorem TypeChecker.Inner.isDefEq.transport
@@ -97,18 +115,18 @@ theorem TypeChecker.Inner.isDefEq.transport
 theorem TypeChecker.Inner.reduceProj.headerAxiomTransport
     (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
     (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
-    (state : TypeChecker.State) (index : Nat) (structureExpr : Expr) (cheapRec cheapProj : Bool)
+    (state : TypeChecker.State) (index : Nat) (structureExpr : Expr) (cheapProj : Bool)
     (normalization : TypeChecker.M.SuccessTransport
-      (if cheapProj then actualMethods.whnfCore structureExpr cheapRec cheapProj else actualMethods.whnf structureExpr)
-      (if cheapProj then shadowMethods.whnfCore structureExpr cheapRec cheapProj else shadowMethods.whnf structureExpr)
+      (if cheapProj then actualMethods.whnfCore structureExpr cheapProj else actualMethods.whnf structureExpr)
+      (if cheapProj then shadowMethods.whnfCore structureExpr cheapProj else shadowMethods.whnf structureExpr)
       actualContext shadowContext state)
     (strings : ∀ text finalState,
-      (if cheapProj then actualMethods.whnfCore structureExpr cheapRec cheapProj else actualMethods.whnf structureExpr)
+      (if cheapProj then actualMethods.whnfCore structureExpr cheapProj else actualMethods.whnf structureExpr)
         actualContext state = .ok (.lit (.strVal text), finalState) →
       TypeChecker.M.SuccessTransport (actualMethods.whnf (.strLitToConstructor text))
         (shadowMethods.whnf (.strLitToConstructor text)) actualContext shadowContext finalState) :
-    TypeChecker.M.SuccessTransport (TypeChecker.Inner.reduceProj index structureExpr cheapRec cheapProj actualMethods)
-      (TypeChecker.Inner.reduceProj index structureExpr cheapRec cheapProj shadowMethods)
+    TypeChecker.M.SuccessTransport (TypeChecker.Inner.reduceProj index structureExpr cheapProj actualMethods)
+      (TypeChecker.Inner.reduceProj index structureExpr cheapProj shadowMethods)
       actualContext shadowContext state := by
   have lookup : ∀ (expression : Expr) (finalState : TypeChecker.State),
       TypeChecker.M.SuccessTransport
@@ -159,7 +177,7 @@ theorem TypeChecker.Inner.reduceProj.headerAxiomTransport
     cases literal with
     | natVal value => exact lookup _ _
     | strVal text =>
-      dsimp only [Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
+      dsimp only [TypeChecker.Inner.reduceProjCore, Bind.bind, ReaderT.bind, TypeChecker.Inner.whnf]
       apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _ (strings text finalState accepted)
       intro expanded expandedState _
       exact lookup expanded expandedState

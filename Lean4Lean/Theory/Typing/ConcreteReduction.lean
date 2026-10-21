@@ -117,13 +117,14 @@ theorem RewriteRule.unique (environmentWF : environment.WF)
       · have disjoint : (Pattern.const definition.name).inter (.varN (.const ``Quot.lift) count) = none := by
           change (Pattern.varN (.const definition.name) 0).inter _ = none
           rw [spineIntersection]
-          simp [protectedNames ``Quot.lift (by simp)]
+          simp only [protectedNames ``Quot.lift (.tail _ (.tail _ (.head _))),
+            false_and, if_false]
         rw [disjoint] at intersection
         cases intersection
       · have disjoint : (Pattern.const definition.name).inter (.varN (.const ``Quot.mk) count) = none := by
           change (Pattern.varN (.const definition.name) 0).inter _ = none
           rw [spineIntersection]
-          simp [protectedNames ``Quot.mk (by simp)]
+          simp only [protectedNames ``Quot.mk (.tail _ (.head _)), false_and, if_false]
         rw [disjoint] at intersection
         cases intersection
     | quot =>
@@ -170,7 +171,11 @@ theorem RewriteRule.majorArgumentDisjoint
   obtain ⟨leftCount, _, rfl⟩ := spineSubpattern functionSubpattern
   obtain ⟨rightCount, _, rfl⟩ := spineSubpattern argumentSubpattern
   rw [spineIntersection]
-  simp
+  have different : ``Quot.lift ≠ ``Quot.mk := by
+    intro equal
+    have sizes : 4 = 2 := congrArg (fun name : Lean.Name => name.getString!.utf8ByteSize) equal
+    cases sizes
+  rw [if_neg (fun equal => different equal.1)]
 
 abbrev WF.reductionParams (environmentWF : environment.WF) (universes : Nat) : Params where
   env := environment

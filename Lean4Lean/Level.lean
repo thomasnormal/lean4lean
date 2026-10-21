@@ -361,3 +361,82 @@ def isEquivList : List Level → List Level → Bool := List.all2 isEquiv'
 /-- Core's `geq` as a fast path, on the same grounds as `isEquiv'`. -/
 def geq' (u v : Level) : Bool :=
   geq u v || (Normalize.normalize v).le (Normalize.normalize u)
+
+def normalizeIMax (u v : Level) : Level :=
+  if v == .zero then v
+  else if u == .zero then v
+  else if u == .succ .zero then v
+  else if u == v then u
+  else .imax u v
+
+namespace NormalizeCore
+
+def maxArgs : Level → List Level
+  | .max u v => maxArgs u ++ maxArgs v
+  | u => [u]
+
+def accMax (result u : Level) : Level :=
+  match result with
+  | .zero => u
+  | _ => .max result u
+
+/-- Merge consecutive terms with the same base. Taking the larger offset explicitly
+makes preservation independent of the sorting invariant. -/
+def mergeMax : List Level → Level → Level → Level
+  | [], prev, result => accMax result prev
+  | u :: us, prev, result =>
+    if u.getLevelOffset == prev.getLevelOffset then
+      mergeMax us (if prev.getOffset ≤ u.getOffset then u else prev) result
+    else mergeMax us u (accMax result prev)
+
+def subsumed (us : List Level) (u : Level) : Bool :=
+  u.getLevelOffset.isZero && us.any fun v =>
+    !v.getLevelOffset.isZero && u.getOffset ≤ v.getOffset
+
+/-- Flatten, sort, remove subsumed explicit levels, and merge repeated bases,
+as in the original normalizer. Merge sort provides a total, transparent sort. -/
+def max (u v : Level) : Level :=
+  let us := maxArgs u ++ maxArgs v
+  match (us.filter fun u => !subsumed us u).mergeSort normLt with
+  | [] => .zero
+  | u :: us => mergeMax us u .zero
+
+def addOffset : Level → Nat → Level
+  | .max u v, k => .max (addOffset u k) (addOffset v k)
+  | u, k => u.addOffset k
+
+def normalize : Level → Nat → Level
+  | .zero, k => Level.zero.addOffset k
+  | .succ u, k => normalize u (k + 1)
+  | .max u v, k => max (addOffset (normalize u 0) k) (addOffset (normalize v 0) k)
+  | .imax u v, k =>
+    if v.isNeverZero then (max (normalize u 0) (normalize v 0)).addOffset k
+    else (normalizeIMax (normalize u 0) (normalize v 0)).addOffset k
+  | .param n, k => (Level.param n).addOffset k
+  | .mvar n, k => (Level.mvar n).addOffset k
+
+end NormalizeCore
+
+/-- A total version of the original normalizer's flatten/sort/subsume algorithm. -/
+def normalizeCore (u : Level) : Level := NormalizeCore.normalize u 0
+
+def geqCore (u v : Level) : Bool :=
+  u == v ||
+  match u, v with
+  | _, .zero => true
+  | u, .max v₁ v₂ => geqCore u v₁ && geqCore u v₂
+  | .max u₁ u₂, .imax v₁ v₂ =>
+    geqCore u₁ (.imax v₁ v₂) || geqCore u₂ (.imax v₁ v₂) ||
+      (geqCore (.max u₁ u₂) v₁ && geqCore (.max u₁ u₂) v₂)
+  | .max u₁ u₂, v =>
+    let v' := v.getLevelOffset
+    geqCore u₁ v || geqCore u₂ v ||
+      (((Level.max u₁ u₂).getLevelOffset == v' || v'.isZero) &&
+        (Level.max u₁ u₂).getOffset ≥ v.getOffset)
+  | .imax _ u₂, v => geqCore u₂ v
+  | .succ u, .succ v => geqCore u v
+  | u, .imax v₁ v₂ => geqCore u v₁ && geqCore u v₂
+  | u, v =>
+    let v' := v.getLevelOffset
+    (u.getLevelOffset == v' || v'.isZero) && u.getOffset ≥ v.getOffset
+termination_by (u, v)

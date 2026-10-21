@@ -7,6 +7,8 @@ open Kernel
 
 namespace Primitive
 
+variable {fuel : FuelConfig}
+
 /-- `Nat.mod`'s and `Nat.div`'s shared fuel recursion, verified once: the `≤` they are stated
 with and the `go` they recurse through are checked, the condition their conditionals test is
 checked, and then the two equations at the recursion's own variables.
@@ -278,7 +280,7 @@ recursion's business. The step does nothing to the recursive call, and the recur
 dividend when it stops. -/
 theorem checkNatMod.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.mod) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatMod v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]
   refine elseFail fun h1 => elseFail fun h2 => ?_
@@ -442,7 +444,7 @@ counts, so the recursive call is wrapped in a `succ`, and the recursion returns 
 stops. -/
 theorem checkNatDiv.WF {ves : VEnvs} (wf : ves.WF env)
     (hname : v.name = ``Nat.div) :
-    let c := .mk' wf .safe v.levelParams; Data v ci' c →
+    let c := .mk' wf .safe v.levelParams fuel; Data v ci' c →
     (checkNatDiv v).WF c state fun _ _ => PrimitiveResult (ves.venv .safe) v ci' := by
   intro ctx P; rw [← ctx.withMLC_self]
   refine elseFail fun h1 => elseFail fun h2 => ?_

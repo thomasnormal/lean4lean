@@ -26,7 +26,7 @@ private def parameterVariation : MetaM Unit := do
     type := .forallE `function (.forallE `x natural natural .default)
       (.forallE `index natural (.sort (.succ .zero)) .default) .default
     ctors := [] }
-  unless (host.addDeclCore 0 (.inductDecl [] 1 [type] false) none).isOk do
+  unless (host.addDeclCore 0 0 (.inductDecl [] 1 [type] false) none).isOk do
     throwError "native kernel rejected annotated-prefix family"
   let reader : Context := { env := host.toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
   let .ok registered := run 1 [type] 0 reader | throwError "family registration failed"

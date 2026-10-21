@@ -306,7 +306,7 @@ theorem FreshOrdered.append {constants : ConstMap} {first second : List Registra
     (hsecond : FreshOrdered (insertOrdered constants first) second) :
     FreshOrdered constants (first ++ second) := by
   induction first generalizing constants with
-  | nil => simpa using hsecond
+  | nil => simpa [insertOrdered] using hsecond
   | cons entry first ih =>
     simp only [FreshOrdered, List.cons_append] at hfirst ⊢
     exact ⟨hfirst.1, ih hfirst.2 hsecond⟩

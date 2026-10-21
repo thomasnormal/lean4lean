@@ -3,7 +3,15 @@ import Lean4Lean.Verify.PrimitiveInterfaces
 namespace Lean4Lean
 open Lean hiding Environment Exception
 open private Lean.Kernel.Environment.add from Lean.Environment
-open private primitive_contains from Lean4Lean.Verify.Environment
+
+private theorem primitive_contains (n : Name) (h : n ∈ [
+    ``Bool, ``Bool.false, ``Bool.true, ``Nat, ``Nat.zero, ``Nat.succ,
+    ``Nat.add, ``Nat.pred, ``Nat.sub, ``Nat.mul, ``Nat.pow, ``Nat.gcd,
+    ``Nat.mod, ``Nat.div, ``Nat.beq, ``Nat.ble, ``Nat.bitwise, ``Nat.land,
+    ``Nat.lor, ``Nat.xor, ``Nat.shiftLeft, ``Nat.shiftRight, ``String.ofList,
+    ``Char.ofNat]) : Kernel.Environment.primitives.contains n := by
+  apply Std.TreeSet.mem_iff_contains.mp
+  simpa [Kernel.Environment.primitives, NameSet.ofList] using h
 
 structure NativePrimitiveFrame (before after : Kernel.Environment) : Prop where
   map_wf : after.constants.WF
@@ -57,8 +65,9 @@ theorem addDefinition.nativePrimitiveFrame (env : Kernel.Environment) (v : Defin
     simp only [Functor.map, Except.map] at hresult
     split at hresult <;> cases hresult
     apply NativePrimitiveFrame.addConst (ci := .defnInfo v) hmap ?_ ?_
-    · simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name] using hfresh
-    · simpa only [ConstantInfo.name] using hprimitive
+    · simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name,
+        ConstantInfo.toConstantVal] using hfresh
+    · simpa only [ConstantInfo.name, ConstantInfo.toConstantVal] using hprimitive
 
 theorem addAxiom.nativePrimitiveFrame (env : Kernel.Environment) (v : AxiomVal)
     (fuel : FuelConfig) (hmap : env.constants.WF)
@@ -72,40 +81,9 @@ theorem addAxiom.nativePrimitiveFrame (env : Kernel.Environment) (v : AxiomVal)
   simp [(· >>= ·), Except.bind] at hresult
   split at hresult <;> cases hresult
   apply NativePrimitiveFrame.addConst (ci := .axiomInfo v) hmap ?_ ?_
-  · simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name] using hfresh
-  · simpa only [ConstantInfo.name] using hprimitive
-
-theorem addDefinitionHeader.nativePrimitiveFrame (env : Kernel.Environment) (v : DefinitionVal)
-    (fuel : FuelConfig) (hmap : env.constants.WF)
-    (hfresh : env.find? v.name = none)
-    (hprimitive : Kernel.Environment.primitives.contains v.name = false)
-    {env' : Kernel.Environment}
-    (hresult : addDefinitionHeader env v fuel = .ok env') :
-    NativePrimitiveFrame env env' := by
-  unfold addDefinitionHeader at hresult
-  simp [(· >>= ·), Except.bind] at hresult
-  split at hresult <;> cases hresult
-  apply NativePrimitiveFrame.addConst (ci := .defnInfo v) hmap ?_ ?_
-  · simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name] using hfresh
-  · simpa only [ConstantInfo.name] using hprimitive
-
-theorem addDefinition.unsafeHeaderResult (env : Kernel.Environment) (v : DefinitionVal)
-    (fuel : FuelConfig) {env' : Kernel.Environment} (hsafety : v.safety = .unsafe)
-    (hresult : addDefinition env v true fuel = .ok env') :
-    ∃ header, addDefinitionHeader env v fuel = .ok header ∧ header = env' := by
-  unfold addDefinition at hresult
-  rw [hsafety] at hresult
-  simp [(· >>= ·), Except.bind] at hresult
-  split at hresult
-  · cases hresult
-  · rename_i header hheader
-    split at hresult
-    · cases hresult
-    · rename_i checked hchecked
-      split at hresult
-      · cases hresult
-      · cases hresult
-        exact ⟨env', hheader, rfl⟩
+  · simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name,
+      ConstantInfo.toConstantVal] using hfresh
+  · simpa only [ConstantInfo.name, ConstantInfo.toConstantVal] using hprimitive
 
 theorem NativePrimitiveFrame.foldlM {Item State Error : Type}
     (getEnv : State → Kernel.Environment) (step : State → Item → Except Error State)
@@ -160,8 +138,9 @@ theorem VEnv.HasPrimitives.mono_of_primitiveConstants {env env' : VEnv}
   apply hp.mono_of_literals hle hliterals
   intro name hmem
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hmem
-  rcases hmem with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
-    exact hconst _ (primitive_contains _ (by simp))
+  exact hconst name (primitive_contains name (by
+    simp only [List.mem_cons, List.not_mem_nil, or_false]
+    grind))
 
 theorem CheckerEnv.hasPrimitives_of_frame {before after : Kernel.Environment} {env env' : VEnv}
     (hbefore : CheckerEnv safety before env) (hafter : CheckerEnv safety after env')
@@ -189,8 +168,8 @@ theorem addDefinition.refinesPrimitiveFrame {env : Kernel.Environment} {ves : VE
   intro safety
   have hbefore := (wf.tr (safety := safety)).checkerEnv
   have hafter := (hwf.tr (safety := safety)).checkerEnv
-  exact ⟨hle safety, hafter,
-    hbefore.hasPrimitives_of_frame hafter (hle safety)
+  exact ⟨hle.1 safety, hafter,
+    hbefore.hasPrimitives_of_frame hafter (hle.1 safety)
       (wf.hasPrimitives (safety := safety)) hframe⟩
 
 theorem AddInductive.declareInductiveTypes.preservesPrimitives
@@ -204,8 +183,13 @@ theorem AddInductive.declareInductiveTypes.preservesPrimitives
   rw [← Array.foldlM_toList]
   apply NativePrimitiveFrame.foldlM id _ _ _ hmap
   intro info env hmap
-  exact (checkName.WF env info.name ctx.allowPrimitive).bind fun _ ⟨hfresh, hprim⟩ =>
-    .pure (NativePrimitiveFrame.addConst (ci := .inductInfo info) hmap hfresh (hprim hallow))
+  exact (checkName.WF hmap info.name ctx.allowPrimitive).bind fun _ ⟨hfresh, hprim⟩ =>
+    .pure (NativePrimitiveFrame.addConst (ci := .inductInfo info) hmap (by
+      simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name,
+        ConstantInfo.toConstantVal] using hfresh) (by
+      cases hp : Kernel.Environment.primitives.contains info.name with
+      | false => simpa only [ConstantInfo.name, ConstantInfo.toConstantVal] using hp
+      | true => have := hprim hp; simp [hallow] at this))
 
 theorem AddInductive.declareConstructors.preservesPrimitives
     (ctx : AddInductive.Context) (stats : AddInductive.InductiveStats)
@@ -220,8 +204,13 @@ theorem AddInductive.declareConstructors.preservesPrimitives
   refine Except.WF.bind ?_ (fun state hframe => .pure hframe)
   apply NativePrimitiveFrame.foldlM Prod.snd _ _ _ hmap
   intro ctor state hmap
-  refine (checkName.WF state.2 ctor.name ctx.allowPrimitive).bind fun _ ⟨hfresh, hprim⟩ => ?_
-  exact .pure (NativePrimitiveFrame.addConst hmap hfresh (hprim hallow))
+  refine (checkName.WF hmap ctor.name ctx.allowPrimitive).bind fun _ ⟨hfresh, hprim⟩ => ?_
+  exact .pure (NativePrimitiveFrame.addConst hmap (by
+    simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name,
+      ConstantInfo.toConstantVal] using hfresh) (by
+    cases hp : Kernel.Environment.primitives.contains ctor.name with
+    | false => simpa only [ConstantInfo.name, ConstantInfo.toConstantVal] using hp
+    | true => have := hprim hp; simp [hallow] at this))
 
 theorem AddInductive.checkInductiveTypes.preservesHeaderConstructorPrimitives
     (ctx : AddInductive.Context) (numParams : Nat) (types : Array InductiveType)

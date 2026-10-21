@@ -96,7 +96,7 @@ private def runtime : MetaM Unit := do
       let name := (`IndexReconstruction).appendIndexAfter (mode * 2 + if annotated then 1 else 0)
       let type : InductiveType := { name, type := source mode annotated, ctors := [] }
       for isUnsafe in [false, true] do
-        unless (host.addDeclCore 0 (.inductDecl [] 0 [type] isUnsafe) none).isOk do
+        unless (host.addDeclCore 0 0 (.inductDecl [] 0 [type] isUnsafe) none).isOk do
           throwError "native kernel rejected source reconstruction fixture {name}"
         for primitive in [false, true] do
           let original : Context := {

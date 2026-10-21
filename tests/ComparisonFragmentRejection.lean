@@ -19,7 +19,7 @@ private def ignoredConstructor : ConstructorVal := {
 private theorem ignoredConstructorSupported :
     TrEnv' .safe (({} : ConstMap).insert ignoredConstructor.name (.ctorInfo ignoredConstructor))
       false VEnv.empty :=
-  .ignoreConst (C := {}) (ci := .ctorInfo ignoredConstructor)
+  .ignore (C := {}) (ci := .ctorInfo ignoredConstructor)
     (by simp [SMap.find?]) (by decide) .empty
 
 example : ({} : VEnv).constants ignoredConstructor.name = none := rfl
@@ -103,8 +103,8 @@ private def nativeControls : MetaM Unit := do
     Inner.tryEtaStruct pair etaPair,
     Inner.tryEtaStruct etaPair pair,
     Inner.isDefEqUnitLike firstUnit secondUnit]
-  let mut guardCount := 0
-  let mut positiveCount := 0
+  let mut guardCount : Nat := 0
+  let mut positiveCount : Nat := 0
   for safety in [DefinitionSafety.safe, .unsafe] do
     for eager in [false, true] do
       for fuel in [32, 128] do
@@ -152,7 +152,7 @@ run_meta
     for dependency in dependencies do
       unless baseline.contains dependency || native.contains dependency do
         throwError "unexpected comparison boundary dependency {dependency} in {theoremName}"
-  let mut owned := 0
+  let mut owned : Nat := 0
   for moduleName in #[`Lean4Lean.Verify.Environment.Lemmas, `Lean4Lean.Verify.TypeChecker.IsDefEq] do
     let some moduleIndex := environment.getModuleIdx? moduleName | throwError "comparison boundary module absent"
     for (name, information) in environment.constants do

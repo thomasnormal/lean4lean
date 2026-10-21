@@ -2,6 +2,11 @@ import Lean4Lean.Theory.Typing.ConcreteReduction
 
 namespace Lean4Lean.VEnv
 
+private theorem levelsRefl (levels : List VLevel) : List.Forall₂ (· ≈ ·) levels levels := by
+  induction levels with
+  | nil => exact .nil
+  | cons level levels induction => exact .cons rfl induction
+
 variable {environment : VEnv}
 
 private def sortTelescope : VExpr → Prop
@@ -28,11 +33,11 @@ private theorem sortTelescopeNotProp (environmentWF : environment.WF)
     have bodyZero : bodyUniverse ≈ .zero := VLevel.equiv_def.mpr fun values => by
       change bodyUniverse.eval values = 0
       have evaluated := VLevel.equiv_def.mp equal values
-      change 0 = Nat.imax (domainUniverse.eval values) (bodyUniverse.eval values) at evaluated
+      change 0 = Lean.Nat.imax (domainUniverse.eval values) (bodyUniverse.eval values) at evaluated
       cases bodyValue : bodyUniverse.eval values with
       | zero => rfl
       | succ value =>
-        simp only [Nat.imax, bodyValue, Nat.succ_ne_zero, if_false] at evaluated
+        simp only [Lean.Nat.imax, bodyValue, Nat.succ_ne_zero, if_false] at evaluated
         have bound := Nat.le_max_right (domainUniverse.eval values) (value + 1)
         exact Nat.le_zero.mp (Nat.le_trans bound (Nat.le_of_eq evaluated.symm))
     have extendedWF : OnCtx (domain :: locals) (environment.IsType universes) :=
@@ -111,7 +116,7 @@ private theorem quotHeadNotMatched (environmentWF : environment.WF)
     generalize nameEqual : VConstVal.name _ = name at matched
     cases matched
     exact environmentWF.rewriteMetadata.quotientNames definitionRegistered registered
-      ``Quot (by simp) nameEqual
+      ``Quot (.head _) nameEqual
   | quot => cases matched
 
 private theorem quotDomainNotMatched
@@ -196,7 +201,7 @@ theorem NormalEq.quot_head
     List.Forall₂ (· ≈ ·) leftLevels rightLevels := by
   letI := environmentWF.reductionParams universes
   cases equal with
-  | refl => exact .rfl fun _ _ => rfl
+  | refl => exact levelsRefl _
   | constDF _ _ _ _ levelsEqual => exact levelsEqual
   | proofIrrel propositionTyped proofTyped _ =>
     obtain ⟨constant, lookup, levelsWF, arity⟩ := proofTyped.const_inv environmentWF.ordered localsWF
@@ -219,7 +224,7 @@ theorem NormalEq.quot_domain
   cases equal with
   | refl typed =>
     obtain ⟨_, _, _, domainTyped, _⟩ := quotDomainTyping environmentWF localsWF quotientRegistered typed
-    exact ⟨.rfl fun _ _ => rfl, .refl domainTyped⟩
+    exact ⟨levelsRefl _, .refl domainTyped⟩
   | appDF _ _ _ _ functionEqual domainEqual =>
     exact ⟨functionEqual.quot_head environmentWF universes localsWF registered, domainEqual⟩
   | proofIrrel propositionTyped proofTyped _ =>
@@ -241,7 +246,7 @@ theorem NormalEq.quot_type
   cases equal with
   | refl typed =>
     obtain ⟨_, _, _, domainTyped, relationTyped, _⟩ := quot_inv environmentWF localsWF quotientRegistered typed
-    exact ⟨.rfl fun _ _ => rfl, .refl domainTyped, .refl relationTyped⟩
+    exact ⟨levelsRefl _, .refl domainTyped, .refl relationTyped⟩
   | appDF _ _ _ _ functionEqual relationEqual =>
     obtain ⟨levelsEqual, domainEqual⟩ := functionEqual.quot_domain environmentWF universes localsWF registered
     exact ⟨levelsEqual, domainEqual, relationEqual⟩

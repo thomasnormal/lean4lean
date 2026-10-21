@@ -66,6 +66,7 @@ theorem SourceRecursorRules.restoreOriginal {nparams : Nat} {ctors : List Constr
     (staged : Environment) (nameMap : NameMap Name) (recName : Name)
     (hidentity : nameMap.getD recName recName = recName) :
     SourceRecursorRules nparams ctors (rules.map (restoredRecursorRule preprocessing staged nameMap recName)) := by
+  unfold SourceRecursorRules
   simpa only [hidentity, BEq.rfl, ↓reduceIte] using hrules.restoredPairs preprocessing staged nameMap recName
 
 theorem SourceRecursorRuleConstructors.restoreOriginal {nparams : Nat} {lparams : List Name}

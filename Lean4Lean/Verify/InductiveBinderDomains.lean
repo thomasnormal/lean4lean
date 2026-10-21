@@ -9,6 +9,10 @@ inductive BinderRole where
   | index
   deriving DecidableEq
 
+private theorem BinderRole.parameter_ne_index : ¬ BinderRole.parameter = BinderRole.index := by decide
+
+private theorem BinderRole.index_ne_parameter : ¬ BinderRole.index = BinderRole.parameter := by decide
+
 structure BinderStep where
   role : BinderRole
   name : Name
@@ -170,7 +174,7 @@ theorem CheckedHeaderTrace.openedTelescope {nparams : Nat} {stats finalStats : I
         (hbody.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)) hpush.wf hpush.reserved hnext
       refine ⟨_, .bind .parameter name domain bi (.fvar ⟨ctx.ngen.curr⟩) opened,
         parameterDeclared declared name domain bi (.fvar ⟨ctx.ngen.curr⟩), ?_, ?_, ?_⟩
-      · simpa only [BinderStep.indexValues, BinderRole.noConfusion, ↓reduceIte] using hcount
+      · simpa only [BinderStep.indexValues, BinderRole.parameter_ne_index, if_false] using hcount
       · intro _
         simpa only [BinderStep.parameterValues, ↓reduceIte, Array.toList_push,
           List.append_assoc, List.singleton_append] using hfresh hfirst
@@ -190,7 +194,7 @@ theorem CheckedHeaderTrace.openedTelescope {nparams : Nat} {stats finalStats : I
         (hbody.instantiate1 stats.params[index]!) hwf hreserved hnext
       refine ⟨_, .bind .parameter name domain bi stats.params[index]! opened,
         parameterDeclared declared name domain bi stats.params[index]!, ?_, ?_, ?_⟩
-      · simpa only [BinderStep.indexValues, BinderRole.noConfusion, ↓reduceIte] using hcount
+      · simpa only [BinderStep.indexValues, BinderRole.parameter_ne_index, if_false] using hcount
       · intro hyes
         exact False.elim (hfirst hyes)
       · intro _
@@ -214,8 +218,8 @@ theorem CheckedHeaderTrace.openedTelescope {nparams : Nat} {stats finalStats : I
         indexDeclared declared name domain bi (.fvar ⟨ctx.ngen.curr⟩) hvalue, ?_, ?_, ?_⟩
       · simp only [BinderStep.indexValues, ↓reduceIte, List.length_cons]
         omega
-      · simpa only [BinderStep.parameterValues, BinderRole.noConfusion, ↓reduceIte] using hfresh
-      · simpa only [BinderStep.parameterValues, BinderRole.noConfusion, ↓reduceIte] using hreused
+      · simpa only [BinderStep.parameterValues, BinderRole.index_ne_parameter, if_false] using hfresh
+      · simpa only [BinderStep.parameterValues, BinderRole.index_ne_parameter, if_false] using hreused
 
 private theorem parameterDrop (params : Array Expr) (index : Nat) (hindex : index < params.size) :
     params.toList.drop index = params[index]! :: params.toList.drop (index + 1) := by
@@ -251,7 +255,7 @@ theorem RecursorIndexTrace.openedTelescope {stats : InductiveStats} {type termin
       · simp only [BinderStep.parameterValues, ↓reduceIte]
         rw [parameterDrop stats.params index hparam, hparams]
         rfl
-      · simpa only [BinderStep.indexValues, BinderRole.noConfusion, ↓reduceIte] using hindices
+      · simpa only [BinderStep.indexValues, BinderRole.parameter_ne_index, if_false] using hindices
       · exact parameterDeclared declared name domain bi stats.params[index]!
   | @index name domain body bi index indices ctx normalized terminal finalIndex finalIndices finalCtx
       hparam hnormalized tail ih =>
@@ -265,7 +269,7 @@ theorem RecursorIndexTrace.openedTelescope {stats : InductiveStats} {type termin
       obtain ⟨steps, opened, hparams, hindices, declared⟩ := ih
         (hbody.instantiate1 (.fvar ⟨ctx.ngen.curr⟩)) hpush.wf hpush.reserved
       refine ⟨_, .bind .index name domain bi (.fvar ⟨ctx.ngen.curr⟩) opened, ?_, ?_, ?_⟩
-      · simpa only [BinderStep.parameterValues, BinderRole.noConfusion, ↓reduceIte] using hparams
+      · simpa only [BinderStep.parameterValues, BinderRole.index_ne_parameter, if_false] using hparams
       · simpa only [BinderStep.indexValues, ↓reduceIte, Array.toList_push, List.append_assoc,
           List.singleton_append] using hindices
       · have hvalue := (newlyAllocatedBinderDeclared ctx name domain bi hwf hreserved).mono hpush.wf

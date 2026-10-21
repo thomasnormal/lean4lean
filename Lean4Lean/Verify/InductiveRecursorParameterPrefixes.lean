@@ -281,9 +281,18 @@ theorem ParameterizedCtorFieldModelEndpoint.application
   obtain ⟨appliedTranslated, appliedTyped⟩ := arguments.apply headTranslated headTyped
   have appliedTranslated : TrExprS environment universes initial.vlctx (mkAppN head stats.params)
       (ElimNestedInductive.applyParameterArguments headSemantic semanticArguments) := by
-    simpa only [mkAppN, Array.foldl_toList, Expr.mkAppList_eq_foldl] using appliedTranslated
+    have appEq : mkAppN head stats.params = Array.foldl Expr.app head stats.params := by
+      rw [Expr.mkAppN_eq, Expr.appN_eq_mkAppList, Expr.mkAppList_eq_foldl]
+      simp [Array.foldl_toList]
+    rw [appEq]
+    simpa only [Expr.mkAppList_eq_foldl, Array.foldl_toList] using appliedTranslated
   obtain ⟨value, valueTranslated, valueTyped⟩ := history.application environmentWF appliedTranslated appliedTyped
-  exact ⟨value, finalSemantic, by simpa only [converted, mkAppN, Array.foldl_empty] using valueTranslated,
+  exact ⟨value, finalSemantic,
+    by
+      simpa only [converted] using valueTranslated.eqv (by
+        change (Array.foldl mkApp (Array.foldl mkApp head stats.params) fields ==
+          Array.foldl mkApp (Array.foldl mkApp head stats.params) fields) = true
+        simp),
     by simpa only [converted] using history.finalTranslation.2,
     by simpa only [converted] using valueTyped⟩
 

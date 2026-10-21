@@ -230,7 +230,12 @@ theorem withLocalDecl_isDefEq.WF {c : VContext} {s : VState}
   rw [← c.withMLC_self]
   refine M.WF.withLocalDecl hty hty' (.rfl (s := s)) fun id cwf' s' _ _ => ?_
   have hΔ := cwf'.1.tr.wf
-  simpa only [Expr.instantiate1_eq] using
+  have hctx : (c.withMLC (.vlam id name ty ty' bi c.mlctx)).vlctx.toCtx =
+      ty' :: (c.withMLC c.mlctx).vlctx.toCtx := by
+    rfl
+  rw [← hctx]
+  simpa only [VContext.IsDefEqU, VContext.withMLC_venv, VContext.withMLC_lparams,
+    Expr.instantiate1_eq] using
     isDefEq.WF (c := c.withMLC (.vlam id name ty ty' bi c.mlctx))
       (he₁.inst_fvar c.Ewf.ordered hΔ) (he₂.inst_fvar c.Ewf.ordered hΔ)
 

@@ -84,6 +84,11 @@ theorem VEnv.addDefEqs_ordered : ∀ {env : VEnv} {cis}, Ordered env →
     · exact (VEnv.addDefEq_le (df := ci.toDefEq)).constants (hmem c (.tail _ hc))
     · exact (hw c (.tail _ hc)).mono VEnv.addDefEq_le
 
+theorem VEnv.WF.decl {env env' : VEnv} {d : VDecl}
+    (henv : env.WF) (hdecl : VDecl.WF env d env') : env'.WF := by
+  obtain ⟨declarations, hdeclarations⟩ := henv
+  exact ⟨d :: declarations, .decl hdecl hdeclarations⟩
+
 theorem VEnv.WF.ordered : WF env → Ordered env
   | ⟨ds, H⟩ => by
     induction H with | empty => exact .empty | decl h _ ih

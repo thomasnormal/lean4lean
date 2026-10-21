@@ -37,46 +37,46 @@ private def fixtureEnvironment : VEnv where
     definition = optParamDefinition ∨ definition = autoParamDefinition
 
 private theorem fixtureConstants : CanonicalAnnotationConstants fixtureEnvironment := by
-  constructor <;> simp [fixtureEnvironment]
+  constructor <;> rfl
 
 private theorem fixtureDefinitions : CanonicalAnnotationDefinitions fixtureEnvironment := by
   constructor <;> simp [fixtureEnvironment]
 
 private theorem natTyped (context : List VExpr) : fixtureEnvironment.HasType 0 context
     (.const ``Nat []) (.sort (.succ .zero)) := by
-  simpa only [VExpr.instL] using VEnv.HasType.const
+  simpa only [VExpr.instL, VLevel.inst, List.map_nil] using VEnv.HasType.const
     (env := fixtureEnvironment) (c := ``Nat) (ls := [])
     (ci := { uvars := 0, type := .sort (.succ .zero) })
-    (by simp [fixtureEnvironment]) (by simp) rfl
+    (by rfl) (by simp) rfl
 
 private theorem zeroTyped (context : List VExpr) : fixtureEnvironment.HasType 0 context
     (.const ``Nat.zero []) (.const ``Nat []) := by
-  simpa only [VExpr.instL] using VEnv.HasType.const
+  simpa only [VExpr.instL, VLevel.inst, List.map_nil] using VEnv.HasType.const
     (env := fixtureEnvironment) (c := ``Nat.zero) (ls := [])
     (ci := { uvars := 0, type := .const ``Nat [] })
-    (by simp [fixtureEnvironment]) (by simp) rfl
+    (by rfl) (by simp) rfl
 
 private theorem tacticTyped (context : List VExpr) : fixtureEnvironment.HasType 0 context
     (.const ``Lean.Syntax.missing []) (.const ``Lean.Syntax []) := by
-  simpa only [VExpr.instL] using VEnv.HasType.const
+  simpa only [VExpr.instL, VLevel.inst, List.map_nil] using VEnv.HasType.const
     (env := fixtureEnvironment) (c := ``Lean.Syntax.missing) (ls := [])
     (ci := { uvars := 0, type := .const ``Lean.Syntax [] })
-    (by simp [fixtureEnvironment]) (by simp) rfl
+    (by rfl) (by simp) rfl
 
 private theorem natTranslated (context : VLCtx) : TrExprS fixtureEnvironment [] context
     (.const ``Nat []) (.const ``Nat []) :=
   .const (ci := { uvars := 0, type := .sort (.succ .zero) })
-    (by simp [fixtureEnvironment]) rfl rfl
+    (by rfl) rfl rfl
 
 private theorem zeroTranslated (context : VLCtx) : TrExprS fixtureEnvironment [] context
     (.const ``Nat.zero []) (.const ``Nat.zero []) :=
   .const (ci := { uvars := 0, type := .const ``Nat [] })
-    (by simp [fixtureEnvironment]) rfl rfl
+    (by rfl) rfl rfl
 
 private theorem tacticTranslated (context : VLCtx) : TrExprS fixtureEnvironment [] context
     (.const ``Lean.Syntax.missing []) (.const ``Lean.Syntax.missing []) :=
   .const (ci := { uvars := 0, type := .const ``Lean.Syntax [] })
-    (by simp [fixtureEnvironment]) rfl rfl
+    (by rfl) rfl rfl
 
 private theorem optionalFunctionTyped (context : List VExpr) : fixtureEnvironment.HasType 0 context
     (.const ``optParam [.succ .zero])
@@ -479,7 +479,7 @@ private theorem nonuniformOutParamPeels (envWF : fixtureEnvironment.WF) :
     ∃ peeled, TrExprS fixtureEnvironment [] [] (.const ``Nat []) peeled ∧
       fixtureEnvironment.IsDefEq 0 []
         (.app (.const ``outParam [equivalentLevel]) (.const ``Nat [])) peeled (.sort (.succ .zero)) := by
-  simpa only [peelTypeAnnotations] using
+  simpa [peelTypeAnnotations, VLCtx.toCtx] using
     (equivalentUnaryTranslated ``outParam [] fixtureConstants.outParam).peeledDomain
       envWF (by trivial) fixtureConstants fixtureDefinitions
       (equivalentUnaryTyped ``outParam [] fixtureConstants.outParam)
@@ -487,7 +487,7 @@ private theorem nonuniformOutParamPeels (envWF : fixtureEnvironment.WF) :
 private theorem nonuniformSemiOutParamPeels (envWF : fixtureEnvironment.WF) :
     SourceHasType (TrExprS fixtureEnvironment [] []) fixtureEnvironment 0 []
       (.const ``Nat []) (.sort (.succ .zero)) := by
-  simpa only [peelTypeAnnotations] using
+  simpa [peelTypeAnnotations, VLCtx.toCtx] using
     (equivalentUnaryTranslated ``semiOutParam [] fixtureConstants.semiOutParam).peeledDomainHasType
       envWF (by trivial) fixtureConstants fixtureDefinitions
       (equivalentUnaryTyped ``semiOutParam [] fixtureConstants.semiOutParam)
@@ -537,16 +537,16 @@ private theorem nonuniformAutoTranslated : TrExprS fixtureEnvironment [] []
 private theorem nonuniformOptionalPeels (envWF : fixtureEnvironment.WF) :
     SourceHasType (TrExprS fixtureEnvironment [] []) fixtureEnvironment 0 []
       (.const ``Nat []) (.sort equivalentLevel) := by
-  simpa only [peelTypeAnnotations] using nonuniformOptionalTranslated.peeledDomainHasType
+  simpa [peelTypeAnnotations, VLCtx.toCtx] using nonuniformOptionalTranslated.peeledDomainHasType
     envWF (by trivial) fixtureConstants fixtureDefinitions
-    (by simpa only [VExpr.inst] using (nonuniformOptionalAppliedTyped []).app (zeroTyped []))
+    (by simpa [VExpr.inst, VLCtx.toCtx] using (nonuniformOptionalAppliedTyped []).app (zeroTyped []))
 
 private theorem nonuniformAutoPeels (envWF : fixtureEnvironment.WF) :
     SourceHasType (TrExprS fixtureEnvironment [] []) fixtureEnvironment 0 []
       (.const ``Nat []) (.sort equivalentLevel) := by
-  simpa only [peelTypeAnnotations] using nonuniformAutoTranslated.peeledDomainHasType
+  simpa [peelTypeAnnotations, VLCtx.toCtx] using nonuniformAutoTranslated.peeledDomainHasType
     envWF (by trivial) fixtureConstants fixtureDefinitions
-    (by simpa only [VExpr.inst] using (nonuniformAutoAppliedTyped []).app (tacticTyped []))
+    (by simpa [VExpr.inst, VLCtx.toCtx] using (nonuniformAutoAppliedTyped []).app (tacticTyped []))
 
 private def nonuniformNestedSource : Expr :=
   .app (.const ``outParam [.max .zero (.succ .zero)]) nestedSource
@@ -572,13 +572,18 @@ private theorem nonuniformNestedTyped :
 private theorem nonuniformNestedNotUniform (level : VLevel) :
     ¬ UniformAnnotationUniverse [] nonuniformNestedSource level := by
   intro uniform
-  cases level <;> simp [nonuniformNestedSource, nestedSource, unary, binary,
-    UniformAnnotationUniverse, VLevel.ofLevel] at uniform
+  change (some [equivalentLevel] = some [level] ∧
+    UniformAnnotationUniverse [] nestedSource level) at uniform
+  have inner := uniform.2
+  change (some [VLevel.succ .zero] = some [level] ∧ _) at inner
+  have outerLevel := (List.cons.inj (Option.some.inj uniform.1)).1
+  have innerLevel := (List.cons.inj (Option.some.inj inner.1)).1
+  cases outerLevel.trans innerLevel.symm
 
 private theorem nonuniformNestedPeels (envWF : fixtureEnvironment.WF) :
     ∃ peeled, TrExprS fixtureEnvironment [] [] (.const ``Nat []) peeled ∧
       fixtureEnvironment.IsDefEq 0 [] nonuniformNestedSemantic peeled (.sort (.succ .zero)) := by
-  simpa only [nonuniformNestedSource, nestedSource, unary, binary, peelTypeAnnotations, ↓reduceIte] using
+  simpa [nonuniformNestedSource, nestedSource, unary, binary, peelTypeAnnotations, VLCtx.toCtx] using
     nonuniformNestedTranslated.peeledDomain envWF (by trivial) fixtureConstants fixtureDefinitions
       nonuniformNestedTyped
 
@@ -587,7 +592,7 @@ private theorem nonuniformBodyConversion (envWF : fixtureEnvironment.WF) :
       fixtureEnvironment.IsDefEq 0 [] nonuniformNestedSemantic peeled (.sort (.succ .zero)) ∧
       VLCtx.IsDefEq fixtureEnvironment 0 [(none, .vlam nonuniformNestedSemantic)] [(none, .vlam peeled)] ∧
       TrExpr fixtureEnvironment [] [(none, .vlam peeled)] (.bvar 0) (.bvar 0) := by
-  simpa only [nonuniformNestedSource, nestedSource, unary, binary, peelTypeAnnotations, ↓reduceIte] using
+  simpa [nonuniformNestedSource, nestedSource, unary, binary, peelTypeAnnotations, VLCtx.toCtx] using
     nonuniformNestedTranslated.peeledAnonymousBodyTranslation envWF (by trivial) fixtureConstants
       fixtureDefinitions nonuniformNestedTyped (.bvar rfl)
 
@@ -656,7 +661,7 @@ private def annotationRuntimeControls : MetaM Unit := do
   let level := Level.max .zero (.succ .zero)
   let unaryAt := fun name carrier => Expr.app (.const name [level]) carrier
   let binaryAt := fun name carrier payload => Expr.app (unaryAt name carrier) payload
-  let mut checks := 0
+  let mut checks : Nat := 0
   for source in [unaryAt ``outParam nat, unaryAt ``semiOutParam nat,
       binaryAt ``optParam nat zero, binaryAt ``autoParam nat tactic, nonuniformNestedSource,
       unaryAt ``outParam (binaryAt ``optParam (unary ``semiOutParam nat) zero),

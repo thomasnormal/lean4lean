@@ -95,14 +95,18 @@ private theorem checkedHeader_loopInd_support (nparams : Nat) (types : Array Ind
       refine ⟨ctx, stats, inferred, normalized, terminal, finalStats, current, sorted,
         hframe, ?_, ?_, ?_, hsizes.indices, hsizes.constants, hsizes.params, htrace, rfl, hsort,
         .refl current hcurrent.wf hcurrent.reserved, support⟩
-      · simpa only [getElem!_pos types processed hprocessed] using hguard
+      · simpa only [getElem!_pos types processed hprocessed, liftM, monadLift,
+          MonadLift.monadLift, StateT.run, ReaderT.run, ExceptT.run] using hguard
       · simpa only [getElem!_pos types processed hprocessed] using hinferred
       · simpa only [getElem!_pos types processed hprocessed] using hnormalized
     split
     · apply Lean4Lean.AddInductive.readWF
-      apply Lean4Lean.AddInductive.bindWF
-      intro _
-      apply checkedHeader_loopInd_support nparams types next (processed + 1) _ original current post
+      apply checkedHeader_loopInd_support nparams types next (processed + 1)
+        { lctx := current.lctx, levels := finalStats.levels, resultLevel := sorted.sortLevel!,
+          nindices := finalStats.nindices.push count,
+          indConsts := finalStats.indConsts.push (Expr.const types[processed].name finalStats.levels),
+          params := finalStats.params, isNotZero := sorted.sortLevel!.isNeverZero }
+        original current post
       · omega
       · exact hcurrent.wf
       · exact hcurrent.reserved
@@ -120,9 +124,12 @@ private theorem checkedHeader_loopInd_support (nparams : Nat) (types : Array Ind
       · exact hnext
     · split
       · exact Except.WF.throw
-      · apply Lean4Lean.AddInductive.bindWF
-        intro _
-        apply checkedHeader_loopInd_support nparams types next (processed + 1) _ original current post
+      · apply checkedHeader_loopInd_support nparams types next (processed + 1)
+          { lctx := finalStats.lctx, levels := finalStats.levels, resultLevel := finalStats.resultLevel,
+            nindices := finalStats.nindices.push count,
+            indConsts := finalStats.indConsts.push (Expr.const types[processed].name finalStats.levels),
+            params := finalStats.params, isNotZero := finalStats.isNotZero }
+          original current post
         · omega
         · exact hcurrent.wf
         · exact hcurrent.reserved

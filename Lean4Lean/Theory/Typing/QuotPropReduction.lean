@@ -87,7 +87,7 @@ theorem selector_hasType
   have motiveTyped := HasType.lam quotientTyped (domainTyped.weak environmentOrdered)
   have relationWeak : environment.HasType universes (domain :: locals) relation.lift
       (.forallE domain.lift (.forallE domain.lift.lift (.sort .zero))) := by
-    simpa only [VExpr.lift, VExpr.liftN, ← VExpr.lift_liftN'] using
+    simpa only [HasType, VExpr.lift, VExpr.liftN, ← VExpr.lift_liftN'] using
       relationTyped.weak environmentOrdered
   have constructorTyped := quotMk_hasType constructorRegistered (by trivial)
     (domainTyped.weak environmentOrdered) relationWeak
@@ -115,7 +115,7 @@ theorem selector_hasType
   have final := fourth.app majorTyped
   simp [instantiateLifted, VExpr.inst, VExpr.instVar] at final
   have resultBeta := IsDefEq.beta (domainTyped.weak environmentOrdered) majorTyped
-  simpa [selector, quotient, VExpr.inst_lift] using IsDefEq.defeqDF resultBeta final
+  simpa [HasType, selector, quotient, VExpr.inst_lift] using IsDefEq.defeqDF resultBeta final
 
 theorem unfold_lift
     {targetUniverse : VLevel} {target function respect resultType : VExpr}

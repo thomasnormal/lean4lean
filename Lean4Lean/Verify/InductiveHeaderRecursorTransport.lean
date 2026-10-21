@@ -21,8 +21,8 @@ theorem HeaderAxiomLookupAgreement.stableOriginalInductiveParent
 
 theorem HeaderAxiomLookupAgreement.structureLike
     (_agreement : HeaderAxiomLookupAgreement changed actual shadow) (parent : Name)
-    (stable : actual.find? parent = shadow.find? parent) : actual.isStructureLike parent = shadow.isStructureLike parent := by
-  simp only [Kernel.Environment.isStructureLike, stable]
+    (stable : actual.find? parent = shadow.find? parent) : actual.isNonRecStructure parent = shadow.isNonRecStructure parent := by
+  simp only [Kernel.Environment.isNonRecStructure, stable]
 
 theorem HeaderAxiomLookupAgreement.firstConstructor
     (_agreement : HeaderAxiomLookupAgreement changed actual shadow) (parent : Name)
@@ -73,12 +73,12 @@ theorem toCtorWhenStruct.headerAxiomNormalizationTransport
     (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
     (state : TypeChecker.State) (parent : Name) (expression : Expr)
     (stable : actualContext.env.find? parent = shadowContext.env.find? parent)
-    (typeNormalization : actualContext.env.isStructureLike parent = true →
+    (typeNormalization : actualContext.env.isNonRecStructure parent = true →
       (expression.isConstructorApp?' actualContext.env).isSome = false →
       TypeChecker.M.SuccessTransport
         ((do normalize (← TypeChecker.Inner.inferType expression true)) actualMethods)
         ((do normalize (← TypeChecker.Inner.inferType expression true)) shadowMethods) actualContext shadowContext state)
-    (sortNormalization : actualContext.env.isStructureLike parent = true →
+    (sortNormalization : actualContext.env.isNonRecStructure parent = true →
       (expression.isConstructorApp?' actualContext.env).isSome = false → ∀ type finalState,
       ((do normalize (← TypeChecker.Inner.inferType expression true)) actualMethods) actualContext state = .ok (type, finalState) →
       type.getAppFn.isConstOf parent = true → TypeChecker.M.SuccessTransport
@@ -92,7 +92,7 @@ theorem toCtorWhenStruct.headerAxiomNormalizationTransport
   have constructorSame := agreement.constructorApp expression
   unfold toCtorWhenStruct
   rw [← structureSame, ← constructorSame]
-  by_cases structureLike : actualContext.env.isStructureLike parent = true
+  by_cases structureLike : actualContext.env.isNonRecStructure parent = true
   · by_cases constructor : (expression.isConstructorApp?' actualContext.env).isSome = true
     · simp only [structureLike, constructor, Bool.not_true, Bool.false_or, if_true]
       exact TypeChecker.M.SuccessTransport.pure _ _ _ _
@@ -118,7 +118,11 @@ theorem toCtorWhenStruct.headerAxiomNormalizationTransport
           simpa only [Expr.constName!, beq_iff_eq] using matching
         have expansionSame := agreement.structureExpansion type expression (by simpa only [parentName] using stable)
         rw [expansionSame]
-        cases sorted : sort == Expr.prop <;> intro result acceptedResult <;> exact acceptedResult
+        cases sort <;> try exact TypeChecker.M.SuccessTransport.pure _ _ _ _
+        case sort level normalizedCall =>
+          cases nonzero : level.isNeverZero <;>
+            simp only [nonzero, Bool.false_eq_true, if_false, if_true] <;>
+            exact TypeChecker.M.SuccessTransport.pure _ _ _ _
       · have notMatching := Bool.eq_false_iff.mpr matching
         simp only [notMatching, Bool.not_false, if_true]
         exact TypeChecker.M.SuccessTransport.pure _ _ _ _
@@ -131,12 +135,12 @@ theorem toCtorWhenStruct.headerAxiomTransport
     (agreement : HeaderAxiomLookupAgreement changed actualContext.env shadowContext.env)
     (state : TypeChecker.State) (parent : Name) (expression : Expr)
     (stable : actualContext.env.find? parent = shadowContext.env.find? parent)
-    (typeNormalization : actualContext.env.isStructureLike parent = true →
+    (typeNormalization : actualContext.env.isNonRecStructure parent = true →
       (expression.isConstructorApp?' actualContext.env).isSome = false →
       TypeChecker.M.SuccessTransport
         (do actualMethods.whnf (← actualMethods.inferType expression true))
         (do shadowMethods.whnf (← shadowMethods.inferType expression true)) actualContext shadowContext state)
-    (sortNormalization : actualContext.env.isStructureLike parent = true →
+    (sortNormalization : actualContext.env.isNonRecStructure parent = true →
       (expression.isConstructorApp?' actualContext.env).isSome = false → ∀ type finalState,
       (do actualMethods.whnf (← actualMethods.inferType expression true)) actualContext state = .ok (type, finalState) →
       type.getAppFn.isConstOf parent = true → TypeChecker.M.SuccessTransport
@@ -207,7 +211,7 @@ theorem toCtorWhenK.headerAxiomNormalizationTransport
     · simp only [metavariables, if_true, Std.Legacy.Range.forIn'_eq_forIn'_range',
         ← apply_ite, List.forIn'_pure]
       generalize scan : (forIn' (m := Id) (_ : List Nat)
-        (⟨none, PUnit.unit⟩ : MProd (Option Expr) PUnit) _) = scanned
+        ((none, PUnit.unit) : Option Expr × PUnit) _) = scanned
       rcases scanned with ⟨result, ignored⟩
       cases result with
       | none =>

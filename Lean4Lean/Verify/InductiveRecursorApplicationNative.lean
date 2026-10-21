@@ -48,7 +48,8 @@ theorem RecursorFieldsDeclared.selectedBindings {lctx : LocalContext} {arguments
     have selectedEq : selected = identifier := by
       exact (congrArg Expr.fvarId! expressionEq).trans identifierEq
     subst identifier
-    exact ⟨index, name, domain, binder, kind, by simpa only [← expressionEq] using lookup⟩
+    exact ⟨index, name, domain, binder, kind,
+      by simpa only [← expressionEq, LocalDecl.toExpr, Lean.mkFVar, Expr.fvarId!, LocalDecl.fvarId] using lookup⟩
   | ldecl index selected name domain value nondependent kind =>
     cases nondependent <;> cases valueNone
 
@@ -112,7 +113,7 @@ theorem RecursorInfoIndexSource.motiveLookupAtCurrent
   have majorScope := majorToCurrent.bindingScopeBefore majorFrame.wf scope
   let arguments := info.indices.push info.major
   have argumentDeclared : RecursorFieldsDeclared majorReader.lctx arguments := by
-    simpa only [arguments, majorEq] using
+    simpa only [arguments, majorEq, majorReader, recursorIndexContext] using
       indexDeclared.push ⟨indexReader.ngen.curr⟩ `t (recursorMajorDomain stats parent info.indices) .default
   have argumentsDistinct : arguments.toList.Nodup := by
     simpa only [arguments, majorEq] using

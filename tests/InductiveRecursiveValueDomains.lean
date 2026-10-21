@@ -138,7 +138,7 @@ private def runtimeFixtures : MetaM Unit := do
   let right := indexedFamily `DomainRight `DomainLeft false
   let mut total : Nat := 0
   for (parameters, types, expected) in [(1, [single], 1), (0, [left, right], 2)] do
-    unless (host.addDeclCore 0 (.inductDecl [] parameters types false) none).isOk do
+    unless (host.addDeclCore 0 0 (.inductDecl [] parameters types false) none).isOk do
       throwError "recursive domains: native kernel rejected a fixture"
     let context : Context := {
       env := host.toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }
@@ -181,8 +181,10 @@ private def audit : MetaM Unit := do
   let projection := logical ++ [``sorryAx]
   let contextInterfaces := [``PersistentArray.toList'_push, ``PersistentHashMap.WF.find?_eq,
     ``PersistentHashMap.WF.toList'_insert]
-  let levelInterfaces := [``Expr.hasLevelParam_eq, ``Expr.replace_eq, ``Level.hasMVar_eq,
-    ``Level.hasParam_eq, ``Level.instLawfulBEqLevel]
+  let levelInterfaces := [``Expr.mkAppData_eq, ``Expr.mkData_eq, ``Expr.replace_eq,
+    ``Level.hasMVar_eq, ``Level.hasParam_eq, ``Level.instLawfulBEqLevel,
+    Name.mkNum `_private.Lean4Lean.Verify.Expr 0 ++ `Lean.Expr.mkData_flags._native.bv_decide.ax_1_12,
+    `Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7]
   let bindingInterfaces := [``Expr.abstractRange_eq, ``Expr.abstract_eq,
     ``Expr.hasLooseBVar_eq, ``Expr.lowerLooseBVars_eq]
   let structural := projection ++ contextInterfaces

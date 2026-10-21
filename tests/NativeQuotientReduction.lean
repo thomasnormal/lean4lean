@@ -15,7 +15,7 @@ example (initialized : context.env.quotInit = true) :
         context.FVarsBelow expression reduced ∧ context.TrExpr reduced semantic :=
   Inner.quotReduceRec.WF initialized translated
 
-example : RecM.WF context state (Inner.reduceRecursor expression cheapRec cheapProj) fun outcome _ =>
+example : RecM.WF context state (Inner.reduceRecursor expression) fun outcome _ =>
     ∀ reduced, outcome = some reduced →
       context.FVarsBelow expression reduced ∧ context.TrExpr reduced semantic :=
   Inner.reduceRecursor.WF translated
@@ -29,18 +29,18 @@ example (initialized : context.env.quotInit = true) (depth : Nat) :
 
 example (depth : Nat) :
     M.WF context state
-      (Inner.reduceRecursor expression cheapRec cheapProj (Methods.withFuel depth))
+      (Inner.reduceRecursor expression (Methods.withFuel depth))
       (fun outcome _ => ∀ reduced, outcome = some reduced →
         context.FVarsBelow expression reduced ∧ context.TrExpr reduced semantic) :=
   Inner.reduceRecursor.WF translated _ Methods.withFuel.WF
 
-example : (RecM.run (Inner.reduceRecursor expression cheapRec cheapProj)).WF context state
+example : (RecM.run (Inner.reduceRecursor expression)).WF context state
     (fun outcome _ => ∀ reduced, outcome = some reduced →
       context.FVarsBelow expression reduced ∧ context.TrExpr reduced semantic) :=
   (Inner.reduceRecursor.WF translated).run
 
 example (notInitialized : context.env.quotInit = false) :
-    RecM.WF context state (Inner.reduceRecursor expression cheapRec cheapProj)
+    RecM.WF context state (Inner.reduceRecursor expression)
       (fun outcome _ => outcome = none) :=
   Inner.reduceRecursor.none_of_translation notInitialized translated
 
@@ -132,6 +132,6 @@ run_meta
       ``VEnv.IsDefEqU.quot_inj, ``VEnv.IsDefEq.church_rosser, ``VEnv.NormalEq.parRed,
       ``TrExpr.rebuild_mkAppList, ``Inner.inductiveReduceRec.none_of_translation] do
     unless visited.contains name do throwError "expected native quotient semantic dependency absent: {name}"
-  logInfo m!"{audited.size} native quotient proof values have no direct admission or new interface axiom; actual callback normalization, payload translation, parameter inference and trailing applications establish quotReduceRec.WF and the unchanged reduceRecursor.WF contract at arbitrary fuel and cheap flags; the constructor-free inductive rejection and inherited typing/confluence admissions remain explicit"
+  logInfo m!"{audited.size} native quotient proof values have no direct admission or new interface axiom; actual callback normalization, payload translation, parameter inference and trailing applications establish quotReduceRec.WF and the unchanged reduceRecursor.WF contract at arbitrary fuel; the constructor-free inductive rejection and inherited typing/confluence admissions remain explicit"
 
 end NativeQuotientReductionTest

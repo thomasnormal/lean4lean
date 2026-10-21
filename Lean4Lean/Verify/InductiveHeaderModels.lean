@@ -94,12 +94,12 @@ theorem acceptedHeaderNormalization
   generalize checked : TypeChecker.whnf source
     checker.toContext ({} : TypeChecker.VState).toState = returned at nativeAccepted
   cases returned with
-  | error exception => simp at nativeAccepted
+  | error exception => cases nativeAccepted
   | ok returned =>
     obtain ⟨result, final⟩ := returned
     change Except.ok result = .ok normalized at nativeAccepted
     cases nativeAccepted
-    obtain ⟨_, _, _, _, normalizedSemantic, normalizedTranslated, normalizedEquality⟩ :=
+    obtain ⟨_, _, _, _, _, normalizedSemantic, normalizedTranslated, normalizedEquality⟩ :=
       TypeChecker.whnf.WF strictTranslated initialWF normalized final checked
     exact ⟨normalizedSemantic, normalizedTranslated,
       normalizedEquality.trans checker.Ewf checker.Δwf.toCtx equality⟩
@@ -366,7 +366,8 @@ theorem checkInductiveTypes.firstModels (nparams : Nat) (types : Array Inductive
     · exact reserved
     intro terminal finalStats count current trace frame
     have guardCall : reader.env.checkNoMVarNoFVar types[0]!.name types[0]!.type = .ok () := by
-      simpa only [getElem!_pos types 0 bound] using guardCall
+      simpa only [getElem!_pos types 0 bound, liftM, monadLift,
+        MonadLift.monadLift, StateT.run, ReaderT.run, ExceptT.run] using guardCall
     have sourceCall : (monadLift (TypeChecker.checkType types[0]!.type) : M Expr) reader = .ok inferred := by
       simpa only [getElem!_pos types 0 bound] using sourceCall
     have normalizedCall : (monadLift (TypeChecker.whnf types[0]!.type) : M Expr) reader = .ok normalized := by

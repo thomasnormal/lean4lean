@@ -86,7 +86,7 @@ theorem TrExprS.openCanonicalParameter
     .cons (.refl envWF.ordered nextWF.1.tr.wf) nofun (.vlam equal.symm)
   obtain ⟨openedSemantic, translated⟩ := translated.defeqDFC envWF contexts
   refine ⟨openedSemantic, ?_⟩
-  simpa only [Expr.instantiate1_eq] using (translated.inst_fvar envWF.ordered nextWF.tr.wf)
+  simpa only [Expr.instantiate1_eq, MLCtx.vlctx] using (translated.inst_fvar envWF.ordered nextWF.tr.wf)
 
 theorem ParameterPrefix.contextAgreement
     {env : VEnv} {universes : List Name} {base source : MLCtx}
@@ -190,7 +190,7 @@ private theorem AcceptedConstructorTrace.prefixReceipts
         nextStats opened nextTrace (_ :: target)
       refine ⟨completed, finalTarget, unprocessed, ?_, suffix, length⟩
       exact .parameter (trace := tail) (storedType := storedType) selectedTrace accepted receipt
-        (by simpa only [List.length_append, List.length_singleton] using receipts)
+        (by simpa only [List.length_append, List.length_singleton, MLCtx.vlctx, VLCtx.toCtx] using receipts)
 
 theorem AcceptedConstructorTrace.completeParameters
     {stats : InductiveStats} {isUnsafe : Bool} {parent index finalIndex : Nat}

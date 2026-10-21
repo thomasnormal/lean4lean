@@ -42,7 +42,7 @@ theorem etaBodyTyped {context : List VExpr} {function domain body : VExpr}
   have lifted := typed.weak henv.ordered (B := domain)
   change env.HasType univs (domain :: context) function.lift
     (.forallE domain.lift (body.liftN 1 1)) at lifted
-  simpa only [VExpr.instN_bvar0] using lifted.appDF (HasType.bvar .zero)
+  simpa only [HasType, VExpr.instN_bvar0] using lifted.appDF (HasType.bvar .zero)
 
 def etaIdentity : VExpr := .lam domain (.app identity.lift (.bvar 0))
 
@@ -104,7 +104,7 @@ def twiceRight : VExpr.Subst := (VExpr.Subst.one (.bvar 0)).cons (.bvar 0)
 
 theorem doubleSubstitution : NormalSubstitution locals twiceLeft twiceRight (.bvar 4 :: source) := by
   have first := NormalSubstitution.one localsWF propositionTyped leftTyped argumentsNormal
-  refine ⟨Ctx.SubstEq.cons (domainLevel := .zero) first.typed ?_ ?_, ?_⟩
+  refine ⟨Ctx.SubstEq.cons (u := .zero) (σ := twiceLeft) (σ' := twiceRight) first.typed ?_ ?_, ?_⟩
   · unfold source locals
     type_tac
   · simpa [twiceLeft, twiceRight, VExpr.Subst.head, VExpr.Subst.tail, VExpr.Subst.cons,

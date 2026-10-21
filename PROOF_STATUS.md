@@ -3,16 +3,6 @@
 This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
-**2026-10-15 trust correction:** the remaining `NormalEq.parRed` contract is
-false for the actual quotient reduction instance, as demonstrated by
-`QuotConfluenceObstruction.counterexample`. Its transitive users therefore
-depend on a known-false admitted specification, not only an open proof task.
-The counterexample is independent of that theorem and all its confluence/
-quotient-injectivity consequences. The independent typing/injectivity
-admissions recorded at that checkpoint are now discharged below. No
-unconditional kernel soundness follows from the results below. See `bugs-found.md` for the full obstruction and native
-Lean 4.29.0 / 4.33.0-rc2 controls.
-
 
 ## Reconstructing the selected index signature — 2026-10-20
 
@@ -543,13 +533,12 @@ and projection-type admission dependencies; the registered bridge retains the
 existing audited checker/native interfaces. No new admission is added.
 
 The full default builds pass on Lean 4.29.0 main and the separate Lean
-4.33.0-rc2 integration candidate `d58de636ddb5cd24d49ffd38dee1f92297c0ea18`.
-The latter also passes the recursor-type, recursor-application and
-frontend-scope fixtures, including the new model construction, rule-offset
-and closure controls and the transitive axiom audits. The two recursor proof
-modules and the application fixture are byte-identical across versions; the
-integration retains its additional frontend source guard, reserved
-nested-prefix controls and existing native-interface audit pins.
+4.33.0-rc2 integration candidate. The latter also passes the recursor-type,
+recursor-application and frontend-scope fixtures, including the new model
+construction, rule-offset and closure controls and the transitive axiom audits.
+The two recursor proof modules and the application fixture are byte-identical
+across versions; the integration retains its additional frontend source guard,
+reserved nested-prefix controls and existing native-interface audit pins.
 
 This checkpoint replays main `c1a42668bfd941fc9973e5640b67e8fbfe74e9c2`
 on integration base `e0485ce42634eb2182a26658d03d6fb200694fdb`, above official
@@ -2472,8 +2461,7 @@ dated `20261019`; final fixture logs use `integration-fixture-final`,
 
 ## Restore the integration projection core proof — 2026-10-19
 
-Integration commit `c65a7a0e277fa5310264f93ae30126c11ed26375`, published on
-`poc-verified-noninductive-upstream-20261019`, now discharges the existing
+The Lean 4.33.0-rc2 integration now discharges the existing
 `TypeChecker.Inner.reduceProjCore.WF` admission, used by
 `lazyDeltaProjReduction.finish.WF` and the scoped method proof. New
 `reduceProjCore.none_of_translation` rejects constructor heads through the
@@ -2567,11 +2555,8 @@ Open draft [PR #53](https://github.com/digama0/lean4lean/pull/53), reviewed at
 no duplicate upstream PR is opened. Build, census and regression receipts use
 `/var/tmp/thomas-ahle/fleet2/logs/lean4lean-binder-opening-` stems dated 20261019.
 
-## Separate upstream conditional gadget transport at checked inhabitants — 2026-10-19
 
-The separate Lean 4.33.0-rc2 integration advances from `41fac39` to
-`c51fccfacb8702b299db11c06ce934629b8d2f25`. Main review keeps its Lean 4.29
-proof source at `1337f87`; this records the independently validated repair.
+## Conditional gadget transport at checked inhabitants — 2026-10-19
 
 The actual `Condition.check.gadget_pieces` now obtains all four closed native
 translations by typed instantiation. Both Nat binders are instantiated at zero;
@@ -2616,11 +2601,7 @@ in this module and the executable files are unchanged. Receipts use
 `regressions`, `ReflectionGadgetInhabitants`, `main-build`, and `census-contracts`,
 dated 20261019). No new admission or axiom.
 
-## Separate upstream local-let entry without projection weakening — 2026-10-19
-
-The separate Lean 4.33.0-rc2 integration advances from `fe2ab45` to
-`41fac391c5cc6f750543d9812390d762629cbdd2`. Main review keeps its Lean 4.29
-proof source at `1337f87`; this records the separately published proof repair.
+## Local-let entry without projection weakening — 2026-10-19
 
 This item extends `fe2ab45` from restoration to the complete local-let scope.
 `TrExprS.insertLet` and `TrExpr.insertLet` use the same structural relation's
@@ -2671,11 +2652,7 @@ admissions: `TrProj`, `VEnv.addInduct`, `VEnv.addInduct_WF`, and `VInductDecl.WF
 (down from twelve before the PR, then five after restoration alone). The upstream
 census remains 133 / 29 / 137. No duplicate PR, new admission or axiom.
 
-## Separate upstream local-let cache restoration — 2026-10-19
-
-The separate Lean 4.33.0-rc2 integration advances from `5e72e87` to
-`fe2ab45a1fa36f9de8b852a621188c3f3179cd83`. This main review branch keeps
-its Lean 4.29 proof source at `1337f87`.
+## Local-let cache restoration — 2026-10-19
 
 A native local let adds zero model binders: its value is already inlined and
 its removal leaves `VLCtx.toCtx` unchanged. `VLCtx.EraseLet` tracks removal
@@ -2724,10 +2701,10 @@ placeholders above plus `VEnv.addInduct`, `VEnv.addInduct_WF`, and
 This zero-depth case complements #51's inhabited-binder transport and #53's
 broader cache/strengthening redesign. It introduces no new admission or axiom.
 
-## Separate upstream same-context fuel repair — 2026-10-19
+## Fuel replacement within its original context — 2026-10-19
 
-The separate Lean 4.33.0-rc2 integration advances from `fd16eef` to
-`5e72e87f2ab2f6759da1c955d64fcf4b9b3f4771`, removing the last direct general context extraction in the actual `Primitive.unfoldNatWellFounded.WF'` proof. It ports
+This item extends `fd16eef` by removing the last direct general context
+extraction in the actual `Primitive.unfoldNatWellFounded.WF'` proof. It ports
 upstream draft [PR #53](https://github.com/digama0/lean4lean/pull/53)'s
 successor-invariance argument, reviewed at
 `5a8c0d5f111809a95f4924c71e0e9bc8738d72e0`. The existing check types `succ t`
@@ -2775,261 +2752,178 @@ Main review has a separate fresh 419-job default-build pass. Receipt prefix
 `FuelSuccessorReplacement-20261019.log`, `main-build-20261019.log`, and
 `census-contracts-20261019.log`. Source census is unchanged: integration
 125 matching lines / 24 files / 129 occurrences; main 119 / 19 / 123.
-The main review proof source stays at `1337f87` on Lean 4.29.0. No new native
-kernel discrepancy or duplicate upstream PR.
+No new native kernel discrepancy or duplicate upstream PR.
 
-## Separate upstream native Nat-closing repair — 2026-10-19
+## Closing unused Nat locals in native translation — 2026-10-19
 
-The Lean 4.33.0-rc2 integration advances from `33b42bf` to
-`fd16eef5c9e43031b09feb88c337031396300355` on the same official base
-`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` and separate dated snapshot branch.
-This main branch's Lean 4.29 proof source remains `1337f87`.
+This item extends `33b42bf` by replacing three `TrExprS.weakFV_inv` calls in the
+actual `Primitive.unfoldNatWellFounded.WF'` proof: the functional, its inferred
+forall type, and the opened/normalized codomain beneath a retained binder.
+The existing measure guard certifies precisely the Nat telescope being removed.
+No executable code, acceptance guard or public theorem premise changes.
 
-The actual `Primitive.unfoldNatWellFounded.WF'` proof now replaces three
-`TrExprS.weakFV_inv` calls for its functional, inferred forall type, and opened
-normalized codomain beneath a retained binder. Its existing measure guard
-certifies the removed Nat locals. `TrExprS.close_unused_fvar` abstracts an unused
-native free variable and instantiates it at an actual translated typed witness,
-supporting arbitrary retained binder depth. `MLCtx.WF.dropNat_trS` and
-`dropNat_trS_under` iterate this at zero, including beneath a domain depending
-on the base context. No executable behavior, guard or public premise changes.
+`TrExprS.close_unused_fvar` abstracts an unused free variable, then instantiates
+it at an actual translated, typed native witness. Source closure and absence of
+the free variable prove both native transformations leave the expression
+unchanged; the model is substituted. It supports arbitrary retained native
+binder depth. `MLCtx.WF.dropNat_trS` and `dropNat_trS_under` iterate this at zero
+through exactly the guard-certified locals, including beneath a binder whose
+domain depends on the base context. The codomain branch first aligns that
+retained domain using the existing definitional-context transport.
 
-The new native helpers exclude general strengthening and false confluence
-transitively. They inherit exactly three direct projection admissions:
-`TrProj`, `TrProj.instN`, and `TrProj.weak'`. Their axiom bounds include
-`propext`, `Quot.sound`, `Classical.choice`, `sorryAx`, and, for the MLCtx
-variants, the existing persistent array/map interfaces `toList'_push`,
-`find?_eq`, and `toList'_insert`. The separate retained-domain transport
-`TrExprS.defeqDFC` also excludes false strengthening/confluence; its exact six
-inherited admissions are `TrProj`, `TrProj.defeqDFC`, `TrProj.uniq`, `TrProj.wf`,
-`IsDefEqU.sort_inv`, and `IsDefEqU.forallE_inv_stratified`. These are conditional
-translation results. The previous six semantic helpers remain admission-free
-and use no choice; all three public recursion theorems retain the unchanged
-33-axiom manifests. At that checkpoint one general fuel-binder extraction
-remained; the subsequent same-context repair above removes it. Other inherited
-checker obligations remain open.
+The new helpers transitively exclude `weakFV_inv`, `weakFV'_inv`, false general
+semantic strengthening, and the false confluence contract and its consequences.
+Unlike the preceding six pure semantic helpers, native instantiation inherits
+exactly three existing projection admissions: `TrProj`, `TrProj.instN`, and
+`TrProj.weak'`. It also uses choice and, for the MLCtx helpers, three existing
+persistent-container interface axioms. Their provenance and axiom bounds are
+checked explicitly; this is not an admission-free translation theorem.
+The separate retained-domain conversion also excludes false strengthening and
+confluence; its existing six typing/projection admissions are pinned separately.
+At this checkpoint one general extraction call remained for the separate fuel
+binder; the subsequent same-context replacement above removes it. Full checker
+dependencies remain conditional.
 
-`tests/UnusedNatTranslation.lean` exercises actual closing over a nonempty base,
-a dependent retained domain, two retained binders, two guard-shaped Nat locals,
-and an empty telescope. Its audit traverses 5209 helper dependencies and 4636
-conversion dependencies, pinning the exact three/six admission provenance and
-the actual consumer's new helper calls. Full default build passes all 422 jobs;
-all 35 fixtures pass, including the preceding 34 regression gates. Source census
-is unchanged at 125 matching lines / 24 files / 129 occurrences. Main has a
-fresh 419-job default-build pass and unchanged 119 / 19 / 123 census.
-Receipts under `/var/tmp/thomas-ahle/fleet2/logs/` use prefix
-`lean4lean-unused-nat-`: `default-final-20261019.log`,
-`fixture-final-20261019.log`, `regressions-20261019.log`,
-`main-build-20261019.log`, and `census-20261019.log`.
+`tests/UnusedNatTranslation.lean` exercises closing an unused local at a concrete
+Sort inhabitant, a retained binder whose domain is the base proposition, two
+retained native binders, two actual guard-shaped Nat locals over a nonempty
+base, the corresponding retained dependent binder, and an empty telescope.
+Its body audit verifies actual use of both new telescope transports and pins
+the three inherited projection admissions, while the preceding fixture continues
+to pin the full recursion theorems' unchanged 33-axiom manifests.
 
-Current official master still has these extraction calls. Draft
-[PR #53](https://github.com/digama0/lean4lean/pull/53), inspected at
-`5a8c0d5f111809a95f4924c71e0e9bc8738d72e0`, already proves
-`MLCtx.trExprS_dropN_nat` using abstraction and typed zero instantiation and
-removes the extraction calls through a broader recursion redesign. The closing
-direction is already upstream work; this checkpoint applies it within the
-current contracts with explicit dependency audits. No duplicate PR is opened.
-An isolated official-master candidate was archived after its exploratory build
-exposed absent fork telescope foundations; it is not a validated upstream patch.
-The integration and main default-build results above are independent of that
-exploration. No new native kernel discrepancy was found.
+Validation: full default build passes all 422 jobs, and all 35 fixtures pass
+(the new native-translation fixture plus the preceding 34 gates). Main review
+has a separate fresh 419-job build; its proof source is unchanged. Source census
+before/after remains 125 matching lines / 24 files / 129 occurrences in this
+integration and 119 / 19 / 123 in the main review. Logs under
+`/var/tmp/thomas-ahle/fleet2/logs/` use prefix `lean4lean-unused-nat-`:
+`default-final-20261019.log`, `fixture-final-20261019.log`,
+`regressions-20261019.log`, `main-build-20261019.log`, and
+`census-20261019.log`. The actual source has exactly two ordinary Nat-closing
+calls, one retained-binder call, and (before the subsequent repair above) one
+remaining fuel-binder general extraction.
 
-## Separate upstream inhabited-telescope repair — 2026-10-19
+Upstream coordination: official master remains `67f63b0`, with these extraction
+calls still present. Draft [PR #53](https://github.com/digama0/lean4lean/pull/53),
+reviewed at `5a8c0d5f111809a95f4924c71e0e9bc8738d72e0`, already proves
+`MLCtx.trExprS_dropN_nat` by abstraction followed by typed zero instantiation
+and redesigns the recursion contracts to remove the extraction calls. The core
+closing direction is therefore already upstream work; this checkpoint applies
+it within the current contracts and audits the inherited dependencies. No
+duplicate PR is opened. The exploratory official-master candidate was archived
+under `lean4lean-pr-inhabited-nat-exploratory-20261019` in the log directory;
+its build exposed missing fork telescope foundations, so it is not advertised
+as an upstream-ready patch. This does not affect the validated integration.
 
-The Lean 4.33.0-rc2 integration now advances from quotient checkpoint `d0f7742`
-to `33b42bfdd5ecfba9d0855a7340d5201c767ddd28`, on the same official base
-`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` and separate dated snapshot branch.
-This main branch's Lean 4.29 proof source remains `1337f87`.
+## Inhabited telescope transport in well-founded recursion — 2026-10-19
 
-The current primitive architecture has no corresponding `Reflection.ite_carrier`
-theorem to replay. Instead, the actual `Primitive.unfoldNatWellFounded.WF'`
-proof replaces its two direct general-strengthening calls with typed telescope
-substitution. Its existing measure-domain guard proves the removed domains are
-Nat, supplying zero inhabitants at arbitrary universe-context size. Generic
-helpers cover dependent telescopes and a retained binder whose domain depends
-on the base context. Executable behavior and public theorem premises are
-unchanged. This repairs those two local obligations, while `TrExprS.weakFV_inv`
-and checker methods still inherit the known-false general strengthening.
+This Lean 4.33.0-rc2 item extends quotient checkpoint `d0f7742` without changing
+executable code or the public recursion theorem's premises. The current primitive
+architecture has no `Reflection.ite_carrier` theorem corresponding to the older
+Lean 4.29 fork. Instead, it repairs the two direct general-strengthening calls
+in the actual `Primitive.unfoldNatWellFounded.WF'` proof.
 
-The new `InhabitedTelescope` fixture checks dependent domains, a nonempty base,
-distinct beta-equality endpoints, base-variable typing, a retained dependent
-binder, empty insertion, and two retained binders' syntactic cancellation.
-Six new helpers and eight witnesses use only `propext`/`Quot.sound`, excluding
-admissions, choice, false strengthening and confluence. The actual consumer body
-must use both new transports and omit direct false-strengthening calls. All
-three public recursion contracts retain their pre-change 33-axiom sets,
-including inherited `sorryAx`, choice, and native interfaces.
+`VEnv.IsDefEq.weakN_inv_of_argsTyped` and its typing variant close a telescope
+using actual typed arguments and the proved simultaneous-substitution API.
+`VEnv.IsDefEqU.weakN_inv_of_argsTyped_under` retains a binder whose domain may
+depend on the base context. Syntactic substitution/weakening cancellation is
+proved for arbitrary retained depth. The existing `meas.natBinderTypes` guard
+already certifies every removed domain as Nat, so typed zeros supply the closing
+arguments at arbitrary universe-context size. This does not assume inhabitants
+of arbitrary propositions or strengthen the checker guard.
 
-Full integration default build passes all 422 jobs; all 34 fixtures pass,
-including the previous 33 regression gates. Source census before/after is
-125 matching lines / 24 files / 129 whole-word `sorry|admit` occurrences. Main
-review has a separate fresh 419-job default-build pass and unchanged
-119 / 19 / 123 census. Receipts under `/var/tmp/thomas-ahle/fleet2/logs/`:
-`lean4lean-inhabited-telescope-default-20261019.log`,
-`lean4lean-inhabited-telescope-fixture-20261019.log`,
-`lean4lean-inhabited-telescope-regressions-20261019.log`,
-`lean4lean-inhabited-telescope-main-build-20261019.log`, and
-`lean4lean-inhabited-telescope-census-20261019.log`.
+`tests/InhabitedTelescope.lean` checks a genuinely dependent two-domain telescope,
+a nonempty base, beta equality with distinct endpoints, base-variable typing,
+a retained binder whose domain depends on that base, an empty telescope, and
+cancellation beneath two retained binders. All six new helpers and eight witness
+proofs have bodies and transitively use at most `propext` and `Quot.sound`.
+Dependency traversal excludes the false strengthening and confluence theorems.
+The actual consumer body must reference both new semantic transports directly
+and omit direct general-strengthening calls. The three public recursion contracts
+retain their measured pre-change 33-axiom manifests, including `sorryAx`, choice,
+and native interfaces. At that checkpoint `TrExprS.weakFV_inv` and checker
+methods still inherited general strengthening; the later items above remove the
+direct extraction calls, while the theorem remains conditional through checker
+dependencies.
 
-## Separate upstream quotient snapshot — 2026-10-19
+Validation: full default `lake build` passes all 422 jobs, and all 34 fixtures
+pass (the new dependent telescope audit plus the preceding 33 regression gates).
+Receipts: `lean4lean-inhabited-telescope-default-20261019.log`,
+`lean4lean-inhabited-telescope-fixture-20261019.log`, and
+`lean4lean-inhabited-telescope-regressions-20261019.log` under
+`/var/tmp/thomas-ahle/fleet2/logs/`. Census remains
+125 matching lines / 24 files / 129 whole-word `sorry|admit` occurrences.
 
-The main review branch remains on Lean 4.29.0 at proof source `1337f87`.
-The separately published `poc-verified-noninductive-upstream-20261019`
-snapshot at `d0f77425617a355241492ab574a4ce48a3cf39bf` is based on
-official `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`
-with Lean 4.33.0-rc2, extending `43a47d9`. It integrates quotient inversion,
-pattern soundness, concrete reduction, the unchanged actual
-`reduceRecursor.WF` contract, the checked false-confluence obstruction, and
-typed Prop-source/all-prefix unfolding. It retains upstream mutual-definition
-histories and executable workers. New metadata proofs cover simultaneous
-signature reservation followed by all defining equations, without restricting
-the declaration history; the dependent-body mutual fixture and general metadata
+## Upstream quotient integration — 2026-10-19
+
+This separate Lean 4.33.0-rc2 snapshot extends `43a47d9`, based on official
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`. The main Lean 4.29.0 review branch
+remains at proof source `1337f871caea000219b8da408b4dea3c31718690`.
+The snapshot is published as `poc-verified-noninductive-upstream-20261019`
+without replacing either existing branch. Current reflection has a different
+primitive architecture; later native inductive restoration receipts remain open.
+
+The original `reduceRecursor.WF` contract is now proved by composing native
+quotient reduction with `inductiveReduceRec.none_of_translation`. The executable
+dispatcher retains upstream's expression-only interface. Actual callback WHNF,
+payload translation, inferred constructor parameters, and trailing applications
+are covered; no new translation restriction is introduced. Its transitive
+axioms still include existing native interfaces and typing/confluence
+admissions. Genuine inductive recursor reduction is outside the constructor-free
+`TrEnv` model.
+
+The imported quotient development supplies constructor/eliminator inversion,
+typed and normalized-major beta, concrete rewrite metadata, the checked
+confluence obstruction, and Prop-source/all-prefix unfolding. The actual
+`Params.pat_wf` interface now includes context well-formedness, and its
+consumer passes that premise. The old false `NormalEq.parRed` contract is
+unchanged. The counterexample and repair ingredients explicitly exclude that
+theorem, its confluence consequences, derived quotient injectivity, and the
+known-false general strengthening theorem; independent typing/injectivity
+admissions remain. General simulation, eta critical pairs, confluence, and
+consumer migration remain open. The selector/prefix direction is attributed
+to upstream draft #53.
+
+Original integration proofs extend `WF.rewriteMetadata`, quotient-object
+lookup, and the concrete Eq registration witness across upstream mutual
+definitions. `addConsts_defeqs`, `addDefEqs_defeqs`,
+`addDefEqs_constants`, and `addDefEqs_extension` expose both folds without
+changing them. Metadata proves freshness and uniqueness for the simultaneous
+signature reservation and later equation registration, including interaction
+with pre-existing definitions and quotient names. The fixture checks a genuine
+two-definition WF history with a dependent second body, both equations and
+actual reduction, plus duplicate-name rejection. General metadata and history
 witnesses are admission-free/no-choice.
 
-Three abstract model placeholders are replaced by constructive constant-signature
-registration and orderedness, and one direct dispatcher admission is removed.
-This is not genuine checked inductive/model registration or recursor semantics.
-The dispatcher retains inherited typing/confluence admissions and native
-interfaces; the old `NormalEq.parRed` contract remains false and admitted.
-The candidate unfolding and obstruction exclude that theorem, its confluence
-consequences, derived quotient injectivity, and false general strengthening;
-independent typing/injectivity admissions remain. General simulation,
-confluence, eta overlaps, and consumer migration remain open.
+Three earlier abstract model placeholders are replaced by the fork's
+constructive signature-registration model and its orderedness proof.
+`InductiveEnvironmentModel` tests headers, constructors, fresh names, extensions,
+defining-equation preservation, and explicitly supplied recursor signatures.
+Its body/axiom audit excludes admissions and choice. This model registers
+constant signatures: it does not establish inductive positivity, generated
+recursor semantics, checked `AddInduct` registration, or prelude translation.
 
-The integration's theorem-body audits use
-`value? (allowOpaque := true)` for Lean 4.33 and preserve strict no-choice
-bounds. All 422 default build jobs and all 33 quotient/model, primitive/frontend,
-and restoration fixtures pass, including 560 cold/warm actual quotient
-helper/dispatcher controls. Receipts are
-`lean4lean-quot-integration-default-final-20261019.log` and
-`lean4lean-integration-<Fixture>-final-20261019.log` under
-`/var/tmp/thomas-ahle/fleet2/logs/`. Census: 129 matching lines / 27 files /
-133 occurrences before, 125 / 24 / 129 after; no new admission. This main
-branch's proof source is unchanged, with 119 lines / 19 files / 123 occurrences
-and a fresh 419-job default-build pass in
-`lean4lean-quot-integration-published-status-build-20261019.log`.
+All imported proof/dependency audits explicitly inspect theorem/opaque bodies
+with `value? (allowOpaque := true)`, required by Lean 4.33. Conventional choice
+introduced by newer String simplification proofs is avoided with explicit list
+membership and a direct UTF-8-size distinction for protected quotient names;
+strict no-choice bounds are retained rather than relaxed.
 
-This quotient checkpoint was partial replay, not a replacement of the main
-review history. The subsequent inhabited-telescope item above repairs the
-current recursion consumer; native inductive restoration receipts remain open.
-No force push or duplicate upstream proof PR is used for these snapshots.
+Validation: full default `lake build` passes all 422 jobs; all 33 fixtures
+pass, including quotient/model, primitive/frontend, and all five existing
+integration trust fixtures. Actual runtime controls cover 560 cold/warm
+quotient helper/dispatcher pairs at both safety/eager settings and depths
+32/128, including open/local-let majors and trailing applications. Logs live under
+`/var/tmp/thomas-ahle/fleet2/logs/`: full build
+`lean4lean-quot-integration-default-final-20261019.log` and per-fixture
+`lean4lean-integration-<Fixture>-final-20261019.log`. Source census changes
+from 129 matching lines / 27 files / 133 whole-word `sorry|admit` occurrences
+to 125 / 24 / 129, with no new admission. Three abstract placeholders and one
+dispatcher admission are removed; inherited frontend trust gaps remain.
 
 ## What is proved
 
-- `QuotPrefixReduction` removes the preceding repair ingredient's
-  saturation-only limitation. The same compatible presentation includes typed
-  function eta, and `unfoldPrefix` parses the actual application spine,
-  computes the residual type from `quotLiftConst`, and introduces precisely
-  the missing binders before applying the existing Prop-source unfolding.
-  `unfoldPrefix_complete` proves success for arbitrary lists of zero through
-  six supplied arguments at any zero-equivalent source universe, not just
-  fixture terms. `prefix_reduces` combines that completeness with actual source
-  typing to give a real finite reduction and semantic equality at the original
-  type. No canonical-type witness or preservation condition is demanded from
-  the caller; the canonical residual typing is derived internally using the
-  existing independent typing/injectivity baseline.
-  Eta steps and all finite chains preserve weakening, typed substitution,
-  and definitional context conversion;
-  compatible application/lambda chains allow the generated reductions beneath
-  binders and additional applications. The fixture checks all seven prefixes
-  in a concrete Eq-plus-Quot model and excludes the refuted confluence theorem,
-  derived quotient injectivity, and false strengthening from reachable proofs.
-  Completeness, fresh-variable application typing, and concrete source typings
-  are admission-free/no-choice; general reduction soundness and actual-model
-  construction retain the separate `sorryAx` baseline. Native prefix and full
-  function equalities use only `Quot.sound`; native selector and saturated
-  unfolding equalities use no axioms. These are semantic controls, not native
-  reduction-completeness claims. General simulation/Church–Rosser, other eta/rewrite
-  overlaps, and downstream migration remain open. The eta/prefix direction is
-  already present in upstream draft PR #53.
-- `QuotPropReduction` supplies a concrete repair ingredient without changing
-  the existing false `NormalEq.parRed` contract. `zeroLike_iff` constructively
-  characterizes all universes equivalent to zero, including noncanonical
-  `max`/`imax` syntax. The total `unfold` transformer rewrites a saturated
-  Prop-source `Quot.lift f h q` to `f (Quot.ind (fun _ => P) id q)`;
-  `unfold_sound` preserves its original result type with only the source
-  typing, actual quotient registration, context WF, and environment WF.
-  `Step` adds this rule to actual parallel reduction with compatible
-  application/lambda/forall closure; finite `Steps` include all existing
-  parallel-reduction chains. The new step is stable under arbitrary weakening
-  and typed single-variable substitution, and both step relations preserve
-  semantic equality and the original type. The fixture demonstrates that the
-  prior concrete obstruction joins after one new step, while the original
-  obstruction remains checked and unchanged.
-  `selector_hasType`, `zeroLike_iff`, and generic `Params`-level selector/join
-  proofs use only `propext` and `Quot.sound`, without choice or admissions.
-  Concrete-model instantiation and general source-typing inversion additionally
-  inherit `sorryAx`; dependency traversal forbids the refuted confluence
-  theorem, its derived quotient injectivity, and `IsDefEqU.weakN_iff`.
-  This is not a confluence proof, downstream migration, native-checker fix, or
-  checked inductive registration. The same selector idea is already present
-  in upstream draft PR #53. Native-only controls pass on Lean 4.29.0 and
-  4.33.0-rc2; they use explicit congruence for the unfolding equality.
-- `QuotConfluenceObstruction.counterexample` constructs a well-formed local
-  context, a `NormalEq` pair, and a concrete quotient pattern reduction for
-  which no left reduction followed by `NormalEq` can simulate the right step.
-  The source universe is zero, the target is `Prop`, and the neutral major and
-  `Quot.mk` major are proofs of the same proposition. `.neutralReduction`
-  proves that every finite left reduction stays unchanged;
-  `.not_normalEq_reduced` excludes the required normal equality using the
-  independent typing/injectivity baseline. `.semanticEquality` separately
-  derives the endpoint conversion by actual congruence and registered quotient
-  beta, without the refuted theorem. The fixture constructs an explicit
-  Eq-axiom-plus-quotient semantic declaration history, rather than assuming an
-  arbitrary environment or a fabricated `Params` instance. Its environment
-  well-formedness proof uses only `propext` and `Quot.sound`; the full
-  counterexample's exact dependency set is `propext`, `Quot.sound`, `sorryAx`.
-  All 32 owned public/private/generated values are checked for direct
-  admissions/new axioms and for forbidden dependence on `NormalEq.parRed`,
-  `.parRedS`, `IsDefEq.church_rosser`, `IsDefEqU.quot_inj`, or
-  `IsDefEqU.weakN_iff` (the separate upstream issue #50).
-  `tests/NativeQuotientProofIrrelevance.lean` imports only `Lean` and reproduces
-  the native proof-irrelevance/beta behavior on both toolchains; its named
-  equivalents in the semantic fixture have no axioms at all. This identifies
-  a false verification contract; it is not a repair of confluence or evidence
-  that the native kernel accepts an invalid proof.
-- `getElimLevel` is a total executable definition with an equation theorem.
-  `Inductive.ElimName` implements the same first-unused `u`, `u_1`, `u_2`, …
-  search using verified string append. A decimal-length bound on the finite
-  input names proves termination; it is a proof-only decreasing measure, not
-  runtime fuel, a fallback result, or an extra acceptance restriction.
-  `freshElimName.loop.spec` proves freshness and that every preceding candidate
-  is occupied, for arbitrary starting indices and arbitrary lists, including
-  duplicates. `freshElimName.first` also accounts for the initial bare `u`.
-  `getElimLevel.eq_map` preserves the actual `isLargeEliminator` result and
-  every classifier failure. `getElimLevel.fresh` and `.recLevelParams` derive
-  freshness, distinct generated recursor universe parameters, and the actual
-  selected level's semantic translation without caller-supplied freshness or
-  translation receipts. The new proof/definition values depend only on
-  `propext`, `Classical.choice`, and `Quot.sound`, with no inherited admission
-  or new interface axiom. The original `Name.appendIndexAfter` uses opaque
-  `String.Internal.append`, so equality to that old helper is runtime-tested,
-  not asserted as a proved native-interface equation. The verified candidate
-  definition explicitly constructs the same decimal `u_` spelling.
-  `tests/InductiveEliminationLevel.lean` audits all 44 owned declarations and
-  exercises 2378 collision/order/duplicate/noise controls, 2145 comparisons to
-  the former native renderer, 100 actual empty/unit/data/proof/indexed
-  declaration runs and their generated recursors, 120 classifier/selection
-  controls, and classifier fuel-failure propagation. This closes the selector's
-  partial-definition gap, not semantic large elimination, `AddInduct`, checked
-  recursor registration, positivity, or the frontend's inherited admissions.
-- `IsDefEqStrong.substEq'` and `.subst` prove simultaneous substitution by a
-  pointwise definitionally equal pair of substitutions, with the left/right/cross
-  bundle covering every actual strong typing constructor. `IsDefEq.substDF`
-  transfers the result to the weak judgment; ordinary equality, typing, untyped
-  equality, and type judgments have diagonal substitution corollaries.
-  `Ctx.SubstEq` certifies each source binder's domain and corresponding target
-  values, supports identity, lookup, weakening, and lifting under equal domains,
-  and allows arbitrary substitutions outside the empty source context.
-  This is a targeted port of official upstream's `6ba54db`/`8223d22` proof API,
-  adapted to this branch without migrating its toolchain or executable.
-  `tests/StrongSubstitution.lean` audits the owned helper/context/semantic proofs
-  with no inherited admissions or new interface axioms; their dependency union
-  is `[propext, Quot.sound]`. It covers arbitrary related substitutions, actual
-  variable substitution with syntactically distinct equal values, binder lifting,
-  identity, and beta. This removes a missing semantic API, not the frontend's
-  existing inherited `sorryAx`, the remaining confluence admission, or any of
-  the inductive/recursor registration obligations.
 - `Pattern.Equation` represents guarded registered pattern reductions under
   lambda binders. `Pattern.Equation.of_root` preserves the old root-pattern
   certificate, while `Pattern.Equation.parRed` derives the corresponding actual
@@ -3041,33 +2935,9 @@ No force push or duplicate upstream proof PR is used for these snapshots.
   parameter-equality guards, result expression, and an admission-free certificate
   deriving those guards from the equation's bound variables. The fixture audits
   the structural proofs, legacy compatibility, and reduction-bridge dependencies.
-  This repairs the closed-equation representation; subsequent work also proves
-  checked quotient rule soundness and constructs the concrete definition/quotient
-  `Params` model described below. Quotient-type injectivity and semantic
-  arbitrary-parameter alignment are now proved using that model and the existing
-  confluence theorem. The native quotient callback/dispatcher contracts are also
-  proved below; the inherited confluence and typing admissions remain open.
-- `Theory.Typing.RewriteRules` derives the complete classification and constant
-  lookup of registered equations, uniqueness of definition origins by name, and
-  exclusion of definitions at all four registered quotient primitive names from
-  the WF declaration history. `RewriteRule` contains exactly registered closed
-  definition rules and the checked quotient rule; its soundness and equation
-  coverage are proved, including the actual closed quotient equation.
-  `Theory.Typing.ConcreteReduction` proves all overlap/major-premise obligations
-  and supplies `VEnv.WF.reductionParams` at every universe count. It constructs
-  the actual model instead of requiring a caller's `Params` premise.
-  `Params.pat_wf` now receives local-context WF explicitly, matching the proved
-  typing APIs; `ParRed.defeq` forwards its existing certificate at both uses.
-  The public parallel-reduction and confluence theorem statements do not change.
-  `ConcreteReduction` checks metadata, primitive-name masking negatives, equation
-  coverage, actual parallel reduction/subject conversion, and instantiation of
-  the unchanged confluence consumer. Its exhaustive proof/dependency audit
-  excludes circular reliance on the rule-soundness projection or confluence
-  consumers. Metadata, equation coverage and non-overlap use only `propext` and
-  `Quot.sound`; the whole model additionally inherits the existing `sorryAx`
-  dependency through rule soundness, but no choice or new interface axiom.
-  The generic `NormalEq.parRed` application/extra contract is now refuted; model
-  construction does not remove it or prove full native recursor semantics.
+  This repairs the closed-equation representation, not full quotient pattern
+  soundness, a concrete quotient `Params` instance, general confluence,
+  injectivity, or the checker callback's arbitrary-parameter alignment.
 - `NormalEq.parRed_constDF` proves the constant case of parallel reduction
   modulo universe conversion, including registered extra-reduction rules and
   their nontrivial equality checks. `EqUpToLevels.instL_of_levels` and
@@ -3236,8 +3106,8 @@ No force push or duplicate upstream proof PR is used for these snapshots.
   callback. `Inner.reduceRecursor.scopeFrame` combines that frame with inductive
   rejection for both quotient-initialization states and all cheap flags.
   Consequently `whnfCore'.scopeWF` and `whnf'.scopeWF` no longer require a separate
-  recursor cache-frame hypothesis. Their semantic reduction dependencies remain
-  explicit; `reduceRecursor.WF` now has the proof described below. No new
+  recursor cache-frame hypothesis. Their semantic reduction dependencies,
+  including the existing `reduceRecursor.WF` admission, remain explicit. No new
   admission or stronger caller premise is added. Checked inductive registration
   will require replacing this fragment-specific rejection with actual recursor
   semantics. Arbitrary-fuel scoped comparison/method closure is proved below;
@@ -3252,8 +3122,9 @@ No force push or duplicate upstream proof PR is used for these snapshots.
   of both quotient lift and quotient induction reductions. It follows the
   actual constructor-normalization callback, rejects malformed constructor
   heads, and preserves the optional trailing application range. This is a
-  separate partial-correctness component, now combined with the semantic
-  `TrExpr` result in `quotReduceRec.WF` and the original dispatcher contract.
+  separate partial-correctness component: it does not yet establish the
+  semantic `TrExpr` result required by `reduceRecursor.WF`, which remains the
+  next quotient WHNF obligation.
 - `VContext.quotientDefEq` turns the registered quotient beta equation into
   a verified semantic `IsDefEqU` relation whenever the native environment has
   completed quotient initialization. The theorem is the base equality for
@@ -3276,108 +3147,9 @@ No force push or duplicate upstream proof PR is used for these snapshots.
   motive as a caller restriction. `QuotientReductionAlignment` checks these
   contracts in arbitrary initialized verified contexts and exhaustively audits
   owned declarations against the existing unique-typing dependencies.
-  `VEnv.quotMk_inv` now recovers the singleton universe instance, domain type,
-  relation type, payload type, and conversion of an arbitrary result type from
-  constructor application typing alone. `VContext.quotMkArguments` carries this
-  inversion through the actual native constructor translation while preserving
-  translations of all three original arguments. `VContext.quotMkPayload` turns
-  the reducer's actual `isAppOfArity` guard into a typed translation of its
-  extracted `appArg!` payload, including after the verified WHNF callback.
-  These inversion proofs inherit
-  the existing unique-typing admissions; they do not change the admission-free
-  dependency bounds of `quotMk_hasType` or `quotInd_beta`.
-  `QuotientConstructorInversion` checks arbitrary result types and local contexts,
-  rejects incorrect universe arities, checks a constructor typing/inversion
-  round trip, and audits all four new proofs against the existing unique-typing
-  and initialized-context dependency baselines.
-  `VEnv.quotLift_inv` and `VEnv.quotInd_inv` likewise derive universe arity,
-  well-formedness and all argument typings from an arbitrary typed eliminator
-  application, not from caller-supplied argument typing premises. This includes
-  the exact respect-proof or dependent-minor type, the major's quotient type,
-  and conversion of the arbitrary result type to the lift target or the motive
-  applied to the original induction major. `VContext.quotLiftArguments` and
-  `VContext.quotIndArguments` preserve translations of all original native
-  arguments with these derived typings. `QuotientEliminatorInversion` checks
-  both semantic contracts, incorrect semantic/native universe arities,
-  beta-typing/inversion round trips, and composition of the recovered major
-  translation with verified WHNF and constructor payload extraction. It audits
-  all four new proofs against the existing unique-typing and initialized-context
-  dependency baselines. The semantic proofs inherit `sorryAx` through unique
-  typing; the native bridges additionally inherit choice and the existing
-  persistent-map/array interface axioms. No direct admission or new axiom is
-  introduced, and `quotMk_hasType`/`quotInd_beta` retain their admission-free bounds.
-  `Theory.Typing.QuotPatternSoundness` now proves `quotLiftPattern.sound`:
-  the actual pattern match, source application typing, and the pattern's actual
-  domain/relation checks imply semantic reduction at the original supplied
-  result type. `VEnv.quotLift_beta_of_checkedParameters` derives all argument
-  typings, both universe arities and their required equivalence, and payload
-  transport before applying the semantic beta rule. It does not assume universe
-  equivalence or any argument typing. `VEnv.WF.quotientObjects` recovers primitive
-  quotient signatures from registration of the actual quotient equation by
-  induction on the well-formed declaration history; its dependencies are only
-  `propext` and `Quot.sound`. The semantic rule proofs retain the existing
-  unique-typing/sort-injectivity `sorryAx` dependency but do not assume a `Params`
-  instance or confluence. `QuotientPatternSoundness` checks arbitrary convertible
-  parameters and result types, both actual checks (with mismatch rejection),
-  concrete pattern construction, use in initialized verified contexts, all owned
-  proof dependencies, and absence of circular dependence on `Params.pat_wf` or
-  the confluence consumers. This proves the quotient rule's semantic-soundness
-  obligation used by the concrete rewrite model above, not full confluence. The native
-  reducer does not perform these semantic checks; deriving them automatically
-  from major typing and discharging the remaining confluence obligations are
-  still necessary. No runtime restriction is added to evade those obligations.
-  `Theory.Typing.QuotInjectivity` now derives universe-list equivalence and
-  domain/relation definitional equality from arbitrary quotient-type equality.
-  The concrete model preserves the registered `Quot` head through parallel
-  reduction and its reflexive/transitive closure. Normal equality inversion
-  excludes every proof-irrelevance branch by proving that a telescope ending
-  in a sort cannot itself be a proposition; applications are not assumed to be
-  generally injective. Actual quotient-equation registration protects the head
-  from user definitions; a matching constant signature alone is not assumed
-  to identify a primitive. `VEnv.quot_inv` also recovers the primitive universe
-  arity and argument typings from an arbitrary typed quotient application.
-  `Theory.Typing.QuotReductionAutomatic` proves both `quotLift_beta_of_typed`
-  and `quotInd_beta_of_typed` at the original arbitrary result type without
-  caller-supplied parameter checks, universe equalities or argument typings.
-  Their `of_normalizedMajor` variants accept a major convertible to an arbitrary
-  constructor spine, including differently expressed constructor parameters.
-  `QuotientInjectivity` checks all these contracts, multistep spine preservation,
-  incorrect universe arities, unequal-universe impossibility, and beta-converted
-  domains. Its exhaustive audit rejects direct admissions and new axioms,
-  preserves the admission-free bounds of `quotMk_hasType`/`quotInd_beta`, and
-  explicitly traverses the inherited confluence and sort-injectivity dependencies.
-  Structural and normal-equality inversion use only `propext`, `Quot.sound`,
-  and inherited `sorryAx`; full injectivity and automatic beta additionally
-  inherit `Classical.choice` from the existing confluence theorem. No admission
-  is removed by that application of confluence, and its remaining
-  `NormalEq.parRed` application/extra admission is not hidden or reproved here.
-  `VContext.quotLiftReduction` and `quotIndReduction` now transport the actual
-  normalized constructor payload back to the original native eliminator's
-  semantic translation. They use the WHNF callback's real `TrExpr` result,
-  preserve translations of the original function/minor and extracted payload,
-  and derive parameter alignment rather than imposing checks absent from the
-  executable. The actual application stack supplies saturated source typing;
-  the reapplication proof handles arbitrary trailing arguments and both the
-  empty/nonempty suffix branches of `mkAppRange`.
-  `quotReduceRec.trExpr` verifies the actual worker against arbitrary valid
-  methods, including every name, saturation and constructor-shape guard.
-  `quotReduceRec.WF` combines that semantic result with the existing
-  free-variable invariant. The original, unrestricted `reduceRecursor.WF`
-  contract is now proved by composing initialized quotient reduction with the
-  constructor-free inductive rejection branch, for both initialization states
-  and every cheap-recursion/projection flag. Its former direct admission is
-  removed without changing a theorem premise or executable behavior.
-  `NativeQuotientReduction` checks callback composition, the worker and original
-  dispatcher contracts, arbitrary explicit fuel and `RecM.run`; it audits all
-  new public/private/generated proof values against independent typing,
-  confluence, registration and native-interface baselines. A dependency traversal
-  excludes circular use of the normalizer implementations or `Methods.withFuel.WF`
-  in their own recursor proof. The result still inherits `sorryAx`, choice and
-  existing expression-range/persistent-map/array interface axioms. It does not
-  prove genuine inductive recursor semantics or close the remaining confluence
-  and foundational typing admissions, and the constructor-free `TrEnv` boundary
-  is unchanged.
-  The existing beta/alignment theorem contracts stay unchanged. The native
+  Recovering parameter equalities from arbitrary quotient application typing
+  and the complete `quotReduceRec.WF`/`reduceRecursor.WF` contract remain open.
+  No caller premise or statement of an existing theorem changes. The native
   fixture includes actual proposition-induction reduction with an explicit
   motive, not a claim that native reduction erases the induction application.
 - `Environment.checkPrimitiveInductive.toVDecl_WF` packages the checked
@@ -7365,9 +7137,27 @@ No force push or duplicate upstream proof PR is used for these snapshots.
   from explicit loop and entry contracts, including zero divisors and the
   early return when the dividend is smaller. The loop retains its typed
   positivity and fuel-bound witnesses and shares division's dependent argument
-  shape. These contracts are not yet extracted from the modulo validator;
-  neither modulo's primitive-extension proof nor its native reduction is
-  connected.
+  shape. The full modulo validator now supplies these contracts; its
+  declaration-extension proof and native reduction are connected.
+  `HasPrimitives` records modulo's literal evaluation and function type, and the
+  extension proof establishes both from the checked equations. No modulo
+  validation checks were changed.
+- `NatGcdSpec.eval` derives literal GCD evaluation by strong induction on the
+  first argument, using typed modulo evaluation to reduce the recursive input.
+  The contract explicitly requires equations for the original candidate, not
+  merely the equation body returned by the well-founded validator.
+  `.reflects` transports evaluation from the old environment into an extension
+  and connects it to the newly declared constant, without assuming the new
+  environment's primitive invariant.
+- `NatBitwiseSpec.eval` derives literal bitwise evaluation for an arbitrary
+  Boolean binary function, by strong induction on the first natural-number
+  input. Its contract contains the two zero cases and the positive step after
+  evaluating the conditionals and recursive arguments. Typed addition evaluates
+  the doubling and optional increment. `.reflects` likewise evaluates using the
+  old environment's invariant before transporting the result into an extension.
+  The executable validator does not yet supply either of these new contracts;
+  native GCD, AND, OR, and XOR remain disabled. These are intermediate proofs
+  toward restoring those reductions, not replacements for the missing bridge.
 - `Reflection.checkITE.WF` extracts the two polymorphic branch equations from
   the complete conditional validator. `ITESpec.apply` instantiates them, and
   `.eval` evaluates the selector after its Boolean argument reduces, retaining
@@ -7380,7 +7170,7 @@ No force push or duplicate upstream proof PR is used for these snapshots.
   `Condition.natLE.checkITE.WF` verifies the condition validator with both
   conditional modes enabled, retaining the existing dependent-selector facts
   alongside `ITEChecked`. The dependent-only theorem's statement is unchanged.
-  These are prerequisites for the unfinished modulo bridge, not a proof of it.
+  These are used by the full modulo bridge, not sufficient in isolation.
 - `Reflection.ite_carrier` recovers the carrier's `Type` bound from the
   selector's structural translation and the actual `ite` application.
   `ITEInstance` packages the typed selector and reflection input.
@@ -7397,9 +7187,8 @@ No force push or duplicate upstream proof PR is used for these snapshots.
   `natMod_entry_start` and `natMod_entry_stop` evaluate the complete nested
   `natModEntryAt` template for a positive in-range divisor, a zero divisor, or
   an oversized divisor. These proofs start from supplied structural translations.
-  Extraction from modulo's fresh-local checks, assembly of its loop/entry
-  contracts, and the declaration-extension proof remain unfinished; native
-  modulo is still disabled.
+  These supply the branch reductions used by the complete modulo validator
+  proof; they are not sufficient without extracting the actual checked equations.
 - `natModEntryBody.spec` supplies the successor entry contracts from the open
   two-local equation, including zero and oversized divisors.
   `natModLoopBody.spec` supplies the recursive contract from the open five-local
@@ -7408,8 +7197,14 @@ No force push or duplicate upstream proof PR is used for these snapshots.
   literal instances. The recursive substitution proof is shared with division
   through a private helper; division's published statement is unchanged.
   `NatModSpec.ofEntry` combines these contracts with a separately supplied zero
-  equation. Extraction of all three equations from the complete modulo validator
-  and the primitive-extension/native-reduction connection remain unfinished.
+  equation. `checkNatModRecursion.WF` extracts the five-local recursive equation
+  using a private helper shared with division; division's published statement
+  is unchanged. `checkNatModEquations.WF` extracts the entry equation in the
+  surrounding two-local context and assembles the contracts in executable order.
+  `checkPrimitiveDef_natMod.WF` additionally extracts the zero equation from its
+  checked lambda and retains the guard, proposition check, loop-type check,
+  and both conditional modes. `.extension` supplies the restored invariant
+  fields, which the frontend and native-reduction proofs now use.
 - `Reflection.checkNatDITETypes.WF` verifies the four initial type checks of the
   dependent conditional validator, including both witness converters. The
   `checkNatDITE_eq` theorem proves that regrouping this prefix reconstructs the
@@ -7515,7 +7310,12 @@ Main review entry points: `Lean4Lean/Verify/Environment.lean`,
   inductives. Arithmetic results are conditional on an appropriate starting
   environment translation; runtime tests against the imported prelude do not
   construct that translation.
-- Native `Nat.gcd`, `Nat.mod`, `Nat.land`, `Nat.lor`, and `Nat.xor` reductions
+  The abstract header-registration, executable-prefix refinement, and primitive
+  translation bridges do not discharge this obligation. Constructor/recursor
+  generation, inductive reduction equations, and the semantic statistics/header
+  translation invariants of the preceding stage remain unverified; the paired
+  header-array lengths are now proved.
+- Native `Nat.gcd`, `Nat.land`, `Nat.lor`, and `Nat.xor` reductions
   remain disabled.
   Restoring them with their primitive-extension proofs is unfinished work, not
   an optional optimization that can be dropped from the objective.
@@ -7668,7 +7468,7 @@ incorrect equality and ordering implementations, left shifts beyond machine-word
 sizes, right shifts at and beyond the input's bit length (including a shift count
 beyond machine-word sizes), both sides of the native exponent-limit boundary, and
 agreement with upstream on 3,280 small normalizations and 10,000 generated level
-cases. The executable successfully replayed 862 declarations across the primitive
+cases. The executable successfully replayed 902 declarations across the primitive
 and environment verification modules, and 511 declarations in the level verification
 module. Restoring native ordering resolved the previous deterministic timeout in
 `Lean.Level.mkData_depth`.
@@ -11942,8 +11742,9 @@ division with low fuel, covering zero divisors, exact division, smaller dividend
 and inputs and quotients beyond machine-word sizes. Moving the proposition check
 ahead of the condition validator was checked at an earlier checkpoint.
 The modulo regression accepts the reference validator and rejects constant-zero
-and first-argument implementations. It does not test a restored native modulo
-path: that path is still disabled. It additionally evaluates the nested entry
+and first-argument implementations. It checks restored native modulo with low
+fuel, covering zero divisors, exact division, smaller dividends, and dividends
+and divisors beyond machine-word sizes. It additionally evaluates the nested entry
 template on nine small input pairs, covering zero divisors, recursive calls,
 equal dividends/divisors, and oversized divisors. The same inputs check that
 substitution into the open entry body produces the tested template. Four
@@ -12035,47 +11836,45 @@ persistent-map/array interface axioms. No new assumptions were added for them.
 `Quot.sound`, without `sorryAx`. Both `.at_literals` bridges inherit `sorryAx`
 from the structural-translation API; both `.spec` bridges additionally inherit
 the existing map/array interface axioms. No new axiom or admitted proof was added.
+`checkNatModRecursion.WF`, `checkNatModEquations.WF`,
+`checkPrimitiveDef_natMod.WF`, and `.extension` inherit the verification stack's
+`sorryAx` and implementation-interface axioms. The modulo invariant is supplied
+by the extension proof, not assumed for the new declaration. The unchanged
+division-recursion statement now uses the same private extraction helper.
+`NatGcdSpec.mono` uses only `propext`. `NatGcdSpec.eval`, `.reflects`,
+`NatBitwiseSpec.eval`, and `.reflects` use only `propext` and `Quot.sound`, without
+`sorryAx`. Their computation equations remain explicit premises; they are not
+added as assumptions to the environment invariant.
 The level soundness theorems
 `Lean.Level.normalizeCore_eval`, `geq'_wf`, and `isEquiv'_wf` use the standard
 logical axioms and the existing `Lean.Level.instLawfulBEqLevel` interface axiom,
 without `sorryAx`. The frontend audit includes `sorryAx` and the existing
 implementation-interface axioms, as noted above.
 
-## Inhabited inverse weakening and the actual carrier check (2026-10-19)
-
-`Ctx.LiftN.instN` and the six `weakN_inv_of_hasType` / `weak_inv_of_hasType`
-lemmas for typed equality, untyped equality, and typing are ported from
-[upstream PR #51](https://github.com/digama0/lean4lean/pull/51), head
-`5ff580979f181a29c41cb358f542e0846756a0c6`. They are substitution lemmas:
-the removed binder must have an actual typed inhabitant in the remaining
-outer context. They require only environment orderedness, not the general
-strengthening admission, and their transitive axioms are bounded by `propext`
-and `Quot.sound`, with no admission or choice.
-
-The local application factors primitive argument-domain recovery into
-`tr_boundApp_domains`, retaining the comparison under the witness binder.
-`tr_boundApp_arg_inhabited` then substitutes the supplied inhabitant.
-The unchanged public `Reflection.ite_carrier` contract uses this helper with
-`Prop : Type`. The concrete carrier result therefore no longer depends on
-`IsDefEqU.weakN_iff`. No acceptance rule or caller premise is changed.
-
-`tests/InhabitedStrengthening.lean` checks top and interior insertion, a
-context-dependent inhabitant, all seven foundational lemmas, both private
-helpers, and the actual public carrier theorem. Its dependency traversal
-excludes `IsDefEqU.weakN_iff`, `NormalEq.parRed`, `NormalEq.parRedS`,
-`IsDefEq.church_rosser`, and `IsDefEqU.quot_inj`. The primitive application
-still inherits independent typing admissions; this is not an admission-free
-primitive/frontend soundness claim. The two proof-binder callers of
-`tr_boundApp_arg` remain on the old general strengthening path, explicitly
-outside this repair.
-
-Validation on Lean 4.29.0: all default targets and twelve focused fixtures
-pass, including the new dependency audit, reflection/primitive and actual
-non-inductive frontend controls, simultaneous substitution, and the existing
-quotient reduction/obstruction fixtures. The source admission census remains
-119 matching lines / 123 whole-word occurrences. The detached Lean 4.33.0-rc2
-integration checkpoint separately passes its default build and five existing
-trust-boundary fixtures; it does not yet incorporate this later fork work.
-
 AI assistance: drafted and iterated with OpenAI Codex, compiled and tested
 locally. Not yet human-reviewed. No PR or Zulip message has been submitted.
+
+
+## October 21 upstream integration reconciliation
+
+The October 21 candidate is based on official
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` and Lean 4.33.0-rc2.
+The raw replay combined incompatible executable/proof versions, including a
+duplicate inductive worker and old level-normalization helpers. Reconciliation
+retains the previously validated 4.33 adaptations and upstream mutual-definition
+behavior, rather than treating a completed Git replay as proof of integration.
+The canonical `addDecl.WF` again proves the non-inductive contract under its
+explicit declaration-form premise and arbitrary configured fuel;
+`addDecl.WF_noninductive` remains a compatibility alias. The regression audit
+checks both proof values. This removes the replayed admitted all-declaration
+placeholder without claiming the inductive case.
+
+The primitive Bool/Nat model-WF receipts, the total elimination-universe
+selector, and the restored record/map evidence are retained from the review
+branch alongside the newest registration-result continuation. Native source
+checks, temporary environments, generated recursor signatures, quotient
+reductions, and inhabited telescope/fuel replacement obligations retain their
+actual executable contracts. Existing transitive projection and checker
+admissions remain explicit. The rule-result continuation still receives a
+separate complete rule-semantics callback: the indexed constructor callback
+alone is not claimed to establish coverage of every stored rule.

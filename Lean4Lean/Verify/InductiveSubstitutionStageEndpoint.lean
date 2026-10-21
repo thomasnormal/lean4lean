@@ -45,7 +45,7 @@ theorem TrExprS.strengthenSubstitutionStageEndpoint
     (HasType.weak'_iff envWF alignedWF.toCtx removal.toCtx).mp liftedArgumentTyped
   have reducedEndpointTyped : env.HasType universes.length smaller.toCtx
       (reducedBody.inst reducedArgument) (.sort level) := by
-    simpa only [VExpr.inst] using
+    simpa only [VEnv.HasType, VExpr.inst] using
       VEnv.IsDefEq.instDF envWF.ordered smallerWF.toCtx reducedBodyTyped reducedArgumentTyped
   have endpointEquality : env.IsDefEq universes.length original.toCtx
       (bodySemantic.inst originalArgument) ((reducedBody.inst reducedArgument).lift' removalLift)

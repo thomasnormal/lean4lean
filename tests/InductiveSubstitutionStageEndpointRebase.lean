@@ -242,7 +242,7 @@ private theorem genuineEndpointRebaseProjectsTypesAndEquality (env : VEnv) (envW
     genuineRemovalAndIndependentInsertion env envWF
   have targetLiftedType : env.HasType 0 target.toCtx
       ((reduced.inst reducedArgument).lift' insertionLift) (.sort stageLevel) := by
-    simpa only [VExpr.lift'_inst_hi] using targetEndpointType
+    simpa only [VExpr.lift'_inst_hi, List.length_nil] using targetEndpointType
   exact ⟨reduced, reducedArgumentType, reducedType, endpointEquality.hasType.1,
     endpointEquality.hasType.2, endpointEquality, targetTranslation, targetBodyType,
     targetArgumentType, targetEndpointType, targetLiftedType⟩

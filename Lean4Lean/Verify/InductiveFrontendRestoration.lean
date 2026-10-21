@@ -95,7 +95,8 @@ inductive RestoredInductiveRecord (preprocessing : ElimNestedInductive.Result) (
 abbrev InductiveRestorationM := StateT Environment (Except Exception)
 
 private def registerRestored (info : ConstantInfo) (allowPrimitive : Bool) : InductiveRestorationM PUnit := do
-  (← get).checkName info.name allowPrimitive
+  let __do_lift ← get
+  __do_lift.checkName info.name allowPrimitive
   modify (·.add info)
 
 private theorem restorationBind {action : InductiveRestorationM α} {next : α → InductiveRestorationM β}
@@ -113,14 +114,24 @@ private theorem restorationExceptBind {action : Except Exception α} {next : α 
   change ((action >>= fun value => pure (value, env)) >>= fun result => next result.1 result.2).WF post
   simpa only [bind_assoc, pure_bind] using haction.bind hnext
 
+private theorem checkNameFresh (env : Environment) (name : Name) (allowPrimitive : Bool) :
+    (env.checkName name allowPrimitive).WF fun _ => env.constants.find? name = none := by
+  intro _ h
+  have hn : env.contains name = false := by
+    cases hfind : env.contains name <;> [rfl; skip]
+    simp [Environment.checkName, hfind, (· >>= ·), Except.bind] at h
+  change env.constants.contains name = false at hn
+  rw [SMap.find?_isSome] at hn
+  cases hfind : env.constants.find? name <;> simp_all
+
 private theorem registerRestored.trace (info : ConstantInfo) (allowPrimitive : Bool) (env : Environment)
     (allowed : ConstantInfo → Prop) (hrecord : allowed info) :
     (registerRestored info allowPrimitive env).WF fun result => FreshRegistrationTrace allowed env result.2 := by
   unfold registerRestored
   change ((liftM (env.checkName info.name allowPrimitive) >>= fun _ =>
     modify (fun current : Environment => current.add info) : InductiveRestorationM PUnit) env).WF _
-  refine restorationExceptBind (checkName.WF env info.name allowPrimitive) ?_
-  rintro _ ⟨hfresh, _⟩
+  refine restorationExceptBind (checkNameFresh env info.name allowPrimitive) ?_
+  rintro _ hfresh
   exact .pure (.step (.refl env) info hrecord hfresh)
 
 private theorem restorationForIn (items : List α) (step : α → InductiveRestorationM (ForInStep PUnit))
@@ -155,7 +166,9 @@ def restoreInductiveRecursor (preprocessing : ElimNestedInductive.Result) (stage
     (allIndNames : List Name) (recNameMap : NameMap Name) (allowPrimitive : Bool)
     (recName : Name) : InductiveRestorationM PUnit := do
   let newRecName := recNameMap.getD recName recName
-  let some (.recInfo recInfo) := staged.find? recName | unreachable!
+  let some (.recInfo recInfo) := staged.find? recName |
+    (panicWithPosWithDecl "Lean4Lean.Inductive.Add" "Lean4Lean.Environment.addInductive" 767 56
+      "unreachable code has been reached" : InductiveRestorationM PUnit)
   let newRecType := preprocessing.restoreNested staged recInfo.type recNameMap
   let newRules ← recInfo.rules.mapM fun rule => do
     let newRhs := preprocessing.restoreNested staged rule.rhs recNameMap
@@ -182,7 +195,8 @@ theorem restoreInductiveRecursor.trace (preprocessing : ElimNestedInductive.Resu
 def restoreInductiveConstructor (preprocessing : ElimNestedInductive.Result) (staged : Environment)
     (allowPrimitive : Bool) (ctorName : Name) : InductiveRestorationM (ForInStep PUnit) := do
   let some (.ctorInfo ctor) := staged.find? ctorName | do
-    (unreachable! : InductiveRestorationM PUnit)
+    (panicWithPosWithDecl "Lean4Lean.Inductive.Add" "Lean4Lean.Environment.addInductive" 782 57
+      "unreachable code has been reached" : InductiveRestorationM PUnit)
     return .yield PUnit.unit
   let newType := preprocessing.restoreNested staged ctor.type
   registerRestored (.ctorInfo { ctor with type := newType }) allowPrimitive
@@ -210,10 +224,11 @@ def restoreInductiveDatatype (preprocessing : ElimNestedInductive.Result) (stage
     (allIndNames : List Name) (recNameMap : NameMap Name) (allowPrimitive : Bool)
     (indType : InductiveType) : InductiveRestorationM (ForInStep PUnit) := do
   let some (.inductInfo ind) := staged.find? indType.name | do
-    (unreachable! : InductiveRestorationM PUnit)
+    (panicWithPosWithDecl "Lean4Lean.Inductive.Add" "Lean4Lean.Environment.addInductive" 778 60
+      "unreachable code has been reached" : InductiveRestorationM PUnit)
     return .yield PUnit.unit
   registerRestored (.inductInfo { ind with all := allIndNames }) allowPrimitive
-  forIn ind.ctors PUnit.unit fun ctorName _ =>
+  forIn ind.ctors PUnit.unit fun ctorName __s =>
     restoreInductiveConstructor preprocessing staged allowPrimitive ctorName
   restoreInductiveRecursor preprocessing staged allIndNames recNameMap allowPrimitive (mkRecName indType.name)
   return .yield PUnit.unit
@@ -247,11 +262,12 @@ def restoreInductiveEnvironment (preprocessing : ElimNestedInductive.Result) (st
     InductiveRestorationM PUnit := do
   let allIndNames := types.map (·.name)
   let (recNames, recNameMap) := mkAuxRecNameMap staged types
-  forIn types PUnit.unit fun indType _ =>
+  forIn types PUnit.unit fun indType __s =>
     restoreInductiveDatatype preprocessing staged allIndNames recNameMap allowPrimitive indType
-  recNames.forM fun name => restoreInductiveRecursor preprocessing staged allIndNames recNameMap allowPrimitive name
+  recNames.forM fun recName =>
+    restoreInductiveRecursor preprocessing staged allIndNames recNameMap allowPrimitive recName
   TypeChecker.M.run (← get) (safety := .safe) (lctx := preprocessing.lctx) (lparams := lparams) (fuel := fuel) do
-    preprocessing.aux2nested.forM fun _ type => do _ ← TypeChecker.checkType (preprocessing.openAux type)
+    preprocessing.aux2nested.forM fun x e => do _ ← TypeChecker.checkType (preprocessing.openAux e)
 
 theorem restoreInductiveEnvironment.trace (preprocessing : ElimNestedInductive.Result) (staged : Environment)
     (types : List InductiveType) (lparams : List Name) (allowPrimitive : Bool) (fuel : FuelConfig)
@@ -310,6 +326,8 @@ theorem Environment.addInductive.safeFrontend (env : Environment) (lparams : Lis
   unfold Environment.addInductive
   refine (Environment.checkInductiveSources.WF env types).bind ?_
   intro _ hsources
+  refine Except.WF.bind (Q := fun _ => True) (fun _ _ => trivial) ?_
+  intro _ _
   refine Except.WF.bind (Q := fun preprocessing =>
     inductivePreprocessing env lparams nparams types fuel = .ok preprocessing) (fun _ hpre => hpre) ?_
   intro preprocessing hpre
@@ -329,9 +347,10 @@ theorem Environment.addInductive.safeFrontend (env : Environment) (lparams : Lis
         InductiveFrontendBranch.nested hnested htrace⟩
     dsimp only [restoreInductiveEnvironment, restoreInductiveDatatype, restoreInductiveConstructor,
       restoreInductiveRecursor, registerRestored, StateT.run] at hrestored
-    simpa only [StateT.run, ConstantInfo.name, ConstantInfo.toConstantVal,
+    simp only [StateT.run, ConstantInfo.name, ConstantInfo.toConstantVal,
       List.mapM_pure, pure_bind,
-      panicWithPosWithDecl, panic, panicCore, bind_assoc, pure_bind, Bool.false_eq_true, if_false] using hrestored
+      panicWithPosWithDecl, panic, panicCore, bind_assoc, Bool.false_eq_true, if_false] at hrestored ⊢
+    exact hrestored
 
 theorem Environment.addInductive.safePreserves (env : Environment) (lparams : List Name)
     (nparams : Nat) (types : List InductiveType) (allowPrimitive : Bool) (fuel : FuelConfig)

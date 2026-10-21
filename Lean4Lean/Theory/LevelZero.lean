@@ -35,17 +35,17 @@ theorem zeroLike_iff (level : VLevel) : zeroLike level = true ↔ level ≈ .zer
     · intro checked
       have secondZero := secondIH.mp checked
       exact VLevel.equiv_def.mpr fun values => by
-        simp [VLevel.eval, Nat.imax, VLevel.equiv_def.mp secondZero values]
+        simp [VLevel.eval, Lean.Nat.imax, VLevel.equiv_def.mp secondZero values]
     · intro equal
       apply secondIH.mpr
       apply VLevel.equiv_def.mpr
       intro values
       have evaluated := VLevel.equiv_def.mp equal values
-      change Nat.imax (first.eval values) (second.eval values) = 0 at evaluated
+      change Lean.Nat.imax (first.eval values) (second.eval values) = 0 at evaluated
       cases secondValue : second.eval values with
       | zero => rfl
       | succ value =>
-        simp only [Nat.imax, secondValue, Nat.succ_ne_zero, if_false] at evaluated
+        simp only [Lean.Nat.imax, secondValue, Nat.succ_ne_zero, if_false] at evaluated
         exact Nat.noConfusion (Nat.eq_zero_of_le_zero
           (Nat.le_trans (Nat.le_max_right _ _) (Nat.le_of_eq evaluated)))
 

@@ -38,8 +38,7 @@ private theorem forIn'_refinesChecker {safety : DefinitionSafety} (base : VEnv)
       (fun entry hmem env state current hle hchecker =>
         hstep entry (by simp [hmem]) env state current hle hchecker)).mono ?_
     rintro result ⟨extended, rest, finalChecker⟩
-    exact ⟨extended, by simpa only [List.map_cons, VEnv.addConstructorHeaders, added]
-      using rest, finalChecker⟩
+    exact ⟨extended, Option.bind_eq_some_iff.mpr ⟨current, added, rest⟩, finalChecker⟩
 
 /-- Replay the actual native name checks and recursor insertions in the model.
 The supplied translations concern constant types; no reduction rule is added. -/
@@ -59,7 +58,7 @@ theorem declareRecursors.refinesChecker {safety : DefinitionSafety} {venv : VEnv
           CheckerEnv safety result extended := by
   unfold declareRecursors
   dsimp only
-  simp only [pure_bind, bind_pure]
+  simp only [bind_pure]
   apply Except.WF.map
   · simp only [Std.Legacy.Range.forIn'_eq_forIn'_range', Std.Legacy.Range.size,
       Nat.sub_zero, Nat.add_sub_cancel, Nat.div_one]
@@ -68,13 +67,14 @@ theorem declareRecursors.refinesChecker {safety : DefinitionSafety} {venv : VEnv
     have bound : index < types.size := by simpa using hindex
     apply Lean4Lean.AddInductive.stateBindWF
     intro rules nextState
-    refine Lean4Lean.AddInductive.stateExceptBindWF (Lean4Lean.checkName.WF env
+    refine Lean4Lean.AddInductive.stateExceptBindWF (Lean4Lean.checkName.WF currentChecker.map_wf
       (mkRecName types[index].name) ctx.allowPrimitive) ?_
     rintro _ ⟨fresh, _⟩
     let record := metadataVal stats types elimLevel infos lparams lctx isK isUnsafe index rules
     have translated := (translations index bound rules).mono hle
     have recordFresh : env.constants.find? (ConstantInfo.recInfo record).name = none := by
-      simpa only [record, metadataVal, ConstantInfo.name, ConstantInfo.toConstantVal,
+      simpa only [Kernel.Environment.find?, currentChecker.map_wf.find?'_eq_find?,
+        record, metadataVal, ConstantInfo.name, ConstantInfo.toConstantVal,
         getElem!_pos, bound] using fresh
     have modelFresh : current.constants (models index).name = none :=
       translated.2 ▸ currentChecker.aligned.constants_eq_none recordFresh

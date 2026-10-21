@@ -126,7 +126,7 @@ theorem sourceAtTyped {sourceUniverse constructorUniverse : VLevel}
   have ctorSecond := ctorFirst.appDF (valueEqual (.inr (some none))).symm
   simp [VExpr.inst, VExpr.instVar, VExpr.inst_lift] at ctorSecond
   have ctorFinal := ctorSecond.appDF (valueEqual (.inr none)).symm
-  simpa [sourceAt, originalValues, VExpr.inst, VExpr.instVar, VExpr.inst_lift] using
+  simpa [HasType, sourceAt, originalValues, VExpr.liftN, VExpr.inst, VExpr.instVar, VExpr.inst_lift] using
     (fifth.appDF ctorFinal).hasType.2
 
 theorem sourceTyped : quotientEnvironment.HasType 0 locals source (.sort .zero) :=
@@ -166,7 +166,7 @@ theorem argumentsReduce (path : quotLiftPattern.Path) : ParRed locals (values pa
   · cases path with
     | none => exact delayReduction _ _
     | some path =>
-      simpa [values, delay, VExpr.inst, VExpr.instVar] using
+      simpa [values, delayedValues, delay, VExpr.inst, VExpr.instVar] using
         (ParRed.beta (ParRed.rfl (e := .bvar 0) (Γ := argumentTypes (.inr (some path)) :: locals))
           (delayReduction (argumentTypes (.inr (some path))) (originalValues (.inr (some path)))))
 

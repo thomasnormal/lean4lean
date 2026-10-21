@@ -38,7 +38,7 @@ theorem ReducedParameterDomainReceipt.accepted
   generalize checked : TypeChecker.isDefEq candidate stored
     checker.toContext ({} : TypeChecker.VState).toState = returned at nativeAccepted
   cases returned with
-  | error exception => simp at nativeAccepted
+  | error exception => cases nativeAccepted
   | ok returned =>
     obtain ⟨result, final⟩ := returned
     change Except.ok result = .ok true at nativeAccepted

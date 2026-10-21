@@ -45,7 +45,8 @@ theorem _root_.Lean4Lean.TypeChecker.MLCtx.WF.selectedForallApplication
   | nil =>
     rw [mkForall_selected_fold [] modelWF.bindingScope bodyClosed distinct bindings,
       List.foldr_nil] at typeTranslated
-    exact ⟨valueSemantic, typeSemantic, by simpa using valueTranslated, valueTyped,
+    exact ⟨valueSemantic, typeSemantic,
+      by simpa only [mkAppN, List.map_nil, List.toArray, Array.foldl_empty] using valueTranslated, valueTyped,
       typeTranslated⟩
   | cons identifier identifiers tailInduction =>
     obtain ⟨index, name, domain, binder, kind, lookup⟩ := bindings identifier (by simp)

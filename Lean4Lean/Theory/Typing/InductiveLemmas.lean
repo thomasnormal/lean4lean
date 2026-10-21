@@ -17,7 +17,7 @@ theorem addInduct.exists
   obtain ⟨env', hconstructor⟩ := addConstructorHeaders.exists
     (constructorsFresh headerEnv hheader) constructorsDistinct
   refine ⟨env', ?_⟩
-  simpa only [VEnv.addInduct, hheader] using hconstructor
+  simpa [VEnv.addInduct, hheader] using hconstructor
 
 theorem addInduct.le
     (hadd : addInduct env decl = some env') : env ≤ env' := by
@@ -109,7 +109,7 @@ theorem addInductWithRecursors.exists
   obtain ⟨env', hrecursors⟩ := addConstructorHeaders.exists
     (recursorsFresh inductEnv hinduct) recursorsDistinct
   refine ⟨env', ?_⟩
-  simpa only [VEnv.addInductWithRecursors, hinduct] using hrecursors
+  simpa [VEnv.addInductWithRecursors, hinduct] using hrecursors
 
 theorem addInductWithRecursors.le
     (hadd : addInductWithRecursors env decl recursors = some env') : env ≤ env' := by

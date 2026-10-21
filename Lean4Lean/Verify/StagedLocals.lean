@@ -81,7 +81,8 @@ theorem StateWF.freshLambda {context : RestrictedContext safety env venv}
       exact ⟨fun member => fresh (reserved _ member), domainScope.trans inserted.fvars_sublist.subset⟩
     refine ⟨_, shift.consN 1, nextScopeWF, ?_,
       equivalent.weak' context.checker.wf (.skip_fvar _ _ .refl) nextScopeWF, ?_⟩
-    · simpa only [withMLC, MLCtx.vlctx, context.scope_eq] using inserted.cons_fvar _ _ domainScope
+    · simpa only [withMLC, MLCtx.vlctx, context.scope_eq, VLocalDecl.lift', VLocalDecl.depth] using
+        inserted.cons_fvar _ _ domainScope
     · intro identifier member
       rcases List.mem_cons.mp member with rfl | member
       · exact allocated
@@ -95,7 +96,6 @@ theorem StateWF.freshLet {context : RestrictedContext safety env venv}
     (extendedWF : (MLCtx.vlet ⟨state.ngen.curr⟩ name domain value semanticDomain semanticValue
       context.mlctx).WF venv context.lparams) :
     (context.withMLC _ extendedWF).StateWF { state with ngen := state.ngen.next } := by
-  have extendedScopeWF := extendedWF.tr.wf
   have allocated := state.ngen.next_reserves_self
   have fresh := state.ngen.not_reserves_self
   have increase : state.ngen ≤ state.ngen.next := .next
@@ -103,14 +103,12 @@ theorem StateWF.freshLet {context : RestrictedContext safety env venv}
       (context.withMLC _ extendedWF).InferCacheWF { state with ngen := state.ngen.next } cache := by
     intro expression type lookup
     simp only [withMLC, MLCtx.vlctx, context.scope_eq] at ⊢
-    exact ((correct lookup).fresh context.checker.wf.ordered
-      (by simpa only [MLCtx.vlctx, context.scope_eq] using extendedScopeWF)).mono increase
+    exact ((correct lookup).freshLet).mono increase
   have normalization {cache} (correct : context.WHNFCacheWF state cache) :
       (context.withMLC _ extendedWF).WHNFCacheWF { state with ngen := state.ngen.next } cache := by
     intro expression result lookup
     simp only [withMLC, MLCtx.vlctx, context.scope_eq] at ⊢
-    exact ((correct lookup).fresh context.checker.wf
-      (by simpa only [MLCtx.vlctx, context.scope_eq] using extendedScopeWF)).mono increase
+    exact ((correct lookup).freshLet).mono increase
   refine ⟨?_, ?_, inference stateWF.inferI, inference stateWF.inferC,
     normalization stateWF.whnfCore, normalization stateWF.whnf, stateWF.unfold⟩
   · intro identifier member
@@ -137,8 +135,9 @@ theorem StateWF.freshLet {context : RestrictedContext safety env venv}
       cases same
       exact ⟨fun member => fresh (reserved _ member), combinedScope.trans inserted.fvars_sublist.subset⟩
     refine ⟨_, shift, nextScopeWF, ?_,
-      equivalent.weak' context.checker.wf (.skip_fvar _ _ .refl) nextScopeWF, ?_⟩
-    · simpa only [withMLC, MLCtx.vlctx, context.scope_eq] using
+      equivalent.insertLet (fun member => fresh (reserved _ member)), ?_⟩
+    · simpa only [withMLC, MLCtx.vlctx, context.scope_eq, VLocalDecl.lift', VLocalDecl.depth,
+        Lift.consN] using
         inserted.cons_fvar (⟨state.ngen.curr⟩, domain.fvarsList ++ value.fvarsList)
           (.vlet semanticDomain semanticValue) combinedScope
     · intro identifier member
@@ -183,14 +182,14 @@ theorem StateWF.restoreLet {context : RestrictedContext safety env venv}
     intro expression type lookup
     have typed := correct lookup
     simp only [withMLC, MLCtx.vlctx, context.scope_eq] at typed
-    exact typed.weakN_inv context.checker.wf
+    exact typed.weakLet_inv
       (by simpa only [MLCtx.vlctx, context.scope_eq] using extendedScopeWF)
   have normalization {cache} (correct : (context.withMLC _ extendedWF).WHNFCacheWF state cache) :
       context.WHNFCacheWF state cache := by
     intro expression result lookup
     have normalized := correct lookup
     simp only [withMLC, MLCtx.vlctx, context.scope_eq] at normalized
-    exact normalized.weakN_inv context.checker.wf
+    exact normalized.weakLet_inv
       (by simpa only [MLCtx.vlctx, context.scope_eq] using extendedScopeWF)
   refine ⟨?_, ?_, inference stateWF.inferI, inference stateWF.inferC,
     normalization stateWF.whnfCore, normalization stateWF.whnf, stateWF.unfold⟩

@@ -102,7 +102,6 @@ theorem run.safeScope (nparams : Nat) (types : List InductiveType) (numNested : 
   dsimp only
   rw [hsafety]
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.bindWF
   intro _
   apply checkInductiveTypes.safeScopedConstructorRegistration nparams types.toArray numNested _ ctx hmap hwf hreserved
@@ -117,7 +116,6 @@ theorem run.safeScope (nparams : Nat) (types : List InductiveType) (numNested : 
   apply Lean4Lean.AddInductive.bindWF
   intro isK
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   have hsafe : current.safety = .safe := hframe.safety.trans (hroot.safety.trans hsafety)
   rw [hsafe]
   refine (declareRecursors.offsetMetadata stats types.toArray elimLevel infos ctx.lparams current.lctx

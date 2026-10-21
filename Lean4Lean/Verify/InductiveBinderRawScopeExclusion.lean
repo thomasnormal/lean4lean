@@ -4,6 +4,8 @@ import Lean4Lean.Verify.InductiveBinderLookupCorrespondence
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
 
+private theorem parameter_ne_index : ¬ BinderRole.parameter = BinderRole.index := by decide
+
 def BinderRawIndexExclusion (steps : List BinderStep) : Prop :=
   ∀ (position : Nat) (domainStep : BinderStep) (futurePosition : Nat) (futureStep : BinderStep),
     steps[position]? = some domainStep → steps[futurePosition]? = some futureStep →
@@ -47,7 +49,7 @@ theorem BinderLookupCorrespondence.indexLengths {pairs finalPairs : List (FVarId
   induction correspondence with
   | nil pairs => rfl
   | parameter name bi leftDomain rightDomain value rawDomain tail ih =>
-    simpa only [BinderStep.indexValues, BinderRole.noConfusion, ↓reduceIte] using ih
+    simpa only [BinderStep.indexValues, parameter_ne_index, ↓reduceIte] using ih
   | index name bi leftDomain rightDomain leftId rightId rawDomain tail ih =>
     simpa only [BinderStep.indexValues, ↓reduceIte, List.length_cons] using congrArg (· + 1) ih
 

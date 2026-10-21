@@ -143,6 +143,92 @@ private theorem RewriteMetadata.addDefinition (metadata : RewriteMetadata enviro
       cases found
     · exact metadata.quotientNames previousRegistered oldInitialized
 
+private theorem addConstsFresh {environment extended : VEnv} :
+    ∀ {definitions : List VDefVal}, environment.addConsts definitions = some extended →
+      ∀ definition ∈ definitions, environment.constants definition.name = none
+  | [], _, _, member => by cases member
+  | first :: rest, added, definition, member => by
+    obtain ⟨middle, firstAdded, restAdded⟩ := Option.bind_eq_some_iff.mp added
+    rcases List.mem_cons.mp member with rfl | member
+    · exact addConstFresh firstAdded
+    · exact extensionFresh (addConst_le firstAdded) (addConstsFresh restAdded definition member)
+
+private theorem addConstsUnique {environment extended : VEnv} :
+    ∀ {definitions : List VDefVal}, environment.addConsts definitions = some extended →
+      ∀ first ∈ definitions, ∀ second ∈ definitions, first.name = second.name → first = second
+  | [], _, _, member, _, _, _ => by cases member
+  | definition :: definitions, added, first, firstMember, second, secondMember, equal => by
+    obtain ⟨middle, firstAdded, restAdded⟩ := Option.bind_eq_some_iff.mp added
+    rcases List.mem_cons.mp firstMember with rfl | firstTail
+    · rcases List.mem_cons.mp secondMember with rfl | secondTail
+      · rfl
+      · have fresh := addConstsFresh restAdded second secondTail
+        have found := addConst_self firstAdded
+        rw [equal, fresh] at found
+        cases found
+    · rcases List.mem_cons.mp secondMember with rfl | secondTail
+      · have fresh := addConstsFresh restAdded first firstTail
+        have found := addConst_self firstAdded
+        rw [← equal, fresh] at found
+        cases found
+      · exact addConstsUnique restAdded first firstTail second secondTail equal
+
+private theorem RewriteMetadata.addMutualDefinitions (metadata : RewriteMetadata environment)
+    (environmentWF : environment.WF)
+    (added : environment.addConsts definitions = some extended) :
+    RewriteMetadata (extended.addDefEqs definitions) := by
+  have extension := (addConsts_le added).trans (addDefEqs_extension extended definitions)
+  have registeredCases {definition : VDefVal}
+      (registered : (extended.addDefEqs definitions).defeqs definition.toDefEq) :
+      definition ∈ definitions ∨ environment.defeqs definition.toDefEq := by
+    rcases (addDefEqs_defeqs ..).mp registered with ⟨previous, member, equal⟩ | old
+    · cases definitionEquationInjective equal
+      exact .inl member
+    · exact .inr (by rwa [addConsts_defeqs added] at old)
+  have oldDifferent {first second : VDefVal} (member : first ∈ definitions)
+      (registered : environment.defeqs second.toDefEq) : first.name ≠ second.name := by
+    intro equal
+    have found := metadata.lookup registered
+    rw [← equal, addConstsFresh added first member] at found
+    cases found
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro equation registered
+    rcases (addDefEqs_defeqs ..).mp registered with ⟨definition, _, equal⟩ | old
+    · exact .inr ⟨definition, equal⟩
+    · exact metadata.classify (by rwa [addConsts_defeqs added] at old)
+  · intro definition registered
+    rcases registeredCases registered with member | old
+    · rw [addDefEqs_constants]
+      exact addConsts_constants added definition member
+    · exact extension.constants (metadata.lookup old)
+  · intro first second firstRegistered secondRegistered equal
+    rcases registeredCases firstRegistered with firstMember | firstOld
+    · rcases registeredCases secondRegistered with secondMember | secondOld
+      · exact addConstsUnique added first firstMember second secondMember equal
+      · exact False.elim (oldDifferent firstMember secondOld equal)
+    · rcases registeredCases secondRegistered with secondMember | secondOld
+      · exact False.elim (oldDifferent secondMember firstOld equal.symm)
+      · exact metadata.unique firstOld secondOld equal
+  · intro definition registered initialized
+    have oldInitialized : environment.defeqs quotDefEq := by
+      rcases (addDefEqs_defeqs ..).mp initialized with ⟨previous, _, impossible⟩ | old
+      · exact False.elim (definitionNotQuotient previous impossible.symm)
+      · rwa [addConsts_defeqs added] at old
+    rcases registeredCases registered with member | old
+    · intro name nameMember equal
+      have objects := environmentWF.quotientObjects oldInitialized
+      have found : environment.contains name := by
+        simp only [List.mem_cons, List.not_mem_nil, or_false] at nameMember
+        rcases nameMember with rfl | rfl | rfl | rfl
+        · exact ⟨_, objects.2.2.2.2.1⟩
+        · exact ⟨_, objects.2.2.2.1⟩
+        · exact ⟨_, objects.2.2.1⟩
+        · exact ⟨_, objects.2.1⟩
+      obtain ⟨_, found⟩ := found
+      rw [← equal, addConstsFresh added definition member] at found
+      cases found
+    · exact metadata.quotientNames old oldInitialized
+
 private theorem RewriteMetadata.addQuotient (metadata : RewriteMetadata environment)
     (added : environment.addQuot = some extended) : RewriteMetadata extended := by
   obtain ⟨extension, fresh, preserved⟩ := quotientExtension added
@@ -177,6 +263,8 @@ theorem WF.rewriteMetadata (environmentWF : environment.WF) : RewriteMetadata en
       exact inductionHypothesis.extend (addConst_le added) (addConst.defeqs_eq added)
     | «def» _ added =>
       exact inductionHypothesis.addDefinition ⟨_, previousWF⟩ added
+    | mutualDef _ added _ =>
+      exact inductionHypothesis.addMutualDefinitions ⟨_, previousWF⟩ added
     | «example» _ => exact inductionHypothesis
     | quot _ added => exact inductionHypothesis.addQuotient added
     | induct _ added =>

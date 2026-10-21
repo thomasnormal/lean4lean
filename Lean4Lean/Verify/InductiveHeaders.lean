@@ -28,6 +28,11 @@ private theorem Aligned.constants_eq_none {safety : DefinitionSafety}
   rw [hfresh] at hinfo
   contradiction
 
+private theorem forall₂_mono {α β : Type} {R S : α → β → Prop}
+    (h : ∀ a b, R a b → S a b) : ∀ {as bs}, List.Forall₂ R as bs → List.Forall₂ S as bs
+  | _, _, .nil => .nil
+  | _, _, .cons hhead htail => .cons (h _ _ hhead) (forall₂_mono h htail)
+
 private theorem registerInductiveHeaders.WF {safety : DefinitionSafety}
     {env : Kernel.Environment} {venv : VEnv} {infos : List InductiveVal}
     {headers : List VInductiveType} (allowPrimitive : Bool)
@@ -48,15 +53,20 @@ private theorem registerInductiveHeaders.WF {safety : DefinitionSafety}
     | cons hinfo hrest =>
       rename_i header headers
       simp only [List.foldlM_cons, bind_assoc, pure_bind]
-      refine (checkName.WF env info.name allowPrimitive).bind fun _ ⟨hfresh, _⟩ => ?_
+      refine (checkName.WF haligned.map_wf info.name allowPrimitive).bind fun _ ⟨hfresh, _⟩ => ?_
+      have hfresh' : env.constants.find? info.name = none := by
+        simpa only [Kernel.Environment.find?, haligned.map_wf.find?'_eq_find?] using hfresh
       have hvfresh : venv.constants header.name = none :=
-        hinfo.1 ▸ haligned.constants_eq_none hfresh
+        hinfo.1 ▸ haligned.constants_eq_none hfresh'
       obtain ⟨nextVenv, hstep⟩ :
           ∃ nextVenv, venv.addConst header.name header.toVConstant = some nextVenv := by
         simp [VEnv.addConst, hvfresh]
-      have hnext := haligned.const hfresh hinfo.2 (hinfo.1.symm ▸ hstep) rfl
+      have hnext := haligned.const hfresh' hinfo.2 (hinfo.1.symm ▸ hstep) rfl
       have hle := VEnv.addConst_le hstep
-      refine (ih hnext (hrest.imp fun info header htr => ⟨htr.1, htr.2.mono hle⟩)).mono ?_
+      have hrest' : List.Forall₂ (fun info header => info.name = header.name ∧
+          TrConstant safety nextVenv (.inductInfo info) header.toVConstant) infos headers :=
+        forall₂_mono (fun _ _ h => ⟨h.1, h.2.mono hle⟩) hrest
+      refine (ih hnext hrest').mono ?_
       intro env' hresult
       obtain ⟨venv', hadd, haligned'⟩ := hresult
       exact ⟨venv', by simpa [VEnv.addInductHeaders, hstep] using hadd, haligned'⟩
@@ -162,8 +172,10 @@ theorem AddInductive.declareInductiveTypes.preservesValues
   rw [← Array.foldlM_toList]
   apply NativeValueFrame.foldlM id _ _ _ hmap
   intro info env hmap
-  exact (checkName.WF env info.name ctx.allowPrimitive).bind fun _ ⟨hfresh, _⟩ =>
-    .pure (NativeValueFrame.addConst (ci := .inductInfo info) hmap hfresh rfl)
+  exact (checkName.WF hmap info.name ctx.allowPrimitive).bind fun _ ⟨hfresh, _⟩ =>
+    .pure (NativeValueFrame.addConst (ci := .inductInfo info) hmap
+      (by simpa only [Kernel.Environment.find?, hmap.find?'_eq_find?, ConstantInfo.name,
+        ConstantInfo.toConstantVal] using hfresh) rfl)
 
 theorem AddInductive.declareInductiveTypes.refinesChecker
     (ctx : AddInductive.Context) (stats : AddInductive.InductiveStats)

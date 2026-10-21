@@ -6,10 +6,9 @@ import Lean4Lean.Primitive
 namespace Lean4Lean
 open Lean hiding Environment Exception
 open TypeChecker Kernel Environment
-
-open private Lean.Kernel.Environment.add from Lean.Environment
-open private markQuotInit from Lean.Environment
 open private quotTypeExpr quotMkTypeExpr quotLiftTypeExpr quotIndTypeExpr from Lean4Lean.Quot
+
+open private Lean.Kernel.Environment.add markQuotInit from Lean.Environment
 
 def checkConstantValBody (env : Environment) (v : ConstantVal) : M Unit := do
   checkDuplicatedUnivParams v.levelParams
@@ -35,12 +34,6 @@ def addAxiom (env : Environment) (v : AxiomVal) (check := true) (fuel : FuelConf
       (safety := if v.isUnsafe then .unsafe else .safe) (lparams := v.levelParams) (fuel := fuel)
   return env.add (.axiomInfo v)
 
-def addDefinitionHeader (env : Environment) (v : DefinitionVal)
-    (fuel : FuelConfig := {}) : Except Exception Environment := do
-  _ ← (checkConstantVal env v.toConstantVal).run env
-    (safety := v.safety) (lparams := v.levelParams) (fuel := fuel)
-  return env.add (.defnInfo v)
-
 def addDefinition (env : Environment) (v : DefinitionVal)
     (check := true) (fuel : FuelConfig := {}) : Except Exception Environment := do
   if let .unsafe := v.safety then
@@ -64,30 +57,6 @@ def addDefinition (env : Environment) (v : DefinitionVal)
       checkDefinitionBody env v
       checkName env v.name (← Primitive.checkDef v)
   return env.add (.defnInfo v)
-
-def addMutualHeaders (env : Environment) (safety : DefinitionSafety)
-    (levelParams : List Name) (fuel : FuelConfig := {}) :
-    List DefinitionVal → Except Exception Environment
-  | [] => pure env
-  | v :: vs => do
-    if v.safety != safety then
-      throw <| .other
-        "invalid mutual definition, declarations must have the same safety annotation"
-    if v.levelParams != levelParams then
-      throw <| .other
-        "invalid mutual definition, declarations must have the same universe parameters"
-    let env ← addDefinitionHeader env v fuel
-    addMutualHeaders env safety levelParams fuel vs
-
-def checkMutualBodies (env : Environment) (safety : DefinitionSafety)
-    (levelParams : List Name) (vs : List DefinitionVal)
-    (fuel : FuelConfig := {}) : Except Exception Unit :=
-  M.run env (safety := safety) (lctx := {}) (lparams := levelParams) (fuel := fuel) do
-    for v in vs do
-      checkNoMVarNoFVar env v.name v.value
-      let valType ← TypeChecker.checkType v.value
-      if !(← isDefEq valType v.type) then
-        throw <| .declTypeMismatch env (.mutualDefnDecl vs) valType
 
 def addTheorem (env : Environment) (v : TheoremVal) (check := true) (fuel : FuelConfig := {}) :
     Except Exception Environment := do
@@ -119,8 +88,6 @@ def addMutual (env : Environment) (vs : List DefinitionVal)
   let v₀ :: _ := vs | throw <| .other "invalid empty mutual definition"
   if let .safe := v₀.safety then
     throw <| .other "invalid mutual definition, declaration is not tagged as unsafe/partial"
-  let env' ← if check then addMutualHeaders env v₀.safety v₀.levelParams fuel vs else
-    pure <| vs.foldl (fun env v => env.add (.defnInfo v)) env
   if check then
     M.run env (safety := v₀.safety) (lctx := {}) (lparams := v₀.levelParams) (fuel := fuel) do
       let mut found : NameSet := {}

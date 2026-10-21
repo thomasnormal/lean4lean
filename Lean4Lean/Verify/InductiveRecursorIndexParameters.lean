@@ -325,11 +325,20 @@ theorem ParameterizedRecursorIndexModelEndpoint.application
   obtain ⟨appliedTranslated, appliedTyped⟩ := arguments.apply headTranslated headTyped
   have appliedTranslated : TrExprS environment universes initial.vlctx (mkAppN head stats.params)
       (ElimNestedInductive.applyParameterArguments headSemantic values) := by
-    simpa only [mkAppN, Array.foldl_toList, Expr.mkAppList_eq_foldl] using appliedTranslated
+    have appEq : mkAppN head stats.params = Array.foldl Expr.app head stats.params := by
+      rw [Expr.mkAppN_eq, Expr.appN_eq_mkAppList, Expr.mkAppList_eq_foldl]
+      simp [Array.foldl_toList]
+    rw [appEq]
+    simpa only [Expr.mkAppList_eq_foldl, Array.foldl_toList] using appliedTranslated
   have normalizedTyped := appliedTyped.defeqU_r environmentWF initialWF.tr.wf.toCtx equality.symm
   obtain ⟨value, translated, typed⟩ := history.application environmentWF
     (by simpa only [mkAppN, Array.foldl_empty] using appliedTranslated) normalizedTyped
-  exact ⟨value, finalSemantic, by simpa only [converted] using translated,
+  exact ⟨value, finalSemantic,
+    by
+      simpa only [converted] using translated.eqv (by
+        change (mkAppN (Array.foldl mkApp head stats.params) indices ==
+          mkAppN (mkAppN head stats.params) indices) = true
+        simp [mkAppN, Array.foldl_toList, Expr.mkAppList_eq_foldl]),
     by simpa only [converted] using history.finalTranslation.2,
     by simpa only [converted] using typed⟩
 

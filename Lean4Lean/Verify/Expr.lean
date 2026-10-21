@@ -1097,11 +1097,15 @@ theorem instantiateList_instantiate1_comm (h : a.looseBVarRange' = 0) :
   congr 1; refine (instantiate1'_instantiate1' (j := 0) ..).trans ?_
   rw [liftLooseBVars_eq_self (by simp [h])]
 
-theorem instantiateRev_eq_instantiateList {e : Expr} {subst : Array Expr} :
+theorem instantiateRev_eq_instantiateList {e : Expr} {subst : Array Expr}
+    (scope : ∀ replacement ∈ subst, replacement.looseBVarRange' = 0) :
     instantiateRev e subst = instantiateList e subst.toList.reverse := by
-  let ⟨subst⟩ := subst; simp
+  rw [instantiateRev_eq, instantiate_eq, Array.toList_reverse]
+  apply instantiateMany_eq_instantiateList
+  intro replacement member
+  exact scope replacement (Array.mem_toList_iff.mp (List.mem_reverse.mp member))
 
-theorem instantiateRev_push {e : Expr} {subst a} :
+theorem instantiateRev_push {e : Expr} {subst a} (scope : a.looseBVarRange' = 0) :
     instantiateRev e (subst.push a) = instantiateRev (e.instantiate1' a) subst := by
   simp only [instantiateRev_eq, instantiate_eq, Array.toList_reverse, Array.toList_push, List.reverse_append,
     List.reverse_singleton, List.singleton_append]

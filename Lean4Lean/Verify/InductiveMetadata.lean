@@ -72,9 +72,12 @@ private theorem registerInductiveMetadata (infos : List InductiveVal)
   | nil => exact .pure ⟨hwf, fun _ _ hold => hold, by simp⟩
   | cons info infos ih =>
     simp only [List.foldlM_cons, bind_assoc, pure_bind]
-    refine (Lean4Lean.checkName.WF env info.name allowPrimitive).bind fun _ ⟨hfresh, _⟩ => ?_
+    refine (Lean4Lean.checkName.WF hwf info.name allowPrimitive).bind fun _ ⟨hfresh, _⟩ => ?_
+    have hfreshInfo : env.constants.find? (ConstantInfo.inductInfo info).name = none := by
+      simpa only [Kernel.Environment.find?, hwf.find?'_eq_find?, ConstantInfo.name,
+        ConstantInfo.toConstantVal] using hfresh
     obtain ⟨hnext, hself, hpreserve⟩ :=
-      Lean4Lean.AddInductive.addFresh env (.inductInfo info) hwf hfresh
+      Lean4Lean.AddInductive.addFresh env (.inductInfo info) hwf hfreshInfo
     refine (ih _ hnext).mono ?_
     rintro env' ⟨hfinal, hkeep, hinfos⟩
     refine ⟨hfinal, fun name entry hold => hkeep _ _ (hpreserve name entry hold), ?_⟩

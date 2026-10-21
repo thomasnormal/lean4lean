@@ -116,7 +116,7 @@ private def step {resultType : Type} (value : resultType) : TypeChecker.M result
 
 private def returning (normalized inferred : Expr) (equal : Bool) : TypeChecker.Methods := {
   whnf := fun _ => step normalized
-  whnfCore := fun _ _ _ => step normalized
+  whnfCore := fun _ _ => step normalized
   inferType := fun _ _ => step inferred
   isDefEqCore := fun _ _ => step equal }
 
@@ -147,12 +147,19 @@ private def checkCallbacks (actualContext shadowContext : TypeChecker.Context)
   checkResult (TypeChecker.Inner.ensureForallCore input input failing actualContext state)
     (TypeChecker.Inner.ensureForallCore input input failing shadowContext state)
   for normalized in [Expr.prop, sortType] do
-    let methods := returning normalized sortType true
+    let methods := returning normalized input true
     let actual := TypeChecker.Inner.isProp input methods actualContext state
     checkResult actual (TypeChecker.Inner.isProp input methods shadowContext state) (some (normalized == .prop))
     let .ok (_, finalState) := actual | throwError "stateful isProp callback failed"
     unless finalState.ngen.idx == state.ngen.idx + 2 do
       throwError "isProp did not preserve the two accepted callback state transitions"
+    let direct := returning input normalized true
+    let directResult := TypeChecker.Inner.isProp input direct actualContext state
+    checkResult directResult (TypeChecker.Inner.isProp input direct shadowContext state)
+      (some (normalized == .prop))
+    let .ok (_, directState) := directResult | throwError "direct sort inference failed"
+    unless directState.ngen.idx == state.ngen.idx + 1 do
+      throwError "isProp normalized an already-inferred sort"
   for equal in [false, true] do
     let methods := returning sortType sortType equal
     let actual := TypeChecker.Inner.isDefEq input sortType methods actualContext state
@@ -171,17 +178,16 @@ private def checkCallbacks (actualContext shadowContext : TypeChecker.Context)
   let methods := { (returning (.lit (.strVal text)) sortType true) with
     whnf := fun expression => step (if expression == Expr.strLitToConstructor text then expanded
       else .lit (.strVal text)) }
-  for cheapRec in [false, true] do
-    for cheapProj in [false, true] do
-      let actual := TypeChecker.Inner.reduceProj 0 input cheapRec cheapProj methods actualContext state
-      checkResult actual
-        (TypeChecker.Inner.reduceProj 0 input cheapRec cheapProj methods shadowContext state) (some (some field))
-      let .ok (_, finalState) := actual | throwError "string expansion callback failed"
-      unless finalState.ngen.idx == state.ngen.idx + 2 do throwError "projection lost string-expansion state"
+  for cheapProj in [false, true] do
+    let actual := TypeChecker.Inner.reduceProj 0 input cheapProj methods actualContext state
+    checkResult actual
+      (TypeChecker.Inner.reduceProj 0 input cheapProj methods shadowContext state) (some (some field))
+    let .ok (_, finalState) := actual | throwError "string expansion callback failed"
+    unless finalState.ngen.idx == state.ngen.idx + 2 do throwError "projection lost string-expansion state"
 
 private def checkBatch (host : Lean.Environment) (env : Kernel.Environment) (parameters : Nat)
     (types : Array InductiveType) : MetaM Unit := do
-  unless types.isEmpty || (host.addDeclCore 0 (.inductDecl [] parameters types.toList false) none).isOk do
+  unless types.isEmpty || (host.addDeclCore 0 0 (.inductDecl [] parameters types.toList false) none).isOk do
     throwError "native kernel rejected normalization fixture"
   for isUnsafe in [false, true] do
     for allowPrimitive in [false, true] do
@@ -218,29 +224,28 @@ private def checkBatch (host : Lean.Environment) (env : Kernel.Environment) (par
             (TypeChecker.Inner.ensureSortCore expression expression methods shadowChecker state)
           checkResult (TypeChecker.Inner.ensureForallCore expression expression methods checker state)
             (TypeChecker.Inner.ensureForallCore expression expression methods shadowChecker state)
-        for cheapRec in [false, true] do
-          for cheapProj in [false, true] do
-            for (expression, index, expected) in [(successor, 0, if cheapProj then some field else none), (successor, 1, none),
-                (pair, 0, some field), (pair, 1, some successor), (pair, 2, none), (sortType, 0, none),
-                (.app sortType field, 0, none), (.const ``Nat [], 0, none)] do
-              checkResult (TypeChecker.Inner.reduceProj index expression cheapRec cheapProj methods checker state)
-                (TypeChecker.Inner.reduceProj index expression cheapRec cheapProj methods shadowChecker state)
-                (some expected)
-            for expression in [.lit (.strVal ""), .lit (.strVal "Lean"), .const `NormalizationMissing []] do
-              checkResult (TypeChecker.Inner.reduceProj 0 expression cheapRec cheapProj methods checker state)
-                (TypeChecker.Inner.reduceProj 0 expression cheapRec cheapProj methods shadowChecker state)
-            for type in types do
-              checkResult (TypeChecker.Inner.reduceProj 0 (.const type.name []) cheapRec cheapProj methods checker state)
-                (TypeChecker.Inner.reduceProj 0 (.const type.name []) cheapRec cheapProj methods shadowChecker state)
-                (some none)
-              for constructor in type.ctors do
-                if (actual.find? constructor.name).isSome || (shadow.find? constructor.name).isSome then
-                  throwError "normalization fixture registered a future constructor too early"
-                checkResult (TypeChecker.Inner.reduceProj 0 (.const constructor.name []) cheapRec cheapProj methods checker state)
-                  (TypeChecker.Inner.reduceProj 0 (.const constructor.name []) cheapRec cheapProj methods shadowChecker state)
-                unless !(TypeChecker.Inner.reduceProj 0 (.const constructor.name []) cheapRec cheapProj
-                    methods checker state).isOk do
-                  throwError "projection accepted a missing future constructor"
+        for cheapProj in [false, true] do
+          for (expression, index, expected) in [(successor, 0, if cheapProj then some field else none), (successor, 1, none),
+              (pair, 0, some field), (pair, 1, some successor), (pair, 2, none), (sortType, 0, none),
+              (.app sortType field, 0, none), (.const ``Nat [], 0, none)] do
+            checkResult (TypeChecker.Inner.reduceProj index expression cheapProj methods checker state)
+              (TypeChecker.Inner.reduceProj index expression cheapProj methods shadowChecker state)
+              (some expected)
+          for expression in [.lit (.strVal ""), .lit (.strVal "Lean"), .const `NormalizationMissing []] do
+            checkResult (TypeChecker.Inner.reduceProj 0 expression cheapProj methods checker state)
+              (TypeChecker.Inner.reduceProj 0 expression cheapProj methods shadowChecker state)
+          for type in types do
+            checkResult (TypeChecker.Inner.reduceProj 0 (.const type.name []) cheapProj methods checker state)
+              (TypeChecker.Inner.reduceProj 0 (.const type.name []) cheapProj methods shadowChecker state)
+              (some none)
+            for constructor in type.ctors do
+              if (actual.find? constructor.name).isSome || (shadow.find? constructor.name).isSome then
+                throwError "normalization fixture registered a future constructor too early"
+              checkResult (TypeChecker.Inner.reduceProj 0 (.const constructor.name []) cheapProj methods checker state)
+                (TypeChecker.Inner.reduceProj 0 (.const constructor.name []) cheapProj methods shadowChecker state)
+              unless !(TypeChecker.Inner.reduceProj 0 (.const constructor.name []) cheapProj
+                  methods checker state).isOk do
+                throwError "projection accepted a missing future constructor"
         for expression in [field, .sort .zero, .const ``Nat []] do
           checkResult (TypeChecker.Inner.isProp expression methods checker state)
             (TypeChecker.Inner.isProp expression methods shadowChecker state)
@@ -274,7 +279,7 @@ run_meta
         value := sortType, hints := .abbrev, safety := .safe },
       { name := `NormalizationForallAlias, levelParams := [], type := .sort (.succ (.succ .zero)),
         value := quantified, hints := .abbrev, safety := .safe }] : List DefinitionVal) do
-    let .ok nextHost := host.addDeclCore 0 (.defnDecl definition) none
+    let .ok nextHost := host.addDeclCore 0 0 (.defnDecl definition) none
       | throwError "native normalization seed failed"
     let .ok nextEnv := Lean4Lean.addDecl env (.defnDecl definition) true
       | throwError "normalization seed failed"

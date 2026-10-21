@@ -85,7 +85,7 @@ theorem ConstructorConstantRegistration.parentParameterKindedApplications
   obtain ⟨parameters, kind⟩ := stage.before.parameterApplicationKinds parent bound
   have increase := (VEnv.addInductHeaders.le stage.registered).trans registration.increase
   have levels := stage.before.levels (by omega)
-  obtain ⟨header, member, translated⟩ := stage.before.models.forall_exists_l types[parent]
+  obtain ⟨header, member, translated⟩ := Lean4Lean.List.Forall₂.forall_exists_l stage.before.models types[parent]
     (Array.mem_toList_iff.mpr (Array.getElem_mem bound))
   have lookup := registration.increase.constants (VEnv.addInductHeaders.constants stage.registered member)
   obtain ⟨head⟩ := originalHeaderConstantInput registration.semanticWF lookup
@@ -131,7 +131,12 @@ theorem HeaderRecursorIndexCheckerEndpoint.parentTypehoodOfKind
     (by simpa only [Array.size_empty, Nat.sub_zero, Nat.zero_add] using residualKind)
   have typehood := terminalKind.typedIsType checker.Ewf history.finalTranslation.1.wf.toCtx typed
   exact ⟨finalValue,
-    by simpa only [TypeChecker.VContext.TrExprS, sameEnvironment, sameUniverses, converted] using translated,
+    by
+      simpa only [TypeChecker.VContext.TrExprS, sameEnvironment, sameUniverses, converted] using
+        translated.eqv (by
+          change (mkAppN (Array.foldl mkApp head stats.params) indices ==
+            mkAppN (mkAppN head stats.params) indices) = true
+          simp [mkAppN, Array.foldl_toList, Expr.mkAppList_eq_foldl]),
     by simpa only [TypeChecker.VContext.IsType, sameEnvironment, sameUniverses, converted] using typehood⟩
 
 theorem RecursorIndexTrace.checkedHeaderBatchTypehood

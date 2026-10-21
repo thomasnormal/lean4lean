@@ -100,10 +100,11 @@ nonrec theorem AddQuot.to_addQuot (H : AddQuot m₁ m₂ env₁ env₂) : env₁
 nonrec theorem AddQuot.le (H : AddQuot m₁ m₂ env₁ env₂) : env₁ ≤ env₂ :=
   open AddQuot1 in (le <| le <| le <| le fun _ _ h => h.2 ▸ VEnv.addDefEq_le) _ _ H
 
-/-- This relation still needs the kernel-to-model inductive registration proof.
-The abstract environment operation is defined and orderedness is proved, but
-the relation currently has no constructors, so the `TrEnv'.induct` case below
-cannot fire and environments containing inductives remain outside `TrEnv`. -/
+/-- This definition is essentially a `sorry`: it should relate `addInductive`'s
+effect on the constant map to `VEnv.addInduct` (which is itself a `sorry`,
+see `Lean4Lean.Theory.Inductive`), but it currently has no constructors, so the
+`TrEnv'.induct` case below can never fire and environments containing inductives
+are outside the verified `TrEnv` relation. -/
 inductive AddInduct (m₁ : ConstMap) (env₁ : VEnv) (decl : VInductDecl)
     (m₂ : ConstMap) (env₂ : VEnv) : Prop
   -- TODO
@@ -127,7 +128,7 @@ def TrDefBlock (cis : List DefinitionVal) (cis' : List VDefVal) : Prop :=
 
 variable (safety : DefinitionSafety) in
 inductive TrEnv' : ConstMap → Bool → VEnv → Prop where
-  | empty : TrEnv' {} false .empty
+  | empty : TrEnv' { stage₁ } false .empty
   | ignore :
     C.find? ci.name = none → ¬safety ≤ ci.safety →
     TrEnv' C Q env →
@@ -163,7 +164,7 @@ inductive TrEnv' : ConstMap → Bool → VEnv → Prop where
     TrEnv' C Q env →
     TrEnv' (C.insert ci.name (.thmInfo ci)) Q env'
   | opaque {ci' : VDefVal} :
-    TrOpaqueVal safety env ci ci' →
+    TrDefVal safety env (.opaqueInfo ci) ci' →
     C.find? ci.name = none → ci'.WF env →
     env.addConst ci.name ci'.toVConstant = some env' →
     TrEnv' C Q env →

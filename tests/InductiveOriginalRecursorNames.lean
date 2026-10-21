@@ -239,8 +239,12 @@ run_meta
     ``Lean.PersistentHashMap.findAux_isSome]
   let binding := maps ++ [``Expr.instantiate1_eq, ``Lean.PersistentArray.toList'_push,
     `Lean.Expr.mkAppRangeAux.eq_def, ``Expr.abstract_eq]
-  let frontend := binding ++ [``Expr.eqv_eq, ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq,
-    ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq]
+  let frontend := binding ++ [``Expr.mkAppData_eq, ``Expr.mkData_eq, ``Expr.eqv_eq,
+    ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq,
+    ``Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7,
+    Name.mkStr (Name.mkStr (Name.mkStr (Name.mkStr (Name.mkStr (Name.mkStr
+      (Name.mkNum `_private.Lean4Lean.Verify.Expr 0) "Lean") "Expr") "mkData_flags")
+      "_native") "bv_decide") "ax_1_12"]
   audit ``declareInductiveTypes.namesNodup maps
   audit ``AddInductive.run.datatypeNamesNodup maps
   audit ``InductiveNamePrefix.suffixNotMem

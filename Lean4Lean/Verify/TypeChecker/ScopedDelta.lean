@@ -17,11 +17,8 @@ theorem tryUnfoldProjApp.scopeWF {context : VContext} {state : VState}
     (tryUnfoldProjApp expression).ScopeWF context state fun result _ =>
       ∀ normalized, result = some normalized →
         context.FVarsBelow expression normalized ∧ context.TrExpr normalized semantic := by
-  unfold tryUnfoldProjApp
-  extract_lets function normalize
+  simp only [tryUnfoldProjApp]
   split <;> [exact RecM.ScopeWF.pure nofun; skip]
-  refine RecM.ScopeWF.pureBind ?_
-  unfold normalize
   refine (whnfCore.scopeWF translated).bind fun _ _ _ normalized => ?_
   refine RecM.ScopeWF.pure ?_
   split <;> rintro _ ⟨⟩
@@ -39,13 +36,14 @@ theorem lazyDeltaReductionStep.scopeWF {context : VContext} {state : VState}
       (translated : context.TrExprS expression semantic)
       (definition : isDelta context.env expression = some information) :
       (delta expression).ScopeWF context state (fun result _ => context.TrExpr result semantic) := by
-    obtain ⟨name, found, safety, ⟨_, instantiated⟩, levels, headEq⟩ := isDelta_is_some.1 definition
+    obtain ⟨name, found, ⟨_, instantiated⟩, levels, headEq, levelCount⟩ :=
+      isDelta_is_some.1 definition
     obtain ⟨_, stack⟩ := AppStack.build (expression.mkAppList_getAppArgsList ▸ translated)
     have .const semanticLookup _ translatedLevels := headEq ▸ stack.tr
     obtain ⟨_, _, registeredLevels, _⟩ := context.trenv.find?_uniq found semanticLookup
     refine (unfoldDefinition.scopeWF translated).bind fun unfolded _ _ unfolding => ?_
     obtain _ | normalized := unfolded
-    · cases unfolding found safety instantiated headEq (translatedLevels.trans registeredLevels.symm)
+    · cases unfolding found instantiated headEq levelCount
     obtain ⟨_, _, structural, equality⟩ := unfolding
     exact (whnfCore.scopeWF structural).mono fun _ _ _ normalized =>
       normalized.2.1.defeq context.Ewf context.Δwf equality
@@ -60,10 +58,9 @@ theorem lazyDeltaReductionStep.scopeWF {context : VContext} {state : VState}
       fun _ _ _ compared => RecM.ScopeWF.pure ?_
     split
     · exact ⟨rfl, firstTranslation, secondTranslation⟩
-    · intro
-      exact firstEquality.symm.trans context.Ewf context.Δwf (compared rfl)
+    · exact firstEquality.symm.trans context.Ewf context.Δwf (compared rfl)
         |>.trans context.Ewf context.Δwf secondEquality
-    · nofun
+    · exact ⟨firstTranslation, secondTranslation⟩
   split
   · exact RecM.ScopeWF.pure
       ⟨firstTranslation.trExpr context.Ewf context.Δwf, secondTranslation.trExpr context.Ewf context.Δwf⟩
@@ -95,8 +92,10 @@ theorem lazyDeltaReductionStep.scopeWF {context : VContext} {state : VState}
   rename_i eligible equivalentLevels
   simp at eligible
   cases ptrEqConstantInfo_eq eligible.1.1.2
-  obtain ⟨_, firstFound, _, ⟨_, _⟩, firstLevels, firstHead⟩ := isDelta_is_some.1 firstDelta
-  obtain ⟨_, secondFound, _, ⟨_, _⟩, secondLevels, secondHead⟩ := isDelta_is_some.1 secondDelta
+  obtain ⟨_, firstFound, ⟨_, _⟩, firstLevels, firstHead, firstLevelCount⟩ :=
+    isDelta_is_some.1 firstDelta
+  obtain ⟨_, secondFound, ⟨_, _⟩, secondLevels, secondHead, secondLevelCount⟩ :=
+    isDelta_is_some.1 secondDelta
   simp [firstHead, secondHead, Expr.constLevels!] at equivalentLevels
   obtain ⟨_, firstStack⟩ := AppStack.build (first.mkAppList_getAppArgsList ▸ firstTranslation)
   obtain ⟨_, secondStack⟩ := AppStack.build (second.mkAppList_getAppArgsList ▸ secondTranslation)
@@ -107,12 +106,14 @@ theorem lazyDeltaReductionStep.scopeWF {context : VContext} {state : VState}
   cases firstLookup.symm.trans secondLookup
   have headEquality := VEnv.IsDefEq.constDF firstLookup
     (Γ := context.vlctx.toCtx) (.of_mapM_ofLevel firstLevelTranslation) (.of_mapM_ofLevel secondLevelTranslation)
-    ((List.mapM_eq_some.1 firstLevelTranslation).length_eq.symm.trans firstLevelCount)
+    ((Lean4Lean.List.Forall₂.length_eq (List.mapM_eq_some.1 firstLevelTranslation)).symm.trans
+      firstLevelCount)
     (Level.isEquivList_wf equivalentLevels firstLevelTranslation secondLevelTranslation)
   refine (isDefEqArgs.scopeWF ⟨_, firstStack.tr, _, secondStack.tr, _, headEquality⟩
     firstTranslation secondTranslation).bind fun _ _ _ compared => ?_
   split <;> [skip; exact cacheFailure.scopeWF.lift.bind fun _ _ _ _ => unfoldBothWF]
-  exact RecM.ScopeWF.pure fun _ => compared ‹_›
+  trace_state
+  exact RecM.ScopeWF.pure (compared (by assumption))
 
 theorem isDefEqOffset.scopeWF {context : VContext} {state : VState}
     (firstTranslation : context.TrExprS first firstSemantic)
@@ -120,7 +121,6 @@ theorem isDefEqOffset.scopeWF {context : VContext} {state : VState}
     (isDefEqOffset first second).ScopeWF context state
       (fun equal _ => equal = .true → context.IsDefEqU firstSemantic secondSemantic) := by
   unfold isDefEqOffset
-  extract_lets successorComparison
   split
   · rename_i bothZero
     simp at bothZero
@@ -128,7 +128,6 @@ theorem isDefEqOffset.scopeWF {context : VContext} {state : VState}
     cases isNatZero_wf bothZero.2 secondTranslation
     exact RecM.ScopeWF.pure fun _ => .refl (firstTranslation.wf context.Ewf context.Δwf)
   · refine RecM.ScopeWF.pureBind ?_
-    unfold successorComparison
     split <;> [skip; exact RecM.ScopeWF.pure nofun]
     obtain ⟨_, firstPredecessor, rfl⟩ := isNatSuccOf?_wf ‹_› firstTranslation
     obtain ⟨_, secondPredecessor, rfl⟩ := isNatSuccOf?_wf ‹_› secondTranslation
@@ -155,42 +154,67 @@ theorem lazyDeltaReduction.loop.scopeWF {context : VContext} {state : VState}
   | zero => exact RecM.ScopeWF.throw
   | succ budget inductionHypothesis =>
     unfold loop
-    extract_lets afterNative afterNat afterDelta
-    refine (isDefEqOffset.scopeWF firstTranslation secondTranslation).bind fun _ _ _ compared => ?_
+    extract_lets afterNative
+    refine (isDefEqOffset.scopeWF firstTranslation secondTranslation).bind
+      fun offset _ _ compared => ?_
+    have afterNativeWF : ∀ {state}, (afterNative ⟨⟩).ScopeWF context state
+        (fun result _ => result.WF context firstSemantic secondSemantic) := by
+      intro state
+      refine RecM.ScopeWF.getEnv ?_
+      refine (RecM.ScopeWF.liftExcept reduceNative.WF).bind fun _ _ _ nativeRejected => ?_
+      split <;> [cases nativeRejected _ rfl; skip]
+      refine (RecM.ScopeWF.liftExcept reduceNative.WF).bind fun _ _ _ nativeRejected => ?_
+      split <;> [cases nativeRejected _ rfl; skip]
+      refine (lazyDeltaReductionStep.scopeWF firstTranslation secondTranslation).bind
+        fun result _ _ reduction => ?_
+      cases result with
+      | «continue» tn sn =>
+        obtain ⟨_, ⟨_, firstStructural, firstEquality⟩,
+          ⟨_, secondStructural, secondEquality⟩⟩ := reduction
+        exact (inductionHypothesis firstStructural secondStructural).mono
+          fun _ _ _ reduced => reduced.defeq firstEquality secondEquality
+      | unknown tn sn =>
+        simpa [ReductionStatus.WF] using (RecM.ScopeWF.pure reduction)
+      | true =>
+        simpa [ReductionStatus.WF] using (RecM.ScopeWF.pure reduction)
+      | false tn sn =>
+        simpa [ReductionStatus.WF] using (RecM.ScopeWF.pure reduction)
+    by_cases offsetNotUndef : offset != .undef
+    · by_cases offsetIsTrue : offset == .true
+      · have offsetEq : offset = .true := by
+          cases offset <;> simp_all
+        simp [offsetNotUndef, offsetIsTrue, ReductionStatus.bool]
+        exact RecM.ScopeWF.pure (compared offsetEq)
+      · simp [offsetNotUndef, offsetIsTrue, ReductionStatus.bool]
+        exact RecM.ScopeWF.pure ⟨
+          firstTranslation.trExpr context.Ewf context.Δwf,
+          secondTranslation.trExpr context.Ewf context.Δwf⟩
+    simp [offsetNotUndef]
+    refine RecM.ScopeWF.readThe ?_
     split
-    · exact RecM.ScopeWF.pure fun accepted => compared (by simpa using accepted)
-    suffices afterNatWF : ∀ {state}, (afterNat ⟨⟩).ScopeWF context state
-        (fun result _ => result.WF context firstSemantic secondSemantic) by
-      refine RecM.ScopeWF.pureBind <| RecM.ScopeWF.readThe ?_
-      split <;> [skip; exact afterNatWF]
-      refine (reduceNat.scopeWF firstTranslation).bind fun _ _ _ normalized => ?_
+    · refine (reduceNat.scopeWF firstTranslation).bind fun _ _ _ normalized => ?_
       split
       · obtain ⟨_, structural, equality⟩ := (normalized _ rfl).2
+        rw [map_eq_pure_bind]
         refine (isDefEqCore.scopeWF structural secondTranslation).bind fun _ _ _ compared => ?_
-        exact RecM.ScopeWF.pure fun accepted => equality.symm.trans context.Ewf context.Δwf (compared accepted)
+        exact RecM.ScopeWF.pure <| ReductionStatus.WF.bool
+          ((structural.trExpr context.Ewf context.Δwf).defeq
+            context.Ewf context.Δwf equality)
+          (secondTranslation.trExpr context.Ewf context.Δwf)
+          (fun accepted => equality.symm.trans context.Ewf context.Δwf (compared accepted))
       refine (reduceNat.scopeWF secondTranslation).bind fun _ _ _ normalized => ?_
       split
       · obtain ⟨_, structural, equality⟩ := (normalized _ rfl).2
+        rw [map_eq_pure_bind]
         refine (isDefEqCore.scopeWF firstTranslation structural).bind fun _ _ _ compared => ?_
-        exact RecM.ScopeWF.pure fun accepted => (compared accepted).trans context.Ewf context.Δwf equality
-      exact afterNatWF
-    intro state
-    unfold afterNat
-    refine RecM.ScopeWF.getEnv ?_
-    refine (RecM.ScopeWF.liftExcept reduceNative.WF).bind fun _ _ _ nativeRejected => ?_
-    split <;> [cases nativeRejected _ rfl; skip]
-    refine (RecM.ScopeWF.liftExcept reduceNative.WF).bind fun _ _ _ nativeRejected => ?_
-    split <;> [cases nativeRejected _ rfl; skip]
-    refine RecM.ScopeWF.pureBind ?_
-    unfold afterNative
-    refine (lazyDeltaReductionStep.scopeWF firstTranslation secondTranslation).bind
-      fun result _ _ reduction => ?_
-    obtain result | result | result := result
-    · obtain ⟨_, ⟨_, firstStructural, firstEquality⟩, ⟨_, secondStructural, secondEquality⟩⟩ := reduction
-      exact (inductionHypothesis firstStructural secondStructural).mono
-        fun _ _ _ reduced => reduced.defeq firstEquality secondEquality
-    · exact RecM.ScopeWF.pure reduction
-    · exact RecM.ScopeWF.pure reduction
+        exact RecM.ScopeWF.pure <| ReductionStatus.WF.bool
+          (firstTranslation.trExpr context.Ewf context.Δwf)
+          ((structural.trExpr context.Ewf context.Δwf).defeq
+            context.Ewf context.Δwf equality)
+          (fun accepted => (compared accepted).trans context.Ewf context.Δwf equality)
+      exact afterNativeWF (state := _)
+    · exact afterNativeWF (state := _)
+
 
 theorem lazyDeltaReduction.scopeWF {context : VContext} {state : VState}
     (firstTranslation : context.TrExprS first firstSemantic)

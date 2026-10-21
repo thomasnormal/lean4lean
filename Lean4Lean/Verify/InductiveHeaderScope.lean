@@ -7,6 +7,11 @@ open private Lean4Lean.AddInductive.bindWF Lean4Lean.AddInductive.readWF
   from Lean4Lean.Verify.InductiveStats
 open private Lean4Lean.AddInductive.withLocalDecl_scope from Lean4Lean.Verify.RecursorInfoScope
 
+private theorem bindHeaderResultWF {action : M α} {next : α → M β} {ctx : Context} {post : β → Prop}
+    (hnext : ∀ result, action ctx = .ok result → (next result ctx).WF post) :
+    ((action >>= next) ctx).WF post :=
+  (show (action ctx).WF (fun result => action ctx = .ok result) from fun _ hresult => hresult).bind hnext
+
 theorem Context.RecursorScopeFrame.withEnv {original current : Context}
     (hframe : original.RecursorScopeFrame current) (env : Kernel.Environment) :
     ({ original with env } : Context).RecursorScopeFrame { current with env } :=
@@ -44,11 +49,15 @@ private theorem checkedHeader_loop_scope (nparams fuel : Nat) (stats : Inductive
           apply Lean4Lean.AddInductive.bindWF
           intro equal
           split
-          · apply Lean4Lean.AddInductive.bindWF
-            intro _
-            apply Lean4Lean.AddInductive.bindWF
-            intro normalized
-            exact ih _ normalized _ _ ctx hwf hreserved hnext
+          · have heq : equal = true := by simpa using ‹equal = true›
+            subst equal
+            apply bindHeaderResultWF
+            intro normalized _
+            apply ih
+            · exact hwf
+            · exact hreserved
+            intro type stats nindices final hfinal
+            exact hnext type stats nindices final hfinal
           · exact Except.WF.throw
       · apply Lean4Lean.AddInductive.withLocalDecl_scope
         · exact hwf
@@ -90,8 +99,6 @@ private theorem checkedHeader_loopInd_scope (nparams : Nat) (types : Array Induc
     intro sort
     split
     · apply Lean4Lean.AddInductive.readWF
-      apply Lean4Lean.AddInductive.bindWF
-      intro _
       apply checkedHeader_loopInd_scope
       · exact hframe.wf
       · exact hframe.reserved
@@ -99,9 +106,7 @@ private theorem checkedHeader_loopInd_scope (nparams : Nat) (types : Array Induc
       exact hnext stats final (hframe.trans hfinal)
     · split
       · exact Except.WF.throw
-      · apply Lean4Lean.AddInductive.bindWF
-        intro _
-        apply checkedHeader_loopInd_scope
+      · apply checkedHeader_loopInd_scope
         · exact hframe.wf
         · exact hframe.reserved
         intro stats final hfinal

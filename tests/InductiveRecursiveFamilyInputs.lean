@@ -133,7 +133,7 @@ private def checkBatch (types : Array InductiveType) (parameters : Nat) (origina
   let mut initialChanges : Nat := 0
   let elimination := `freshElimination
   for isUnsafe in [false, true] do
-    unless (host.addDeclCore 0 (.inductDecl originalUniverses parameters types.toList isUnsafe) none).isOk do
+    unless (host.addDeclCore 0 0 (.inductDecl originalUniverses parameters types.toList isUnsafe) none).isOk do
       throwError "native kernel rejected family inputs controls {types.map (·.name)}"
     for allowPrimitive in [false, true] do
       let reader : Context := {
@@ -231,7 +231,7 @@ private def annotationFixture : MetaM Unit := do
       .forallE `function functionType
         (mkAppN (.const `FamilyAnnotationParameter []) #[.bvar 0, .const ``Nat.zero []]) .default⟩] }
   let host ← getEnv
-  unless (host.addDeclCore 0 (.inductDecl [] 1 [type] false) none).isOk do
+  unless (host.addDeclCore 0 0 (.inductDecl [] 1 [type] false) none).isOk do
     throwError "family inputs: native annotation-parameter fixture rejected"
   let context : Context := {
     env := host.toKernelEnv, lparams := [], safety := .safe, allowPrimitive := false }

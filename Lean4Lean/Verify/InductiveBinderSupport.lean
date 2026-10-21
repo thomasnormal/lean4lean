@@ -53,7 +53,7 @@ theorem BinderValuesBefore.of_fieldsDeclared {ctx : Context} {values : Array Exp
     rw [← context_indices hwf]
     exact List.mem_map.mpr ⟨decl, List.mem_reverse.mpr hdecl, rfl⟩
   refine ⟨decl, ?_, rfl, ?_⟩
-  · simpa only [LocalDecl.toExpr, Expr.fvarId!] using hwf.find?_of_mem hdecl
+  · simpa only [LocalDecl.toExpr, Expr.fvarId!, mkFVar] using hwf.find?_of_mem hdecl
   · simpa only [LocalContext.numIndices] using List.mem_range.mp hindex
 
 theorem BinderValuesBefore.atSize {ctx : Context} {bound : Nat} {values : List Expr}

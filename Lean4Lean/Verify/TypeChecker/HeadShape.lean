@@ -114,23 +114,23 @@ theorem liftExcept (action : Except Exception Result) :
 end TypeChecker.M.HeadWF
 
 structure TypeChecker.Methods.HeadWF (methods : TypeChecker.Methods) : Prop where
-  whnfCore : ∀ expression cheapRec cheapProj,
-    (methods.whnfCore expression cheapRec cheapProj).HeadWF NativeHeadClean
+  whnfCore : ∀ expression cheapProj,
+    (methods.whnfCore expression cheapProj).HeadWF NativeHeadClean
   whnf : ∀ expression, (methods.whnf expression).HeadWF NativeHeadClean
   inferType : ∀ expression inferOnly, (methods.inferType expression inferOnly).HeadWF (fun _ => True)
   isDefEqCore : ∀ first second, (methods.isDefEqCore first second).HeadWF (fun _ => True)
 
 theorem TypeChecker.Inner.whnfCore'.save_headWF (expression normalized : Expr)
-    (cheapRec cheapProj : Bool) (methods : TypeChecker.Methods) (clean : NativeHeadClean normalized) :
-    (whnfCore'.save expression cheapRec cheapProj normalized methods).HeadWF NativeHeadClean := by
-  cases cheapRec <;> cases cheapProj
+    (cheapProj : Bool) (methods : TypeChecker.Methods) (clean : NativeHeadClean normalized) :
+    (whnfCore'.save expression cheapProj normalized methods).HeadWF NativeHeadClean := by
+  cases cheapProj
   · exact (TypeChecker.M.HeadWF.modify _ fun state valid => valid.insertCore expression normalized clean).bind
       fun _ _ => .pure clean
   all_goals exact TypeChecker.M.HeadWF.pure clean
 
-theorem TypeChecker.Inner.whnfFVar.headWF (name : FVarId) (cheapRec cheapProj : Bool)
+theorem TypeChecker.Inner.whnfFVar.headWF (name : FVarId) (cheapProj : Bool)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
-    (whnfFVar (.fvar name) cheapRec cheapProj methods).HeadWF NativeHeadClean := by
+    (whnfFVar (.fvar name) cheapProj methods).HeadWF NativeHeadClean := by
   unfold whnfFVar
   dsimp only [Bind.bind, ReaderT.bind]
   apply TypeChecker.M.HeadWF.getLCtx
@@ -141,18 +141,18 @@ theorem TypeChecker.Inner.whnfFVar.headWF (name : FVarId) (cheapRec cheapProj : 
     cases declaration
     · exact TypeChecker.M.HeadWF.pure ⟨rfl, rfl⟩
     · dsimp only [ReaderT.bind, whnfCore]
-      exact (valid.whnfCore _ cheapRec cheapProj).bind fun normalized clean => .pure clean
+      exact valid.whnfCore _ cheapProj
 
-theorem TypeChecker.Inner.reduceProj.headWF (index : Nat) (source : Expr) (cheapRec cheapProj : Bool)
+theorem TypeChecker.Inner.reduceProj.headWF (index : Nat) (source : Expr) (cheapProj : Bool)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF) :
-    (reduceProj index source cheapRec cheapProj methods).HeadWF (fun _ => True) := by
-  unfold reduceProj
+    (reduceProj index source cheapProj methods).HeadWF (fun _ => True) := by
+  unfold reduceProj reduceProjCore
   dsimp only [Bind.bind, ReaderT.bind]
-  have initial : (if cheapProj then whnfCore source cheapRec cheapProj else whnf source) methods
+  have initial : (if cheapProj then whnfCore source cheapProj else whnf source) methods
       |>.HeadWF NativeHeadClean := by
     cases cheapProj
     · exact valid.whnf _
-    · exact valid.whnfCore _ _ _
+    · exact valid.whnfCore _ _
   refine initial.bind fun normalized _ => ?_
   have finish : ∀ expression : Expr,
       (expression.withApp fun head arguments => do
@@ -169,15 +169,21 @@ theorem TypeChecker.Inner.reduceProj.headWF (index : Nat) (source : Expr) (cheap
     intro environment
     refine (TypeChecker.M.HeadWF.liftExcept _).bind fun info _ => ?_
     cases info <;> exact TypeChecker.M.HeadWF.pure trivial
-  split
-  · simpa only [pure_bind] using (valid.whnf _).bind fun expression _ => finish expression
-  · simpa only [pure_bind] using finish normalized
+  cases h : normalized <;> try exact finish _
+  case lit literal =>
+    cases literal with
+    | natVal value => exact TypeChecker.M.HeadWF.pure trivial
+    | strVal text =>
+      dsimp only [reduceProjCore, Bind.bind, ReaderT.bind, whnf]
+      apply TypeChecker.M.HeadWF.bind (valid.whnf (.strLitToConstructor text))
+      intro expanded _
+      exact finish expanded
 
-theorem TypeChecker.Inner.whnfCore'.headWF (expression : Expr) (cheapRec cheapProj : Bool)
+theorem TypeChecker.Inner.whnfCore'.headWF (expression : Expr) (cheapProj : Bool)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF)
-    (recursorFrame : ∀ expression cheapRec cheapProj,
-      (reduceRecursor expression cheapRec cheapProj methods).HeadWF (fun _ => True)) :
-    (whnfCore' expression cheapRec cheapProj methods).HeadWF NativeHeadClean := by
+    (recursorFrame : ∀ expression,
+      (reduceRecursor expression methods).HeadWF (fun _ => True)) :
+    (whnfCore' expression cheapProj methods).HeadWF NativeHeadClean := by
   induction expression with
   | mdata data expression inductionHypothesis =>
     simpa only [whnfCore', bind_pure] using inductionHypothesis
@@ -194,7 +200,7 @@ theorem TypeChecker.Inner.whnfCore'.headWF (expression : Expr) (cheapRec cheapPr
         exact ⟨caches, caches.1 _ _ cached⟩
       | none =>
         simp only [cached, bind_pure] at accepted
-        exact whnfFVar.headWF name cheapRec cheapProj methods valid context state caches result finalState accepted
+        exact whnfFVar.headWF name cheapProj methods valid context state caches result finalState accepted
   | letE name domain value body nondependent =>
     intro context state caches result finalState accepted
     rw [whnfCore'.let_eq] at accepted
@@ -206,12 +212,12 @@ theorem TypeChecker.Inner.whnfCore'.headWF (expression : Expr) (cheapRec cheapPr
     | none =>
       simp only [cached] at accepted
       have worker : ((do
-          let normalized ← whnfCore (body.instantiate1 value) cheapRec cheapProj
-          whnfCore'.save (.letE name domain value body nondependent) cheapRec cheapProj normalized)
+          let normalized ← whnfCore (body.instantiate1 value) cheapProj
+          whnfCore'.save (.letE name domain value body nondependent) cheapProj normalized)
           methods).HeadWF NativeHeadClean := by
         dsimp only [Bind.bind, ReaderT.bind, whnfCore]
-        exact (valid.whnfCore _ _ _).bind
-          fun normalized clean => whnfCore'.save_headWF _ normalized cheapRec cheapProj methods clean
+        exact (valid.whnfCore _ _).bind
+          fun normalized clean => whnfCore'.save_headWF _ normalized cheapProj methods clean
       exact worker context state caches result finalState accepted
   | proj parent index source =>
     intro context state caches result finalState accepted
@@ -224,24 +230,24 @@ theorem TypeChecker.Inner.whnfCore'.headWF (expression : Expr) (cheapRec cheapPr
     | none =>
       simp only [cached] at accepted
       have worker : ((do
-          if let some reduced ← reduceProj index source cheapRec cheapProj then
-            let normalized ← whnfCore reduced cheapRec cheapProj
-            whnfCore'.save (.proj parent index source) cheapRec cheapProj normalized
-          else whnfCore'.save (.proj parent index source) cheapRec cheapProj (.proj parent index source))
+          if let some reduced ← reduceProj index source cheapProj then
+            let normalized ← whnfCore reduced cheapProj
+            whnfCore'.save (.proj parent index source) cheapProj normalized
+          else whnfCore'.save (.proj parent index source) cheapProj (.proj parent index source))
           methods).HeadWF NativeHeadClean := by
         dsimp only [Bind.bind, ReaderT.bind]
-        refine (reduceProj.headWF index source cheapRec cheapProj methods valid).bind fun reduced _ => ?_
+        refine (reduceProj.headWF index source cheapProj methods valid).bind fun reduced _ => ?_
         cases reduced with
-        | none => exact whnfCore'.save_headWF _ _ cheapRec cheapProj methods ⟨rfl, rfl⟩
+        | none => exact whnfCore'.save_headWF _ _ cheapProj methods ⟨rfl, rfl⟩
         | some expression =>
           dsimp only [Bind.bind, ReaderT.bind, whnfCore]
-          exact (valid.whnfCore expression cheapRec cheapProj).bind
-            fun normalized clean => whnfCore'.save_headWF _ normalized cheapRec cheapProj methods clean
+          exact (valid.whnfCore expression cheapProj).bind
+            fun normalized clean => whnfCore'.save_headWF _ normalized cheapProj methods clean
       exact worker context state caches result finalState accepted
   | app function argument =>
     let expression := Expr.app function argument
     intro context state caches result finalState accepted
-    rw [whnfCore'.app_eq _ _ _ _ _ _ rfl] at accepted
+    rw [whnfCore'.app_eq _ _ _ _ _ rfl] at accepted
     cases cached : state.whnfCoreCache[expression]? with
     | some normalized =>
       simp only [expression, cached] at accepted
@@ -251,35 +257,35 @@ theorem TypeChecker.Inner.whnfCore'.headWF (expression : Expr) (cheapRec cheapPr
       change state.whnfCoreCache[Expr.app function argument]? = none at cached
       rw [cached] at accepted
       have worker : ((do
-          let normalized ← whnfCore expression.getAppFn cheapRec cheapProj
+          let normalized ← whnfCore expression.getAppFn cheapProj
           match normalized with
-          | .lam _ _ body _ => whnfCore'.loop expression cheapRec cheapProj expression.getAppRevArgs 1 body
+          | .lam _ _ body _ => whnfCore'.loop expression cheapProj expression.getAppRevArgs 1 body
           | _ =>
             if normalized == expression.getAppFn then
-              if let some reduced ← reduceRecursor expression cheapRec cheapProj then
-                whnfCore reduced cheapRec cheapProj
+              if let some reduced ← reduceRecursor expression then
+                whnfCore reduced cheapProj
               else pure expression
             else do
               let result ← whnfCore (normalized.mkAppRevRange 0 expression.getAppRevArgs.size
-                expression.getAppRevArgs) cheapRec cheapProj
-              whnfCore'.save expression cheapRec cheapProj result) methods).HeadWF NativeHeadClean := by
+                expression.getAppRevArgs) cheapProj
+              whnfCore'.save expression cheapProj result) methods).HeadWF NativeHeadClean := by
         dsimp only [Bind.bind, ReaderT.bind, whnfCore]
-        refine (valid.whnfCore expression.getAppFn cheapRec cheapProj).bind fun normalized _ => ?_
+        refine (valid.whnfCore expression.getAppFn cheapProj).bind fun normalized _ => ?_
         cases normalized <;> dsimp only [Bind.bind, ReaderT.bind]
         any_goals (
           split
           · dsimp only [Bind.bind, ReaderT.bind]
-            refine (recursorFrame expression cheapRec cheapProj).bind fun reduced _ => ?_
+            refine (recursorFrame expression).bind fun reduced _ => ?_
             cases reduced
             · exact TypeChecker.M.HeadWF.pure ⟨rfl, rfl⟩
-            · exact valid.whnfCore _ _ _
+            · exact valid.whnfCore _ _
           · dsimp only [Bind.bind, ReaderT.bind, whnfCore]
-            exact (valid.whnfCore _ _ _).bind
-              fun result clean => whnfCore'.save_headWF expression result cheapRec cheapProj methods clean)
+            exact (valid.whnfCore _ _).bind
+              fun result clean => whnfCore'.save_headWF expression result cheapProj methods clean)
         rw [whnfCore'.loop_eq]
         dsimp only [Bind.bind, ReaderT.bind, whnfCore]
-        exact (valid.whnfCore _ _ _).bind
-          fun result clean => whnfCore'.save_headWF expression result cheapRec cheapProj methods clean
+        exact (valid.whnfCore _ _).bind
+          fun result clean => whnfCore'.save_headWF expression result cheapProj methods clean
       exact worker context state caches result finalState accepted
   | _ => exact TypeChecker.M.HeadWF.pure ⟨rfl, rfl⟩
 
@@ -358,26 +364,63 @@ theorem TypeChecker.Inner.reduceNat.headWF (expression : Expr)
       rename_i head first
       cases head <;> try exact TypeChecker.M.HeadWF.pure trivial
       dsimp only [ReaderT.bind, ReaderT.pure]
-      split
-      · exact reduceBinNatOp.headWF Nat.add first argument methods valid
-      split
-      · exact reduceBinNatOp.headWF Nat.mul first argument methods valid
-      split
-      · exact reducePow.headWF first argument methods valid
-      split
-      · exact reduceBinNatOp.headWF Nat.sub first argument methods valid
-      split
-      · exact reduceBinNatPred.headWF Nat.beq first argument methods valid
-      split
-      · exact reduceBinNatPred.headWF Nat.ble first argument methods valid
-      split
-      · exact reduceBinNatOp.headWF Nat.shiftLeft first argument methods valid
-      split
-      · exact reduceBinNatOp.headWF Nat.div first argument methods valid
-      split
-      · exact reduceBinNatOp.headWF Nat.shiftRight first argument methods valid
-      split
-      · exact reduceBinNatOp.headWF Nat.mod first argument methods valid
+      rename_i name levels
+      by_cases selected : (name == ``Nat.add) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.headWF Nat.add first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.sub) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.headWF Nat.sub first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.mul) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.headWF Nat.mul first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.pow) = true
+      · rw [if_pos selected]
+        exact reducePow.headWF first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.gcd) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.headWF Nat.gcd first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.mod) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.headWF Nat.mod first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.div) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.headWF Nat.div first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.beq) = true
+      · rw [if_pos selected]
+        exact reduceBinNatPred.headWF Nat.beq first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.ble) = true
+      · rw [if_pos selected]
+        exact reduceBinNatPred.headWF Nat.ble first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.land) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.headWF Nat.land first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.lor) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.headWF Nat.lor first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.xor) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.headWF Nat.xor first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.shiftLeft) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.headWF Nat.shiftLeft first argument methods valid
+      rw [if_neg selected]
+      by_cases selected : (name == ``Nat.shiftRight) = true
+      · rw [if_pos selected]
+        exact reduceBinNatOp.headWF Nat.shiftRight first argument methods valid
+      rw [if_neg selected]
       exact TypeChecker.M.HeadWF.pure trivial
     · rw [if_neg binary]
       exact TypeChecker.M.HeadWF.pure trivial
@@ -410,19 +453,18 @@ theorem TypeChecker.Inner.unfoldDefinitionCore.headWF (expression : Expr) (metho
   | some definition =>
     dsimp only
     split
-    · split
-      · dsimp only [Bind.bind, ReaderT.bind]
-        apply TypeChecker.M.HeadWF.get
-        intro state caches
-        cases state.unfold[Expr.const name levels]? with
-        | some value => exact TypeChecker.M.HeadWF.pure trivial
-        | none =>
-          dsimp only [Bind.bind, ReaderT.bind]
-          exact (TypeChecker.M.HeadWF.modify (fun state : State =>
-            { state with unfold := state.unfold.insert (.const name levels) (definition.instantiateValueLevelParams! levels) })
-              fun _ valid => valid).bind
-                (finalPost := fun _ => True) fun _ _ => .pure trivial
-      · exact TypeChecker.M.HeadWF.pure trivial
+    · dsimp only [Bind.bind, ReaderT.bind, MonadState.get, getThe, MonadStateOf.get, StateT.get,
+        liftM, MonadLift.monadLift, MonadLiftT.monadLift, StateT.lift, StateT.bind]
+      apply TypeChecker.M.HeadWF.get
+      intro state caches
+      cases state.unfold[Expr.const name levels]? with
+      | some value => exact TypeChecker.M.HeadWF.pure trivial
+      | none =>
+        dsimp only [Bind.bind, ReaderT.bind]
+        exact (TypeChecker.M.HeadWF.modify (fun state : State =>
+          { state with unfold := state.unfold.insert (.const name levels) (instantiateDeltaValue definition levels) })
+            fun _ valid => valid).bind
+              (finalPost := fun _ => True) fun _ _ => .pure trivial
     · exact TypeChecker.M.HeadWF.pure trivial
 
 theorem TypeChecker.Inner.unfoldDefinition.headWF (expression : Expr) (methods : TypeChecker.Methods) :
@@ -436,19 +478,17 @@ theorem TypeChecker.Inner.unfoldDefinition.headWF (expression : Expr) (methods :
 
 theorem TypeChecker.Inner.whnf'.loop_headWF (expression : Expr) (fuel : Nat)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF)
-    (recursorFrame : ∀ expression cheapRec cheapProj,
-      (reduceRecursor expression cheapRec cheapProj methods).HeadWF (fun _ => True)) :
+    (recursorFrame : ∀ expression,
+      (reduceRecursor expression methods).HeadWF (fun _ => True)) :
     (whnf'.loop expression fuel methods).HeadWF NativeHeadClean := by
   induction fuel generalizing expression with
   | zero => exact TypeChecker.M.HeadWF.throw .deterministicTimeout _
   | succ fuel inductionHypothesis =>
     unfold whnf'.loop
-    simp only [pure_bind]
     dsimp only [Bind.bind, ReaderT.bind]
     apply TypeChecker.M.HeadWF.getEnv
     intro environment
-    refine (whnfCore'.headWF expression false false methods valid recursorFrame).bind fun normalized clean => ?_
-    dsimp only [Bind.bind, ReaderT.bind]
+    refine (whnfCore'.headWF expression false methods valid recursorFrame).bind fun normalized clean => ?_
     intro context state caches result finalState accepted
     cases native : reduceNative environment normalized with
     | error exception =>
@@ -463,7 +503,6 @@ theorem TypeChecker.Inner.whnf'.loop_headWF (expression : Expr) (fuel : Nat)
           if let some reduced ← reduceNat normalized then return reduced
           let some unfolded ← unfoldDefinition normalized | return normalized
           whnf'.loop unfolded fuel) methods).HeadWF NativeHeadClean := by
-        simp only [pure_bind]
         dsimp only [Bind.bind, ReaderT.bind]
         refine (reduceNat.headWF normalized methods valid).bind fun reduced cleanReduction => ?_
         cases reduced with
@@ -478,11 +517,10 @@ theorem TypeChecker.Inner.whnf'.loop_headWF (expression : Expr) (fuel : Nat)
 
 theorem TypeChecker.Inner.whnfCacheProgram.headWF (expression : Expr)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF)
-    (recursorFrame : ∀ expression cheapRec cheapProj,
-      (reduceRecursor expression cheapRec cheapProj methods).HeadWF (fun _ => True)) :
+    (recursorFrame : ∀ expression,
+      (reduceRecursor expression methods).HeadWF (fun _ => True)) :
     (whnfCacheProgram expression methods).HeadWF NativeHeadClean := by
   unfold whnfCacheProgram
-  simp only [pure_bind]
   dsimp only [Bind.bind, ReaderT.bind]
   apply TypeChecker.M.HeadWF.get
   intro state caches
@@ -494,14 +532,13 @@ theorem TypeChecker.Inner.whnfCacheProgram.headWF (expression : Expr)
     intro context
     refine (whnf'.loop_headWF expression context.whnfBudget methods valid recursorFrame).bind
       fun normalized clean => ?_
-    dsimp only [Bind.bind, ReaderT.bind]
     exact (TypeChecker.M.HeadWF.modify _ fun state valid => valid.insertFull expression normalized clean).bind
       fun _ _ => .pure clean
 
 theorem TypeChecker.Inner.whnf'.headWF (expression : Expr)
     (methods : TypeChecker.Methods) (valid : methods.HeadWF)
-    (recursorFrame : ∀ expression cheapRec cheapProj,
-      (reduceRecursor expression cheapRec cheapProj methods).HeadWF (fun _ => True)) :
+    (recursorFrame : ∀ expression,
+      (reduceRecursor expression methods).HeadWF (fun _ => True)) :
     (whnf' expression methods).HeadWF NativeHeadClean := by
   induction expression with
   | mdata data expression inductionHypothesis =>

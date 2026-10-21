@@ -64,7 +64,8 @@ theorem AddInductive.InductiveStats.SafeRunScope.sourceRecursorRecords
   refine ⟨recursor, by simpa only [recursor, hlevels, hname] using hlookup, ?_, rfl, ?_, hrules, ?_⟩
   · change mkRecName rewritten[index]!.name = mkRecName types[index].name
     rw [hname]
-  · simpa only [hprefix.minorOffset index (Nat.le_of_lt harray),
+  · simpa only [recursor, declareRecursors.metadataVal,
+      hprefix.minorOffset index (Nat.le_of_lt harray),
       hprefix.minorOffset (index + 1) (by omega)] using hrecipe
   · simpa only [hlevels] using scope.sourceRuleConstructors hprefix index hindex recursor.rules hrules
 

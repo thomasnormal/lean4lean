@@ -55,9 +55,11 @@ private theorem registerConstructorsMetadata (ctors : List Constructor) (index :
   | nil => exact .pure ⟨hwf, fun _ _ hold => hold, by simp⟩
   | cons ctor ctors ih =>
     simp only [List.foldlM_cons, bind_assoc, pure_bind]
-    refine (Lean4Lean.checkName.WF env ctor.name allowPrimitive).bind fun _ ⟨hfresh, _⟩ => ?_
+    refine (Lean4Lean.checkName.WF hwf ctor.name allowPrimitive).bind fun _ ⟨hfresh, _⟩ => ?_
     have hfreshInfo : env.constants.find? (ConstantInfo.ctorInfo (makeInfo index ctor)).name =
-        none := by simpa [ConstantInfo.name, ConstantInfo.toConstantVal, hname] using hfresh
+        none := by
+      simpa only [Kernel.Environment.find?, hwf.find?'_eq_find?, ConstantInfo.name,
+        ConstantInfo.toConstantVal, hname] using hfresh
     obtain ⟨hnext, hself, hpreserve⟩ := addFresh env (.ctorInfo (makeInfo index ctor)) hwf hfreshInfo
     refine (ih (index + 1) _ hnext).mono ?_
     rintro state ⟨hfinal, hkeep, hctors⟩

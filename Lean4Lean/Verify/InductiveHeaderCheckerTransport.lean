@@ -46,7 +46,7 @@ theorem HeaderAxiomLookupAgreement.delta
   rcases agreement name with same | ⟨_, header, actualLookup, shadowLookup⟩
   · rw [same]
   · rw [actualLookup, shadowLookup]
-    simp [headerAxiomInfo, ConstantInfo.hasValue]
+    simp [headerAxiomInfo, ConstantInfo.deltaValue?]
 
 theorem TypeChecker.Inner.inferConstant.headerAxiomTransport
     (context : TypeChecker.Context) (shadow : Kernel.Environment)
@@ -84,10 +84,10 @@ theorem TypeChecker.Inner.unfoldDefinitionCore.headerAxiomTransport
   cases selected : TypeChecker.Inner.isDelta shadow (.const name levels) <;> dsimp only
   · rfl
   · split <;> try rfl
-    split <;> try rfl
     dsimp only [Bind.bind, Pure.pure, ReaderT.bind, StateT.bind, ReaderT.pure, StateT.pure,
       Except.pure, Except.bind, MonadState.get, getThe, MonadStateOf.get, StateT.get,
-      liftM, MonadLift.monadLift, MonadLiftT.monadLift]
+      liftM, MonadLift.monadLift, MonadLiftT.monadLift, StateT.lift,
+      modify, MonadState.modifyGet, MonadStateOf.modifyGet, StateT.modifyGet]
     cases cached : state.unfold[Expr.const name levels]? <;> rfl
 
 theorem TypeChecker.Inner.inferType'.headerConstantTransport
@@ -105,7 +105,7 @@ theorem TypeChecker.Inner.inferType'.headerConstantTransport
     Pure.pure, Bind.bind, ReaderT.bind, StateT.bind, ReaderT.pure, StateT.pure,
     Except.pure, Except.bind, StateT.lift] at accepted ⊢
   cases cached : (cond inferOnly state.inferTypeI state.inferTypeC)[Expr.const name levels]? with
-  | some value => simpa only [cached] using accepted
+  | some value => simpa only [cached, Pure.pure, ReaderT.pure, StateT.pure, Except.pure] using accepted
   | none =>
     simp only [cached] at accepted ⊢
     dsimp only [Pure.pure, Bind.bind, ReaderT.bind, StateT.bind, ReaderT.pure, StateT.pure,
@@ -119,7 +119,10 @@ theorem TypeChecker.Inner.inferType'.headerConstantTransport
         name levels inferOnly value inferred
       rw [inferred] at accepted
       rw [transported]
-      simpa only [Except.bind] using accepted
+      simpa only [Except.bind, Bind.bind, Pure.pure, ReaderT.bind, StateT.bind, ReaderT.pure,
+        StateT.pure, Except.pure, StateT.lift, modify, MonadState.modifyGet,
+        MonadStateOf.modifyGet, StateT.modifyGet, liftM, monadLift, MonadLift.monadLift,
+        MonadLiftT.monadLift] using accepted
 
 theorem TypeChecker.Inner.unfoldDefinition.headerAxiomTransport
     (methods : TypeChecker.Methods) (context : TypeChecker.Context) (shadow : Kernel.Environment)
@@ -166,8 +169,8 @@ theorem TypeChecker.inferType.headerConstantTransport
     (context : TypeChecker.Context) (shadow : Kernel.Environment)
     (agreement : HeaderAxiomLookupAgreement changed context.env shadow)
     (state : TypeChecker.State) (name : Name) (levels : List Level) :
-    (TypeChecker.inferType (.const name levels) context state).WF fun result =>
-      TypeChecker.inferType (.const name levels) { context with env := shadow } state = .ok result := by
+    (TypeChecker.inferType (.const name levels) true context state).WF fun result =>
+      TypeChecker.inferType (.const name levels) true { context with env := shadow } state = .ok result := by
   exact TypeChecker.Inner.inferType.headerConstantTransport context.fuel.recDepth context shadow agreement
     state name levels true
 

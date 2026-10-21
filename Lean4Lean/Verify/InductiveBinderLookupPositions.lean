@@ -3,6 +3,8 @@ import Lean4Lean.Verify.InductiveBinderLookupCorrespondence
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
 
+private theorem parameter_ne_index : ¬ BinderRole.parameter = BinderRole.index := by decide
+
 theorem BinderLookupCorrespondence.length {pairs finalPairs : List (FVarId × FVarId)}
     {left right : List BinderStep} (correspondence : BinderLookupCorrespondence pairs left right finalPairs) :
     left.length = right.length := by
@@ -39,7 +41,7 @@ theorem BinderLookupCorrespondence.atPosition {pairs finalPairs : List (FVarId �
       obtain ⟨leftStep, rightStep, priorPairs, hleft, hright, hrole, hsignature, hprior, hdomain⟩ :=
         ih position (Nat.lt_of_succ_lt_succ hposition)
       refine ⟨leftStep, rightStep, priorPairs, hleft, hright, hrole, hsignature, ?_, hdomain⟩
-      simpa only [List.take_succ_cons, BinderStep.indexValues, BinderRole.noConfusion, ↓reduceIte] using hprior
+      simpa only [List.take_succ_cons, BinderStep.indexValues, parameter_ne_index, ↓reduceIte] using hprior
   | @index pairs finalPairs left right name bi leftDomain rightDomain leftId rightId rawDomain tail ih =>
     cases position with
     | zero =>
@@ -86,7 +88,7 @@ theorem BinderIndexAllocations.atPosition {ctx : Context} {start position : Nat}
       cases hrole : head.role with
       | parameter =>
         simp only [BinderIndexAllocations, hrole] at allocated
-        simpa only [List.take_succ_cons, BinderStep.indexValues, hrole, BinderRole.noConfusion,
+        simpa only [List.take_succ_cons, BinderStep.indexValues, hrole, parameter_ne_index,
           ↓reduceIte] using ih allocated hstep
       | index =>
         simp only [BinderIndexAllocations, hrole] at allocated

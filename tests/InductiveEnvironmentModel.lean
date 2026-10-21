@@ -1,5 +1,6 @@
 import Lean4Lean.Theory.Typing.InductiveLemmas
 import Lean4Lean.Theory.InductiveHeaders
+import Lean.Util.CollectAxioms
 
 namespace Lean4Lean
 
@@ -24,6 +25,21 @@ example {env : VEnv} (hadd : VEnv.addInduct ∅ boolInductDecl = some env) : env
     exact ⟨boolCtorUvars ctor hmem, boolInductDecl.constructorWF haddHeaders ctor hmem⟩) hadd
 
 end Lean4Lean
+
+run_meta
+  for name in #[``Lean4Lean.VInductDecl.WF, ``Lean4Lean.VEnv.addInduct,
+      ``Lean4Lean.VEnv.addInduct_WF, ``Lean4Lean.VEnv.addInduct.le,
+      ``Lean4Lean.VEnv.addInduct.headerFresh, ``Lean4Lean.VEnv.addInduct.constructorFresh,
+      ``Lean4Lean.VEnv.addInduct.defeqs_eq, ``Lean4Lean.VEnv.addInductWithRecursors_WF] do
+    let information ← Lean.getConstInfo name
+    if information matches .axiomInfo _ then throwError "abstract signature axiom {name}"
+    let some proof := information.value? (allowOpaque := true)
+      | throwError "abstract signature proof absent {name}"
+    if proof.hasSorry then throwError "abstract signature admission {name}"
+    for dependency in (← Lean.collectAxioms name) do
+      unless [``propext, ``Quot.sound].contains dependency do
+        throwError "abstract signature registration gained {dependency} in {name}"
+  Lean.logInfo "abstract signature registration is constructive; genuine inductive/recursor semantics remain outside this model"
 
 namespace Lean4Lean
 
@@ -72,7 +88,6 @@ example : ∃ env, VEnv.addInductWithRecursors (∅ : VEnv) boolInductDecl
   · intro headerEnv hheader ctor hmem
     simp [VEnv.addInductHeaders, VEnv.addConst, boolInductDecl] at hheader
     have hheader' := Option.some.inj hheader
-    simp at hheader'
     rw [← hheader']
     simp [VInductDecl.constructorHeaders, boolInductDecl] at hmem
     rcases hmem with rfl | rfl <;> rfl
@@ -138,7 +153,6 @@ example : ∃ env, VEnv.addInduct (∅ : VEnv) boolInductDecl = some env := by
   · intro headerEnv hheader ctor hmem
     simp [VEnv.addInductHeaders, VEnv.addConst, boolInductDecl] at hheader
     have hheader' := Option.some.inj hheader
-    simp at hheader'
     rw [← hheader']
     simp [VInductDecl.constructorHeaders, boolInductDecl] at hmem
     rcases hmem with rfl | rfl

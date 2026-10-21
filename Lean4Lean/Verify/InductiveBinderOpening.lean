@@ -50,6 +50,8 @@ theorem OpenedTelescope.sameNextLocalDomain {type leftTerminal rightTerminal : E
       ((right.drop count).head?).map BinderStep.localDomain := by
   have hdomains := (leftOpened.samePrefixAndNextDomain rightOpened count hvalues hroles).2
   have hconsumed := congrArg (Option.map peelTypeAnnotations) hdomains
-  simpa only [Option.map_map, Function.comp_def, BinderStep.localDomain] using hconsumed
+  change Option.map (fun step => peelTypeAnnotations step.domain) ((left.drop count).head?) =
+    Option.map (fun step => peelTypeAnnotations step.domain) ((right.drop count).head?)
+  simpa only [Option.map_map, Function.comp_def] using hconsumed
 
 end Lean4Lean.AddInductive

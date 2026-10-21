@@ -11,8 +11,12 @@ theorem replaceParams.singleton_eq (identifier : FVarId) (body replacement : Exp
     replaceParams #[replacement] body #[.fvar identifier] nativeEnv state =
       .ok ((body.abstract1 identifier).instantiate1' replacement, state) := by
   rw [replaceParams.eq_ok #[replacement] body #[.fvar identifier] nativeEnv state rfl]
+  have parameterArray : (#[.fvar identifier] : Array Expr) = ⟨[.fvar identifier]⟩ := by
+    apply Array.toList_inj.mp
+    rfl
   have abstraction : body.abstract #[.fvar identifier] = body.abstract1 identifier := by
-    simpa only [Expr.abstractList] using
+    rw [parameterArray]
+    simpa only [Expr.abstractList, List.map] using
       Expr.abstract_eq_of_scope (ids := [identifier]) scope (by simp)
   rw [abstraction, Expr.instantiateRev_eq, Expr.instantiate_eq, Array.toList_reverse]
   change Except.ok ((body.abstract1 identifier).instantiateMany [replacement], state) = _

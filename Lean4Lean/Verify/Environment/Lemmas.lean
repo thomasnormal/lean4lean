@@ -40,7 +40,7 @@ theorem TrOpaqueVal.mono {env env' : VEnv} (henv : env ≤ env')
 
 variable (safety : DefinitionSafety) in
 inductive Aligned : ConstMap → VEnv → Prop where
-  | empty : Aligned {} .empty
+  | empty : Aligned { stage₁ } .empty
   | ignoreConst : Aligned C venv → C.find? n = none → ¬safety ≤ ci.safety →
     ci.name = n → Aligned (C.insert n ci) venv
   | const : Aligned C venv → C.find? n = none → TrConstant safety venv ci ci' →
@@ -49,7 +49,7 @@ inductive Aligned : ConstMap → VEnv → Prop where
 
 theorem Aligned.map_wf (H : Aligned safety C venv) : C.WF := by
   induction H with
-  | empty => exact .empty
+  | empty => exact .emptyStage _
   | ignoreConst _ h1 _ _ ih
   | const _ h1 _ _ _ ih => exact ih.insert _ _ h1
   | defeq _ ih => exact ih
@@ -57,7 +57,7 @@ theorem Aligned.map_wf (H : Aligned safety C venv) : C.WF := by
 theorem Aligned.find?_iff (H : Aligned safety C venv) :
     (∃ ci, C.find? name = some ci ∧ safety ≤ ci.safety) ↔ ∃ ci, venv.constants name = some ci := by
   induction H with
-  | empty => simp [SMap.find?, VEnv.empty]
+  | empty => simp [SMap.find?_emptyStage, VEnv.empty]
   | ignoreConst H _ h2 _ ih =>
     simp [H.map_wf.find?_insert]; split <;> [skip; assumption]
     rename_i eq1 eq2; subst eq2; simp [← ih, *]
@@ -141,7 +141,7 @@ theorem Aligned.find? (H : Aligned safety C venv)
       (∃ ci', env₂.constants name = some ci' ∧ TrConstant safety env₂ ci ci')
     | ⟨_, h1, h2⟩ => ⟨_, H.constants h1, h2.mono H⟩
   induction H with
-  | empty => simp [SMap.find?] at h
+  | empty => simp [SMap.find?_emptyStage] at h
   | ignoreConst h1 _ _ _ ih =>
     rw [h1.map_wf.find?_insert] at h; split at h
     · cases h; contradiction
@@ -159,7 +159,7 @@ theorem Aligned.find?_uniq (H : Aligned safety C venv)
     (h : C.find? name = some ci) (hs : venv.constants name = some ci') :
     ci.name = name ∧ TrConstant safety venv ci ci' := by
   induction H with
-  | empty => simp [SMap.find?] at h
+  | empty => simp [SMap.find?_emptyStage] at h
   | ignoreConst H h2 h3 _ ih =>
     simp [H.map_wf.find?_insert] at h; split at h
     · rename_i n ci _ h'; subst n h'
@@ -236,7 +236,7 @@ theorem TrEnv'.of_value (H : TrEnv' safety C Q venv) (h : C.find? name = some ci
       C.find? name = some ci ∨ n = name ∧ ci' = ci := by
     rw [hC.find?_insert]; simp; split <;> simp +contextual [*]
   induction H with
-  | empty => simp [SMap.find?] at h
+  | empty => simp [SMap.find?_emptyStage] at h
   | ignore h1 h2 H ih =>
     obtain h | ⟨rfl, rfl⟩ := this H.map_wf h
     · exact ih h
@@ -296,7 +296,7 @@ theorem TrEnv'.of_value (H : TrEnv' safety C Q venv) (h : C.find? name = some ci
 nonrec theorem TrEnv.of_value (H : TrEnv safety env venv) (h : env.find? name = some ci)
     (hs : safety ≤ ci.safety) (hv : ci.deltaValue? = some v) :
     TrExpr venv ci.levelParams [] v (.const ci.name (VLevel.params ci.levelParams.length)) :=
-  H.of_value (by rwa [← H.map_wf.find?'_eq_find?]) hs hci hv
+  H.of_value (by rwa [← H.map_wf.find?'_eq_find?]) hs hv
 
 private def InductiveFamilyInfo : ConstantInfo → Prop
   | .inductInfo _ | .ctorInfo _ | .recInfo _ => True
@@ -340,17 +340,21 @@ private theorem TrEnv'.inductiveFamilyLookupsRejected
     (valid : TrEnv' safety constants quotient environment) :
     InductiveLookupsRejected safety constants := by
   induction valid with
-  | empty => intro _ _ impossible; simp [SMap.find?] at impossible
-  | ignoreConst _ ignored previous inductionHypothesis =>
+  | empty => intro _ _ impossible; simp [SMap.find?_emptyStage] at impossible
+  | ignore _ ignored previous inductionHypothesis =>
     exact inductionHypothesis.insert previous.map_wf (fun _ => ignored)
   | «axiom» _ _ _ _ previous inductionHypothesis
   | defn _ _ _ _ previous inductionHypothesis
-  | thm _ _ _ _ previous inductionHypothesis
-  | «opaque» _ _ _ _ previous inductionHypothesis
-  | quotInfo _ _ _ _ previous inductionHypothesis =>
+  | thm _ _ _ _ _ previous inductionHypothesis
+  | «opaque» _ _ _ _ previous inductionHypothesis =>
     exact inductionHypothesis.insert previous.map_wf (by intro impossible; cases impossible)
-  | opaqueDefn _ _ _ _ _ previous inductionHypothesis =>
-    exact inductionHypothesis.insert previous.map_wf (by intro impossible; cases impossible)
+  | mutualDef _ distinct fresh _ _ _ previous inductionHypothesis =>
+    intro queried queriedInformation found family
+    rcases insertDefs_find? previous.map_wf fresh distinct found with found | ⟨_, _, _, impossible⟩
+    · exact inductionHypothesis queried queriedInformation found family
+    · subst queriedInformation
+      have impossible : False := by simpa [InductiveFamilyInfo] using family
+      exact impossible.elim
   | quot _ added previous inductionHypothesis =>
     exact inductionHypothesis.addQuot added previous.map_wf
   | induct _ impossible _ _ => cases impossible
@@ -412,22 +416,21 @@ theorem TrEnv'.quotientObjects (valid : TrEnv' safety constants true environment
   generalize quotientEq : true = quotient at valid
   induction valid with
   | empty => cases quotientEq
-  | ignoreConst _ _ _ inductionHypothesis => exact inductionHypothesis quotientEq
+  | ignore _ _ _ inductionHypothesis => exact inductionHypothesis quotientEq
   | «axiom» _ _ _ added _ inductionHypothesis =>
     exact (inductionHypothesis quotientEq).mono (VEnv.addConst_le added)
   | defn _ _ _ added _ inductionHypothesis =>
     exact (inductionHypothesis quotientEq).mono
       ((VEnv.addConst_le added).trans VEnv.addDefEq_le)
-  | opaqueDefn _ _ _ _ added _ inductionHypothesis =>
-    exact (inductionHypothesis quotientEq).mono (VEnv.addConst_le added)
-  | quotInfo => cases quotientEq
-  | thm _ _ _ added _ inductionHypothesis =>
+  | mutualDef _ _ _ _ added _ _ inductionHypothesis =>
     exact (inductionHypothesis quotientEq).mono
-      ((VEnv.addConst_le added).trans VEnv.addDefEq_le)
+      ((VEnv.addConsts_le added).trans VEnv.addDefEqs_le)
+  | thm _ _ _ _ added _ inductionHypothesis =>
+    exact (inductionHypothesis quotientEq).mono (VEnv.addConst_le added)
   | «opaque» _ _ _ added _ inductionHypothesis =>
     exact (inductionHypothesis quotientEq).mono (VEnv.addConst_le added)
-  | quot _ added _ _ => exact VEnv.addQuot_objs added.to_addQuot
-  | induct _ unsupported => cases unsupported
+  | quot _ added _ inductionHypothesis => exact VEnv.addQuot_objs added.to_addQuot
+  | induct _ unsupported _ inductionHypothesis => cases unsupported
 
 theorem TrEnv.quotientObjects (valid : TrEnv safety native environment)
     (initialized : native.quotInit = true) :

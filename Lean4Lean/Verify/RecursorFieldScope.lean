@@ -7,8 +7,8 @@ theorem WF.find?_of_mem {lctx : LocalContext} (hwf : lctx.WF)
     {decl : LocalDecl} (hdecl : decl ∈ lctx.toList) :
     lctx.find? decl.fvarId = some decl := by
   have hkeys : (lctx.toList.map fun entry => (entry.fvarId, entry)).NodupKeys := by
-    simpa [List.NodupKeys, List.map_map] using hwf.nodup
-  rw [hwf.find?_eq_find?_toList, ← List.map_fst_lookup]
+    simpa [List.NodupKeys, List.map_map, Function.comp_def] using hwf.nodup
+  rw [hwf.find?_eq_find?_toList, ← Lean4Lean.List.map_fst_lookup]
   exact hkeys.lookup_eq_some.mpr (List.mem_map.mpr ⟨decl, hdecl, rfl⟩)
 
 end Lean.LocalContext

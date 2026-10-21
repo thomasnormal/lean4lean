@@ -1,9 +1,6 @@
 import Lean4Lean.Verify.Environment
 import Lean4Lean.Verify.PrimitiveInductive
 import Lean4Lean.Verify.Inductive
-import Lean4Lean.Verify.InductiveNativeBridge
-import Lean4Lean.Verify.InductiveNativeRestorationBridge
-import Lean4Lean.Verify.InductiveNativeTrace
 import Lean4Lean.Verify.InductiveHeaders
 import Lean4Lean.Verify.InductiveStats
 import Lean4Lean.Verify.ConstructorHeaders
@@ -164,6 +161,8 @@ import Lean4Lean.Verify.InductiveRunScope
 import Lean4Lean.Verify.InductiveFrontendScope
 import Lean4Lean.Verify.InductiveFrontendRestoration
 import Lean4Lean.Verify.InductiveRestorationMetadata
+import Lean4Lean.Verify.InductiveNativeRestorationBridge
+import Lean4Lean.Verify.InductiveEliminationLevel
 import Lean4Lean.Verify.InductiveRestorationNames
 import Lean4Lean.Verify.InductiveRestorationConstructors
 import Lean4Lean.Verify.InductiveNestedArity

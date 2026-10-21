@@ -25,7 +25,7 @@ inductive AcceptedConstructorTrace (stats : InductiveStats) (isUnsafe : Bool) (p
   | field
       (notParameter : stats.params[index]? = none)
       (domainChecked : (monadLift (TypeChecker.ensureType domain) : M Expr) reader = .ok sort)
-      (universeAccepted : (stats.resultLevel.isZero || stats.resultLevel.geq' sort.sortLevel!) = true)
+      (universeAccepted : (stats.resultLevel.isAlwaysZero || stats.resultLevel.geq' sort.sortLevel!) = true)
       (positive : isUnsafe = false → PositivityTrace stats PositivityWHNF reader domain)
       (tail : AcceptedConstructorTrace stats isUnsafe parent (reader.withPositivityArg name domain binder)
         (index + 1) (Expr.instantiate1 body (.fvar ⟨reader.ngen.curr⟩)) finalReader finalIndex terminal) :
@@ -87,10 +87,10 @@ theorem checkConstructors.loop.acceptedTrace (stats : InductiveStats) (isUnsafe 
         apply bindHeaderResultWF
         intro equal accepted
         split
-        · apply Lean4Lean.AddInductive.bindWF
-          intro _
-          have same : equal = true := by simpa using ‹equal = true›
+        · have same : equal = true := by simpa using ‹equal = true›
           subst equal
+          change (checkConstructors.loop stats isUnsafe parent constructor
+            (body.instantiate1 parameter) (index + 1) fuel reader).WF _
           refine (induction (body.instantiate1 parameter) (index + 1) reader).mono ?_
           rintro _ ⟨finalReader, finalIndex, terminal, tail⟩
           exact ⟨_, _, _, .parameter selected (storedType := storedType) accepted tail⟩
@@ -185,8 +185,7 @@ theorem checkConstructors.acceptedTraces (types : Array InductiveType)
       dsimp only
       split
       · exact Except.WF.throw
-      · simp only [pure_bind]
-        apply bindHeaderResultWF
+      · apply bindHeaderResultWF
         intro guarded sourceGuard
         have sourceGuard : reader.env.checkNoMVarNoFVar constructor.name constructor.type = .ok () :=
           sourceGuard
@@ -228,7 +227,7 @@ inductive CheckedConstructorDomainReceipts (env : VEnv) (universes : List Name) 
   | field
       (notParameter : stats.params[index]? = none)
       (domainChecked : (monadLift (TypeChecker.ensureType domain) : M Expr) reader = .ok sort)
-      (universeAccepted : (stats.resultLevel.isZero || stats.resultLevel.geq' sort.sortLevel!) = true)
+      (universeAccepted : (stats.resultLevel.isAlwaysZero || stats.resultLevel.geq' sort.sortLevel!) = true)
       (positive : isUnsafe = false → PositivityTrace stats PositivityWHNF reader domain)
       {trace : AcceptedConstructorTrace stats isUnsafe parent (reader.withPositivityArg name domain binder)
         (index + 1) (Expr.instantiate1 body (.fvar ⟨reader.ngen.curr⟩)) finalReader finalIndex terminal}

@@ -15,7 +15,8 @@ theorem isDefEqLambda.WF {c : VContext} {s : VState}
     RecM.WF (c.withMLC m) s (isDefEqLambda e₁ e₂ subst) fun b _ =>
       b → (c.withMLC m).IsDefEqU ei₁' ei₂' := by
   unfold isDefEqLambda; let c' := c.withMLC m
-  split <;> [rename_i n₁ d₁ b₁ bi₁ n₂ d₂ b₂ bi₂; (simp [hsubst]; exact isDefEq.WF he₁ he₂)]
+  have hmany (expression : Expr) (depth : Nat) := Expr.instantiateMany_eq_instantiateList expression fvs depth hclosed
+  split <;> [rename_i n₁ d₁ b₁ bi₁ n₂ d₂ b₂ bi₂; (simp [hsubst, hmany]; exact isDefEq.WF he₁ he₂)]
   extract_lets F di₁ di₂; unfold di₁ di₂
   simp at he₁ he₂
   let .lam (ty' := t₁') (body' := b₁') ⟨_, a1⟩ a2 a3 := he₁
@@ -88,7 +89,8 @@ theorem isDefEqForall.WF {c : VContext} {s : VState}
     RecM.WF (c.withMLC m) s (isDefEqForall e₁ e₂ subst) fun b _ =>
       b → (c.withMLC m).IsDefEqU ei₁' ei₂' := by
   unfold isDefEqForall; let c' := c.withMLC m
-  split <;> [rename_i n₁ d₁ b₁ bi₁ n₂ d₂ b₂ bi₂; (simp [hsubst]; exact isDefEq.WF he₁ he₂)]
+  have hmany (expression : Expr) (depth : Nat) := Expr.instantiateMany_eq_instantiateList expression fvs depth hclosed
+  split <;> [rename_i n₁ d₁ b₁ bi₁ n₂ d₂ b₂ bi₂; (simp [hsubst, hmany]; exact isDefEq.WF he₁ he₂)]
   extract_lets F di₁ di₂; unfold di₁ di₂
   simp at he₁ he₂
   let .forallE (ty' := t₁') (body' := b₁') ⟨_, a1⟩ _ a2 a3 := he₁
@@ -376,7 +378,7 @@ theorem lazyDeltaReductionStep.WF {c : VContext} {s : VState}
     have .const a1 a2 a3 := h3 ▸ stk.tr
     have ⟨b1, b2, b3, b4⟩ := c.trenv.find?_uniq h1 a1
     refine (unfoldDefinition.WF he).bind fun oe _ _ H => ?_
-    obtain _ | e' := oe; · cases H h1 hs h2 h3 (a3.trans b3.symm)
+    obtain _ | e' := oe; · cases H h1 h2 h3 (a3.trans b3.symm)
     have ⟨_, _, c1, c2⟩ := H
     exact (whnfCore.WF c1).mono fun x _ _ h => h.2.defeq c.Ewf c.Δwf c2
   have hcont {s e₁ e₂} (he₁ : c.TrExpr e₁ e₁') (he₂ : c.TrExpr e₂ e₂') :

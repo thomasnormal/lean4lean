@@ -208,7 +208,7 @@ probe, so its `args` and branches mention fvars that do not exist at `c`. A `c`-
 could not be transported to them, since weakening moves a fixed term into a bigger context and
 these terms are not in the smaller one. The burden lands on `Condition.check.WF`, which has it
 either way: the pieces it supplies itself (`cnd.prop`, `cnd.dec`) are closed by `Condition.OK`,
-so `TrExprS.weakFV_inv` and `TrExprS.of_nil` move them to any context.
+so checked witness instantiation and `TrExprS.of_nil` move them to any context.
 
 The sort of `α` is asked for only when `natOnly` is false, and that is not a convenience. Nothing
 in the model pins `Nat`'s universe: `HasPrimitives` records that the constructors are present,
@@ -319,11 +319,9 @@ theorem noProj.isUnique {e : Expr} : noProj e → TrExprS.IsUnique e := by
 /-- The side conditions the checks carry on every piece of the condition: no free variables
 outside the context, which is what `checkType` demands, and no loose bound variables.
 
-The second is not decoration. In the `reflectNatNat` case `checkType` is run on `e`, which has
-`cond.prop` under two `Nat` binders, and `inferType cond.prop` then runs back down in the
-context the check started in; bringing the translation down is `TrExprS.weakFV_inv`, whose
-`Closed e dk` hypothesis is exactly this. Every `Condition` the checker uses is a closed
-constant, so both are discharged by computation at each call site. -/
+In the `reflectNatNat` case `checkType` reads `cond.prop` under two `Nat` binders.
+Closed source syntax lets typed instantiation at zero leave that piece unchanged.
+Every `Condition` used by the checker discharges these conditions by computation. -/
 def CondOK (e : Expr) : Bool :=
   !e.hasFVar' && !e.hasLevelMVar' && !e.hasExprMVar' && e.looseBVarRange' == 0 && noProj e
 
@@ -479,6 +477,142 @@ theorem noProj_toConstructor : ∀ {l : Literal}, noProj l.toConstructor
     simp only [Literal.toConstructor, Expr.strLitToConstructor, noProj]
     induction s.toList <;> simp [noProj, *]
 
+theorem noProj_liftLooseBVars (e : Expr) (cutoff amount : Nat) :
+    noProj (e.liftLooseBVars' cutoff amount) = noProj e := by
+  induction e generalizing cutoff <;> simp [Expr.liftLooseBVars', noProj, *]
+
+/-- Forward transport for projection-free translations needs no projection rule. -/
+theorem TrExprS.weakBV_noProj (henv : env.Ordered)
+    (W : VLCtx.BVLift Δ Δ' dn dk n k) (H : TrExprS env Us Δ e e') (hu : noProj e) :
+    TrExprS env Us Δ' (e.liftLooseBVars' dk dn) (e'.liftN n k) := by
+  induction H generalizing Δ' dk k with
+  | bvar h => exact .bvar (W.find? h)
+  | fvar h => exact .fvar (W.find? h)
+  | sort h => exact .sort h
+  | const h1 h2 h3 => exact .const h1 h2 h3
+  | app h1 h2 _ _ ih1 ih2 =>
+    simp only [noProj, Bool.and_eq_true] at hu
+    exact .app (h1.weakN henv W.toCtx) (h2.weakN henv W.toCtx) (ih1 W hu.1) (ih2 W hu.2)
+  | lam h _ _ ih1 ih2 =>
+    simp only [noProj, Bool.and_eq_true] at hu
+    exact .lam (h.weakN henv W.toCtx) (ih1 W hu.1) (ih2 (W.cons _) hu.2)
+  | forallE h1 h2 _ _ ih1 ih2 =>
+    simp only [noProj, Bool.and_eq_true] at hu
+    exact .forallE (h1.weakN henv W.toCtx) (h2.weakN henv W.toCtx.succ)
+      (ih1 W hu.1) (ih2 (W.cons _) hu.2)
+  | letE h _ _ _ ih1 ih2 ih3 =>
+    simp only [noProj, Bool.and_eq_true] at hu
+    exact .letE (h.weakN henv W.toCtx) (ih1 W hu.1.1) (ih2 W hu.1.2) (ih3 (W.cons _) hu.2)
+  | lit h _ ih =>
+    refine .lit h (Expr.liftLooseBVars_eq_self ?_ ▸ ih W noProj_toConstructor :)
+    exact Closed.toConstructor.looseBVarRange_le
+  | mdata _ ih => exact .mdata (ih W hu)
+  | proj => simp [noProj] at hu
+
+variable! (henv : env.Ordered) (h₀ : TrExprS env Us Δ₀ e₀ e₀') (hu₀ : noProj e₀) in
+theorem TrExprS.instN_var_noProj (W : VLCtx.InstN Δ₀ e₀' A₀ dk k Δ₁ Δ) (H : Δ₁.find? v = some (e', A)) :
+    TrExprS env Us Δ (Expr.instantiate1' (VLCtx.varToExpr v) e₀ dk) (e'.inst e₀' k) := by
+  induction W generalizing v e' A with
+  | zero =>
+    obtain (_|i)|fv := v <;> simp [VLCtx.varToExpr, Expr.instantiate1', Expr.liftLooseBVars_zero]
+    · cases H; simp [VLocalDecl.value, VExpr.inst]; exact h₀
+    · simp [VLCtx.find?, VLCtx.next] at H
+      obtain ⟨e, A, H, rfl, rfl⟩ := H
+      simp [VLocalDecl.depth, VExpr.inst_liftN]
+      exact .bvar H
+    · simp [VLCtx.find?, VLCtx.next] at H
+      obtain ⟨e, A, H, rfl, rfl⟩ := H
+      simp [VLocalDecl.depth, VExpr.inst_liftN]
+      exact .fvar H
+  | @succ _ k _ _ d _ ih =>
+    obtain (_|i)|fv := v <;> simp [VLCtx.varToExpr, Expr.instantiate1']
+    · cases H
+      cases d <;> exact .bvar <| by simp [VLocalDecl.value, VExpr.inst, VLocalDecl.depth]; rfl
+    · simp [VLCtx.find?, VLCtx.next] at H
+      obtain ⟨e, A, H, rfl, rfl⟩ := H
+      have := ih H; revert this
+      simp [VLCtx.varToExpr, Expr.instantiate1']; split <;> [skip; split]
+      · intro | .bvar h => ?_
+        exact .bvar <| by
+          simp [VLCtx.find?, VLCtx.next]
+          refine ⟨_, _, h, ?_, rfl⟩
+          cases d <;> simp [VLocalDecl.depth, VLocalDecl.inst, VExpr.lift_instN_lo]
+      · intro H
+        have := Expr.liftLooseBVars_add ▸ TrExprS.weakBV_noProj henv (.skip (d.inst e₀' k) .refl) H
+          (by simpa only [noProj_liftLooseBVars] using hu₀)
+        cases d <;> simpa [← VExpr.lift_instN_lo, VExpr.liftN_zero,
+          VLocalDecl.inst, VLocalDecl.depth] using this
+      · obtain _|i := i; · omega
+        intro | .bvar h => ?_
+        exact .bvar <| by
+          simp [VLCtx.find?, VLCtx.next]
+          refine ⟨_, _, h, ?_, rfl⟩
+          cases d <;> simp [VLocalDecl.depth, VLocalDecl.inst, VExpr.lift_instN_lo]
+    · simp [VLCtx.find?, VLCtx.next] at H
+      obtain ⟨e, A, H, rfl, rfl⟩ := H
+      have .fvar h := ih H
+      exact .fvar <| by
+        simp [VLCtx.find?, VLCtx.next]
+        refine ⟨_, _, h, ?_, rfl⟩
+        cases d <;> simp [VLocalDecl.depth, VLocalDecl.inst, VExpr.lift_instN_lo]
+
+/-- Typed native substitution on projection-free syntax and witnesses. -/
+theorem TrExprS.instN_noProj (henv : env.Ordered)
+    (h₀ : TrExprS env Us Δ₀ e₀ e₀') (hu₀ : noProj e₀)
+    (t₀ : env.HasType Us.length Δ₀.toCtx e₀' A₀)
+    (W : VLCtx.InstN Δ₀ e₀' A₀ dk k Δ₁ Δ) (H : TrExprS env Us Δ₁ e e') (hu : noProj e) :
+    TrExprS env Us Δ (Expr.instantiate1' e e₀ dk) (e'.inst e₀' k) := by
+  induction H generalizing Δ dk k with
+  | bvar h | fvar h => exact instN_var_noProj henv h₀ hu₀ W h
+  | sort h => exact .sort h
+  | const h1 h2 h3 => exact .const h1 h2 h3
+  | app h1 h2 _ _ ih1 ih2 =>
+    simp only [noProj, Bool.and_eq_true] at hu
+    exact .app (h1.instN henv W.toCtx t₀) (h2.instN henv W.toCtx t₀) (ih1 W hu.1) (ih2 W hu.2)
+  | lam h _ _ ih1 ih2 =>
+    simp only [noProj, Bool.and_eq_true] at hu
+    exact .lam (h.instN henv W.toCtx t₀) (ih1 W hu.1) (ih2 (W.succ (d := .vlam _)) hu.2)
+  | forallE h1 h2 _ _ ih1 ih2 =>
+    simp only [noProj, Bool.and_eq_true] at hu
+    exact .forallE (h1.instN henv W.toCtx t₀) (h2.instN henv W.toCtx.succ t₀)
+      (ih1 W hu.1) (ih2 (W.succ (d := .vlam _)) hu.2)
+  | letE h _ _ _ ih1 ih2 ih3 =>
+    simp only [noProj, Bool.and_eq_true] at hu
+    exact .letE (h.instN henv W.toCtx t₀) (ih1 W hu.1.1) (ih2 W hu.1.2)
+      (ih3 (W.succ (d := .vlet ..)) hu.2)
+  | lit h _ ih =>
+    refine .lit h (Expr.instantiate1'_eq_self ?_ ▸ ih W noProj_toConstructor :)
+    exact Closed.toConstructor.looseBVarRange_le
+  | mdata _ ih => exact .mdata (ih W hu)
+  | proj => simp [noProj] at hu
+
+/-- Well-formedness of projection-free translations uses only typing and lookup. -/
+theorem TrExprS.wf_noProj (henv : env.Ordered) (hΔ : VLCtx.WF env Us.length Δ)
+    (H : TrExprS env Us Δ e e') (hu : noProj e) : VExpr.WF env Us.length Δ.toCtx e' := by
+  induction H with
+  | bvar h | fvar h => exact ⟨_, hΔ.find?_wf henv h⟩
+  | sort h => exact ⟨_, VEnv.HasType.sort (.of_ofLevel h)⟩
+  | const h1 h2 h3 => exact ⟨_, VEnv.HasType.const h1 (.of_mapM_ofLevel h2)
+      ((List.mapM_eq_some.1 h2).length_eq.symm.trans h3)⟩
+  | app h1 h2 => exact ⟨_, h1.app h2⟩
+  | lam h _ _ _ ih =>
+    simp only [noProj, Bool.and_eq_true] at hu
+    have ⟨_, ht⟩ := h
+    obtain ⟨_, hb⟩ := ih ⟨hΔ, nofun, h⟩ hu.2
+    exact ⟨_, ht.lam hb⟩
+  | forallE h1 h2 => obtain ⟨_, h1⟩ := h1; obtain ⟨_, h2⟩ := h2; exact ⟨_, h1.forallE h2⟩
+  | letE h _ _ _ _ _ ih =>
+    simp only [noProj, Bool.and_eq_true] at hu
+    exact ih ⟨hΔ, nofun, h⟩ hu.2
+  | lit _ _ ih => exact ih hΔ noProj_toConstructor
+  | mdata _ ih => exact ih hΔ hu
+  | proj => simp [noProj] at hu
+
+theorem TrExprS.closedN_nil_noProj (henv : env.Ordered)
+    (H : TrExprS env Us [] e e') (hu : noProj e) : e'.ClosedN := by
+  obtain ⟨_, typed⟩ := TrExprS.wf_noProj henv (show VLCtx.WF env Us.length [] from trivial) H hu
+  exact (typed.closedN' henv.closed trivial).1
+
 /-- A translation survives binders appended on the right. `noProj` only to sidestep `proj`, whose
 `TrProj` side condition would have to be transported too; every closed piece a `Condition` carries
 is projection-free by `CondOK`. -/
@@ -534,7 +668,9 @@ The prefix `pre` is what the term's *own* binders push, so it is shared by the t
 shape is never inspected: a lookup either lands in it, and then agrees on both sides, or the term
 was not closed. What does have to travel is the typing side conditions, which live at the wider
 context; they come down by `weakN_iff`, which needs the subterm closed, so closedness is proved
-in the same induction. The types those side conditions carry are *not* preserved, and need not
+in the same induction. This legacy contract still depends on general semantic strengthening;
+the actual gadget below instead supplies checked witnesses. The types those side conditions
+carry are *not* preserved, and need not
 be -- `TrExprS` quantifies them existentially, so re-deriving some type at the narrower context
 is enough, which `app_inv`/`lam_inv` do from the node's own well-formedness. -/
 theorem TrExprS.ofClosed {env : VEnv} {Us : List Name} (henv : VEnv.WF env) {Δ : VLCtx} :
@@ -2105,6 +2241,17 @@ def Condition.check.gadgetV (type' toDec' prop' asBool' proof' : VExpr) : VExpr 
       [(prop'.app (.bvar 1)).app (.bvar 0), (asBool'.app (.bvar 1)).app (.bvar 0),
         (proof'.app (.bvar 1)).app (.bvar 0)])
 
+/-- Instantiate an unused anonymous binder at a checked closed witness. Ported from
+upstream draft PR #53 (5a8c0d5); no general strengthening is used. -/
+theorem TrExprS.peel_outer {env : VEnv} {Us : List Name} {x e₀ : Expr} {u e₀' A : VExpr}
+    (henv : env.Ordered) (hx : x.looseBVarRange' = 0)
+    (h₀ : TrExprS env Us [] e₀ e₀') (t₀ : env.HasType Us.length [] e₀' A)
+    {Δ₁ Δ : VLCtx} {dk k : Nat} (W : VLCtx.InstN [] e₀' A dk k Δ₁ Δ)
+    (H : TrExprS env Us Δ₁ x u) (hu : noProj x) (hu₀ : noProj e₀) :
+    TrExprS env Us Δ x (u.inst e₀' k) := by
+  have := TrExprS.instN_noProj henv h₀ hu₀ t₀ W H hu
+  rwa [Expr.instantiate1'_eq_self (by omega)] at this
+
 /-- The typing half of `gadget_pieces`, with the gadget's shape spelled out. Two things come out
 of `checkType e`, and both are read off the redex: the three arguments are checked against
 binders that name `Prop`, `Bool` and `type p b`, which types them; and the redex beta-reduces,
@@ -2112,10 +2259,13 @@ which is what makes the gadget the decision procedure the `e ≡ dec` check comp
 
 The typings are proved under the gadget's own two `Nat` binders and moved to the consumer's
 arguments by `genTeleT`; the inner beta step likewise travels by `genTele`, while the outer one
-is done at the consumer's context directly, since that is where its argument typings live. -/
-theorem Condition.check.gadget_types {c : VContext}
+is done at the consumer's context directly, since that is where its argument typings live.
+The three argument typings are available before `toDec'` is known closed; only
+the final beta equation takes that premise. This ordering follows upstream draft
+PR #53 (5a8c0d5) and lets the checked arguments inhabit the dependent binders. -/
+theorem Condition.check.gadget_types_of_closed_decision {c : VContext}
     {type' toDec' prop' asBool' proof' eTy' : VExpr} (hnat : c.venv.contains ``Nat)
-    (htypeC : type'.ClosedN) (htoDecC : toDec'.ClosedN)
+    (htypeC : type'.ClosedN)
     (hpropC : prop'.ClosedN) (habC : asBool'.ClosedN) (hpfC : proof'.ClosedN)
     (hT : c.venv.HasType c.lparams.length []
       (Condition.check.gadgetV type' toDec' prop' asBool' proof') eTy') :
@@ -2126,13 +2276,12 @@ theorem Condition.check.gadget_types {c : VContext}
       E.venv.HasType c.lparams.length Γ ((asBool'.app x).app y) .bool ∧
       E.venv.HasType c.lparams.length Γ ((proof'.app x).app y)
         ((type'.app ((prop'.app x).app y)).app ((asBool'.app x).app y)) ∧
-      E.venv.IsDefEqU c.lparams.length Γ
+      (toDec'.ClosedN → E.venv.IsDefEqU c.lparams.length Γ
         (((Condition.check.gadgetV type' toDec' prop' asBool' proof').app x).app y)
         (((toDec'.app ((prop'.app x).app y)).app ((asBool'.app x).app y)).app
-          ((proof'.app x).app y)) := by
+          ((proof'.app x).app y))) := by
   -- closedness of everything in sight, at whatever depth it is met
   have htc k : type'.ClosedN k := htypeC.mono (Nat.zero_le _)
-  have htdc k : toDec'.ClosedN k := htoDecC.mono (Nat.zero_le _)
   have hpc k : prop'.ClosedN k := hpropC.mono (Nat.zero_le _)
   have hac k : asBool'.ClosedN k := habC.mono (Nat.zero_le _)
   have hfc k : proof'.ClosedN k := hpfC.mono (Nat.zero_le _)
@@ -2167,17 +2316,6 @@ theorem Condition.check.gadget_types {c : VContext}
   simp [VExpr.inst, VExpr.instVar, VExpr.inst_lift, htypeC.instN_eq (Nat.zero_le _)] at hstep2
   obtain ⟨⟨_, hdom3⟩, -⟩ := (hf₃.uniqU c.Ewf hΓ2 hstep2).forallE_inv c.Ewf hΓ2
   have hpfT := VEnv.HasType.defeqU_r c.Ewf hΓ2 ⟨_, hdom3⟩ ha₃
-  -- the inner beta step, where the redex lives
-  have hargs3 : VExpr.ArgsTyped c.venv c.lparams.length (VExpr.nat :: VExpr.nat :: [])
-      [.sort .zero, .bool, (type'.app (.bvar 1)).app (.bvar 0)] .id
-      [(prop'.app (.bvar 1)).app (.bvar 0), (asBool'.app (.bvar 1)).app (.bvar 0),
-        (proof'.app (.bvar 1)).app (.bvar 0)] := by
-    refine .cons (by simpa using hpT) (.cons (by simpa using hbT) (.cons ?_ .nil))
-    simpa [VExpr.Subst.cons, VExpr.Subst.id, htypeC.subst_eq'] using hpfT
-  have hbetaIn := (VExpr.lams_appN' c.Ewf hΓ2 (by simpa using hΓH) (.id c.Ewf hΓ2) hargs3 ⟨_, hLb3⟩).2
-  simp only [VExpr.subst_id] at hbetaIn
-  simp only [VExpr.subst, VExpr.Subst.consN, VExpr.Subst.cons, VExpr.Subst.id,
-    htoDecC.subst_eq'] at hbetaIn
   -- and now at the consumer's own context and arguments
   intro E Γ hΓ x y hxT hyT
   have hnatIT {Γ'} (h : OnCtx Γ' (c.venv.IsType c.lparams.length)) :
@@ -2194,7 +2332,7 @@ theorem Condition.check.gadget_types {c : VContext}
       E.venv.HasType c.lparams.length Γ (X.subst ((VExpr.Subst.id.cons x).cons y))
         (A.subst ((VExpr.Subst.id.cons x).cons y)) :=
     Reflection.WF.genTeleT E (As := [.nat, .nat]) (by simpa using hAs) hX hXc hAc hΓ hargs2
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, fun htoDecC => ?_⟩
   · simpa [VExpr.subst, VExpr.Subst.cons, VExpr.Subst.id, hpropC.subst_eq'] using
       gen hpT (hcl2 hpc) trivial
   · simpa [VExpr.subst, VExpr.Subst.cons, VExpr.Subst.id, habC.subst_eq'] using
@@ -2202,6 +2340,18 @@ theorem Condition.check.gadget_types {c : VContext}
   · simpa [VExpr.subst, VExpr.Subst.cons, VExpr.Subst.id, hpfC.subst_eq', hpropC.subst_eq',
       habC.subst_eq', htypeC.subst_eq'] using
       gen hpfT (hcl2 hfc) ⟨⟨htc 2, hcl2 hpc⟩, hcl2 hac⟩
+  have htdc k : toDec'.ClosedN k := htoDecC.mono (Nat.zero_le _)
+  -- the inner beta step, where the redex lives
+  have hargs3 : VExpr.ArgsTyped c.venv c.lparams.length (VExpr.nat :: VExpr.nat :: [])
+      [.sort .zero, .bool, (type'.app (.bvar 1)).app (.bvar 0)] .id
+      [(prop'.app (.bvar 1)).app (.bvar 0), (asBool'.app (.bvar 1)).app (.bvar 0),
+        (proof'.app (.bvar 1)).app (.bvar 0)] := by
+    refine .cons (by simpa using hpT) (.cons (by simpa using hbT) (.cons ?_ .nil))
+    simpa [VExpr.Subst.cons, VExpr.Subst.id, htypeC.subst_eq'] using hpfT
+  have hbetaIn := (VExpr.lams_appN' c.Ewf hΓ2 (by simpa using hΓH) (.id c.Ewf hΓ2) hargs3 ⟨_, hLb3⟩).2
+  simp only [VExpr.subst_id] at hbetaIn
+  simp only [VExpr.subst, VExpr.Subst.consN, VExpr.Subst.cons, VExpr.Subst.id,
+    htoDecC.subst_eq'] at hbetaIn
   -- the outer beta step, then the inner one moved here by `genTele`
   have heTΓ : E.venv.HasType c.lparams.length Γ _ eTy' := (E.monoT hT).weak0 (Γ := Γ) E.wf.ordered
   obtain ⟨hΓg1, hbg1⟩ := VExpr.WF.lam_inv' E.wf hΓ ⟨_, heTΓ⟩
@@ -2219,15 +2369,37 @@ theorem Condition.check.gadget_types {c : VContext}
     habC.subst_eq', hpfC.subst_eq'] at hbetaOut hbetaIn' ⊢
   exact VEnv.IsDefEqU.trans E.wf hΓ hbetaOut hbetaIn'
 
+theorem Condition.check.gadget_types {c : VContext}
+    {type' toDec' prop' asBool' proof' eTy' : VExpr} (hnat : c.venv.contains ``Nat)
+    (htypeC : type'.ClosedN) (htoDecC : toDec'.ClosedN)
+    (hpropC : prop'.ClosedN) (habC : asBool'.ClosedN) (hpfC : proof'.ClosedN)
+    (hT : c.venv.HasType c.lparams.length []
+      (Condition.check.gadgetV type' toDec' prop' asBool' proof') eTy') :
+    ∀ (E : c.Ext) ⦃Γ : List VExpr⦄, OnCtx Γ (E.venv.IsType c.lparams.length) →
+      ∀ {x y : VExpr}, E.venv.HasType c.lparams.length Γ x .nat →
+      E.venv.HasType c.lparams.length Γ y .nat →
+      E.venv.HasType c.lparams.length Γ ((prop'.app x).app y) (.sort .zero) ∧
+      E.venv.HasType c.lparams.length Γ ((asBool'.app x).app y) .bool ∧
+      E.venv.HasType c.lparams.length Γ ((proof'.app x).app y)
+        ((type'.app ((prop'.app x).app y)).app ((asBool'.app x).app y)) ∧
+      E.venv.IsDefEqU c.lparams.length Γ
+        (((Condition.check.gadgetV type' toDec' prop' asBool' proof').app x).app y)
+        (((toDec'.app ((prop'.app x).app y)).app ((asBool'.app x).app y)).app
+          ((proof'.app x).app y)) := by
+  intro E Γ hΓ x y hx hy
+  have h := gadget_types_of_closed_decision hnat htypeC hpropC habC hpfC hT E hΓ hx hy
+  exact ⟨h.1, h.2.1, h.2.2.1, h.2.2.2 htoDecC⟩
+
 /-- The whole content of `checkType e`, for the gadget
 
     e = fun x y : Nat => (fun (p : Prop) (b : Bool) (H : type p b) => toDec p b H)
           (prop x y) (asBool x y) (proof x y)
 
-*Its translation* determines the three pieces': they are read under the gadget's two `Nat`
-binders, and `TrExprS.ofClosed` brings those readings down to `[]`, where the rest of the
-development lives. So `Condition.check` needs no check of its own for `prop`, `asBool` or
-`proof` -- reading them is what the gadget already does.
+*Its translation* determines the closed pieces. Following upstream draft PR #53
+(5a8c0d5), instantiate both `Nat` binders at zero, then instantiate the three
+dependent binders at the gadget's own checked arguments at zero. The original
+model expressions agree by projection-free translation uniqueness. No arbitrary
+context strengthening or additional check of a piece is needed.
 
 *Its typing* determines their types. That is what the beta-redex is for: the arguments are
 checked against binders that name `Prop`, `Bool` and `type p b`, so a gadget that type checks at
@@ -2269,23 +2441,24 @@ theorem Condition.check.gadget_pieces {c : VContext} {prop asBool proof : Expr} 
       ∀ {Δ : VLCtx} {u}, TrExprS c.venv c.lparams Δ x u → u = v := by
     intro x v hx hv Δ u hu
     exact TrExprS.of_nil_unique c.Ewf (CondOK.noProj hx) (by rw [← hnil]; exact hv) hu
-  -- a closed piece is read the same way at `[]` as it is under the gadget's binders. This is
-  -- what makes a check of `toDec` unnecessary: `checkType e` reads it, five binders deep, and
-  -- `ofClosed` is what brings that reading back to where everything else lives.
-  have desc {Δ₀ x u} (hx : CondOK x) (hu : TrExprS c.venv c.lparams Δ₀ x u)
-      (hΔ : OnCtx Δ₀.toCtx (c.venv.IsType c.lparams.length))
-      (hwf : VExpr.WF c.venv c.lparams.length Δ₀.toCtx u) :
-      u.ClosedN ∧ TrExprS c.venv c.lparams [] x u :=
-    TrExprS.ofClosed (Δ := Δ₀) c.Ewf (pre := []) hu rfl (CondOK.noProj hx)
-      (CondOK.closed hx) (CondOK.fvarsIn hx) trivial
-      (by intro v x A hv; simp [VLCtx.find?] at hv) (by simpa using hΔ) (by simpa using hwf)
   have htypeT : c.venv.HasType c.lparams.length [] w.type'
       vexpr(Prop → Bool → Prop) := by
     have h : c.venv.HasType c.lparams.length c.vlctx.toCtx w.type' _ := w.typeT
     rw [show c.vlctx.toCtx = [] from by rw [hnil]; rfl] at h; exact h
   have htypeC : w.type'.ClosedN := (htypeT.closedN' c.Ewf.ordered.closed trivial).1
-  -- the gadget's translation, piece by piece, keeping each binder's and each application's own
-  -- side conditions: they are what `desc` runs on
+  -- A piece read under the gadget's two `Nat` binders: both are inhabited by `Nat.zero` at `[]`,
+  -- and instantiating them leaves the closed piece alone, so its reading there is a `[]` reading.
+  obtain ⟨hz, hzT⟩ := TrExprS.natZero (Us := c.lparams) (Δ := []) c.hasPrimitives hnat
+  have descNat {x u} (hx : CondOK x)
+      (hu : TrExprS c.venv c.lparams [(none, .vlam .nat), (none, .vlam .nat)] x u) :
+      u.ClosedN ∧ TrExprS c.venv c.lparams [] x u := by
+    have h1 := TrExprS.peel_outer c.Ewf.ordered (CondOK.looseBVarRange hx) hz hzT
+      (.succ (d := .vlam .nat) .zero) hu (CondOK.noProj hx) rfl
+    simp only [VLocalDecl.inst, VLocalDecl.depth, VExpr.inst, VExpr.nat, Nat.zero_add] at h1
+    have h2 := TrExprS.peel_outer c.Ewf.ordered (CondOK.looseBVarRange hx) hz hzT .zero h1 (CondOK.noProj hx) rfl
+    rw [← TrExprS.of_nil_unique c.Ewf.ordered (CondOK.noProj hx) h2 hu] at h2
+    exact ⟨TrExprS.closedN_nil_noProj c.Ewf.ordered h2 (CondOK.noProj hx), h2⟩
+  -- the gadget's translation, piece by piece
   simp only [Expr.lam0, mkApp3, mkApp2, mkApp] at H
   cases H with | lam hI1 hd1 H
   obtain ⟨rfl, -⟩ := hd1.const0_inv (Us' := c.lparams) (Δ' := c.vlctx)
@@ -2340,13 +2513,53 @@ theorem Condition.check.gadget_pieces {c : VContext} {prop asBool proof : Expr} 
   obtain ⟨rfl, -⟩ := h1; obtain ⟨rfl, -⟩ := h2; obtain ⟨rfl, -⟩ := h3
   obtain ⟨rfl, -⟩ := h4; obtain ⟨rfl, -⟩ := h5; obtain ⟨rfl, -⟩ := h6
   -- every piece, brought down to `[]`
-  obtain ⟨hpropC, hpropTr⟩ := desc hpropOK hprc hΓ2 ⟨_, hprT⟩
-  obtain ⟨habC, habTr⟩ := desc hasBoolOK habc hΓ2 ⟨_, habT⟩
-  obtain ⟨hpfC, hpfTr⟩ := desc hproofOK hpfc hΓ2 ⟨_, hpfT⟩
-  obtain ⟨htoDecC, htoDecTr⟩ := desc htoDecOK htd
-    (show OnCtx (_ :: _ :: _ :: _) _ from ⟨⟨⟨hΓ2, hI3⟩, hI4⟩, hI5⟩) ⟨_, htdT⟩
-  exact ⟨_, _, _, _, hpropTr, habTr, hpfTr, htoDecTr, hpropC, habC, hpfC, htoDecC,
-    Condition.check.gadget_types hnat htypeC htoDecC hpropC habC hpfC hT⟩
+  obtain ⟨hpropC, hpropTr⟩ := descNat hpropOK hprc
+  obtain ⟨habC, habTr⟩ := descNat hasBoolOK habc
+  obtain ⟨hpfC, hpfTr⟩ := descNat hproofOK hpfc
+  -- `toDec` is read under all five binders. The two `Nat`s are inhabited by `Nat.zero` again, and
+  -- the other three by the gadget's own arguments there, which the gadget's typing types; they
+  -- are substituted outermost first, so that each inhabitant is closed and typed at `[]`
+  obtain ⟨hPT, hBT, hHT, -⟩ := Condition.check.gadget_types_of_closed_decision hnat htypeC hpropC habC hpfC hT
+    c.self (Γ := []) trivial hzT hzT
+  have hz0 := TrExprS.peel_outer c.Ewf.ordered (CondOK.looseBVarRange htoDecOK) hz hzT
+    (.succ (d := .vlam _) (.succ (d := .vlam .bool) (.succ (d := .vlam (.sort .zero))
+      (.succ (d := .vlam .nat) .zero)))) htd (CondOK.noProj htoDecOK) rfl
+  simp [VLocalDecl.inst, VLocalDecl.depth, VExpr.inst, VExpr.instVar, VExpr.liftN, liftVar,
+    htypeC.instN_eq (Nat.zero_le _), VExpr.nat, VExpr.bool] at hz0
+  have hz1 := TrExprS.peel_outer c.Ewf.ordered (CondOK.looseBVarRange htoDecOK) hz hzT
+    (.succ (d := .vlam _) (.succ (d := .vlam .bool) (.succ (d := .vlam (.sort .zero)) .zero))) hz0 (CondOK.noProj htoDecOK) rfl
+  simp [VLocalDecl.inst, VLocalDecl.depth, VExpr.inst, VExpr.instVar,
+    htypeC.instN_eq (Nat.zero_le _), VExpr.bool] at hz1
+  -- a piece at `Nat.zero, Nat.zero`, translated at `[]`
+  have tr2 {x : Expr} {x' T : VExpr} (hx : TrExprS c.venv c.lparams [] x x')
+      (hT : c.venv.HasType c.lparams.length [] ((x'.app .natZero).app .natZero) T) :
+      TrExprS c.venv c.lparams [] ((x.app .natZero).app .natZero)
+        ((x'.app (.const ``Nat.zero [])).app (.const ``Nat.zero [])) := by
+    obtain ⟨_, _, hf, ha⟩ := VExpr.WF.app_inv c.Ewf (Γ := []) trivial ⟨_, hT⟩
+    obtain ⟨_, _, hf2, ha2⟩ := VExpr.WF.app_inv c.Ewf (Γ := []) trivial ⟨_, hf⟩
+    exact .app hf ha (.app hf2 ha2 hx hz) hz
+  -- `p := prop 0 0`, `b := asBool 0 0`, `H := proof 0 0`
+  have hz2 := TrExprS.peel_outer c.Ewf.ordered (CondOK.looseBVarRange htoDecOK)
+    (tr2 hpropTr hPT) hPT (.succ (d := .vlam _) (.succ (d := .vlam (.const ``Bool [])) .zero)) hz1
+    (CondOK.noProj htoDecOK) (by simpa [noProj, Expr.natZero] using CondOK.noProj hpropOK)
+  simp [VLocalDecl.inst, VLocalDecl.depth, VExpr.inst, VExpr.instVar, VExpr.liftN,
+    htypeC.instN_eq (Nat.zero_le _), hpropC.liftN_eq (Nat.zero_le _), VExpr.natZero] at hz2
+  simp only [VExpr.natZero] at hBT hHT
+  have hz3 := TrExprS.peel_outer c.Ewf.ordered (CondOK.looseBVarRange htoDecOK)
+    (tr2 habTr hBT) hBT (.succ (d := .vlam _) .zero) hz2
+    (CondOK.noProj htoDecOK) (by simpa [noProj, Expr.natZero] using CondOK.noProj hasBoolOK)
+  simp [VLocalDecl.inst, VLocalDecl.depth, VExpr.inst, VExpr.instVar, VExpr.liftN,
+    htypeC.instN_eq (Nat.zero_le _), hpropC.instN_eq (Nat.zero_le _),
+    habC.liftN_eq (Nat.zero_le _)] at hz3
+  have hz4 := TrExprS.peel_outer c.Ewf.ordered (CondOK.looseBVarRange htoDecOK)
+    (tr2 hpfTr hHT) hHT .zero hz3
+    (CondOK.noProj htoDecOK) (by simpa [noProj, Expr.natZero] using CondOK.noProj hproofOK)
+  rw [← TrExprS.of_nil_unique c.Ewf.ordered (CondOK.noProj htoDecOK) hz4 htd] at hz4
+  have htoDecC := TrExprS.closedN_nil_noProj c.Ewf.ordered hz4 (CondOK.noProj htoDecOK)
+  exact ⟨_, _, _, _, hpropTr, habTr, hpfTr, hz4, hpropC, habC, hpfC, htoDecC,
+    fun E Γ hΓ x y hx hy =>
+      have h := Condition.check.gadget_types_of_closed_decision hnat htypeC hpropC habC hpfC hT E hΓ hx hy
+      ⟨h.1, h.2.1, h.2.2.1, h.2.2.2 htoDecC⟩⟩
 
 /-- Taking a checked `Condition.ite` apart: unlike `dite` there are no binders, so this is a
 plain spine inversion, and the shape it lands on is `iteApp`.

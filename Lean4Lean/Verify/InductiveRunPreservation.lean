@@ -58,7 +58,6 @@ theorem run.safeRegistration (nparams : Nat) (types : List InductiveType)
   dsimp only
   rw [hsafety]
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   apply Lean4Lean.AddInductive.bindWF
   intro _
   apply checkInductiveTypes.safeConstructorRegistration nparams types.toArray numNested _ ctx hwf
@@ -72,7 +71,6 @@ theorem run.safeRegistration (nparams : Nat) (types : List InductiveType)
   apply Lean4Lean.AddInductive.bindWF
   intro isK
   apply Lean4Lean.AddInductive.readWF
-  dsimp only
   refine (declareRecursors.preserves stats types.toArray elimLevel infos ctx.lparams lctx isK
     _ current (by simpa only [hframe.env] using hregistration.resultWF)).mono ?_
   rintro env ⟨hfinal, hkeep⟩

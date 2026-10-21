@@ -337,13 +337,44 @@ theorem Environment.addInductive.reject_of_paramArity (env : Environment)
     (lparams : List Name) (numParams : Nat) (type : InductiveType) (types : List InductiveType)
     (isUnsafe allowPrimitive : Bool) (fuel : FuelConfig)
     (hsmall : AddInductive.declareConstructors.arity 0 type.type < numParams) :
-    addInductive env lparams numParams (type :: types) isUnsafe allowPrimitive fuel =
-      (Environment.checkInductiveSources env (type :: types) >>= fun _ =>
-        .error (.other "invalid inductive datatype declaration, incorrect number of parameters")) := by
-  unfold addInductive
-  simp only [StateT.run']
-  rw [ElimNestedInductive.run.reject_of_paramArity _ _ _ _ _ _ hsmall]
-  rfl
+    addInductive env lparams numParams (type :: types) isUnsafe allowPrimitive fuel ≠ .ok result := by
+  intro hresult
+  have hadd : addInductive env lparams numParams (type :: types) isUnsafe allowPrimitive fuel =
+      (do
+        Environment.checkInductiveSources env (type :: types)
+        for indType in type :: types do
+          for ctor in indType.ctors do
+            checkNoNestedAux ctor.name ctor.type
+        Except.error (.other "invalid inductive datatype declaration, incorrect number of parameters")) := by
+    unfold addInductive
+    simp only [StateT.run']
+    rw [ElimNestedInductive.run.reject_of_paramArity _ _ _ _ _ _ hsmall]
+    rfl
+  rw [hadd] at hresult
+  change (Environment.checkInductiveSources env (type :: types) >>= fun _ =>
+    (forIn (type :: types) PUnit.unit fun indType __s => do
+      forIn indType.ctors PUnit.unit fun ctor __s => do
+        checkNoNestedAux ctor.name ctor.type
+        pure (ForInStep.yield PUnit.unit)
+      pure (ForInStep.yield PUnit.unit)) >>= fun _ =>
+      Except.error (.other "invalid inductive datatype declaration, incorrect number of parameters")) =
+    .ok result at hresult
+  let checks : Except Exception PUnit :=
+    Environment.checkInductiveSources env (type :: types) >>= fun _ =>
+      forIn (type :: types) PUnit.unit fun indType __s => do
+        forIn indType.ctors PUnit.unit fun ctor __s => do
+          checkNoNestedAux ctor.name ctor.type
+          pure (ForInStep.yield PUnit.unit)
+        pure (ForInStep.yield PUnit.unit)
+  have hne : (checks >>= fun _ =>
+      Except.error (.other "invalid inductive datatype declaration, incorrect number of parameters")) ≠
+      (.ok result : Except Exception Environment) := by
+    intro h
+    cases hchecks : checks <;> simp [hchecks, bind, Except.bind] at h
+  apply hne
+  simpa [checks] using hresult
+
+
 
 theorem addDecl.inductiveParamArity (env : Environment) (lparams : List Name)
     (numParams : Nat) (type : InductiveType) (types : List InductiveType)
@@ -357,9 +388,8 @@ theorem addDecl.inductiveParamArity (env : Environment) (lparams : List Name)
     refine (show (Environment.checkPrimitiveInductive env lparams numParams
       (type :: types) isUnsafe).WF fun _ => True from fun _ _ => trivial).bind ?_
     intro allowPrimitive _
-    rw [Environment.addInductive.reject_of_paramArity _ _ _ _ _ _ _ _ hsmall]
-    exact (show (Environment.checkInductiveSources env (type :: types)).WF
-      (fun _ => True) from fun _ _ => trivial).bind fun _ _ => Except.WF.throw
+    intro result hresult
+    exact (Environment.addInductive.reject_of_paramArity _ _ _ _ _ _ _ _ hsmall hresult).elim
 
 theorem addDecl.reject_inductive_of_paramArity (env result : Environment)
     (lparams : List Name) (numParams : Nat) (type : InductiveType) (types : List InductiveType)

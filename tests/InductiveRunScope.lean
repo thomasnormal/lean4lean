@@ -290,7 +290,10 @@ private def audit (theoremName : Name) (structural := false) (registration := fa
     ``Lean.PersistentArray.toList'_push] else []
   let allowed := allowed ++ if registration then [
     ``Lean.PersistentHashMap.findAux_isSome, ``Expr.eqv_eq, ``Expr.instantiate1_eq,
-    ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq] else []
+    ``Expr.hasFVar_eq, ``Expr.hasExprMVar_eq, ``Expr.hasLevelMVar_eq, ``Level.hasMVar_eq,
+    ``Expr.mkAppData_eq, ``Expr.mkData_eq,
+    Name.mkNum `_private.Lean4Lean.Verify.Expr 0 ++ `Lean.Expr.mkData_flags._native.bv_decide.ax_1_12,
+    `Lean.Expr.Data.looseBVarRange_le._native.bv_decide.ax_1_7] else []
   for axiomName in axioms do
     unless allowed.contains axiomName do throwError "unexpected axiom {axiomName} in {theoremName}"
 

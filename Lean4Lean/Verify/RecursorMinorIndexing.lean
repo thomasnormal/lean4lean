@@ -53,7 +53,8 @@ theorem RecursorInfoCounts.minorIndexing {types : Array InductiveType} {infos : 
   have hinfo : parent < infos.size := by rw [hcounts.size]; exact hparent
   have hlocal : index < infos[parent]!.minors.size := by rw [hcounts.minors parent hparent]; exact hindex
   obtain ⟨hbound, hlookup⟩ := flatMap_local (fun info : RecInfo => info.minors.toList) parent
-    (by simpa using hinfo) index (by simpa [getElem!_pos, hinfo] using hlocal)
+    (by rw [Array.length_toList]; exact hinfo) index
+    (by simpa [getElem!_pos, hinfo] using hlocal)
   rw [hcounts.minorPrefix parent] at hbound hlookup
   refine ⟨hlocal, ?_, ?_⟩
   · simpa only [← Array.toList_flatMap, Array.length_toList] using hbound

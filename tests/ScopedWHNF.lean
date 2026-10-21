@@ -29,7 +29,7 @@ private def ignoredRecursor : RecursorVal := {
 private theorem ignoredRecursorSupported :
     TrEnv' .safe (({} : ConstMap).insert ignoredRecursor.name (.recInfo ignoredRecursor))
       false VEnv.empty :=
-  .ignoreConst (C := {}) (ci := .recInfo ignoredRecursor)
+  .ignore (C := {}) (ci := .recInfo ignoredRecursor)
     (by simp [SMap.find?]) (by decide) .empty
 
 example : ({} : VEnv).constants ignoredRecursor.name = none := rfl
@@ -51,7 +51,7 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
 
 example {context : TypeChecker.VContext} {state : TypeChecker.VState}
     (translated : context.TrExprS expression semantic) :
-    (TypeChecker.Inner.reduceRecursor expression cheapRec cheapProj).ScopeWF context state (fun _ _ => True) :=
+    (TypeChecker.Inner.reduceRecursor expression).ScopeWF context state (fun _ _ => True) :=
   TypeChecker.Inner.reduceRecursor.scopeFrame translated
 
 example : (TypeChecker.Methods.withFuel 0).ScopeWF := TypeChecker.Methods.withFuel.zero_scopeWF
@@ -64,7 +64,7 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState} (valid : s
 
 example {context : TypeChecker.VContext} {state : TypeChecker.VState} {expression : Expr} {semantic : VExpr}
     (translated : context.TrExprS expression semantic) :
-    (TypeChecker.Inner.whnfCore' expression cheapRec cheapProj).ScopeWF context state fun normalized _ =>
+    (TypeChecker.Inner.whnfCore' expression cheapProj).ScopeWF context state fun normalized _ =>
       context.FVarsBelow expression normalized ∧ context.TrExpr normalized semantic ∧
       NativeHeadScoped context.lctx' normalized :=
   TypeChecker.Inner.whnfCore'.scopeWF translated
@@ -126,43 +126,42 @@ private def nativeControls : MetaM Unit := do
     (equal, equal, .const ``Bool.true []),
     (quotientInfo.value, quotientCoreExpected, .lit (.natVal 5)),
     (.mdata {} quotientIndInfo.value, .const ``True.intro [], .const ``True.intro [])]
-  let mut coreCount := 0
-  let mut fullCount := 0
+  let mut coreCount : Nat := 0
+  let mut fullCount : Nat := 0
   for safety in [DefinitionSafety.safe, .unsafe] do
     for eager in [false, true] do
       for fuel in [32, 128] do
-        for cheapRec in [false, true] do
-          for cheapProj in [false, true] do
-            let methods := TypeChecker.Methods.withFuel fuel
-            let context : TypeChecker.Context := {
-              env := environment, safety, lctx := locals, eagerReduce := eager, fuel := { recDepth := fuel } }
-            let mut state : TypeChecker.State := {}
-            for _ in [0:2] do
-              for (source, coreExpected, fullExpected) in cases do
-                let .ok (normalized, next) := TypeChecker.Inner.whnfCore' source cheapRec cheapProj methods context state
-                  | throwError "actual scoped core worker rejected"
-                unless normalized == coreExpected && stableHead locals normalized && stableCaches locals next do
-                  throwError "actual scoped core worker loses expected head or cache scope: source {source}, result {repr normalized}, expected {repr coreExpected}, stable head {stableHead locals normalized}, stable caches {stableCaches locals next}, cheap recursor {cheapRec}, cheap projection {cheapProj}"
-                state := next
-                coreCount := coreCount + 1
-                let .ok (normalized, next) := TypeChecker.Inner.whnf' source methods context state
-                  | throwError "actual scoped full worker rejected"
-                unless normalized == fullExpected && stableHead locals normalized && stableCaches locals next do
-                  throwError "actual scoped full worker loses expected head or cache scope"
-                state := next
-                fullCount := fullCount + 1
-            let stringProjection := Expr.proj ``String 0 (.lit (.strVal "A"))
-            let stringResult := TypeChecker.Inner.whnf' stringProjection (TypeChecker.Methods.withFuel 1024)
-              { context with fuel := { recDepth := 1024, whnf := 1024, whnfEager := 1024 } } state
-            let .ok (characters, next) := stringResult
-              | match stringResult with
-                | .error .deepRecursion => throwError "actual string projection expansion exceeded callback fuel"
-                | .error .deterministicTimeout => throwError "actual string projection expansion timed out"
-                | .error (.other message) => throwError "actual string projection expansion rejected: {message}"
-                | _ => throwError "actual string projection expansion rejected differently"
-            unless characters.getAppFn == .const ``ByteArray.mk [] && stableHead locals characters &&
-                stableCaches locals next do
-              throwError "actual string byte-array projection expansion differs or loses scoped caches"
+        for cheapProj in [false, true] do
+          let methods := TypeChecker.Methods.withFuel fuel
+          let context : TypeChecker.Context := {
+            env := environment, safety, lctx := locals, eagerReduce := eager, fuel := { recDepth := fuel } }
+          let mut state : TypeChecker.State := {}
+          for _ in [0:2] do
+            for (source, coreExpected, fullExpected) in cases do
+              let .ok (normalized, next) := TypeChecker.Inner.whnfCore' source cheapProj methods context state
+                | throwError "actual scoped core worker rejected"
+              unless normalized == coreExpected && stableHead locals normalized && stableCaches locals next do
+                throwError "actual scoped core worker loses expected head or cache scope: source {source}, result {repr normalized}, expected {repr coreExpected}, stable head {stableHead locals normalized}, stable caches {stableCaches locals next}, cheap projection {cheapProj}"
+              state := next
+              coreCount := coreCount + 1
+              let .ok (normalized, next) := TypeChecker.Inner.whnf' source methods context state
+                | throwError "actual scoped full worker rejected"
+              unless normalized == fullExpected && stableHead locals normalized && stableCaches locals next do
+                throwError "actual scoped full worker loses expected head or cache scope"
+              state := next
+              fullCount := fullCount + 1
+          let stringProjection := Expr.proj ``String 0 (.lit (.strVal "A"))
+          let stringResult := TypeChecker.Inner.whnf' stringProjection (TypeChecker.Methods.withFuel 1024)
+            { context with fuel := { recDepth := 1024, whnf := 1024, whnfEager := 1024 } } state
+          let .ok (characters, next) := stringResult
+            | match stringResult with
+              | .error .deepRecursion => throwError "actual string projection expansion exceeded callback fuel"
+              | .error .deterministicTimeout => throwError "actual string projection expansion timed out"
+              | .error (.other message) => throwError "actual string projection expansion rejected: {message}"
+              | _ => throwError "actual string projection expansion rejected differently"
+          unless characters.getAppFn == .const ``ByteArray.mk [] && stableHead locals characters &&
+              stableCaches locals next do
+            throwError "actual string byte-array projection expansion differs or loses scoped caches"
   let context : TypeChecker.Context := { env := environment, lctx := locals }
   let poisoned : TypeChecker.State := {
     whnfCoreCache := ({} : ExprMap Expr).insert letExpression letHead,
@@ -175,9 +174,9 @@ private def nativeControls : MetaM Unit := do
       !stableHead locals badCore && !stableHead locals badFull do
     throwError "conversion-only/local-let warm cache precondition control disappeared"
   let zero := TypeChecker.Methods.withFuel 0
-  unless !(zero.whnfCore literal false false context {}).isOk && !(zero.whnf literal context {}).isOk do
+  unless !(zero.whnfCore literal false context {}).isOk && !(zero.whnf literal context {}).isOk do
     throwError "zero-fuel implementing normalization method unexpectedly accepted"
-  let .ok (pureCore, _) := TypeChecker.Inner.whnfCore' literal false false zero context {}
+  let .ok (pureCore, _) := TypeChecker.Inner.whnfCore' literal false zero context {}
     | throwError "actual zero-callback core worker easy case rejected"
   let .ok (pureFull, _) := TypeChecker.Inner.whnf' literal zero context {}
     | throwError "actual zero-callback full worker easy case rejected"
@@ -185,7 +184,7 @@ private def nativeControls : MetaM Unit := do
   let timeout : TypeChecker.Context := { context with fuel := { whnf := 0, whnfEager := 0 } }
   unless !(TypeChecker.Inner.whnf' delta (TypeChecker.Methods.withFuel 32) timeout {}).isOk do
     throwError "actual zero-budget delta loop unexpectedly accepted"
-  logInfo m!"{coreCount} actual core and {fullCount} actual full normalizations retain expected scoped heads and caches; cold/warm, both safeties/eager modes, fuels 32/128, all cheap flags; local/let heads, metadata, beta spines, rebuilt heads, projections, delta, Nat/Bool and quotient lift/induction reductions; 32 actual string byte-array projections at callback/WHNF budget 1024 pass; poisoned local-let caches and resource boundaries are negative controls, not model/checker receipts; arbitrary-fuel scoped method closure is proved and audited separately in ScopedMethods"
+  logInfo m!"{coreCount} actual core and {fullCount} actual full normalizations retain expected scoped heads and caches; cold/warm, both safeties/eager modes, fuels 32/128, both cheap-projection flags; local/let heads, metadata, beta spines, rebuilt heads, projections, delta, Nat/Bool and quotient lift/induction reductions; 16 actual string byte-array projections at callback/WHNF budget 1024 pass; poisoned local-let caches and resource boundaries are negative controls, not model/checker receipts; arbitrary-fuel scoped method closure is proved and audited separately in ScopedMethods"
 
 run_meta
   let environment ← getEnv
@@ -197,7 +196,7 @@ run_meta
     ``Lean.PersistentHashMap.WF.find?_eq, ``Lean.PersistentHashMap.WF.toList'_insert,
     ``Lean.PersistentArray.toList'_push]
   logInfo m!"existing semantic full-normalizer baseline: {repr baseline}"
-  let mut owned := 0
+  let mut owned : Nat := 0
   for (name, information) in environment.constants do
     if environment.getModuleIdxFor? name == some moduleIndex then
       if information matches .axiomInfo _ then throwError "owned scoped normalizer axiom {name}"

@@ -83,6 +83,9 @@ def TypeChecker.Inner.nativeProjectionFinal (environment : Kernel.Environment) (
     if !(← isProp domain) then nativeProjectionFailure environment source
   return domain
 
+def TypeChecker.Inner.nativeProjectionMaybeProp (expression : Expr) : TypeChecker.RecM Bool := do
+  return !(← getSortLevel expression).isNeverZero
+
 def TypeChecker.Inner.nativeProjectionBody (parent : Name) (index : Nat) (structureExpr normalized : Expr) : TypeChecker.RecM Expr :=
   normalized.withApp fun head arguments => do
     let environment ← TypeChecker.getEnv
@@ -94,16 +97,17 @@ def TypeChecker.Inner.nativeProjectionBody (parent : Name) (index : Nat) (struct
     if arguments.size != header.numParams + header.numIndices then nativeProjectionFailure environment source
     let information ← environment.get constructor
     let current ← nativeProjectionParameters environment source arguments header.numParams (information.instantiateTypeLevelParams levels)
-    let propositional ← isProp normalized
+    let propositional ← nativeProjectionMaybeProp normalized
     let current ← nativeProjectionFields environment source name structureExpr propositional index current
     nativeProjectionFinal environment source propositional current
 
+set_option maxHeartbeats 800000 in
 theorem TypeChecker.Inner.inferProj.body_eq (parent : Name) (index : Nat) (structureExpr structureType : Expr) :
     inferProj parent index structureExpr structureType = (do
       let normalized ← whnf structureType
       nativeProjectionBody parent index structureExpr normalized) := by
   simp only [inferProj, nativeProjectionBody, nativeProjectionParameters, nativeProjectionFields,
-    nativeProjectionFinal, pure_bind]
+    nativeProjectionFinal, nativeProjectionMaybeProp, pure_bind]
   simp only [nativeProjectionFailure, bind_assoc]
   rfl
 
@@ -130,6 +134,16 @@ theorem NativeProjectionPropCallbacks.transport
     TypeChecker.M.SuccessTransport (TypeChecker.Inner.isProp expression actualMethods)
       (TypeChecker.Inner.isProp expression shadowMethods) actualContext shadowContext state :=
   TypeChecker.Inner.isProp.transport _ _ _ _ _ _ callbacks.inference callbacks.normalization
+
+theorem NativeProjectionPropCallbacks.maybeTransport
+    (callbacks : NativeProjectionPropCallbacks actualMethods shadowMethods actualContext shadowContext state expression) :
+    TypeChecker.M.SuccessTransport (TypeChecker.Inner.nativeProjectionMaybeProp expression actualMethods)
+      (TypeChecker.Inner.nativeProjectionMaybeProp expression shadowMethods) actualContext shadowContext state := by
+  dsimp only [TypeChecker.Inner.nativeProjectionMaybeProp, Bind.bind, ReaderT.bind]
+  apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
+    (TypeChecker.Inner.getSortLevel.transport _ _ _ _ _ _ callbacks.inference callbacks.normalization)
+  intro level finalState _
+  exact TypeChecker.M.SuccessTransport.pure _ _ _ _
 
 theorem TypeChecker.Inner.nativeProjectionParameter.transport
     (actualMethods shadowMethods : TypeChecker.Methods) (actualContext shadowContext : TypeChecker.Context)
@@ -308,7 +322,7 @@ structure NativeProjectionBodyCallbacks (actualMethods shadowMethods : TypeCheck
     ∀ parameterType parameterState propositional propState,
     TypeChecker.Inner.nativeProjectionParameters actualContext.env (.proj parent index structureExpr) arguments
       header.numParams (information.instantiateTypeLevelParams levels) actualMethods actualContext state = .ok (parameterType, parameterState) →
-    TypeChecker.Inner.isProp normalized actualMethods actualContext parameterState = .ok (propositional, propState) →
+    TypeChecker.Inner.nativeProjectionMaybeProp normalized actualMethods actualContext parameterState = .ok (propositional, propState) →
     NativeProjectionFieldCallbacks actualMethods shadowMethods actualContext shadowContext propState
       (.proj parent index structureExpr) parent structureExpr propositional index parameterType
   finalization : ∀ header levels arguments information,
@@ -316,7 +330,7 @@ structure NativeProjectionBodyCallbacks (actualMethods shadowMethods : TypeCheck
     ∀ parameterType parameterState propositional propState current currentState,
     TypeChecker.Inner.nativeProjectionParameters actualContext.env (.proj parent index structureExpr) arguments
       header.numParams (information.instantiateTypeLevelParams levels) actualMethods actualContext state = .ok (parameterType, parameterState) →
-    TypeChecker.Inner.isProp normalized actualMethods actualContext parameterState = .ok (propositional, propState) →
+    TypeChecker.Inner.nativeProjectionMaybeProp normalized actualMethods actualContext parameterState = .ok (propositional, propState) →
     TypeChecker.Inner.nativeProjectionFields actualContext.env (.proj parent index structureExpr) parent structureExpr propositional
       index parameterType actualMethods actualContext propState = .ok (current, currentState) →
     NativeProjectionFinalCallbacks actualMethods shadowMethods actualContext shadowContext currentState propositional current
@@ -394,14 +408,14 @@ theorem TypeChecker.Inner.nativeProjectionBody.transport
                   ((do
                     let parameterType ← nativeProjectionParameters actualContext.env (.proj parent index structureExpr) arguments
                       header.numParams (information.instantiateTypeLevelParams levels)
-                    let propositional ← isProp normalized
+                    let propositional ← nativeProjectionMaybeProp normalized
                     let current ← nativeProjectionFields actualContext.env (.proj parent index structureExpr) parent structureExpr
                       propositional index parameterType
                     nativeProjectionFinal actualContext.env (.proj parent index structureExpr) propositional current) actualMethods)
                   ((do
                     let parameterType ← nativeProjectionParameters shadowContext.env (.proj parent index structureExpr) arguments
                       header.numParams (information.instantiateTypeLevelParams levels)
-                    let propositional ← isProp normalized
+                    let propositional ← nativeProjectionMaybeProp normalized
                     let current ← nativeProjectionFields shadowContext.env (.proj parent index structureExpr) parent structureExpr
                       propositional index parameterType
                     nativeProjectionFinal shadowContext.env (.proj parent index structureExpr) propositional current) shadowMethods)
@@ -411,7 +425,7 @@ theorem TypeChecker.Inner.nativeProjectionBody.transport
                   (nativeProjectionParameters.transport _ _ _ _ _ _ _ _ _ (callbacks.parameters _ _ _ _ entry))
                 intro parameterType parameterState parametersAccepted
                 apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
-                  (callbacks.propositions _ _ _ _ entry _ _ parametersAccepted).transport
+                  (callbacks.propositions _ _ _ _ entry _ _ parametersAccepted).maybeTransport
                 intro propositional propState propositionAccepted
                 apply TypeChecker.M.SuccessTransport.bind _ _ _ _ _ _ _
                   (nativeProjectionFields.transport _ _ _ _ _ _ _ _ _ _ _
