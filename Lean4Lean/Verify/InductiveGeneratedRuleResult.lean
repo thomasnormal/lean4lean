@@ -461,6 +461,45 @@ theorem LocalRecursorRuleRhsScope.ruleResultSemantics
   exact ⟨rule, minor, hrule, hminor,
     head parent recursor index ctor rule minor hreceipt (hreceipt.fvars.counts.receipt)⟩
 
+/- Keep the closed RHS translation and the generated applied-result package as
+   separate producer callbacks until the indexed registration boundary pairs
+   them.  This mirrors the distinct complete-rule callback in the CPS layer. -/
+theorem LocalRecursorRuleRhsScope.ruleResultSemanticsSplit
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (closedHead : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        ∃ semantic, TrExprS env universes [] rule.rhs semantic)
+    (generatedHead : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := infos.map (·.motive))
+          (minors := infos.flatMap (·.minors)) (ctx := ctx)
+          (constructor := ctor) (minor := minor) (rule := rule)) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+          GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+            (stats := stats) (motives := infos.map (·.motive))
+            (minors := infos.flatMap (·.minors)) (ctx := ctx)
+            (constructor := ctor) (minor := minor) (rule := rule) := by
+  exact hscope.ruleResultSemantics (fun parent recursor index ctor rule minor scopedReceipt ordinaryReceipt =>
+    ⟨closedHead parent recursor index ctor rule minor scopedReceipt ordinaryReceipt,
+      generatedHead parent recursor index ctor rule minor scopedReceipt ordinaryReceipt⟩)
+
 /- The aligned all-rule form preserves constructor/index and stored-rule order
    while returning the same closed semantic and generated-result pair. -/
 theorem RecursorRuleRhsScope.impRuleResultSemantics
