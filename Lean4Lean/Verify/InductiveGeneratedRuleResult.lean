@@ -340,6 +340,62 @@ theorem LocalRecursorRuleRhsScope.impGeneratedConstructorRuleRhs
   exact ⟨rule, minor, hrule, hminor,
     head parent recursor index ctor rule minor hreceipt (hreceipt.fvars.counts.receipt)⟩
 
+/- The generated-result consumer needs the same exact stored-rule coverage as
+   `completeRuleSemantics`, while retaining the constructor, minor, and source
+   index that determine the dependent package.  Ordered recursor rules supplies
+   the length agreement needed to recover that indexed witness from list
+   membership. -/
+theorem LocalRecursorRuleRhsScope.completeRuleResultSemantics
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    {env : VEnv} {universes : List Name}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (ordered : OrderedRecursorRules types kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat) (ctor : Constructor)
+      (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := infos.map (·.motive))
+          (minors := infos.flatMap (·.minors)) (ctx := ctx)
+          (constructor := ctor) (minor := minor) (rule := rule)) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ rule ∈ recursor.rules, ∃ (index : Nat) (ctor : Constructor) (minor : Expr)
+        (semantic : VExpr),
+        types[parent]!.ctors[index]? = some ctor ∧
+        infos[parent]!.minors[index]? = some minor ∧
+        recursor.rules[index]? = some rule ∧
+        TrExprS env universes [] rule.rhs semantic ∧
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := infos.map (·.motive))
+          (minors := infos.flatMap (·.minors)) (ctx := ctx)
+          (constructor := ctor) (minor := minor) (rule := rule) := by
+  intro parent bound
+  obtain ⟨recursor, lookup, entries⟩ := hscope parent bound
+  obtain ⟨stored, storedLookup, _, count⟩ := ordered parent bound
+  have same : recursor = stored := ConstantInfo.recInfo.inj
+    (Option.some.inj (lookup.symm.trans storedLookup))
+  subst stored
+  refine ⟨recursor, lookup, ?_⟩
+  intro rule member
+  obtain ⟨index, indexBound, atIndex⟩ := List.mem_iff_getElem.mp member
+  have ctorBound : index < types[parent]!.ctors.length := by omega
+  have ctorLookup : types[parent]!.ctors[index]? = some types[parent]!.ctors[index] :=
+    List.getElem?_eq_getElem ctorBound
+  obtain ⟨matched, minor, ruleLookup, minorLookup, receipt⟩ :=
+    entries index _ ctorLookup
+  have sameRule : matched = rule := by
+    exact Option.some.inj (ruleLookup.symm.trans
+      ((List.getElem?_eq_getElem indexBound).trans (congrArg some atIndex)))
+  subst matched
+  obtain ⟨⟨semantic, translated⟩, generated⟩ := head parent recursor index _ rule minor receipt
+    receipt.fvars.counts.receipt
+  exact ⟨index, _, minor, semantic, ctorLookup, minorLookup, ruleLookup, translated, generated⟩
+
 /- Named-result wrappers avoid unfolding the generated package at each caller. -/
 theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResult
     {env : VEnv} {universes : List Name}
