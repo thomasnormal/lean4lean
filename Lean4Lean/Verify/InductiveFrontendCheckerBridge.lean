@@ -341,6 +341,58 @@ theorem NativeInductive.RestoredRecordEvidence.sourceRecursorRuleResults
     hmetadata, hfields, hnumFields, hfieldCount, htotal, hsemantic,
     ruleResult entry hproducer rule hruleMem⟩
 
+theorem NativeInductive.RestoredRecordEvidence.sourceRecursorRules
+    {Result : NativeInductive.RecursorEntry → RecursorRule → Prop}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    {nparams : Nat} {lparams : List Name} {types : List InductiveType}
+    (hlookups : SourceRecursorRuleLookups nparams lparams types preprocessing staged result)
+    (hrecursor : ∀ (index : Nat) (hindex : index < types.length)
+      (recursor : RecursorVal),
+      result.find? recursor.name = some (.recInfo recursor) →
+      recursor.name = mkRecName types[index].name)
+    (hentry : ∀ (index : Nat) (hindex : index < types.length),
+      ∃ entry : NativeInductive.RecursorEntry,
+        (.recursor entry : NativeInductive.RegistrationEntry) ∈ restored.entries ∧
+        entry.info.name = mkRecName types[index].name)
+    (ruleResult : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → Result entry rule) :
+    ∀ (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+      (hctor : ctorIndex < types[index].ctors.length),
+      ∃ (entry : NativeInductive.RecursorEntry) (recursor : RecursorVal)
+        (rule : RecursorRule) (info : ConstructorVal) (semantic : VExpr),
+        result.find? recursor.name = some (.recInfo recursor) ∧
+        entry.info.name = mkRecName types[index].name ∧
+        recursor.rules.length = types[index].ctors.length ∧
+        recursor.rules[ctorIndex]? = some rule ∧
+        staged.find? types[index].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+        SourceConstructorMetadata nparams lparams types[index] ctorIndex info ∧
+        SourceConstructorFields nparams types[index] ctorIndex info ∧
+        rule.nfields = info.numFields ∧
+        rule.nfields = arity 0 types[index].ctors[ctorIndex].type - nparams ∧
+        nparams + rule.nfields = arity 0 types[index].ctors[ctorIndex].type ∧
+        TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+        Result entry rule := by
+  intro index hindex ctorIndex hctor
+  obtain ⟨entry, hentry, hname'⟩ := hentry index hindex
+  obtain ⟨recursor, hresult, hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields,
+      hfieldCount, htotal⟩ := hlookups.finalRule index hindex ctorIndex hctor
+  obtain ⟨recursor, rule, info, semantic, hresult, hentryName, hlength, hrule, hctorInfo,
+      hmetadata, hfields, hnumFields, hfieldCount, htotal, hsemantic, hresultRule⟩ :=
+    restored.sourceRecursorRuleResults producer halign hlookups index hindex ctorIndex hctor
+      hentry hname' (fun recursor hlookup =>
+      (hrecursor index hindex recursor hlookup).trans hname'.symm) ruleResult
+  exact ⟨entry, recursor, rule, info, semantic, hresult, hentryName, hlength, hrule, hctorInfo,
+    hmetadata, hfields, hnumFields, hfieldCount, htotal, hsemantic, hresultRule⟩
+
 theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}
