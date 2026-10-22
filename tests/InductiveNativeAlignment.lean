@@ -2,6 +2,7 @@ import Lean4Lean.Verify.InductiveNativeAlignment
 import Lean4Lean.Verify.StagedLeaves
 import Lean4Lean.Verify.TypeChecker.ScopedDelta
 import Lean4Lean.Verify.TypeChecker.ScopedInferType
+import Lean4Lean.Verify.TypeChecker.ScopedComparison
 import Lean4Lean.Verify.TypeChecker.IsDefEq
 import Lean4Lean.Verify.TypeChecker.InferType
 import Lean4Lean.Verify.TypeChecker.Reduce
@@ -237,6 +238,22 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
     (TypeChecker.Inner.isDefEqUnitLike first second).WF context state
       (fun equal _ => equal = false) :=
   TypeChecker.Inner.isDefEqUnitLike.false_of_translationOf rejects translated
+
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {first second : Expr} {semantic : VExpr}
+    (rejects : TrEnv.RejectsInductiveFamilies context.trenv)
+    (translated : context.TrExprS second semantic) :
+    (TypeChecker.Inner.tryEtaStructCore first second).ScopeWF context state
+      (fun equal _ => equal = false) :=
+  TypeChecker.Inner.tryEtaStructCore.scopeFalseOf rejects translated
+
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {first second : Expr} {semantic : VExpr}
+    (rejects : TrEnv.RejectsInductiveFamilies context.trenv)
+    (translated : context.TrExprS first semantic) :
+    (TypeChecker.Inner.isDefEqUnitLike first second).ScopeWF context state
+      (fun equal _ => equal = false) :=
+  TypeChecker.Inner.isDefEqUnitLike.scopeFalseOf rejects translated
 
 example {context : TypeChecker.VContext} {name : Name}
     (find : ∀ {constantName},

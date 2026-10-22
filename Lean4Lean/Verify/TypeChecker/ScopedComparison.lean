@@ -282,7 +282,8 @@ theorem quickIsDefEq.scopeWF {context : VContext} {state : VState}
     exact firstTranslation.uniq context.Ewf (.refl context.Ewf context.Δwf) secondTranslation
   · exact RecM.ScopeWF.pure nofun
 
-theorem tryEtaStructCore.scopeFalse {context : VContext} {state : VState}
+theorem tryEtaStructCore.scopeFalseOf {context : VContext} {state : VState}
+    (hrejects : TrEnv.RejectsInductiveFamilies context.trenv)
     (translated : context.TrExprS second semantic) :
     (tryEtaStructCore first second).ScopeWF context state (fun equal _ => equal = false) := by
   unfold tryEtaStructCore
@@ -292,7 +293,12 @@ theorem tryEtaStructCore.scopeFalse {context : VContext} {state : VState}
     refine RecM.ScopeWF.getEnv ?_
     refine (RecM.ScopeWF.liftExcept envGet.WF).bind fun information _ _ found => ?_
     cases information <;> try exact RecM.ScopeWF.pure rfl
-    exact False.elim <| context.trenv_rejects.constructorNotInModel found inModel
+    exact False.elim <| hrejects.constructorNotInModel found inModel
+
+theorem tryEtaStructCore.scopeFalse {context : VContext} {state : VState}
+    (translated : context.TrExprS second semantic) :
+    (tryEtaStructCore first second).ScopeWF context state (fun equal _ => equal = false) :=
+  tryEtaStructCore.scopeFalseOf context.trenv_rejects translated
 
 theorem tryEtaStructCore.scopeWF {context : VContext} {state : VState}
     (_firstTranslation : context.TrExprS first firstSemantic)
@@ -315,7 +321,8 @@ theorem tryEtaStruct.scopeWF {context : VContext} {state : VState}
   · exact (tryEtaStructCore.scopeWF secondTranslation firstTranslation).mono
       fun _ _ _ compared accepted => (compared accepted).symm
 
-theorem isDefEqUnitLike.scopeFalse {context : VContext} {state : VState}
+theorem isDefEqUnitLike.scopeFalseOf {context : VContext} {state : VState}
+    (hrejects : TrEnv.RejectsInductiveFamilies context.trenv)
     (translated : context.TrExprS first semantic) :
     (isDefEqUnitLike first second).ScopeWF context state (fun equal _ => equal = false) := by
   unfold isDefEqUnitLike
@@ -328,7 +335,12 @@ theorem isDefEqUnitLike.scopeFalse {context : VContext} {state : VState}
     refine RecM.ScopeWF.getEnv ?_
     refine (RecM.ScopeWF.liftExcept envGet.WF).bind fun information _ _ found => ?_
     cases information <;> try exact RecM.ScopeWF.pure rfl
-    exact False.elim <| context.trenv_rejects.inductiveNotInModel found inModel
+    exact False.elim <| hrejects.inductiveNotInModel found inModel
+
+theorem isDefEqUnitLike.scopeFalse {context : VContext} {state : VState}
+    (translated : context.TrExprS first semantic) :
+    (isDefEqUnitLike first second).ScopeWF context state (fun equal _ => equal = false) :=
+  isDefEqUnitLike.scopeFalseOf context.trenv_rejects translated
 
 theorem isDefEqUnitLike.scopeWF {context : VContext} {state : VState}
     (firstTranslation : context.TrExprS first firstSemantic)
