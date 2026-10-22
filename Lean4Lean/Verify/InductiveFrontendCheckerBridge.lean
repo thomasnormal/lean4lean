@@ -79,6 +79,31 @@ theorem NativeInductive.RestoredRecordEvidence.registrationHistory
   refine ⟨restored.registrationConstants producer halign hconstants, ?_⟩
   exact producer.to_trEnvInductive history history.map_wf hrecursors
 
+theorem NativeInductive.RestoredRecordEvidence.registrationAlignmentHistory
+    {safety : DefinitionSafety}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive safety constants Q semanticEnv)
+    (haligned : Aligned safety constants semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    Aligned safety resultConstants semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive safety resultConstants Q semanticResult := by
+  have hresult := restored.registrationConstants producer halign hconstants
+  have halignment := restored.registrationAlignment producer halign hconstants hresult haligned
+  refine ⟨halignment.1, hresult, ?_⟩
+  exact producer.to_trEnvInductive history history.map_wf hrecursors
+
 theorem SafeInductiveRestorationMetadata.toRestoredRecordEvidence
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
