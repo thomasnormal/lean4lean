@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.InductiveFrontendScope
+import Lean4Lean.Verify.InductiveFrontendRestoration
 import Lean.Util.CollectAxioms
 
 open Lean Lean4Lean Lean4Lean.AddInductive
@@ -73,6 +73,13 @@ example (env : Kernel.Environment) (lparams : List Name) (nparams : Nat)
     (Lean4Lean.addDecl env (.inductDecl lparams nparams types false) check fuel).WF fun result =>
       result.constants.WF ∧ (∀ name info, env.find? name = some info → result.find? name = some info) :=
   Lean4Lean.addDecl.safeNonNestedPreserves env lparams nparams types check fuel hmap hnonNested
+
+example (env : Kernel.Environment) (lparams : List Name) (nparams : Nat)
+    (types : List InductiveType) (check : Bool) (fuel : FuelConfig) (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true) :
+    (Lean4Lean.addDecl env (.inductDecl lparams nparams types false) check fuel).WF fun result =>
+      SafeInductiveFrontendScope env lparams nparams types true fuel result :=
+  Lean4Lean.addDecl.safeCheckedPrimitiveInductive env lparams nparams types check fuel hmap hcheck
 
 private def sortType : Expr := .sort (.succ .zero)
 

@@ -371,6 +371,20 @@ theorem addDecl.safeInductiveFrontend (env : Environment) (lparams : List Name)
   exact (Environment.addInductive.safeFrontend env lparams nparams types allowPrimitive fuel hmap).mono
     fun _ scope => ⟨allowPrimitive, scope⟩
 
+/-! A successful primitive preflight selects the authorized `true` branch of the
+    public inductive declaration frontend before its verified stages run. -/
+theorem addDecl.safeCheckedPrimitiveInductive (env : Environment) (lparams : List Name)
+    (nparams : Nat) (types : List InductiveType) (check : Bool) (fuel : FuelConfig)
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true) :
+    (addDecl env (.inductDecl lparams nparams types false) check fuel).WF fun result =>
+      SafeInductiveFrontendScope env lparams nparams types true fuel result := by
+  change (do
+    let allowPrimitive ← Environment.checkPrimitiveInductive env lparams nparams types false
+    Environment.addInductive env lparams nparams types false allowPrimitive fuel).WF _
+  rw [hcheck]
+  exact Environment.addInductive.safeFrontend env lparams nparams types true fuel hmap
+
 theorem addDecl.safeInductivePreserves (env : Environment) (lparams : List Name)
     (nparams : Nat) (types : List InductiveType) (check : Bool) (fuel : FuelConfig)
     (hmap : env.constants.WF) :
