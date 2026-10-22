@@ -212,6 +212,24 @@ theorem RestoredRecordEvidence.registrationMap
     _ = insertOrdered constants restored.entries :=
       congrArg (fun c => insertOrdered c restored.entries) hconstants
 
+theorem RestoredRecordEvidence.registrationConstants
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Environment} {records : List ConstantInfo}
+    (restored : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants) :
+    result.constants = resultConstants := by
+  calc
+    result.constants = insertOrdered original.constants restored.entries := restored.orderedMap
+    _ = insertOrdered constants producer.orderedEntries := by
+      rw [hconstants, halign]
+    _ = resultConstants := producer.orderedMap.symm
+
 theorem RestoredRecordEvidence.registrationAlignment
     {safety : DefinitionSafety}
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}

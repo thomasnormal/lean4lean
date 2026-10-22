@@ -359,6 +359,19 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
     result.constants = NativeInductive.insertOrdered constants restored.entries :=
   restored.registrationMap producer halign hconstants hresultConstants
 
+example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants) :
+    result.constants = resultConstants :=
+  restored.registrationConstants producer halign hconstants
+
 example {safety : DefinitionSafety}
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}
