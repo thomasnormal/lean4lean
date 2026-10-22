@@ -24,7 +24,10 @@ theorem tryUnfoldProjApp.scopeWF {context : VContext} {state : VState}
   split <;> rintro _ ⟨⟩
   exact ⟨normalized.1, normalized.2.1⟩
 
-theorem lazyDeltaReductionStep.scopeWF {context : VContext} {state : VState}
+theorem lazyDeltaReductionStep.scopeWFOf {context : VContext} {state : VState}
+    (lookup : ∀ {name ci ci'}, context.env.find? name = some ci →
+      context.venv.constants name = some ci' → ci.name = name ∧
+        TrConstant context.safety context.venv ci ci')
     (firstTranslation : context.TrExprS first firstSemantic)
     (secondTranslation : context.TrExprS second secondSemantic) :
     (lazyDeltaReductionStep first second).ScopeWF context state
@@ -40,7 +43,7 @@ theorem lazyDeltaReductionStep.scopeWF {context : VContext} {state : VState}
       isDelta_is_some.1 definition
     obtain ⟨_, stack⟩ := AppStack.build (expression.mkAppList_getAppArgsList ▸ translated)
     have .const semanticLookup _ translatedLevels := headEq ▸ stack.tr
-    obtain ⟨_, _, registeredLevels, _⟩ := context.trenv.find?_uniq found semanticLookup
+    obtain ⟨_, _, registeredLevels, _⟩ := lookup found semanticLookup
     refine (unfoldDefinition.scopeWF translated).bind fun unfolded _ _ unfolding => ?_
     obtain _ | normalized := unfolded
     · cases unfolding found instantiated headEq levelCount
@@ -114,6 +117,13 @@ theorem lazyDeltaReductionStep.scopeWF {context : VContext} {state : VState}
   split <;> [skip; exact cacheFailure.scopeWF.lift.bind fun _ _ _ _ => unfoldBothWF]
   trace_state
   exact RecM.ScopeWF.pure (compared (by assumption))
+
+theorem lazyDeltaReductionStep.scopeWF {context : VContext} {state : VState}
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (lazyDeltaReductionStep first second).ScopeWF context state
+      (fun result _ => result.WF context firstSemantic secondSemantic true) :=
+  lazyDeltaReductionStep.scopeWFOf context.trenv.find?_uniq firstTranslation secondTranslation
 
 theorem isDefEqOffset.scopeWF {context : VContext} {state : VState}
     (firstTranslation : context.TrExprS first firstSemantic)

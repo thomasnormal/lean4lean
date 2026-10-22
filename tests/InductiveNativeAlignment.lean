@@ -1,9 +1,21 @@
 import Lean4Lean.Verify.InductiveNativeAlignment
 import Lean4Lean.Verify.StagedLeaves
+import Lean4Lean.Verify.TypeChecker.ScopedDelta
 
 namespace Lean4Lean.Tests.InductiveNativeAlignment
 
 open Lean Lean4Lean Lean4Lean.NativeInductive
+
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {first second : Expr} {firstSemantic secondSemantic : VExpr}
+    (lookup : ∀ {name ci ci'}, context.env.find? name = some ci →
+      context.venv.constants name = some ci' → ci.name = name ∧
+        TrConstant context.safety context.venv ci ci')
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (TypeChecker.Inner.lazyDeltaReductionStep first second).ScopeWF context state
+      (fun result _ => result.WF context firstSemantic secondSemantic true) :=
+  TypeChecker.Inner.lazyDeltaReductionStep.scopeWFOf lookup firstTranslation secondTranslation
 
 example {ctx : TypeChecker.Context} {semantic : VEnv} {scope : VLCtx} {Q : Bool}
     (checker : CheckerEnvInductive ctx.safety ctx.env semantic Q)
