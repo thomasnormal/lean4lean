@@ -497,6 +497,18 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
     ∀ entry ∈ restored.entries, entry.ModelShape :=
   restored.registrationModelShapes producer halign
 
+example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries) :
+    ∀ entry ∈ restored.entries, entry.Metadata decl producer.constructors :=
+  restored.registrationMetadata producer halign
+
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
     (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)

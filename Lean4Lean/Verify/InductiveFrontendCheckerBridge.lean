@@ -170,6 +170,23 @@ theorem NativeInductive.RestoredRecordEvidence.registrationModelShapes
   rw [← halign]
   exact hmem
 
+theorem NativeInductive.RestoredRecordEvidence.registrationMetadata
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries) :
+    ∀ entry ∈ restored.entries, entry.Metadata decl producer.constructors := by
+  intro entry hmem
+  apply producer.orderedMetadata
+  rw [← halign]
+  exact hmem
+
 theorem SafeInductiveRestorationMetadata.toRestoredRecordEvidence
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
