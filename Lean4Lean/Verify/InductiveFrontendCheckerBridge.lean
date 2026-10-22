@@ -104,6 +104,31 @@ theorem NativeInductive.RestoredRecordEvidence.registrationAlignmentHistory
   refine ⟨halignment.1, hresult, ?_⟩
   exact producer.to_trEnvInductive history history.map_wf hrecursors
 
+theorem NativeInductive.RestoredRecordEvidence.registrationAlignmentHistory_of_sourceTypehood
+    {safety : DefinitionSafety}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive safety constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    Aligned safety resultConstants semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive safety resultConstants Q semanticResult := by
+  have hrecursors := producer.recursorWF_of_sourceTypehood
+    (producer.constructorEnvWF history.wf) hsource
+  exact restored.registrationAlignmentHistory producer halign hconstants history
+    history.aligned hrecursors
+
 theorem SafeInductiveRestorationMetadata.toRestoredRecordEvidence
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}

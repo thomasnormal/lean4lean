@@ -447,6 +447,26 @@ example {safety : DefinitionSafety}
       TrEnvInductive safety resultConstants Q semanticResult :=
   restored.registrationAlignmentHistory producer halign hconstants history haligned hrecursors
 
+example {safety : DefinitionSafety}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive safety constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    Aligned safety resultConstants semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive safety resultConstants Q semanticResult :=
+  restored.registrationAlignmentHistory_of_sourceTypehood producer halign hconstants history hsource
+
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
     (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
