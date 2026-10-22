@@ -104,8 +104,8 @@ theorem lazyDeltaReductionStep.scopeWFOf {context : VContext} {state : VState}
   obtain ⟨_, secondStack⟩ := AppStack.build (second.mkAppList_getAppArgsList ▸ secondTranslation)
   have .const (us' := firstLevels) firstLookup firstLevelTranslation firstLevelCount := firstHead ▸ firstStack.tr
   have .const (us' := secondLevels) secondLookup secondLevelTranslation _ := secondHead ▸ secondStack.tr
-  cases (context.trenv.find?_uniq firstFound firstLookup).1
-  cases (context.trenv.find?_uniq secondFound secondLookup).1
+  cases (lookup firstFound firstLookup).1
+  cases (lookup secondFound secondLookup).1
   cases firstLookup.symm.trans secondLookup
   have headEquality := VEnv.IsDefEq.constDF firstLookup
     (Γ := context.vlctx.toCtx) (.of_mapM_ofLevel firstLevelTranslation) (.of_mapM_ofLevel secondLevelTranslation)
