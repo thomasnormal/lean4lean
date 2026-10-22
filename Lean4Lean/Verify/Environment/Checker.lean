@@ -104,6 +104,14 @@ theorem CheckerEnvInductive.find?_uniq
     ci.name = name ∧ TrConstant safety venv ci ci' :=
   H.history.env_find?_uniq h hs
 
+theorem CheckerEnvInductive.of_valueFrame
+    (H : CheckerEnvInductive safety env venv Q)
+    (history : TrEnvInductive safety env'.constants Q venv')
+    (hframe : NativeValueFrame env env') (hle : venv ≤ venv') :
+    CheckerEnvInductive safety env' venv' Q :=
+  ⟨history, fun hfind hs hsafe hv =>
+    (H.safeValues (hframe.values hfind hv) hs hsafe hv).mono hle⟩
+
 theorem TrEnv.checkerEnv (H : TrEnv safety env venv) : CheckerEnv safety env venv :=
   ⟨H.aligned, H.wf, by
     intro name ci value hfind hs hsafe hv

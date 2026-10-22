@@ -159,6 +159,12 @@ example {env : VEnv} {native : Kernel.Environment} {Q : Bool}
   refine ⟨history, ?_⟩
   exact hvalues
 
+example {env : VEnv} {native : Kernel.Environment} {Q : Bool}
+    (checker : CheckerEnvInductive .safe native env Q)
+    (history : TrEnvInductive .safe native.constants Q env) :
+    CheckerEnvInductive .safe native env Q :=
+  checker.of_valueFrame history (NativeValueFrame.refl history.map_wf) .rfl
+
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     {native : Kernel.Environment} {Q : Bool}
     (history : TrEnvInductive .safe native.constants Q env)
