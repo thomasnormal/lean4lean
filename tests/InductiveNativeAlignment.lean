@@ -149,6 +149,16 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
       ∃ ci, result.constants name = some ci := by
   exact (evidence.to_trEnvInductive history hconstants hrecursors).find?_iff
 
+example {env : VEnv} {native : Kernel.Environment} {Q : Bool}
+    (history : TrEnvInductive .safe native.constants Q env)
+    (hvalues : ∀ {name ci value}, native.constants.find? name = some ci →
+      DefinitionSafety.safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr env ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe native env Q := by
+  refine ⟨history, ?_⟩
+  exact hvalues
+
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     {native : Kernel.Environment} {Q : Bool}
     (history : TrEnvInductive .safe native.constants Q env)

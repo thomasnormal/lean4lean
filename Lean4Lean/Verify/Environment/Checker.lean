@@ -78,6 +78,32 @@ structure CheckerEnv (safety : DefinitionSafety) (env : Environment) (venv : VEn
     safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
     TrExpr venv ci.levelParams [] value (.const ci.name (VLevel.params ci.levelParams.length))
 
+/-! A checker-facing view that retains constructive inductive history. `CheckerEnv` remains the
+value-checking contract used by the existing frontend, while this companion carries positive
+family lookups for consumers that must see registered inductive declarations. -/
+structure CheckerEnvInductive (safety : DefinitionSafety) (env : Environment) (venv : VEnv)
+    (Q : Bool) : Prop where
+  history : TrEnvInductive safety env.constants Q venv
+  safeValues : ∀ {name ci value}, env.constants.find? name = some ci →
+    safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+    TrExpr venv ci.levelParams [] value (.const ci.name (VLevel.params ci.levelParams.length))
+
+theorem CheckerEnvInductive.toCheckerEnv
+    (H : CheckerEnvInductive safety env venv Q) : CheckerEnv safety env venv :=
+  ⟨H.history.aligned, H.history.wf, H.safeValues⟩
+
+theorem CheckerEnvInductive.find?
+    (H : CheckerEnvInductive safety env venv Q)
+    (h : env.find? name = some ci) (hs : safety ≤ ci.safety) :
+    ∃ ci', venv.constants name = some ci' ∧ TrConstant safety venv ci ci' :=
+  H.history.env_find? h hs
+
+theorem CheckerEnvInductive.find?_uniq
+    (H : CheckerEnvInductive safety env venv Q)
+    (h : env.find? name = some ci) (hs : venv.constants name = some ci') :
+    ci.name = name ∧ TrConstant safety venv ci ci' :=
+  H.history.env_find?_uniq h hs
+
 theorem TrEnv.checkerEnv (H : TrEnv safety env venv) : CheckerEnv safety env venv :=
   ⟨H.aligned, H.wf, by
     intro name ci value hfind hs hsafe hv
