@@ -58,6 +58,19 @@ example {context : TypeChecker.VContext} {name : Name} {levels : List Level}
       ∃ model type, context.TrTyping (.const name levels) result model type :=
   TypeChecker.Inner.inferConstant.WFOf lookup lookupUnique levelsNoMVar translated
 
+example {context : TypeChecker.VContext} {expression : Expr} {semantic : VExpr}
+    (value : ∀ {name ci value}, context.env.find? name = some ci →
+      context.safety ≤ ci.safety → ci.deltaValue? = some value →
+      TrExpr context.venv ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    (lookupUnique : ∀ {name ci ci'}, context.env.find? name = some ci →
+      context.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant context.safety context.venv ci ci')
+    (translated : context.TrExprS expression semantic) :
+    (TypeChecker.Inner.unfoldDefinitionCore expression).WF context {}
+      (fun result _ => TypeChecker.Inner.UnfoldDefinition.WF context expression expression semantic result) :=
+  TypeChecker.Inner.unfoldDefinitionCore.WFOf value lookupUnique translated
+
 example {ctx : TypeChecker.Context} {semantic : VEnv} {scope : VLCtx} {Q : Bool}
     (checker : CheckerEnvInductive ctx.safety ctx.env semantic Q)
     (hscope : scope.WF semantic ctx.lparams.length) (hnoBV : scope.NoBV)

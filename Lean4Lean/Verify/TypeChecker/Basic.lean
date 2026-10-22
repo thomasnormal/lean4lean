@@ -1043,7 +1043,14 @@ def UnfoldDefinition.WF (c : VContext) (e e₀ : Expr) (e' : VExpr) : Option Exp
   | none => ∀ {{n ci v ls}}, c.env.find? n = some ci → ci.deltaValue? = some v →
     e₀ = .const n ls → ls.length = ci.numLevelParams → False
 
-theorem unfoldDefinitionCore.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
+theorem unfoldDefinitionCore.WFOf {c : VContext} {s : VState}
+    (hvalue : ∀ {name ci value}, c.env.find? name = some ci → c.safety ≤ ci.safety →
+      ci.deltaValue? = some value →
+      TrExpr c.venv ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    (huniq : ∀ {name ci ci'}, c.env.find? name = some ci → c.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant c.safety c.venv ci ci')
+    (he : c.TrExprS e e') :
     RecM.WF c s (unfoldDefinitionCore e) fun oe _ => UnfoldDefinition.WF c e e e' oe := by
   dsimp [unfoldDefinitionCore]
   split <;> [refine .getEnv ?_; (rename_i H; exact .pure fun _ _ _ _ _ _ h => nomatch H _ _ h)]
@@ -1055,14 +1062,15 @@ theorem unfoldDefinitionCore.WF {c : VContext} {s : VState} (he : c.TrExprS e e'
   have : UnfoldDefinition.WF c (.const n ls) (.const n ls) e'
       (some (instantiateDeltaValue ci ls)) := by
     let .const a1 a2 a3 := he
-    have ⟨rfl, b1, b2, b3⟩ := c.trenv.find?_uniq h3 a1
+    have ⟨rfl, b1, b2, b3⟩ := huniq h3 a1
     simp [instantiateDeltaValue, h4]
-    have c1 := c.trenv.of_value h3 b1 h4 |>.instL c.Ewf (by trivial) a2 (b2.trans a3.symm)
+    have c1 := hvalue h3 b1 h4 |>.instL c.Ewf (by trivial) a2 (b2.trans a3.symm)
     have := c1.weakFV c.Ewf (.from_nil c.mlctx.noBV) c.Δwf
     rw [c1.wf.closedN c.Ewf trivial |>.liftN_eq (Nat.zero_le _)] at this
     simp [VExpr.instL] at this; rw [VLevel.inst_map_id] at this
     · exact ⟨fun _ _ _ => c1.fvarsIn.mono nofun, this⟩
     · exact (List.mapM_eq_some.1 a2).length_eq.symm.trans <| a3.trans b2.symm
+
   split <;> [rename_i h5; exact .pure this]
   refine .pureBind <| .get ?_
   split <;> [rename_i eq; skip]
@@ -1076,6 +1084,10 @@ theorem unfoldDefinitionCore.WF {c : VContext} {s : VState} (he : c.TrExprS e e'
     split <;> [rintro ⟨⟩; exact (wf.unfold_wf ·)]
     rename_i eq; rw [BEq.comm, Expr.eqv_const] at eq
     exact ⟨_, _, _, eq, h3, rfl⟩
+
+theorem unfoldDefinitionCore.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
+    RecM.WF c s (unfoldDefinitionCore e) fun oe _ => UnfoldDefinition.WF c e e e' oe :=
+  unfoldDefinitionCore.WFOf (fun h hs hv => c.trenv.of_value h hs hv) c.trenv.find?_uniq he
 
 theorem unfoldDefinition.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
     RecM.WF c s (unfoldDefinition e) fun oe _ => UnfoldDefinition.WF c e e.getAppFn e' oe := by
