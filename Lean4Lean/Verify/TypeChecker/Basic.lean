@@ -1089,13 +1089,20 @@ theorem unfoldDefinitionCore.WF {c : VContext} {s : VState} (he : c.TrExprS e e'
     RecM.WF c s (unfoldDefinitionCore e) fun oe _ => UnfoldDefinition.WF c e e e' oe :=
   unfoldDefinitionCore.WFOf (fun h hs hv => c.trenv.of_value h hs hv) c.trenv.find?_uniq he
 
-theorem unfoldDefinition.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
+theorem unfoldDefinition.WFOf {c : VContext} {s : VState}
+    (hvalue : ∀ {name ci value}, c.env.find? name = some ci → c.safety ≤ ci.safety →
+      ci.deltaValue? = some value →
+      TrExpr c.venv ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    (huniq : ∀ {name ci ci'}, c.env.find? name = some ci → c.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant c.safety c.venv ci ci')
+    (he : c.TrExprS e e') :
     RecM.WF c s (unfoldDefinition e) fun oe _ => UnfoldDefinition.WF c e e.getAppFn e' oe := by
   simp [unfoldDefinition]; split; rotate_left
-  · rename_i h; refine (unfoldDefinitionCore.WF he).mono fun _ _ _ H => ?_
+  · rename_i h; refine (unfoldDefinitionCore.WFOf hvalue huniq he).mono fun _ _ _ H => ?_
     rwa [show e.getAppFn = e by revert h; unfold Expr.isApp Expr.getAppFn; split <;> simp]
   have ⟨f', stk⟩ := AppStack.build (e.mkAppList_getAppArgsList ▸ he)
-  refine (unfoldDefinitionCore.WF stk.tr).bind fun oe _ _ H => ?_
+  refine (unfoldDefinitionCore.WFOf hvalue huniq stk.tr).bind fun oe _ _ H => ?_
   cases oe <;> [exact .pure H; refine .pure ?_]
   have ⟨h1, h2⟩ := H
   rw [Expr.mkAppRevRange_eq (l₁ := []) (l₂ := e.getAppArgsRevList) (l₃ := [])
@@ -1103,6 +1110,10 @@ theorem unfoldDefinition.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
   simp only [Expr.getAppArgsRevList_reverse]; constructor
   · exact (e.mkAppList_getAppArgsList ▸ h1.mkAppList :)
   · exact h2.rebuild_mkAppList c.Ewf c.Δwf stk.tr (e.mkAppList_getAppArgsList ▸ he :)
+
+theorem unfoldDefinition.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
+    RecM.WF c s (unfoldDefinition e) fun oe _ => UnfoldDefinition.WF c e e.getAppFn e' oe :=
+  unfoldDefinition.WFOf (fun h hs hv => c.trenv.of_value h hs hv) c.trenv.find?_uniq he
 
 theorem ensureSortCore.WF {c : VContext} {s : VState} (he : c.TrExprS e e') :
     RecM.WF c s (ensureSortCore e e₀) fun e1 _ =>

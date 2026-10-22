@@ -74,6 +74,21 @@ example {context : TypeChecker.VContext} {expression : Expr} {semantic : VExpr}
   TypeChecker.Inner.unfoldDefinitionCore.WFOf value lookupUnique translated
 
 example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {expression : Expr} {semantic : VExpr}
+    (value : ∀ {name ci value}, context.env.find? name = some ci →
+      context.safety ≤ ci.safety → ci.deltaValue? = some value →
+      TrExpr context.venv ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    (lookupUnique : ∀ {name ci ci'}, context.env.find? name = some ci →
+      context.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant context.safety context.venv ci ci')
+    (translated : context.TrExprS expression semantic) :
+    (TypeChecker.Inner.unfoldDefinition expression).WF context state
+      (fun result _ => TypeChecker.Inner.UnfoldDefinition.WF
+        context expression expression.getAppFn semantic result) :=
+  TypeChecker.Inner.unfoldDefinition.WFOf value lookupUnique translated
+
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
     {guard : Nat → Nat → Prop} [DecidableRel guard]
     {f : Nat → Nat → Nat} {fc : Name} {levels : List Level} {a b : Expr}
     {semantic : VExpr} {result : VExpr}
