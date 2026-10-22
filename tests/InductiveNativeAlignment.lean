@@ -2,6 +2,7 @@ import Lean4Lean.Verify.InductiveNativeAlignment
 import Lean4Lean.Verify.StagedLeaves
 import Lean4Lean.Verify.TypeChecker.ScopedDelta
 import Lean4Lean.Verify.TypeChecker.ScopedInferType
+import Lean4Lean.Verify.TypeChecker.IsDefEq
 
 namespace Lean4Lean.Tests.InductiveNativeAlignment
 
@@ -17,6 +18,17 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
     (TypeChecker.Inner.lazyDeltaReductionStep first second).ScopeWF context state
       (fun result _ => result.WF context firstSemantic secondSemantic true) :=
   TypeChecker.Inner.lazyDeltaReductionStep.scopeWFOf lookup firstTranslation secondTranslation
+
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {first second : Expr} {firstSemantic secondSemantic : VExpr}
+    (lookup : ∀ {name ci ci'}, context.env.find? name = some ci →
+      context.venv.constants name = some ci' → ci.name = name ∧
+        TrConstant context.safety context.venv ci ci')
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (TypeChecker.Inner.lazyDeltaReductionStep first second).WF context state
+      (fun result _ => result.WF context firstSemantic secondSemantic true) :=
+  TypeChecker.Inner.lazyDeltaReductionStep.WFOf lookup firstTranslation secondTranslation
 
 example {context : TypeChecker.VContext} {state : TypeChecker.VState}
     {expression : Expr} {inferOnly : Bool}

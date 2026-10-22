@@ -366,7 +366,9 @@ theorem _root_.Lean4Lean.TypeChecker.ReductionStatus.WF.defeq
     ⟨a2.defeq c.Ewf c.Δwf h1, a3.defeq c.Ewf c.Δwf h2⟩
   | .true, h => h1.symm.trans c.Ewf c.Δwf h |>.trans c.Ewf c.Δwf h2
 
-theorem lazyDeltaReductionStep.WF {c : VContext} {s : VState}
+theorem lazyDeltaReductionStep.WFOf {c : VContext} {s : VState}
+    (lookup : ∀ {name ci ci'}, c.env.find? name = some ci → c.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant c.safety c.venv ci ci')
     (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
     (lazyDeltaReductionStep e₁ e₂).WF c s fun r _ => r.WF c e₁' e₂' true := by
   unfold lazyDeltaReductionStep
@@ -376,7 +378,7 @@ theorem lazyDeltaReductionStep.WF {c : VContext} {s : VState}
     let ⟨n, h1, ⟨_, h2⟩, ls, h3, _⟩ := isDelta_is_some.1 H
     have ⟨_, stk⟩ := AppStack.build (e.mkAppList_getAppArgsList ▸ he)
     have .const a1 a2 a3 := h3 ▸ stk.tr
-    have ⟨b1, b2, b3, b4⟩ := c.trenv.find?_uniq h1 a1
+    have ⟨b1, b2, b3, b4⟩ := lookup h1 a1
     refine (unfoldDefinition.WF he).bind fun oe _ _ H => ?_
     obtain _ | e' := oe; · cases H h1 h2 h3 (a3.trans b3.symm)
     have ⟨_, _, c1, c2⟩ := H
@@ -412,8 +414,8 @@ theorem lazyDeltaReductionStep.WF {c : VContext} {s : VState}
   have ⟨_, stk₂⟩ := AppStack.build (e₂.mkAppList_getAppArgsList ▸ he₂)
   have .const (us' := ls₁) c1₁ c2₁ c3₁ := b3₁ ▸ stk₁.tr
   have .const (us' := ls₂) c1₂ c2₂ c3₂ := b3₂ ▸ stk₂.tr
-  cases (c.trenv.find?_uniq b1₁ c1₁).1
-  cases (c.trenv.find?_uniq b1₂ c1₂).1
+  cases (lookup b1₁ c1₁).1
+  cases (lookup b1₂ c1₂).1
   cases c1₁.symm.trans c1₂
   have := VEnv.IsDefEq.constDF c1₁
     (Γ := c.vlctx.toCtx) (.of_mapM_ofLevel c2₁) (.of_mapM_ofLevel c2₂)
@@ -422,6 +424,12 @@ theorem lazyDeltaReductionStep.WF {c : VContext} {s : VState}
   refine (isDefEqArgs.WF ⟨_, stk₁.tr, _, stk₂.tr, _, this⟩ he₁ he₂).bind fun _ _ _ h => ?_
   split <;> [skip; exact cacheFailure.WF.lift.bind fun _ _ _ _ => hF1]
   exact .pure <| h ‹_›
+
+
+theorem lazyDeltaReductionStep.WF {c : VContext} {s : VState}
+    (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
+    (lazyDeltaReductionStep e₁ e₂).WF c s fun r _ => r.WF c e₁' e₂' true :=
+  lazyDeltaReductionStep.WFOf c.trenv.find?_uniq he₁ he₂
 
 theorem isNatZero_wf {c : VContext} (H : isNatZero e) (h : c.TrExprS e e') : e' = .natZero := by
   have h1 : c.TrExprS (.lit (.natVal 0)) e' := by
