@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.InductiveNativeBridge
 import Lean4Lean.Verify.Environment.Lemmas
+import Lean4Lean.Verify.Environment.Checker
 
 namespace Lean4Lean
 open Lean hiding Environment Exception
@@ -282,6 +283,26 @@ theorem RegistrationEvidence.inductiveHistoryWF
     (henv : env.WF) :
     evidence.constructorEnv.WF := by
   exact VEnv.WF.decl henv evidence.inductiveDeclWF
+
+theorem RegistrationEvidence.toCheckerEnvInductive
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (native resultNative : Kernel.Environment)
+    (history : TrEnvInductive safety native.constants Q env)
+    (hmap : native.constants = constants) (hresultMap : resultNative.constants = resultConstants)
+    (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr result ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety resultNative result Q := by
+  subst constants
+  subst resultConstants
+  refine ⟨evidence.to_trEnvInductive history hconstants hrecursors, ?_⟩
+  intro name ci value h hs hsafe hv
+  exact hvalues name ci h hs hsafe hv
 
 end NativeInductive
 end Lean4Lean

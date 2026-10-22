@@ -166,6 +166,22 @@ example {env : VEnv} {native : Kernel.Environment} {Q : Bool}
   checker.of_valueFrame history (NativeValueFrame.refl history.map_wf) .rfl
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    {native resultNative : Kernel.Environment} {Q : Bool}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (history : TrEnvInductive .safe native.constants Q env)
+    (hmap : native.constants = constants) (hresultMap : resultNative.constants = resultConstants)
+    (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr result ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe resultNative result Q :=
+  evidence.toCheckerEnvInductive native resultNative history hmap hresultMap hconstants hrecursors hvalues
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     {native : Kernel.Environment} {Q : Bool}
     (history : TrEnvInductive .safe native.constants Q env)
     (name : Name) (ci : ConstantInfo) (h : native.find? name = some ci)
