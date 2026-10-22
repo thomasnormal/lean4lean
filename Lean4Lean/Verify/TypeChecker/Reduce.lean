@@ -63,7 +63,11 @@ def reduceBinNatOpG (guard : Nat → Nat → Prop) [DecidableRel guard]
   if guard v1 v2 then return none
   return some <| .lit <| .natVal <| f v1 v2
 
-theorem reduceBinNatOpG.WF {guard} [DecidableRel guard] {c : VContext}
+theorem reduceBinNatOpG.WFOf {guard} [DecidableRel guard] {c : VContext}
+    (hfind : ∀ {name}, (∃ ci, c.env.find? name = some ci ∧ c.safety ≤ ci.safety) ↔
+      ∃ ci, c.venv.constants name = some ci)
+    (huniq : ∀ {name ci ci'}, c.env.find? name = some ci → c.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant c.safety c.venv ci ci')
     (he : c.TrExprS (.app (.app (.const fc ls) a) b) e')
     (hprim : Environment.primitives.contains fc)
     (heval : c.venv.ReflectsNatNatNat fc f) :
@@ -81,9 +85,9 @@ theorem reduceBinNatOpG.WF {guard} [DecidableRel guard] {c : VContext}
   cases (rawNatLitExt?.WF h b2).2
   split <;> [exact .pure nofun; rename_i h]
   refine .pure ?_; rintro _ ⟨⟩; refine ⟨fun _ _ _ => trivial, ?_⟩
-  have ⟨ci, c1, _⟩ := c.trenv.find?_iff.2 ⟨_, h1⟩
+  have ⟨ci, c1, _⟩ := (hfind (name := fc)).2 ⟨_, h1⟩
   have ⟨_, c3⟩ := c.safePrimitives c1 hprim
-  have ⟨_, d1, d2, d3⟩ := c.trenv.find?_uniq c1 h1
+  have ⟨_, d1, d2, d3⟩ := huniq c1 h1
   simp [c3] at d2; simp [← d2] at h3; simp [h3] at h2; subst h2
   refine ⟨_, (TrExprS.natLit c.hasPrimitives hn _).1, ?_⟩
   have := (heval ⟨_, h1⟩).2 v1 v2 |>.instL (U' := c.lparams.length) (ls := []) nofun
@@ -93,6 +97,14 @@ theorem reduceBinNatOpG.WF {guard} [DecidableRel guard] {c : VContext}
   have b3 := b3.of_r c.Ewf c.Δwf hb2
   have := ha1.appDF a3 |>.toU.of_r c.Ewf c.Δwf hb1
   exact ⟨_, .appDF this b3⟩
+
+theorem reduceBinNatOpG.WF {guard} [DecidableRel guard] {c : VContext}
+    (he : c.TrExprS (.app (.app (.const fc ls) a) b) e')
+    (hprim : Environment.primitives.contains fc)
+    (heval : c.venv.ReflectsNatNatNat fc f) :
+    RecM.WF c s (reduceBinNatOpG guard f a b) fun oe _ => ∀ e₁, oe = some e₁ →
+      c.FVarsBelow (.app (.app (.const fc ls) a) b) e₁ ∧ c.TrExpr e₁ e' :=
+  reduceBinNatOpG.WFOf c.trenv.find?_iff c.trenv.find?_uniq he hprim heval
 
 theorem reduceBinNatPred.WF {c : VContext}
     (he : c.TrExprS (.app (.app (.const fc ls) a) b) e')
