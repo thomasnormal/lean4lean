@@ -197,6 +197,78 @@ theorem Aligned.addInductEvidence
     rw [mapEq, insertConsts_append]
     exact hconstructors
 
+theorem Aligned.addInductWithRecursorsEvidence
+    (H : AddInductWithRecursorsEvidence safety C₁ venv₁ decl inductiveConstants inductiveEnv
+      recursors models C₂ venv₂)
+    (h : Aligned safety C₁ venv₁) : Aligned safety C₂ venv₂ := by
+  have hinductive := Aligned.addInductEvidence H.inductiveEvidence h
+  have htranslations : List.Forall₂
+      (fun info model => info.name = model.name ∧
+        TrConstant safety inductiveEnv (.recInfo info) model.toVConstant)
+      recursors models :=
+    Lean4Lean.List.Forall₂.imp (fun _ _ h => ⟨h.1, h.2.1⟩) H.translations
+  have hfresh : ∀ info ∈ recursors, inductiveConstants.find? info.name = none := by
+    intro info hmem
+    obtain ⟨model, hmodel, htranslation⟩ :=
+      Lean4Lean.List.Forall₂.forall_exists_l H.translations info hmem
+    simpa [htranslation.1] using H.recursorFresh model hmodel
+  have hnodup : (recursors.map (·.name)).Nodup := by
+    have hpair : List.Forall₂ Eq (recursors.map (·.name)) (models.map (·.name)) := by
+      rw [List.forall₂_map_left_iff, List.forall₂_map_right_iff]
+      exact Lean4Lean.List.Forall₂.imp
+        (fun (_ : RecursorVal) (_ : VConstVal) h => h.1) htranslations
+    exact (List.forall₂_eq.mp hpair).symm ▸ H.recursorNodup
+  have addRecursors : ∀ {infos : List RecursorVal} {ctors : List VConstVal}
+      {C : ConstMap} {env env' : VEnv},
+      Aligned safety C env →
+      List.Forall₂
+        (fun info ctor => info.name = ctor.name ∧
+          TrConstant safety env (.recInfo info) ctor.toVConstant) infos ctors →
+      (∀ info ∈ infos, C.find? info.name = none) →
+      (infos.map (·.name)).Nodup →
+      env.addConstructorHeaders ctors = some env' →
+      Aligned safety (insertConsts C (infos.map (.recInfo ·))) env' := by
+    intro infos
+    induction infos with
+    | nil =>
+      intro ctors C env env' aligned pairs fresh nodup added
+      cases ctors with
+      | nil => cases pairs; cases added; simpa [insertConsts] using aligned
+      | cons ctor ctors => cases pairs
+    | cons info infos ih =>
+      intro ctors C env env' aligned pairs fresh nodup added
+      cases ctors with
+      | nil => cases pairs
+      | cons ctor ctors =>
+        cases pairs with
+        | cons pair pairs =>
+          have nodup' := List.nodup_cons.mp nodup
+          simp [VEnv.addConstructorHeaders, Option.bind_eq_some_iff] at added
+          obtain ⟨next, step, rest⟩ := added
+          have step' : env.addConst info.name ctor.toVConstant = some next := by
+            rw [pair.1]
+            exact step
+          have freshTail : ∀ d ∈ infos,
+              (C.insert info.name (.recInfo info)).find? d.name = none := by
+            intro d hd
+            rw [aligned.map_wf.find?_insert]
+            split
+            · rename_i equal
+              simp only [beq_iff_eq] at equal
+              exact False.elim (nodup'.1 (by
+                simpa [equal] using List.mem_map.mpr ⟨d, hd, rfl⟩))
+            · exact fresh d (.tail _ hd)
+          have nextAligned := aligned.const (fresh info (.head _)) pair.2 step' rfl
+          have pairs' : List.Forall₂
+              (fun info ctor => info.name = ctor.name ∧
+                TrConstant safety next (.recInfo info) ctor.toVConstant) infos ctors :=
+            Lean4Lean.List.Forall₂.imp
+              (fun _ _ h => ⟨h.1, h.2.mono (VEnv.addConst_le step')⟩) pairs
+          have tailAligned := ih nextAligned pairs' freshTail nodup'.2 rest
+          simpa [insertConsts, ConstantInfo.name, ConstantInfo.toConstantVal] using tailAligned
+  rw [H.resultMap]
+  exact addRecursors hinductive htranslations hfresh hnodup H.recursorAdd
+
 theorem Aligned.addDefEqs {C : ConstMap} : ∀ {cis' : List VDefVal} {venv},
     Aligned safety C venv → Aligned safety C (venv.addDefEqs cis')
   | [], _, H => H
@@ -587,6 +659,30 @@ theorem TrEnvInductive.wf (H : TrEnvInductive safety C Q venv) : venv.WF := by
       obtain ⟨info, hinfo, htranslation⟩ :=
         Lean4Lean.List.Forall₂.forall_exists_r evidence.translations model hmem
       exact htranslation.2.2) evidence.recursorAdd
+
+theorem TrEnvInductive.aligned (H : TrEnvInductive safety C Q venv) :
+    Aligned safety C venv := by
+  induction H with
+  | legacy H => exact H.aligned
+  | induct _ _ evidence ih => exact Aligned.addInductWithRecursorsEvidence evidence ih
+
+theorem TrEnvInductive.map_wf (H : TrEnvInductive safety C Q venv) : C.WF :=
+  H.aligned.map_wf
+
+theorem TrEnvInductive.find?_iff (H : TrEnvInductive safety C Q venv) :
+    (∃ ci, C.find? name = some ci ∧ safety ≤ ci.safety) ↔
+      ∃ ci, venv.constants name = some ci :=
+  H.aligned.find?_iff
+
+theorem TrEnvInductive.find? (H : TrEnvInductive safety C Q venv)
+    (h : C.find? name = some ci) (hs : safety ≤ ci.safety) :
+    ∃ ci', venv.constants name = some ci' ∧ TrConstant safety venv ci ci' :=
+  H.aligned.find? h hs
+
+theorem TrEnvInductive.find?_uniq (H : TrEnvInductive safety C Q venv)
+    (h : C.find? name = some ci) (hs : venv.constants name = some ci') :
+    ci.name = name ∧ TrConstant safety venv ci ci' :=
+  H.aligned.find?_uniq h hs
 
 theorem TrEnv'.quotientObjects (valid : TrEnv' safety constants true environment) :
     environment.HasObjects [.defeq quotDefEq, .const ``Quot.ind quotIndConst,
