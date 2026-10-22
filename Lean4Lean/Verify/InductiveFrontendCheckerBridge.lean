@@ -129,6 +129,30 @@ theorem NativeInductive.RestoredRecordEvidence.registrationAlignmentHistory_of_s
   exact restored.registrationAlignmentHistory producer halign hconstants history
     history.aligned hrecursors
 
+theorem NativeInductive.RestoredRecordEvidence.registrationRuleResults
+    {Result : NativeInductive.RecursorEntry → RecursorRule → Prop}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → Result entry rule) :
+    ∀ entry ∈ restored.entries,
+      entry.RuleSemantics semanticResult ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, Result entry rule := by
+  intro entry hmem
+  have hproducer : entry ∈ producer.orderedEntries := by
+    rw [← halign]
+    exact hmem
+  exact producer.orderedRuleResultsOf ruleResults entry hproducer
+
 theorem SafeInductiveRestorationMetadata.toRestoredRecordEvidence
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
