@@ -60,6 +60,22 @@ example {context : TypeChecker.VContext} {name : Name} {levels : List Level}
       ∃ model type, context.TrTyping (.const name levels) result model type :=
   TypeChecker.Inner.inferConstant.WFOf lookup lookupUnique levelsNoMVar translated
 
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {expression : Expr} {inferOnly : Bool}
+    (lookup : ∀ {constantName ci}, context.env.find? constantName = some ci →
+      context.safety ≤ ci.safety →
+      ∃ ci', context.venv.constants constantName = some ci' ∧
+        TrConstant context.safety context.venv ci ci')
+    (lookupUnique : ∀ {constantName ci ci'}, context.env.find? constantName = some ci →
+      context.venv.constants constantName = some ci' →
+      ci.name = constantName ∧ TrConstant context.safety context.venv ci ci')
+    (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars))
+    (translated : inferOnly = true →
+      ∃ semantic, context.TrExprS expression semantic) :
+    (TypeChecker.Inner.inferType' expression inferOnly).WF context state fun type _ =>
+      ∃ semantic semanticType, context.TrTyping expression type semantic semanticType :=
+  TypeChecker.Inner.inferType'.WFOf lookup lookupUnique freeVariables translated
+
 example {context : TypeChecker.VContext} {expression : Expr} {semantic : VExpr}
     (value : ∀ {name ci value}, context.env.find? name = some ci →
       context.safety ≤ ci.safety → ci.deltaValue? = some value →

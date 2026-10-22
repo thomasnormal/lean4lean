@@ -461,7 +461,11 @@ theorem infer_sort {c : VContext} (H : VLevel.ofLevel c.lparams u = some u') :
   refine ⟨fun _ _ _ => (?a).fvarsIn, .sort H, ?a, .sort (.of_ofLevel H)⟩
   exact .sort <| by simpa [VLevel.ofLevel]
 
-theorem inferType'.WF
+theorem inferType'.WFOf
+    (hlookup : ∀ {name ci}, c.env.find? name = some ci → c.safety ≤ ci.safety →
+      ∃ ci', c.venv.constants name = some ci' ∧ TrConstant c.safety c.venv ci ci')
+    (huniq : ∀ {name ci ci'}, c.env.find? name = some ci → c.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant c.safety c.venv ci ci')
     (h1 : e.FVarsIn (· ∈ c.vlctx.fvars))
     (hinf : inferOnly = true → ∃ e', c.TrExprS e e') :
     (inferType' e inferOnly).WF c s fun ty _ => ∃ e' ty', c.TrTyping e ty e' ty' := by
@@ -490,23 +494,23 @@ theorem inferType'.WF
   split
   · extract_lets G1; split <;> [split; skip]
     · refine .getEnv <| (M.WF.liftExcept envGet.WF).lift.bind fun _ _ _ h => ?_
-      have ⟨_, h, _⟩ := c.trenv.find? h <|
+      have ⟨_, h, _⟩ := hlookup h <|
         (c.safePrimitives h (literal_is_primitive (.inl rfl))).1 ▸ DefinitionSafety.le_safe
       exact hF (infer_literal ⟨_, h⟩)
     · refine .getEnv <| (M.WF.liftExcept envGet.WF).lift.bind fun _ _ _ h1 => ?_
       refine .getEnv <| (M.WF.liftExcept envGet.WF).lift.bind fun _ _ _ h2 => ?_
-      have ⟨_, h1, _⟩ := c.trenv.find? h1 <|
+      have ⟨_, h1, _⟩ := hlookup h1 <|
         (c.safePrimitives h1 (literal_is_primitive (.inr (.inl rfl)))).1 ▸ DefinitionSafety.le_safe
-      have ⟨_, h2, _⟩ := c.trenv.find? h2 <|
+      have ⟨_, h2, _⟩ := hlookup h2 <|
         (c.safePrimitives h2 (literal_is_primitive (.inr (.inr rfl)))).1 ▸ DefinitionSafety.le_safe
       exact hF (infer_literal ⟨⟨_, h1⟩, ⟨_, h2⟩⟩)
     · rename_i h; have ⟨_, h⟩ := hinf (by simpa using h)
       have := h.lit_has_type
       simp [G1]; exact hF (infer_literal this)
-  · refine (inferType'.WF (by exact h1) ?_).bind fun _ _ _ ⟨_, _, hb, h1, h⟩ => ?_
+  · refine (inferType'.WFOf hlookup huniq (by exact h1) ?_).bind fun _ _ _ ⟨_, _, hb, h1, h⟩ => ?_
     · exact fun h => let ⟨_, .mdata h⟩ := hinf h; ⟨_, h⟩
     exact hF ⟨hb, .mdata h1, h⟩
-  · refine (inferType'.WF (by exact h1) ?_).bind fun _ _ _ ⟨_, _, hb, h1, h2, h3⟩ => ?_
+  · refine (inferType'.WFOf hlookup huniq (by exact h1) ?_).bind fun _ _ _ ⟨_, _, hb, h1, h2, h3⟩ => ?_
     · exact fun h => let ⟨_, .proj h ..⟩ := hinf h; ⟨_, h⟩
     exact (inferProj.WF ⟨hb, h1, h2, h3⟩).bind fun ty _ _ ⟨projected, ty', h⟩ => hF h
   · exact .readThe <| (M.WF.liftExcept inferFVar.WF).lift.bind fun _ _ _ ⟨_, _, h⟩ => hF h
@@ -518,19 +522,20 @@ theorem inferType'.WF
     · let ⟨_, .sort h⟩ := hinf (by simpa using h)
       exact hF (infer_sort h)
   · refine .readThe <|
-      (M.WF.liftExcept (inferConstant.WF h1 hinf)).lift.bind fun _ _ _ ⟨_, _, h⟩ => hF h
+      (M.WF.liftExcept (inferConstant.WFOf hlookup huniq h1 hinf)).lift.bind
+        fun _ _ _ ⟨_, _, h⟩ => hF h
   · exact (inferLambda.WF h1 hinf).bind fun _ _ _ ⟨_, _, h⟩ => hF h
   · exact (inferForall.WF h1 hinf).bind fun _ _ _ ⟨_, _, h⟩ => hF h
   · split <;> rename_i h
     · let ⟨_, h⟩ := hinf h; exact (inferApp.WF h).bind fun _ _ _ ⟨_, h⟩ => hF h
-    refine (inferType'.WF h1.1 ?_).bind fun _ _ _ ⟨_, _, hfb, hf1, hf2, hf3⟩ => ?_
+    refine (inferType'.WFOf hlookup huniq h1.1 ?_).bind fun _ _ _ ⟨_, _, hfb, hf1, hf2, hf3⟩ => ?_
     · exact fun h => let ⟨_, .app _ _ h _⟩ := hinf h; ⟨_, h⟩
     refine .stateWF fun wf => ?_
     refine (ensureForallCore.WF hf2).bind fun _ _ _ H => ?_
     obtain ⟨hb, h2, name, dType, body, bi, rfl⟩ := H
     let ⟨_, .forallE (ty' := dType') hl1 hl2 hl3 hl4, hl5⟩ := h2
     extract_lets _ G1
-    refine (inferType'.WF h1.2 ?_).bind fun aType _ _ ⟨_, aType', hab, ha1, ha2, ha3⟩ => ?_
+    refine (inferType'.WFOf hlookup huniq h1.2 ?_).bind fun aType _ _ ⟨_, aType', hab, ha1, ha2, ha3⟩ => ?_
     · exact fun h => let ⟨_, .app _ _ _ h⟩ := hinf h; ⟨_, h⟩
     extract_lets G2
     suffices ∀ {s b} (H : b = true → c.IsDefEqU dType' aType'), RecM.WF c s (G2 b) P by
@@ -549,3 +554,9 @@ theorem inferType'.WF
     subst hP; refine hF ⟨?_, .app hf3 ha3 hf1 ha1, hl4.inst c.Ewf ha3 ha1, .app hf3 ha3⟩
     exact fun _ hP he => (hfb.trans hb _ hP he.1).2.instantiate1 he.2
   · exact (inferLet.WF h1 hinf).bind fun _ _ _ ⟨_, _, h⟩ => hF h
+
+theorem inferType'.WF
+    (h1 : e.FVarsIn (· ∈ c.vlctx.fvars))
+    (hinf : inferOnly = true → ∃ e', c.TrExprS e e') :
+    (inferType' e inferOnly).WF c s fun ty _ => ∃ e' ty', c.TrTyping e ty e' ty' :=
+  inferType'.WFOf c.trenv.find? c.trenv.find?_uniq h1 hinf
