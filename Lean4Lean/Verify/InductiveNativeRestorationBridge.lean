@@ -27,6 +27,25 @@ structure RestoredRecordEvidence (preprocessing : ElimNestedInductive.Result)
       entry.toConstantInfo
   receipt : RestoredRegistrationReceipt original records result
 
+def RestoredRegistrationEvidence.toRestoredRecordEvidence
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {original result : Environment}
+    {types : List InductiveType}
+    (evidence : RestoredRegistrationEvidence preprocessing staged (types.map (·.name))
+      (mkAuxRecNameMap staged types).2
+      original (restoredEnvironmentRecords preprocessing staged types) result)
+    (entries : List RegistrationEntry)
+    (records_eq : restoredEnvironmentRecords preprocessing staged types =
+      entries.map RegistrationEntry.toConstantInfo) :
+    RestoredRecordEvidence preprocessing staged (types.map (·.name))
+      (mkAuxRecNameMap staged types).2 original result
+      (restoredEnvironmentRecords preprocessing staged types) := by
+  refine ⟨entries, records_eq, ?_, evidence.receipt⟩
+  intro entry hmem
+  apply restoredEnvironmentRecords.typedPartition preprocessing staged types
+  rw [records_eq]
+  exact List.mem_map.mpr ⟨entry, hmem, rfl⟩
+
  theorem RestoredRecordEvidence.map
     {preprocessing : ElimNestedInductive.Result} {staged : Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name}

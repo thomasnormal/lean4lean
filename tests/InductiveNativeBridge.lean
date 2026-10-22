@@ -440,6 +440,19 @@ example {preprocessing : ElimNestedInductive.Result} {staged original result : K
           RestoredInductiveRecord preprocessing staged allIndNames recNameMap info) :=
   evidence.recordsReceipt hwf
 
+example {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {original result : Kernel.Environment} {types : List InductiveType}
+    (evidence : RestoredRegistrationEvidence preprocessing staged (types.map (·.name))
+      (mkAuxRecNameMap staged types).2
+      original (restoredEnvironmentRecords preprocessing staged types) result)
+    (entries : List RegistrationEntry)
+    (records_eq : restoredEnvironmentRecords preprocessing staged types =
+      entries.map RegistrationEntry.toConstantInfo) :
+    NativeInductive.RestoredRecordEvidence preprocessing staged (types.map (·.name))
+      (mkAuxRecNameMap staged types).2 original result
+      (restoredEnvironmentRecords preprocessing staged types) :=
+  NativeInductive.RestoredRegistrationEvidence.toRestoredRecordEvidence evidence entries records_eq
+
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
     (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
