@@ -541,4 +541,54 @@ theorem SafeInductiveRestorationMetadata.toCheckerEnvInductive
       _ = producer.orderedEntries := entry_eq preprocessing staged hpre hrun hnested
   exact restored.toCheckerEnvInductive producer halign hconstants history hrecursors hvalues
 
+theorem SafeInductiveRestorationMetadata.toCheckerEnvInductive_of_sourceTypehood
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    (coverage : InductiveRestorationSourceCoverage env lparams nparams types allowPrimitive fuel)
+    (entries : ElimNestedInductive.Result → Kernel.Environment → List NativeInductive.RegistrationEntry)
+    (records_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries preprocessing staged).map NativeInductive.RegistrationEntry.toConstantInfo)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (entry_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 →
+      entries preprocessing staged = producer.orderedEntries)
+    (hconstants : env.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    ∃ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      (preprocessing.aux2nested.size ≠ 0 →
+        CheckerEnvInductive .safe result semanticResult Q) := by
+  obtain ⟨preprocessing, staged, hpre, hrun, hrestored⟩ :=
+    metadata.toRestoredRecordEvidence coverage entries records_eq
+  refine ⟨preprocessing, staged, hpre, hrun, ?_⟩
+  intro hnested
+  obtain ⟨⟨restored, hentries⟩⟩ := hrestored hnested
+  have halign : restored.entries = producer.orderedEntries := by
+    calc
+      restored.entries = entries preprocessing staged := hentries
+      _ = producer.orderedEntries := entry_eq preprocessing staged hpre hrun hnested
+  exact restored.toCheckerEnvInductive_of_sourceTypehood producer halign hconstants history
+    hsource hvalues
+
 end Lean4Lean
