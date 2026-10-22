@@ -189,11 +189,21 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
     firstTranslation secondTranslation
   constructor
   · rintro ⟨ci, hfind, hs⟩
-    exact history.env_find? hfind hs |>.choose_spec.1
+    obtain ⟨ci', hmodel, _⟩ := history.env_find? hfind hs
+    exact ⟨ci', hmodel⟩
   · rintro ⟨ci', hmodel⟩
     obtain ⟨ci, hfind, hs⟩ := history.find?_iff.mpr ⟨ci', hmodel⟩
     refine ⟨ci, ?_, hs⟩
-    rwa [← history.map_wf.find?'_eq_find?]
+    rw [Kernel.Environment.find?, history.map_wf.find?'_eq_find?]
+    exact hfind
+
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {typeName : Name} {idx : Nat} {expression expressionType : Expr} {semanticType : VExpr}
+    (rejects : TrEnv.RejectsInductiveFamilies context.trenv)
+    (translated : context.TrExprS expressionType semanticType) :
+    (TypeChecker.Inner.inferProj typeName idx expression expressionType).WF context state
+      (fun _ _ => False) :=
+  TypeChecker.Inner.inferProj.rejectsOf rejects translated
 
 example {context : TypeChecker.VContext} {name : Name}
     (find : ∀ {constantName},
