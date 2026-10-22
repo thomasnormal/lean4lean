@@ -627,6 +627,73 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
           evidence.entries = entries preprocessing staged }) :=
   metadata.sourceRecursorRuleStagesAndRestoredRecordEvidence coverage entries records_eq
 
+example {Result : RecursorEntry → RecursorRule → Prop}
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    (coverage : InductiveRestorationSourceCoverage env lparams nparams types allowPrimitive fuel)
+    (entries : ElimNestedInductive.Result → Kernel.Environment → List RegistrationEntry)
+    (records_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries preprocessing staged).map RegistrationEntry.toConstantInfo)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (entry_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 →
+      entries preprocessing staged = producer.orderedEntries)
+    (hrecursor : ∀ (index : Nat) (hindex : index < types.length)
+      (recursor : RecursorVal),
+      result.find? recursor.name = some (.recInfo recursor) →
+      recursor.name = mkRecName types[index].name)
+    (hentry : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 →
+      ∀ (index : Nat) (hindex : index < types.length),
+        ∃ entry : RecursorEntry,
+          (.recursor entry : RegistrationEntry) ∈ entries preprocessing staged ∧
+          entry.info.name = mkRecName types[index].name)
+    (ruleResult : ∀ (entry : RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → Result entry rule) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      InductiveArityPrefix types.toArray preprocessing.types.toArray ∧
+      SourceRecursorRuleLookups nparams lparams types preprocessing staged result ∧
+      (preprocessing.aux2nested.size ≠ 0 →
+        Nonempty { evidence : NativeInductive.RestoredRecordEvidence preprocessing staged
+            (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
+            (restoredEnvironmentRecords preprocessing staged types) //
+          evidence.entries = entries preprocessing staged }) ∧
+      (preprocessing.aux2nested.size ≠ 0 →
+        ∀ (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+          (hctor : ctorIndex < types[index].ctors.length),
+          ∃ (entry : RecursorEntry) (recursor : RecursorVal)
+            (rule : RecursorRule) (info : ConstructorVal) (semantic : VExpr),
+            result.find? recursor.name = some (.recInfo recursor) ∧
+            entry.info.name = mkRecName types[index].name ∧
+            recursor.rules.length = types[index].ctors.length ∧
+            recursor.rules[ctorIndex]? = some rule ∧
+            staged.find? types[index].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+            SourceConstructorMetadata nparams lparams types[index] ctorIndex info ∧
+            SourceConstructorFields nparams types[index] ctorIndex info ∧
+            rule.nfields = info.numFields ∧
+            rule.nfields = arity 0 types[index].ctors[ctorIndex].type - nparams ∧
+            nparams + rule.nfields = arity 0 types[index].ctors[ctorIndex].type ∧
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+            Result entry rule) :=
+  metadata.sourceRecursorRuleResultsAndRestoredRecordEvidence coverage entries records_eq producer
+    entry_eq hrecursor hentry ruleResult
+
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
     (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
