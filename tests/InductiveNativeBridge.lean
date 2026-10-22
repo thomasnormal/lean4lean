@@ -3,6 +3,7 @@ import Lean4Lean.Verify.InductiveNativeAlignment
 import Lean4Lean.Verify.InductiveNativeTrace
 import Lean4Lean.Verify.InductiveRestorationMetadata
 import Lean4Lean.Verify.InductiveNativeRestorationBridge
+import Lean4Lean.Verify.InductiveFrontendCheckerBridge
 import Lean.Util.CollectAxioms
 
 namespace Lean4Lean.Tests.InductiveNativeBridge
@@ -438,6 +439,25 @@ example {preprocessing : ElimNestedInductive.Result} {staged original result : K
         (original.find? info.name = some info ∨
           RestoredInductiveRecord preprocessing staged allIndNames recNameMap info) :=
   evidence.recordsReceipt hwf
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe result semanticResult Q :=
+  scope.toCheckerEnvInductive history producer hconstants hresultConstants hrecursors hvalues
 
 run_meta
   let environment ← getEnv
