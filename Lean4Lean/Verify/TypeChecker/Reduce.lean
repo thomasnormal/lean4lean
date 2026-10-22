@@ -106,7 +106,11 @@ theorem reduceBinNatOpG.WF {guard} [DecidableRel guard] {c : VContext}
       c.FVarsBelow (.app (.app (.const fc ls) a) b) e₁ ∧ c.TrExpr e₁ e' :=
   reduceBinNatOpG.WFOf c.trenv.find?_iff c.trenv.find?_uniq he hprim heval
 
-theorem reduceBinNatPred.WF {c : VContext}
+theorem reduceBinNatPred.WFOf {c : VContext}
+    (hfind : ∀ {name}, (∃ ci, c.env.find? name = some ci ∧ c.safety ≤ ci.safety) ↔
+      ∃ ci, c.venv.constants name = some ci)
+    (huniq : ∀ {name ci ci'}, c.env.find? name = some ci → c.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant c.safety c.venv ci ci')
     (he : c.TrExprS (.app (.app (.const fc ls) a) b) e')
     (hprim : Environment.primitives.contains fc)
     (heval : c.venv.ReflectsNatNatBool fc f) :
@@ -121,9 +125,9 @@ theorem reduceBinNatPred.WF {c : VContext}
   refine (whnf.WF hb).bind fun b₁ _ _ ⟨b1, _, b2, b3⟩ => ?_
   split <;> [rename_i v2 h; exact .pure nofun]; cases (rawNatLitExt?.WF h b2).2
   refine .pure ?_; rintro _ ⟨⟩; refine ⟨fun _ _ _ => .boolLit, ?_⟩
-  have ⟨ci, c1, _⟩ := c.trenv.find?_iff.2 ⟨_, h1⟩
+  have ⟨ci, c1, _⟩ := (hfind (name := fc)).2 ⟨_, h1⟩
   have ⟨_, c3⟩ := c.safePrimitives c1 hprim
-  have ⟨_, d1, d2, d3⟩ := c.trenv.find?_uniq c1 h1
+  have ⟨_, d1, d2, d3⟩ := huniq c1 h1
   simp [c3] at d2; simp [← d2] at h3; simp [h3] at h2; subst h2
   have := (heval ⟨_, h1⟩).2 v1 v2 |>.instL (U' := c.lparams.length) (ls := []) nofun
   simp [VExpr.instL] at this
@@ -136,7 +140,20 @@ theorem reduceBinNatPred.WF {c : VContext}
   have := ha1.appDF a3 |>.toU.of_r c.Ewf c.Δwf hb1
   exact  ⟨_, .appDF this b3⟩
 
-theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
+theorem reduceBinNatPred.WF {c : VContext}
+    (he : c.TrExprS (.app (.app (.const fc ls) a) b) e')
+    (hprim : Environment.primitives.contains fc)
+    (heval : c.venv.ReflectsNatNatBool fc f) :
+    RecM.WF c s (reduceBinNatPred f a b) fun oe _ => ∀ e₁, oe = some e₁ →
+      c.FVarsBelow (.app (.app (.const fc ls) a) b) e₁ ∧ c.TrExpr e₁ e' :=
+  reduceBinNatPred.WFOf c.trenv.find?_iff c.trenv.find?_uniq he hprim heval
+
+theorem reduceNat.WFOf {c : VContext}
+    (hfind : ∀ {name}, (∃ ci, c.env.find? name = some ci ∧ c.safety ≤ ci.safety) ↔
+      ∃ ci, c.venv.constants name = some ci)
+    (huniq : ∀ {name ci ci'}, c.env.find? name = some ci → c.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant c.safety c.venv ci ci')
+    (he : c.TrExprS e e') :
     RecM.WF c s (reduceNat e) fun oe _ => ∀ e₁, oe = some e₁ →
       c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' := by
   generalize hP : (fun oe => _) = P
@@ -152,13 +169,13 @@ theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
         RecM.WF c s (do if f == fc then {return ← reduceBinNatOpG guard g a b}; G) P := by
       split <;> [rename_i h; exact hG]
       simp at h ⊢; subst h
-      exact hP ▸ reduceBinNatOpG.WF he (hprims.2 hprim) heval
+      exact hP ▸ reduceBinNatOpG.WFOf hfind huniq he (hprims.2 hprim) heval
     have hpred {g fc G} (hprim : fc ∈ prims)
         (heval : c.venv.ReflectsNatNatBool fc g) (hG : RecM.WF c s G P) :
         RecM.WF c s (do if f == fc then {return ← reduceBinNatPred g a b}; G) P := by
       split <;> [rename_i h; exact hG]
       simp at h ⊢; subst h
-      exact hP ▸ reduceBinNatPred.WF he (hprims.2 hprim) heval
+      exact hP ▸ reduceBinNatPred.WFOf hfind huniq he (hprims.2 hprim) heval
     apply hfun (fun _ _ => False) (by simp [prims]) c.hasPrimitives.natAdd
     apply hfun (fun _ _ => False) (by simp [prims]) c.hasPrimitives.natSub
     apply hfun (fun _ _ => False) (by simp [prims]) c.hasPrimitives.natMul
@@ -183,12 +200,17 @@ theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
     split <;> [rename_i n h; exact hP ▸ .pure nofun]
     obtain ⟨hn, rfl⟩ := rawNatLitExt?.WF h a2
     refine hP ▸ .pure ?_; rintro _ ⟨⟩; refine ⟨fun _ _ _ => trivial, ?_⟩
-    have ⟨ci, c1, _⟩ := c.trenv.find?_iff.2 ⟨_, h1⟩
+    have ⟨ci, c1, _⟩ := hfind.2 ⟨_, h1⟩
     have ⟨c2, c3⟩ := c.safePrimitives c1 <| hprims.2 (by simp [prims])
-    have ⟨d1, d2, d3⟩ := c.trenv.find?_uniq c1 h1; cases h2
+    have ⟨d1, d2, d3⟩ := huniq c1 h1; cases h2
     refine have ⟨p1, p2⟩ := TrExprS.natLit c.hasPrimitives hn _; ⟨_, p1, ?_⟩
     refine p2.toU.symm.trans c.Ewf c.Δwf ?_
     exact ⟨_, ha1.appDF <| a3.of_r c.Ewf c.Δwf ha2⟩
+
+theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
+    RecM.WF c s (reduceNat e) fun oe _ => ∀ e₁, oe = some e₁ →
+      c.FVarsBelow e e₁ ∧ c.TrExpr e₁ e' :=
+  reduceNat.WFOf c.trenv.find?_iff c.trenv.find?_uniq he
 
 /-- In the current constructor-free model, a translated structure cannot
 reduce to a registered constructor application. String expansion is checked

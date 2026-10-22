@@ -92,6 +92,40 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
           context.TrExpr value semantic) :=
   TypeChecker.Inner.reduceBinNatOpG.WFOf find lookupUnique translated primitive reflection
 
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {f : Nat → Nat → Bool} {fc : Name} {levels : List Level} {a b : Expr}
+    {semantic : VExpr}
+    (find : ∀ {constantName},
+      (∃ ci, context.env.find? constantName = some ci ∧ context.safety ≤ ci.safety) ↔
+        ∃ ci, context.venv.constants constantName = some ci)
+    (lookupUnique : ∀ {constantName ci ci'},
+      context.env.find? constantName = some ci →
+      context.venv.constants constantName = some ci' →
+      ci.name = constantName ∧ TrConstant context.safety context.venv ci ci')
+    (translated : context.TrExprS (.app (.app (.const fc levels) a) b) semantic)
+    (primitive : Lean.Kernel.Environment.primitives.contains fc)
+    (reflection : context.venv.ReflectsNatNatBool fc f) :
+    (TypeChecker.Inner.reduceBinNatPred f a b).WF context state
+      (fun output _ => ∀ value, output = some value →
+        context.FVarsBelow (.app (.app (.const fc levels) a) b) value ∧
+          context.TrExpr value semantic) :=
+  TypeChecker.Inner.reduceBinNatPred.WFOf find lookupUnique translated primitive reflection
+
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {expression : Expr} {semantic : VExpr}
+    (find : ∀ {constantName},
+      (∃ ci, context.env.find? constantName = some ci ∧ context.safety ≤ ci.safety) ↔
+        ∃ ci, context.venv.constants constantName = some ci)
+    (lookupUnique : ∀ {constantName ci ci'},
+      context.env.find? constantName = some ci →
+      context.venv.constants constantName = some ci' →
+      ci.name = constantName ∧ TrConstant context.safety context.venv ci ci')
+    (translated : context.TrExprS expression semantic) :
+    (TypeChecker.Inner.reduceNat expression).WF context state
+      (fun output _ => ∀ value, output = some value →
+        context.FVarsBelow expression value ∧ context.TrExpr value semantic) :=
+  TypeChecker.Inner.reduceNat.WFOf find lookupUnique translated
+
 example {ctx : TypeChecker.Context} {semantic : VEnv} {scope : VLCtx} {Q : Bool}
     (checker : CheckerEnvInductive ctx.safety ctx.env semantic Q)
     (hscope : scope.WF semantic ctx.lparams.length) (hnoBV : scope.NoBV)
