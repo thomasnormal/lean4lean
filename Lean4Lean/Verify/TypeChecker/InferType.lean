@@ -440,11 +440,18 @@ theorem inferProj.rejects (translated : c.TrExprS ety semanticType) :
     (inferProj st i e ety).WF c s (fun _ _ => False) :=
   inferProj.rejectsOf c.trenv_rejects translated
 
+theorem inferProj.WFOf
+    (hrejects : TrEnv.RejectsInductiveFamilies c.trenv)
+    (typed : c.TrTyping e ety e' ety') :
+    (inferProj st i e ety).WF c s fun ty _ =>
+      ∃ projected ty', c.TrTyping (.proj st i e) ty projected ty' :=
+  (inferProj.rejectsOf hrejects typed.2.2.1).mono fun _ _ _ impossible => impossible.elim
+
 theorem inferProj.WF
     (typed : c.TrTyping e ety e' ety') :
     (inferProj st i e ety).WF c s fun ty _ =>
       ∃ projected ty', c.TrTyping (.proj st i e) ty projected ty' :=
-  (inferProj.rejectsOf c.trenv_rejects typed.2.2.1).mono fun _ _ _ impossible => impossible.elim
+  inferProj.WFOf c.trenv_rejects typed
 
 theorem literal_is_primitive (H : n = ``Nat ∨ n = ``Char.ofNat ∨ n = ``String.ofList)  :
     Environment.primitives.contains n := by

@@ -206,6 +206,26 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
       (fun _ _ => False) :=
   TypeChecker.Inner.inferProj.rejectsOf rejects translated
 
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {parent : Name} {index : Nat} {expression type : Expr}
+    {expressionValue typeValue semantic semanticType : VExpr}
+    (rejects : TrEnv.RejectsInductiveFamilies context.trenv)
+    (typed : context.TrTyping expression type expressionValue typeValue) :
+    (TypeChecker.Inner.inferProj parent index expression type).WF context state
+      (fun outputType _ => ∃ projected projectedType,
+        context.TrTyping (.proj parent index expression) outputType projected projectedType) := by
+  exact TypeChecker.Inner.inferProj.WFOf rejects typed
+
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {parent : Name} {index : Nat} {expression type : Expr}
+    {expressionValue typeValue semantic semanticType : VExpr}
+    (rejects : TrEnv.RejectsInductiveFamilies context.trenv)
+    (typed : context.TrTyping expression type expressionValue typeValue) :
+    (TypeChecker.Inner.inferProj parent index expression type).ScopeWF context state
+      (fun result _ => ∃ projected resultType,
+        context.TrTyping (.proj parent index expression) result projected resultType) := by
+  exact TypeChecker.Inner.inferProj.scopeWFOf rejects typed
+
 example {context : TypeChecker.VContext} {expression : Expr} {semantic : VExpr}
     {monad : Type → Type} [Monad monad]
     (rejects : TrEnv.RejectsInductiveFamilies context.trenv)

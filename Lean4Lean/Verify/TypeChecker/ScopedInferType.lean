@@ -416,11 +416,18 @@ theorem nativeProjectionFinal.scopeWF {context : VContext} {state : VState}
       · exact nativeProjectionFailure.scopeWF environment source
       · exact RecM.ScopeWF.pure trivial
 
+theorem inferProj.scopeWFOf {context : VContext} {state : VState}
+    (hrejects : TrEnv.RejectsInductiveFamilies context.trenv)
+    (typed : context.TrTyping expression type semantic semanticType) :
+    (inferProj parent index expression type).ScopeWF context state fun result _ =>
+      ∃ projected resultType, context.TrTyping (.proj parent index expression) result projected resultType :=
+  RecM.ScopeWF.of_rejects (inferProj.rejectsOf hrejects typed.2.2.1)
+
 theorem inferProj.scopeWF {context : VContext} {state : VState}
     (typed : context.TrTyping expression type semantic semanticType) :
     (inferProj parent index expression type).ScopeWF context state fun result _ =>
       ∃ projected resultType, context.TrTyping (.proj parent index expression) result projected resultType :=
-  RecM.ScopeWF.of_rejects (inferProj.rejects typed.2.2.1)
+  inferProj.scopeWFOf context.trenv_rejects typed
 
 theorem inferLambda.loop.scopeWF {context : VContext} {state : VState}
     {initialExpression : Expr} {locals : MLCtx} [localsWF : context.MLCWF locals]
