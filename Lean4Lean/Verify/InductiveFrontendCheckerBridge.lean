@@ -187,6 +187,33 @@ theorem NativeInductive.RestoredRecordEvidence.registrationMetadata
   rw [← halign]
   exact hmem
 
+theorem NativeInductive.RestoredRecordEvidence.registrationRecursorRuleTranslation
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    {entry : NativeInductive.RecursorEntry} (hentry : .recursor entry ∈ restored.entries)
+    {rule : RecursorRule} (hrule : rule ∈ entry.info.rules) :
+    ∃ semantic, TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic := by
+  have hproducer : (.recursor entry : NativeInductive.RegistrationEntry) ∈ producer.orderedEntries := by
+    rw [← halign]
+    exact hentry
+  have hmem : entry ∈ producer.recursors := by
+    simp only [NativeInductive.RegistrationEvidence.orderedEntries, List.mem_append,
+      List.mem_map] at hproducer
+    rcases hproducer with hphase | hrecursors
+    · simp at hphase
+    · obtain ⟨entry', hentry', heq⟩ := hrecursors
+      cases heq
+      exact hentry'
+  exact producer.recursorRuleTranslation entry hmem rule hrule
+
 theorem SafeInductiveRestorationMetadata.toRestoredRecordEvidence
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
