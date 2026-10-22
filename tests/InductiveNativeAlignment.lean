@@ -177,6 +177,24 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
         context.FVarsBelow expression value ∧ context.TrExpr value semantic) :=
   TypeChecker.Inner.reduceNat.WFOf find lookupUnique translated
 
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {first second : Expr} {firstSemantic secondSemantic : VExpr} {n : Nat} {Q : Bool}
+    (history : TrEnvInductive context.safety context.env.constants Q context.venv)
+    (firstTranslation : context.TrExprS first firstSemantic)
+    (secondTranslation : context.TrExprS second secondSemantic) :
+    (TypeChecker.Inner.lazyDeltaReduction.loop first second n).WF context state
+      (fun result _ => result.WF context firstSemantic secondSemantic) := by
+  apply TypeChecker.Inner.lazyDeltaReduction.loop.WFOf (n := n) (c := context)
+    (fun {name} => ?_) (fun {name ci ci'} hfind hmodel => history.env_find?_uniq hfind hmodel)
+    firstTranslation secondTranslation
+  constructor
+  · rintro ⟨ci, hfind, hs⟩
+    exact history.env_find? hfind hs |>.choose_spec.1
+  · rintro ⟨ci', hmodel⟩
+    obtain ⟨ci, hfind, hs⟩ := history.find?_iff.mpr ⟨ci', hmodel⟩
+    refine ⟨ci, ?_, hs⟩
+    rwa [← history.map_wf.find?'_eq_find?]
+
 example {context : TypeChecker.VContext} {name : Name}
     (find : ∀ {constantName},
       (∃ ci, context.env.find? constantName = some ci ∧ context.safety ≤ ci.safety) ↔

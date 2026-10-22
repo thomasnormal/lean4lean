@@ -467,7 +467,11 @@ theorem isDefEqOffset.WF {c : VContext} {s : VState}
     let ⟨_, _, c1, c2⟩ := de'.hasType.1.app_inv c.Ewf c.Δwf
     exact ⟨_, c1.appDF <| (h hb).of_l c.Ewf c.Δwf c2⟩
 
-theorem lazyDeltaReduction.loop.WF {c : VContext} {s : VState}
+theorem lazyDeltaReduction.loop.WFOf {c : VContext} {s : VState}
+    (hfind : ∀ {name}, (∃ ci, c.env.find? name = some ci ∧ c.safety ≤ ci.safety) ↔
+      ∃ ci, c.venv.constants name = some ci)
+    (lookup : ∀ {name ci ci'}, c.env.find? name = some ci → c.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant c.safety c.venv ci ci')
     (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
     (lazyDeltaReduction.loop e₁ e₂ n).WF c s fun r _ => r.WF c e₁' e₂' := by
   induction n generalizing s e₁ e₂ e₁' e₂' with | zero => exact .throw | succ n ih
@@ -477,12 +481,12 @@ theorem lazyDeltaReduction.loop.WF {c : VContext} {s : VState}
       h (by simpa using hb)
   suffices hF1 : ∀ {s}, (F1 ⟨⟩).WF c s fun r _ => r.WF c e₁' e₂' by
     refine .readThe ?_; split <;> [skip; exact hF1]
-    refine (reduceNat.WF he₁).bind fun _ _ _ h => ?_; split
+    refine (reduceNat.WFOf hfind lookup he₁).bind fun _ _ _ h => ?_; split
     · have ⟨_, a1, a2⟩ := (h _ rfl).2
       refine (isDefEqCore.WF a1 he₂).bind fun _ _ _ h => ?_
       refine .pure <| .bool ⟨_, a1, a2⟩ (he₂.trExpr c.Ewf c.Δwf) fun hb => ?_
       exact a2.symm.trans c.Ewf c.Δwf (h hb)
-    refine (reduceNat.WF he₂).bind fun _ _ _ h => ?_; split
+    refine (reduceNat.WFOf hfind lookup he₂).bind fun _ _ _ h => ?_; split
     · have ⟨_, a1, a2⟩ := (h _ rfl).2
       refine (isDefEqCore.WF he₁ a1).bind fun _ _ _ h => ?_
       refine .pure <| .bool (he₁.trExpr c.Ewf c.Δwf) ⟨_, a1, a2⟩ fun hb => ?_
@@ -493,12 +497,17 @@ theorem lazyDeltaReduction.loop.WF {c : VContext} {s : VState}
   split <;> [cases h _ rfl; skip]
   refine (M.WF.liftExcept reduceNative.WF).lift.bind fun _ _ _ h => ?_
   split <;> [cases h _ rfl; skip]
-  refine (lazyDeltaReductionStep.WF he₁ he₂).bind fun r _ _ h => ?_
+  refine (lazyDeltaReductionStep.WFOf lookup he₁ he₂).bind fun r _ _ h => ?_
   cases r with
   | «continue» =>
     let ⟨_, ⟨_, a1, a2⟩, ⟨_, b1, b2⟩⟩ := h
     exact (ih a1 b1).mono fun _ _ _ h => h.defeq a2 b2
   | _ => exact .pure h
+
+theorem lazyDeltaReduction.loop.WF {c : VContext} {s : VState}
+    (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
+    (lazyDeltaReduction.loop e₁ e₂ n).WF c s fun r _ => r.WF c e₁' e₂' :=
+  lazyDeltaReduction.loop.WFOf c.trenv.find?_iff c.trenv.find?_uniq he₁ he₂
 
 theorem tryStringLitExpansionCore.WF {c : VContext} {s : VState}
     (he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
