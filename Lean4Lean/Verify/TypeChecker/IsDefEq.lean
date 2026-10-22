@@ -230,7 +230,8 @@ theorem tryEtaExpansion.WF {c : VContext} {s : VState}
   split <;> [exact .pure fun _ => h rfl; skip]
   exact (tryEtaExpansionCore.WF he₂ he₁).mono fun _ _ _ h hb => (h hb).symm
 
-theorem tryEtaStructCore.false_of_translation {context : VContext} {state : VState}
+theorem tryEtaStructCore.false_of_translationOf {context : VContext} {state : VState}
+    (hrejects : TrEnv.RejectsInductiveFamilies context.trenv)
     (translated : context.TrExprS second semantic) :
     (tryEtaStructCore first second).WF context state (fun equal _ => equal = false) := by
   unfold tryEtaStructCore
@@ -240,7 +241,12 @@ theorem tryEtaStructCore.false_of_translation {context : VContext} {state : VSta
     refine RecM.WF.getEnv ?_
     refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ found => ?_
     cases information <;> try exact RecM.WF.pure rfl
-    exact False.elim <| context.trenv_rejects.constructorNotInModel found inModel
+    exact False.elim <| hrejects.constructorNotInModel found inModel
+
+theorem tryEtaStructCore.false_of_translation {context : VContext} {state : VState}
+    (translated : context.TrExprS second semantic) :
+    (tryEtaStructCore first second).WF context state (fun equal _ => equal = false) :=
+  tryEtaStructCore.false_of_translationOf context.trenv_rejects translated
 
 theorem tryEtaStructCore.WF {c : VContext} {s : VState}
     (_he₁ : c.TrExprS e₁ e₁') (he₂ : c.TrExprS e₂ e₂') :
@@ -523,7 +529,8 @@ theorem tryStringLitExpansion.WF {c : VContext} {s : VState}
   split <;> [skip; exact .pure h]
   exact (tryStringLitExpansionCore.WF he₂ he₁).mono fun _ _ _ h hb => (h hb).symm
 
-theorem isDefEqUnitLike.false_of_translation {context : VContext} {state : VState}
+theorem isDefEqUnitLike.false_of_translationOf {context : VContext} {state : VState}
+    (hrejects : TrEnv.RejectsInductiveFamilies context.trenv)
     (translated : context.TrExprS first semantic) :
     (isDefEqUnitLike first second).WF context state (fun equal _ => equal = false) := by
   unfold isDefEqUnitLike
@@ -535,7 +542,12 @@ theorem isDefEqUnitLike.false_of_translation {context : VContext} {state : VStat
     refine RecM.WF.getEnv ?_
     refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ found => ?_
     cases information <;> try exact RecM.WF.pure rfl
-    exact False.elim <| context.trenv_rejects.inductiveNotInModel found inModel
+    exact False.elim <| hrejects.inductiveNotInModel found inModel
+
+theorem isDefEqUnitLike.false_of_translation {context : VContext} {state : VState}
+    (translated : context.TrExprS first semantic) :
+    (isDefEqUnitLike first second).WF context state (fun equal _ => equal = false) :=
+  isDefEqUnitLike.false_of_translationOf context.trenv_rejects translated
 
 theorem isDefEqUnitLike.WF {c : VContext} {s : VState}
     (he₁ : c.TrExprS e₁ e₁') (_he₂ : c.TrExprS e₂ e₂') :

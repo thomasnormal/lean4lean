@@ -222,6 +222,22 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
       (fun outcome _ => outcome = none) :=
   TypeChecker.Inner.reduceProjCore.none_of_translationOf rejects translated
 
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {first second : Expr} {semantic : VExpr}
+    (rejects : TrEnv.RejectsInductiveFamilies context.trenv)
+    (translated : context.TrExprS second semantic) :
+    (TypeChecker.Inner.tryEtaStructCore first second).WF context state
+      (fun equal _ => equal = false) :=
+  TypeChecker.Inner.tryEtaStructCore.false_of_translationOf rejects translated
+
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {first second : Expr} {semantic : VExpr}
+    (rejects : TrEnv.RejectsInductiveFamilies context.trenv)
+    (translated : context.TrExprS first semantic) :
+    (TypeChecker.Inner.isDefEqUnitLike first second).WF context state
+      (fun equal _ => equal = false) :=
+  TypeChecker.Inner.isDefEqUnitLike.false_of_translationOf rejects translated
+
 example {context : TypeChecker.VContext} {name : Name}
     (find : ∀ {constantName},
       (∃ ci, context.env.find? constantName = some ci ∧ context.safety ≤ ci.safety) ↔
