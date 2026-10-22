@@ -5,6 +5,7 @@ import Lean4Lean.Verify.TypeChecker.ScopedInferType
 import Lean4Lean.Verify.TypeChecker.IsDefEq
 import Lean4Lean.Verify.TypeChecker.InferType
 import Lean4Lean.Verify.TypeChecker.Reduce
+import Lean4Lean.Verify.Environment.Primitive.Basic
 
 namespace Lean4Lean.Tests.InductiveNativeAlignment
 
@@ -125,6 +126,15 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
       (fun output _ => ∀ value, output = some value →
         context.FVarsBelow expression value ∧ context.TrExpr value semantic) :=
   TypeChecker.Inner.reduceNat.WFOf find lookupUnique translated
+
+example {context : TypeChecker.VContext} {name : Name}
+    (find : ∀ {constantName},
+      (∃ ci, context.env.find? constantName = some ci ∧ context.safety ≤ ci.safety) ↔
+        ∃ ci, context.venv.constants constantName = some ci)
+    (safe : context.safety = .safe) (present : context.env.contains name)
+    (primitive : Lean.Kernel.Environment.primitives.contains name) :
+    context.venv.contains name :=
+  context.contains_primitive_of find safe present primitive
 
 example {ctx : TypeChecker.Context} {semantic : VEnv} {scope : VLCtx} {Q : Bool}
     (checker : CheckerEnvInductive ctx.safety ctx.env semantic Q)

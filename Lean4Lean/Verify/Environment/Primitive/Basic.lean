@@ -16,7 +16,9 @@ open Kernel
 /-- A reserved primitive name present in the real environment is present in the model: the
 name is reserved, so `safePrimitives` says the declaration is safe, and `TrEnv.find?_iff` then
 applies. Every primitive branch needs this for its prerequisite constants. -/
-theorem TypeChecker.VContext.contains_primitive {c : VContext}
+theorem TypeChecker.VContext.contains_primitive_of {c : VContext}
+    (hfind : ∀ {name}, (∃ ci, c.env.find? name = some ci ∧ c.safety ≤ ci.safety) ↔
+      ∃ ci, c.venv.constants name = some ci)
     (hs : c.safety = .safe) (h : c.env.contains n)
     (hp : Environment.primitives.contains n := by
       simp [Environment.primitives, NameSet.contains, NameSet.ofList]) :
@@ -25,8 +27,15 @@ theorem TypeChecker.VContext.contains_primitive {c : VContext}
   obtain ⟨ci, hci⟩ : ∃ ci, c.env.find? n = some ci := by
     rw [Kernel.Environment.find?, (c.trenv).map_wf.find?'_eq_find?]
     exact Option.isSome_iff_exists.1 h
-  refine c.trenv.find?_iff.1 ⟨ci, hci, ?_⟩
+  refine hfind.1 ⟨ci, hci, ?_⟩
   rw [hs, (c.safePrimitives hci hp).1]; exact DefinitionSafety.le_rfl
+
+theorem TypeChecker.VContext.contains_primitive {c : VContext}
+    (hs : c.safety = .safe) (h : c.env.contains n)
+    (hp : Environment.primitives.contains n := by
+      simp [Environment.primitives, NameSet.contains, NameSet.ofList]) :
+    c.venv.contains n :=
+  c.contains_primitive_of c.trenv.find?_iff hs h hp
 
 /-- A reflected binary `Nat` primitive computes at literals, in whatever context the caller is
 in. `HasPrimitives` records reflection at `0 []`, which is where the level instantiation and
