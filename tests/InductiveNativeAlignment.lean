@@ -38,11 +38,14 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
     (lookup : ∀ {name ci}, context.env.find? name = some ci → context.safety ≤ ci.safety →
       ∃ ci', context.venv.constants name = some ci' ∧
         TrConstant context.safety context.venv ci ci')
+    (lookupUnique : ∀ {name ci ci'}, context.env.find? name = some ci →
+      context.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant context.safety context.venv ci ci')
     (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars))
     (translated : inferOnly = true → ∃ semantic, context.TrExprS expression semantic) :
     (TypeChecker.Inner.inferType' expression inferOnly).ScopeWF context state fun type _ =>
       ∃ semantic semanticType, context.TrTyping expression type semantic semanticType :=
-  TypeChecker.Inner.inferType'.scopeWFOf lookup freeVariables translated
+  TypeChecker.Inner.inferType'.scopeWFOf lookup lookupUnique freeVariables translated
 
 example {context : TypeChecker.VContext} {name : Name} {levels : List Level}
     {inferOnly : Bool}
@@ -75,6 +78,22 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
     (TypeChecker.Inner.inferType' expression inferOnly).WF context state fun type _ =>
       ∃ semantic semanticType, context.TrTyping expression type semantic semanticType :=
   TypeChecker.Inner.inferType'.WFOf lookup lookupUnique freeVariables translated
+
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {expression : Expr} {inferOnly : Bool}
+    (lookup : ∀ {constantName ci}, context.env.find? constantName = some ci →
+      context.safety ≤ ci.safety →
+      ∃ ci', context.venv.constants constantName = some ci' ∧
+        TrConstant context.safety context.venv ci ci')
+    (lookupUnique : ∀ {constantName ci ci'}, context.env.find? constantName = some ci →
+      context.venv.constants constantName = some ci' →
+      ci.name = constantName ∧ TrConstant context.safety context.venv ci ci')
+    (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars))
+    (translated : inferOnly = true →
+      ∃ semantic, context.TrExprS expression semantic) :
+    (TypeChecker.Inner.inferType' expression inferOnly).ScopeWF context state fun type _ =>
+      ∃ semantic semanticType, context.TrTyping expression type semantic semanticType :=
+  TypeChecker.Inner.inferType'.scopeWFOf lookup lookupUnique freeVariables translated
 
 example {context : TypeChecker.VContext} {expression : Expr} {semantic : VExpr}
     (value : ∀ {name ci value}, context.env.find? name = some ci →

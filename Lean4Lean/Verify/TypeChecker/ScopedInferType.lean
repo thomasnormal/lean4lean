@@ -312,7 +312,12 @@ theorem envGet.scopeWF {context : VContext} {state : VState} {name : Name} :
   apply RecM.ScopeWF.getEnv
   exact RecM.ScopeWF.liftExcept envGet.WF
 
-theorem inferConstant.scopeWF {context : VContext} {state : VState}
+theorem inferConstant.scopeWFOf {context : VContext} {state : VState}
+    (lookup : ∀ {name ci}, context.env.find? name = some ci → context.safety ≤ ci.safety →
+      ∃ ci', context.venv.constants name = some ci' ∧ TrConstant context.safety context.venv ci ci')
+    (lookupUnique : ∀ {name ci ci'}, context.env.find? name = some ci →
+      context.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant context.safety context.venv ci ci')
     {name : Name} {levels : List Level} {inferOnly : Bool}
     (validLevels : ∀ level ∈ levels, level.hasMVar' = false)
     (validInference : inferOnly = true → ∃ expression,
@@ -325,7 +330,19 @@ theorem inferConstant.scopeWF {context : VContext} {state : VState}
   apply RecM.ScopeWF.readThe
   change RecM.ScopeWF context state
     (liftM (inferConstant context.toContext name levels inferOnly)) _
-  exact RecM.ScopeWF.liftExcept (inferConstant.WF validLevels validInference)
+  exact RecM.ScopeWF.liftExcept (inferConstant.WFOf lookup lookupUnique validLevels validInference)
+
+theorem inferConstant.scopeWF {context : VContext} {state : VState}
+    {name : Name} {levels : List Level} {inferOnly : Bool}
+    (validLevels : ∀ level ∈ levels, level.hasMVar' = false)
+    (validInference : inferOnly = true → ∃ expression,
+      context.TrExprS (.const name levels) expression) :
+    RecM.ScopeWF context state
+      (readThe Context >>= fun context =>
+        liftM (inferConstant context name levels inferOnly))
+      (fun type _ => ∃ expression semanticType,
+        context.TrTyping (.const name levels) type expression semanticType) :=
+  inferConstant.scopeWFOf context.trenv.find? context.trenv.find?_uniq validLevels validInference
 
 theorem isProp.scopeWF {context : VContext} {state : VState}
     (translated : context.TrExprS expression semantic) :
@@ -999,6 +1016,9 @@ theorem inferApp.scopeWF {context : VContext} {state : VState} {expression : Exp
 theorem inferType'.scopeWFOf {context : VContext} {state : VState}
     (lookup : ∀ {name ci}, context.env.find? name = some ci → context.safety ≤ ci.safety →
       ∃ ci', context.venv.constants name = some ci' ∧ TrConstant context.safety context.venv ci ci')
+    (lookupUnique : ∀ {name ci ci'}, context.env.find? name = some ci →
+      context.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant context.safety context.venv ci ci')
     (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars))
     (translated : inferOnly = true → ∃ semantic, context.TrExprS expression semantic) :
     (inferType' expression inferOnly).ScopeWF context state fun type _ =>
@@ -1062,11 +1082,11 @@ theorem inferType'.scopeWFOf {context : VContext} {state : VState}
           have literals := literalTranslation.lit_has_type
           simp [literalWorker]
           exact saveWF (infer_literal literals)
-      · refine (inferType'.scopeWFOf lookup (by exact freeVariables) ?_).bind
+      · refine (inferType'.scopeWFOf lookup lookupUnique (by exact freeVariables) ?_).bind
           fun _ _ _ ⟨_, _, below, expressionTranslation, typing⟩ => ?_
         · exact fun inference => let ⟨_, .mdata inner⟩ := translated inference; ⟨_, inner⟩
         exact saveWF ⟨below, .mdata expressionTranslation, typing⟩
-      · refine (inferType'.scopeWFOf lookup (by exact freeVariables) ?_).bind
+      · refine (inferType'.scopeWFOf lookup lookupUnique (by exact freeVariables) ?_).bind
           fun _ _ _ ⟨_, _, below, expressionTranslation, typeTranslation, typing⟩ => ?_
         · exact fun inference => let ⟨_, .proj inner ..⟩ := translated inference; ⟨_, inner⟩
         exact (inferProj.scopeWF ⟨below, expressionTranslation, typeTranslation, typing⟩).bind
@@ -1081,13 +1101,14 @@ theorem inferType'.scopeWFOf {context : VContext} {state : VState}
           exact saveWF (infer_sort levelTranslation)
         · let ⟨_, .sort levelTranslation⟩ := translated (by simpa using inference)
           exact saveWF (infer_sort levelTranslation)
-      · exact (inferConstant.scopeWF freeVariables translated).bind fun _ _ _ ⟨_, _, typing⟩ => saveWF typing
+      · exact (inferConstant.scopeWFOf lookup lookupUnique freeVariables translated).bind
+          fun _ _ _ ⟨_, _, typing⟩ => saveWF typing
       · exact (inferLambda.scopeWF freeVariables translated).bind fun _ _ _ ⟨_, _, typing⟩ => saveWF typing
       · exact (inferForall.scopeWF freeVariables translated).bind fun _ _ _ ⟨_, _, typing⟩ => saveWF typing
       · split <;> rename_i inference
         · let ⟨_, applicationTranslation⟩ := translated inference
           exact (inferApp.scopeWF applicationTranslation).bind fun _ _ _ ⟨_, typing⟩ => saveWF typing
-        refine (inferType'.scopeWFOf lookup freeVariables.1 ?_).bind
+        refine (inferType'.scopeWFOf lookup lookupUnique freeVariables.1 ?_).bind
           fun _ _ _ ⟨_, _, functionBelow, functionTranslation, functionTypeTranslation, functionTyping⟩ => ?_
         · exact fun inference => let ⟨_, .app _ _ function _⟩ := translated inference; ⟨_, function⟩
         refine (ensureForallCore.scopeWF functionTypeTranslation).bind fun _ _ _ forallWF => ?_
@@ -1095,7 +1116,7 @@ theorem inferType'.scopeWFOf {context : VContext} {state : VState}
         let ⟨_, forallStructural, forallEquality⟩ := forallTranslation
         let .forallE (ty' := domainSemantic) _ _ domainTranslation bodyTranslation := forallStructural
         extract_lets _ functionWorker
-        refine (inferType'.scopeWFOf lookup freeVariables.2 ?_).bind
+        refine (inferType'.scopeWFOf lookup lookupUnique freeVariables.2 ?_).bind
           fun _ _ _ ⟨_, argumentTypeSemantic, argumentBelow, argumentTranslation,
             argumentTypeTranslation, argumentTyping⟩ => ?_
         · exact fun inference => let ⟨_, .app _ _ _ argument⟩ := translated inference; ⟨_, argument⟩
@@ -1140,7 +1161,7 @@ theorem inferType'.scopeWF {context : VContext} {state : VState}
     (translated : inferOnly = true → ∃ semantic, context.TrExprS expression semantic) :
     (inferType' expression inferOnly).ScopeWF context state fun type _ =>
       ∃ semantic semanticType, context.TrTyping expression type semantic semanticType :=
-  inferType'.scopeWFOf context.trenv.find? freeVariables translated
+  inferType'.scopeWFOf context.trenv.find? context.trenv.find?_uniq freeVariables translated
 
 end TypeChecker.Inner
 end Lean4Lean
