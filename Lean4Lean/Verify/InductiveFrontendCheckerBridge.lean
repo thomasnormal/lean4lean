@@ -493,6 +493,55 @@ theorem SafeInductiveRestorationMetadata.sourceRecursorRulesAndRestoredRecordEvi
   exact ⟨sourcePreprocessing, sourceStaged, hpreSource, hrunSource, hprefix, hlookups,
     hrestored⟩
 
+theorem SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndRestoredRecordEvidence
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    (coverage : InductiveRestorationSourceCoverage env lparams nparams types allowPrimitive fuel)
+    (entries : ElimNestedInductive.Result → Kernel.Environment → List NativeInductive.RegistrationEntry)
+    (records_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries preprocessing staged).map NativeInductive.RegistrationEntry.toConstantInfo) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+      (stats : AddInductive.InductiveStats) (root : AddInductive.Context)
+      (constructors : Kernel.Environment) (elimLevel : Level) (infos : Array RecInfo)
+      (source : AddInductive.Context),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      stats.SafeRunScope nparams preprocessing.types.toArray preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) root constructors staged ∧
+      InductiveArityPrefix types.toArray preprocessing.types.toArray ∧
+      ({ root with env := constructors } : AddInductive.Context).RecursorScopeFrame source ∧
+      RecursorInfoCounts preprocessing.types.toArray infos ∧
+      RecursorMinorIndexing preprocessing.types.toArray infos ∧
+      LocalRecursorRuleRhsDistinct stats preprocessing.types.toArray infos source staged ∧
+      SourceRecursorRuleSources nparams types preprocessing.types.toArray stats elimLevel infos source staged ∧
+      SourceRecursorRuleLookups nparams lparams types preprocessing staged result ∧
+      InductiveFrontendBranch preprocessing staged types env result ∧
+      (preprocessing.aux2nested.size ≠ 0 →
+        Nonempty { evidence : NativeInductive.RestoredRecordEvidence preprocessing staged
+            (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
+            (restoredEnvironmentRecords preprocessing staged types) //
+          evidence.entries = entries preprocessing staged }) := by
+  obtain ⟨sourcePreprocessing, sourceStaged, stats, root, constructors, elimLevel, infos, source,
+      hpreSource, hrunSource, hscope, hprefix, hframe, hcounts, hindexing, hdistinct,
+      hsources, hbranch, hlookups⟩ := metadata.sourceRecursorRuleStages
+  obtain ⟨restoredPreprocessing, restoredStaged, hpreRestored, hrunRestored, hrestored⟩ :=
+    metadata.toRestoredRecordEvidence coverage entries records_eq
+  have hpre : sourcePreprocessing = restoredPreprocessing :=
+    Except.ok.inj (hpreSource.symm.trans hpreRestored)
+  subst restoredPreprocessing
+  have hrun : sourceStaged = restoredStaged :=
+    Except.ok.inj (hrunSource.symm.trans hrunRestored)
+  subst restoredStaged
+  exact ⟨sourcePreprocessing, sourceStaged, stats, root, constructors, elimLevel, infos, source,
+    hpreSource, hrunSource, hscope, hprefix, hframe, hcounts, hindexing, hdistinct, hsources,
+    hlookups, hbranch, hrestored⟩
+
 theorem SafeInductiveRestorationMetadata.toCheckerEnvInductive
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
