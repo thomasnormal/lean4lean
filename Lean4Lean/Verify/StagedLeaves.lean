@@ -19,8 +19,12 @@ theorem envGet.lookup (env : Kernel.Environment) (name : Name) :
   · exact .pure ‹_›
   · exact .throw
 
-theorem inferConstant.checker {ctx : Context} {semantic : VEnv} {scope : VLCtx}
-    (hchecker : CheckerEnv ctx.safety ctx.env semantic)
+theorem inferConstant.checkerOf {ctx : Context} {semantic : VEnv} {scope : VLCtx}
+    (hwf : semantic.WF)
+    (hlookup : ∀ {name ci}, ctx.env.find? name = some ci → ctx.safety ≤ ci.safety →
+      ∃ ci', semantic.constants name = some ci' ∧ TrConstant ctx.safety semantic ci ci')
+    (huniq : ∀ {name ci ci'}, ctx.env.find? name = some ci → semantic.constants name = some ci' →
+      ci.name = name ∧ TrConstant ctx.safety semantic ci ci')
     (hscope : scope.WF semantic ctx.lparams.length) (hnoBV : scope.NoBV)
     (hlevels : ∀ level ∈ levels, level.hasMVar' = false)
     (hinfer : inferOnly = true → ∃ model, TrExprS semantic ctx.lparams scope (.const name levels) model) :
@@ -44,14 +48,14 @@ theorem inferConstant.checker {ctx : Context} {semantic : VEnv} {scope : VLCtx}
         ∃ model type, TrTyping semantic ctx.lparams scope (.const name levels)
           (info.instantiateTypeLevelParams levels) model type := by
       let .const hconstant htranslated hlength := id hmodel
-      have ⟨_, _, hparams, htype⟩ := hchecker.find?_uniq hfind hconstant
+      have ⟨_, _, hparams, htype⟩ := huniq hfind hconstant
       have levelModels := List.mapM_eq_some.mp htranslated
-      have instantiated := htype.instL hchecker.wf (Δ := []) trivial htranslated (hparams.trans hlength.symm)
-      have weakened := instantiated.weakFV hchecker.wf (.from_nil hnoBV) hscope
-      rw [(hchecker.wf.ordered.closedC hconstant).instL.liftN_eq (Nat.le_refl _)] at weakened
+      have instantiated := htype.instL hwf (Δ := []) trivial htranslated (hparams.trans hlength.symm)
+      have weakened := instantiated.weakFV hwf (.from_nil hnoBV) hscope
+      rw [(hwf.ordered.closedC hconstant).instL.liftN_eq (Nat.le_refl _)] at weakened
       obtain ⟨_, htranslation, hequality⟩ := weakened
       refine ⟨_, _, ?_, hmodel, htranslation,
-        .defeqU_r hchecker.wf hscope hequality.symm ?_⟩
+        .defeqU_r hwf hscope hequality.symm ?_⟩
       · intro _ _ _
         exact instantiated.fvarsIn.mono nofun
       · exact .const hconstant (.of_mapM_ofLevel htranslated)
@@ -73,7 +77,7 @@ theorem inferConstant.checker {ctx : Context} {semantic : VEnv} {scope : VLCtx}
         subst haction hpost
         intro hpartialAllowed
         refine checkedLevels.map fun _ ⟨_, htranslated⟩ => ?_
-        have ⟨_, hconstant, _, hparams, _⟩ := hchecker.find? hfind (by
+        have ⟨_, hconstant, _, hparams, _⟩ := hlookup hfind (by
           revert hunsafe hpartialAllowed
           simp [ConstantInfo.safety]
           split <;> simp +contextual [*]
@@ -85,6 +89,24 @@ theorem inferConstant.checker {ctx : Context} {semantic : VEnv} {scope : VLCtx}
       obtain ⟨_, hmodel⟩ := hinfer
       exact .pure (translatedResult hmodel)
   · exact .throw
+
+theorem inferConstant.checker {ctx : Context} {semantic : VEnv} {scope : VLCtx}
+    (hchecker : CheckerEnv ctx.safety ctx.env semantic)
+    (hscope : scope.WF semantic ctx.lparams.length) (hnoBV : scope.NoBV)
+    (hlevels : ∀ level ∈ levels, level.hasMVar' = false)
+    (hinfer : inferOnly = true → ∃ model, TrExprS semantic ctx.lparams scope (.const name levels) model) :
+    (inferConstant ctx name levels inferOnly).WF fun result =>
+      ∃ model type, TrTyping semantic ctx.lparams scope (.const name levels) result model type :=
+  inferConstant.checkerOf hchecker.wf hchecker.find? hchecker.find?_uniq hscope hnoBV hlevels hinfer
+
+theorem inferConstant.checkerInductive {ctx : Context} {semantic : VEnv} {scope : VLCtx}
+    (hchecker : CheckerEnvInductive ctx.safety ctx.env semantic Q)
+    (hscope : scope.WF semantic ctx.lparams.length) (hnoBV : scope.NoBV)
+    (hlevels : ∀ level ∈ levels, level.hasMVar' = false)
+    (hinfer : inferOnly = true → ∃ model, TrExprS semantic ctx.lparams scope (.const name levels) model) :
+    (inferConstant ctx name levels inferOnly).WF fun result =>
+      ∃ model type, TrTyping semantic ctx.lparams scope (.const name levels) result model type :=
+  inferConstant.checkerOf hchecker.history.wf hchecker.find? hchecker.find?_uniq hscope hnoBV hlevels hinfer
 
 theorem infer_sort.checker (hlevel : VLevel.ofLevel lparams level = some translated) :
     TrTyping semantic lparams scope (.sort level) (.sort level.succ)

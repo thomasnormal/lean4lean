@@ -1,8 +1,19 @@
 import Lean4Lean.Verify.InductiveNativeAlignment
+import Lean4Lean.Verify.StagedLeaves
 
 namespace Lean4Lean.Tests.InductiveNativeAlignment
 
 open Lean Lean4Lean Lean4Lean.NativeInductive
+
+example {ctx : TypeChecker.Context} {semantic : VEnv} {scope : VLCtx} {Q : Bool}
+    (checker : CheckerEnvInductive ctx.safety ctx.env semantic Q)
+    (hscope : scope.WF semantic ctx.lparams.length) (hnoBV : scope.NoBV)
+    (hlevels : ∀ level ∈ levels, level.hasMVar' = false)
+    (hinfer : inferOnly = true →
+      ∃ model, TrExprS semantic ctx.lparams scope (.const name levels) model) :
+    (TypeChecker.Inner.inferConstant ctx name levels inferOnly).WF fun result =>
+      ∃ model type, TrTyping semantic ctx.lparams scope (.const name levels) result model type :=
+  TypeChecker.Inner.inferConstant.checkerInductive checker hscope hnoBV hlevels hinfer
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
