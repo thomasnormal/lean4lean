@@ -1,6 +1,7 @@
 import Lean4Lean.Verify.InductiveNativeAlignment
 import Lean4Lean.Verify.StagedLeaves
 import Lean4Lean.Verify.TypeChecker.ScopedDelta
+import Lean4Lean.Verify.TypeChecker.ScopedInferType
 
 namespace Lean4Lean.Tests.InductiveNativeAlignment
 
@@ -16,6 +17,17 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
     (TypeChecker.Inner.lazyDeltaReductionStep first second).ScopeWF context state
       (fun result _ => result.WF context firstSemantic secondSemantic true) :=
   TypeChecker.Inner.lazyDeltaReductionStep.scopeWFOf lookup firstTranslation secondTranslation
+
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {expression : Expr} {inferOnly : Bool}
+    (lookup : ∀ {name ci}, context.env.find? name = some ci → context.safety ≤ ci.safety →
+      ∃ ci', context.venv.constants name = some ci' ∧
+        TrConstant context.safety context.venv ci ci')
+    (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars))
+    (translated : inferOnly = true → ∃ semantic, context.TrExprS expression semantic) :
+    (TypeChecker.Inner.inferType' expression inferOnly).ScopeWF context state fun type _ =>
+      ∃ semantic semanticType, context.TrTyping expression type semantic semanticType :=
+  TypeChecker.Inner.inferType'.scopeWFOf lookup freeVariables translated
 
 example {ctx : TypeChecker.Context} {semantic : VEnv} {scope : VLCtx} {Q : Bool}
     (checker : CheckerEnvInductive ctx.safety ctx.env semantic Q)

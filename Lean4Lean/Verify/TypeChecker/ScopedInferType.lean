@@ -996,7 +996,9 @@ theorem inferApp.scopeWF {context : VContext} {state : VState} {expression : Exp
   exact ⟨resultType, expression.mkAppList_getAppArgsList ▸ below, translated,
     typeTranslation, typing.defeqU_l environmentWF contextWF unique⟩
 
-theorem inferType'.scopeWF {context : VContext} {state : VState}
+theorem inferType'.scopeWFOf {context : VContext} {state : VState}
+    (lookup : ∀ {name ci}, context.env.find? name = some ci → context.safety ≤ ci.safety →
+      ∃ ci', context.venv.constants name = some ci' ∧ TrConstant context.safety context.venv ci ci')
     (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars))
     (translated : inferOnly = true → ∃ semantic, context.TrExprS expression semantic) :
     (inferType' expression inferOnly).ScopeWF context state fun type _ =>
@@ -1045,14 +1047,14 @@ theorem inferType'.scopeWF {context : VContext} {state : VState}
       · extract_lets literalWorker
         split <;> [split; skip]
         · refine RecM.ScopeWF.getEnv <| (RecM.ScopeWF.liftExcept envGet.WF).bind fun _ _ _ found => ?_
-          have ⟨_, model, _⟩ := context.trenv.find? found <|
+          have ⟨_, model, _⟩ := lookup found <|
             (context.safePrimitives found (literal_is_primitive (.inl rfl))).1 ▸ DefinitionSafety.le_safe
           exact saveWF (infer_literal ⟨_, model⟩)
         · refine RecM.ScopeWF.getEnv <| (RecM.ScopeWF.liftExcept envGet.WF).bind fun _ _ _ firstFound => ?_
           refine RecM.ScopeWF.getEnv <| (RecM.ScopeWF.liftExcept envGet.WF).bind fun _ _ _ secondFound => ?_
-          have ⟨_, firstModel, _⟩ := context.trenv.find? firstFound <|
+          have ⟨_, firstModel, _⟩ := lookup firstFound <|
             (context.safePrimitives firstFound (literal_is_primitive (.inr (.inl rfl)))).1 ▸ DefinitionSafety.le_safe
-          have ⟨_, secondModel, _⟩ := context.trenv.find? secondFound <|
+          have ⟨_, secondModel, _⟩ := lookup secondFound <|
             (context.safePrimitives secondFound (literal_is_primitive (.inr (.inr rfl)))).1 ▸ DefinitionSafety.le_safe
           exact saveWF (infer_literal ⟨⟨_, firstModel⟩, ⟨_, secondModel⟩⟩)
         · rename_i inference
@@ -1060,11 +1062,11 @@ theorem inferType'.scopeWF {context : VContext} {state : VState}
           have literals := literalTranslation.lit_has_type
           simp [literalWorker]
           exact saveWF (infer_literal literals)
-      · refine (inferType'.scopeWF (by exact freeVariables) ?_).bind
+      · refine (inferType'.scopeWFOf lookup (by exact freeVariables) ?_).bind
           fun _ _ _ ⟨_, _, below, expressionTranslation, typing⟩ => ?_
         · exact fun inference => let ⟨_, .mdata inner⟩ := translated inference; ⟨_, inner⟩
         exact saveWF ⟨below, .mdata expressionTranslation, typing⟩
-      · refine (inferType'.scopeWF (by exact freeVariables) ?_).bind
+      · refine (inferType'.scopeWFOf lookup (by exact freeVariables) ?_).bind
           fun _ _ _ ⟨_, _, below, expressionTranslation, typeTranslation, typing⟩ => ?_
         · exact fun inference => let ⟨_, .proj inner ..⟩ := translated inference; ⟨_, inner⟩
         exact (inferProj.scopeWF ⟨below, expressionTranslation, typeTranslation, typing⟩).bind
@@ -1085,7 +1087,7 @@ theorem inferType'.scopeWF {context : VContext} {state : VState}
       · split <;> rename_i inference
         · let ⟨_, applicationTranslation⟩ := translated inference
           exact (inferApp.scopeWF applicationTranslation).bind fun _ _ _ ⟨_, typing⟩ => saveWF typing
-        refine (inferType'.scopeWF freeVariables.1 ?_).bind
+        refine (inferType'.scopeWFOf lookup freeVariables.1 ?_).bind
           fun _ _ _ ⟨_, _, functionBelow, functionTranslation, functionTypeTranslation, functionTyping⟩ => ?_
         · exact fun inference => let ⟨_, .app _ _ function _⟩ := translated inference; ⟨_, function⟩
         refine (ensureForallCore.scopeWF functionTypeTranslation).bind fun _ _ _ forallWF => ?_
@@ -1093,7 +1095,7 @@ theorem inferType'.scopeWF {context : VContext} {state : VState}
         let ⟨_, forallStructural, forallEquality⟩ := forallTranslation
         let .forallE (ty' := domainSemantic) _ _ domainTranslation bodyTranslation := forallStructural
         extract_lets _ functionWorker
-        refine (inferType'.scopeWF freeVariables.2 ?_).bind
+        refine (inferType'.scopeWFOf lookup freeVariables.2 ?_).bind
           fun _ _ _ ⟨_, argumentTypeSemantic, argumentBelow, argumentTranslation,
             argumentTypeTranslation, argumentTyping⟩ => ?_
         · exact fun inference => let ⟨_, .app _ _ _ argument⟩ := translated inference; ⟨_, argument⟩
@@ -1131,6 +1133,14 @@ theorem inferType'.scopeWF {context : VContext} {state : VState}
             fun _ _ _ ⟨_, _, typing⟩ => saveWF typing
     exact dispatchWF worker workerValid
   termination_by expression
+
+
+theorem inferType'.scopeWF {context : VContext} {state : VState}
+    (freeVariables : expression.FVarsIn (· ∈ context.vlctx.fvars))
+    (translated : inferOnly = true → ∃ semantic, context.TrExprS expression semantic) :
+    (inferType' expression inferOnly).ScopeWF context state fun type _ =>
+      ∃ semantic semanticType, context.TrTyping expression type semantic semanticType :=
+  inferType'.scopeWFOf context.trenv.find? freeVariables translated
 
 end TypeChecker.Inner
 end Lean4Lean
