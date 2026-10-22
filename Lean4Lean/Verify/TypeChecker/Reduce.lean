@@ -22,8 +22,9 @@ theorem _root_.Lean4Lean.TypeChecker.VContext.constAppHeadInModel {context : VCo
   let .const semanticLookup _ _ := headTranslation
   exact ⟨_, semanticLookup⟩
 
-theorem _root_.Lean4Lean.inductiveReduceRec.eq_none {monad : Type → Type} [Monad monad]
-    {context : VContext} (translated : context.TrExprS expression semantic)
+theorem _root_.Lean4Lean.inductiveReduceRec.eq_noneOf {monad : Type → Type} [Monad monad]
+    {context : VContext} (hrejects : TrEnv.RejectsInductiveFamilies context.trenv)
+    (translated : context.TrExprS expression semantic)
     (normalize infer : Expr → monad Expr) (compare : Expr → Expr → monad Bool) :
     inductiveReduceRec context.env expression normalize infer compare = pure none := by
   unfold inductiveReduceRec
@@ -37,7 +38,13 @@ theorem _root_.Lean4Lean.inductiveReduceRec.eq_none {monad : Type → Type} [Mon
     | none => rfl
     | some information =>
       cases information <;> try rfl
-      exact False.elim <| context.trenv_rejects.recursorNotInModel found ⟨_, semanticLookup⟩
+      exact False.elim <| hrejects.recursorNotInModel found ⟨_, semanticLookup⟩
+
+theorem _root_.Lean4Lean.inductiveReduceRec.eq_none {monad : Type → Type} [Monad monad]
+    {context : VContext} (translated : context.TrExprS expression semantic)
+    (normalize infer : Expr → monad Expr) (compare : Expr → Expr → monad Bool) :
+    inductiveReduceRec context.env expression normalize infer compare = pure none :=
+  inductiveReduceRec.eq_noneOf context.trenv_rejects translated normalize infer compare
 
 theorem inductiveReduceRec.none_of_translation {context : VContext} {state : VState}
     (translated : context.TrExprS expression semantic)

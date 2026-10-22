@@ -205,6 +205,15 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
       (fun _ _ => False) :=
   TypeChecker.Inner.inferProj.rejectsOf rejects translated
 
+example {context : TypeChecker.VContext} {expression : Expr} {semantic : VExpr}
+    {monad : Type → Type} [Monad monad]
+    (rejects : TrEnv.RejectsInductiveFamilies context.trenv)
+    (translated : context.TrExprS expression semantic)
+    (normalize infer : Expr → monad Expr)
+    (compare : Expr → Expr → monad Bool) :
+    inductiveReduceRec context.env expression normalize infer compare = pure none :=
+  inductiveReduceRec.eq_noneOf rejects translated normalize infer compare
+
 example {context : TypeChecker.VContext} {name : Name}
     (find : ∀ {constantName},
       (∃ ci, context.env.find? constantName = some ci ∧ context.safety ≤ ci.safety) ↔
