@@ -46,6 +46,17 @@ def RestoredRegistrationEvidence.toRestoredRecordEvidence
   rw [records_eq]
   exact List.mem_map.mpr ⟨entry, hmem, rfl⟩
 
+theorem RestoredRegistrationEvidence.toRestoredRecordEvidence_entries
+    {preprocessing : ElimNestedInductive.Result} {staged : Environment}
+    {original result : Environment} {types : List InductiveType}
+    (evidence : RestoredRegistrationEvidence preprocessing staged (types.map (·.name))
+      (mkAuxRecNameMap staged types).2 original
+      (restoredEnvironmentRecords preprocessing staged types) result)
+    (entries : List RegistrationEntry)
+    (records_eq : restoredEnvironmentRecords preprocessing staged types =
+      entries.map RegistrationEntry.toConstantInfo) :
+    (RestoredRegistrationEvidence.toRestoredRecordEvidence evidence entries records_eq).entries = entries := rfl
+
  theorem RestoredRecordEvidence.map
     {preprocessing : ElimNestedInductive.Result} {staged : Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name}

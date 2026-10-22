@@ -463,9 +463,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
         (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
       (preprocessing.aux2nested.size ≠ 0 →
-        Nonempty (NativeInductive.RestoredRecordEvidence preprocessing staged
+        Nonempty { evidence : NativeInductive.RestoredRecordEvidence preprocessing staged
             (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
-            (restoredEnvironmentRecords preprocessing staged types))) :=
+            (restoredEnvironmentRecords preprocessing staged types) //
+          evidence.entries = entries preprocessing staged }) :=
   metadata.toRestoredRecordEvidence coverage entries records_eq
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
@@ -487,10 +488,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
         (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
       preprocessing.aux2nested.size ≠ 0 →
-      ∀ evidence : NativeInductive.RestoredRecordEvidence preprocessing staged
-        (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
-        (restoredEnvironmentRecords preprocessing staged types),
-        evidence.entries = producer.orderedEntries)
+      entries preprocessing staged = producer.orderedEntries)
     (hconstants : env.constants = constants)
     (history : TrEnvInductive .safe constants Q semanticEnv)
     (hrecursors : ∀ entry ∈ producer.recursors,
