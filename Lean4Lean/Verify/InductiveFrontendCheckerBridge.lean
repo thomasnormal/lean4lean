@@ -79,4 +79,35 @@ theorem NativeInductive.RestoredRecordEvidence.registrationHistory
   refine ⟨restored.registrationConstants producer halign hconstants, ?_⟩
   exact producer.to_trEnvInductive history history.map_wf hrecursors
 
+theorem SafeInductiveRestorationMetadata.toRestoredRecordEvidence
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    (coverage : InductiveRestorationSourceCoverage env lparams nparams types allowPrimitive fuel)
+    (entries : ElimNestedInductive.Result → Kernel.Environment → List NativeInductive.RegistrationEntry)
+    (records_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries preprocessing staged).map NativeInductive.RegistrationEntry.toConstantInfo) :
+    ∃ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      (preprocessing.aux2nested.size ≠ 0 →
+        ∃ evidence : NativeInductive.RestoredRecordEvidence preprocessing staged
+            (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
+            (restoredEnvironmentRecords preprocessing staged types), True) := by
+  obtain ⟨preprocessing, staged, hpre, hrun, _, _, _, _, hbranch, hinstalled⟩ := metadata.stages
+  refine ⟨preprocessing, staged, hpre, hrun, ?_⟩
+  intro hnested
+  cases hbranch with
+  | direct hnoaux => exact False.elim (hnested hnoaux)
+  | nested _ htrace =>
+    have hreceipt := hinstalled hnested (coverage preprocessing staged hpre hrun hnested)
+    refine ⟨?_, trivial⟩
+    exact NativeInductive.RestoredRegistrationEvidence.toRestoredRecordEvidence
+      ⟨htrace, hreceipt⟩ (entries preprocessing staged) (records_eq preprocessing staged hpre hrun)
+
 end Lean4Lean
