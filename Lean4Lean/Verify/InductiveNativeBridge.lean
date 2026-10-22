@@ -594,6 +594,40 @@ private theorem FreshConstructors.nodup {constants : ConstMap}
     rw [hconstants.find?_insert] at htail
     split at htail <;> simp_all
 
+private theorem FreshRecursors.baseFresh {constants : ConstMap}
+    {entries : List RecursorEntry} (hconstants : constants.WF)
+    (hfresh : FreshRecursors constants entries) :
+    ∀ entry ∈ entries, constants.find? entry.info.name = none := by
+  induction entries generalizing constants with
+  | nil => simp
+  | cons entry entries ih =>
+    intro current hcurrent
+    simp only [FreshRecursors] at hfresh
+    rcases List.mem_cons.mp hcurrent with hcurrent | hcurrent
+    · simpa [hcurrent] using hfresh.1
+    · have htail := ih (hconstants.insert _ _ hfresh.1) hfresh.2 current hcurrent
+      rw [hconstants.find?_insert] at htail
+      split at htail
+      · contradiction
+      · exact htail
+
+private theorem FreshRecursors.nodup {constants : ConstMap}
+    {entries : List RecursorEntry} (hconstants : constants.WF)
+    (hfresh : FreshRecursors constants entries) :
+    (entries.map (·.info.name)).Nodup := by
+  induction entries generalizing constants with
+  | nil => simp
+  | cons entry entries ih =>
+    simp only [FreshRecursors] at hfresh
+    apply List.nodup_cons.mpr
+    refine ⟨?_, ih (hconstants.insert _ _ hfresh.1) hfresh.2⟩
+    intro hname
+    obtain ⟨other, hother, hname⟩ := List.mem_map.mp hname
+    have htail := FreshRecursors.baseFresh (hconstants.insert _ _ hfresh.1) hfresh.2
+      other hother
+    rw [hconstants.find?_insert] at htail
+    split at htail <;> simp_all
+
 private theorem RegistrationEvidence.headerPairs
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     List.Forall₂
@@ -736,6 +770,112 @@ theorem RegistrationEvidence.to_addInductEvidence_at
     AddInductEvidence safety constants env decl evidence.constructorConstants
       evidence.constructorEnv :=
   (evidence.to_addInductEvidence hconstants).sf_mono DefinitionSafety.le_safe
+
+private theorem insertConsts_recursorInfos (constants : ConstMap) (entries : List RecursorEntry) :
+    insertConsts constants (entries.map (.recInfo ·.info)) =
+      insertRecursors constants entries := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [List.map_cons, insertConsts, List.foldl_cons, insertRecursors]
+    exact ih (constants.insert entry.info.name (.recInfo entry.info))
+
+private theorem insertConsts_recursorInfoMap (constants : ConstMap)
+    (entries : List RecursorEntry) :
+    insertConsts constants ((entries.map (·.info)).map (fun info => .recInfo info)) =
+      insertRecursors constants entries := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [List.map_cons, insertConsts, List.foldl_cons, insertRecursors]
+    exact ih (constants.insert entry.info.name (.recInfo entry.info))
+
+theorem RegistrationEvidence.to_addInductWithRecursorsEvidence
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv) :
+    AddInductWithRecursorsEvidence .safe constants env decl
+      evidence.constructorConstants evidence.constructorEnv
+      (evidence.recursors.map (·.info)) (evidence.recursors.map (·.model))
+      resultConstants result := by
+  have hinduct := evidence.to_addInductEvidence hconstants
+  have hheaderWF : evidence.headerConstants.WF := by
+    rw [evidence.headerMap]
+    exact evidence.headerFresh.wf hconstants
+  have hconstructorWF : evidence.constructorConstants.WF := by
+    rw [evidence.constructorMap]
+    exact evidence.constructorFresh.wf hheaderWF
+  have htranslations : List.Forall₂
+      (fun info model => info.name = model.name ∧
+        TrConstant .safe evidence.constructorEnv (.recInfo info) model.toVConstant ∧
+        model.toVConstant.WF evidence.constructorEnv)
+      (evidence.recursors.map (·.info)) (evidence.recursors.map (·.model)) := by
+    have go : ∀ entries : List RecursorEntry,
+        (∀ entry ∈ entries,
+          entry.info.name = entry.model.name ∧
+            TrConstant .safe evidence.constructorEnv (.recInfo entry.info)
+              entry.model.toVConstant ∧
+            entry.model.toVConstant.WF evidence.constructorEnv) →
+        List.Forall₂
+          (fun info model => info.name = model.name ∧
+            TrConstant .safe evidence.constructorEnv (.recInfo info) model.toVConstant ∧
+            model.toVConstant.WF evidence.constructorEnv)
+          (entries.map (·.info)) (entries.map (·.model)) := by
+      intro entries
+      induction entries with
+      | nil => intro _; exact .nil
+      | cons entry entries ih =>
+        intro hentries
+        refine .cons (hentries entry (by simp)) (ih (fun current hcurrent =>
+          hentries current (by simp [hcurrent])))
+    apply go evidence.recursors
+    intro entry hentry
+    have htranslation := evidence.recursorTranslation entry hentry
+    exact ⟨htranslation.2, htranslation.1, hrecursors entry hentry⟩
+  have hrecursorNodup :
+      (evidence.recursors.map (·.model)).map (·.name) |>.Nodup := by
+    have hpair : List.Forall₂ Eq
+        (evidence.recursors.map (·.info.name))
+        (evidence.recursors.map (·.model.name)) := by
+      have namePairs : ∀ (entries : List RecursorEntry),
+          List.Forall₂
+            (fun info model => info.name = model.name ∧
+              TrConstant .safe evidence.constructorEnv (.recInfo info) model.toVConstant ∧
+              model.toVConstant.WF evidence.constructorEnv)
+            (entries.map (·.info)) (entries.map (·.model)) →
+          List.Forall₂ Eq (entries.map (·.info.name)) (entries.map (·.model.name)) := by
+        intro entries
+        induction entries with
+        | nil => intro _; exact .nil
+        | cons entry entries ih =>
+          intro h
+          cases h with
+          | cons head tail => exact .cons head.1 (ih tail)
+      exact namePairs evidence.recursors htranslations
+    have hnames := List.forall₂_eq.mp hpair
+    simpa only [List.map_map, Function.comp_def, hnames] using
+      evidence.recursorFresh.nodup hconstructorWF
+  refine {
+    inductiveEvidence := hinduct
+    translations := htranslations
+    recursorAdd := evidence.recursorAdd
+    recursorNodup := hrecursorNodup
+    recursorFresh := by
+      intro model hmem
+      obtain ⟨entry, hentry, rfl⟩ := List.mem_map.mp hmem
+      have hshape := (evidence.recursorTranslation entry hentry).2
+      have hfresh := FreshRecursors.baseFresh hconstructorWF evidence.recursorFresh entry hentry
+      rw [← hshape]
+      exact hfresh
+    resultMap := by
+      calc
+        resultConstants = insertRecursors evidence.constructorConstants evidence.recursors :=
+          evidence.resultMap
+        _ = insertConsts evidence.constructorConstants
+            ((evidence.recursors.map (·.info)).map (fun info => .recInfo info)) := by
+          exact (insertConsts_recursorInfoMap evidence.constructorConstants evidence.recursors).symm
+  }
 
 theorem RegistrationEvidence.to_addInduct
     (evidence : RegistrationEvidence constants env decl resultConstants result) :

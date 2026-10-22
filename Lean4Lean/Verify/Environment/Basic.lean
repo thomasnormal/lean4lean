@@ -154,6 +154,51 @@ theorem le (H : AddInductEvidence safety m₁ env₁ decl m₂ env₂) : env₁ 
 
 end AddInductEvidence
 
+/-! ### Constructive evidence for the generated recursor stage
+
+`VDecl.WF.induct` records the header and constructor environment.  Native
+registration then appends generated recursor signatures to that environment.
+Keep that second stage explicit until the declaration-history relation grows a
+corresponding recursor constructor. -/
+
+structure AddInductWithRecursorsEvidence (safety : DefinitionSafety)
+    (m₁ : ConstMap) (env₁ : VEnv) (decl : VInductDecl)
+    (inductiveConstants : ConstMap) (inductiveEnv : VEnv)
+    (recursors : List RecursorVal) (models : List VConstVal)
+    (m₂ : ConstMap) (env₂ : VEnv) : Prop where
+  inductiveEvidence : AddInductEvidence safety m₁ env₁ decl inductiveConstants inductiveEnv
+  translations : List.Forall₂
+    (fun info model => info.name = model.name ∧
+      TrConstant safety inductiveEnv (.recInfo info) model.toVConstant ∧
+      model.toVConstant.WF inductiveEnv)
+    recursors models
+  recursorAdd : inductiveEnv.addConstructorHeaders models = some env₂
+  recursorNodup : (models.map (·.name)).Nodup
+  recursorFresh : ∀ model ∈ models, inductiveConstants.find? model.name = none
+  resultMap : m₂ = insertConsts inductiveConstants (recursors.map (fun info => .recInfo info))
+
+namespace AddInductWithRecursorsEvidence
+
+variable {safety : DefinitionSafety} {m₁ m₂ inductiveConstants : ConstMap}
+  {env₁ env₂ inductiveEnv : VEnv} {decl : VInductDecl}
+  {recursors : List RecursorVal} {models : List VConstVal}
+
+theorem to_addInductWithRecursors
+    (H : AddInductWithRecursorsEvidence safety m₁ env₁ decl inductiveConstants inductiveEnv
+      recursors models m₂ env₂) :
+    env₁.addInductWithRecursors decl models = some env₂ := by
+  unfold VEnv.addInductWithRecursors
+  rw [H.inductiveEvidence.to_addInduct]
+  exact H.recursorAdd
+
+theorem le
+    (H : AddInductWithRecursorsEvidence safety m₁ env₁ decl inductiveConstants inductiveEnv
+      recursors models m₂ env₂) :
+    env₁ ≤ env₂ :=
+  VEnv.addInductWithRecursors.le H.to_addInductWithRecursors
+
+end AddInductWithRecursorsEvidence
+
 theorem insertConsts_append (C : ConstMap) (first second : List ConstantInfo) :
     insertConsts C (first ++ second) = insertConsts (insertConsts C first) second := by
   induction first generalizing C with
