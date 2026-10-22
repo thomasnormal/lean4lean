@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.Environment.Basic
+import Lean4Lean.Verify.Environment.Lemmas
 import Lean4Lean.Verify.InductiveNativeTrace
 
 namespace Lean4Lean
@@ -876,6 +877,27 @@ theorem RegistrationEvidence.to_addInductWithRecursorsEvidence
             ((evidence.recursors.map (·.info)).map (fun info => .recInfo info)) := by
           exact (insertConsts_recursorInfoMap evidence.constructorConstants evidence.recursors).symm
   }
+
+theorem RegistrationEvidence.to_trEnvInductive
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (history : TrEnvInductive safety constants Q env)
+    (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv) :
+    TrEnvInductive safety resultConstants Q result := by
+  have hdecl : VDecl.WF env (.induct decl) evidence.constructorEnv := by
+    apply VDecl.WF.induct evidence.declWF
+    unfold VEnv.addInduct
+    rw [evidence.headerAdd]
+    exact evidence.constructorAdd
+  refine TrEnvInductive.induct (C := constants) (Q := Q) (env := env) (decl := decl)
+    (inductiveEnv := evidence.constructorEnv)
+    (inductiveConstants := evidence.constructorConstants)
+    (recursors := evidence.recursors.map (·.info))
+    (models := evidence.recursors.map (·.model))
+    (resultConstants := resultConstants) (result := result) history hdecl ?_
+  exact (evidence.to_addInductWithRecursorsEvidence hconstants hrecursors).sf_mono
+    DefinitionSafety.le_safe
 
 theorem RegistrationEvidence.to_addInduct
     (evidence : RegistrationEvidence constants env decl resultConstants result) :

@@ -553,6 +553,41 @@ theorem AddInductEvidence.sf_mono (hsf : safety ≤ safety')
     · exact List.Forall₂.imp (fun _ _ h => ⟨h.1, h.2.sf_mono hsf⟩) hheaders
     · exact List.Forall₂.imp (fun _ _ h => ⟨h.1, h.2.sf_mono hsf⟩) hconstructors
 
+theorem AddInductWithRecursorsEvidence.sf_mono (hsf : safety ≤ safety')
+    (H : AddInductWithRecursorsEvidence safety' m₁ env₁ decl inductiveConstants inductiveEnv
+      recursors models m₂ env₂) :
+    AddInductWithRecursorsEvidence safety m₁ env₁ decl inductiveConstants inductiveEnv
+      recursors models m₂ env₂ := by
+  cases H with
+  | mk inductiveEvidence translations recursorAdd recursorNodup recursorFresh resultMap =>
+    refine .mk (inductiveEvidence.sf_mono hsf) ?_ recursorAdd recursorNodup recursorFresh resultMap
+    exact List.Forall₂.imp (fun _ _ h => ⟨h.1, h.2.1.sf_mono hsf, h.2.2⟩) translations
+
+/-! A staging relation for environments after a constructive inductive registration.
+
+`TrEnv'` retains the non-inductive lookup-rejection contract used by the current
+typechecker. This companion relation embeds that history and adds a complete
+header/constructor/recursor registration in one explicit branch. -/
+inductive TrEnvInductive (safety : DefinitionSafety) : ConstMap → Bool → VEnv → Prop where
+  | legacy : TrEnv' safety C Q env → TrEnvInductive safety C Q env
+  | induct :
+    TrEnvInductive safety C Q env →
+    VDecl.WF env (.induct decl) inductiveEnv →
+    AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
+      recursors models resultConstants result →
+    TrEnvInductive safety resultConstants Q result
+
+theorem TrEnvInductive.wf (H : TrEnvInductive safety C Q venv) : venv.WF := by
+  induction H with
+  | legacy H => exact H.wf
+  | induct previous hdecl evidence ih =>
+    have hinductive := VEnv.WF.decl ih hdecl
+    exact VEnv.addConstructorHeaders.wf hinductive (by
+      intro model hmem
+      obtain ⟨info, hinfo, htranslation⟩ :=
+        Lean4Lean.List.Forall₂.forall_exists_r evidence.translations model hmem
+      exact htranslation.2.2) evidence.recursorAdd
+
 theorem TrEnv'.quotientObjects (valid : TrEnv' safety constants true environment) :
     environment.HasObjects [.defeq quotDefEq, .const ``Quot.ind quotIndConst,
       .const ``Quot.lift quotLiftConst, .const ``Quot.mk quotMkConst, .const ``Quot quotConst] := by

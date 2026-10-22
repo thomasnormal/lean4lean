@@ -130,6 +130,15 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
     evidence.constructorEnv.WF :=
   evidence.inductiveHistoryWF henv
 
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    {Q : Bool} (history : TrEnvInductive .safe constants Q env)
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv) :
+    TrEnvInductive .safe resultConstants Q result :=
+  evidence.to_trEnvInductive history hconstants hrecursors
+
 example {env env' : VEnv} {declaration : VDecl}
     (henv : env.WF) (hdecl : VDecl.WF env declaration env') : env'.WF :=
   VEnv.WF.decl henv hdecl
