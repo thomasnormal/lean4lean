@@ -463,9 +463,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
         (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
       (preprocessing.aux2nested.size ≠ 0 →
-        ∃ evidence : NativeInductive.RestoredRecordEvidence preprocessing staged
+        Nonempty (NativeInductive.RestoredRecordEvidence preprocessing staged
             (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
-            (restoredEnvironmentRecords preprocessing staged types), True) :=
+            (restoredEnvironmentRecords preprocessing staged types))) :=
   metadata.toRestoredRecordEvidence coverage entries records_eq
 
 example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}

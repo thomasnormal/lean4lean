@@ -121,9 +121,9 @@ theorem SafeInductiveRestorationMetadata.toRestoredRecordEvidence
       AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
         (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
       (preprocessing.aux2nested.size ≠ 0 →
-        ∃ evidence : NativeInductive.RestoredRecordEvidence preprocessing staged
+        Nonempty (NativeInductive.RestoredRecordEvidence preprocessing staged
             (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
-            (restoredEnvironmentRecords preprocessing staged types), True) := by
+            (restoredEnvironmentRecords preprocessing staged types))) := by
   obtain ⟨preprocessing, staged, hpre, hrun, _, _, _, _, hbranch, hinstalled⟩ := metadata.stages
   refine ⟨preprocessing, staged, hpre, hrun, ?_⟩
   intro hnested
@@ -131,7 +131,7 @@ theorem SafeInductiveRestorationMetadata.toRestoredRecordEvidence
   | direct hnoaux => exact False.elim (hnested hnoaux)
   | nested _ htrace =>
     have hreceipt := hinstalled hnested (coverage preprocessing staged hpre hrun hnested)
-    refine ⟨?_, trivial⟩
+    refine ⟨? _⟩
     exact NativeInductive.RestoredRegistrationEvidence.toRestoredRecordEvidence
       ⟨htrace, hreceipt⟩ (entries preprocessing staged) (records_eq preprocessing staged hpre hrun)
 
