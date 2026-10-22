@@ -642,7 +642,8 @@ theorem whnfFVar.WF {c : VContext} {s : VState} (he : c.TrExprS (.fvar fv) e') :
   refine (TrExprS.fvar h1).uniq c.Ewf ?_ he
   exact .refl c.Ewf c.Δwf
 
-theorem reduceProj.none_of_translation {context : VContext} {state : VState}
+theorem reduceProj.none_of_translationOf {context : VContext} {state : VState}
+    (hrejects : TrEnv.RejectsInductiveFamilies context.trenv)
     (translated : context.TrExprS source semantic) :
     (reduceProj index source cheapProj).WF context state
       (fun outcome _ => outcome = none) := by
@@ -655,7 +656,13 @@ theorem reduceProj.none_of_translation {context : VContext} {state : VState}
     · exact whnfCore.WF translated
   refine initial.bind fun _ _ _ result => ?_
   obtain ⟨_, structural, _⟩ := result.2
-  exact reduceProjCore.none_of_translation structural
+  exact reduceProjCore.none_of_translationOf hrejects structural
+
+theorem reduceProj.none_of_translation {context : VContext} {state : VState}
+    (translated : context.TrExprS source semantic) :
+    (reduceProj index source cheapProj).WF context state
+      (fun outcome _ => outcome = none) :=
+  reduceProj.none_of_translationOf context.trenv_rejects translated
 
 theorem reduceProj.WF {c : VContext} {s : VState} (he : c.TrExprS (.proj n i e) e') :
     RecM.WF c s (reduceProj i e cheapProj) fun oe _ =>

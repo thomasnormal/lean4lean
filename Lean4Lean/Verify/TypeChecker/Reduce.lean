@@ -222,7 +222,8 @@ theorem reduceNat.WF {c : VContext} (he : c.TrExprS e e') :
 /-- In the current constructor-free model, a translated structure cannot
 reduce to a registered constructor application. String expansion is checked
 through the existing normalization contract rather than rejected by syntax. -/
-theorem reduceProjCore.none_of_translation {context : VContext} {state : VState}
+theorem reduceProjCore.none_of_translationOf {context : VContext} {state : VState}
+    (hrejects : TrEnv.RejectsInductiveFamilies context.trenv)
     (translated : context.TrExprS source semantic) :
     (reduceProjCore index source).WF context state
       (fun outcome _ => outcome = none) := by
@@ -241,7 +242,7 @@ theorem reduceProjCore.none_of_translation {context : VContext} {state : VState}
       refine RecM.WF.getEnv ?_
       refine (M.WF.liftExcept envGet.WF).lift.bind fun information _ _ found => ?_
       cases information <;> try exact RecM.WF.pure rfl
-      exact False.elim <| context.trenv_rejects.constructorNotInModel found inModel
+      exact False.elim <| hrejects.constructorNotInModel found inModel
   unfold reduceProjCore
   dsimp only
   split
@@ -252,6 +253,12 @@ theorem reduceProjCore.none_of_translation {context : VContext} {state : VState}
           obtain ⟨_, reducedTranslation, _⟩ := result.2
           exact finish reducedTranslation)
   · exact finish (state := state) translated
+
+theorem reduceProjCore.none_of_translation {context : VContext} {state : VState}
+    (translated : context.TrExprS source semantic) :
+    (reduceProjCore index source).WF context state
+      (fun outcome _ => outcome = none) :=
+  reduceProjCore.none_of_translationOf context.trenv_rejects translated
 
 theorem reduceProjCore.WF (he : c.TrExprS (.proj n i e) e') :
     RecM.WF c s (reduceProjCore i e) fun oe _ =>

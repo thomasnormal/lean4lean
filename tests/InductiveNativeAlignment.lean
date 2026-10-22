@@ -214,6 +214,14 @@ example {context : TypeChecker.VContext} {expression : Expr} {semantic : VExpr}
     inductiveReduceRec context.env expression normalize infer compare = pure none :=
   inductiveReduceRec.eq_noneOf rejects translated normalize infer compare
 
+example {context : TypeChecker.VContext} {state : TypeChecker.VState}
+    {index : Nat} {source : Expr} {semantic : VExpr}
+    (rejects : TrEnv.RejectsInductiveFamilies context.trenv)
+    (translated : context.TrExprS source semantic) :
+    (TypeChecker.Inner.reduceProjCore index source).WF context state
+      (fun outcome _ => outcome = none) :=
+  TypeChecker.Inner.reduceProjCore.none_of_translationOf rejects translated
+
 example {context : TypeChecker.VContext} {name : Name}
     (find : ∀ {constantName},
       (∃ ci, context.env.find? constantName = some ci ∧ context.safety ≤ ci.safety) ↔
