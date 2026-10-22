@@ -1,8 +1,11 @@
 import Lean4Lean.Verify.InductiveNativeRestorationBridge
+import Lean4Lean.Verify.InductiveRestorationRules
 
 namespace Lean4Lean
 open Lean hiding Environment Exception
 open Kernel
+open AddInductive
+open AddInductive.declareConstructors
 
 /-! A frontend scope can be consumed together with an independently constructed semantic
     registration witness.  The map equalities are explicit: the native scope supplies the
@@ -213,6 +216,60 @@ theorem NativeInductive.RestoredRecordEvidence.registrationRecursorRuleTranslati
       cases heq
       exact hentry'
   exact producer.recursorRuleTranslation entry hmem rule hrule
+
+theorem NativeInductive.RestoredRecordEvidence.sourceRecursorRuleTranslation
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    {nparams : Nat} {lparams : List Name} {types : List InductiveType}
+    (hlookups : SourceRecursorRuleLookups nparams lparams types preprocessing staged result)
+    (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+    (hctor : ctorIndex < types[index].ctors.length)
+    {entry : NativeInductive.RecursorEntry}
+    (hentry : (.recursor entry : NativeInductive.RegistrationEntry) ∈ restored.entries)
+    (hname : entry.info.name = (mkRecName types[index].name))
+    (hrecursorName : ∀ recursor : RecursorVal,
+      result.find? recursor.name = some (.recInfo recursor) →
+      recursor.name = entry.info.name) :
+    ∃ (recursor : RecursorVal) (rule : RecursorRule) (info : ConstructorVal) (semantic : VExpr),
+      result.find? recursor.name = some (.recInfo recursor) ∧
+      entry.info.name = mkRecName types[index].name ∧
+      recursor.rules.length = types[index].ctors.length ∧
+      recursor.rules[ctorIndex]? = some rule ∧
+      staged.find? types[index].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+      SourceConstructorMetadata nparams lparams types[index] ctorIndex info ∧
+      SourceConstructorFields nparams types[index] ctorIndex info ∧
+      rule.nfields = info.numFields ∧
+      rule.nfields = arity 0 types[index].ctors[ctorIndex].type - nparams ∧
+      nparams + rule.nfields = arity 0 types[index].ctors[ctorIndex].type ∧
+      TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic := by
+  obtain ⟨recursor, rule, info, hresult, hlength, hrule, hctorInfo, hmetadata, hfields,
+      hnumFields, hfieldCount, htotal⟩ := hlookups.finalRule index hindex ctorIndex hctor
+  have hrecursorName := hrecursorName recursor hresult
+  have hinstalled := restored.entryInstalled hentry
+  have hinstalled' : result.find? recursor.name = some (.recInfo entry.info) := by
+    rw [hrecursorName]
+    change result.find? entry.info.name = some (.recInfo entry.info)
+    exact hinstalled
+  have hrecursor : recursor = entry.info := by
+    have heq : (.recInfo recursor : ConstantInfo) = .recInfo entry.info :=
+      Option.some.inj (hresult.symm.trans hinstalled')
+    cases heq
+    rfl
+  have hruleMem : rule ∈ entry.info.rules := by
+    rw [← hrecursor]
+    exact List.mem_of_getElem? hrule
+  obtain ⟨semantic, hsemantic⟩ :=
+    restored.registrationRecursorRuleTranslation producer halign hentry hruleMem
+  exact ⟨recursor, rule, info, semantic, hresult, hname, hlength, hrule, hctorInfo, hmetadata,
+    hfields, hnumFields, hfieldCount, htotal, hsemantic⟩
 
 theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}

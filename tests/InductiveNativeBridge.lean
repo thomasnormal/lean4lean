@@ -9,6 +9,7 @@ import Lean.Util.CollectAxioms
 namespace Lean4Lean.Tests.InductiveNativeBridge
 
 open Lean Lean4Lean Lean4Lean.NativeInductive
+open Lean4Lean.AddInductive.declareConstructors
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
@@ -700,6 +701,39 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         (.const ci.name (VLevel.params ci.levelParams.length))) :
     CheckerEnvInductive .safe result semanticResult Q :=
   scope.toCheckerEnvInductive history producer hconstants hresultConstants hrecursors hvalues
+
+example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} {preprocessing : ElimNestedInductive.Result}
+    {staged : Kernel.Environment} {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    {nparams : Nat} {lparams : List Name} {types : List InductiveType}
+    (hlookups : SourceRecursorRuleLookups nparams lparams types preprocessing staged result)
+    (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+    (hctor : ctorIndex < types[index].ctors.length)
+    {entry : NativeInductive.RecursorEntry}
+    (hentry : (.recursor entry : RegistrationEntry) ∈ restored.entries)
+    (hname : entry.info.name = mkRecName types[index].name)
+    (hrecursorName : ∀ recursor : RecursorVal,
+      result.find? recursor.name = some (.recInfo recursor) →
+      recursor.name = entry.info.name) :
+    ∃ (recursor : RecursorVal) (rule : RecursorRule) (info : ConstructorVal) (semantic : VExpr),
+      result.find? recursor.name = some (.recInfo recursor) ∧
+      entry.info.name = mkRecName types[index].name ∧
+      recursor.rules.length = types[index].ctors.length ∧
+      recursor.rules[ctorIndex]? = some rule ∧
+      staged.find? types[index].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+      SourceConstructorMetadata nparams lparams types[index] ctorIndex info ∧
+      SourceConstructorFields nparams types[index] ctorIndex info ∧
+      rule.nfields = info.numFields ∧
+      rule.nfields = arity 0 types[index].ctors[ctorIndex].type - nparams ∧
+      nparams + rule.nfields = arity 0 types[index].ctors[ctorIndex].type ∧
+      TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic :=
+  restored.sourceRecursorRuleTranslation producer halign hlookups index hindex ctorIndex hctor
+    hentry hname hrecursorName
 
 run_meta
   let environment ← getEnv
