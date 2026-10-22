@@ -684,6 +684,22 @@ theorem TrEnvInductive.find?_uniq (H : TrEnvInductive safety C Q venv)
     ci.name = name ∧ TrConstant safety venv ci ci' :=
   H.aligned.find?_uniq h hs
 
+theorem TrEnvInductive.env_find? {env : Environment}
+    (H : TrEnvInductive safety env.constants Q venv)
+    (h : env.find? name = some ci) (hs : safety ≤ ci.safety) :
+    ∃ ci', venv.constants name = some ci' ∧ TrConstant safety venv ci ci' := by
+  have h' : env.constants.find? name = some ci := by
+    rwa [← H.map_wf.find?'_eq_find?]
+  exact H.find? h' hs
+
+theorem TrEnvInductive.env_find?_uniq {env : Environment}
+    (H : TrEnvInductive safety env.constants Q venv)
+    (h : env.find? name = some ci) (hs : venv.constants name = some ci') :
+    ci.name = name ∧ TrConstant safety venv ci ci' := by
+  have h' : env.constants.find? name = some ci := by
+    rwa [← H.map_wf.find?'_eq_find?]
+  exact H.find?_uniq h' hs
+
 theorem TrEnv'.quotientObjects (valid : TrEnv' safety constants true environment) :
     environment.HasObjects [.defeq quotDefEq, .const ``Quot.ind quotIndConst,
       .const ``Quot.lift quotLiftConst, .const ``Quot.mk quotMkConst, .const ``Quot quotConst] := by
