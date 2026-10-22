@@ -3,6 +3,7 @@ import Lean4Lean.Verify.StagedLeaves
 import Lean4Lean.Verify.TypeChecker.ScopedDelta
 import Lean4Lean.Verify.TypeChecker.ScopedInferType
 import Lean4Lean.Verify.TypeChecker.IsDefEq
+import Lean4Lean.Verify.TypeChecker.InferType
 
 namespace Lean4Lean.Tests.InductiveNativeAlignment
 
@@ -40,6 +41,22 @@ example {context : TypeChecker.VContext} {state : TypeChecker.VState}
     (TypeChecker.Inner.inferType' expression inferOnly).ScopeWF context state fun type _ =>
       ∃ semantic semanticType, context.TrTyping expression type semantic semanticType :=
   TypeChecker.Inner.inferType'.scopeWFOf lookup freeVariables translated
+
+example {context : TypeChecker.VContext} {name : Name} {levels : List Level}
+    {inferOnly : Bool}
+    (lookup : ∀ {constantName ci}, context.env.find? constantName = some ci →
+      context.safety ≤ ci.safety →
+      ∃ ci', context.venv.constants constantName = some ci' ∧
+        TrConstant context.safety context.venv ci ci')
+    (lookupUnique : ∀ {constantName ci ci'}, context.env.find? constantName = some ci →
+      context.venv.constants constantName = some ci' →
+      ci.name = constantName ∧ TrConstant context.safety context.venv ci ci')
+    (levelsNoMVar : ∀ level ∈ levels, level.hasMVar' = false)
+    (translated : inferOnly = true →
+      ∃ model, context.TrExprS (.const name levels) model) :
+    (TypeChecker.Inner.inferConstant context.toContext name levels inferOnly).WF fun result =>
+      ∃ model type, context.TrTyping (.const name levels) result model type :=
+  TypeChecker.Inner.inferConstant.WFOf lookup lookupUnique levelsNoMVar translated
 
 example {ctx : TypeChecker.Context} {semantic : VEnv} {scope : VLCtx} {Q : Bool}
     (checker : CheckerEnvInductive ctx.safety ctx.env semantic Q)

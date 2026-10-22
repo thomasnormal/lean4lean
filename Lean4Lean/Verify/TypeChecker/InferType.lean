@@ -40,7 +40,11 @@ theorem inferFVar.WF {c : VContext} :
     c.trlctx.find?_of_mem c.Ewf (List.mem_of_find?_eq_some h)
   exact ⟨_, _, h2, .fvar h1, h3, c.Δwf.find?_wf c.Ewf h1⟩
 
-theorem inferConstant.WF {c : VContext}
+theorem inferConstant.WFOf {c : VContext}
+    (hlookup : ∀ {name ci}, c.env.find? name = some ci → c.safety ≤ ci.safety →
+      ∃ ci', c.venv.constants name = some ci' ∧ TrConstant c.safety c.venv ci ci')
+    (huniq : ∀ {name ci ci'}, c.env.find? name = some ci → c.venv.constants name = some ci' →
+      ci.name = name ∧ TrConstant c.safety c.venv ci ci')
     (H : ∀ l ∈ ls, l.hasMVar' = false)
     (hinf : inferOnly = true → ∃ e', c.TrExprS (.const name ls) e') :
     (inferConstant c.toContext name ls inferOnly).WF fun ty =>
@@ -59,7 +63,7 @@ theorem inferConstant.WF {c : VContext}
   have main {e'} (he : c.TrExprS (.const name ls) e') : ∃ e' ty',
       c.TrTyping (.const name ls) (ci.instantiateTypeLevelParams ls) e' ty' := by
     let .const h4 H' eq := id he
-    have ⟨_, _, h5, h6⟩ := c.trenv.find?_uniq eq1 h4
+    have ⟨_, _, h5, h6⟩ := huniq eq1 h4
     have H := List.mapM_eq_some.1 H'
     have s0 := h6.instL c.Ewf (Δ := []) trivial H' (h5.trans eq.symm)
     have s1 := s0.weakFV c.Ewf (.from_nil c.mlctx.noBV) c.Δwf
@@ -78,7 +82,7 @@ theorem inferConstant.WF {c : VContext}
       rename_i h; simpa [Decidable.or_iff_not_imp_left, ConstantInfo.isPartial] using h
     subst eq1 eq2; intro h3
     refine this.map fun _ ⟨_, H⟩ => ?_
-    have ⟨_, h4, _, h5, h6⟩ := c.trenv.find? eq1 <| by
+    have ⟨_, h4, _, h5, h6⟩ := hlookup eq1 <| by
       revert h2 h3
       simp [ConstantInfo.safety]
       split <;> simp +contextual [*]
@@ -87,6 +91,13 @@ theorem inferConstant.WF {c : VContext}
     have eq := h1.symm.trans h5
     exact main (.const h4 (List.mapM_eq_some.2 H) eq)
   · simp_all; let ⟨_, h⟩ := hinf; refine .pure (main h)
+
+theorem inferConstant.WF {c : VContext}
+    (H : ∀ l ∈ ls, l.hasMVar' = false)
+    (hinf : inferOnly = true → ∃ e', c.TrExprS (.const name ls) e') :
+    (inferConstant c.toContext name ls inferOnly).WF fun ty =>
+      ∃ e' ty', c.TrTyping (.const name ls) ty e' ty' :=
+  inferConstant.WFOf c.trenv.find? c.trenv.find?_uniq H hinf
 
 theorem inferLambda.loop.WF {c : VContext} {e₀ : Expr}
     {m} [mwf : c.MLCWF m] {n} (hn : n ≤ m.length)
