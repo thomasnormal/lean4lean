@@ -2816,6 +2816,70 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := htype
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) : True := by
+  have h := addDecl.originalRecursorRuleStages_of_restorationStages hmap hresult
+  obtain ⟨allowPrimitive, preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
+      hpre, hrun, hscope, hprefix, hnodup, hframe, hcounts, hindexing, hdistinct, hsources,
+      hbranch, hnames, hlookups⟩ := h
+  have _allowPrimitive : Bool := allowPrimitive
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _stats : AddInductive.InductiveStats := stats
+  have _root : AddInductive.Context := root
+  have _constructors : Kernel.Environment := constructors
+  have _elimLevel : Level := elimLevel
+  have _infos : Array AddInductive.RecInfo := infos
+  have _source : AddInductive.Context := source
+  have _ := hpre
+  have _ := hrun
+  have _ := hscope
+  have _ := hprefix
+  have _ := hnodup
+  have _ := hframe
+  have _ := hcounts
+  have _ := hindexing
+  have _ := hdistinct
+  have _ := hsources
+  have _ := hbranch
+  have _ := hnames
+  have _ := hlookups
+  trivial
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) : True := by
+  have h := addDecl.originalRecursorRuleStages_of_checkedPrimitive hmap hcheck hresult
+  obtain ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
+      hpre, hrun, hscope, hprefix, hnodup, hframe, hcounts, hindexing, hdistinct, hsources,
+      hbranch, hnames, hlookups⟩ := h
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _stats : AddInductive.InductiveStats := stats
+  have _root : AddInductive.Context := root
+  have _constructors : Kernel.Environment := constructors
+  have _elimLevel : Level := elimLevel
+  have _infos : Array AddInductive.RecInfo := infos
+  have _source : AddInductive.Context := source
+  have _ := hpre
+  have _ := hrun
+  have _ := hscope
+  have _ := hprefix
+  have _ := hnodup
+  have _ := hframe
+  have _ := hcounts
+  have _ := hindexing
+  have _ := hdistinct
+  have _ := hsources
+  have _ := hbranch
+  have _ := hnames
+  have _ := hlookups
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
