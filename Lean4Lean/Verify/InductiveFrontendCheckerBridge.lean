@@ -4859,4 +4859,39 @@ theorem addDecl.checkedPrimitiveRegistrationRealization
   have hregistration := producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors
   exact ⟨hscope, hregistration.to_addInductWithRecursors, hresultConstants, hregistration⟩
 
+/- Add the semantic history produced by the same constructive realization,
+   keeping the executable model equation and history synchronized. -/
+theorem addDecl.checkedPrimitiveRegistrationRealizationAndHistory
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    ∃ scope : SafeInductiveFrontendScope env lparams nparams types true fuel result,
+      semanticEnv.addInductWithRecursors decl
+          (producer.recursors.map (·.model)) = some semanticResult ∧
+      result.constants = resultConstants ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      TrEnvInductive .safe resultConstants Q semanticResult := by
+  obtain ⟨scope, hmodelResult, hmapResult, hregistration⟩ :=
+    addDecl.checkedPrimitiveRegistrationRealization hmap hcheck hresult producer hconstants
+      hresultConstants hrecursors
+  have hconstantsWF : constants.WF := by
+    rw [← hconstants]
+    exact hmap
+  have hhistory := producer.to_trEnvInductive history hconstantsWF hrecursors
+  exact ⟨scope, hmodelResult, hmapResult, hregistration, hhistory⟩
+
 end Lean4Lean
