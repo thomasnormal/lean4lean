@@ -472,6 +472,20 @@ theorem RegistrationEvidence.orderedRuleResultsOf
     · intro rule hrule
       exact ruleResults recursor hmem rule hrule
 
+/- A recursor consumer often needs the translated RHS and its retained result
+   at the same indexed rule.  Keep that pairing at the registration boundary
+   so callers do not have to reopen the ordered-entry proof. -/
+theorem RegistrationEvidence.recursorRuleResult
+    {Result : RecursorEntry → RecursorRule → Prop}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (ruleResults : ∀ (entry : RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → Result entry rule) :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules, ∃ semantic,
+      TrExprS result entry.info.levelParams [] rule.rhs semantic ∧ Result entry rule := by
+  intro entry hentry rule hrule
+  obtain ⟨semantic, hsemantic⟩ := evidence.recursorRuleTranslation entry hentry rule hrule
+  exact ⟨semantic, hsemantic, ruleResults entry hentry rule hrule⟩
+
 theorem RegistrationEvidence.orderedRuleSemantics
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     ∀ entry ∈ evidence.orderedEntries,

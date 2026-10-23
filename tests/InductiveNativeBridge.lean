@@ -141,6 +141,14 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
         | .recursor entry => ∀ rule ∈ entry.info.rules, True :=
   evidence.orderedRuleResultsOf ruleResults
 
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (ruleResults : ∀ (entry : RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → True) :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules, ∃ semantic,
+      TrExprS result entry.info.levelParams [] rule.rhs semantic ∧ True :=
+  evidence.recursorRuleResult ruleResults
+
 example {entry : RegistrationEntry} {env headerEnv constructorEnv : VEnv}
     (hsemantic : entry.Semantic env headerEnv constructorEnv) :
     entry.ModelShape :=
