@@ -2749,11 +2749,16 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       preprocessing.aux2nested.size ≠ 0 → ∀ (index : Nat) (hindex : index < types.length),
         ∃ entry : RecursorEntry,
           (.recursor entry : RegistrationEntry) ∈ entries preprocessing staged ∧
-          entry.info.name = mkRecName types[index].name) : True := by
+          entry.info.name = mkRecName types[index].name)
+    (venv : VEnv) : True := by
   have h := addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructural_of_checkedPrimitive
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry
+  have hm := addDecl.checkedPrimitiveModelAndCheckerStructural
+    hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+    hvalues ruleResult hrecursor hentry venv
   have _ := h
+  have _ := hm
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
