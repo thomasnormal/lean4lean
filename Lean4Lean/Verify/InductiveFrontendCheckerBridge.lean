@@ -6899,6 +6899,40 @@ theorem addDecl.checkedPrimitiveRegistrationRealizationHistoryAndAlignment_of_re
       hmap hcheck hresult producer hconstants hresultConstants history hrecursors
   exact ⟨allowPrimitive, scope, hmodelResult, hmapResult, hhistory, hhistory.aligned⟩
 
+/- Retain the constructive registration receipt alongside the final aligned
+   history package. -/
+theorem addDecl.checkedPrimitiveRegistrationRealizationHistoryAlignmentAndRegistration_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    ∃ (allowPrimitive : Bool)
+      (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result),
+      semanticEnv.addInductWithRecursors decl
+          (producer.recursors.map (·.model)) = some semanticResult ∧
+      result.constants = resultConstants ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      TrEnvInductive .safe resultConstants Q semanticResult ∧
+      Aligned .safe resultConstants semanticResult := by
+  obtain ⟨allowPrimitive, scope, hmodelResult, hmapResult, hregistration, hhistory⟩ :=
+    addDecl.checkedPrimitiveRegistrationRealizationAndHistory_of_restorationStages
+      hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+  exact ⟨allowPrimitive, scope, hmodelResult, hmapResult, hregistration, hhistory,
+    hhistory.aligned⟩
+
 /- The final semantic history carries the aligned constant-map invariant needed
    by consumers that continue directly into checker preservation. -/
 theorem addDecl.checkedPrimitiveRegistrationRealizationHistoryAndAlignment
