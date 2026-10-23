@@ -2617,7 +2617,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       restoredEnvironmentRecords preprocessing staged types =
         (entries preprocessing staged).map RegistrationEntry.toConstantInfo)
     {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
-    {decl : VInductDecl} {Q : Bool}
+    {decl : VInductDecl} {Q : Bool} {venv : VEnv}
     (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
     (entry_eq : ∀ preprocessing staged,
       inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
@@ -2649,7 +2649,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         ∃ entry : RecursorEntry,
           (.recursor entry : RegistrationEntry) ∈ entries preprocessing staged ∧
           entry.info.name = mkRecName types[index].name) : True := by
-  have h := addDecl.sourceRecursorRuleStagesGeneratedResultsAndRegistrationSemantics_of_checkedPrimitive
+  have h := addDecl.checkedPrimitiveModelAndRegistrationSemantics (venv := venv)
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry
   have _ := h
