@@ -1334,6 +1334,22 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       TrEnvInductive .safe resultConstants Q semanticResult :=
   scope.registrationHistory history producer hconstants hresultConstants hrecursors
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    result.constants = resultConstants ∧
+      TrEnvInductive .safe resultConstants Q semanticResult :=
+  scope.registrationHistory_of_sourceTypehood history producer hconstants hresultConstants hsource
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?

@@ -58,6 +58,26 @@ theorem SafeInductiveFrontendScope.registrationHistory
   refine ⟨hresultConstants, ?_⟩
   exact producer.to_trEnvInductive history hconstantsWF hrecursors
 
+theorem SafeInductiveFrontendScope.registrationHistory_of_sourceTypehood
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    result.constants = resultConstants ∧
+      TrEnvInductive .safe resultConstants Q semanticResult := by
+  have hrecursors := producer.recursorWF_of_sourceTypehood
+    (producer.constructorEnvWF history.wf) hsource
+  exact scope.registrationHistory history producer hconstants hresultConstants hrecursors
+
 theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_ruleResults
     {Result : NativeInductive.RecursorEntry → RecursorRule → Prop}
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
