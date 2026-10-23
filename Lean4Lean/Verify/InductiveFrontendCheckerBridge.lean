@@ -3457,4 +3457,21 @@ theorem addDecl.sourceConstructorFieldStages_of_restorationStages
     metadata.sourceConstructorFields
   exact ⟨allowPrimitive, preprocessing, staged, hpre, hrun, hprefix, hlookups⟩
 
+theorem addDecl.sourceConstructorFieldStages_of_checkedPrimitive
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged ∧
+      InductiveArityPrefix types.toArray preprocessing.types.toArray ∧
+      SourceConstructorFieldLookups nparams lparams types preprocessing staged result := by
+  have metadata := (addDecl.safeCheckedPrimitiveInductiveRestorationStages env lparams nparams types
+    check fuel hmap hcheck) result hresult
+  obtain ⟨preprocessing, staged, hpre, hrun, hprefix, hlookups⟩ := metadata.sourceConstructorFields
+  exact ⟨preprocessing, staged, hpre, hrun, hprefix, hlookups⟩
+
 end Lean4Lean
