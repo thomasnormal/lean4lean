@@ -3457,6 +3457,29 @@ theorem addDecl.sourceConstructorFieldStages_of_restorationStages
     metadata.sourceConstructorFields
   exact ⟨allowPrimitive, preprocessing, staged, hpre, hrun, hprefix, hlookups⟩
 
+theorem addDecl.constructorFieldStages_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) :
+    ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+      (staged : Kernel.Environment) (stats : AddInductive.InductiveStats)
+      (root : AddInductive.Context) (constructors : Kernel.Environment),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      stats.SafeRunScope nparams preprocessing.types.toArray preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) root constructors staged ∧
+      InductiveArityPrefix types.toArray preprocessing.types.toArray ∧
+      InductiveFrontendBranch preprocessing staged types env result ∧
+      SourceConstructorFieldLookups nparams lparams types preprocessing staged result := by
+  obtain ⟨allowPrimitive, metadata⟩ :=
+    (addDecl.safeInductiveRestorationStages env lparams nparams types check fuel hmap) result hresult
+  obtain ⟨preprocessing, staged, stats, root, constructors, hpre, hrun, hscope, hprefix,
+      hbranch, hlookups⟩ := metadata.constructorFieldStages
+  exact ⟨allowPrimitive, preprocessing, staged, stats, root, constructors, hpre, hrun, hscope,
+    hprefix, hbranch, hlookups⟩
+
 theorem addDecl.sourceConstructorFieldStages_of_checkedPrimitive
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
