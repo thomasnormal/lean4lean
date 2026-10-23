@@ -2984,6 +2984,48 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := hheader
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) : True := by
+  have h := addDecl.sourceConstructorLookups_of_restorationStages hmap hresult
+  obtain ⟨allowPrimitive, preprocessing, staged, stats, root, constructors,
+      hpre, hrun, hscope, hprefix, hbranch, hlookups⟩ := h
+  have _allowPrimitive : Bool := allowPrimitive
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _stats : AddInductive.InductiveStats := stats
+  have _root : AddInductive.Context := root
+  have _constructors : Kernel.Environment := constructors
+  have _ := hpre
+  have _ := hrun
+  have _ := hscope
+  have _ := hprefix
+  have _ := hbranch
+  have _ := hlookups
+  trivial
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) : True := by
+  have h := addDecl.sourceConstructorLookups_of_checkedPrimitive hmap hcheck hresult
+  obtain ⟨preprocessing, staged, stats, root, constructors,
+      hpre, hrun, hscope, hprefix, hbranch, hlookups⟩ := h
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _stats : AddInductive.InductiveStats := stats
+  have _root : AddInductive.Context := root
+  have _constructors : Kernel.Environment := constructors
+  have _ := hpre
+  have _ := hrun
+  have _ := hscope
+  have _ := hprefix
+  have _ := hbranch
+  have _ := hlookups
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?

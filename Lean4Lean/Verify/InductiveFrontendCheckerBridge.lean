@@ -3977,4 +3977,51 @@ theorem addDecl.sourceRecursorHeader_of_checkedPrimitive
   exact ⟨preprocessing, staged, stats, elimLevel, infos, source, isK, recursor,
     hpre, hrun, hlevels, hlookup, hsource.header hcounts hparams index hindex recursor hlookup⟩
 
+theorem addDecl.sourceConstructorLookups_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) :
+    ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+      (staged : Kernel.Environment) (stats : AddInductive.InductiveStats)
+      (root : AddInductive.Context) (constructors : Kernel.Environment),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      stats.SafeRunScope nparams preprocessing.types.toArray preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) root constructors staged ∧
+      InductiveSignaturePrefix types.toArray preprocessing.types.toArray ∧
+      InductiveFrontendBranch preprocessing staged types env result ∧
+      SourceConstructorLookups nparams lparams types preprocessing staged result := by
+  obtain ⟨allowPrimitive, metadata⟩ :=
+    (addDecl.safeInductiveRestorationStages env lparams nparams types check fuel hmap) result hresult
+  obtain ⟨preprocessing, staged, stats, root, constructors, hpre, hrun, hscope, hprefix,
+      hbranch, hlookups⟩ := metadata.constructorStages
+  exact ⟨allowPrimitive, preprocessing, staged, stats, root, constructors,
+    hpre, hrun, hscope, hprefix, hbranch, hlookups⟩
+
+theorem addDecl.sourceConstructorLookups_of_checkedPrimitive
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+      (stats : AddInductive.InductiveStats) (root : AddInductive.Context)
+      (constructors : Kernel.Environment),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged ∧
+      stats.SafeRunScope nparams preprocessing.types.toArray preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) root constructors staged ∧
+      InductiveSignaturePrefix types.toArray preprocessing.types.toArray ∧
+      InductiveFrontendBranch preprocessing staged types env result ∧
+      SourceConstructorLookups nparams lparams types preprocessing staged result := by
+  have metadata := (addDecl.safeCheckedPrimitiveInductiveRestorationStages env lparams nparams types
+    check fuel hmap hcheck) result hresult
+  obtain ⟨preprocessing, staged, stats, root, constructors, hpre, hrun, hscope, hprefix,
+      hbranch, hlookups⟩ := metadata.constructorStages
+  exact ⟨preprocessing, staged, stats, root, constructors,
+    hpre, hrun, hscope, hprefix, hbranch, hlookups⟩
+
 end Lean4Lean
