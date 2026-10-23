@@ -3125,6 +3125,31 @@ theorem SafeInductiveRestorationMetadata.registrationAlignmentHistory_of_sourceT
   metadata.toFrontendScope.registrationAlignmentHistory_of_sourceTypehood history producer
     hconstants hresultConstants hsource
 
+/- The restoration metadata and native producer can be consumed together at
+   the frontend boundary: the former supplies the executable scope, while the
+   latter supplies the constructive model registration receipt. -/
+theorem SafeInductiveRestorationMetadata.toFrontendScopeAndConstructiveRegistration
+    {env result : Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult := by
+  have hconstantsWF : constants.WF := by
+    rw [← hconstants]
+    exact metadata.originalWF
+  exact ⟨metadata.toFrontendScope,
+    producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors⟩
+
 theorem SafeInductiveRestorationMetadata.toCheckerEnvInductive_and_registrationHistory_of_sourceTypehood
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}

@@ -4374,6 +4374,21 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _results := hresults
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) : True := by
+  obtain ⟨hscope, hregistration⟩ :=
+    metadata.toFrontendScopeAndConstructiveRegistration producer hconstants hrecursors
+  have _scope := hscope
+  have _registration := hregistration
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
