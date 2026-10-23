@@ -841,6 +841,25 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   metadata.toCheckerEnvInductive_of_sourceTypehood coverage entries records_eq producer entry_eq
     hconstants history hsource hvalues
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants) (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe result semanticResult Q := by
+  exact metadata.toCheckerEnvInductive_of_frontendSourceTypehood producer hconstants
+    hresultConstants history hsource hvalues
+
 example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
     (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap
