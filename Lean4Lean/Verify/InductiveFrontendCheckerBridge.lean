@@ -6757,6 +6757,47 @@ theorem addDecl.checkedPrimitiveRegistrationRealization
   have hregistration := producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors
   exact ⟨hscope, hregistration.to_addInductWithRecursors, hresultConstants, hregistration⟩
 
+/- Lift constructive registration and its semantic history across the
+   existential restoration-stage choice. -/
+theorem addDecl.checkedPrimitiveModelAndConstructiveHistory_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool} {venv : VEnv}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
+      modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
+      (∀ venv', venv.addInductHeaders modelDecl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types modelDecl) ∧
+      ∃ (allowPrimitive : Bool),
+        SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result ∧
+        AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+          producer.constructorConstants producer.constructorEnv
+          (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+          resultConstants semanticResult ∧
+        TrEnvInductive .safe resultConstants Q semanticResult := by
+  have hmodel := Environment.checkPrimitiveInductive.toVDecl_WF_model
+    env venv lparams nparams types false
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation⟩ :=
+    (hmodel true hcheck) rfl
+  obtain ⟨allowPrimitive, metadata⟩ :=
+    (addDecl.safeInductiveRestorationStages env lparams nparams types check fuel hmap) result hresult
+  have hconstantsWF : constants.WF := by
+    rw [← hconstants]
+    exact hmap
+  have hregistration := producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors
+  have hhistory := producer.to_trEnvInductive history hconstantsWF hrecursors
+  exact ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, allowPrimitive,
+    metadata.toFrontendScope, hregistration, hhistory⟩
+
 /- Add the semantic history produced by the same constructive realization,
    keeping the executable model equation and history synchronized. -/
 theorem addDecl.checkedPrimitiveRegistrationRealizationAndHistory
