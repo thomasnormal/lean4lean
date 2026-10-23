@@ -1462,4 +1462,40 @@ theorem SafeInductiveRestorationMetadata.toCheckerEnvInductive_of_frontendSource
   exact metadata.toFrontendScope.toCheckerEnvInductive history producer hconstants
     hresultConstants hrecursors hvalues
 
+theorem SafeInductiveRestorationMetadata.registrationHistory
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    result.constants = resultConstants ∧
+      TrEnvInductive .safe resultConstants Q semanticResult :=
+  metadata.toFrontendScope.registrationHistory history producer hconstants hresultConstants hrecursors
+
+theorem SafeInductiveRestorationMetadata.registrationHistory_of_sourceTypehood
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    result.constants = resultConstants ∧
+      TrEnvInductive .safe resultConstants Q semanticResult :=
+  metadata.toFrontendScope.registrationHistory_of_sourceTypehood history producer hconstants
+    hresultConstants hsource
+
 end Lean4Lean
