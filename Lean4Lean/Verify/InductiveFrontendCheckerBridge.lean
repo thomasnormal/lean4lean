@@ -4024,4 +4024,55 @@ theorem addDecl.sourceConstructorLookups_of_checkedPrimitive
   exact ⟨preprocessing, staged, stats, root, constructors,
     hpre, hrun, hscope, hprefix, hbranch, hlookups⟩
 
+theorem addDecl.sourceConstructorLookup_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (typeIndex : Nat) (htype : typeIndex < types.length) (ctorIndex : Nat)
+    (hctor : ctorIndex < types[typeIndex].ctors.length) :
+    ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+      (staged : Kernel.Environment) (info : ConstructorVal),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      staged.find? types[typeIndex].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+      SourceConstructorMetadata nparams lparams types[typeIndex] ctorIndex info ∧
+      (preprocessing.aux2nested.size = 0 →
+        result.find? types[typeIndex].ctors[ctorIndex].name = some (.ctorInfo info)) ∧
+      (preprocessing.aux2nested.size ≠ 0 →
+        result.find? types[typeIndex].ctors[ctorIndex].name =
+          some (.ctorInfo { info with type := preprocessing.restoreNested staged info.type })) := by
+  obtain ⟨allowPrimitive, metadata⟩ :=
+    (addDecl.safeInductiveRestorationStages env lparams nparams types check fuel hmap) result hresult
+  obtain ⟨preprocessing, staged, hpre, hrun, hprefix, hlookups⟩ := metadata.sourceConstructors
+  obtain ⟨info, hlookup, hmetadata, hdirect, hnested⟩ := hlookups typeIndex htype ctorIndex hctor
+  exact ⟨allowPrimitive, preprocessing, staged, info, hpre, hrun, hlookup, hmetadata, hdirect, hnested⟩
+
+theorem addDecl.sourceConstructorLookup_of_checkedPrimitive
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (typeIndex : Nat) (htype : typeIndex < types.length) (ctorIndex : Nat)
+    (hctor : ctorIndex < types[typeIndex].ctors.length) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+      (info : ConstructorVal),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged ∧
+      staged.find? types[typeIndex].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+      SourceConstructorMetadata nparams lparams types[typeIndex] ctorIndex info ∧
+      (preprocessing.aux2nested.size = 0 →
+        result.find? types[typeIndex].ctors[ctorIndex].name = some (.ctorInfo info)) ∧
+      (preprocessing.aux2nested.size ≠ 0 →
+        result.find? types[typeIndex].ctors[ctorIndex].name =
+          some (.ctorInfo { info with type := preprocessing.restoreNested staged info.type })) := by
+  have metadata := (addDecl.safeCheckedPrimitiveInductiveRestorationStages env lparams nparams types
+    check fuel hmap hcheck) result hresult
+  obtain ⟨preprocessing, staged, hpre, hrun, hprefix, hlookups⟩ := metadata.sourceConstructors
+  obtain ⟨info, hlookup, hmetadata, hdirect, hnested⟩ := hlookups typeIndex htype ctorIndex hctor
+  exact ⟨preprocessing, staged, info, hpre, hrun, hlookup, hmetadata, hdirect, hnested⟩
+
 end Lean4Lean
