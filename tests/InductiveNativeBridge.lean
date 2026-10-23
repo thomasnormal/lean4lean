@@ -3541,6 +3541,35 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.checkedPrimitiveModelAndConstructiveRestoredRuleEvidence hmap hcheck hresult
       coverage entries records_eq producer entry_eq hconstants hrecursor hentry ruleResult
       hrecursors venv
+  obtain ⟨modelDeclCombined, hkindCombined, hheadersCombined, hdeclWFCombined,
+      htranslationCombined, hregistrationCombined,
+      ⟨preprocessingCombined, stagedCombined, statsCombined, rootCombined,
+        constructorsCombined, elimLevelCombined, infosCombined, sourceCombined,
+        hpreCombined, hrunCombined, hscopeCombined, hprefixCombined, hlookupsCombined,
+        hsemanticCombined⟩⟩ :=
+    addDecl.checkedPrimitiveModelAndConstructiveRestoredAlignmentSemantics hmap hcheck hresult
+      coverage entries records_eq producer entry_eq hconstants hresultConstants history hsource
+      hvalues ruleResult hrecursor hentry hrecursors venv
+  have _modelDeclCombined : VInductDecl := modelDeclCombined
+  have _ := hkindCombined
+  have _ := hheadersCombined
+  have _ := hdeclWFCombined
+  have _ := htranslationCombined
+  have _ := hregistrationCombined
+  have _preCombined : ElimNestedInductive.Result := preprocessingCombined
+  have _stagedCombined : Kernel.Environment := stagedCombined
+  have _statsCombined : AddInductive.InductiveStats := statsCombined
+  have _rootCombined : AddInductive.Context := rootCombined
+  have _constructorsCombined : Kernel.Environment := constructorsCombined
+  have _elimLevelCombined : Level := elimLevelCombined
+  have _infosCombined : Array AddInductive.RecInfo := infosCombined
+  have _sourceCombined : AddInductive.Context := sourceCombined
+  have _ := hpreCombined
+  have _ := hrunCombined
+  have _ := hscopeCombined
+  have _ := hprefixCombined
+  have _ := hlookupsCombined
+  have _ := hsemanticCombined
   obtain ⟨modelDeclRestored, hkindRestored, hheadersRestored, hdeclWFRestored,
       htranslationRestored,
       ⟨preprocessingRestored, stagedRestored, statsRestored, rootRestored,
