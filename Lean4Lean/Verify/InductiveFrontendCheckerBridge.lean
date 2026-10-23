@@ -4118,4 +4118,45 @@ theorem addDecl.sourceConstructorFieldsLookup_of_checkedPrimitive
   obtain ⟨info, hlookup, hmetadata, hfields⟩ := hlookups.finalFields typeIndex htype ctorIndex hctor
   exact ⟨preprocessing, staged, info, hpre, hrun, hlookup, hmetadata, hfields⟩
 
+theorem addDecl.sourceConstructorArity_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (typeIndex : Nat) (htype : typeIndex < types.length) (ctorIndex : Nat)
+    (hctor : ctorIndex < types[typeIndex].ctors.length) :
+    ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+      (staged : Kernel.Environment) (info : ConstructorVal),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      result.find? types[typeIndex].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+      info.numFields = arity 0 types[typeIndex].ctors[ctorIndex]!.type - nparams ∧
+      nparams + info.numFields = arity 0 types[typeIndex].ctors[ctorIndex]!.type := by
+  obtain ⟨allowPrimitive, preprocessing, staged, info, hpre, hrun, hlookup, _, hfields⟩ :=
+    addDecl.sourceConstructorFieldsLookup_of_restorationStages hmap hresult typeIndex htype ctorIndex hctor
+  exact ⟨allowPrimitive, preprocessing, staged, info, hpre, hrun, hlookup,
+    hfields.fields, hfields.total⟩
+
+theorem addDecl.sourceConstructorArity_of_checkedPrimitive
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (typeIndex : Nat) (htype : typeIndex < types.length) (ctorIndex : Nat)
+    (hctor : ctorIndex < types[typeIndex].ctors.length) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+      (info : ConstructorVal),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged ∧
+      result.find? types[typeIndex].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+      info.numFields = arity 0 types[typeIndex].ctors[ctorIndex]!.type - nparams ∧
+      nparams + info.numFields = arity 0 types[typeIndex].ctors[ctorIndex]!.type := by
+  obtain ⟨preprocessing, staged, info, hpre, hrun, hlookup, _, hfields⟩ :=
+    addDecl.sourceConstructorFieldsLookup_of_checkedPrimitive hmap hcheck hresult typeIndex htype ctorIndex hctor
+  exact ⟨preprocessing, staged, info, hpre, hrun, hlookup,
+    hfields.fields, hfields.total⟩
+
 end Lean4Lean
