@@ -6933,6 +6933,47 @@ theorem addDecl.checkedPrimitiveRegistrationRealizationHistoryAlignmentAndRegist
   exact ⟨allowPrimitive, scope, hmodelResult, hmapResult, hregistration, hhistory,
     hhistory.aligned⟩
 
+/- Combine the Bool/Nat model receipt with the unrestricted executable
+   realization, constructive registration, history, and alignment package. -/
+theorem addDecl.checkedPrimitiveModelAndConstructiveAlignmentPackage_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool} {venv : VEnv}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
+      modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
+      (∀ venv', venv.addInductHeaders modelDecl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types modelDecl) ∧
+      ∃ (allowPrimitive : Bool)
+        (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result),
+        semanticEnv.addInductWithRecursors decl
+            (producer.recursors.map (·.model)) = some semanticResult ∧
+        result.constants = resultConstants ∧
+        AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+          producer.constructorConstants producer.constructorEnv
+          (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+          resultConstants semanticResult ∧
+        TrEnvInductive .safe resultConstants Q semanticResult ∧
+        Aligned .safe resultConstants semanticResult := by
+  have hmodel := Environment.checkPrimitiveInductive.toVDecl_WF_model
+    env venv lparams nparams types false
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation⟩ :=
+    (hmodel true hcheck) rfl
+  have hpackage :=
+    addDecl.checkedPrimitiveRegistrationRealizationHistoryAlignmentAndRegistration_of_restorationStages
+      hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+  exact ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hpackage⟩
+
 /- The final semantic history carries the aligned constant-map invariant needed
    by consumers that continue directly into checker preservation. -/
 theorem addDecl.checkedPrimitiveRegistrationRealizationHistoryAndAlignment
