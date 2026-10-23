@@ -4827,4 +4827,36 @@ theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage
   exact ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hscope, hregistration,
     hsemantic.1, hsemantic.2.1, hsemantic.2.2.1, hsemantic.2.2.2.1, hsemantic.2.2.2.2⟩
 
+/- Expose the executable realization equations for the supplied constructive
+   registration evidence alongside the checked primitive frontend scope. -/
+theorem addDecl.checkedPrimitiveRegistrationRealization
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    ∃ scope : SafeInductiveFrontendScope env lparams nparams types true fuel result,
+      semanticEnv.addInductWithRecursors decl
+          (producer.recursors.map (·.model)) = some semanticResult ∧
+      result.constants = resultConstants ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult := by
+  have hscope := (addDecl.safeCheckedPrimitiveInductive env lparams nparams types check fuel hmap hcheck)
+    result hresult
+  have hconstantsWF : constants.WF := by
+    rw [← hconstants]
+    exact hmap
+  have hregistration := producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors
+  exact ⟨hscope, hregistration.to_addInductWithRecursors, hresultConstants, hregistration⟩
+
 end Lean4Lean

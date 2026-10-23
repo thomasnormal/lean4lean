@@ -3611,6 +3611,26 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _results := hresults
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants) (hresultConstants : result.constants = resultConstants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) : True := by
+  obtain ⟨scope, hmodelResult, hmap, hregistration⟩ :=
+    addDecl.checkedPrimitiveRegistrationRealization hmap hcheck hresult producer hconstants
+      hresultConstants hrecursors
+  have _scope := scope
+  have _modelResult := hmodelResult
+  have _map := hmap
+  have _registration := hregistration
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
