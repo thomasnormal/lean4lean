@@ -3447,6 +3447,35 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         ∃ entry : RecursorEntry, (.recursor entry : RegistrationEntry) ∈ entries preprocessing staged ∧
           entry.info.name = mkRecName types[index].name)
     (venv : VEnv) : True := by
+  obtain ⟨modelDeclRestored, hkindRestored, hheadersRestored, hdeclWFRestored,
+      htranslationRestored,
+      ⟨preprocessingRestored, stagedRestored, statsRestored, rootRestored,
+        constructorsRestored, elimLevelRestored, infosRestored, sourceRestored,
+        hpreRestored, hrunRestored, hscopeRestored, hprefixRestored, hlookupsRestored,
+        hsemanticRestored, hfinalRestored⟩⟩ :=
+    addDecl.checkedPrimitiveModelAndRestoredAlignmentSemantics hmap hcheck hresult coverage entries
+      records_eq producer entry_eq hconstants hresultConstants history hsource hvalues ruleResult
+      hrecursor hentry venv
+  have _modelDeclRestored : VInductDecl := modelDeclRestored
+  have _kindRestored := hkindRestored
+  have _headersRestored := hheadersRestored
+  have _declWFRestored := hdeclWFRestored
+  have _translationRestored := htranslationRestored
+  have _preRestored : ElimNestedInductive.Result := preprocessingRestored
+  have _stagedRestored : Kernel.Environment := stagedRestored
+  have _statsRestored : AddInductive.InductiveStats := statsRestored
+  have _rootRestored : AddInductive.Context := rootRestored
+  have _constructorsRestored : Kernel.Environment := constructorsRestored
+  have _elimLevelRestored : Level := elimLevelRestored
+  have _infosRestored : Array AddInductive.RecInfo := infosRestored
+  have _sourceRestored : AddInductive.Context := sourceRestored
+  have _ := hpreRestored
+  have _ := hrunRestored
+  have _ := hscopeRestored
+  have _ := hprefixRestored
+  have _ := hlookupsRestored
+  have _ := hsemanticRestored
+  have _ := hfinalRestored
   obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation,
       ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
         hpre, hrun, hscope, hprefix, hframe, hcounts, hindexing, hdistinct, hsources,
