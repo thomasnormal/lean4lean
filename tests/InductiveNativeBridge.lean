@@ -2758,6 +2758,35 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := htotal
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (index : Nat) (hindex : index < types.length) : True := by
+  have h := addDecl.originalRecursorFinalHeader_of_restorationStages hmap hresult index hindex
+  obtain ⟨allowPrimitive, preprocessing, staged, stats, elimLevel, infos, source, isK, before, after,
+      hpre, hrun, hlevels, hnames, hbefore, hafter, hheader, hall, htype⟩ := h
+  have _allowPrimitive : Bool := allowPrimitive
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _stats : AddInductive.InductiveStats := stats
+  have _elimLevel : Level := elimLevel
+  have _infos : Array AddInductive.RecInfo := infos
+  have _source : AddInductive.Context := source
+  have _isK : Bool := isK
+  have _before : RecursorVal := before
+  have _after : RecursorVal := after
+  have _ := hpre
+  have _ := hrun
+  have _ := hlevels
+  have _ := hnames
+  have _ := hbefore
+  have _ := hafter
+  have _ := hheader
+  have _ := hall
+  have _ := htype
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?

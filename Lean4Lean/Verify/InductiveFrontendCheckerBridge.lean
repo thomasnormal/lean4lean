@@ -3717,4 +3717,38 @@ theorem addDecl.originalRecursorRuleAt_of_checkedPrimitive
     before, after, sourceRule, finalRule, info, hpre, hrun, hlevels, hnames, hbefore, hafter,
     hsource, hfinal, hctorName, hctorEq, hfieldsEq, hrhs, hlookup, hmetadata, hfields, hcount, htotal⟩
 
+theorem addDecl.originalRecursorFinalHeader_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (index : Nat) (hindex : index < types.length) :
+    ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+      (staged : Kernel.Environment) (stats : AddInductive.InductiveStats)
+      (elimLevel : Level) (infos : Array AddInductive.RecInfo)
+      (source : AddInductive.Context) (isK : Bool) (before after : RecursorVal),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      source.lparams = lparams ∧ OriginalRecursorNames types staged ∧
+      staged.find? (mkRecName types[index].name) = some (.recInfo before) ∧
+      result.find? (mkRecName types[index].name) = some (.recInfo after) ∧
+      RecursorHeaderMetadata nparams source.lparams types[index].name preprocessing.types.toArray
+        stats elimLevel isK index after ∧
+      after.all = (if preprocessing.aux2nested.size = 0 then
+        (preprocessing.types.toArray.map (·.name)).toList else types.map (·.name)) ∧
+      after.type = (if preprocessing.aux2nested.size = 0 then
+        (declareRecursors.metadataVal stats preprocessing.types.toArray elimLevel infos
+          source.lparams source.lctx isK false index before.rules).type
+        else preprocessing.restoreNested staged
+          (declareRecursors.metadataVal stats preprocessing.types.toArray elimLevel infos
+            source.lparams source.lctx isK false index before.rules).type
+          (mkAuxRecNameMap staged types).2) := by
+  obtain ⟨allowPrimitive, preprocessing, staged, stats, elimLevel, infos, source, isK,
+      hpre, hrun, hlevels, hnames, hrecords⟩ :=
+    (addDecl.safeInductiveOriginalRecursorRecords env lparams nparams types check fuel hmap) result hresult
+  obtain ⟨before, after, hbefore, hafter, hheader, hall, htype⟩ := hrecords.finalHeader index hindex
+  exact ⟨allowPrimitive, preprocessing, staged, stats, elimLevel, infos, source, isK, before, after,
+    hpre, hrun, hlevels, hnames, hbefore, hafter, hheader, hall, htype⟩
+
 end Lean4Lean
