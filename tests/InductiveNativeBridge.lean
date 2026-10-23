@@ -1629,6 +1629,22 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
   exact restored.registrationConstructiveChecker producer halign hconstants history
     hconstantsWF hrecursors hvalues hsource ruleResults
 
+example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} {preprocessing : ElimNestedInductive.Result}
+    {staged : Kernel.Environment} {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries) :
+    ∀ entry ∈ restored.entries,
+      entry.ModelShape ∧ entry.Metadata decl producer.constructors ∧
+      match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic :=
+  restored.registrationStructuralReceipts producer halign
+
 example {preprocessing : ElimNestedInductive.Result} {staged original result : Kernel.Environment}
     {allIndNames : List Name} {recNameMap : NameMap Name} {records : List ConstantInfo}
     (evidence : RestoredRegistrationEvidence preprocessing staged allIndNames recNameMap

@@ -923,6 +923,36 @@ theorem NativeInductive.RestoredRecordEvidence.registrationRecursorRuleTranslati
       exact hentry'
   exact producer.recursorRuleTranslation entry hmem rule hrule
 
+/- The restored entries retain the producer's structural receipts.  This
+   packages model shape, declaration metadata, and recursor RHS translations
+   for consumers that inspect the staged registration record directly. -/
+theorem NativeInductive.RestoredRecordEvidence.registrationStructuralReceipts
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries) :
+    ∀ entry ∈ restored.entries,
+      entry.ModelShape ∧ entry.Metadata decl producer.constructors ∧
+      match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic := by
+  intro entry hentry
+  refine ⟨restored.registrationModelShapes producer halign entry hentry,
+    restored.registrationMetadata producer halign entry hentry, ?_⟩
+  cases entry with
+  | header _ => trivial
+  | constructor _ => trivial
+  | recursor entry =>
+    intro rule hrule
+    exact restored.registrationRecursorRuleTranslation producer halign hentry hrule
+
 theorem NativeInductive.RestoredRecordEvidence.sourceRecursorRuleTranslation
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}
