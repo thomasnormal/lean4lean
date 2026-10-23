@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.InductiveNativeRestorationBridge
+import Lean4Lean.Verify.ConstructorHeaders
 import Lean4Lean.Verify.InductiveRestorationRules
 import Lean4Lean.Verify.InductiveRestorationRecursors
 import Lean4Lean.Verify.InductiveGeneratedRuleResult
@@ -4158,5 +4159,54 @@ theorem addDecl.sourceConstructorArity_of_checkedPrimitive
     addDecl.sourceConstructorFieldsLookup_of_checkedPrimitive hmap hcheck hresult typeIndex htype ctorIndex hctor
   exact ⟨preprocessing, staged, info, hpre, hrun, hlookup,
     hfields.fields, hfields.total⟩
+
+/- A primitive preflight has a semantic declaration receipt in addition to the
+   staged header/constructor checker receipt.  Keep both facts at the same
+   `checkInductiveTypes` boundary so callers do not have to reconstruct the
+   Bool/Nat model after consuming the checker refinement. -/
+theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorCheckerWithModel
+    (ctx : AddInductive.Context) (numParams : Nat) (types : List InductiveType)
+    (numNested : Nat) (isUnsafe : Bool) {safety : DefinitionSafety} {venv : VEnv}
+    (hchecker : CheckerEnv safety ctx.env venv)
+    (hprimitive : Environment.checkPrimitiveInductive
+      ctx.env ctx.lparams numParams types isUnsafe = .ok true) :
+    (checkInductiveTypes numParams types.toArray (fun stats => do
+      withEnv (← declareInductiveTypes stats numParams types.toArray numNested isUnsafe) do
+        checkConstructors types.toArray stats isUnsafe
+        declareConstructors stats types.toArray isUnsafe) ctx).WF fun env' =>
+      ∃ decl headerEnv ctorEnv, (decl = boolInductDecl ∨ decl = natInductDecl) ∧
+        decl.WF venv ∧
+        venv.addInductHeaders decl.types = some headerEnv ∧ headerEnv.WF ∧
+        TrInductDecl venv headerEnv ctx.lparams numParams types decl ∧
+        headerEnv.addConstructorHeaders (decl.types.flatMap (fun type => type.ctors)) = some ctorEnv ∧
+        ctorEnv.WF ∧ CheckerEnv safety env' ctorEnv := by
+  refine (AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorChecker
+    ctx numParams types numNested isUnsafe hchecker hprimitive).mono ?_
+  rintro env' ⟨decl, headerEnv, ctorEnv, hdecl, haddHeaders, headerWF, htr,
+    haddCtors, ⟨haligned', hwf', hvalues'⟩⟩
+  have hdeclWF : decl.WF venv := by
+    rcases hdecl with rfl | rfl
+    · refine ⟨boolInductDecl.headersWF, ?_⟩
+      intro env' hadd ctor hmem
+      have hmem' : ctor ∈ boolInductDecl.types.flatMap (fun type => type.ctors) := by
+        simpa [VInductDecl.constructorHeaders] using hmem
+      have huvars : ctor.uvars = 0 := by
+        have hmem'' := hmem
+        simp [boolInductDecl, VInductDecl.constructorHeaders] at hmem''
+        rcases hmem'' with rfl | rfl <;> rfl
+      exact ⟨by simpa [boolInductDecl] using huvars,
+        boolInductDecl.constructorWF hadd ctor hmem'⟩
+    · refine ⟨natInductDecl.headersWF, ?_⟩
+      intro env' hadd ctor hmem
+      have hmem' : ctor ∈ natInductDecl.types.flatMap (fun type => type.ctors) := by
+        simpa [VInductDecl.constructorHeaders] using hmem
+      have huvars : ctor.uvars = 0 := by
+        have hmem'' := hmem
+        simp [natInductDecl, VInductDecl.constructorHeaders] at hmem''
+        rcases hmem'' with rfl | rfl <;> rfl
+      exact ⟨by simpa [natInductDecl] using huvars,
+        natInductDecl.constructorWF hadd ctor hmem'⟩
+  exact ⟨decl, headerEnv, ctorEnv, hdecl, hdeclWF, haddHeaders, headerWF, htr,
+    haddCtors, hwf', ⟨haligned', hwf', hvalues'⟩⟩
 
 end Lean4Lean

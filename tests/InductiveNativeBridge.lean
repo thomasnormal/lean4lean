@@ -3142,6 +3142,25 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := htotal
   trivial
 
+example {ctx : AddInductive.Context} {safety : DefinitionSafety} {venv : VEnv}
+    {types : List InductiveType} {numParams numNested : Nat} {isUnsafe : Bool}
+    (hchecker : CheckerEnv safety ctx.env venv)
+    (shape : Environment.PrimitiveInductiveDecl ctx.lparams numParams types isUnsafe) :
+    (AddInductive.checkInductiveTypes numParams types.toArray (fun stats => do
+      AddInductive.withEnv
+        (← AddInductive.declareInductiveTypes stats numParams types.toArray numNested isUnsafe) do
+          AddInductive.checkConstructors types.toArray stats isUnsafe
+          AddInductive.declareConstructors stats types.toArray isUnsafe) ctx).WF fun env' =>
+      ∃ decl headerEnv ctorEnv, (decl = boolInductDecl ∨ decl = natInductDecl) ∧
+        decl.WF venv ∧
+        venv.addInductHeaders decl.types = some headerEnv ∧ headerEnv.WF ∧
+        TrInductDecl venv headerEnv ctx.lparams numParams types decl ∧
+        headerEnv.addConstructorHeaders (decl.types.flatMap (fun type => type.ctors)) = some ctorEnv ∧
+        ctorEnv.WF ∧ CheckerEnv safety env' ctorEnv := by
+  exact AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorCheckerWithModel
+    ctx numParams types numNested isUnsafe hchecker
+    ((Environment.checkPrimitiveInductive.eq_true_iff ctx.env ctx.lparams numParams types isUnsafe).mpr shape)
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
