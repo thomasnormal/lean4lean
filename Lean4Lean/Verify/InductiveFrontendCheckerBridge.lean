@@ -156,6 +156,37 @@ theorem NativeInductive.RestoredRecordEvidence.registrationRuleResults
     exact hmem
   exact producer.orderedRuleResultsOf ruleResults entry hproducer
 
+theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationRuleResults
+    {Result : NativeInductive.RecursorEntry → RecursorRule → Prop}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → Result entry rule) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      (∀ entry ∈ restored.entries,
+        entry.RuleSemantics semanticResult ∧ match entry with
+          | .header _ | .constructor _ => True
+          | .recursor entry => ∀ rule ∈ entry.info.rules, Result entry rule) := by
+  exact ⟨restored.toCheckerEnvInductive producer halign hconstants history hrecursors hvalues,
+    restored.registrationRuleResults producer halign ruleResults⟩
+
 theorem NativeInductive.RestoredRecordEvidence.registrationModelShapes
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}

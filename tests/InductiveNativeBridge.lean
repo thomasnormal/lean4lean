@@ -419,6 +419,30 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
     CheckerEnvInductive .safe result semanticResult Q :=
   restored.toCheckerEnvInductive producer halign hconstants history hrecursors hvalues
 
+example {Result : RecursorEntry → RecursorRule → Prop}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} {preprocessing : ElimNestedInductive.Result}
+    {staged : Kernel.Environment} {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : RestoredRecordEvidence preprocessing staged allIndNames recNameMap original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors, entry.model.toVConstant.WF producer.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    (ruleResults : ∀ (entry : RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → Result entry rule) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      (∀ entry ∈ restored.entries, entry.RuleSemantics semanticResult ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, Result entry rule) :=
+  restored.toCheckerEnvInductive_and_registrationRuleResults producer halign hconstants history
+    hrecursors hvalues ruleResults
+
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}
     {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
