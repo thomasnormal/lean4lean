@@ -2603,6 +2603,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
     (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
     (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
     (coverage : ∀ allowPrimitive,
       InductiveRestorationSourceCoverage env lparams nparams types allowPrimitive fuel)
@@ -2645,11 +2646,16 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       preprocessing.aux2nested.size ≠ 0 → ∀ (index : Nat) (hindex : index < types.length),
         ∃ entry : RecursorEntry,
           (.recursor entry : RegistrationEntry) ∈ entries allowPrimitive preprocessing staged ∧
-          entry.info.name = mkRecName types[index].name) : True := by
-  have h := addDecl.sourceRecursorRuleStagesGeneratedResultsAndChecker_of_restorationStages
+          entry.info.name = mkRecName types[index].name)
+    (venv : VEnv) : True := by
+  have h := addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructural_of_restorationStages
     hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
     ruleResult hrecursor hentry
+  have hm := addDecl.checkedPrimitiveModelAndCheckerStructural_of_restorationStages
+    hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+    hvalues ruleResult hrecursor hentry venv
   have _ := h
+  have _ := hm
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
