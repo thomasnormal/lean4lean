@@ -956,6 +956,29 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     CheckerEnvInductive .safe result semanticResult Q :=
   scope.toCheckerEnvInductive history producer hconstants hresultConstants hrecursors hvalues
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants) (hresultConstants : result.constants = resultConstants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    (ruleResults : ∀ (entry : RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → True) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      (∀ entry ∈ producer.orderedEntries, entry.RuleSemantics semanticResult ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, True) :=
+  scope.toCheckerEnvInductive_and_ruleResults history producer hconstants hresultConstants
+    hrecursors hvalues ruleResults
+
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap} {preprocessing : ElimNestedInductive.Result}
     {staged : Kernel.Environment} {allIndNames : List Name} {recNameMap : NameMap Name}
