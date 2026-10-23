@@ -78,6 +78,51 @@ theorem SafeInductiveFrontendScope.registrationHistory_of_sourceTypehood
     (producer.constructorEnvWF history.wf) hsource
   exact scope.registrationHistory history producer hconstants hresultConstants hrecursors
 
+theorem SafeInductiveFrontendScope.registrationAlignmentHistory
+    {safety : DefinitionSafety}
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive safety constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    Aligned safety resultConstants semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive safety resultConstants Q semanticResult := by
+  have hconstantsWF : constants.WF := by
+    rw [← hconstants]
+    exact scope.originalWF
+  have hhistory := producer.to_trEnvInductive history hconstantsWF hrecursors
+  exact ⟨hhistory.aligned, hresultConstants, hhistory⟩
+
+theorem SafeInductiveFrontendScope.registrationAlignmentHistory_of_sourceTypehood
+    {safety : DefinitionSafety}
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive safety constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    Aligned safety resultConstants semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive safety resultConstants Q semanticResult := by
+  have hrecursors := producer.recursorWF_of_sourceTypehood
+    (producer.constructorEnvWF history.wf) hsource
+  exact scope.registrationAlignmentHistory history producer hconstants hresultConstants hrecursors
+
 theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationHistory_of_sourceTypehood
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
@@ -2109,6 +2154,27 @@ theorem SafeInductiveRestorationMetadata.registrationHistory_of_sourceTypehood
       TrEnvInductive .safe resultConstants Q semanticResult :=
   metadata.toFrontendScope.registrationHistory_of_sourceTypehood history producer hconstants
     hresultConstants hsource
+
+theorem SafeInductiveRestorationMetadata.registrationAlignmentHistory_of_sourceTypehood
+    {safety : DefinitionSafety}
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive safety constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    Aligned safety resultConstants semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive safety resultConstants Q semanticResult :=
+  metadata.toFrontendScope.registrationAlignmentHistory_of_sourceTypehood history producer
+    hconstants hresultConstants hsource
 
 theorem SafeInductiveRestorationMetadata.toCheckerEnvInductive_and_registrationHistory_of_sourceTypehood
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
