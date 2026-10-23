@@ -4636,4 +4636,37 @@ theorem addDecl.checkedPrimitiveModelAndAlignmentSemantics
     history hsource hvalues ruleResult hrecursor hentry
   exact ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hstages⟩
 
+/- The native registration producer already carries a constructive model for
+   headers, constructors, and recursors.  Expose that registration evidence
+   beside the checked primitive frontend and Bool/Nat model receipt. -/
+theorem addDecl.checkedPrimitiveModelAndConstructiveRegistration
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {venv : VEnv}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
+      modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
+      (∀ venv', venv.addInductHeaders modelDecl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types modelDecl) ∧
+      SafeInductiveFrontendScope env lparams nparams types true fuel result ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult := by
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hscope⟩ :=
+    addDecl.checkedPrimitiveFrontendAndModel hmap hcheck hresult venv
+  have hconstantsWF : constants.WF := by
+    rw [← hconstants]
+    exact hmap
+  exact ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hscope,
+    producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors⟩
+
 end Lean4Lean
