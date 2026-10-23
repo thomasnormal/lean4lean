@@ -3592,4 +3592,50 @@ theorem addDecl.originalRecursorRecordStages_of_checkedPrimitive
     hpre, hrun, hscope, hprefix, hframe, hlevels, hcounts, hindexing, hdistinct, hsource,
     hbranch, hnames, hrecords⟩
 
+theorem addDecl.originalRecursorRecords_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) :
+    ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+      (staged : Kernel.Environment) (stats : AddInductive.InductiveStats)
+      (elimLevel : Level) (infos : Array AddInductive.RecInfo)
+      (source : AddInductive.Context) (isK : Bool),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      source.lparams = lparams ∧
+      OriginalRecursorNames types staged ∧
+      OriginalRecursorRecords nparams types preprocessing.types.toArray stats elimLevel infos source isK
+        preprocessing staged result := by
+  obtain ⟨allowPrimitive, metadata⟩ :=
+    (addDecl.safeInductiveRestorationStages env lparams nparams types check fuel hmap) result hresult
+  obtain ⟨preprocessing, staged, stats, elimLevel, infos, source, isK,
+      hpre, hrun, hlevels, hnames, hrecords⟩ := metadata.originalRecursorRecords
+  exact ⟨allowPrimitive, preprocessing, staged, stats, elimLevel, infos, source, isK,
+    hpre, hrun, hlevels, hnames, hrecords⟩
+
+theorem addDecl.originalRecursorRecords_of_checkedPrimitive
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+      (stats : AddInductive.InductiveStats) (elimLevel : Level)
+      (infos : Array AddInductive.RecInfo) (source : AddInductive.Context) (isK : Bool),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged ∧
+      source.lparams = lparams ∧
+      OriginalRecursorNames types staged ∧
+      OriginalRecursorRecords nparams types preprocessing.types.toArray stats elimLevel infos source isK
+        preprocessing staged result := by
+  have metadata := (addDecl.safeCheckedPrimitiveInductiveRestorationStages env lparams nparams types
+    check fuel hmap hcheck) result hresult
+  obtain ⟨preprocessing, staged, stats, elimLevel, infos, source, isK,
+      hpre, hrun, hlevels, hnames, hrecords⟩ := metadata.originalRecursorRecords
+  exact ⟨preprocessing, staged, stats, elimLevel, infos, source, isK,
+    hpre, hrun, hlevels, hnames, hrecords⟩
+
 end Lean4Lean
