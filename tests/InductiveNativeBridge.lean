@@ -2176,6 +2176,51 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   exact ⟨allowPrimitive, preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
     hpre, hrun, hprefix, hlookups, hrestored⟩
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (coverage : ∀ allowPrimitive,
+      InductiveRestorationSourceCoverage env lparams nparams types allowPrimitive fuel)
+    (entries : ∀ allowPrimitive, ElimNestedInductive.Result → Kernel.Environment → List RegistrationEntry)
+    (records_eq : ∀ allowPrimitive preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries allowPrimitive preprocessing staged).map RegistrationEntry.toConstantInfo)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (entry_eq : ∀ allowPrimitive preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 → entries allowPrimitive preprocessing staged = producer.orderedEntries)
+    (hrecursor : ∀ (index : Nat) (hindex : index < types.length) (recursor : RecursorVal),
+      result.find? recursor.name = some (.recInfo recursor) →
+      recursor.name = mkRecName types[index].name)
+    (hentry : ∀ allowPrimitive preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 →
+      ∀ (index : Nat) (hindex : index < types.length),
+        ∃ entry : RecursorEntry,
+          (.recursor entry : RegistrationEntry) ∈ entries allowPrimitive preprocessing staged ∧
+          entry.info.name = mkRecName types[index].name)
+    {universes : List Name}
+    (ruleResult : ∀ (stats : AddInductive.InductiveStats) (infos : Array AddInductive.RecInfo)
+      (source : AddInductive.Context) (entry : RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
+  have h :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordEvidence_of_restorationStages
+      hmap hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
+  have _ := h
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
