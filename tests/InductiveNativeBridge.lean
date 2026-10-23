@@ -2564,6 +2564,39 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := hlookups
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) : True := by
+  have h := addDecl.originalRecursorRecordStages_of_restorationStages hmap hresult
+  obtain ⟨allowPrimitive, preprocessing, staged, stats, root, constructors, elimLevel, infos, source, isK,
+      hpre, hrun, hscope, hprefix, hframe, hlevels, hcounts, hindexing, hdistinct, hsource,
+      hbranch, hnames, hrecords⟩ := h
+  have _allowPrimitive : Bool := allowPrimitive
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _stats : AddInductive.InductiveStats := stats
+  have _root : AddInductive.Context := root
+  have _constructors : Kernel.Environment := constructors
+  have _elimLevel : Level := elimLevel
+  have _infos : Array AddInductive.RecInfo := infos
+  have _source : AddInductive.Context := source
+  have _isK : Bool := isK
+  have _ := hpre
+  have _ := hrun
+  have _ := hscope
+  have _ := hprefix
+  have _ := hframe
+  have _ := hlevels
+  have _ := hcounts
+  have _ := hindexing
+  have _ := hdistinct
+  have _ := hsource
+  have _ := hbranch
+  have _ := hnames
+  have _ := hrecords
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
