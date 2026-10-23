@@ -2936,6 +2936,54 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := htotal
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (index : Nat) (hindex : index < types.length) : True := by
+  have h := addDecl.sourceRecursorHeader_of_restorationStages hmap hresult index hindex
+  obtain ⟨allowPrimitive, preprocessing, staged, stats, elimLevel, infos, source, isK, recursor,
+      hpre, hrun, hlevels, hlookup, hheader⟩ := h
+  have _allowPrimitive : Bool := allowPrimitive
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _stats : AddInductive.InductiveStats := stats
+  have _elimLevel : Level := elimLevel
+  have _infos : Array AddInductive.RecInfo := infos
+  have _source : AddInductive.Context := source
+  have _isK : Bool := isK
+  have _recursor : RecursorVal := recursor
+  have _ := hpre
+  have _ := hrun
+  have _ := hlevels
+  have _ := hlookup
+  have _ := hheader
+  trivial
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (index : Nat) (hindex : index < types.length) : True := by
+  have h := addDecl.sourceRecursorHeader_of_checkedPrimitive hmap hcheck hresult index hindex
+  obtain ⟨preprocessing, staged, stats, elimLevel, infos, source, isK, recursor,
+      hpre, hrun, hlevels, hlookup, hheader⟩ := h
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _stats : AddInductive.InductiveStats := stats
+  have _elimLevel : Level := elimLevel
+  have _infos : Array AddInductive.RecInfo := infos
+  have _source : AddInductive.Context := source
+  have _isK : Bool := isK
+  have _recursor : RecursorVal := recursor
+  have _ := hpre
+  have _ := hrun
+  have _ := hlevels
+  have _ := hlookup
+  have _ := hheader
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?

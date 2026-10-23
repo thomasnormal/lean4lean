@@ -3910,4 +3910,71 @@ theorem addDecl.originalRecursorRuleLookup_of_checkedPrimitive
   exact ⟨preprocessing, staged, recursor, rule, info, hpre, hrun, hlookup, hcount, hrule, hname,
     hctorLookup, hmetadata, hfields, hfieldCount, htotal⟩
 
+theorem addDecl.sourceRecursorHeader_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (index : Nat) (hindex : index < types.length) :
+    ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+      (staged : Kernel.Environment) (stats : AddInductive.InductiveStats)
+      (elimLevel : Level) (infos : Array AddInductive.RecInfo)
+      (source : AddInductive.Context) (isK : Bool) (recursor : RecursorVal),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      source.lparams = lparams ∧
+      staged.find? (mkRecName types[index].name) = some (.recInfo recursor) ∧
+      RecursorHeaderMetadata nparams source.lparams types[index].name preprocessing.types.toArray
+        stats elimLevel isK index recursor := by
+  obtain ⟨allowPrimitive, metadata⟩ :=
+    (addDecl.safeInductiveRestorationStages env lparams nparams types check fuel hmap) result hresult
+  obtain ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source, isK,
+      hpre, hrun, hscope, hprefix, hframe, hlevels, hcounts, hindexing, hdistinct, hsource,
+      hbranch, hnames, hrecords⟩ := metadata.originalRecursorRecordStages
+  have hparams : stats.params.size = nparams := by
+    have hnonzero : preprocessing.types.toArray.size ≠ 0 := by
+      have harray : index < preprocessing.types.toArray.size :=
+        Nat.lt_of_lt_of_le (by simpa using hindex) hprefix.size
+      omega
+    simpa only [AddInductive.InductiveStats.ParamsCount, if_neg hnonzero] using
+      hscope.registration.traces.2.1
+  obtain ⟨recursor, hlookup, _, _, _, _⟩ := hsource index hindex
+  exact ⟨allowPrimitive, preprocessing, staged, stats, elimLevel, infos, source, isK, recursor,
+    hpre, hrun, hlevels, hlookup, hsource.header hcounts hparams index hindex recursor hlookup⟩
+
+theorem addDecl.sourceRecursorHeader_of_checkedPrimitive
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (index : Nat) (hindex : index < types.length) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+      (stats : AddInductive.InductiveStats) (elimLevel : Level)
+      (infos : Array AddInductive.RecInfo) (source : AddInductive.Context) (isK : Bool)
+      (recursor : RecursorVal),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged ∧
+      source.lparams = lparams ∧
+      staged.find? (mkRecName types[index].name) = some (.recInfo recursor) ∧
+      RecursorHeaderMetadata nparams source.lparams types[index].name preprocessing.types.toArray
+        stats elimLevel isK index recursor := by
+  have metadata := (addDecl.safeCheckedPrimitiveInductiveRestorationStages env lparams nparams types
+    check fuel hmap hcheck) result hresult
+  obtain ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source, isK,
+      hpre, hrun, hscope, hprefix, hframe, hlevels, hcounts, hindexing, hdistinct, hsource,
+      hbranch, hnames, hrecords⟩ := metadata.originalRecursorRecordStages
+  have hparams : stats.params.size = nparams := by
+    have hnonzero : preprocessing.types.toArray.size ≠ 0 := by
+      have harray : index < preprocessing.types.toArray.size :=
+        Nat.lt_of_lt_of_le (by simpa using hindex) hprefix.size
+      omega
+    simpa only [AddInductive.InductiveStats.ParamsCount, if_neg hnonzero] using
+      hscope.registration.traces.2.1
+  obtain ⟨recursor, hlookup, _, _, _, _⟩ := hsource index hindex
+  exact ⟨preprocessing, staged, stats, elimLevel, infos, source, isK, recursor,
+    hpre, hrun, hlevels, hlookup, hsource.header hcounts hparams index hindex recursor hlookup⟩
+
 end Lean4Lean
