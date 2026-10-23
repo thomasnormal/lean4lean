@@ -1322,6 +1322,90 @@ theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTy
     hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields, hfieldCount, htotal,
     hsemantic, ⟨constructor, minor, hgenerated⟩⟩
 
+theorem addDecl.sourceRecursorRuleStructuralSemantics_of_stage
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {fuel : FuelConfig}
+    (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+    (stats : AddInductive.InductiveStats) (infos : Array AddInductive.RecInfo)
+    (source : AddInductive.Context)
+    (hpre : inductivePreprocessing env lparams nparams types fuel = .ok preprocessing)
+    (hrun : AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+      (inductiveScopeContext env lparams true fuel) = .ok staged)
+    (hlookups : SourceRecursorRuleLookups nparams lparams types preprocessing staged result)
+    (entries : ElimNestedInductive.Result → Kernel.Environment → List NativeInductive.RegistrationEntry)
+    (hrestored : preprocessing.aux2nested.size ≠ 0 →
+      Nonempty { evidence : NativeInductive.RestoredRecordEvidence preprocessing staged
+          (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
+          (restoredEnvironmentRecords preprocessing staged types) //
+        evidence.entries = entries preprocessing staged })
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (entry_eq : preprocessing.aux2nested.size ≠ 0 → entries preprocessing staged = producer.orderedEntries)
+    (hconstants : env.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value (.const ci.name (VLevel.params ci.levelParams.length)))
+    {universes : List Name}
+    (ruleResult : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (hrecursor : ∀ (index : Nat) (hindex : index < types.length) (recursor : RecursorVal),
+      result.find? recursor.name = some (.recInfo recursor) → recursor.name = mkRecName types[index].name)
+    (hentry : preprocessing.aux2nested.size ≠ 0 →
+      ∀ (index : Nat) (hindex : index < types.length),
+        ∃ entry : NativeInductive.RecursorEntry,
+          (.recursor entry : NativeInductive.RegistrationEntry) ∈ entries preprocessing staged ∧
+          entry.info.name = mkRecName types[index].name) :
+    preprocessing.aux2nested.size ≠ 0 →
+      ∃ restored : NativeInductive.RestoredRecordEvidence preprocessing staged
+          (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
+          (restoredEnvironmentRecords preprocessing staged types),
+        restored.entries = entries preprocessing staged ∧
+        CheckerEnvInductive .safe result semanticResult Q ∧
+        ∀ (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+          (hctor : ctorIndex < types[index].ctors.length),
+          ∃ (entry : NativeInductive.RecursorEntry) (recursor : RecursorVal)
+            (rule : RecursorRule) (info : ConstructorVal) (semantic : VExpr)
+            (constructor : Constructor) (minor : Expr),
+            result.find? recursor.name = some (.recInfo recursor) ∧
+            entry.info.name = mkRecName types[index].name ∧
+            recursor.rules.length = types[index].ctors.length ∧
+            recursor.rules[ctorIndex]? = some rule ∧
+            staged.find? types[index].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+            SourceConstructorMetadata nparams lparams types[index] ctorIndex info ∧
+            SourceConstructorFields nparams types[index] ctorIndex info ∧
+            rule.nfields = info.numFields ∧
+            rule.nfields = arity 0 types[index].ctors[ctorIndex].type - nparams ∧
+            nparams + rule.nfields = arity 0 types[index].ctors[ctorIndex].type ∧
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+            AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+              (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+            (.recursor entry : NativeInductive.RegistrationEntry).ModelShape ∧
+            (.recursor entry : NativeInductive.RegistrationEntry).Metadata decl producer.constructors := by
+  intro hnested
+  obtain ⟨⟨restored, hentries⟩⟩ := hrestored hnested
+  have halign : restored.entries = producer.orderedEntries := by
+    rw [hentries, entry_eq hnested]
+  have hentry' : ∀ (index : Nat) (hindex : index < types.length),
+      ∃ entry : NativeInductive.RecursorEntry,
+        (.recursor entry : NativeInductive.RegistrationEntry) ∈ restored.entries ∧
+        entry.info.name = mkRecName types[index].name := by
+    intro index hindex
+    obtain ⟨entry, hmem, hname⟩ := hentry hnested index hindex
+    exact ⟨entry, by rw [hentries]; exact hmem, hname⟩
+  have hchecker := restored.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResults
+    producer halign hconstants history hsource hvalues hlookups ruleResult hrecursor hentry'
+  have hstruct := restored.sourceRecursorGeneratedRuleStructural producer halign hlookups
+    ruleResult hrecursor hentry'
+  exact ⟨restored, hentries, hchecker.1, hstruct⟩
+
 theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_sourceRecursorGeneratedRuleStructural
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}
