@@ -600,4 +600,16 @@ theorem addDecl.safeInductiveRestorationStages (env : Environment) (lparams : Li
   exact (Environment.addInductive.safeRestorationStages env lparams nparams types allowPrimitive fuel hmap).mono
     fun _ metadata => ⟨allowPrimitive, metadata⟩
 
+theorem addDecl.safeCheckedPrimitiveInductiveRestorationStages (env : Environment)
+    (lparams : List Name) (nparams : Nat) (types : List InductiveType) (check : Bool)
+    (fuel : FuelConfig) (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true) :
+    (addDecl env (.inductDecl lparams nparams types false) check fuel).WF fun result =>
+      SafeInductiveRestorationMetadata env lparams nparams types true fuel result := by
+  change (do
+    let allowPrimitive ← Environment.checkPrimitiveInductive env lparams nparams types false
+    Environment.addInductive env lparams nparams types false allowPrimitive fuel).WF _
+  rw [hcheck]
+  exact Environment.addInductive.safeRestorationStages env lparams nparams types true fuel hmap
+
 end Lean4Lean
