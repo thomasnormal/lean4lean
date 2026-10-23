@@ -2221,6 +2221,25 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := h
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (coverage : InductiveRestorationSourceCoverage env lparams nparams types true fuel)
+    (entries : ElimNestedInductive.Result → Kernel.Environment → List RegistrationEntry)
+    (records_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries preprocessing staged).map RegistrationEntry.toConstantInfo) : True := by
+  have h := addDecl.sourceRecursorRuleStagesAndRestoredRecordEvidence_of_checkedPrimitive
+    hmap hcheck hresult coverage entries records_eq
+  have _metadata : SafeInductiveRestorationMetadata env lparams nparams types true fuel result := h.1
+  have _stages := h.2
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
