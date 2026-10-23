@@ -3677,4 +3677,44 @@ theorem addDecl.originalRecursorRuleAt_of_restorationStages
     before, after, sourceRule, finalRule, info, hpre, hrun, hlevels, hnames, hbefore, hafter,
     hsource, hfinal, hctorName, hctorEq, hfieldsEq, hrhs, hlookup, hmetadata, hfields, hcount, htotal⟩
 
+theorem addDecl.originalRecursorRuleAt_of_checkedPrimitive
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+    (hctor : ctorIndex < types[index].ctors.length) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+      (stats : AddInductive.InductiveStats) (elimLevel : Level)
+      (infos : Array AddInductive.RecInfo) (source : AddInductive.Context) (isK : Bool)
+      (before after : RecursorVal) (sourceRule finalRule : RecursorRule)
+      (info : ConstructorVal),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged ∧
+      source.lparams = lparams ∧ OriginalRecursorNames types staged ∧
+      staged.find? (mkRecName types[index].name) = some (.recInfo before) ∧
+      result.find? (mkRecName types[index].name) = some (.recInfo after) ∧
+      before.rules[ctorIndex]? = some sourceRule ∧ after.rules[ctorIndex]? = some finalRule ∧
+      finalRule.ctor = types[index].ctors[ctorIndex].name ∧ finalRule.ctor = sourceRule.ctor ∧
+      finalRule.nfields = sourceRule.nfields ∧
+      finalRule.rhs = (if preprocessing.aux2nested.size = 0 then sourceRule.rhs else
+        preprocessing.restoreNested staged sourceRule.rhs (mkAuxRecNameMap staged types).2) ∧
+      staged.find? finalRule.ctor = some (.ctorInfo info) ∧
+      SourceConstructorMetadata nparams source.lparams types[index] ctorIndex info ∧
+      SourceConstructorFields nparams types[index] ctorIndex info ∧
+      finalRule.nfields = info.numFields ∧
+      nparams + finalRule.nfields = arity 0 types[index].ctors[ctorIndex].type := by
+  have metadata := (addDecl.safeCheckedPrimitiveInductiveRestorationStages env lparams nparams types
+    check fuel hmap hcheck) result hresult
+  obtain ⟨preprocessing, staged, stats, elimLevel, infos, source, isK,
+      hpre, hrun, hlevels, hnames, hrecords⟩ := metadata.originalRecursorRecords
+  obtain ⟨before, after, sourceRule, finalRule, info, hbefore, hafter, hsource, hfinal,
+      hctorName, hctorEq, hfieldsEq, hrhs, hlookup, hmetadata, hfields, hcount, htotal⟩ :=
+    hrecords.ruleAt index hindex ctorIndex hctor
+  exact ⟨preprocessing, staged, stats, elimLevel, infos, source, isK,
+    before, after, sourceRule, finalRule, info, hpre, hrun, hlevels, hnames, hbefore, hafter,
+    hsource, hfinal, hctorName, hctorEq, hfieldsEq, hrhs, hlookup, hmetadata, hfields, hcount, htotal⟩
+
 end Lean4Lean
