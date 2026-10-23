@@ -4248,6 +4248,29 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _history := hhistory
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants) (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) : True := by
+  obtain ⟨allowPrimitive, scope, hmodelResult, hmapResult, hhistory, haligned⟩ :=
+    addDecl.checkedPrimitiveRegistrationRealizationHistoryAndAlignment_of_restorationStages
+      hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+  have _allowPrimitive : Bool := allowPrimitive
+  have _scope := scope
+  have _modelResult := hmodelResult
+  have _mapResult := hmapResult
+  have _history := hhistory
+  have _aligned := haligned
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
