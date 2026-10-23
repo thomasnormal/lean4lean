@@ -308,8 +308,8 @@ theorem NativeInductive.RestoredRecordEvidence.sourceRecursorRuleResults
       nparams + rule.nfields = arity 0 types[index].ctors[ctorIndex].type ∧
       TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
       Result entry rule := by
-  obtain ⟨recursor, rule, info, semantic, hresult, hname', hlength, hrule, hctorInfo,
-      hmetadata, hfields, hnumFields, hfieldCount, htotal, hsemantic⟩ :=
+  obtain ⟨recursor, rule, info, _semantic, hresult, hname', hlength, hrule, hctorInfo,
+      hmetadata, hfields, hnumFields, hfieldCount, htotal, _hsemantic⟩ :=
     restored.sourceRecursorRuleTranslation producer halign hlookups index hindex ctorIndex hctor
       hentry hname hrecursorName
   have hrecursorName' := hrecursorName recursor hresult
@@ -337,9 +337,10 @@ theorem NativeInductive.RestoredRecordEvidence.sourceRecursorRuleResults
     · obtain ⟨entry', hentry', heq⟩ := hrecursors
       cases heq
       exact hentry'
+  obtain ⟨semantic, hsemantic, hresultRule⟩ :=
+    producer.recursorRuleResult ruleResult entry hproducer rule hruleMem
   exact ⟨recursor, rule, info, semantic, hresult, hname', hlength, hrule, hctorInfo,
-    hmetadata, hfields, hnumFields, hfieldCount, htotal, hsemantic,
-    ruleResult entry hproducer rule hruleMem⟩
+    hmetadata, hfields, hnumFields, hfieldCount, htotal, hsemantic, hresultRule⟩
 
 theorem NativeInductive.RestoredRecordEvidence.sourceRecursorRules
     {Result : NativeInductive.RecursorEntry → RecursorRule → Prop}
