@@ -3503,6 +3503,32 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _registration := hregistration
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool} {venv : VEnv}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) : True := by
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hscope, hregistration,
+      hhistory⟩ :=
+    addDecl.checkedPrimitiveModelAndConstructiveHistory (venv := venv) hmap hcheck hresult
+      producer hconstants history hrecursors
+  have _modelDecl : VInductDecl := modelDecl
+  have _kind := hkind
+  have _headers := hheaders
+  have _declWF := hdeclWF
+  have _translation := htranslation
+  have _scope := hscope
+  have _registration := hregistration
+  have _history := hhistory
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
