@@ -2492,6 +2492,21 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := h
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) : True := by
+  have h := addDecl.sourceConstructorFieldStages_of_restorationStages hmap hresult
+  obtain ⟨allowPrimitive, preprocessing, staged, hpre, hrun, hprefix, hlookups⟩ := h
+  have _allowPrimitive : Bool := allowPrimitive
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _ := hpre
+  have _ := hrun
+  have _ := hprefix
+  have _ := hlookups
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
