@@ -342,6 +342,17 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (safety : DefinitionSafety) (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv) :
+    AddInductWithRecursorsEvidence safety constants env decl
+      evidence.constructorConstants evidence.constructorEnv
+      (evidence.recursors.map (·.info)) (evidence.recursors.map (·.model))
+      resultConstants result :=
+  evidence.to_addInductWithRecursorsEvidence_at safety hconstants hrecursors
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
     (hconstants : constants.WF)
     (hrecursors : ∀ entry ∈ evidence.recursors,
       entry.model.toVConstant.WF evidence.constructorEnv) :

@@ -892,6 +892,22 @@ theorem RegistrationEvidence.to_addInductWithRecursorsEvidence
           exact (insertConsts_recursorInfoMap evidence.constructorConstants evidence.recursors).symm
   }
 
+/- Expose the complete staged registration receipt at an arbitrary safety
+   threshold.  The native producer is checked at `.safe`; lowering the
+   threshold is sound and lets legacy consumers retain their chosen policy
+   without rebuilding the header/constructor/recursor witness. -/
+theorem RegistrationEvidence.to_addInductWithRecursorsEvidence_at
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (safety : DefinitionSafety) (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv) :
+    AddInductWithRecursorsEvidence safety constants env decl
+      evidence.constructorConstants evidence.constructorEnv
+      (evidence.recursors.map (·.info)) (evidence.recursors.map (·.model))
+      resultConstants result :=
+  (evidence.to_addInductWithRecursorsEvidence hconstants hrecursors).sf_mono
+    DefinitionSafety.le_safe
+
 theorem RegistrationEvidence.to_trEnvInductive
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (history : TrEnvInductive safety constants Q env)
