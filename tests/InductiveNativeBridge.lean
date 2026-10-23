@@ -2674,6 +2674,48 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := hrecords
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+    (hctor : ctorIndex < types[index].ctors.length) : True := by
+  have h := addDecl.originalRecursorRuleAt_of_restorationStages hmap hresult index hindex ctorIndex hctor
+  obtain ⟨allowPrimitive, preprocessing, staged, stats, elimLevel, infos, source, isK,
+      before, after, sourceRule, finalRule, info, hpre, hrun, hlevels, hnames, hbefore, hafter,
+      hsource, hfinal, hctorName, hctorEq, hfieldsEq, hrhs, hlookup, hmetadata, hfields, hcount, htotal⟩ := h
+  have _allowPrimitive : Bool := allowPrimitive
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _stats : AddInductive.InductiveStats := stats
+  have _elimLevel : Level := elimLevel
+  have _infos : Array AddInductive.RecInfo := infos
+  have _source : AddInductive.Context := source
+  have _isK : Bool := isK
+  have _before : RecursorVal := before
+  have _after : RecursorVal := after
+  have _sourceRule : RecursorRule := sourceRule
+  have _finalRule : RecursorRule := finalRule
+  have _info : ConstructorVal := info
+  have _ := hpre
+  have _ := hrun
+  have _ := hlevels
+  have _ := hnames
+  have _ := hbefore
+  have _ := hafter
+  have _ := hsource
+  have _ := hfinal
+  have _ := hctorName
+  have _ := hctorEq
+  have _ := hfieldsEq
+  have _ := hrhs
+  have _ := hlookup
+  have _ := hmetadata
+  have _ := hfields
+  have _ := hcount
+  have _ := htotal
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
