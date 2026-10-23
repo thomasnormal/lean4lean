@@ -2141,6 +2141,41 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   metadata.toCheckerEnvInductive_and_registrationHistory_and_ruleResults_of_sourceTypehood
     history producer hconstants hresultConstants hsource hvalues ruleResults
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (coverage : ∀ allowPrimitive,
+      InductiveRestorationSourceCoverage env lparams nparams types allowPrimitive fuel)
+    (entries : ∀ allowPrimitive, ElimNestedInductive.Result → Kernel.Environment → List RegistrationEntry)
+    (records_eq : ∀ allowPrimitive preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries allowPrimitive preprocessing staged).map RegistrationEntry.toConstantInfo) :
+    ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+      (staged : Kernel.Environment) (stats : AddInductive.InductiveStats)
+      (root : AddInductive.Context) (constructors : Kernel.Environment)
+      (elimLevel : Level) (infos : Array AddInductive.RecInfo) (source : AddInductive.Context),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      InductiveArityPrefix types.toArray preprocessing.types.toArray ∧
+      SourceRecursorRuleLookups nparams lparams types preprocessing staged result ∧
+      (preprocessing.aux2nested.size ≠ 0 →
+        Nonempty { evidence : RestoredRecordEvidence preprocessing staged
+            (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
+            (restoredEnvironmentRecords preprocessing staged types) //
+          evidence.entries = entries allowPrimitive preprocessing staged }) := by
+  obtain ⟨allowPrimitive, preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
+      hpre, hrun, hscope, hprefix, hframe, hcounts, hindexing, hdistinct, hsources, hlookups,
+      hbranch, hrestored⟩ :=
+    addDecl.sourceRecursorRuleStagesAndRestoredRecordEvidence_of_restorationStages
+      hmap hresult coverage entries records_eq
+  exact ⟨allowPrimitive, preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
+    hpre, hrun, hprefix, hlookups, hrestored⟩
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
