@@ -2880,6 +2880,62 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := hlookups
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+    (hctor : ctorIndex < types[index].ctors.length) : True := by
+  have h := addDecl.originalRecursorRuleLookup_of_restorationStages hmap hresult index hindex ctorIndex hctor
+  obtain ⟨allowPrimitive, preprocessing, staged, recursor, rule, info,
+      hpre, hrun, hlookup, hcount, hrule, hname, hctorLookup, hmetadata, hfields, hfieldCount, htotal⟩ := h
+  have _allowPrimitive : Bool := allowPrimitive
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _recursor : RecursorVal := recursor
+  have _rule : RecursorRule := rule
+  have _info : ConstructorVal := info
+  have _ := hpre
+  have _ := hrun
+  have _ := hlookup
+  have _ := hcount
+  have _ := hrule
+  have _ := hname
+  have _ := hctorLookup
+  have _ := hmetadata
+  have _ := hfields
+  have _ := hfieldCount
+  have _ := htotal
+  trivial
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+    (hctor : ctorIndex < types[index].ctors.length) : True := by
+  have h := addDecl.originalRecursorRuleLookup_of_checkedPrimitive hmap hcheck hresult index hindex ctorIndex hctor
+  obtain ⟨preprocessing, staged, recursor, rule, info,
+      hpre, hrun, hlookup, hcount, hrule, hname, hctorLookup, hmetadata, hfields, hfieldCount, htotal⟩ := h
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _recursor : RecursorVal := recursor
+  have _rule : RecursorRule := rule
+  have _info : ConstructorVal := info
+  have _ := hpre
+  have _ := hrun
+  have _ := hlookup
+  have _ := hcount
+  have _ := hrule
+  have _ := hname
+  have _ := hctorLookup
+  have _ := hmetadata
+  have _ := hfields
+  have _ := hfieldCount
+  have _ := htotal
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?

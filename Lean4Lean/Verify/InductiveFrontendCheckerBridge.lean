@@ -3855,4 +3855,59 @@ theorem addDecl.originalRecursorRuleStages_of_checkedPrimitive
     hpre, hrun, hscope, hprefix, hnodup, hframe, hcounts, hindexing, hdistinct, hsources,
     hbranch, hnames, hlookups⟩
 
+theorem addDecl.originalRecursorRuleLookup_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+    (hctor : ctorIndex < types[index].ctors.length) :
+    ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+      (staged : Kernel.Environment) (recursor : RecursorVal) (rule : RecursorRule)
+      (info : ConstructorVal),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      result.find? (mkRecName types[index].name) = some (.recInfo recursor) ∧
+      recursor.rules.length = types[index].ctors.length ∧ recursor.rules[ctorIndex]? = some rule ∧
+      rule.ctor = types[index].ctors[ctorIndex].name ∧ staged.find? rule.ctor = some (.ctorInfo info) ∧
+      SourceConstructorMetadata nparams lparams types[index] ctorIndex info ∧
+      SourceConstructorFields nparams types[index] ctorIndex info ∧
+      rule.nfields = info.numFields ∧
+      nparams + rule.nfields = arity 0 types[index].ctors[ctorIndex].type := by
+  obtain ⟨allowPrimitive, preprocessing, staged, hpre, hrun, hprefix, hnames, hlookups⟩ :=
+    (addDecl.safeInductiveOriginalRecursorRules env lparams nparams types check fuel hmap) result hresult
+  obtain ⟨recursor, rule, info, hlookup, hcount, hrule, hname, hctorLookup, hmetadata, hfields,
+      hfieldCount, htotal⟩ := hlookups.at index hindex ctorIndex hctor
+  exact ⟨allowPrimitive, preprocessing, staged, recursor, rule, info, hpre, hrun, hlookup, hcount,
+    hrule, hname, hctorLookup, hmetadata, hfields, hfieldCount, htotal⟩
+
+theorem addDecl.originalRecursorRuleLookup_of_checkedPrimitive
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+    (hctor : ctorIndex < types[index].ctors.length) :
+    ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+      (recursor : RecursorVal) (rule : RecursorRule) (info : ConstructorVal),
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged ∧
+      result.find? (mkRecName types[index].name) = some (.recInfo recursor) ∧
+      recursor.rules.length = types[index].ctors.length ∧ recursor.rules[ctorIndex]? = some rule ∧
+      rule.ctor = types[index].ctors[ctorIndex].name ∧ staged.find? rule.ctor = some (.ctorInfo info) ∧
+      SourceConstructorMetadata nparams lparams types[index] ctorIndex info ∧
+      SourceConstructorFields nparams types[index] ctorIndex info ∧
+      rule.nfields = info.numFields ∧
+      nparams + rule.nfields = arity 0 types[index].ctors[ctorIndex].type := by
+  have metadata := (addDecl.safeCheckedPrimitiveInductiveRestorationStages env lparams nparams types
+    check fuel hmap hcheck) result hresult
+  obtain ⟨preprocessing, staged, hpre, hrun, hprefix, hnames, hlookups⟩ := metadata.originalRecursorRules
+  obtain ⟨recursor, rule, info, hlookup, hcount, hrule, hname, hctorLookup, hmetadata, hfields,
+      hfieldCount, htotal⟩ := hlookups.at index hindex ctorIndex hctor
+  exact ⟨preprocessing, staged, recursor, rule, info, hpre, hrun, hlookup, hcount, hrule, hname,
+    hctorLookup, hmetadata, hfields, hfieldCount, htotal⟩
+
 end Lean4Lean
