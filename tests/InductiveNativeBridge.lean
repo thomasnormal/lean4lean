@@ -3446,7 +3446,13 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       preprocessing.aux2nested.size ≠ 0 → ∀ (index : Nat) (hindex : index < types.length),
         ∃ entry : RecursorEntry, (.recursor entry : RegistrationEntry) ∈ entries preprocessing staged ∧
           entry.info.name = mkRecName types[index].name)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
     (venv : VEnv) : True := by
+  have _combined :=
+    addDecl.checkedPrimitiveModelAndConstructiveRestoredRuleEvidence hmap hcheck hresult
+      coverage entries records_eq producer entry_eq hconstants hrecursor hentry ruleResult
+      hrecursors venv
   obtain ⟨modelDeclRestored, hkindRestored, hheadersRestored, hdeclWFRestored,
       htranslationRestored,
       ⟨preprocessingRestored, stagedRestored, statsRestored, rootRestored,
