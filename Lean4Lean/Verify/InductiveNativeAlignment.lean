@@ -250,6 +250,35 @@ theorem RegistrationEvidence.sourceTypehood_iff_recursorWF
   · exact evidence.recursorWF_of_sourceTypehood henv
   · exact evidence.sourceTypehood_of_recursorWF
 
+/- Source typehood is the executable-to-model bridge for generated recursors.
+   Derive the model-WF side condition once, then expose the same constructive
+   registration receipt used by the checked frontend packages. -/
+theorem RegistrationEvidence.to_addInductWithRecursorsEvidence_of_sourceTypehood
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    AddInductWithRecursorsEvidence .safe constants env decl
+      evidence.constructorConstants evidence.constructorEnv
+      (evidence.recursors.map (·.info)) (evidence.recursors.map (·.model))
+      resultConstants result := by
+  have hrecursors := evidence.recursorWF_of_sourceTypehood
+    (evidence.constructorEnvWF henv) hsource
+  exact evidence.to_addInductWithRecursorsEvidence hconstants hrecursors
+
+theorem RegistrationEvidence.to_trEnvInductive_of_sourceTypehood
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (history : TrEnvInductive safety constants Q env) (hconstants : constants.WF)
+    (henv : env.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    TrEnvInductive safety resultConstants Q result := by
+  have hrecursors := evidence.recursorWF_of_sourceTypehood
+    (evidence.constructorEnvWF henv) hsource
+  exact evidence.to_trEnvInductive history hconstants hrecursors
+
 theorem RegistrationEvidence.registrationWF
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)
