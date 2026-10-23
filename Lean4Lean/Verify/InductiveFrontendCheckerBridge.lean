@@ -500,6 +500,32 @@ theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleResults
     · intro rule hrule
       exact evidence.recursorGeneratedRuleResult ruleResults recursor hentry rule hrule
 
+/- The restored executable record and the constructive producer expose the same
+   registration map.  Keep the two receipts together for consumers that need
+   both the result-side constant equation and the model-side AddInduct proof. -/
+theorem NativeInductive.RestoredRecordEvidence.registrationConstructive
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hconstantsWF : constants.WF)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    result.constants = resultConstants ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult := by
+  refine ⟨restored.registrationConstants producer halign hconstants, ?_⟩
+  exact producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors
+
 theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}
