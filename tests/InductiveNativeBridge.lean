@@ -707,7 +707,8 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         ∃ entry : RecursorEntry,
           (.recursor entry : RegistrationEntry) ∈ entries allowPrimitive preprocessing staged ∧
           entry.info.name = mkRecName types[index].name) : True := by
-  have h := addDecl.checkedPrimitiveModelAndSemanticStructural_of_restorationStages (venv := venv)
+  have h := addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistration_of_restorationStages
+    (venv := venv)
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry
   have _ := h
