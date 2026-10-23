@@ -3904,9 +3904,8 @@ theorem addDecl.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructural_of
 
 theorem SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructural
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
-    {types : List InductiveType} {allowPrimitive : Bool} {check : Bool} {fuel : FuelConfig}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
     (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
-    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
     (coverage : InductiveRestorationSourceCoverage env lparams nparams types allowPrimitive fuel)
     (entries : ElimNestedInductive.Result → Kernel.Environment → List NativeInductive.RegistrationEntry)
     (records_eq : ∀ preprocessing staged,
@@ -4215,7 +4214,7 @@ theorem addDecl.checkedPrimitiveModelAndSemanticStructural_of_restorationStages
       preprocessing.aux2nested.size ≠ 0 →
       ∀ (index : Nat) (hindex : index < types.length),
         ∃ entry : NativeInductive.RecursorEntry,
-          (.recursor entry : NativeInductive.RegistrationEntry) ∈ entries preprocessing staged ∧
+          (.recursor entry : NativeInductive.RegistrationEntry) ∈ entries allowPrimitive preprocessing staged ∧
           entry.info.name = mkRecName types[index].name) :
     ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
       modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
@@ -4243,7 +4242,7 @@ theorem addDecl.checkedPrimitiveModelAndSemanticStructural_of_restorationStages
         ∃ restored : NativeInductive.RestoredRecordEvidence preprocessing staged
             (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
             (restoredEnvironmentRecords preprocessing staged types),
-          restored.entries = entries preprocessing staged ∧
+          restored.entries = entries allowPrimitive preprocessing staged ∧
           Aligned .safe resultConstants semanticResult ∧
           result.constants = resultConstants ∧
           TrEnvInductive .safe resultConstants Q semanticResult ∧
@@ -6529,6 +6528,44 @@ theorem addDecl.checkedPrimitiveModelAndConstructiveRegistration
     exact hmap
   exact ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hscope,
     producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors⟩
+
+/- Lift constructive registration across the existential restoration-stage
+   choice.  The producer receipt is independent of which executable scope mode
+   was selected, so the returned scope and registration remain synchronized. -/
+theorem addDecl.checkedPrimitiveModelAndConstructiveRegistration_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {venv : VEnv}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
+      modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
+      (∀ venv', venv.addInductHeaders modelDecl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types modelDecl) ∧
+      ∃ (allowPrimitive : Bool),
+        SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result ∧
+        AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+          producer.constructorConstants producer.constructorEnv
+          (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+          resultConstants semanticResult := by
+  have hmodel := Environment.checkPrimitiveInductive.toVDecl_WF_model
+    env venv lparams nparams types false
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation⟩ :=
+    (hmodel true hcheck) rfl
+  obtain ⟨allowPrimitive, metadata⟩ :=
+    (addDecl.safeInductiveRestorationStages env lparams nparams types check fuel hmap) result hresult
+  have hconstantsWF : constants.WF := by
+    rw [← hconstants]
+    exact hmap
+  exact ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, allowPrimitive,
+    metadata.toFrontendScope, producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors⟩
 
 /- Turn the explicit constructive registration receipt into declaration history
    at the same checked-primitive boundary.  The source history and recursor WF

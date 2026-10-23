@@ -4007,6 +4007,31 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
     (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
     {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {venv : VEnv}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) : True := by
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, allowPrimitive,
+      hscope, hregistration⟩ :=
+    addDecl.checkedPrimitiveModelAndConstructiveRegistration_of_restorationStages
+      (venv := venv) hmap hcheck hresult producer hconstants hrecursors
+  have _modelDecl : VInductDecl := modelDecl
+  have _kind := hkind
+  have _headers := hheaders
+  have _declWF := hdeclWF
+  have _translation := htranslation
+  have _allowPrimitive : Bool := allowPrimitive
+  have _scope := hscope
+  have _registration := hregistration
+  trivial
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
     {decl : VInductDecl} {Q : Bool} {venv : VEnv}
     (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
     (hconstants : env.constants = constants)
