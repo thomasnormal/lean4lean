@@ -3161,6 +3161,22 @@ example {ctx : AddInductive.Context} {safety : DefinitionSafety} {venv : VEnv}
     ctx numParams types numNested isUnsafe hchecker
     ((Environment.checkPrimitiveInductive.eq_true_iff ctx.env ctx.lparams numParams types isUnsafe).mpr shape)
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (venv : VEnv) : True := by
+  obtain ⟨decl, hkind, hheaders, hdeclWF, htranslation, hscope⟩ :=
+    addDecl.checkedPrimitiveFrontendAndModel hmap hcheck hresult venv
+  have _decl : VInductDecl := decl
+  have _kind := hkind
+  have _headers := hheaders
+  have _declWF := hdeclWF
+  have _translation := htranslation
+  have _scope := hscope
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?

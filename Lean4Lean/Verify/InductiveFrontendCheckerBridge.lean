@@ -4209,4 +4209,27 @@ theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorChecke
   exact ⟨decl, headerEnv, ctorEnv, hdecl, hdeclWF, haddHeaders, headerWF, htr,
     haddCtors, hwf', ⟨haligned', hwf', hvalues'⟩⟩
 
+/- Package the primitive declaration model receipt with the successful checked
+   frontend scope.  This is the `addDecl` boundary used by callers that need
+   both the Bool/Nat semantic declaration and the executable staging witness. -/
+theorem addDecl.checkedPrimitiveFrontendAndModel
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (venv : VEnv) :
+    ∃ decl, (decl = boolInductDecl ∨ decl = natInductDecl) ∧ decl.HeadersWF venv ∧
+      decl.WF venv ∧
+      (∀ venv', venv.addInductHeaders decl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types decl) ∧
+      SafeInductiveFrontendScope env lparams nparams types true fuel result := by
+  have hmodel := Environment.checkPrimitiveInductive.toVDecl_WF_model
+    env venv lparams nparams types false
+  have hprimitive := (hmodel true hcheck) rfl
+  obtain ⟨decl, hkind, hheaders, hdeclWF, htranslation⟩ := hprimitive
+  have hscope := (addDecl.safeCheckedPrimitiveInductive env lparams nparams types
+    check fuel hmap hcheck) result hresult
+  exact ⟨decl, hkind, hheaders, hdeclWF, htranslation, hscope⟩
+
 end Lean4Lean
