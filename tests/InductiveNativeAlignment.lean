@@ -557,4 +557,11 @@ example {safety : DefinitionSafety} {C C' : ConstMap} {env env' : VEnv}
     (evidence : AddInductEvidence safety C env decl C' env') (hC : C.WF) : C'.WF :=
   evidence.map_wf hC
 
+example {safety : DefinitionSafety} {C C' inductiveConstants : ConstMap}
+    {env inductiveEnv env' : VEnv} {decl : VInductDecl}
+    {recursors : List RecursorVal} {models : List VConstVal}
+    (evidence : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
+      recursors models C' env') (hC : C.WF) : C'.WF :=
+  evidence.map_wf hC
+
 end Lean4Lean.Tests.InductiveNativeAlignment

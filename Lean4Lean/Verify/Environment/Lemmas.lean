@@ -211,7 +211,8 @@ theorem Aligned.addInductWithRecursorsEvidence
     intro info hmem
     obtain ⟨model, hmodel, htranslation⟩ :=
       Lean4Lean.List.Forall₂.forall_exists_l H.translations info hmem
-    simpa [htranslation.1] using H.recursorFresh model hmodel
+    simpa [htranslation.1, ConstantInfo.name, ConstantInfo.toConstantVal] using
+      H.recursorFresh model hmodel
   have hnodup : (recursors.map (·.name)).Nodup := by
     have hpair : List.Forall₂ Eq (recursors.map (·.name)) (models.map (·.name)) := by
       rw [List.forall₂_map_left_iff, List.forall₂_map_right_iff]
@@ -723,6 +724,35 @@ theorem AddInductEvidence.map_wf
         simp [ConstantInfo.name, ConstantInfo.toConstantVal]
     rw [constructorNames]
     exact constructorNodup
+
+theorem AddInductWithRecursorsEvidence.map_wf
+    (H : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
+      recursors models C' env') (hC : C.WF) : C'.WF := by
+  rw [H.resultMap]
+  apply insertConsts_wf (H.inductiveEvidence.map_wf hC)
+  · intro info hinfo
+    obtain ⟨recursor, hrecursor, rfl⟩ := List.mem_map.mp hinfo
+    obtain ⟨model, hmodel, htranslation⟩ :=
+      Lean4Lean.List.Forall₂.forall_exists_l H.translations recursor hrecursor
+    have hname : (ConstantInfo.recInfo recursor).name = model.name := by
+      simpa only [ConstantInfo.name, ConstantInfo.toConstantVal] using htranslation.1
+    rw [hname]
+    exact H.recursorFresh model hmodel
+  · have htranslations : List.Forall₂
+        (fun info model => info.name = model.name) recursors models := by
+      exact Lean4Lean.List.Forall₂.imp (fun _ _ h => h.1) H.translations
+    have hpair : List.Forall₂ Eq (recursors.map (·.name)) (models.map (·.name)) := by
+      rw [List.forall₂_map_left_iff, List.forall₂_map_right_iff]
+      exact htranslations
+    have recursorNames :
+        (recursors.map (fun info => ConstantInfo.recInfo info)).map (·.name) =
+          recursors.map (·.name) := by
+      induction recursors with
+      | nil => rfl
+      | cons info recursors ih =>
+        simp [ConstantInfo.name, ConstantInfo.toConstantVal]
+    rw [recursorNames]
+    exact (List.forall₂_eq.mp hpair).symm ▸ H.recursorNodup
 
 theorem TrEnvInductive.env_find? {env : Environment}
     (H : TrEnvInductive safety env.constants Q venv)
