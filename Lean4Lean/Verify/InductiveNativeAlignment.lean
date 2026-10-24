@@ -378,5 +378,25 @@ theorem RegistrationEvidence.toCheckerEnvInductive_of_sourceTypehood
   exact evidence.toCheckerEnvInductive native resultNative history hmap hresultMap
     hconstants hrecursors hvalues
 
+theorem RegistrationEvidence.toCheckerEnvInductive_and_aligned_of_sourceTypehood
+    {safety : DefinitionSafety}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (native resultNative : Kernel.Environment)
+    (history : TrEnvInductive safety native.constants Q env)
+    (hmap : native.constants = constants) (hresultMap : resultNative.constants = resultConstants)
+    (haligned : Aligned safety constants env) (hconstants : constants.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr result ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety resultNative result Q ∧
+      Aligned safety resultConstants result := by
+  exact ⟨evidence.toCheckerEnvInductive_of_sourceTypehood native resultNative history
+      hmap hresultMap hconstants hsource hvalues, evidence.aligned haligned⟩
+
 end NativeInductive
 end Lean4Lean

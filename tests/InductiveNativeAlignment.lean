@@ -522,6 +522,25 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
     hconstants hsource hvalues
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    {native resultNative : Kernel.Environment} {Q : Bool}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (history : TrEnvInductive .safe native.constants Q env)
+    (hmap : native.constants = constants) (hresultMap : resultNative.constants = resultConstants)
+    (haligned : Aligned .safe constants env) (hconstants : constants.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr result ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe resultNative result Q ∧
+      Aligned .safe resultConstants result :=
+  evidence.toCheckerEnvInductive_and_aligned_of_sourceTypehood native resultNative history
+    hmap hresultMap haligned hconstants hsource hvalues
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     {native : Kernel.Environment} {Q : Bool}
     (history : TrEnvInductive .safe native.constants Q env)
     (name : Name) (ci : ConstantInfo) (h : native.find? name = some ci)
