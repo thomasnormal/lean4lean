@@ -4219,11 +4219,16 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
       hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
+  have hSemanticIota :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
+      hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
   have hm := addDecl.checkedPrimitiveModelAndCheckerStructural_of_restorationStages
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry venv
   have _ := h
   have _ := hIota
+  have _ := hSemanticIota
   have _ := hm
   trivial
 
