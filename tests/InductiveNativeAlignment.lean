@@ -427,6 +427,15 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors, entry.model.toVConstant.WF
+      evidence.constructorEnv) :
+    env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result ∧
+      result.WF ∧ resultConstants.WF :=
+  evidence.registrationWF_and_mapWF hconstants henv hrecursors
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)
     (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
       TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
@@ -443,6 +452,16 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
       evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
     resultConstants.WF :=
   evidence.registrationMapWF_of_sourceTypehood hconstants henv hsource
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result ∧
+      result.WF ∧ resultConstants.WF :=
+  evidence.registrationWF_and_mapWF_of_sourceTypehood hconstants henv hsource
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)

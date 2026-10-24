@@ -321,6 +321,17 @@ theorem RegistrationEvidence.registrationMapWF
     resultConstants.WF :=
   (evidence.to_addInductWithRecursorsEvidence hconstants hrecursors).map_wf hconstants
 
+theorem RegistrationEvidence.registrationWF_and_mapWF
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors, entry.model.toVConstant.WF
+      evidence.constructorEnv) :
+    env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result ∧
+      result.WF ∧ resultConstants.WF := by
+  have hregistration := evidence.to_addInductWithRecursorsEvidence hconstants hrecursors
+  exact ⟨hregistration.to_addInductWithRecursors, evidence.resultWF henv hrecursors,
+    hregistration.map_wf hconstants⟩
+
 theorem RegistrationEvidence.registrationWF_of_sourceTypehood
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)
@@ -340,6 +351,17 @@ theorem RegistrationEvidence.registrationMapWF_of_sourceTypehood
       evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
     resultConstants.WF := by
   exact evidence.registrationMapWF hconstants
+    (evidence.recursorWF_of_sourceTypehood (evidence.constructorEnvWF henv) hsource)
+
+theorem RegistrationEvidence.registrationWF_and_mapWF_of_sourceTypehood
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result ∧
+      result.WF ∧ resultConstants.WF := by
+  exact evidence.registrationWF_and_mapWF hconstants henv
     (evidence.recursorWF_of_sourceTypehood (evidence.constructorEnvWF henv) hsource)
 
 theorem RegistrationEvidence.inductiveDeclWF
