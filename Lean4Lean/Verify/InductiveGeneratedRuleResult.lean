@@ -423,6 +423,20 @@ theorem GeneratedRecursorRuleIotaKind.baseAndTargetResults
   exact ⟨base, target, count, arguments, resultType, insertionLift, replacements, rhsSemantic, rhsType,
     baseResultTranslated, baseResultTyped, baseResultKind, resultTranslated, resultTyped, resultKind⟩
 
+/- Keep the complete generated constructor-RHS package together with the
+   paired pre-lift and target iota endpoint. -/
+theorem GeneratedConstructorRuleRhsResult.resultAndIota
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (result : GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+      (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+      (constructor := constructor) (minor := minor) (rule := rule)) :
+    GeneratedRecursorRuleResult env universes stats motives minors ctx constructor minor rule ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors ctx
+        constructor minor rule :=
+  ⟨result, GeneratedRecursorRuleIotaKind.baseAndTargetResults result.iotaKind⟩
+
 /- Named eliminators for the paired endpoint let consumers select one side
    without reopening the full generated-rule receipt. -/
 theorem GeneratedRecursorRuleIotaBaseAndTargetResults.baseResult
