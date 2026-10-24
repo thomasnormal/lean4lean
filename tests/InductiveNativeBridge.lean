@@ -1663,6 +1663,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       (preprocessing.aux2nested.size ≠ 0 →
         Aligned .safe resultConstants semanticResult ∧
         CheckerEnvInductive .safe result semanticResult Q) := by
+  have hIota := addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentIotaBaseAndTargetResultsSemantics_of_restorationStages
+    hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+    ruleResult hrecursor hentry
   obtain ⟨allowPrimitive, preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
       hpre, hrun, hscope, hprefix, hframe, hcounts, hindexing, hdistinct, hsources, hlookups,
       hbranch, hfinal⟩ :=
@@ -1731,6 +1734,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       (preprocessing.aux2nested.size ≠ 0 →
         Aligned .safe resultConstants semanticResult ∧
         CheckerEnvInductive .safe result semanticResult Q) := by
+  have hIota := addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentIotaBaseAndTargetResultsSemantics_of_checkedPrimitive
+    hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+    hvalues ruleResult hrecursor hentry
   obtain ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
       hpre, hrun, hscope, _, _, _, _, _, hsources, _, _, hfinal⟩ :=
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentSemantics_of_checkedPrimitive
