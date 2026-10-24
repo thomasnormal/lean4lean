@@ -661,6 +661,33 @@ theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleResult
         (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
     ruleResults entry hentry rule hrule
 
+/- Preserve the complete generated package alongside its paired base/target
+   iota endpoint at the registration boundary.  Both projections come from
+   the same producer witness, so constructor/minor alignment and the closed
+   semantic translation remain explicit. -/
+theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIota
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules, ∃ semantic,
+      TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+      ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+        AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  intro entry hentry rule hrule
+  obtain ⟨semantic, translated, constructor, minor, generated⟩ :=
+    evidence.recursorGeneratedRuleResult ruleResults entry hentry rule hrule
+  exact ⟨semantic, translated, constructor, minor, generated,
+    generated.iotaKind.baseAndTargetResults⟩
+
 /- Registration consumers commonly need the explicit lifted iota result rather
    than the full constructor-body package.  Project it at the same per-rule
    boundary, preserving the producer's constructor/minor witness and rule
@@ -760,6 +787,43 @@ theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleResults
       exact evidence.recursorRuleTranslation recursor hentry rule hrule
     · intro rule hrule
       exact evidence.recursorGeneratedRuleResult ruleResults recursor hentry rule hrule
+
+/- Preserve the ordered registration traversal while retaining both the full
+   generated result and its paired base/target iota projection. -/
+theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIota
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.RuleSemantics semanticResult ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+            ∃ (constructor : Constructor) (minor : Expr),
+              AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+              AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  intro entry hmem
+  simp only [NativeInductive.RegistrationEvidence.orderedEntries, List.mem_append] at hmem
+  rcases hmem with hphase | hrecursors
+  · rcases hphase with hheaders | hconstructors
+    · rcases List.mem_map.mp hheaders with ⟨header, _, rfl⟩
+      exact ⟨trivial, trivial⟩
+    · rcases List.mem_map.mp hconstructors with ⟨constructor, _, rfl⟩
+      exact ⟨trivial, trivial⟩
+  · rcases List.mem_map.mp hrecursors with ⟨recursor, hentry, rfl⟩
+    refine ⟨?_, ?_⟩
+    · intro rule hrule
+      exact evidence.recursorRuleTranslation recursor hentry rule hrule
+    · intro rule hrule
+      exact evidence.recursorGeneratedRuleResultAndIota ruleResults recursor hentry rule hrule
 
 /- Preserve the same ordered registration traversal while exposing the named
    iota projection.  This is the consumer-facing boundary: the closed RHS
