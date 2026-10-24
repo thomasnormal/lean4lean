@@ -4162,6 +4162,71 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := hm
   trivial
 
+/- Regression: restoration-stage checker-structural source stages retain
+   generated rule results and paired base/target iota endpoints. -/
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (coverage : ∀ allowPrimitive,
+      InductiveRestorationSourceCoverage env lparams nparams types allowPrimitive fuel)
+    (entries : ∀ allowPrimitive, ElimNestedInductive.Result → Kernel.Environment → List RegistrationEntry)
+    (records_eq : ∀ allowPrimitive preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries allowPrimitive preprocessing staged).map RegistrationEntry.toConstantInfo)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (entry_eq : ∀ allowPrimitive preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 → entries allowPrimitive preprocessing staged = producer.orderedEntries)
+    (hconstants : env.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {universes : List Name}
+    (ruleResult : ∀ (stats : AddInductive.InductiveStats) (infos : Array AddInductive.RecInfo)
+      (source : AddInductive.Context) (entry : RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (hrecursor : ∀ (index : Nat) (hindex : index < types.length) (recursor : RecursorVal),
+      result.find? recursor.name = some (.recInfo recursor) → recursor.name = mkRecName types[index].name)
+    (hentry : ∀ allowPrimitive preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 → ∀ (index : Nat) (hindex : index < types.length),
+        ∃ entry : RecursorEntry,
+          (.recursor entry : RegistrationEntry) ∈ entries allowPrimitive preprocessing staged ∧
+          entry.info.name = mkRecName types[index].name)
+    (venv : VEnv) : True := by
+  have h := addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructural_of_restorationStages
+    hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+    ruleResult hrecursor hentry
+  have hIota :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
+      hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
+  have hm := addDecl.checkedPrimitiveModelAndCheckerStructural_of_restorationStages
+    hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+    hvalues ruleResult hrecursor hentry venv
+  have _ := h
+  have _ := hIota
+  have _ := hm
+  trivial
+
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
     (hmap : env.constants.WF)
