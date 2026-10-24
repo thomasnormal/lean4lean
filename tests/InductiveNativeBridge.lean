@@ -1683,6 +1683,23 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
     result.constants.WF :=
   restored.registrationMapWF producer halign hconstants hconstantsWF hrecursors
 
+example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} {preprocessing : ElimNestedInductive.Result}
+    {staged : Kernel.Environment} {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hconstantsWF : constants.WF) (hsemanticEnvWF : semanticEnv.WF)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    result.constants.WF :=
+  restored.registrationMapWF_of_sourceTypehood producer halign hconstants hconstantsWF
+    hsemanticEnvWF hsource
+
 example {safety : DefinitionSafety} {constants : ConstMap}
     {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap} {preprocessing : ElimNestedInductive.Result}
