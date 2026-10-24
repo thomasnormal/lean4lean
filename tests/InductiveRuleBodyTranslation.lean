@@ -84,6 +84,24 @@ example {env : VEnv} {universes : List Name} {stats : InductiveStats}
       (ctors.zipIdx initial) rules :=
   scope.impRuleResultSemanticsAndIota head
 
+example {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (scope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (closedHead : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        ∃ semantic, TrExprS env universes [] rule.rhs semantic)
+    (generatedHead : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+          (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule)) :
+    True := by
+  have h := scope.impRuleResultSemanticsAndIotaSplit closedHead generatedHead
+  trivial
+
 private def exactAxioms (name : Name) (expected : List Name) : MetaM Unit := do
   let actual ← collectAxioms name
   unless actual.size == expected.length && expected.all actual.contains do
@@ -147,6 +165,8 @@ private def audit : MetaM Unit := do
     [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
   exactAxioms ``RecursorRuleRhsScope.impRuleResultSemanticsAndIota
     [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
+  exactAxioms ``RecursorRuleRhsScope.impRuleResultSemanticsAndIotaSplit
+    [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
   exactAxioms ``RecursorRuleRhsScope.impRuleResultSemanticsSplit
     [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
   exactAxioms ``RecursorRuleRhsScope.impRuleSemantics
@@ -209,7 +229,7 @@ private def audit : MetaM Unit := do
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
   unless count == 119 do throwError "rule body: expected one hundred nineteen owned declarations, got {count}"
-  auditOwnedModule `Lean4Lean.Verify.InductiveGeneratedRuleResult 43
+  auditOwnedModule `Lean4Lean.Verify.InductiveGeneratedRuleResult 44
   auditOwnedModule `Lean4Lean.Verify.InductiveNativeTelescopeArguments 12
   logInfo m!"projected closed registration RuleSemantics from the paired all-rule callback without reopening generated packages, split closed/generated indexed callback paired at the registration boundary, paired closed rule-body semantics with generated constructor-RHS result package through local indexed and aligned all-rule dual-receipt consumers, indexed local generated constructor-RHS result consumer with explicit body/source/applied witnesses, all-rule and local dual-receipt adapters, indexed local rule-semantics receipt/result consumer, all-rule scoped-and-ordinary receipt consumer adapter, indexed local scoped-and-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt lookup, all-rule scoped receipt consumer adapter, indexed scoped-to-ordinary receipt lookup, all-rule scoped-to-ordinary receipt projection, direct scoped/fvar/count result transport, generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
 
@@ -234,6 +254,7 @@ run_meta
 #print axioms LocalRecursorRuleRhsScope.ruleResultSemanticsSplit
 #print axioms RecursorRuleRhsScope.impRuleResultSemantics
 #print axioms RecursorRuleRhsScope.impRuleResultSemanticsAndIota
+#print axioms RecursorRuleRhsScope.impRuleResultSemanticsAndIotaSplit
 #print axioms RecursorRuleRhsScope.impRuleResultSemanticsSplit
 #print axioms RecursorRuleRhsScope.impRuleSemantics
 #print axioms IHModelStep.acceptsGeneratedRecursiveValue

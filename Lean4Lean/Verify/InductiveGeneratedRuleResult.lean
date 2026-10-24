@@ -934,6 +934,37 @@ theorem RecursorRuleRhsScope.impRuleResultSemanticsSplit
     ⟨closedHead entry rule scopedReceipt ordinaryReceipt,
       generatedHead entry rule scopedReceipt ordinaryReceipt⟩)
 
+/- The split all-rule consumer can also retain the paired base/target iota
+   endpoint.  Closed semantics and generated packages remain independent
+   callbacks until the aligned receipt boundary combines them. -/
+theorem RecursorRuleRhsScope.impRuleResultSemanticsAndIotaSplit
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (closedHead : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        ∃ semantic, TrExprS env universes [] rule.rhs semantic)
+    (generatedHead : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+          (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule)) :
+    List.Forall₂ (fun entry rule =>
+      (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+      GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+        (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+        (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule) ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors ctx
+        entry.1 minors[entry.2]! rule)
+      (ctors.zipIdx initial) rules := by
+  exact hscope.impRuleResultSemanticsAndIota
+    (fun entry rule scopedReceipt ordinaryReceipt => by
+      exact ⟨closedHead entry rule scopedReceipt ordinaryReceipt,
+        generatedHead entry rule scopedReceipt ordinaryReceipt⟩)
+
 /- Registration only needs the closed RHS translation from the paired result
    callback.  Project it without reopening or rebuilding the generated package.
    The aligned rule list remains available to the continuation unchanged. -/
