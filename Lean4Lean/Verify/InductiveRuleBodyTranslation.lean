@@ -125,6 +125,36 @@ theorem GeneratedRecursorRuleIotaTargetResult.ofBaseApplication
   exact ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
     translated, typed, resultKind⟩
 
+/- Produce the paired base/target endpoint package from one typed replacement
+   telescope.  The base side is applied in its original model context, while
+   the target side is obtained by the explicit weak-FV transport above. -/
+theorem GeneratedRecursorRuleIotaBaseAndTargetResults.ofBaseApplication
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    {base target : MLCtx} {count : Nat} {arguments : List VExpr}
+    {resultType : VExpr} {insertionLift : Lift} {replacements : List Expr}
+    {rhsSemantic rhsType : VExpr}
+    (rhsTranslated : TrExprS env universes base.vlctx rule.rhs rhsSemantic)
+    (rhsTyped : env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType)
+    (argumentTyping : ElimNestedInductive.TypedParameterArguments env universes base rhsType
+      replacements arguments resultType)
+    (envWF : env.WF) (baseWF : base.WF env universes)
+    (kind : env.SortArity universes.length base.vlctx.toCtx
+      (count + replacements.length) rhsType)
+    (targetWF : target.WF env universes)
+    (insertion : VLCtx.FVLift' base.vlctx target.vlctx 0 insertionLift 0) :
+    GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors ctx constructor
+      minor rule := by
+  obtain ⟨baseTranslated, baseTyped⟩ := argumentTyping.apply rhsTranslated rhsTyped
+  have baseKind := argumentTyping.resultKind envWF baseWF kind
+  obtain ⟨targetTranslated, targetTyped, targetKind⟩ :=
+    argumentTyping.applyWeakFVKind (native := rule.rhs) rhsTranslated rhsTyped envWF
+      kind targetWF insertion
+  exact ⟨base, target, count, arguments, resultType, insertionLift, replacements,
+    rhsSemantic, rhsType, baseTranslated, baseTyped, baseKind, targetTranslated, targetTyped,
+    targetKind⟩
+
 /-- A generated recursive value can be consumed by the actual annotation-peeled
 IH binder recorded in one translated IH step.  The value and its native domain
 are still supplied by the rule producer; this theorem only performs the
