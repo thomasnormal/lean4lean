@@ -1092,7 +1092,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         ∃ entry : RecursorEntry,
           (.recursor entry : RegistrationEntry) ∈ entries preprocessing staged ∧
           entry.info.name = mkRecName types[index].name) : True := by
-  have h := addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistration (venv := venv)
+  have h := addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationIotaBaseAndTargetResults (venv := venv)
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry
   have _ := h
@@ -1147,7 +1147,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         ∃ entry : RecursorEntry,
           (.recursor entry : RegistrationEntry) ∈ entries allowPrimitive preprocessing staged ∧
           entry.info.name = mkRecName types[index].name) : True := by
-  have h := addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistration_of_restorationStages
+  have h := addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationIotaBaseAndTargetResults_of_restorationStages
     (venv := venv)
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry
