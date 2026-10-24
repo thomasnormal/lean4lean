@@ -2583,6 +2583,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have hRestoredIota :=
     metadata.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordIotaBaseAndTargetResultsEvidence
       coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
+  have hRestoredCombined :=
+    metadata.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultAndIotaBaseAndTargetResultsEvidence
+      coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
   trivial
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
