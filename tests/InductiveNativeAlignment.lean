@@ -552,4 +552,9 @@ example {env env' : VEnv} {declaration : VDecl}
     (henv : env.WF) (hdecl : VDecl.WF env declaration env') : env'.WF :=
   VEnv.WF.decl henv hdecl
 
+example {safety : DefinitionSafety} {C C' : ConstMap} {env env' : VEnv}
+    {decl : VInductDecl}
+    (evidence : AddInductEvidence safety C env decl C' env') (hC : C.WF) : C'.WF :=
+  evidence.map_wf hC
+
 end Lean4Lean.Tests.InductiveNativeAlignment

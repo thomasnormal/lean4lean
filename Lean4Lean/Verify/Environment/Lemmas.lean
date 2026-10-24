@@ -684,6 +684,46 @@ theorem TrEnvInductive.find?_uniq (H : TrEnvInductive safety C Q venv)
     ci.name = name ∧ TrConstant safety venv ci ci' :=
   H.aligned.find?_uniq h hs
 
+/-! The constructive inductive receipt carries enough freshness information to
+    establish the constant-map invariant directly.  This is useful at the
+    migration boundary because it does not rely on the legacy `TrEnv'` branch
+    or on the typechecker's family-rejection contract. -/
+theorem AddInductEvidence.map_wf
+    (H : AddInductEvidence safety C env decl C' env') (hC : C.WF) : C'.WF := by
+  cases H with
+  | @intro headers constructors headerEnv hheaders hconstructors headerAdd constructorAdd
+      headerNodup constructorNodup headerFresh constructorFresh mapEq =>
+    have headerFresh' : ∀ info ∈ headers.map (ConstantInfo.inductInfo ·),
+        C.find? info.name = none := by
+      intro info hinfo
+      obtain ⟨header, hheader, rfl⟩ := List.mem_map.mp hinfo
+      exact headerFresh header hheader
+    have headerWF : (insertConsts C (headers.map (ConstantInfo.inductInfo ·))).WF := by
+      apply insertConsts_wf hC headerFresh'
+      have headerNames :
+          (headers.map (ConstantInfo.inductInfo ·)).map (·.name) = headers.map (·.name) := by
+        induction headers with
+        | nil => rfl
+        | cons header headers ih =>
+          simp [ConstantInfo.name, ConstantInfo.toConstantVal]
+      rw [headerNames]
+      exact headerNodup
+    have constructorFresh' : ∀ info ∈ constructors.map (ConstantInfo.ctorInfo ·),
+        (insertConsts C (headers.map (ConstantInfo.inductInfo ·))).find? info.name = none := by
+      intro info hinfo
+      obtain ⟨constructor, hconstructor, rfl⟩ := List.mem_map.mp hinfo
+      exact constructorFresh constructor hconstructor
+    rw [mapEq, insertConsts_append]
+    apply insertConsts_wf headerWF constructorFresh'
+    have constructorNames :
+        (constructors.map (ConstantInfo.ctorInfo ·)).map (·.name) = constructors.map (·.name) := by
+      induction constructors with
+      | nil => rfl
+      | cons constructor constructors ih =>
+        simp [ConstantInfo.name, ConstantInfo.toConstantVal]
+    rw [constructorNames]
+    exact constructorNodup
+
 theorem TrEnvInductive.env_find? {env : Environment}
     (H : TrEnvInductive safety env.constants Q venv)
     (h : env.find? name = some ci) (hs : safety ≤ ci.safety) :
