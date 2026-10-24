@@ -654,6 +654,70 @@ theorem NativeInductive.RestoredRecordEvidence.registrationConstructiveHistory
   have hhistory := producer.to_trEnvInductive history hconstantsWF hrecursors
   exact ⟨hconstructive.1, hconstructive.2, hhistory, hhistory.aligned⟩
 
+/- Add the executable result-map invariant to the constructive history package.
+   The kernel map equation is retained alongside the semantic history instead
+   of being recovered later from an erased registration witness. -/
+theorem NativeInductive.RestoredRecordEvidence.registrationConstructiveHistoryAndMapWF
+    {safety : DefinitionSafety}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive safety constants Q semanticEnv)
+    (hconstantsWF : constants.WF)
+    (hrecursors : ∀ entry ∈ producer.recursors, entry.model.toVConstant.WF
+      producer.constructorEnv) :
+    result.constants = resultConstants ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      TrEnvInductive safety resultConstants Q semanticResult ∧
+      Aligned safety resultConstants semanticResult ∧
+      result.constants.WF := by
+  have hhistory := restored.registrationConstructiveHistory producer halign hconstants
+    history hconstantsWF hrecursors
+  exact ⟨hhistory.1, hhistory.2.1, hhistory.2.2.1, hhistory.2.2.2,
+    restored.registrationMapWF producer halign hconstants hconstantsWF hrecursors⟩
+
+theorem NativeInductive.RestoredRecordEvidence.registrationConstructiveHistoryAndMapWF_of_sourceTypehood
+    {safety : DefinitionSafety}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive safety constants Q semanticEnv)
+    (hconstantsWF : constants.WF)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    result.constants = resultConstants ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      TrEnvInductive safety resultConstants Q semanticResult ∧
+      Aligned safety resultConstants semanticResult ∧
+      result.constants.WF := by
+  have hrecursors := producer.recursorWF_of_sourceTypehood
+    (producer.constructorEnvWF history.wf) hsource
+  exact restored.registrationConstructiveHistoryAndMapWF producer halign hconstants
+    history hconstantsWF hrecursors
+
 theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}
