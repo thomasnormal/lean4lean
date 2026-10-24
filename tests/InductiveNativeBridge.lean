@@ -2846,6 +2846,8 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
               ∃ (constructor : Constructor) (minor : Expr),
                 AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
                   (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) := by
+  have hCombined := restored.registrationConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResults
+    producer halign hconstants history hconstantsWF hrecursors hvalues hsource ruleResults
   exact restored.registrationConstructiveCheckerIotaBaseAndTargetResults producer halign hconstants history
     hconstantsWF hrecursors hvalues hsource ruleResults
 
