@@ -28,6 +28,47 @@ example {env : VEnv} {universes : List Name} {stats : InductiveStats}
   result.resultAndIota
 
 example {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (scope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        GeneratedRecursorRuleResult env universes stats motives minors ctx entry.1 minors[entry.2]! rule ∧
+        GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors
+          ctx entry.1 minors[entry.2]! rule) :
+    List.Forall₂ (fun entry rule =>
+      GeneratedRecursorRuleResult env universes stats motives minors ctx entry.1 minors[entry.2]! rule ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors
+        ctx entry.1 minors[entry.2]! rule) (ctors.zipIdx initial) rules :=
+  scope.impGeneratedRecursorRuleResultAndIota head
+
+example {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {infos : Array RecInfo} {ctx : Context}
+    {kernelEnv : Kernel.Environment}
+    (scope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        GeneratedRecursorRuleResult env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule ∧
+        GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) ctx ctor minor rule) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          GeneratedRecursorRuleResult env universes stats (infos.map (·.motive))
+            (infos.flatMap (·.minors)) ctx ctor minor rule ∧
+          GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) ctx ctor minor rule :=
+  scope.impGeneratedRecursorRuleResultAndIota head
+
+example {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
     {minor : Expr} {rule : RecursorRule}
     (result : GeneratedRecursorRuleResult env universes stats motives minors ctx constructor minor rule) :
@@ -173,9 +214,13 @@ private def audit : MetaM Unit := do
     [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
   exactAxioms ``RecursorRuleRhsScope.impGeneratedRecursorRuleIotaBaseAndTargetResults
     [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
+  exactAxioms ``RecursorRuleRhsScope.impGeneratedRecursorRuleResultAndIota
+    [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
   exactAxioms ``LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResult
     [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
   exactAxioms ``LocalRecursorRuleRhsScope.impGeneratedRecursorRuleIotaBaseAndTargetResults
+    [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
+  exactAxioms ``LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResultAndIota
     [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
   exactAxioms ``RecursorRuleRhsScope.impGeneratedRecursorRuleResultSemantics
     [``propext, ``sorryAx, ``Classical.choice, ``Quot.sound]
@@ -265,7 +310,7 @@ private def audit : MetaM Unit := do
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
   unless count == 119 do throwError "rule body: expected one hundred nineteen owned declarations, got {count}"
-  auditOwnedModule `Lean4Lean.Verify.InductiveGeneratedRuleResult 52
+  auditOwnedModule `Lean4Lean.Verify.InductiveGeneratedRuleResult 54
   auditOwnedModule `Lean4Lean.Verify.InductiveNativeTelescopeArguments 12
   logInfo m!"projected closed registration RuleSemantics from the paired all-rule callback without reopening generated packages, split closed/generated indexed callback paired at the registration boundary, paired closed rule-body semantics with generated constructor-RHS result package through local indexed and aligned all-rule dual-receipt consumers, indexed local generated constructor-RHS result consumer with explicit body/source/applied witnesses, all-rule and local dual-receipt adapters, indexed local rule-semantics receipt/result consumer, all-rule scoped-and-ordinary receipt consumer adapter, indexed local scoped-and-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt lookup, all-rule scoped receipt consumer adapter, indexed scoped-to-ordinary receipt lookup, all-rule scoped-to-ordinary receipt projection, direct scoped/fvar/count result transport, generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
 
