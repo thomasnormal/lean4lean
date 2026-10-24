@@ -4899,7 +4899,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
         hpre, hrun, hscope, hprefix, hframe, hcounts, hindexing, hdistinct, hsources,
         hlookups, hbranch, hsemantic⟩⟩ :=
-    addDecl.checkedPrimitiveModelAndAlignmentSemantics hmap hcheck hresult coverage entries records_eq
+    addDecl.checkedPrimitiveModelAndAlignmentIotaBaseAndTargetResultsSemantics hmap hcheck hresult coverage entries records_eq
       producer entry_eq hconstants hresultConstants history hsource hvalues ruleResult hrecursor hentry venv
   have _modelDecl : VInductDecl := modelDecl
   have _kind := hkind
