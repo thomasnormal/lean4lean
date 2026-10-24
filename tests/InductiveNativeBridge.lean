@@ -2472,7 +2472,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
           | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
               TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
               ∃ (constructor : Constructor) (minor : Expr),
-                AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
                   (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) := by
   exact restored.registrationConstructiveCheckerIotaBaseAndTargetResults producer halign hconstants history
     hconstantsWF hrecursors hvalues hsource ruleResults
@@ -4895,6 +4895,36 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := hlookupsRestored
   have _ := hsemanticRestored
   have _ := hfinalRestored
+  obtain ⟨modelDeclRestoredIota, hkindRestoredIota, hheadersRestoredIota,
+      hdeclWFRestoredIota, htranslationRestoredIota,
+      ⟨preprocessingRestoredIota, stagedRestoredIota, statsRestoredIota,
+        rootRestoredIota, constructorsRestoredIota, elimLevelRestoredIota,
+        infosRestoredIota, sourceRestoredIota, hpreRestoredIota,
+        hrunRestoredIota, hscopeRestoredIota, hprefixRestoredIota,
+        hlookupsRestoredIota, hsemanticRestoredIota, hfinalRestoredIota⟩⟩ :=
+    addDecl.checkedPrimitiveModelAndRestoredAlignmentIotaBaseAndTargetResultsSemantics
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants
+      hresultConstants history hsource hvalues ruleResult hrecursor hentry venv
+  have _modelDeclRestoredIota : VInductDecl := modelDeclRestoredIota
+  have _ := hkindRestoredIota
+  have _ := hheadersRestoredIota
+  have _ := hdeclWFRestoredIota
+  have _ := htranslationRestoredIota
+  have _preRestoredIota : ElimNestedInductive.Result := preprocessingRestoredIota
+  have _stagedRestoredIota : Kernel.Environment := stagedRestoredIota
+  have _statsRestoredIota : AddInductive.InductiveStats := statsRestoredIota
+  have _rootRestoredIota : AddInductive.Context := rootRestoredIota
+  have _constructorsRestoredIota : Kernel.Environment := constructorsRestoredIota
+  have _elimLevelRestoredIota : Level := elimLevelRestoredIota
+  have _infosRestoredIota : Array AddInductive.RecInfo := infosRestoredIota
+  have _sourceRestoredIota : AddInductive.Context := sourceRestoredIota
+  have _ := hpreRestoredIota
+  have _ := hrunRestoredIota
+  have _ := hscopeRestoredIota
+  have _ := hprefixRestoredIota
+  have _ := hlookupsRestoredIota
+  have _ := hsemanticRestoredIota
+  have _ := hfinalRestoredIota
   obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation,
       ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
         hpre, hrun, hscope, hprefix, hframe, hcounts, hindexing, hdistinct, hsources,
