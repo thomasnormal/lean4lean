@@ -3343,6 +3343,10 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
         entry.info.name = mkRecName types[index].name) : True := by
   have h := restored.sourceRecursorGeneratedRuleStructuralAndIotaBaseAndTargetResults
     producer halign hlookups ruleResult hrecursor hentry
+  have hCombined :=
+    restored.sourceRecursorGeneratedRuleStructuralGeneratedRuleResultAndIotaBaseAndTargetResults
+      producer halign hlookups ruleResult hrecursor hentry
+  have _ := hCombined
   trivial
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
