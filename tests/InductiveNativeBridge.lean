@@ -26,6 +26,8 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_sourceRecursorGeneratedRuleStructuralAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultsAndIota
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIota
+#check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultAndIotaBaseAndTargetResults
+#check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaBaseAndTargetResults
 #check addDecl.orderedGeneratedRuleResultAndIotaBaseAndTargetResults_of_generatedRuleResults
 
@@ -730,6 +732,8 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
   have h := restored.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIota
     producer halign hconstants history hrecursors hvalues ruleResults
+  have hNamed := restored.toCheckerEnvInductive_and_registrationGeneratedRuleResultAndIotaBaseAndTargetResults
+    producer halign hconstants history hrecursors hvalues ruleResults
   trivial
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
@@ -1010,6 +1014,8 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
   have h := restored.registrationGeneratedRuleResultsAndIota producer halign ruleResults
+  have hNamed := restored.registrationGeneratedRuleResultAndIotaBaseAndTargetResults
+    producer halign ruleResults
   trivial
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}

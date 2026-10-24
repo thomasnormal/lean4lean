@@ -1557,6 +1557,37 @@ theorem NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultsA
     exact hmem
   exact producer.orderedGeneratedRuleResultsAndIota ruleResults entry hproducer
 
+/- Name the restored ordered package by its complete generated result and its
+   paired base/target iota endpoint, while reusing the same entry alignment. -/
+theorem NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultAndIotaBaseAndTargetResults
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ restored.entries,
+      entry.RuleSemantics semanticResult ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+            ∃ (constructor : Constructor) (minor : Expr),
+              AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+              AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  exact restored.registrationGeneratedRuleResultsAndIota producer halign ruleResults
+
 /- Pair restored checker validity with the ordered complete generated-result and
    iota package for consumers that already supply recursor WF evidence. -/
 theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIota
@@ -1598,6 +1629,48 @@ theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registr
                   (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) := by
   exact ⟨restored.toCheckerEnvInductive producer halign hconstants history hrecursors hvalues,
     restored.registrationGeneratedRuleResultsAndIota producer halign ruleResults⟩
+
+/- Expose the same restored checker package under the explicit complete-result
+   plus base/target-iota contract. -/
+theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultAndIotaBaseAndTargetResults
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      (∀ entry ∈ restored.entries,
+        entry.RuleSemantics semanticResult ∧ match entry with
+          | .header _ | .constructor _ => True
+          | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+              TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+              ∃ (constructor : Constructor) (minor : Expr),
+                AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                  (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+                AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                  (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) := by
+  exact ⟨restored.toCheckerEnvInductive producer halign hconstants history hrecursors hvalues,
+    restored.registrationGeneratedRuleResultAndIotaBaseAndTargetResults producer halign ruleResults⟩
 
 /- The restored executable record can expose the named iota package without
    reopening its constant map.  The alignment equality is the only bridge
