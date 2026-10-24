@@ -340,22 +340,28 @@ theorem GeneratedConstructorRuleRhsResult.iotaKind
 /- Consumers that check the final recursor application need only the target-side
    translated expression and its terminal type/kind.  Keep this endpoint named
    so they do not have to reopen the complete generated constructor package. -/
+abbrev GeneratedRecursorRuleIotaTargetResult
+    (env : VEnv) (universes : List Name) (stats : InductiveStats)
+    (motives minors : Array Expr) (ctx : Context) (constructor : Constructor)
+    (minor : Expr) (rule : RecursorRule) : Prop :=
+  ∃ (target : MLCtx) (count : Nat) (arguments : List VExpr) (resultType : VExpr)
+    (insertionLift : Lift) (replacements : List Expr) (rhsSemantic : VExpr),
+    TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift))) ∧
+    env.HasType universes.length target.vlctx.toCtx
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift)))
+      (resultType.lift' insertionLift) ∧
+    env.SortArity universes.length target.vlctx.toCtx count
+      (resultType.lift' insertionLift)
+
 theorem GeneratedRecursorRuleIotaKind.targetResult
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
     {minor : Expr} {rule : RecursorRule}
     (iota : GeneratedRecursorRuleIotaKind env universes stats motives minors ctx constructor minor rule) :
-    ∃ (target : MLCtx) (count : Nat) (arguments : List VExpr) (resultType : VExpr)
-      (insertionLift : Lift) (replacements : List Expr) (rhsSemantic : VExpr),
-      TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
-        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
-          (arguments.map (VExpr.lift' · insertionLift))) ∧
-      env.HasType universes.length target.vlctx.toCtx
-        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
-          (arguments.map (VExpr.lift' · insertionLift)))
-        (resultType.lift' insertionLift) ∧
-      env.SortArity universes.length target.vlctx.toCtx count
-        (resultType.lift' insertionLift) := by
+    GeneratedRecursorRuleIotaTargetResult env universes stats motives minors ctx constructor minor rule := by
   rcases iota with ⟨base, target, count, arguments, resultType, insertionLift, replacements,
     rhsSemantic, rhsType, ruleReceipt, rhsTranslated, rhsTyped, rhsKind,
     baseResultTranslated, baseResultTyped, baseResultKind, resultTranslated,

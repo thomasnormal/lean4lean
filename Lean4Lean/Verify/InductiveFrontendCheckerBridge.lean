@@ -491,6 +491,27 @@ theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaKind
     entry hentry rule hrule
   exact ⟨constructor, minor, generated.iotaKind⟩
 
+/- Carry the target-side iota endpoint through the registration boundary while
+   retaining the generated constructor/minor witness for rule alignment. -/
+theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaTargetResult
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleIotaTargetResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  intro entry hentry rule hrule
+  obtain ⟨constructor, minor, hiota⟩ :=
+    evidence.recursorGeneratedRuleIotaKind ruleResults entry hentry rule hrule
+  exact ⟨constructor, minor, hiota.targetResult⟩
+
 theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleResults
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants

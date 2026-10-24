@@ -4950,10 +4950,10 @@ example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEn
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
     (entry : RecursorEntry) (hentry : entry ∈ evidence.recursors)
     (rule : RecursorRule) (hrule : rule ∈ entry.info.rules) : True := by
-  obtain ⟨constructor, minor, hiota⟩ :=
-    evidence.recursorGeneratedRuleIotaKind ruleResults entry hentry rule hrule
+  obtain ⟨constructor, minor, targetResult⟩ :=
+    evidence.recursorGeneratedRuleIotaTargetResult ruleResults entry hentry rule hrule
   obtain ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
-      htranslated, htyped, hkind⟩ := hiota.targetResult
+      htranslated, htyped, hkind⟩ := targetResult
   have _constructor : Constructor := constructor
   have _minor : Expr := minor
   have _target : TypeChecker.MLCtx := target
