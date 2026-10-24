@@ -38,6 +38,43 @@ theorem _root_.Lean4Lean.VEnv.SortArity.weak'
       (by simpa only [VExpr.lift'] using equality.weak' ordered insertion)
       (induction insertion.cons)
 
+/- Apply a typed replacement telescope after moving its function and argument
+   witnesses through an explicit base-to-target context insertion.  This is
+   the reduction-facing consumer shared by recursor iota proofs: the target
+   translation, terminal typing, and sort arity are all derived from the base
+   RHS receipt rather than reconstructed from the native application shape. -/
+theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.applyWeakFVKind
+    {env : VEnv} {universes : List Name} {base target : MLCtx}
+    {native : Expr}
+    {rhsSemantic rhsType : VExpr} {replacements : List Expr}
+    {arguments : List VExpr} {resultType : VExpr} {count : Nat}
+    (argumentTyping : ElimNestedInductive.TypedParameterArguments env universes base rhsType
+      replacements arguments resultType)
+    (rhsTranslated : TrExprS env universes base.vlctx native rhsSemantic)
+    (rhsTyped : env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType)
+    (envWF : env.WF)
+    (kind : env.SortArity universes.length base.vlctx.toCtx
+      (count + replacements.length) rhsType)
+    (targetWF : target.WF env universes)
+    {insertionLift : Lift}
+    (insertion : VLCtx.FVLift' base.vlctx target.vlctx 0 insertionLift 0) :
+    TrExprS env universes target.vlctx
+      (native.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift))) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift)))
+        (resultType.lift' insertionLift) ∧
+      env.SortArity universes.length target.vlctx.toCtx count
+        (resultType.lift' insertionLift) := by
+  have targetArguments := argumentTyping.weakFV envWF targetWF insertion
+  obtain ⟨translated, typed⟩ := targetArguments.apply
+    (rhsTranslated.weakFV' envWF.ordered insertion targetWF.tr.wf)
+    (rhsTyped.weak' envWF.ordered insertion.toCtx)
+  exact ⟨translated, typed,
+    targetArguments.resultKind envWF targetWF (kind.weak' envWF.ordered insertion.toCtx)⟩
+
 /-- A generated recursive value can be consumed by the actual annotation-peeled
 IH binder recorded in one translated IH step.  The value and its native domain
 are still supplied by the rule producer; this theorem only performs the
@@ -1365,11 +1402,10 @@ theorem RecursorRuleRhsReceipt.applyIotaWeakFVKind
         (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
           (arguments.map (VExpr.lift' · insertionLift))) (resultType.lift' insertionLift) ∧
       env.SortArity universes.length target.vlctx.toCtx count (resultType.lift' insertionLift) := by
-  obtain ⟨receipt, translated, typed, resultKind⟩ := receipt.applyIotaKind
-    (rhsTranslated.weakFV' envWF.ordered insertion targetWF.tr.wf)
-    (rhsTyped.weak' envWF.ordered insertion.toCtx)
-    (argumentTyping.weakFV envWF targetWF insertion) envWF targetWF
-    (kind.weak' envWF.ordered insertion.toCtx)
+  obtain ⟨translated, typed, resultKind⟩ :=
+    ElimNestedInductive.TypedParameterArguments.applyWeakFVKind argumentTyping
+    (native := rule.rhs) rhsTranslated rhsTyped envWF
+    kind targetWF insertion
   exact ⟨receipt, translated, typed, resultKind⟩
 
 /- Compose the base-context iota/kind receipt with its target-context weak-FV
