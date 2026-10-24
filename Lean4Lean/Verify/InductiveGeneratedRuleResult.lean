@@ -774,6 +774,49 @@ theorem LocalRecursorRuleRhsScope.ruleResultSemantics
   exact ⟨rule, minor, hrule, hminor,
     head parent recursor index ctor rule minor hreceipt (hreceipt.fvars.counts.receipt)⟩
 
+/- Preserve the generated package and expose its paired base/target iota
+   endpoint at the indexed recursor boundary.  The pair is projected from the
+   same result supplied by the producer, so constructor/rule alignment and the
+   closed RHS semantic witness remain unchanged. -/
+theorem LocalRecursorRuleRhsScope.ruleResultSemanticsAndIota
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := infos.map (·.motive))
+          (minors := infos.flatMap (·.minors)) (ctx := ctx)
+          (constructor := ctor) (minor := minor) (rule := rule)) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+          GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+            (stats := stats) (motives := infos.map (·.motive))
+            (minors := infos.flatMap (·.minors)) (ctx := ctx)
+            (constructor := ctor) (minor := minor) (rule := rule) ∧
+          GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) ctx ctor minor rule := by
+  intro parent hparent
+  obtain ⟨recursor, hfind, hreceipts⟩ := hscope parent hparent
+  refine ⟨recursor, hfind, ?_⟩
+  intro index ctor hctor
+  obtain ⟨rule, minor, hrule, hminor, hreceipt⟩ := hreceipts index ctor hctor
+  obtain ⟨closed, generated⟩ :=
+    head parent recursor index ctor rule minor hreceipt (hreceipt.fvars.counts.receipt)
+  obtain ⟨semantic, translated⟩ := closed
+  exact ⟨rule, minor, hrule, hminor, ⟨semantic, translated⟩, generated,
+    generated.iotaKind.baseAndTargetResults⟩
+
 /- Keep the closed RHS translation and the generated applied-result package as
    separate producer callbacks until the indexed registration boundary pairs
    them.  This mirrors the distinct complete-rule callback in the CPS layer. -/

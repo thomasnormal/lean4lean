@@ -11,6 +11,8 @@ namespace Lean4Lean.Tests.InductiveNativeBridge
 open Lean Lean4Lean Lean4Lean.NativeInductive
 open Lean4Lean.AddInductive.declareConstructors
 
+#check AddInductive.LocalRecursorRuleRhsScope.ruleResultSemanticsAndIota
+
 example {env : VEnv} {universes : List Name} {stats : AddInductive.InductiveStats}
     {motives minors : Array Expr} {ctx : AddInductive.Context} {constructor : Constructor}
     {minor : Expr} {rule : RecursorRule}
