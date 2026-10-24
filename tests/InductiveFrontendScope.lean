@@ -365,6 +365,7 @@ run_meta
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedRecursorTypes true true
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultCPS true true
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedGeneratedRuleIotaCPS true true
+  audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultAndIotaCPS true true
   audit ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleIotaCPS true true
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedInitialAndFinalTypehood true true
   let env := (← Lean.getEnv).toKernelEnv
