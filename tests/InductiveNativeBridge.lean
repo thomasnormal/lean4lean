@@ -2249,6 +2249,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have hIota := metadata.sourceRecursorRuleStagesGeneratedResultsAndAlignmentIotaBaseAndTargetResultsSemantics
     coverage entries records_eq producer entry_eq hconstants history hsource hvalues
     ruleResult hrecursor hentry
+  have hSemanticIota :=
+    metadata.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralIotaBaseAndTargetResults
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
   trivial
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
@@ -3849,11 +3853,16 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralIotaBaseAndTargetResults_of_checkedPrimitive
       hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
       hvalues ruleResult hrecursor hentry
+  have hSemanticIota :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralIotaBaseAndTargetResults_of_checkedPrimitive
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+      hvalues ruleResult hrecursor hentry
   have hm := addDecl.checkedPrimitiveModelAndCheckerStructural
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry venv
   have _ := h
   have _ := hIota
+  have _ := hSemanticIota
   have _ := hm
   trivial
 
