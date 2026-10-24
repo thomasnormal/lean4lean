@@ -3095,7 +3095,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
     (hentry : ∀ (index : Nat) (hindex : index < types.length),
       ∃ entry : RecursorEntry, (.recursor entry : RegistrationEntry) ∈ restored.entries ∧
         entry.info.name = mkRecName types[index].name) : True := by
-  have h := restored.registrationSemanticAndStructural producer halign hconstants history hsource
+  have h := restored.registrationSemanticAndStructuralIotaBaseAndTargetResults producer halign hconstants history hsource
     hvalues hlookups ruleResult hrecursor hentry
   trivial
 
