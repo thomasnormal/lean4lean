@@ -526,6 +526,26 @@ theorem NativeInductive.RestoredRecordEvidence.registrationConstructive
   refine ⟨restored.registrationConstants producer halign hconstants, ?_⟩
   exact producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors
 
+theorem NativeInductive.RestoredRecordEvidence.registrationMapWF
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hconstantsWF : constants.WF)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    result.constants.WF := by
+  have hresultConstants := restored.registrationConstants producer halign hconstants
+  rw [hresultConstants]
+  exact (producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors).map_wf hconstantsWF
+
 /- Package constructive registration with the resulting semantic history and
    its alignment receipt.  The restored map equation remains the bridge from
    executable records to the supplied producer. -/
