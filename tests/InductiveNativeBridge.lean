@@ -4057,10 +4057,20 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndRegistrationIotaBaseAndTargetResults_of_checkedPrimitive
       hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
+  have hStagesGenerated :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultAndIotaBaseAndTargetResults_of_checkedPrimitive
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
   have h := addDecl.checkedPrimitiveModelAndRegistrationSemanticsIotaBaseAndTargetResults (venv := venv)
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry
+  have hGenerated :=
+    addDecl.checkedPrimitiveModelAndRegistrationSemanticsGeneratedRuleResultAndIotaBaseAndTargetResults
+      (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+      hvalues ruleResult hrecursor hentry
   have _ := h
+  have _ := hStagesGenerated
+  have _ := hGenerated
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
@@ -4114,10 +4124,20 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndRegistrationIotaBaseAndTargetResults_of_restorationStages
       hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
+  have hStagesGenerated :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
+      hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
   have h := addDecl.checkedPrimitiveModelAndRegistrationSemanticsIotaBaseAndTargetResults_of_restorationStages (venv := venv)
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
     ruleResult hrecursor hentry
+  have hGenerated :=
+    addDecl.checkedPrimitiveModelAndRegistrationSemanticsGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
+      (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+      hvalues ruleResult hrecursor hentry
   have _ := h
+  have _ := hStagesGenerated
+  have _ := hGenerated
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
