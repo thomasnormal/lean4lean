@@ -512,6 +512,28 @@ theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaTargetResu
     evidence.recursorGeneratedRuleIotaKind ruleResults entry hentry rule hrule
   exact ⟨constructor, minor, hiota.targetResult⟩
 
+/- Keep the pre-lift and target-side iota endpoints together at the registration
+   boundary.  A reduction consumer can use the shared replacement and argument
+   witnesses without reopening the full generated constructor package. -/
+theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaBaseAndTargetResults
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  intro entry hentry rule hrule
+  obtain ⟨constructor, minor, hiota⟩ :=
+    evidence.recursorGeneratedRuleIotaKind ruleResults entry hentry rule hrule
+  exact ⟨constructor, minor, hiota.baseAndTargetResults⟩
+
 theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleResults
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants

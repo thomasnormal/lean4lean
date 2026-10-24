@@ -44,6 +44,21 @@ example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEn
       ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule :=
+  evidence.recursorGeneratedRuleIotaBaseAndTargetResults ruleResults
+
+example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult) {stats : AddInductive.InductiveStats}
+    {infos : Array AddInductive.RecInfo} {source : AddInductive.Context}
+    {universes : List Name}
+    (ruleResults : ∀ (entry : RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
     ∀ entry ∈ evidence.orderedEntries,
       entry.RuleSemantics semanticResult ∧ match entry with
         | .header _ | .constructor _ => True

@@ -390,25 +390,32 @@ theorem GeneratedRecursorRuleIotaKind.baseResult
 
 /- Preserve the shared witnesses when a consumer needs both pre-lift and
    target-side endpoints together. -/
+abbrev GeneratedRecursorRuleIotaBaseAndTargetResults
+    (env : VEnv) (universes : List Name) (stats : InductiveStats)
+    (motives minors : Array Expr) (ctx : Context) (constructor : Constructor)
+    (minor : Expr) (rule : RecursorRule) : Prop :=
+  ∃ (base target : MLCtx) (count : Nat) (arguments : List VExpr) (resultType : VExpr)
+    (insertionLift : Lift) (replacements : List Expr) (rhsSemantic rhsType : VExpr),
+    TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
+    env.HasType universes.length base.vlctx.toCtx
+      (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType ∧
+    env.SortArity universes.length base.vlctx.toCtx count resultType ∧
+    TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift))) ∧
+    env.HasType universes.length target.vlctx.toCtx
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift))) (resultType.lift' insertionLift) ∧
+    env.SortArity universes.length target.vlctx.toCtx count (resultType.lift' insertionLift)
+
 theorem GeneratedRecursorRuleIotaKind.baseAndTargetResults
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
     {minor : Expr} {rule : RecursorRule}
     (iota : GeneratedRecursorRuleIotaKind env universes stats motives minors ctx constructor minor rule) :
-    ∃ (base target : MLCtx) (count : Nat) (arguments : List VExpr) (resultType : VExpr)
-      (insertionLift : Lift) (replacements : List Expr) (rhsSemantic rhsType : VExpr),
-      TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
-        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
-      env.HasType universes.length base.vlctx.toCtx
-        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType ∧
-      env.SortArity universes.length base.vlctx.toCtx count resultType ∧
-      TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
-        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
-          (arguments.map (VExpr.lift' · insertionLift))) ∧
-      env.HasType universes.length target.vlctx.toCtx
-        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
-          (arguments.map (VExpr.lift' · insertionLift))) (resultType.lift' insertionLift) ∧
-      env.SortArity universes.length target.vlctx.toCtx count (resultType.lift' insertionLift) := by
+    GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors ctx
+      constructor minor rule := by
   rcases iota with ⟨base, target, count, arguments, resultType, insertionLift, replacements,
     rhsSemantic, rhsType, ruleReceipt, rhsTranslated, rhsTyped, rhsKind,
     baseResultTranslated, baseResultTyped, baseResultKind, resultTranslated,
