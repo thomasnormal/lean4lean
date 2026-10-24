@@ -267,6 +267,20 @@ theorem RegistrationEvidence.to_addInductWithRecursorsEvidence_of_sourceTypehood
     (evidence.constructorEnvWF henv) hsource
   exact evidence.to_addInductWithRecursorsEvidence hconstants hrecursors
 
+theorem RegistrationEvidence.to_addInductWithRecursorsEvidence_at_of_sourceTypehood
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (safety : DefinitionSafety) (hconstants : constants.WF) (henv : env.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    AddInductWithRecursorsEvidence safety constants env decl
+      evidence.constructorConstants evidence.constructorEnv
+      (evidence.recursors.map (·.info)) (evidence.recursors.map (·.model))
+      resultConstants result := by
+  have hrecursors := evidence.recursorWF_of_sourceTypehood
+    (evidence.constructorEnvWF henv) hsource
+  exact evidence.to_addInductWithRecursorsEvidence_at safety hconstants hrecursors
+
 theorem RegistrationEvidence.to_trEnvInductive_of_sourceTypehood
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (history : TrEnvInductive safety constants Q env) (hconstants : constants.WF)
