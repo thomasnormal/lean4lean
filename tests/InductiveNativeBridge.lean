@@ -19,6 +19,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_checkedPrimitive
+#check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 
 example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
     {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
@@ -2416,6 +2417,32 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
   have h := restored.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultSemantics_of_sourceTypehood
+    producer halign hconstants history hsource hvalues ruleResult
+  trivial
+
+example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} {preprocessing : ElimNestedInductive.Result}
+    {staged : Kernel.Environment} {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResult : ∀ (entry : RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
+  have h := restored.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
     producer halign hconstants history hsource hvalues ruleResult
   trivial
 
