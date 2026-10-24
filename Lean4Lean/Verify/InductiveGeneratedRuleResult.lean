@@ -369,6 +369,38 @@ theorem GeneratedRecursorRuleIotaKind.targetResult
   exact ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
     resultTranslated, resultTyped, resultKind⟩
 
+/- Named eliminators expose the individual target obligations to consumers that
+   only need terminal typing or sort information. -/
+theorem GeneratedRecursorRuleIotaTargetResult.hasType
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (targetResult : GeneratedRecursorRuleIotaTargetResult env universes stats motives minors
+      ctx constructor minor rule) :
+    ∃ (target : MLCtx) (count : Nat) (arguments : List VExpr) (resultType : VExpr)
+      (insertionLift : Lift) (replacements : List Expr) (rhsSemantic : VExpr),
+      env.HasType universes.length target.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift)))
+        (resultType.lift' insertionLift) := by
+  rcases targetResult with ⟨target, count, arguments, resultType, insertionLift, replacements,
+    rhsSemantic, _translated, typed, _sortArity⟩
+  exact ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic, typed⟩
+
+theorem GeneratedRecursorRuleIotaTargetResult.sortArity
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (targetResult : GeneratedRecursorRuleIotaTargetResult env universes stats motives minors
+      ctx constructor minor rule) :
+    ∃ (target : MLCtx) (count : Nat) (arguments : List VExpr) (resultType : VExpr)
+      (insertionLift : Lift) (replacements : List Expr) (rhsSemantic : VExpr),
+      env.SortArity universes.length target.vlctx.toCtx count
+        (resultType.lift' insertionLift) := by
+  rcases targetResult with ⟨target, count, arguments, resultType, insertionLift, replacements,
+    rhsSemantic, _translated, _typed, sortArity⟩
+  exact ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic, sortArity⟩
+
 /- Lift the explicit generated constructor-RHS package through every aligned
    rule.  The callback remains the producer/consumer boundary: it supplies
    the minor step, opening, extension, and context premises needed to obtain

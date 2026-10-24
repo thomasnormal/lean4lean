@@ -5064,6 +5064,7 @@ example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEn
     (rule : RecursorRule) (hrule : rule ∈ entry.info.rules) : True := by
   obtain ⟨constructor, minor, targetResult⟩ :=
     evidence.recursorGeneratedRuleIotaTargetResult ruleResults entry hentry rule hrule
+  let targetResult' := targetResult
   obtain ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
       htranslated, htyped, hkind⟩ := targetResult
   have _constructor : Constructor := constructor
@@ -5078,6 +5079,8 @@ example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEn
   have _translated := htranslated
   have _typed := htyped
   have _kind := hkind
+  have _typedProjection := AddInductive.GeneratedRecursorRuleIotaTargetResult.hasType targetResult'
+  have _sortProjection := AddInductive.GeneratedRecursorRuleIotaTargetResult.sortArity targetResult'
   trivial
 
 run_meta
