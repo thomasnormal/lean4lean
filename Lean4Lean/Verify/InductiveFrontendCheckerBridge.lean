@@ -566,6 +566,62 @@ theorem NativeInductive.RestoredRecordEvidence.registrationMapWF_of_sourceTypeho
   exact restored.registrationMapWF producer halign hconstants hconstantsWF
     (producer.recursorWF_of_sourceTypehood (producer.constructorEnvWF hsemanticEnvWF) hsource)
 
+/- Keep the restored executable map equation, constructive registration receipt,
+   and result-side map invariant together.  This is the map-WF package used at
+   the boundary where native records are consumed by the verified frontend. -/
+theorem NativeInductive.RestoredRecordEvidence.registrationConstructiveAndMapWF
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hconstantsWF : constants.WF)
+    (hrecursors : ∀ entry ∈ producer.recursors, entry.model.toVConstant.WF
+      producer.constructorEnv) :
+    result.constants = resultConstants ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      result.constants.WF := by
+  have hconstructive := restored.registrationConstructive producer halign hconstants
+    hconstantsWF hrecursors
+  exact ⟨hconstructive.1, hconstructive.2,
+    restored.registrationMapWF producer halign hconstants hconstantsWF hrecursors⟩
+
+theorem NativeInductive.RestoredRecordEvidence.registrationConstructiveAndMapWF_of_sourceTypehood
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hconstantsWF : constants.WF) (hsemanticEnvWF : semanticEnv.WF)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    result.constants = resultConstants ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      result.constants.WF := by
+  have hrecursors := producer.recursorWF_of_sourceTypehood
+    (producer.constructorEnvWF hsemanticEnvWF) hsource
+  exact restored.registrationConstructiveAndMapWF producer halign hconstants
+    hconstantsWF hrecursors
+
 /- Package constructive registration with the resulting semantic history and
    its alignment receipt.  The restored map equation remains the bridge from
    executable records to the supplied producer. -/
