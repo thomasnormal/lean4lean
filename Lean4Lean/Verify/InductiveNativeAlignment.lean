@@ -333,5 +333,25 @@ theorem RegistrationEvidence.toCheckerEnvInductive
   intro name ci value h hs hsafe hv
   exact hvalues name ci h hs hsafe hv
 
+theorem RegistrationEvidence.toCheckerEnvInductive_of_sourceTypehood
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (native resultNative : Kernel.Environment)
+    (history : TrEnvInductive safety native.constants Q env)
+    (hmap : native.constants = constants) (hresultMap : resultNative.constants = resultConstants)
+    (hconstants : constants.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr result ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety resultNative result Q := by
+  have hrecursors := evidence.recursorWF_of_sourceTypehood
+    (evidence.constructorEnvWF history.wf) hsource
+  exact evidence.toCheckerEnvInductive native resultNative history hmap hresultMap
+    hconstants hrecursors hvalues
+
 end NativeInductive
 end Lean4Lean
