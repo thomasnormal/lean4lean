@@ -12617,6 +12617,78 @@ theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResu
     obtain ⟨constructor, minor, hiota⟩ := hgenerated
     exact ⟨semantic, hsemantic, constructor, minor, hiota.baseAndTargetResults⟩
 
+/- Retain the constructive checker package's complete generated result and
+   derive the paired base/target iota endpoint from that same witness. -/
+theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool} {venv : VEnv}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
+      modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
+      (∀ venv', venv.addInductHeaders modelDecl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types modelDecl) ∧
+      SafeInductiveFrontendScope env lparams nparams types true fuel result ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      Aligned .safe resultConstants semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive .safe resultConstants Q semanticResult ∧
+      CheckerEnvInductive .safe result semanticResult Q ∧
+      ∀ entry ∈ producer.orderedEntries,
+        entry.RuleSemantics semanticResult ∧ match entry with
+          | .header _ | .constructor _ => True
+          | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+              TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+              ∃ (constructor : Constructor) (minor : Expr),
+                AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                  (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+                AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                  (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hscope, hregistration,
+      haligned, hmapResult, hhistory, hchecker, hresults⟩ :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage
+      hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+      hsource hvalues ruleResults
+  refine ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hscope, hregistration,
+    haligned, hmapResult, hhistory, hchecker, ?_⟩
+  intro entry hentry
+  obtain ⟨hsemantics, hrules⟩ := hresults entry hentry
+  refine ⟨hsemantics, ?_⟩
+  cases entry with
+  | header _ => trivial
+  | constructor _ => trivial
+  | recursor entry =>
+    intro rule hrule
+    obtain ⟨semantic, hsemantic, hgenerated⟩ := hrules rule hrule
+    obtain ⟨constructor, minor, hresult⟩ := hgenerated
+    exact ⟨semantic, hsemantic, constructor, minor, hresult,
+      hresult.iotaKind.baseAndTargetResults⟩
 
 theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
