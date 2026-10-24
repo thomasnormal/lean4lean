@@ -645,6 +645,44 @@ theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleIotaTargetResul
         evidence.recursorGeneratedRuleIotaTargetResult ruleResults recursor hentry rule hrule
       exact ⟨semantic, translated, constructor, minor, targetResult⟩
 
+/- Preserve the ordered traversal while exposing both iota endpoints, so a
+   consumer can compare the pre-lift and inserted contexts on the same rule. -/
+theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleIotaBaseAndTargetResults
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.RuleSemantics semanticResult ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+            ∃ (constructor : Constructor) (minor : Expr),
+              AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  intro entry hmem
+  simp only [NativeInductive.RegistrationEvidence.orderedEntries, List.mem_append] at hmem
+  rcases hmem with hphase | hrecursors
+  · rcases hphase with hheaders | hconstructors
+    · rcases List.mem_map.mp hheaders with ⟨header, _, rfl⟩
+      exact ⟨trivial, trivial⟩
+    · rcases List.mem_map.mp hconstructors with ⟨constructor, _, rfl⟩
+      exact ⟨trivial, trivial⟩
+  · rcases List.mem_map.mp hrecursors with ⟨recursor, hentry, rfl⟩
+    refine ⟨?_, ?_⟩
+    · intro rule hrule
+      exact evidence.recursorRuleTranslation recursor hentry rule hrule
+    · intro rule hrule
+      obtain ⟨semantic, translated⟩ := evidence.recursorRuleTranslation recursor hentry rule hrule
+      obtain ⟨constructor, minor, both⟩ :=
+        evidence.recursorGeneratedRuleIotaBaseAndTargetResults ruleResults recursor hentry rule hrule
+      exact ⟨semantic, translated, constructor, minor, both⟩
+
 /- The restored executable record and the constructive producer expose the same
    registration map.  Keep the two receipts together for consumers that need
    both the result-side constant equation and the model-side AddInduct proof. -/
