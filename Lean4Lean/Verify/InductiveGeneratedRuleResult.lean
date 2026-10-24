@@ -423,6 +423,40 @@ theorem GeneratedRecursorRuleIotaKind.baseAndTargetResults
   exact ⟨base, target, count, arguments, resultType, insertionLift, replacements, rhsSemantic, rhsType,
     baseResultTranslated, baseResultTyped, baseResultKind, resultTranslated, resultTyped, resultKind⟩
 
+/- Named eliminators for the paired endpoint let consumers select one side
+   without reopening the full generated-rule receipt. -/
+theorem GeneratedRecursorRuleIotaBaseAndTargetResults.baseResult
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (results : GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors
+      ctx constructor minor rule) :
+    ∃ (base : MLCtx) (count : Nat) (arguments : List VExpr) (resultType : VExpr)
+      (insertionLift : Lift) (replacements : List Expr) (rhsSemantic rhsType : VExpr),
+      TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
+      env.HasType universes.length base.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType ∧
+      env.SortArity universes.length base.vlctx.toCtx count resultType := by
+  rcases results with ⟨base, _target, count, arguments, resultType, insertionLift, replacements,
+    rhsSemantic, rhsType, baseTranslated, baseTyped, baseKind, _targetTranslated,
+    _targetTyped, _targetKind⟩
+  exact ⟨base, count, arguments, resultType, insertionLift, replacements, rhsSemantic, rhsType,
+    baseTranslated, baseTyped, baseKind⟩
+
+theorem GeneratedRecursorRuleIotaBaseAndTargetResults.targetResult
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (results : GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors
+      ctx constructor minor rule) :
+    GeneratedRecursorRuleIotaTargetResult env universes stats motives minors ctx constructor minor rule := by
+  rcases results with ⟨_base, target, count, arguments, resultType, insertionLift, replacements,
+    rhsSemantic, _rhsType, _baseTranslated, _baseTyped, _baseKind, targetTranslated,
+    targetTyped, targetKind⟩
+  exact ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
+    targetTranslated, targetTyped, targetKind⟩
+
 /- Named eliminators expose the individual target obligations to consumers that
    only need the translated RHS, terminal typing, or sort information. -/
 theorem GeneratedRecursorRuleIotaTargetResult.translated
