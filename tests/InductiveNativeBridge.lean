@@ -5062,8 +5062,9 @@ example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEn
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
     (entry : RecursorEntry) (hentry : entry ∈ evidence.recursors)
     (rule : RecursorRule) (hrule : rule ∈ entry.info.rules) : True := by
-  obtain ⟨constructor, minor, targetResult⟩ :=
-    evidence.recursorGeneratedRuleIotaTargetResult ruleResults entry hentry rule hrule
+  obtain ⟨constructor, minor, hiota⟩ :=
+    evidence.recursorGeneratedRuleIotaKind ruleResults entry hentry rule hrule
+  have targetResult := hiota.targetResult
   let targetResult' := targetResult
   obtain ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
       htranslated, htyped, hkind⟩ := targetResult
@@ -5082,6 +5083,7 @@ example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEn
   have _typedProjection := AddInductive.GeneratedRecursorRuleIotaTargetResult.hasType targetResult'
   have _sortProjection := AddInductive.GeneratedRecursorRuleIotaTargetResult.sortArity targetResult'
   have _translatedProjection := AddInductive.GeneratedRecursorRuleIotaTargetResult.translated targetResult'
+  have _baseProjection := hiota.baseResult
   trivial
 
 run_meta

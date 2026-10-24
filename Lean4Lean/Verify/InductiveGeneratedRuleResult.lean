@@ -369,6 +369,25 @@ theorem GeneratedRecursorRuleIotaKind.targetResult
   exact ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
     resultTranslated, resultTyped, resultKind⟩
 
+theorem GeneratedRecursorRuleIotaKind.baseResult
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (iota : GeneratedRecursorRuleIotaKind env universes stats motives minors ctx constructor minor rule) :
+    ∃ (base : MLCtx) (count : Nat) (arguments : List VExpr) (resultType : VExpr)
+      (insertionLift : Lift) (replacements : List Expr) (rhsSemantic : VExpr),
+      TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
+      env.HasType universes.length base.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType ∧
+      env.SortArity universes.length base.vlctx.toCtx count resultType := by
+  rcases iota with ⟨base, target, count, arguments, resultType, insertionLift, replacements,
+    rhsSemantic, rhsType, ruleReceipt, rhsTranslated, rhsTyped, rhsKind,
+    baseResultTranslated, baseResultTyped, baseResultKind, resultTranslated,
+    resultTyped, resultKind⟩
+  exact ⟨base, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
+    baseResultTranslated, baseResultTyped, baseResultKind⟩
+
 /- Named eliminators expose the individual target obligations to consumers that
    only need the translated RHS, terminal typing, or sort information. -/
 theorem GeneratedRecursorRuleIotaTargetResult.translated
