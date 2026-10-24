@@ -99,6 +99,32 @@ theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.applyWeakFV
     (argumentTyping.weakFV envWF targetWF insertion).resultKind envWF targetWF
       (kind.weak' envWF.ordered insertion.toCtx)⟩
 
+/- Package the target application transport at the generated-rule boundary.
+   The caller keeps the base RHS translation, typed replacement telescope,
+   and context insertion explicit; this wrapper merely exposes the named
+   target iota endpoint used by recursor consumers. -/
+theorem GeneratedRecursorRuleIotaTargetResult.ofBaseApplication
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    {base target : MLCtx} {count : Nat} {arguments : List VExpr}
+    {resultType : VExpr} {insertionLift : Lift} {replacements : List Expr}
+    {rhsSemantic rhsType : VExpr}
+    (rhsTranslated : TrExprS env universes base.vlctx rule.rhs rhsSemantic)
+    (rhsTyped : env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType)
+    (argumentTyping : ElimNestedInductive.TypedParameterArguments env universes base rhsType
+      replacements arguments resultType)
+    (envWF : env.WF)
+    (kind : env.SortArity universes.length base.vlctx.toCtx
+      (count + replacements.length) rhsType)
+    (targetWF : target.WF env universes)
+    (insertion : VLCtx.FVLift' base.vlctx target.vlctx 0 insertionLift 0) :
+    GeneratedRecursorRuleIotaTargetResult env universes stats motives minors ctx constructor minor rule := by
+  obtain ⟨translated, typed, resultKind⟩ := argumentTyping.applyWeakFVKind
+    (native := rule.rhs) rhsTranslated rhsTyped envWF kind targetWF insertion
+  exact ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
+    translated, typed, resultKind⟩
+
 /-- A generated recursive value can be consumed by the actual annotation-peeled
 IH binder recorded in one translated IH step.  The value and its native domain
 are still supplied by the rule producer; this theorem only performs the
