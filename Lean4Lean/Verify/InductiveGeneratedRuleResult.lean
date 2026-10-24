@@ -437,6 +437,18 @@ theorem GeneratedConstructorRuleRhsResult.resultAndIota
         constructor minor rule :=
   ⟨result, GeneratedRecursorRuleIotaKind.baseAndTargetResults result.iotaKind⟩
 
+/- Canonical same-witness pairing for consumers that already hold the full
+   generated recursor-rule result. -/
+theorem GeneratedRecursorRuleResult.resultAndIota
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (result : GeneratedRecursorRuleResult env universes stats motives minors ctx constructor minor rule) :
+    GeneratedRecursorRuleResult env universes stats motives minors ctx constructor minor rule ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors ctx
+        constructor minor rule :=
+  ⟨result, GeneratedRecursorRuleIotaKind.baseAndTargetResults result.iotaKind⟩
+
 /- Named eliminators for the paired endpoint let consumers select one side
    without reopening the full generated-rule receipt. -/
 theorem GeneratedRecursorRuleIotaBaseAndTargetResults.baseResult
