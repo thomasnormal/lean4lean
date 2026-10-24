@@ -27,6 +27,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultsAndIota
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIota
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaBaseAndTargetResults
+#check addDecl.orderedGeneratedRuleResultAndIotaBaseAndTargetResults_of_generatedRuleResults
 
 example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
     {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
@@ -7224,6 +7225,8 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
               AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
                 (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
   have h := addDecl.orderedGeneratedRuleIotaBaseAndTargetResults_of_generatedRuleResults
+    producer ruleResults
+  have hCombined := addDecl.orderedGeneratedRuleResultAndIotaBaseAndTargetResults_of_generatedRuleResults
     producer ruleResults
   trivial
 
