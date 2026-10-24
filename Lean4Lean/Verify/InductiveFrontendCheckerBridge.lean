@@ -6924,6 +6924,22 @@ theorem addDecl.checkedPrimitiveFrontendAndModel
     check fuel hmap hcheck) result hresult
   exact ⟨decl, hkind, hheaders, hdeclWF, htranslation, hscope⟩
 
+/- Expose the preservation consequence of the checked primitive frontend scope at
+   the final `addDecl` boundary.  This keeps callers from having to unpack the
+   scope merely to obtain the result-side map invariant. -/
+theorem addDecl.checkedPrimitiveFrontendPreserves
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) :
+    ∃ scope : SafeInductiveFrontendScope env lparams nparams types true fuel result,
+      result.constants.WF ∧
+      (∀ name info, env.find? name = some info → result.find? name = some info) := by
+  have hscope := (addDecl.safeCheckedPrimitiveInductive env lparams nparams types
+    check fuel hmap hcheck) result hresult
+  exact ⟨hscope, hscope.preserves⟩
+
 /- Package the primitive semantic declaration with the concrete staged recursor
    evidence used by the checked frontend bridge.  The model and the executable
    stages share the same primitive preflight and final `addDecl` result. -/

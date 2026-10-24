@@ -4928,6 +4928,17 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _aligned := haligned
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result) : True := by
+  obtain ⟨scope, hpreserves⟩ :=
+    addDecl.checkedPrimitiveFrontendPreserves hmap hcheck hresult
+  have _scope := scope
+  have _preserves := hpreserves
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
