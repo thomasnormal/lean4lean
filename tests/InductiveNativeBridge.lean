@@ -2474,7 +2474,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
               ∃ (constructor : Constructor) (minor : Expr),
                 AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
                   (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) := by
-  exact restored.registrationConstructiveChecker producer halign hconstants history
+  exact restored.registrationConstructiveCheckerIotaBaseAndTargetResults producer halign hconstants history
     hconstantsWF hrecursors hvalues hsource ruleResults
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
@@ -2877,7 +2877,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
     result.constants.WF := by
-  exact (restored.registrationConstructiveCheckerAndMapWF producer halign hconstants history
+  exact (restored.registrationConstructiveCheckerAndMapWFIotaBaseAndTargetResults producer halign hconstants history
     hconstantsWF hrecursors hvalues hsource ruleResults).2.2.2.2.2.2
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
