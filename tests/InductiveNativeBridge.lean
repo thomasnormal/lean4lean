@@ -1321,6 +1321,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have h := addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationIotaBaseAndTargetResults (venv := venv)
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry
+  have hGenerated :=
+    addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultAndIotaBaseAndTargetResults
+      (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
+      hsource hvalues ruleResult hrecursor hentry
   have hModel := addDecl.checkedPrimitiveModelAndSemanticStructuralIotaBaseAndTargetResults
     (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
     hsource hvalues ruleResult hrecursor hentry
@@ -1329,6 +1333,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
       hsource hvalues ruleResult hrecursor hentry
   have _ := h
+  have _ := hGenerated
   have _ := hModel
   have _ := hModelGenerated
   trivial
@@ -1386,6 +1391,11 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     (venv := venv)
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry
+  have hGenerated :=
+    addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
+      (venv := venv)
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+      hvalues ruleResult hrecursor hentry
   have hModel := addDecl.checkedPrimitiveModelAndSemanticStructuralIotaBaseAndTargetResults_of_restorationStages
     (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
     hsource hvalues ruleResult hrecursor hentry
@@ -1394,6 +1404,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
       hsource hvalues ruleResult hrecursor hentry
   have _ := h
+  have _ := hGenerated
   have _ := hModel
   have _ := hModelGenerated
   trivial
