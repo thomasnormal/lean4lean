@@ -4763,7 +4763,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation,
       ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
         hpre, hrun, hscope, hprefix, hrestored⟩⟩ :=
-    addDecl.checkedPrimitiveModelAndRestoredRuleEvidence hmap hcheck hresult coverage entries
+    addDecl.checkedPrimitiveModelAndRestoredRuleIotaBaseAndTargetResultsEvidence hmap hcheck hresult coverage entries
       records_eq producer entry_eq hrecursor hentry ruleResult venv
   have _modelDecl : VInductDecl := modelDecl
   have _kind := hkind
