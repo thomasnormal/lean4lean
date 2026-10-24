@@ -250,6 +250,17 @@ theorem RegistrationEvidence.sourceTypehood_iff_recursorWF
   · exact evidence.recursorWF_of_sourceTypehood henv
   · exact evidence.sourceTypehood_of_recursorWF
 
+theorem RegistrationEvidence.resultWF_of_sourceTypehood
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (henv : env.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    result.WF := by
+  have hrecursors := evidence.recursorWF_of_sourceTypehood
+    (evidence.constructorEnvWF henv) hsource
+  exact evidence.resultWF henv hrecursors
+
 /- Source typehood is the executable-to-model bridge for generated recursors.
    Derive the model-WF side condition once, then expose the same constructive
    registration receipt used by the checked frontend packages. -/
