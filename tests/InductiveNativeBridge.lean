@@ -4389,6 +4389,30 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _registration := hregistration
   trivial
 
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic) : True := by
+  obtain ⟨scope, hmodelResult, hmapResult, hhistory, haligned⟩ :=
+    addDecl.checkedPrimitiveRegistrationRealizationHistoryAndAlignment_of_sourceTypehood
+      hmap hcheck hresult producer hconstants hresultConstants history hsource
+  have _scope := scope
+  have _modelResult := hmodelResult
+  have _mapResult := hmapResult
+  have _history := hhistory
+  have _aligned := haligned
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?

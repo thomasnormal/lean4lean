@@ -7504,6 +7504,33 @@ theorem addDecl.checkedPrimitiveRegistrationRealizationHistoryAndAlignment
       hconstants hresultConstants history hrecursors
   exact ⟨scope, hmodelResult, hmapResult, hhistory, hhistory.aligned⟩
 
+theorem addDecl.checkedPrimitiveRegistrationRealizationHistoryAndAlignment_of_sourceTypehood
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    ∃ scope : SafeInductiveFrontendScope env lparams nparams types true fuel result,
+      semanticEnv.addInductWithRecursors decl
+          (producer.recursors.map (·.model)) = some semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive .safe resultConstants Q semanticResult ∧
+      Aligned .safe resultConstants semanticResult := by
+  have hrecursors := producer.recursorWF_of_sourceTypehood
+    (producer.constructorEnvWF history.wf) hsource
+  exact addDecl.checkedPrimitiveRegistrationRealizationHistoryAndAlignment
+    hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+
 /- Combine the primitive Bool/Nat model with the unrestricted restoration
    metadata, its executable frontend scope, constructive registration, and
    the checker/history semantic package.  The restoration metadata keeps the
