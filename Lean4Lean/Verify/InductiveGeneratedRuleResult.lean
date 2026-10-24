@@ -709,6 +709,26 @@ theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResultSemantics
   exact hscope.impScopedReceipts (fun entry rule scopedReceipt ordinaryReceipt =>
     head entry rule scopedReceipt ordinaryReceipt)
 
+theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResultSemanticsAndIota
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        GeneratedRecursorRuleResultSemantics env universes stats motives minors
+          ctx entry.1 minors[entry.2]! rule) :
+    List.Forall₂ (fun entry rule =>
+      GeneratedRecursorRuleResultSemantics env universes stats motives minors
+        ctx entry.1 minors[entry.2]! rule ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors
+        ctx entry.1 minors[entry.2]! rule)
+      (ctors.zipIdx initial) rules := by
+  exact hscope.impScopedReceipts (fun entry rule scopedReceipt ordinaryReceipt => by
+    obtain ⟨semantic, generated⟩ := head entry rule scopedReceipt ordinaryReceipt
+    exact ⟨⟨semantic, generated⟩, generated.iotaKind.baseAndTargetResults⟩)
+
 theorem LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResultSemantics
     {env : VEnv} {universes : List Name}
     {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
@@ -737,6 +757,34 @@ theorem LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResultSemantics
   obtain ⟨semantic, translated⟩ := head parent recursor index ctor rule minor hreceipt
     hreceipt.fvars.counts.receipt
   exact ⟨rule, minor, hrule, hminor, semantic, translated⟩
+
+theorem LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResultSemanticsAndIota
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        GeneratedRecursorRuleResultSemantics env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          (GeneratedRecursorRuleResultSemantics env universes stats (infos.map (·.motive))
+            (infos.flatMap (·.minors)) ctx ctor minor rule ∧
+           GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats (infos.map (·.motive))
+            (infos.flatMap (·.minors)) ctx ctor minor rule) := by
+  exact hscope.impScopedReceipts
+    (fun parent recursor index ctor rule minor scopedReceipt ordinaryReceipt => by
+      obtain ⟨semantic, generated⟩ :=
+        head parent recursor index ctor rule minor scopedReceipt ordinaryReceipt
+      exact ⟨⟨semantic, generated⟩, generated.iotaKind.baseAndTargetResults⟩)
 
 /- Registration-facing names make the callback shape explicit at the consumer
    boundary; the proof remains the indexed receipt transport above. -/
