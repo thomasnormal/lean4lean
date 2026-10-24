@@ -3954,7 +3954,11 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have h :=
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordEvidence_of_restorationStages
       hmap hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
+  have hCombined :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultAndIotaBaseAndTargetResultsEvidence_of_restorationStages
+      hmap hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
   have _ := h
+  have _ := hCombined
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
@@ -4020,7 +4024,11 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       hmap hcheck hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
   have h := addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordEvidence_of_checkedPrimitive
     hmap hcheck hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
+  have hCombined :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultAndIotaBaseAndTargetResultsEvidence_of_checkedPrimitive
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
   have _ := h
+  have _ := hCombined
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
