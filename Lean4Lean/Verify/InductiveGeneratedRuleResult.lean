@@ -370,7 +370,22 @@ theorem GeneratedRecursorRuleIotaKind.targetResult
     resultTranslated, resultTyped, resultKind⟩
 
 /- Named eliminators expose the individual target obligations to consumers that
-   only need terminal typing or sort information. -/
+   only need the translated RHS, terminal typing, or sort information. -/
+theorem GeneratedRecursorRuleIotaTargetResult.translated
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (targetResult : GeneratedRecursorRuleIotaTargetResult env universes stats motives minors
+      ctx constructor minor rule) :
+    ∃ (target : MLCtx) (count : Nat) (arguments : List VExpr) (resultType : VExpr)
+      (insertionLift : Lift) (replacements : List Expr) (rhsSemantic : VExpr),
+      TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift))) := by
+  rcases targetResult with ⟨target, count, arguments, resultType, insertionLift, replacements,
+    rhsSemantic, translated, _typed, _sortArity⟩
+  exact ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic, translated⟩
+
 theorem GeneratedRecursorRuleIotaTargetResult.hasType
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
     {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}

@@ -5081,6 +5081,7 @@ example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEn
   have _kind := hkind
   have _typedProjection := AddInductive.GeneratedRecursorRuleIotaTargetResult.hasType targetResult'
   have _sortProjection := AddInductive.GeneratedRecursorRuleIotaTargetResult.sortArity targetResult'
+  have _translatedProjection := AddInductive.GeneratedRecursorRuleIotaTargetResult.translated targetResult'
   trivial
 
 run_meta
