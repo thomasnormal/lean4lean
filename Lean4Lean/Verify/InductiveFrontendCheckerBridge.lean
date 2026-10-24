@@ -1088,6 +1088,39 @@ theorem NativeInductive.RestoredRecordEvidence.registrationIotaTargetResults
     exact hmem
   exact producer.orderedGeneratedRuleIotaTargetResults ruleResults entry hproducer
 
+/- Project each restored registration rule to both iota endpoints while
+   retaining the restored entry alignment. -/
+theorem NativeInductive.RestoredRecordEvidence.registrationIotaBaseAndTargetResults
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ restored.entries,
+      entry.RuleSemantics semanticResult ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+            ∃ (constructor : Constructor) (minor : Expr),
+              AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  intro entry hmem
+  have hproducer : entry ∈ producer.orderedEntries := by
+    rw [← halign]
+    exact hmem
+  exact producer.orderedGeneratedRuleIotaBaseAndTargetResults ruleResults entry hproducer
+
 /- Pair the restored checker result with the ordered iota package.  The
    executable checker and the semantic rule witnesses share the same restored
    entry alignment, so callers can consume both without repeating that bridge. -/
