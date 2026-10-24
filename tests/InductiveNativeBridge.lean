@@ -7068,6 +7068,21 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have h := addDecl.checkedPrimitiveModelAndCheckerHistoryIotaBaseAndTargetResults
     (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
     hsource hvalues ruleResults
+  have hRestoration :=
+    addDecl.checkedPrimitiveModelAndCheckerHistory_of_restorationStages
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
+      hsource hvalues ruleResults
+  have hRestorationIota :=
+    addDecl.checkedPrimitiveModelAndCheckerHistoryIotaBaseAndTargetResults_of_restorationStages
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
+      hsource hvalues ruleResults
+  have hRestorationCombined :=
+    addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
+      hsource hvalues ruleResults
+  have _ := hRestoration
+  have _ := hRestorationIota
+  have _ := hRestorationCombined
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
