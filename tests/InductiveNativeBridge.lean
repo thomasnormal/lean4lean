@@ -2568,6 +2568,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     metadata.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralIotaBaseAndTargetResults
       coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
+  have hSemanticCombined :=
+    metadata.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
   have hRestoredIota :=
     metadata.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordIotaBaseAndTargetResultsEvidence
       coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
