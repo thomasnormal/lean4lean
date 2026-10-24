@@ -878,6 +878,34 @@ theorem RecursorRuleRhsScope.impRuleResultSemantics
       (ctors.zipIdx initial) rules := by
   exact hscope.impScopedReceipts head
 
+/- The aligned all-rule consumer can retain the paired base/target iota
+   endpoint alongside the closed semantic and generated package.  The
+   projection is taken from the same generated witness supplied by `head`, so
+   constructor/rule order and all producer obligations remain unchanged. -/
+theorem RecursorRuleRhsScope.impRuleResultSemanticsAndIota
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+          (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule)) :
+    List.Forall₂ (fun entry rule =>
+      (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+      GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+        (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+        (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule) ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors ctx
+        entry.1 minors[entry.2]! rule)
+      (ctors.zipIdx initial) rules := by
+  exact hscope.impScopedReceipts (fun entry rule scopedReceipt ordinaryReceipt => by
+    obtain ⟨closed, generated⟩ := head entry rule scopedReceipt ordinaryReceipt
+    exact ⟨closed, generated, generated.iotaKind.baseAndTargetResults⟩)
+
 /- The all-rule consumer has the same split form as the indexed consumer: keep
    the closed translation and generated package callbacks independent, then
    preserve their chronological constructor/rule alignment. -/
