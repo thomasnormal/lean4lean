@@ -4130,8 +4130,6 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
     (hconstants : env.constants = constants) (hresultConstants : result.constants = resultConstants)
     (history : TrEnvInductive .safe constants Q semanticEnv)
-    (hrecursors : ∀ entry ∈ producer.recursors,
-      entry.model.toVConstant.WF producer.constructorEnv)
     (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
       TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
       producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
@@ -4147,8 +4145,8 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
   obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hscope, hregistration,
       haligned, hmap', hhistory, hchecker, hresults⟩ :=
-    addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage (venv := venv) hmap hcheck hresult
-      producer hconstants hresultConstants history hrecursors hsource hvalues ruleResults
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage_of_sourceTypehood (venv := venv)
+      hmap hcheck hresult producer hconstants hresultConstants history hsource hvalues ruleResults
   have _modelDecl : VInductDecl := modelDecl
   have _kind := hkind
   have _headers := hheaders
