@@ -4843,7 +4843,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         constructorsCombined, elimLevelCombined, infosCombined, sourceCombined,
         hpreCombined, hrunCombined, hscopeCombined, hprefixCombined, hlookupsCombined,
         hsemanticCombined⟩⟩ :=
-    addDecl.checkedPrimitiveModelAndConstructiveRestoredAlignmentSemantics hmap hcheck hresult
+    addDecl.checkedPrimitiveModelAndConstructiveRestoredAlignmentIotaBaseAndTargetResultsSemantics hmap hcheck hresult
       coverage entries records_eq producer entry_eq hconstants hresultConstants history hsource
       hvalues ruleResult hrecursor hentry hrecursors venv
   have _modelDeclCombined : VInductDecl := modelDeclCombined
