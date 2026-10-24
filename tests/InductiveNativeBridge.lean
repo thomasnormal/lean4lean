@@ -2240,6 +2240,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have h := metadata.sourceRecursorRuleStagesGeneratedResultsAndAlignmentSemantics
     coverage entries records_eq producer entry_eq hconstants history hsource hvalues
     ruleResult hrecursor hentry
+  have hIota := metadata.sourceRecursorRuleStagesGeneratedResultsAndAlignmentIotaBaseAndTargetResultsSemantics
+    coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+    ruleResult hrecursor hentry
   trivial
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
