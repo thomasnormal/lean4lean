@@ -4939,6 +4939,35 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _preserves := hpreserves
   trivial
 
+example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult) {stats : AddInductive.InductiveStats}
+    {infos : Array AddInductive.RecInfo} {source : AddInductive.Context}
+    {universes : List Name}
+    (ruleResults : ∀ (entry : RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (entry : RecursorEntry) (hentry : entry ∈ evidence.recursors)
+    (rule : RecursorRule) (hrule : rule ∈ entry.info.rules) : True := by
+  obtain ⟨constructor, minor, hiota⟩ :=
+    evidence.recursorGeneratedRuleIotaKind ruleResults entry hentry rule hrule
+  obtain ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
+      htranslated, htyped, hkind⟩ := hiota.targetResult
+  have _constructor : Constructor := constructor
+  have _minor : Expr := minor
+  have _target : TypeChecker.MLCtx := target
+  have _count : Nat := count
+  have _arguments : List VExpr := arguments
+  have _replacements : List Expr := replacements
+  have _resultType : VExpr := resultType
+  have _insertionLift : Lift := insertionLift
+  have _rhsSemantic : VExpr := rhsSemantic
+  have _translated := htranslated
+  have _typed := htyped
+  have _kind := hkind
+  trivial
+
 run_meta
   let environment ← getEnv
   let some moduleIndex := environment.getModuleIdx?
