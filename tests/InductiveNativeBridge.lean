@@ -4206,9 +4206,19 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have hm := addDecl.checkedPrimitiveModelAndCheckerStructural_of_restorationStages
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry venv
+  have hmCombined :=
+    addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry venv
+  have hmIota :=
+    addDecl.checkedPrimitiveModelAndCheckerStructuralIotaBaseAndTargetResults_of_restorationStages
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry venv
   have _ := h
   have _ := hIota
   have _ := hm
+  have _ := hmCombined
+  have _ := hmIota
   trivial
 
 /- Regression: restoration-stage checker-structural source stages retain
@@ -4394,10 +4404,20 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have hm := addDecl.checkedPrimitiveModelAndCheckerStructural
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry venv
+  have hmCombined :=
+    addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry venv
+  have hmIota :=
+    addDecl.checkedPrimitiveModelAndCheckerStructuralIotaBaseAndTargetResults
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry venv
   have _ := h
   have _ := hIota
   have _ := hSemanticIota
   have _ := hm
+  have _ := hmCombined
+  have _ := hmIota
   trivial
 
 /- Regression: checker-structural source stages retain generated rule results
