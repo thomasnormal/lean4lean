@@ -3607,6 +3607,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         ∃ entry : RecursorEntry,
           (.recursor entry : RegistrationEntry) ∈ entries preprocessing staged ∧
           entry.info.name = mkRecName types[index].name) : True := by
+  have hStages :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndRegistrationIotaBaseAndTargetResults_of_checkedPrimitive
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
   have h := addDecl.checkedPrimitiveModelAndRegistrationSemanticsIotaBaseAndTargetResults (venv := venv)
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry
@@ -3660,6 +3664,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         ∃ entry : RecursorEntry,
           (.recursor entry : RegistrationEntry) ∈ entries allowPrimitive preprocessing staged ∧
           entry.info.name = mkRecName types[index].name) : True := by
+  have hStages :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndRegistrationIotaBaseAndTargetResults_of_restorationStages
+      hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
   have h := addDecl.checkedPrimitiveModelAndRegistrationSemanticsIotaBaseAndTargetResults_of_restorationStages (venv := venv)
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
     ruleResult hrecursor hentry
