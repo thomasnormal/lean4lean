@@ -3492,6 +3492,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
+  have hIota :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordIotaBaseAndTargetResultsEvidence_of_restorationStages
+      hmap hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
   have h :=
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordEvidence_of_restorationStages
       hmap hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
@@ -3556,6 +3559,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
+  have hIota :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordIotaBaseAndTargetResultsEvidence_of_checkedPrimitive
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
   have h := addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordEvidence_of_checkedPrimitive
     hmap hcheck hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
   have _ := h
