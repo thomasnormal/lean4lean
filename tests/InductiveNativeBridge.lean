@@ -1948,6 +1948,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have hIota := addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentIotaBaseAndTargetResultsSemantics_of_restorationStages
     hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
     ruleResult hrecursor hentry
+  have hCombined := addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultAndIotaBaseAndTargetResultsSemantics_of_restorationStages
+    hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+    ruleResult hrecursor hentry
+  have _ := hCombined
   obtain ⟨allowPrimitive, preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
       hpre, hrun, hscope, hprefix, hframe, hcounts, hindexing, hdistinct, hsources, hlookups,
       hbranch, hfinal⟩ :=
@@ -2019,6 +2023,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have hIota := addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentIotaBaseAndTargetResultsSemantics_of_checkedPrimitive
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry
+  have hCombined := addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultAndIotaBaseAndTargetResultsSemantics_of_checkedPrimitive
+    hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+    hvalues ruleResult hrecursor hentry
+  have _ := hCombined
   obtain ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
       hpre, hrun, hscope, _, _, _, _, _, hsources, _, _, hfinal⟩ :=
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentSemantics_of_checkedPrimitive
@@ -5791,6 +5799,11 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         hlookups, hbranch, hsemantic⟩⟩ :=
     addDecl.checkedPrimitiveModelAndAlignmentIotaBaseAndTargetResultsSemantics hmap hcheck hresult coverage entries records_eq
       producer entry_eq hconstants hresultConstants history hsource hvalues ruleResult hrecursor hentry venv
+  have _combinedAlignment :=
+    addDecl.checkedPrimitiveModelAndAlignmentGeneratedRuleResultAndIotaBaseAndTargetResultsSemantics
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants hresultConstants
+      history hsource hvalues ruleResult hrecursor hentry venv
+  have _ := _combinedAlignment
   have _modelDecl : VInductDecl := modelDecl
   have _kind := hkind
   have _headers := hheaders
