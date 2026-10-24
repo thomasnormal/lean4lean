@@ -5084,6 +5084,7 @@ example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEn
   have _sortProjection := AddInductive.GeneratedRecursorRuleIotaTargetResult.sortArity targetResult'
   have _translatedProjection := AddInductive.GeneratedRecursorRuleIotaTargetResult.translated targetResult'
   have _baseProjection := hiota.baseResult
+  have _sharedProjection := hiota.baseAndTargetResults
   trivial
 
 run_meta
