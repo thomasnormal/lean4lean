@@ -284,6 +284,59 @@ abbrev GeneratedRecursorRuleResultSemantics
   (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
     GeneratedRecursorRuleResult env universes stats motives minors ctx constructor minor rule
 
+/- The generated package contains several layers of constructor-body bookkeeping.
+   Registration consumers that are checking the recursor iota step need only the
+   RHS receipt and the base/target applied translations.  Keep those witnesses
+   in a named projection so consumers do not have to destructure the complete
+   dependent package (and accidentally discard its explicit sort-arity facts). -/
+abbrev GeneratedRecursorRuleIotaKind
+    (env : VEnv) (universes : List Name) (stats : InductiveStats)
+    (motives minors : Array Expr) (ctx : Context) (constructor : Constructor)
+    (minor : Expr) (rule : RecursorRule) : Prop :=
+  ∃ (base target : MLCtx) (count : Nat) (arguments : List VExpr)
+    (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+    (rhsSemantic rhsType : VExpr),
+    RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule ∧
+    TrExprS env universes base.vlctx rule.rhs rhsSemantic ∧
+    env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType ∧
+    env.SortArity universes.length base.vlctx.toCtx
+      (count + replacements.length) rhsType ∧
+    TrExprS env universes base.vlctx (rule.rhs.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) ∧
+    env.HasType universes.length base.vlctx.toCtx
+      (ElimNestedInductive.applyParameterArguments rhsSemantic arguments) resultType ∧
+    env.SortArity universes.length base.vlctx.toCtx count resultType ∧
+    TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift))) ∧
+    env.HasType universes.length target.vlctx.toCtx
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift)))
+      (resultType.lift' insertionLift) ∧
+    env.SortArity universes.length target.vlctx.toCtx count
+      (resultType.lift' insertionLift)
+
+theorem GeneratedConstructorRuleRhsResult.iotaKind
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (result : GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+      (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+      (constructor := constructor) (minor := minor) (rule := rule)) :
+    GeneratedRecursorRuleIotaKind env universes stats motives minors ctx constructor minor rule := by
+  rcases result with ⟨infos, domainReader, domain, ids, final, base, target, count,
+    arguments, resultType, insertionLift, peeled, minorSemantic, fieldModel, terminal,
+    fields, hypotheses, replacements, replacementTerminal, values, bodySemantic,
+    rhsSemantic, rhsType, extension, insertion, sourceEq, nativeArguments,
+    typedArguments, bodyTranslated, bodyTyped, nestedTranslated, ruleReceipt,
+    rhsTranslated, rhsTyped,
+    rhsKind, baseResultTranslated, baseResultTyped, baseResultKind, resultTranslated,
+    resultTyped, resultKind⟩
+  exact ⟨base, target, count, arguments, resultType, insertionLift, replacements,
+    rhsSemantic, rhsType, ruleReceipt, rhsTranslated, rhsTyped, rhsKind,
+    baseResultTranslated, baseResultTyped, baseResultKind, resultTranslated,
+    resultTyped, resultKind⟩
+
 /- Lift the explicit generated constructor-RHS package through every aligned
    rule.  The callback remains the producer/consumer boundary: it supplies
    the minor step, opening, extension, and context premises needed to obtain

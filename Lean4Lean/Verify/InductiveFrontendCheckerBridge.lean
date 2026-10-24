@@ -467,6 +467,30 @@ theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleResult
         (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
     ruleResults entry hentry rule hrule
 
+/- Registration consumers commonly need the explicit lifted iota result rather
+   than the full constructor-body package.  Project it at the same per-rule
+   boundary, preserving the producer's constructor/minor witness and rule
+   membership assumptions. -/
+theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaKind
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleIotaKind semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  intro entry hentry rule hrule
+  obtain ⟨_semantic, _translated, constructor, minor, generated⟩ :=
+    evidence.recursorGeneratedRuleResult ruleResults
+    entry hentry rule hrule
+  exact ⟨constructor, minor, generated.iotaKind⟩
+
 theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleResults
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants

@@ -11,6 +11,30 @@ namespace Lean4Lean.Tests.InductiveNativeBridge
 open Lean Lean4Lean Lean4Lean.NativeInductive
 open Lean4Lean.AddInductive.declareConstructors
 
+example {env : VEnv} {universes : List Name} {stats : AddInductive.InductiveStats}
+    {motives minors : Array Expr} {ctx : AddInductive.Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (result : AddInductive.GeneratedRecursorRuleResult env universes stats motives minors
+      ctx constructor minor rule) :
+    AddInductive.GeneratedRecursorRuleIotaKind env universes stats motives minors
+      ctx constructor minor rule :=
+  result.iotaKind
+
+example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult) {stats : AddInductive.InductiveStats}
+    {infos : Array AddInductive.RecInfo} {source : AddInductive.Context}
+    {universes : List Name}
+    (ruleResults : ∀ (entry : RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleIotaKind semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule :=
+  evidence.recursorGeneratedRuleIotaKind ruleResults
+
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result :=
