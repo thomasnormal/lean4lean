@@ -420,6 +420,13 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors, entry.model.toVConstant.WF
+      evidence.constructorEnv) : resultConstants.WF :=
+  evidence.registrationMapWF hconstants hrecursors
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)
     (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
       TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
@@ -427,6 +434,15 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
     env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result ∧
       result.WF :=
   evidence.registrationWF_of_sourceTypehood henv hsource
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    resultConstants.WF :=
+  evidence.registrationMapWF_of_sourceTypehood hconstants henv hsource
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)

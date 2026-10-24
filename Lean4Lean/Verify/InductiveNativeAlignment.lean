@@ -313,6 +313,14 @@ theorem RegistrationEvidence.registrationWF
       result.WF :=
   ⟨evidence.to_addInduct, evidence.resultWF henv hrecursors⟩
 
+theorem RegistrationEvidence.registrationMapWF
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors, entry.model.toVConstant.WF
+      evidence.constructorEnv) :
+    resultConstants.WF :=
+  (evidence.to_addInductWithRecursorsEvidence hconstants hrecursors).map_wf hconstants
+
 theorem RegistrationEvidence.registrationWF_of_sourceTypehood
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)
@@ -322,6 +330,16 @@ theorem RegistrationEvidence.registrationWF_of_sourceTypehood
     env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result ∧
       result.WF := by
   exact evidence.registrationWF henv
+    (evidence.recursorWF_of_sourceTypehood (evidence.constructorEnvWF henv) hsource)
+
+theorem RegistrationEvidence.registrationMapWF_of_sourceTypehood
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    resultConstants.WF := by
+  exact evidence.registrationMapWF hconstants
     (evidence.recursorWF_of_sourceTypehood (evidence.constructorEnvWF henv) hsource)
 
 theorem RegistrationEvidence.inductiveDeclWF
