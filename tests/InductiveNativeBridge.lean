@@ -3267,6 +3267,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     metadata.sourceRecursorRuleStagesGeneratedResultsAndCheckerIotaBaseAndTargetResults
       coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
+  have hStructuralIota :=
+    metadata.sourceRecursorRuleStagesAndCheckerStructuralIotaBaseAndTargetResults
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
