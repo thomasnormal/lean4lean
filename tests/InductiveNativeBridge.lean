@@ -2540,6 +2540,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
       ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
         (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats}
+    {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context}
     {universes : List Name}
     (ruleResult : ∀ (stats : AddInductive.InductiveStats) (infos : Array AddInductive.RecInfo)
       (source : AddInductive.Context) (entry : RecursorEntry), entry ∈ producer.recursors →
@@ -2586,6 +2589,13 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have hRestoredCombined :=
     metadata.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultAndIotaBaseAndTargetResultsEvidence
       coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
+  have hCheckerCombined :=
+    metadata.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaBaseAndTargetResults
+      (stats := stats) (infos := infos) (source := source) (universes := universes)
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      (ruleResult := fun entry hentry rule hrule =>
+        ruleResult stats infos source entry hentry rule hrule)
+      hrecursor hentry
   trivial
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
