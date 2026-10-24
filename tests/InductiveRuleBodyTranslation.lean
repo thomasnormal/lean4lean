@@ -185,7 +185,7 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 116 do throwError "rule body: expected one hundred sixteen owned declarations, got {count}"
+  unless count == 117 do throwError "rule body: expected one hundred seventeen owned declarations, got {count}"
   auditOwnedModule `Lean4Lean.Verify.InductiveGeneratedRuleResult 29
   auditOwnedModule `Lean4Lean.Verify.InductiveNativeTelescopeArguments 12
   logInfo m!"projected closed registration RuleSemantics from the paired all-rule callback without reopening generated packages, split closed/generated indexed callback paired at the registration boundary, paired closed rule-body semantics with generated constructor-RHS result package through local indexed and aligned all-rule dual-receipt consumers, indexed local generated constructor-RHS result consumer with explicit body/source/applied witnesses, all-rule and local dual-receipt adapters, indexed local rule-semantics receipt/result consumer, all-rule scoped-and-ordinary receipt consumer adapter, indexed local scoped-and-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt lookup, all-rule scoped receipt consumer adapter, indexed scoped-to-ordinary receipt lookup, all-rule scoped-to-ordinary receipt projection, direct scoped/fvar/count result transport, generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
@@ -237,6 +237,7 @@ run_meta
 #print axioms MinorModelStep.abstractConstructorRhsBody
 #print axioms MinorModelStep.abstractConstructorRuleRhs
 #print axioms RecursorRuleRhsReceipt.applyIota
+#check Lean4Lean.ElimNestedInductive.TypedParameterArguments.applyWeakFV
 #print axioms RecursorRuleRhsReceipt.applyIotaKind
 #print axioms RecursorRuleRhsReceipt.applyIotaWeakFV
 #print axioms RecursorRuleRhsReceipt.applyIotaWeakFVKind

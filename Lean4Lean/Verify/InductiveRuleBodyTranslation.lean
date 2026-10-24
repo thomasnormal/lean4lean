@@ -39,10 +39,35 @@ theorem _root_.Lean4Lean.VEnv.SortArity.weak'
       (induction insertion.cons)
 
 /- Apply a typed replacement telescope after moving its function and argument
-   witnesses through an explicit base-to-target context insertion.  This is
-   the reduction-facing consumer shared by recursor iota proofs: the target
-   translation, terminal typing, and sort arity are all derived from the base
-   RHS receipt rather than reconstructed from the native application shape. -/
+   witnesses through an explicit base-to-target context insertion. -/
+theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.applyWeakFV
+    {env : VEnv} {universes : List Name} {base target : MLCtx}
+    {native : Expr}
+    {rhsSemantic rhsType : VExpr} {replacements : List Expr}
+    {arguments : List VExpr} {resultType : VExpr}
+    (argumentTyping : ElimNestedInductive.TypedParameterArguments env universes base rhsType
+      replacements arguments resultType)
+    (rhsTranslated : TrExprS env universes base.vlctx native rhsSemantic)
+    (rhsTyped : env.HasType universes.length base.vlctx.toCtx rhsSemantic rhsType)
+    (envWF : env.WF)
+    (targetWF : target.WF env universes)
+    {insertionLift : Lift}
+    (insertion : VLCtx.FVLift' base.vlctx target.vlctx 0 insertionLift 0) :
+    TrExprS env universes target.vlctx
+      (native.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift))) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift)))
+        (resultType.lift' insertionLift) := by
+  have targetArguments := argumentTyping.weakFV envWF targetWF insertion
+  exact targetArguments.apply
+    (rhsTranslated.weakFV' envWF.ordered insertion targetWF.tr.wf)
+    (rhsTyped.weak' envWF.ordered insertion.toCtx)
+
+/- Add the terminal sort-arity transport to the target application consumer.
+   The kind premise remains indexed by the produced RHS type. -/
 theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.applyWeakFVKind
     {env : VEnv} {universes : List Name} {base target : MLCtx}
     {native : Expr}
@@ -68,12 +93,11 @@ theorem _root_.Lean4Lean.ElimNestedInductive.TypedParameterArguments.applyWeakFV
         (resultType.lift' insertionLift) ∧
       env.SortArity universes.length target.vlctx.toCtx count
         (resultType.lift' insertionLift) := by
-  have targetArguments := argumentTyping.weakFV envWF targetWF insertion
-  obtain ⟨translated, typed⟩ := targetArguments.apply
-    (rhsTranslated.weakFV' envWF.ordered insertion targetWF.tr.wf)
-    (rhsTyped.weak' envWF.ordered insertion.toCtx)
+  obtain ⟨translated, typed⟩ := argumentTyping.applyWeakFV
+    (native := native) rhsTranslated rhsTyped envWF targetWF insertion
   exact ⟨translated, typed,
-    targetArguments.resultKind envWF targetWF (kind.weak' envWF.ordered insertion.toCtx)⟩
+    (argumentTyping.weakFV envWF targetWF insertion).resultKind envWF targetWF
+      (kind.weak' envWF.ordered insertion.toCtx)⟩
 
 /-- A generated recursive value can be consumed by the actual annotation-peeled
 IH binder recorded in one translated IH step.  The value and its native domain
@@ -1370,9 +1394,9 @@ theorem RecursorRuleRhsReceipt.applyIotaWeakFV
       env.HasType universes.length target.vlctx.toCtx
         (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
           (arguments.map (VExpr.lift' · insertionLift))) (resultType.lift' insertionLift) := by
-  exact receipt.applyIota (rhsTranslated.weakFV' envWF.ordered insertion targetWF.tr.wf)
-    (rhsTyped.weak' envWF.ordered insertion.toCtx)
-    (argumentTyping.weakFV envWF targetWF insertion)
+  obtain ⟨translated, typed⟩ := argumentTyping.applyWeakFV
+    (native := rule.rhs) rhsTranslated rhsTyped envWF targetWF insertion
+  exact ⟨receipt, translated, typed⟩
 
 /-- Transport the checked constructor RHS iota kind through an explicit
 model-context extension.  The native replacement telescope is unchanged;
