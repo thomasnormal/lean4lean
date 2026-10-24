@@ -16,6 +16,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIota
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIota
+#check NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaBaseAndTargetResults
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
@@ -82,6 +83,27 @@ example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEn
               AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
                 (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule :=
   evidence.orderedGeneratedRuleResultsAndIota ruleResults
+
+example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult) {stats : AddInductive.InductiveStats}
+    {infos : Array AddInductive.RecInfo} {source : AddInductive.Context}
+    {universes : List Name}
+    (ruleResults : ∀ (entry : RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.RuleSemantics semanticResult ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+            ∃ (constructor : Constructor) (minor : Expr),
+              AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+              AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule :=
+  evidence.orderedGeneratedRuleResultAndIotaBaseAndTargetResults ruleResults
 
 example {env : VEnv} {universes : List Name} {stats : AddInductive.InductiveStats}
     {motives minors : Array Expr} {ctx : AddInductive.Context} {constructor : Constructor}
