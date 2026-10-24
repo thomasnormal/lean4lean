@@ -5569,6 +5569,183 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
 
 /- Regression: restored alignment semantics retain the generated rule result
    and paired base/target iota endpoints under one witness. -/
+/- Regression: constructive restored alignment retains the generated rule
+   result and paired base/target iota endpoints under one witness. -/
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (coverage : InductiveRestorationSourceCoverage env lparams nparams types true fuel)
+    (entries : ElimNestedInductive.Result → Kernel.Environment → List RegistrationEntry)
+    (records_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries preprocessing staged).map RegistrationEntry.toConstantInfo)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (entry_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 → entries preprocessing staged = producer.orderedEntries)
+    (hconstants : env.constants = constants) (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {universes : List Name}
+    (ruleResult : ∀ (stats : AddInductive.InductiveStats) (infos : Array AddInductive.RecInfo)
+      (source : AddInductive.Context) (entry : RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (hrecursor : ∀ (index : Nat) (hindex : index < types.length) (recursor : RecursorVal),
+      result.find? recursor.name = some (.recInfo recursor) → recursor.name = mkRecName types[index].name)
+    (hentry : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 → ∀ (index : Nat) (hindex : index < types.length),
+        ∃ entry : RecursorEntry, (.recursor entry : RegistrationEntry) ∈ entries preprocessing staged ∧
+          entry.info.name = mkRecName types[index].name)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (venv : VEnv) : True := by
+  have _combined :=
+    addDecl.checkedPrimitiveModelAndConstructiveRestoredRuleEvidence hmap hcheck hresult
+      coverage entries records_eq producer entry_eq hconstants hrecursor hentry ruleResult
+      hrecursors venv
+  obtain ⟨modelDeclCombined, hkindCombined, hheadersCombined, hdeclWFCombined,
+      htranslationCombined, hregistrationCombined,
+      ⟨preprocessingCombined, stagedCombined, statsCombined, rootCombined,
+        constructorsCombined, elimLevelCombined, infosCombined, sourceCombined,
+        hpreCombined, hrunCombined, hscopeCombined, hprefixCombined, hlookupsCombined,
+        hsemanticCombined⟩⟩ :=
+    addDecl.checkedPrimitiveModelAndConstructiveRestoredAlignmentGeneratedRuleResultAndIotaBaseAndTargetResultsSemantics hmap hcheck hresult
+      coverage entries records_eq producer entry_eq hconstants hresultConstants history hsource
+      hvalues ruleResult hrecursor hentry hrecursors venv
+  have _modelDeclCombined : VInductDecl := modelDeclCombined
+  have _ := hkindCombined
+  have _ := hheadersCombined
+  have _ := hdeclWFCombined
+  have _ := htranslationCombined
+  have _ := hregistrationCombined
+  have _preCombined : ElimNestedInductive.Result := preprocessingCombined
+  have _stagedCombined : Kernel.Environment := stagedCombined
+  have _statsCombined : AddInductive.InductiveStats := statsCombined
+  have _rootCombined : AddInductive.Context := rootCombined
+  have _constructorsCombined : Kernel.Environment := constructorsCombined
+  have _elimLevelCombined : Level := elimLevelCombined
+  have _infosCombined : Array AddInductive.RecInfo := infosCombined
+  have _sourceCombined : AddInductive.Context := sourceCombined
+  have _ := hpreCombined
+  have _ := hrunCombined
+  have _ := hscopeCombined
+  have _ := hprefixCombined
+  have _ := hlookupsCombined
+  have _ := hsemanticCombined
+  obtain ⟨modelDeclRestored, hkindRestored, hheadersRestored, hdeclWFRestored,
+      htranslationRestored,
+      ⟨preprocessingRestored, stagedRestored, statsRestored, rootRestored,
+        constructorsRestored, elimLevelRestored, infosRestored, sourceRestored,
+        hpreRestored, hrunRestored, hscopeRestored, hprefixRestored, hlookupsRestored,
+        hsemanticRestored, hfinalRestored⟩⟩ :=
+    addDecl.checkedPrimitiveModelAndRestoredAlignmentSemantics hmap hcheck hresult coverage entries
+      records_eq producer entry_eq hconstants hresultConstants history hsource hvalues ruleResult
+      hrecursor hentry venv
+  have _modelDeclRestored : VInductDecl := modelDeclRestored
+  have _kindRestored := hkindRestored
+  have _headersRestored := hheadersRestored
+  have _declWFRestored := hdeclWFRestored
+  have _translationRestored := htranslationRestored
+  have _preRestored : ElimNestedInductive.Result := preprocessingRestored
+  have _stagedRestored : Kernel.Environment := stagedRestored
+  have _statsRestored : AddInductive.InductiveStats := statsRestored
+  have _rootRestored : AddInductive.Context := rootRestored
+  have _constructorsRestored : Kernel.Environment := constructorsRestored
+  have _elimLevelRestored : Level := elimLevelRestored
+  have _infosRestored : Array AddInductive.RecInfo := infosRestored
+  have _sourceRestored : AddInductive.Context := sourceRestored
+  have _ := hpreRestored
+  have _ := hrunRestored
+  have _ := hscopeRestored
+  have _ := hprefixRestored
+  have _ := hlookupsRestored
+  have _ := hsemanticRestored
+  have _ := hfinalRestored
+  obtain ⟨modelDeclRestoredIota, hkindRestoredIota, hheadersRestoredIota,
+      hdeclWFRestoredIota, htranslationRestoredIota,
+      ⟨preprocessingRestoredIota, stagedRestoredIota, statsRestoredIota,
+        rootRestoredIota, constructorsRestoredIota, elimLevelRestoredIota,
+        infosRestoredIota, sourceRestoredIota, hpreRestoredIota,
+        hrunRestoredIota, hscopeRestoredIota, hprefixRestoredIota,
+        hlookupsRestoredIota, hsemanticRestoredIota, hfinalRestoredIota⟩⟩ :=
+    addDecl.checkedPrimitiveModelAndRestoredAlignmentIotaBaseAndTargetResultsSemantics
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants
+      hresultConstants history hsource hvalues ruleResult hrecursor hentry venv
+  have _modelDeclRestoredIota : VInductDecl := modelDeclRestoredIota
+  have _ := hkindRestoredIota
+  have _ := hheadersRestoredIota
+  have _ := hdeclWFRestoredIota
+  have _ := htranslationRestoredIota
+  have _preRestoredIota : ElimNestedInductive.Result := preprocessingRestoredIota
+  have _stagedRestoredIota : Kernel.Environment := stagedRestoredIota
+  have _statsRestoredIota : AddInductive.InductiveStats := statsRestoredIota
+  have _rootRestoredIota : AddInductive.Context := rootRestoredIota
+  have _constructorsRestoredIota : Kernel.Environment := constructorsRestoredIota
+  have _elimLevelRestoredIota : Level := elimLevelRestoredIota
+  have _infosRestoredIota : Array AddInductive.RecInfo := infosRestoredIota
+  have _sourceRestoredIota : AddInductive.Context := sourceRestoredIota
+  have _ := hpreRestoredIota
+  have _ := hrunRestoredIota
+  have _ := hscopeRestoredIota
+  have _ := hprefixRestoredIota
+  have _ := hlookupsRestoredIota
+  have _ := hsemanticRestoredIota
+  have _ := hfinalRestoredIota
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation,
+      ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
+        hpre, hrun, hscope, hprefix, hframe, hcounts, hindexing, hdistinct, hsources,
+        hlookups, hbranch, hsemantic⟩⟩ :=
+    addDecl.checkedPrimitiveModelAndAlignmentIotaBaseAndTargetResultsSemantics hmap hcheck hresult coverage entries records_eq
+      producer entry_eq hconstants hresultConstants history hsource hvalues ruleResult hrecursor hentry venv
+  have _modelDecl : VInductDecl := modelDecl
+  have _kind := hkind
+  have _headers := hheaders
+  have _declWF := hdeclWF
+  have _translation := htranslation
+  have _preprocessing : ElimNestedInductive.Result := preprocessing
+  have _staged : Kernel.Environment := staged
+  have _stats : AddInductive.InductiveStats := stats
+  have _root : AddInductive.Context := root
+  have _constructors : Kernel.Environment := constructors
+  have _elimLevel : Level := elimLevel
+  have _infos : Array AddInductive.RecInfo := infos
+  have _source : AddInductive.Context := source
+  have _ := hpre
+  have _ := hrun
+  have _ := hscope
+  have _ := hprefix
+  have _ := hframe
+  have _ := hcounts
+  have _ := hindexing
+  have _ := hdistinct
+  have _ := hsources
+  have _ := hlookups
+  have _ := hbranch
+  have _ := hsemantic
+  trivial
+
+/- Regression: restored alignment semantics retain the generated rule result
+   and paired base/target iota endpoints under one witness. -/
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
     (hmap : env.constants.WF)
