@@ -6341,6 +6341,11 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _history := hhistory
   have _checker := hchecker
   have _results := hresults
+  have hCombined :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage_of_sourceTypehood
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource hvalues
+      ruleResults
+  have _ := hCombined
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
