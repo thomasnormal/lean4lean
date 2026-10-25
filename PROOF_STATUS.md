@@ -26,7 +26,8 @@ the direct generated-replacement-list equation with its target translation,
 typing, and sort-arity witnesses. Deriving that equation from each dispatcher
 branch and consuming it in full iota/recursor soundness remain open; the K
 application endpoint now combines its characterized conditional RHS with an
-explicit generated-list shape equality.
+explicit generated-list shape equality, using the reusable conditional target
+consumer.
 
 
 ## Complete stored-rule generated semantics — 2026-10-25

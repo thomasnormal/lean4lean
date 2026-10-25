@@ -567,6 +567,60 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_inductiveReduceRecExact
         (_resultType.lift' insertionLift) := by
   exact ⟨reduction, translated.trExpr envWF.ordered targetWF.tr.wf, typed, sortArity⟩
 
+/- A dispatcher equation with a conditional assembled RHS can be converted to
+   the exact generated replacement-list equation once its conditional shape is
+   supplied. -/
+theorem GeneratedRecursorRuleIotaTargetResult.of_dispatcherConditionalExact
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {env : VEnv} {universes : List Name} {_stats : InductiveStats}
+    {_motives _minors : Array Expr} {_ctx : Context} {_constructor : Constructor}
+    {_minor : Expr} {rule : RecursorRule} {target : MLCtx} {_count : Nat}
+    {arguments : List VExpr} {_resultType : VExpr} {insertionLift : Lift}
+    {replacements : List Expr} {rhsSemantic : VExpr} {condition : Prop} [Decidable condition]
+    {withTrailing withoutTrailing : Expr}
+    (dispatch : inductiveReduceRec environment expression normalize infer compare =
+      if condition then pure (some withTrailing) else pure (some withoutTrailing))
+    (outputShape : (if condition then withTrailing else withoutTrailing) =
+      rule.rhs.mkAppList replacements)
+    (translated : TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift))))
+    (typed : env.HasType universes.length target.vlctx.toCtx
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift)))
+      (_resultType.lift' insertionLift))
+    (sortArity : env.SortArity universes.length target.vlctx.toCtx _count
+      (_resultType.lift' insertionLift))
+    (envWF : env.WF) (targetWF : target.WF env universes) :
+    inductiveReduceRec environment expression normalize infer compare =
+        pure (some (rule.rhs.mkAppList replacements)) ∧
+      TrExpr env universes target.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift))) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift)))
+        (_resultType.lift' insertionLift) ∧
+      env.SortArity universes.length target.vlctx.toCtx _count
+        (_resultType.lift' insertionLift) := by
+  have exactReduction : inductiveReduceRec environment expression normalize infer compare =
+      pure (some (rule.rhs.mkAppList replacements)) := by
+    rw [dispatch]
+    by_cases h : condition
+    · simp only [h, if_true] at outputShape ⊢
+      rw [outputShape]
+    · simp only [h, if_false] at outputShape ⊢
+      rw [outputShape]
+  exact GeneratedRecursorRuleIotaTargetResult.of_inductiveReduceRecExact
+    (env := env) (universes := universes) (_stats := _stats) (_motives := _motives)
+    (_minors := _minors) (_ctx := _ctx) (_constructor := _constructor) (_minor := _minor)
+    (rule := rule) (target := target) (_count := _count) (arguments := arguments)
+    (_resultType := _resultType) (insertionLift := insertionLift)
+    (replacements := replacements) (rhsSemantic := rhsSemantic)
+    translated typed sortArity exactReduction envWF targetWF
+
 /- Consume the characterized K application branch at the generated target
    endpoint.  The only remaining native-to-generated obligation is the
    explicit equality between the assembled conditional RHS and the generated
@@ -633,23 +687,26 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_kNormalizedApplicationExact
   have dispatch := inductiveReduceRec.eq_some_of_kNormalizedApplication
     (environment := environment) expression normalize infer compare head lookup selected isK
     kAdapted normalized adaptedStruct ruleLookup fieldCount levelCount
-  have exactReduction : inductiveReduceRec environment expression normalize infer compare =
-      pure (some (rule.rhs.mkAppList replacements)) := by
-    rw [dispatch]
-    split
-    · rename_i h
-      simp only [h, if_true] at outputShape ⊢
-      rw [outputShape]
-    · rename_i h
-      simp only [h, if_false] at outputShape ⊢
-      rw [outputShape]
-  exact GeneratedRecursorRuleIotaTargetResult.of_inductiveReduceRecExact
+  exact GeneratedRecursorRuleIotaTargetResult.of_dispatcherConditionalExact
     (env := env) (universes := universes) (_stats := _stats) (_motives := _motives)
     (_minors := _minors) (_ctx := _ctx) (_constructor := _constructor) (_minor := _minor)
     (rule := rule) (target := target) (_count := _count) (arguments := arguments)
     (_resultType := _resultType) (insertionLift := insertionLift)
     (replacements := replacements) (rhsSemantic := rhsSemantic)
-    translated typed sortArity exactReduction envWF targetWF
+    (condition := info.getMajorIdx + 1 < expression.getAppArgs.size)
+    (withTrailing := mkAppRange
+      (mkAppRange
+        (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+          0 info.getFirstIndexIdx expression.getAppArgs)
+        (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+          constructor.getAppArgs)
+      (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs)
+    (withoutTrailing := mkAppRange
+      (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+        0 info.getFirstIndexIdx expression.getAppArgs)
+      (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+        constructor.getAppArgs)
+    dispatch outputShape translated typed sortArity envWF targetWF
 
 /- A reducer consumer needs the generated target witnesses and the native
    output-shape equation at the same existential boundary.  Keep those facts
