@@ -23054,6 +23054,12 @@ theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsA
     hsource hvalues ruleResults
 
 
+
+/- Plural generated-results name for the direct source-typehood target-result
+   package, retaining the complete generated witness. -/
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetResultPackage_of_sourceTypehood :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetResultPackage_of_sourceTypehood
+
 /- The restoration-stage route exposes the target endpoint while retaining the
    selected metadata and executable frontend scope. -/
 /- Plural generated-results name for the constructive-checker package,
@@ -23291,6 +23297,7 @@ def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_o
     (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
     (producer.recursorWF_of_sourceTypehood (producer.constructorEnvWF history.wf) hsource)
     hsource hvalues ruleResults
+
 
 theorem addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralIotaBaseAndTargetResults_of_checkedPrimitive
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
