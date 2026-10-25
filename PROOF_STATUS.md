@@ -131,6 +131,9 @@ typing, and sort arity remaining explicit.
 The ordinary application metadata endpoint now pairs its normalized application
 and structure adaptation with the registered-rule field bound, output shape,
 rule lookup, generated translation, target typing, and sort-arity witnesses.
+The K-normalized application metadata endpoint carries both `toCtorWhenK` and
+structure adaptation into the same registered-rule package, while its target
+consumer keeps generated translation, typing, and sort arity explicit.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.
