@@ -1478,6 +1478,12 @@ theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTa
       exact evidence.recursorGeneratedRuleResultAndIotaTargetOrdinaryOf envWF targetWF
         ruleResults reduction recursor hentry rule hrule
 
+/- Plural generated-results spelling for the ordered ordinary target package.
+   This is definitionally the same checked traversal and keeps the complete
+   generated-rule witness paired with the ordinary target endpoint. -/
+def NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaTargetOrdinaryOf :=
+  @NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetOrdinaryOf
+
 /- Keep the ordered registration traversal while attaching the explicit native
    reducer package to each generated target-iota witness. -/
 theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleIotaTargetReductionsOf
@@ -1599,6 +1605,16 @@ theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTa
     · intro rule hrule
       exact evidence.recursorGeneratedRuleResultAndIotaTargetReductionOf ruleResults reduction
         recursor hentry rule hrule
+
+/- Singular target-reduction spellings for ordered registration consumers. -/
+def NativeInductive.RegistrationEvidence.orderedGeneratedRuleIotaTargetReductionOf :=
+  @NativeInductive.RegistrationEvidence.orderedGeneratedRuleIotaTargetReductionsOf
+
+def NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetReductionOf :=
+  @NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetReductionsOf
+
+def NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaTargetReductionOf :=
+  @NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetReductionsOf
 
 /- Preserve the ordered traversal while exposing both iota endpoints, so a
    consumer can compare the pre-lift and inserted contexts on the same rule. -/
