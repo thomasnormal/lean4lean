@@ -4206,6 +4206,14 @@ theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResult
   exact restored.sourceRecursorGeneratedRuleResultsAndIotaTargetResult producer halign hlookups
     ruleResult hrecursor hentry
 
+/- Plural endpoint spelling for clients that name all indexed target results. -/
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetResults :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetResult
+
+/- Singular generated-result spelling with the plural target endpoint name. -/
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetResults :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetResult
+
 /- Expose only the target-side endpoint under the registration-style singular
    name while retaining the restored source lookup metadata. -/
 theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleIotaTargetResult
