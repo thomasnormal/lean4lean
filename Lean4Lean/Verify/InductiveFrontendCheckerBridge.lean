@@ -4380,6 +4380,10 @@ theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResult
     hfieldCount, htotal, hsemantic, hgenerated,
     hgenerated.iotaKind.baseAndTargetResults⟩
 
+/- Singular generated-result spelling for the restored paired iota package. -/
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIota :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIota
+
 theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaBaseAndTargetResults
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}
