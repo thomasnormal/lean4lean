@@ -24635,6 +24635,17 @@ def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_o
 def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood_and_restorationStagesExact :=
   @addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehoodExact
 
+/- The exact direct target-reduction spelling uses the same endpoint package;
+   its reducer equation is already tied to the stored rule RHS. -/
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_restorationStagesExact :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_restorationStagesExact
+
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_sourceTypehoodExact :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehoodExact
+
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_sourceTypehood_and_restorationStagesExact :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_sourceTypehoodExact
+
 
 theorem addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralIotaBaseAndTargetResults_of_checkedPrimitive
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}

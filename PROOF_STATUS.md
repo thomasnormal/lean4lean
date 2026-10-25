@@ -204,6 +204,9 @@ The lower-level checked `IotaTargetResultPackage` endpoint has matching exact
 restoration and source-typehood aliases.  They retain the complete generated
 rule receipt alongside the exact target-reduction relation; the direct spelling
 therefore cannot hide the constructor/minor or native stored-RHS obligations.
+The direct checked `IotaTargetReductionPackage` spelling has the matching
+exact restoration and source-typehood aliases, with the same generated-rule
+receipt and stored-RHS reducer equation preserved.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

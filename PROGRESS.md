@@ -280,6 +280,9 @@ restoration and source-typehood aliases as well.  These aliases intentionally
 retain the complete generated-rule witness together with the exact target
 reduction equation, so dropping that witness never drops the native result
 constraint.
+The direct checked `IotaTargetReductionPackage` spelling now has matching
+exact restoration and source-typehood aliases, reusing the same endpoint
+package so its reducer equation remains definitionally tied to the stored RHS.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
