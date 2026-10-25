@@ -3815,6 +3815,11 @@ theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleIotaTa
     hentryName, hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields,
     hfieldCount, htotal, hsemantic, htarget⟩
 
+/- Plural endpoint spelling for clients that traverse all indexed source
+   constructor rules. -/
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleIotaTargetReductions :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleIotaTargetReduction
+
 /- Singular generated-result spelling for the restored target-reduction
    package. -/
 def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetReduction :=
