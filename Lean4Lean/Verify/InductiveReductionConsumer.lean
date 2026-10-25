@@ -242,6 +242,102 @@ theorem _root_.Lean4Lean.inductiveReduceRec.eq_some_of_kNormalizedApplication
   dsimp only
   simp [Nat.not_lt_of_ge fieldCount, levelCount]
 
+/- K-like recursors can still reach the literal branches after their major has
+   been adapted.  Nat literals then use their canonical constructor directly
+   for rule lookup and field extraction. -/
+theorem _root_.Lean4Lean.inductiveReduceRec.eq_some_of_kNormalizedNatLiteral
+    {m : Type → Type} [Monad m] [LawfulMonad m]
+    (environment : Kernel.Environment) (expression : Expr)
+    (normalize infer : Expr → m Expr) (compare : Expr → Expr → m Bool)
+    {recursorName : Name} {levels : List Level} {info : RecursorVal}
+    {major adapted : Expr} {value : Nat} {rule : RecursorRule}
+    (head : expression.getAppFn = .const recursorName levels)
+    (lookup : environment.find? recursorName = some (.recInfo info))
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (isK : info.k = true)
+    (kAdapted : toCtorWhenK environment normalize infer compare info major = pure adapted)
+    (normalized : normalize adapted = pure (.lit (.natVal value)))
+    (ruleLookup : getRecRuleFor info (Expr.natLitToConstructor value) = some rule)
+    (fieldCount : rule.nfields ≤ (Expr.natLitToConstructor value).getAppArgs.size)
+    (levelCount : levels.length = info.levelParams.length) :
+    inductiveReduceRec environment expression normalize infer compare =
+      if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        pure (some <| mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            ((Expr.natLitToConstructor value).getAppArgs.size - rule.nfields)
+            (Expr.natLitToConstructor value).getAppArgs.size
+              (Expr.natLitToConstructor value).getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs)
+      else
+        pure (some <| mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          ((Expr.natLitToConstructor value).getAppArgs.size - rule.nfields)
+          (Expr.natLitToConstructor value).getAppArgs.size
+            (Expr.natLitToConstructor value).getAppArgs) := by
+  unfold inductiveReduceRec
+  rw [head]
+  simp only [lookup]
+  rw [selected]
+  simp only [isK, if_true]
+  rw [kAdapted]
+  simp only [Bind.bind, pure_bind]
+  rw [normalized]
+  simp only [Bind.bind, pure_bind]
+  rw [ruleLookup]
+  dsimp only
+  simp [Nat.not_lt_of_ge fieldCount, levelCount]
+
+/- The corresponding K String branch expands the literal before looking up the
+   generated constructor rule. -/
+theorem _root_.Lean4Lean.inductiveReduceRec.eq_some_of_kNormalizedStringLiteral
+    {m : Type → Type} [Monad m] [LawfulMonad m]
+    (environment : Kernel.Environment) (expression : Expr)
+    (normalize infer : Expr → m Expr) (compare : Expr → Expr → m Bool)
+    {recursorName : Name} {levels : List Level} {info : RecursorVal}
+    {major adapted constructor : Expr} {text : String} {rule : RecursorRule}
+    (head : expression.getAppFn = .const recursorName levels)
+    (lookup : environment.find? recursorName = some (.recInfo info))
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (isK : info.k = true)
+    (kAdapted : toCtorWhenK environment normalize infer compare info major = pure adapted)
+    (normalized : normalize adapted = pure (.lit (.strVal text)))
+    (expanded : normalize (.strLitToConstructor text) = pure constructor)
+    (ruleLookup : getRecRuleFor info constructor = some rule)
+    (fieldCount : rule.nfields ≤ constructor.getAppArgs.size)
+    (levelCount : levels.length = info.levelParams.length) :
+    inductiveReduceRec environment expression normalize infer compare =
+      if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        pure (some <| mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+              constructor.getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs)
+      else
+        pure (some <| mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs) := by
+  unfold inductiveReduceRec
+  rw [head]
+  simp only [lookup]
+  rw [selected]
+  simp only [isK, if_true]
+  rw [kAdapted]
+  simp only [Bind.bind, pure_bind]
+  rw [normalized]
+  simp only [Bind.bind, pure_bind]
+  rw [expanded]
+  simp only [pure_bind]
+  rw [ruleLookup]
+  dsimp only
+  simp [Nat.not_lt_of_ge fieldCount, levelCount]
+
 /- Consume a successful native reduction at the generated-rule boundary.  The
    executable reducer and generated replacement list are deliberately connected
    by the explicit `outputShape` premise; this keeps the remaining native branch

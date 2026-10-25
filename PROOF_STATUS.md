@@ -15,11 +15,12 @@ rules cannot be paired with an unrelated output-shape equality. The proved
 The `inductiveReduceRec.eq_some_of_normalizedApplication`,
 `eq_some_of_normalizedConstant`, `eq_some_of_normalizedNatLiteral`, and
 `eq_some_of_normalizedStringLiteral`, and
-`eq_some_of_kNormalizedApplication` lemmas now unfold the native non-K and K
+`eq_some_of_kNormalizedApplication`, `eq_some_of_kNormalizedNatLiteral`, and
+`eq_some_of_kNormalizedStringLiteral` lemmas now unfold the native non-K and K
 application/literal/constant branches and expose their exact RHS assembly under
 explicit branch witnesses. No executable behavior or admissions changed.
-Connecting these equations to generated replacement lists, covering K literal
-branches, and consuming them in full iota/recursor soundness remain open.
+Connecting these equations to generated replacement lists and consuming them in
+full iota/recursor soundness remain open.
 
 
 ## Complete stored-rule generated semantics — 2026-10-25
