@@ -885,6 +885,30 @@ theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIota
   exact ⟨semantic, translated, constructor, minor, generated,
     generated.iotaKind.baseAndTargetResults⟩
 
+/- Plural generated-results name for the per-recursor semantic/iota package. -/
+theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultsAndIota
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules, ∃ semantic,
+      TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+      ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+        AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  intro entry hentry rule hrule
+  obtain ⟨semantic, translated, constructor, minor, generated⟩ :=
+    evidence.recursorGeneratedRuleResult ruleResults entry hentry rule hrule
+  exact ⟨semantic, translated, constructor, minor, generated,
+    generated.iotaKind.baseAndTargetResults⟩
+
 /- Name the complete generated-result/base-and-target-iota package explicitly
    at the registration boundary.  The pair is projected from the same
    constructor/minor witness returned by the producer. -/

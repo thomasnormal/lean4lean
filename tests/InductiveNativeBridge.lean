@@ -14,6 +14,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check AddInductive.LocalRecursorRuleRhsScope.ruleResultSemanticsAndIota
 
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIota
+#check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultsAndIota
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIota
@@ -62,8 +63,10 @@ example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEn
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
         AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
-          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule :=
-  evidence.recursorGeneratedRuleResultAndIota ruleResults
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  have h := evidence.recursorGeneratedRuleResultAndIota ruleResults
+  have hPlural := evidence.recursorGeneratedRuleResultsAndIota ruleResults
+  exact h
 
 example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
     {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
