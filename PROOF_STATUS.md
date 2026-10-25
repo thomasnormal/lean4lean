@@ -62,6 +62,11 @@ The native receipt bridge
 constructor field bound from `NativeEtaStructEntryReceipt`'s checked arity,
 while retaining an explicit equality between `getAppNumArgs` and the
 reducer's `getAppArgs.size` representation.
+The metadata output endpoint
+`dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt`
+packages that field-bound derivation with constructor-head and
+context/environment alignment, while leaving the normalization receipt and
+all reducer branch decisions explicit.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.

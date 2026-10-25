@@ -786,6 +786,69 @@ theorem dispatcherConditionalShapeOfMetadataOutput
     dispatcherConditionalShapeOfCanonicalOutput selected hfieldCount hnoLevelParam
   exact ⟨recursor, rule, ctorInfo, replacements, hrecursor, hrule, hconstructor, hshape⟩
 
+/- Consume the native structure-normalization receipt at the metadata-driven
+   output boundary.  The constructor head and context/environment equality
+   identify the receipt's constructor value with the metadata lookup; the
+   explicit `getAppNumArgs = getAppArgs.size` bridge then supplies the field
+   bound required by the reducer slice theorem. -/
+theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt
+    {types : Array InductiveType} {environment : Kernel.Environment}
+    {context : TypeChecker.Context} {constructorEntry : Constructor}
+    {expression : Expr} {levels : List Level} {info : RecursorVal}
+    {constructor major : Expr} {ctorInfo : ConstructorVal}
+    (metadata : RuleConstructorFieldMetadata types environment)
+    (parent : Nat) (parentBound : parent < types.size)
+    (index : Nat) (constructorEntryAt : types[parent]!.ctors[index]? = some constructorEntry)
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (receipt : NativeEtaStructEntryReceipt context constructor ctorInfo)
+    (contextEnvEq : context.env = environment)
+    (constructorHead : constructor.getAppFn = .const constructorEntry.name levels)
+    (appNumArgsEq : constructor.getAppNumArgs = constructor.getAppArgs.size)
+    (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
+      recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false) :
+    ∃ (recursor : RecursorVal) (rule : RecursorRule) (metadataInfo : ConstructorVal)
+      (replacements : List Expr),
+      environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      recursor.rules[index]? = some rule ∧
+      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) ∧
+      (if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+              constructor.getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs
+       else
+        mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs) = rule.rhs.mkAppList replacements := by
+  obtain ⟨receiptName, receiptLevels, receiptHead, receiptLookup⟩ := receipt.lookup
+  have hhead : Expr.const receiptName receiptLevels =
+      Expr.const constructorEntry.name levels := receiptHead.symm.trans constructorHead
+  have hname : receiptName = constructorEntry.name := by
+    injection hhead
+  subst receiptName
+  rw [contextEnvEq] at receiptLookup
+  have constructorFieldBound : ∀ metadataInfo : ConstructorVal,
+      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) →
+        metadataInfo.numFields ≤ constructor.getAppArgs.size := by
+    intro metadataInfo metadataLookup
+    have hlookup : some (ConstantInfo.ctorInfo metadataInfo) =
+        some (ConstantInfo.ctorInfo ctorInfo) :=
+      metadataLookup.symm.trans receiptLookup
+    have hconst : ConstantInfo.ctorInfo metadataInfo = ConstantInfo.ctorInfo ctorInfo :=
+      Option.some.inj hlookup
+    have hinfo : metadataInfo = ctorInfo := ConstantInfo.ctorInfo.inj hconst
+    subst metadataInfo
+    exact dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt receipt appNumArgsEq
+  exact dispatcherConditionalShapeOfMetadataOutput (types := types) (environment := environment)
+    (expression := expression) (levels := levels) (info := info) (constructor := constructor)
+    (major := major) metadata parent parentBound index constructorEntry constructorEntryAt selected
+    constructor constructorFieldBound noLevelParam
+
 theorem instantiateLevelParams_eq_self_of_noLevelParam
     {expression : Expr} {parameters : List Name} {levels : List Level}
     (noLevelParam : expression.hasLevelParam' = false) :

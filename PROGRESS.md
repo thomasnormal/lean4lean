@@ -89,6 +89,10 @@ registered-rule lookup package plus the exact generated replacement shape.
 native structure-normalization arity receipt into the reducer field-count
 bound, retaining the explicit `getAppNumArgs = getAppArgs.size` representation
 bridge.
+`dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt` now
+consumes that receipt at the metadata-driven output boundary, using explicit
+constructor-head and context/environment equalities to align the native
+constructor value with stored metadata.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
