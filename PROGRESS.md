@@ -85,6 +85,10 @@ reducer call.
 `dispatcherConditionalShapeOfMetadataOutput` composes the field-count
 projection with the no-level canonical output theorem and returns a complete
 registered-rule lookup package plus the exact generated replacement shape.
+`dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt` now turns the
+native structure-normalization arity receipt into the reducer field-count
+bound, retaining the explicit `getAppNumArgs = getAppArgs.size` representation
+bridge.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.InductiveGeneratedRuleResult
+import Lean4Lean.Verify.InductiveHeaderComparisonHelperTransport
 import Lean4Lean.Verify.TypeChecker.Reduce
 
 namespace Lean4Lean.AddInductive
@@ -726,6 +727,19 @@ theorem dispatcherFieldCountOfConstructorMetadata
   refine ⟨recursor, rule, info, recursorLookup, ruleAt, constructorLookup, ?_⟩
   rw [ruleFields]
   exact constructorFieldBound info constructorLookup
+
+/- The native structure-normalization receipt records its constructor arity
+   with `getAppNumArgs`; the reducer slices the `getAppArgs` array.  Keep that
+   small representation bridge explicit while deriving the field bound from the
+   receipt's checked arity. -/
+theorem dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt
+    {context : TypeChecker.Context} {constructor : Expr} {info : ConstructorVal}
+    (receipt : NativeEtaStructEntryReceipt context constructor info)
+    (appNumArgsEq : constructor.getAppNumArgs = constructor.getAppArgs.size) :
+    info.numFields ≤ constructor.getAppArgs.size := by
+  have harity : constructor.getAppNumArgs = info.numParams + info.numFields :=
+    beq_iff_eq.mp receipt.arity
+  omega
 
 /- Combine the stored constructor/rule alignment with the canonical output
    projection.  This is the first metadata-driven endpoint that returns an

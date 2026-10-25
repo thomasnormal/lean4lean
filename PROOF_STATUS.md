@@ -57,6 +57,11 @@ registered recursor/rule/constructor lookups with the exact replacement shape
 when each stored rule supplies the no-level receipt. It still leaves the
 native constructor argument bound and branch normalization callbacks to the
 caller.
+The native receipt bridge
+`dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt` derives that
+constructor field bound from `NativeEtaStructEntryReceipt`'s checked arity,
+while retaining an explicit equality between `getAppNumArgs` and the
+reducer's `getAppArgs.size` representation.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.
