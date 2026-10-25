@@ -900,6 +900,61 @@ theorem dispatcherConditionalShapeOfMetadataOutputWithRuleLookup
   exact ⟨recursor, rule, ctorInfo, replacements, hrecursor, hrule, hconstructor, hshape,
     ruleLookup recursor rule ctorInfo hrule hconstructor⟩
 
+/- Keep the metadata-derived field bound in the same existential package as
+   the output shape and executable rule lookup.  This avoids asking each
+   generated-target wrapper to repeat the rule-field alignment proof. -/
+theorem dispatcherConditionalShapeOfMetadataOutputWithRuleLookupAndFieldCount
+    {types : Array InductiveType} {environment : Kernel.Environment}
+    (metadata : RuleConstructorFieldMetadata types environment)
+    (parent : Nat) (parentBound : parent < types.size)
+    (index : Nat) (constructorEntry : Constructor)
+    (constructorEntryAt : types[parent]!.ctors[index]? = some constructorEntry)
+    {expression : Expr} {levels : List Level} {info : RecursorVal}
+    {constructor major : Expr}
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (constructorFieldBound : ∀ ctorInfo : ConstructorVal,
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) →
+      ctorInfo.numFields ≤ constructor.getAppArgs.size)
+    (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
+      recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false)
+    (ruleLookup : ∀ (recursor : RecursorVal) (rule : RecursorRule)
+      (ctorInfo : ConstructorVal),
+      recursor.rules[index]? = some rule →
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) →
+      getRecRuleFor info constructor = some rule) :
+    ∃ (recursor : RecursorVal) (rule : RecursorRule) (ctorInfo : ConstructorVal)
+      (replacements : List Expr),
+      environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      recursor.rules[index]? = some rule ∧
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) ∧
+      rule.nfields ≤ constructor.getAppArgs.size ∧
+      (if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+              constructor.getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs
+       else
+        mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs) = rule.rhs.mkAppList replacements ∧
+      getRecRuleFor info constructor = some rule := by
+  obtain ⟨recursor, hrecursor, entries⟩ := metadata parent parentBound
+  obtain ⟨rule, ctorInfo, hrule, hconstructor, _ruleName, hfields⟩ :=
+    entries index constructorEntry constructorEntryAt
+  have hfieldCount : rule.nfields ≤ constructor.getAppArgs.size := by
+    rw [hfields]
+    exact constructorFieldBound ctorInfo hconstructor
+  have hnoLevelParam := noLevelParam recursor rule hrule
+  obtain ⟨replacements, hshape⟩ :=
+    dispatcherConditionalShapeOfCanonicalOutput selected hfieldCount hnoLevelParam
+  exact ⟨recursor, rule, ctorInfo, replacements, hrecursor, hrule, hconstructor,
+    hfieldCount, hshape, ruleLookup recursor rule ctorInfo hrule hconstructor⟩
+
 /- The receipt-backed form packages the native structure constructor with the
    same executable rule lookup.  This is the boundary consumed by a generated
    target theorem: native normalization supplies the constructor metadata,

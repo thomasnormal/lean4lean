@@ -96,6 +96,9 @@ constructor value with stored metadata.
 `dispatcherConditionalShapeOfMetadataOutputWithRuleLookup` now pairs that
 shape with the executable `getRecRuleFor` equation, retaining rule-selection
 as an explicit caller-supplied obligation.
+`dispatcherConditionalShapeOfMetadataOutputWithRuleLookupAndFieldCount` now
+keeps the metadata-derived `rule.nfields ≤ constructor.getAppArgs.size`
+bound in that same package.
 `dispatcherConditionalShapeOfMetadataOutputOfNormalizedNatLiteral` now
 specializes that package to the reducer's canonical Nat-literal constructor,
 while keeping constructor bounds and executable rule selection explicit.
