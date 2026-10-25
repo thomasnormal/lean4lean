@@ -48,6 +48,10 @@ The caller-facing `dispatcherConditionalShapeOfCanonicalOutput` additionally
 discharges the level relation from the stored RHS no-level-parameter flag and
 returns only the exact generated replacement-list equality; the native
 field-count bound remains explicit.
+`dispatcherFieldCountOfConstructorMetadata` now aligns a stored recursor rule
+with its looked-up `ConstructorVal` and derives the rule field-count bound from
+the constructor-value argument bound. Establishing that native argument bound
+from each normalization callback remains a separate obligation.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.

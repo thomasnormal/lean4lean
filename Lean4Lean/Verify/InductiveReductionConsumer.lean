@@ -701,6 +701,32 @@ theorem dispatcherConditionalShapeOfCanonicalOutput
     dispatcherConditionalShapeOfCanonicalDecomposition selected fieldCount levelShape
   exact ⟨replacements, houtput⟩
 
+/- Project the stored constructor metadata to the field-count premise consumed
+   by the native reducer.  The caller supplies the native constructor-argument
+   bound for the looked-up `ConstructorVal`; the metadata then aligns that
+   value with the corresponding recursor rule. -/
+theorem dispatcherFieldCountOfConstructorMetadata
+    {types : Array InductiveType} {environment : Kernel.Environment}
+    (metadata : RuleConstructorFieldMetadata types environment)
+    (parent : Nat) (parentBound : parent < types.size)
+    (index : Nat) (constructorEntry : Constructor)
+    (constructorEntryAt : types[parent]!.ctors[index]? = some constructorEntry)
+    (constructor : Expr)
+    (constructorFieldBound : ∀ info : ConstructorVal,
+      environment.find? constructorEntry.name = some (.ctorInfo info) →
+      info.numFields ≤ constructor.getAppArgs.size) :
+    ∃ (recursor : RecursorVal) (rule : RecursorRule) (info : ConstructorVal),
+      environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      recursor.rules[index]? = some rule ∧
+      environment.find? constructorEntry.name = some (.ctorInfo info) ∧
+      rule.nfields ≤ constructor.getAppArgs.size := by
+  obtain ⟨recursor, recursorLookup, entries⟩ := metadata parent parentBound
+  obtain ⟨rule, info, ruleAt, constructorLookup, ruleName, ruleFields⟩ :=
+    entries index constructorEntry constructorEntryAt
+  refine ⟨recursor, rule, info, recursorLookup, ruleAt, constructorLookup, ?_⟩
+  rw [ruleFields]
+  exact constructorFieldBound info constructorLookup
+
 theorem instantiateLevelParams_eq_self_of_noLevelParam
     {expression : Expr} {parameters : List Name} {levels : List Level}
     (noLevelParam : expression.hasLevelParam' = false) :

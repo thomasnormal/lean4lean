@@ -77,6 +77,11 @@ this is a decomposition bridge, not complete iota or recursor soundness.
 `dispatcherConditionalShapeOfCanonicalOutput` now hides the intermediate
 slice witnesses for callers whose stored RHS carries the no-level-parameter
 receipt, deriving the exact generated replacement-list equality directly.
+`dispatcherFieldCountOfConstructorMetadata` now projects the stored
+constructor metadata to the recursor rule's native field-count premise, given
+the corresponding constructor-value argument bound. The actual constructor
+normalization proof still has to supply that argument bound at a concrete
+reducer call.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
