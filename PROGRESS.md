@@ -211,6 +211,12 @@ The ordinary structure metadata consumer now likewise reuses
 adaptation package, removing duplicated dispatcher transport while retaining
 the explicit normalization exclusions, metadata alignment, output shape,
 generated translation, target typing, and sort-arity witnesses.
+The generated target consumer audit is now complete for the metadata branch
+families: ordinary/K applications, constants, Nat literals, String literals,
+and structures all delegate dispatcher-to-target transport to their exact
+non-metadata endpoints after assembling their own metadata packages. Each
+wrapper retains its branch-specific normalization, adaptation, alignment,
+shape, translation, typing, and sort-arity obligations.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

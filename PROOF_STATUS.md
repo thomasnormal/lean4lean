@@ -137,6 +137,12 @@ dispatcher-to-target transport to `of_normalizedStructureExact` after obtaining
 the receipt-backed constructor adaptation package. Its normalization
 exclusions, metadata alignment, output-shape, generated-translation,
 target-typing, and sort-arity witnesses remain explicit.
+The metadata target-consumer audit is complete across ordinary/K applications,
+constants, Nat literals, String literals, and structures: each metadata
+consumer delegates dispatcher transport to its exact non-metadata endpoint
+after assembling the branch-specific metadata package. No branch-specific
+normalization, adaptation, alignment, shape, translation, typing, or sort
+arity premise is hidden by this reuse.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,
