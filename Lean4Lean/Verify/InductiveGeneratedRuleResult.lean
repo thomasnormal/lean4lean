@@ -726,6 +726,55 @@ theorem LocalRecursorRuleRhsScope.completeRuleResultSemanticsIndexed
   exact ⟨recursor.rules[index], minor, List.getElem?_eq_getElem indexBound, minorLookup,
     result.1, result.2⟩
 
+/- Recover the complete stored-rule semantic/generated package from the indexed
+   package.  Ordered recursor rules provide the length equality needed to turn
+   a stored list member back into the constructor/index witness used by the
+   package. -/
+theorem LocalRecursorRuleRhsScope.completeRuleResultSemanticsFromIndexed
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    {env : VEnv} {universes : List Name}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (ordered : OrderedRecursorRules types kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat) (ctor : Constructor)
+      (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        GeneratedRecursorRuleResultSemantics env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ rule ∈ recursor.rules, ∃ (index : Nat) (ctor : Constructor) (minor : Expr),
+        types[parent]!.ctors[index]? = some ctor ∧
+        infos[parent]!.minors[index]? = some minor ∧
+        recursor.rules[index]? = some rule ∧
+        GeneratedRecursorRuleResultSemantics env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule := by
+  have indexed := hscope.completeRuleResultSemanticsIndexed ordered head
+  intro parent bound
+  obtain ⟨recursor, lookup, entries⟩ := indexed parent bound
+  obtain ⟨stored, storedLookup, _, count⟩ := ordered parent bound
+  have same : recursor = stored := ConstantInfo.recInfo.inj
+    (Option.some.inj (lookup.symm.trans storedLookup))
+  subst stored
+  refine ⟨recursor, lookup, ?_⟩
+  intro rule member
+  obtain ⟨index, indexBound, atIndex⟩ := List.mem_iff_getElem.mp member
+  have ctorBound : index < types[parent]!.ctors.length := by
+    rw [← count]
+    exact indexBound
+  have ctorLookup : types[parent]!.ctors[index]? = some types[parent]!.ctors[index] :=
+    List.getElem?_eq_getElem ctorBound
+  obtain ⟨matched, minor, ruleLookup, minorLookup, result⟩ :=
+    entries index types[parent]!.ctors[index] ctorLookup
+  have sameRule : matched = rule := by
+    exact Option.some.inj (ruleLookup.symm.trans
+      ((List.getElem?_eq_getElem indexBound).trans (congrArg some atIndex)))
+  subst matched
+  exact ⟨index, types[parent]!.ctors[index], minor, ctorLookup, minorLookup, ruleLookup, result⟩
+
 /- Recover the complete stored-rule semantic coverage from the indexed package.
    Ordered recursor rules provide the length equality needed to turn a stored
    list member back into the constructor/index witness used by the package. -/
@@ -749,7 +798,7 @@ theorem LocalRecursorRuleRhsScope.completeRuleSemanticsFromIndexed
     ∀ parent, parent < types.size → ∃ recursor,
       kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
       ∀ rule ∈ recursor.rules, ∃ semantic, TrExprS env universes [] rule.rhs semantic := by
-  have indexed := hscope.completeRuleResultSemanticsIndexed ordered head
+  have indexed := hscope.completeRuleResultSemanticsFromIndexed ordered head
   intro parent bound
   obtain ⟨recursor, lookup, entries⟩ := indexed parent bound
   obtain ⟨stored, storedLookup, _, count⟩ := ordered parent bound
@@ -758,19 +807,9 @@ theorem LocalRecursorRuleRhsScope.completeRuleSemanticsFromIndexed
   subst stored
   refine ⟨recursor, lookup, ?_⟩
   intro rule member
-  obtain ⟨index, indexBound, atIndex⟩ := List.mem_iff_getElem.mp member
-  have ctorBound : index < types[parent]!.ctors.length := by
-    rw [← count]
-    exact indexBound
-  have ctorLookup : types[parent]!.ctors[index]? = some types[parent]!.ctors[index] :=
-    List.getElem?_eq_getElem ctorBound
-  obtain ⟨matched, _minor, ruleLookup, _minorLookup, result, _generated⟩ :=
-    entries index types[parent]!.ctors[index] ctorLookup
-  have sameRule : matched = rule := by
-    exact Option.some.inj (ruleLookup.symm.trans
-      ((List.getElem?_eq_getElem indexBound).trans (congrArg some atIndex)))
-  subst matched
-  exact result
+  obtain ⟨_index, _ctor, _minor, _ctorLookup, _minorLookup, _ruleLookup, result⟩ :=
+    entries rule member
+  exact result.1
 
 /- Keep the complete stored-rule coverage while exposing the paired base/target
    iota endpoint from the same generated witness.  Ordered recursor rules still
