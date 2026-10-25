@@ -239,6 +239,9 @@ trivial.
 The restored checker certificate now has an exact target-reduction companion,
 `toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaTargetReductionExact`,
 which pairs the checked environment with the source-indexed exact package.
+The restored ordinary target projection now also has an exact variant,
+`sourceRecursorGeneratedRuleResultsAndIotaTargetOrdinaryExact`, preserving the
+RHS equation while converting the same target witnesses to ordinary typing.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

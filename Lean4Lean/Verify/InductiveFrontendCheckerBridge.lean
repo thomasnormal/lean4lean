@@ -4294,6 +4294,101 @@ theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResult
     hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields, hfieldCount, htotal,
     hsemantic, hgenerated, htarget.toOrdinary envWF targetWF⟩
 
+theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetOrdinaryExact
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    {nparams : Nat} {lparams : List Name} {types : List InductiveType}
+    (hlookups : SourceRecursorRuleLookups nparams lparams types preprocessing staged result)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (envWF : semanticEnv.WF)
+    (targetWF : ∀ target : TypeChecker.MLCtx, target.WF semanticEnv universes)
+    (ruleResult : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules →
+        ∃ (constructor : Constructor) (minor : Expr),
+          AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (hrecursor : ∀ (index : Nat) (hindex : index < types.length)
+      (recursor : RecursorVal),
+      result.find? recursor.name = some (.recInfo recursor) →
+      recursor.name = mkRecName types[index].name)
+    (hentry : ∀ (index : Nat) (hindex : index < types.length),
+      ∃ entry : NativeInductive.RecursorEntry,
+        (.recursor entry : NativeInductive.RegistrationEntry) ∈ restored.entries ∧
+        entry.info.name = mkRecName types[index].name)
+    (reduction : ∀ (entry : NativeInductive.RecursorEntry) (rule : RecursorRule)
+      (constructor : Constructor) (minor : Expr),
+      ∀ (target : TypeChecker.MLCtx) (count : Nat) (arguments : List VExpr)
+        (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+        (rhsSemantic : VExpr),
+        TrExprS semanticEnv universes target.vlctx (rule.rhs.mkAppList replacements)
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift))) →
+        semanticEnv.HasType universes.length target.vlctx.toCtx
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift)))
+          (resultType.lift' insertionLift) →
+        semanticEnv.SortArity universes.length target.vlctx.toCtx count
+          (resultType.lift' insertionLift) →
+        inductiveReduceRec environment expression normalize infer compare =
+          pure (some (rule.rhs.mkAppList replacements))) :
+    ∀ (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+      (hctor : ctorIndex < types[index].ctors.length),
+      ∃ (entry : NativeInductive.RecursorEntry) (recursor : RecursorVal)
+        (rule : RecursorRule) (info : ConstructorVal) (semantic : VExpr)
+        (constructor : Constructor) (minor : Expr),
+        result.find? recursor.name = some (.recInfo recursor) ∧
+        entry.info.name = mkRecName types[index].name ∧
+        recursor.rules.length = types[index].ctors.length ∧
+        recursor.rules[ctorIndex]? = some rule ∧
+        staged.find? types[index].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+        SourceConstructorMetadata nparams lparams types[index] ctorIndex info ∧
+        SourceConstructorFields nparams types[index] ctorIndex info ∧
+        rule.nfields = info.numFields ∧
+        rule.nfields = arity 0 types[index].ctors[ctorIndex].type - nparams ∧
+        nparams + rule.nfields = arity 0 types[index].ctors[ctorIndex].type ∧
+        TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+        ∃ (target : TypeChecker.MLCtx) (count : Nat) (arguments : List VExpr)
+          (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+          (rhsSemantic : VExpr),
+          inductiveReduceRec environment expression normalize infer compare =
+            pure (some (rule.rhs.mkAppList replacements)) ∧
+          TrExpr semanticEnv universes target.vlctx (rule.rhs.mkAppList replacements)
+            (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+              (arguments.map (VExpr.lift' · insertionLift))) ∧
+          semanticEnv.HasType universes.length target.vlctx.toCtx
+            (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+              (arguments.map (VExpr.lift' · insertionLift)))
+            (resultType.lift' insertionLift) ∧
+          semanticEnv.SortArity universes.length target.vlctx.toCtx count
+            (resultType.lift' insertionLift) := by
+  intro index hindex ctorIndex hctor
+  obtain ⟨entry, recursor, rule, info, semantic, constructor, minor, hresult,
+      hentryName, hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields,
+      hfieldCount, htotal, hsemantic, hgenerated, htarget⟩ :=
+    restored.sourceRecursorGeneratedRuleResultsAndIotaTargetReductionExact producer halign hlookups
+      ruleResult hrecursor hentry reduction index hindex ctorIndex hctor
+  exact ⟨entry, recursor, rule, info, semantic, constructor, minor, hresult, hentryName,
+    hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields, hfieldCount, htotal,
+    hsemantic, hgenerated, htarget.toOrdinary envWF targetWF⟩
+
+/- Singular generated-result spelling for the exact ordinary target package. -/
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetOrdinaryExact :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetOrdinaryExact
+
 /- Expose only the ordinary target endpoint while retaining the indexed source
    lookup metadata and generated constructor/minor witnesses. -/
 theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleIotaTargetOrdinary
