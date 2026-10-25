@@ -16,9 +16,11 @@ The `inductiveReduceRec.eq_some_of_normalizedApplication`,
 `eq_some_of_normalizedConstant`, `eq_some_of_normalizedNatLiteral`, and
 `eq_some_of_normalizedStringLiteral`, and
 `eq_some_of_kNormalizedApplication`, `eq_some_of_kNormalizedNatLiteral`, and
-`eq_some_of_kNormalizedStringLiteral` lemmas now unfold the native non-K and K
-application/literal/constant branches and expose their exact RHS assembly under
-explicit branch witnesses. No executable behavior or admissions changed.
+`eq_some_of_kNormalizedStringLiteral`, `eq_some_of_normalizedStructure`, and
+`eq_some_of_kNormalizedStructure` lemmas now unfold the native non-K and K
+application/literal/constant/structure branches and expose their exact RHS
+assembly under explicit branch witnesses. No executable behavior or admissions
+changed.
 Connecting these equations to generated replacement lists and consuming them in
 full iota/recursor soundness remain open.
 

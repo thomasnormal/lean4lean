@@ -45,10 +45,10 @@ and string-literal branches of the native dispatcher now have proved equations
 exposing their exact assembled RHS under explicit normalization, constructor
 adaptation, rule lookup, arity, and universe-length premises. Connecting those
 branch witnesses to generated replacement lists and covering the K application
-adaptation path now have the same explicit equations; K literal branches now
-have matching equations, while connecting all branches to generated replacement
-lists and proving the final complete iota/recursor soundness theorem remain
-open.
+adaptation path now have the same explicit equations; literal and nonliteral
+structure-adaptation branches now have matching equations, while connecting
+all branch outputs to generated replacement lists and proving the final
+complete iota/recursor soundness theorem remain open.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
