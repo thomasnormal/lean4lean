@@ -57,6 +57,8 @@ open Lean4Lean.AddInductive.declareConstructors
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+#check addDecl.checkedPrimitiveModelAndRegistrationSemanticsGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check addDecl.checkedPrimitiveModelAndRegistrationSemanticsGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage
@@ -4317,10 +4319,15 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.checkedPrimitiveModelAndRegistrationSemanticsGeneratedRuleResultAndIotaBaseAndTargetResults
       (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
       hvalues ruleResult hrecursor hentry
+  have hGeneratedPlural :=
+    addDecl.checkedPrimitiveModelAndRegistrationSemanticsGeneratedRuleResultsAndIotaBaseAndTargetResults
+      (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+      hvalues ruleResult hrecursor hentry
   have _ := h
   have _ := hStagesGenerated
   have _ := hStagesGeneratedPlural
   have _ := hGenerated
+  have _ := hGeneratedPlural
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
@@ -4389,10 +4396,15 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.checkedPrimitiveModelAndRegistrationSemanticsGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
       (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
       hvalues ruleResult hrecursor hentry
+  have hGeneratedPlural :=
+    addDecl.checkedPrimitiveModelAndRegistrationSemanticsGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+      (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+      hvalues ruleResult hrecursor hentry
   have _ := h
   have _ := hStagesGenerated
   have _ := hStagesGeneratedPlural
   have _ := hGenerated
+  have _ := hGeneratedPlural
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
