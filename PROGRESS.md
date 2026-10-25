@@ -40,11 +40,13 @@ remain open.
 The reducer boundary now also accepts an exact equation whose result is the
 stored rule RHS. This packages the generated target translation, typing, sort
 arity, and native reducer success in one receipt, with a per-recursor
-registration consumer. The non-K application branch of the native dispatcher
-now has a proved equation exposing its exact assembled RHS under explicit
-normalization, constructor adaptation, rule lookup, arity, and universe-length
-premises. Connecting those branch witnesses to generated replacement lists and
-using the result in the complete iota/recursor soundness theorem remain open.
+registration consumer. The non-K application, normalized constant, Nat-literal,
+and string-literal branches of the native dispatcher now have proved equations
+exposing their exact assembled RHS under explicit normalization, constructor
+adaptation, rule lookup, arity, and universe-length premises. Connecting those
+branch witnesses to generated replacement lists, covering K/structure
+adaptation, and using the result in the complete iota/recursor soundness theorem
+remain open.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

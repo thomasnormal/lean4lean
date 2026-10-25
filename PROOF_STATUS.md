@@ -12,12 +12,13 @@ translation, target typing, sort arity, and exact reducer equation together;
 `toOrdinary` then exposes the translated reducer result at the target context.
 The registration evidence now has a matching per-recursor consumer, so stored
 rules cannot be paired with an unrelated output-shape equality. The proved
-`inductiveReduceRec.eq_some_of_normalizedApplication` lemma now unfolds the
-native non-K application branch and exposes its exact RHS assembly under
-explicit branch witnesses. No executable behavior or admissions changed.
-Connecting that equation to generated replacement lists, covering the remaining
-literal/K/structure branches, and consuming it in full iota/recursor soundness
-remain open.
+The `inductiveReduceRec.eq_some_of_normalizedApplication`,
+`eq_some_of_normalizedConstant`, `eq_some_of_normalizedNatLiteral`, and
+`eq_some_of_normalizedStringLiteral` lemmas now unfold the native non-K
+application and literal/constant branches and expose their exact RHS assembly
+under explicit branch witnesses. No executable behavior or admissions changed.
+Connecting these equations to generated replacement lists, covering K/structure
+adaptation, and consuming them in full iota/recursor soundness remain open.
 
 
 ## Complete stored-rule generated semantics — 2026-10-25
