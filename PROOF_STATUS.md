@@ -112,6 +112,11 @@ field-count obligations through its witness family.
 The K-normalized structure endpoint carries the explicit K adaptation and
 normalization exclusions through the receipt/adaptation package and the same
 generated-target package.
+The ordinary structure metadata consumer now delegates final
+dispatcher-to-target transport to `of_normalizedStructureExact` after obtaining
+the receipt-backed constructor adaptation package. Its normalization
+exclusions, metadata alignment, output-shape, generated-translation,
+target-typing, and sort-arity witnesses remain explicit.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

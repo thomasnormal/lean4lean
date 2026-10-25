@@ -2111,30 +2111,16 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_normalizedStructureMetadataExac
       contextEnvEq constructorHead appNumArgsEq noLevelParam ruleLookup
   obtain ⟨translated, typed, sortArity⟩ := generated recursor rule metadataInfo replacements
     hrecursor hrule hconstructor hshape
-  have dispatch := inductiveReduceRec.eq_some_of_normalizedStructure
-    (environment := environment) expression normalize infer compare head lookup selected notK
-    normalizedEq notNat notString hadapted hruleLookup hfieldCount levelCount
   obtain ⟨reduction, ordinary, typed, sortArity⟩ :=
-    GeneratedRecursorRuleIotaTargetResult.of_dispatcherConditionalExact
-      (env := env) (universes := universes) (_stats := _stats) (_motives := _motives)
-      (_minors := _minors) (_ctx := _ctx) (_constructor := _constructor) (_minor := _minor)
-      (rule := rule) (target := target) (_count := _count) (arguments := arguments)
-      (_resultType := _resultType) (insertionLift := insertionLift)
-      (replacements := replacements) (rhsSemantic := rhsSemantic)
-      (condition := info.getMajorIdx + 1 < expression.getAppArgs.size)
-      (withTrailing := mkAppRange
-        (mkAppRange
-          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
-            0 info.getFirstIndexIdx expression.getAppArgs)
-          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
-            constructor.getAppArgs)
-        (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs)
-      (withoutTrailing := mkAppRange
-        (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
-          0 info.getFirstIndexIdx expression.getAppArgs)
-        (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
-          constructor.getAppArgs)
-      dispatch hshape translated typed sortArity envWF targetWF
+    GeneratedRecursorRuleIotaTargetResult.of_normalizedStructureExact
+      (environment := environment) (env := env) (universes := universes) (_stats := _stats)
+      (_motives := _motives) (_minors := _minors) (_ctx := _ctx)
+      (_constructor := _constructor) (_minor := _minor) (target := target)
+      (_count := _count) (arguments := arguments) (_resultType := _resultType)
+      (insertionLift := insertionLift) (replacements := replacements)
+      (rhsSemantic := rhsSemantic) expression normalize infer compare head lookup selected notK
+      normalizedEq notNat notString hadapted hruleLookup hfieldCount levelCount hshape
+      translated typed sortArity envWF targetWF
   exact ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
     reduction, ordinary, typed, sortArity⟩
 

@@ -182,6 +182,11 @@ consumer, and the metadata consumer reuses it after assembling the paired
 canonical-constructor package. This removes duplicated K Nat dispatcher
 transport while retaining explicit metadata alignment, output shape, generated
 translation, target typing, and sort-arity witnesses.
+The ordinary structure metadata consumer now likewise reuses
+`of_normalizedStructureExact` after assembling its receipt-backed constructor
+adaptation package, removing duplicated dispatcher transport while retaining
+the explicit normalization exclusions, metadata alignment, output shape,
+generated translation, target typing, and sort-arity witnesses.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
