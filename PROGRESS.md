@@ -107,7 +107,8 @@ now consumes that Nat-literal package at the generated target boundary while
 deriving the reducer field bound from the same metadata package and retaining
 literal dispatch and dependent target witness obligations.
 `GeneratedRecursorRuleIotaTargetResult.of_normalizedStringLiteralMetadataExact`
-adds the corresponding explicit string-expansion path for generated targets.
+adds the corresponding explicit string-expansion path for generated targets
+and consumes the packaged metadata-derived reducer field bound.
 `GeneratedRecursorRuleIotaTargetResult.of_kNormalizedNatLiteralMetadataExact`
 adds the K-normalized Nat-literal path with explicit K adaptation and consumes
 the packaged metadata-derived reducer field bound.
