@@ -73,6 +73,8 @@ metadata output shape together with the reducer's selected-rule equation;
 constructor-name uniqueness and rule selection remain explicit premises.
 The field-count package derives the reducer bound directly from the stored
 rule/constructor metadata and the native constructor-value bound.
+The Nat-literal metadata target endpoint now consumes that packaged field
+bound directly instead of repeating a separate rule-field callback.
 The receipt-backed paired endpoint packages the native eta constructor
 alignment with the same output and lookup witnesses, while retaining the
 normalization receipt and rule-selection callbacks as explicit obligations.
