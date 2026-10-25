@@ -241,3 +241,4 @@ import Lean4Lean.Verify.InductiveIndexCountClosure
 import Lean4Lean.Verify.InductiveHeaderKinds
 import Lean4Lean.Verify.InductiveNestedGuard
 import Lean4Lean.Verify.InductiveNestedRewrite
+import Lean4Lean.Verify.InductiveReductionConsumer

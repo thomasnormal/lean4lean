@@ -4,6 +4,7 @@ import Lean4Lean.Verify.InductiveNativeTrace
 import Lean4Lean.Verify.InductiveRestorationMetadata
 import Lean4Lean.Verify.InductiveNativeRestorationBridge
 import Lean4Lean.Verify.InductiveFrontendCheckerBridge
+import Lean4Lean.Verify.InductiveReductionConsumer
 import Lean.Util.CollectAxioms
 
 namespace Lean4Lean.Tests.InductiveNativeBridge
@@ -12,6 +13,7 @@ open Lean Lean4Lean Lean4Lean.NativeInductive
 open Lean4Lean.AddInductive.declareConstructors
 
 #check AddInductive.LocalRecursorRuleRhsScope.ruleResultSemanticsAndIota
+#check AddInductive.GeneratedRecursorRuleIotaTargetResult.of_inductiveReduceRec
 #check AddInductive.LocalRecursorRuleRhsScope.completeRuleResultSemanticsIndexed
 #check AddInductive.LocalRecursorRuleRhsScope.completeRuleResultSemanticsFromIndexed
 #check AddInductive.LocalRecursorRuleRhsScope.completeRuleSemanticsFromIndexed
