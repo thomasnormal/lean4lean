@@ -192,6 +192,11 @@ The ordinary String-literal metadata consumer now reuses
 removing duplicated String dispatcher transport while retaining explicit
 metadata alignment, output shape, generated translation, target typing, and
 sort-arity witnesses.
+The K-normalized String-literal exact endpoint now precedes its metadata
+consumer, and the metadata consumer delegates final dispatcher-to-target
+transport to it after assembling the paired K-conversion and String-expansion
+package. Metadata alignment, output shape, generated translation, target
+typing, and sort arity remain explicit.
 The ordinary structure metadata consumer now likewise reuses
 `of_normalizedStructureExact` after assembling its receipt-backed constructor
 adaptation package, removing duplicated dispatcher transport while retaining

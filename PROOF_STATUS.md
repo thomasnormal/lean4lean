@@ -116,6 +116,11 @@ dispatcher-to-target transport to `of_normalizedStringLiteralExact` after
 obtaining the paired expansion package. Its metadata alignment, output-shape,
 generated-translation, target-typing, and sort-arity witnesses remain
 explicit.
+The K-normalized String-literal exact endpoint now precedes its metadata
+consumer, and that metadata consumer delegates final dispatcher-to-target
+transport to it after obtaining the paired K-conversion and String-expansion
+package. Metadata alignment, output-shape, generated-translation, target
+typing, and sort arity remain explicit.
 The ordinary structure generated-target endpoint consumes the paired package
 and preserves dependent translation, typing, sort-arity, normalization, and
 field-count obligations through its witness family.
