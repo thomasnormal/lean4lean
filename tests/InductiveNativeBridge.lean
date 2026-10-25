@@ -51,6 +51,8 @@ open Lean4Lean.AddInductive.declareConstructors
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+#check addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 
 example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
     {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
@@ -4415,6 +4417,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
       hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry venv
+  have hmPluralCombined :=
+    addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry venv
   have hmIota :=
     addDecl.checkedPrimitiveModelAndCheckerStructuralIotaBaseAndTargetResults_of_restorationStages
       hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
@@ -4611,6 +4617,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     hvalues ruleResult hrecursor hentry venv
   have hmCombined :=
     addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry venv
+  have hmPluralCombined :=
+    addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
       hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry venv
   have hmIota :=
