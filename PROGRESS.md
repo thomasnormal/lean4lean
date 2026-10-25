@@ -151,6 +151,11 @@ selection, and dependent target witnesses.
 now carry the corresponding K-normalized constant path, retaining explicit
 `toCtorWhenK`, constant normalization, structure adaptation, metadata field
 count, rule selection, and dependent target witnesses.
+`dispatcherConditionalShapeOfMetadataOutputOfNormalizedApplication` and
+`GeneratedRecursorRuleIotaTargetResult.of_normalizedApplicationMetadataExact`
+now provide the ordinary normalized-application metadata package and target
+consumer, preserving explicit application adaptation, field bounds, rule
+selection, and generated target witnesses.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

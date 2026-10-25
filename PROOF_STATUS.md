@@ -128,6 +128,9 @@ The K-normalized constant endpoint now carries the explicit `toCtorWhenK`
 adaptation into a proved K dispatcher equation and consumes the same metadata
 package, with structure adaptation, field count, rule selection, translation,
 typing, and sort arity remaining explicit.
+The ordinary application metadata endpoint now pairs its normalized application
+and structure adaptation with the registered-rule field bound, output shape,
+rule lookup, generated translation, target typing, and sort-arity witnesses.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.
