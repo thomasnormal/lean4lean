@@ -269,6 +269,12 @@ the explicit target WF callback.
 The source-typehood ordinary route and its restoration-stage/plural aliases now
 derive recursor model WF internally while retaining the exact stored-RHS
 equation and ordinary target witnesses.
+The checked frontend target-result package family now has matching exact
+restoration-stage and source-typehood/plural aliases.  These endpoint names
+reuse `GeneratedRecursorRuleIotaTargetReductionExact` through the new
+`GeneratedRecursorRuleIotaTargetResultExact` spelling, so translated target
+witnesses remain paired with the native reducer equation whose result is the
+stored rule RHS.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

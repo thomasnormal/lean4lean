@@ -3786,6 +3786,24 @@ abbrev GeneratedRecursorRuleIotaTargetReductionExact
     inductiveReduceRec environment expression normalize infer compare =
       pure (some (rule.rhs.mkAppList replacements))
 
+/- The target-result spelling denotes the same exact endpoint.  Keep the
+   reducer equation in this relation: an ``exact`` target result must retain
+   the native result/RHS link rather than merely repeat the translated target
+   witnesses. -/
+abbrev GeneratedRecursorRuleIotaTargetResultExact
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule} : Prop :=
+  GeneratedRecursorRuleIotaTargetReductionExact
+    (environment := environment) (expression := expression)
+    (normalize := normalize) (infer := infer) (compare := compare)
+    (env := env) (universes := universes) (stats := stats)
+    (motives := motives) (minors := minors) (ctx := ctx)
+    (constructor := constructor) (minor := minor) (rule := rule)
+
 theorem GeneratedConstructorRuleRhsResult.iotaTargetReductionOfExact
     {m : Type → Type} [Monad m]
     {environment : Kernel.Environment} {expression : Expr}

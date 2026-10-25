@@ -194,6 +194,12 @@ The source-typehood ordinary exact wrapper and its restoration-stage/plural
 aliases derive recursor model WF from the explicit source typehood callback;
 their exact RHS equation, ordinary translation, and target WF premises remain
 visible.
+The checked frontend target-result package family now has exact
+restoration-stage and source-typehood/plural aliases.  They are endpoint
+spellings for `GeneratedRecursorRuleIotaTargetReductionExact`, exposed also as
+`GeneratedRecursorRuleIotaTargetResultExact`; the exact target translation,
+typing, sort arity, and stored-RHS reducer equation remain in one relation.
+No weaker target-only exact relation was introduced.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,
