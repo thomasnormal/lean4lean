@@ -3733,6 +3733,11 @@ theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResult
     hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields, hfieldCount, htotal,
     hsemantic, hgenerated, htarget⟩
 
+/- Singular generated-result spelling for the restored target-reduction
+   package. -/
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetReduction :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetReduction
+
 /- Project the restored target-reduction package to ordinary translation while
    retaining the indexed source lookup and generated-rule witnesses. -/
 theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetOrdinary
