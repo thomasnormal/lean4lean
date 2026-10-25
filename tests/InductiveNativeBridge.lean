@@ -40,6 +40,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RestoredRecordEvidence.registrationSemanticAndStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
+#check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics_of_checkedPrimitive
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics_of_restorationStages
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence_of_checkedPrimitive
@@ -63,6 +64,8 @@ open Lean4Lean.AddInductive.declareConstructors
 #check addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_checkedPrimitive
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+#check addDecl.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_checkedPrimitive
+#check addDecl.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_sourceTypehood
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_restorationStages
@@ -2722,6 +2725,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     metadata.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults
       coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
+  have hSemanticPluralCombined :=
+    metadata.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
   have hRegistrationCombined :=
     metadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultAndIotaBaseAndTargetResults
       coverage entries records_eq producer entry_eq hconstants history hsource hvalues
@@ -4551,6 +4558,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
       hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
+  have hSemanticIotaPlural :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+      hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
   have hm := addDecl.checkedPrimitiveModelAndCheckerStructural_of_restorationStages
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry venv
@@ -4558,6 +4569,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := hIota
   have _ := hIotaPlural
   have _ := hSemanticIota
+  have _ := hSemanticIotaPlural
   have _ := hm
   trivial
 
@@ -4756,12 +4768,17 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_checkedPrimitive
       hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
       hvalues ruleResult hrecursor hentry
+  have hSemanticIotaPlural :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_checkedPrimitive
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+      hvalues ruleResult hrecursor hentry
   have hm := addDecl.checkedPrimitiveModelAndCheckerStructural
     hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
     hvalues ruleResult hrecursor hentry venv
   have _ := h
   have _ := hIota
   have _ := hSemanticIota
+  have _ := hSemanticIotaPlural
   have _ := hm
   trivial
 
