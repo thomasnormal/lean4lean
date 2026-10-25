@@ -243,6 +243,57 @@ theorem _root_.Lean4Lean.inductiveReduceRec.eq_some_of_kNormalizedApplication
   dsimp only
   simp [Nat.not_lt_of_ge fieldCount, levelCount]
 
+/- K-like recursors also reach the ordinary constant branch after their major
+   has been adapted.  Keep that adaptation and the nullary constructor result
+   explicit before the rule lookup, matching the non-K constant equation. -/
+theorem _root_.Lean4Lean.inductiveReduceRec.eq_some_of_kNormalizedConstant
+    {m : Type → Type} [Monad m] [LawfulMonad m]
+    (environment : Kernel.Environment) (expression : Expr)
+    (normalize infer : Expr → m Expr) (compare : Expr → Expr → m Bool)
+    {recursorName : Name} {levels : List Level} {info : RecursorVal}
+    {major adapted constructor : Expr} {normalizedName : Name} {normalizedLevels : List Level}
+    {rule : RecursorRule}
+    (head : expression.getAppFn = .const recursorName levels)
+    (lookup : environment.find? recursorName = some (.recInfo info))
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (isK : info.k = true)
+    (kAdapted : toCtorWhenK environment normalize infer compare info major = pure adapted)
+    (normalized : normalize adapted = pure (.const normalizedName normalizedLevels))
+    (adaptedStruct : toCtorWhenStruct environment normalize infer info.getMajorInduct
+      (.const normalizedName normalizedLevels) = pure constructor)
+    (ruleLookup : getRecRuleFor info constructor = some rule)
+    (fieldCount : rule.nfields ≤ constructor.getAppArgs.size)
+    (levelCount : levels.length = info.levelParams.length) :
+    inductiveReduceRec environment expression normalize infer compare =
+      if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        pure (some <| mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+              constructor.getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs)
+      else
+        pure (some <| mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs) := by
+  unfold inductiveReduceRec
+  rw [head]
+  simp only [lookup]
+  rw [selected]
+  simp only [isK, if_true]
+  rw [kAdapted]
+  simp only [Bind.bind, pure_bind]
+  rw [normalized]
+  simp only [Bind.bind, pure_bind]
+  rw [adaptedStruct]
+  simp only [pure_bind]
+  rw [ruleLookup]
+  dsimp only
+  simp [Nat.not_lt_of_ge fieldCount, levelCount]
+
 /- K-like recursors can still reach the literal branches after their major has
    been adapted.  Nat literals then use their canonical constructor directly
    for rule lookup and field extraction. -/
@@ -1993,6 +2044,124 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_normalizedConstantMetadataExact
   have dispatch := inductiveReduceRec.eq_some_of_normalizedConstant
     (environment := environment) expression normalize infer compare head lookup selected notK
     normalized hadapted hruleLookup hfieldCount levelCount
+  obtain ⟨reduction, ordinary, typed, sortArity⟩ :=
+    GeneratedRecursorRuleIotaTargetResult.of_dispatcherConditionalExact
+      (env := env) (universes := universes) (_stats := _stats) (_motives := _motives)
+      (_minors := _minors) (_ctx := _ctx) (_constructor := _constructor) (_minor := _minor)
+      (rule := rule) (target := target) (_count := _count) (arguments := arguments)
+      (_resultType := _resultType) (insertionLift := insertionLift)
+      (replacements := replacements) (rhsSemantic := rhsSemantic)
+      (condition := info.getMajorIdx + 1 < expression.getAppArgs.size)
+      (withTrailing := mkAppRange
+        (mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs)
+        (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs)
+      (withoutTrailing := mkAppRange
+        (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+          0 info.getFirstIndexIdx expression.getAppArgs)
+        (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+          constructor.getAppArgs)
+      dispatch hshape translated typed sortArity envWF targetWF
+  exact ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
+    reduction, ordinary, typed, sortArity⟩
+
+
+/- Connect the K-normalized constant metadata package to the generated target result. -/
+theorem GeneratedRecursorRuleIotaTargetResult.of_kNormalizedConstantMetadataExact
+    {m : Type → Type} [Monad m] [LawfulMonad m]
+    {environment : Kernel.Environment} (expression : Expr)
+    (normalize infer : Expr → m Expr) (compare : Expr → Expr → m Bool)
+    {recursorName : Name} {levels : List Level} {info : RecursorVal}
+    {major adapted constructor : Expr} {normalizedName : Name} {normalizedLevels : List Level}
+    {env : VEnv} {universes : List Name} {_stats : InductiveStats}
+    {_motives _minors : Array Expr} {_ctx : Context} {_constructor : Constructor}
+    {_minor : Expr} {target : MLCtx} {_count : Nat} {arguments : List VExpr}
+    {_resultType : VExpr} {insertionLift : Lift} {rhsSemantic : VExpr}
+    {types : Array InductiveType}
+    {constructorEntry : Constructor}
+    (metadata : RuleConstructorFieldMetadata types environment)
+    (parent : Nat) (parentBound : parent < types.size)
+    (index : Nat) (constructorEntryAt : types[parent]!.ctors[index]? = some constructorEntry)
+    (head : expression.getAppFn = .const recursorName levels)
+    (lookup : environment.find? recursorName = some (.recInfo info))
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (isK : info.k = true)
+    (kAdapted : toCtorWhenK environment normalize infer compare info major = pure adapted)
+    (normalized : normalize adapted = pure (.const normalizedName normalizedLevels))
+    (adaptedStruct : toCtorWhenStruct environment normalize infer info.getMajorInduct
+      (.const normalizedName normalizedLevels) = pure constructor)
+    (constructorFieldBound : ∀ ctorInfo : ConstructorVal,
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) →
+      ctorInfo.numFields ≤ constructor.getAppArgs.size)
+    (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
+      recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false)
+    (ruleLookup : ∀ (recursor : RecursorVal) (rule : RecursorRule)
+      (metadataInfo : ConstructorVal),
+      recursor.rules[index]? = some rule →
+      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) →
+      getRecRuleFor info constructor = some rule)
+    (generated : ∀ (recursor : RecursorVal) (rule : RecursorRule)
+      (metadataInfo : ConstructorVal) (replacements : List Expr),
+      environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) →
+      recursor.rules[index]? = some rule →
+      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) →
+      (if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+              constructor.getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs
+       else
+        mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs) = rule.rhs.mkAppList replacements →
+      TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift))) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift)))
+        (_resultType.lift' insertionLift) ∧
+      env.SortArity universes.length target.vlctx.toCtx _count
+        (_resultType.lift' insertionLift))
+    (levelCount : levels.length = info.levelParams.length)
+    (envWF : env.WF) (targetWF : target.WF env universes) :
+    ∃ (recursor : RecursorVal) (rule : RecursorRule) (metadataInfo : ConstructorVal)
+      (replacements : List Expr),
+      environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      recursor.rules[index]? = some rule ∧
+      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) ∧
+      inductiveReduceRec environment expression normalize infer compare =
+        pure (some (rule.rhs.mkAppList replacements)) ∧
+      TrExpr env universes target.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift))) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift)))
+        (_resultType.lift' insertionLift) ∧
+      env.SortArity universes.length target.vlctx.toCtx _count
+        (_resultType.lift' insertionLift) := by
+  obtain ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
+      hfieldCount, hshape, hruleLookup, hadaptedStruct⟩ :=
+    dispatcherConditionalShapeOfMetadataOutputOfNormalizedConstant
+      (types := types) (environment := environment) (expression := expression)
+      (levels := levels) (info := info) (constructor := constructor)
+      (normalizedName := normalizedName) (normalizedLevels := normalizedLevels)
+      normalize infer metadata parent parentBound index constructorEntry constructorEntryAt
+      selected adaptedStruct constructorFieldBound noLevelParam ruleLookup
+  obtain ⟨translated, typed, sortArity⟩ := generated recursor rule metadataInfo replacements
+    hrecursor hrule hconstructor hshape
+  have dispatch := inductiveReduceRec.eq_some_of_kNormalizedConstant
+    (environment := environment) expression normalize infer compare head lookup selected isK
+    kAdapted normalized hadaptedStruct hruleLookup hfieldCount levelCount
   obtain ⟨reduction, ordinary, typed, sortArity⟩ :=
     GeneratedRecursorRuleIotaTargetResult.of_dispatcherConditionalExact
       (env := env) (universes := universes) (_stats := _stats) (_motives := _motives)

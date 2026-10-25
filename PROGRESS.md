@@ -146,6 +146,11 @@ translation, typing, sort-arity, and conditional output-shape endpoint.
 now provide the corresponding metadata-driven constant package and target
 consumer, retaining explicit constructor adaptation, field bounds, rule
 selection, and dependent target witnesses.
+`inductiveReduceRec.eq_some_of_kNormalizedConstant` and
+`GeneratedRecursorRuleIotaTargetResult.of_kNormalizedConstantMetadataExact`
+now carry the corresponding K-normalized constant path, retaining explicit
+`toCtorWhenK`, constant normalization, structure adaptation, metadata field
+count, rule selection, and dependent target witnesses.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
