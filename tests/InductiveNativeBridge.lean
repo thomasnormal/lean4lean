@@ -28,6 +28,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultsAndIota
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIota
+#check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaBaseAndTargetResults
@@ -733,6 +734,8 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
   have h := restored.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIota
+    producer halign hconstants history hrecursors hvalues ruleResults
+  have hPlural := restored.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIotaBaseAndTargetResults
     producer halign hconstants history hrecursors hvalues ruleResults
   have hNamed := restored.toCheckerEnvInductive_and_registrationGeneratedRuleResultAndIotaBaseAndTargetResults
     producer halign hconstants history hrecursors hvalues ruleResults
