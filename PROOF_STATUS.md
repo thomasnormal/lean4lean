@@ -186,6 +186,10 @@ inductive soundness remain separate caller obligations.
 The source-typehood exact wrapper and its restoration-stage/plural aliases now
 reuse that package after deriving recursor model WF from the explicit source
 typehood callback; no reducer or target obligation is hidden.
+The restoration-stage ordinary checker projection now has a matching exact
+variant and plural alias. Its ordinary translation is derived with
+`GeneratedRecursorRuleIotaTargetReductionExact.toOrdinary`, so the exact RHS
+equation and target WF premises remain visible.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

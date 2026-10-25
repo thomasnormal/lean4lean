@@ -262,6 +262,10 @@ ordered exact registration consumer.
 The matching source-typehood route and its restoration-stage/plural aliases
 now derive recursor model well-formedness internally while retaining the same
 exact reducer callback and stored-RHS relation.
+The restoration-stage ordinary checker package now has an exact companion,
+`addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_restorationStagesExact`,
+which projects the exact reducer result through ordinary typing and preserves
+the explicit target WF callback.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
