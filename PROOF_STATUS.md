@@ -149,6 +149,11 @@ The ordinary normalized-constant metadata endpoint now consumes a paired
 adaptation and metadata output package, exposing the same field-count, rule,
 translation, typing, and sort-arity obligations at the registered-rule
 boundary.
+The ordinary normalized-constant exact endpoint now precedes its metadata
+consumer, and that consumer delegates final dispatcher-to-target transport to
+it after obtaining the paired constant adaptation package. Constant
+normalization, metadata alignment, output-shape, generated-translation,
+target typing, and sort arity remain explicit.
 The K-normalized constant endpoint now carries the explicit `toCtorWhenK`
 adaptation into a proved K dispatcher equation and consumes the same metadata
 package, with structure adaptation, field count, rule selection, translation,

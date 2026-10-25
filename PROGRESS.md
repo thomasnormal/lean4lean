@@ -146,6 +146,10 @@ translation, typing, sort-arity, and conditional output-shape endpoint.
 now provide the corresponding metadata-driven constant package and target
 consumer, retaining explicit constructor adaptation, field bounds, rule
 selection, and dependent target witnesses.
+The ordinary normalized-constant exact endpoint now precedes its metadata
+consumer, and that consumer reuses it after assembling the paired constant
+adaptation package. Constant normalization, metadata alignment, output shape,
+generated translation, target typing, and sort arity remain explicit.
 `inductiveReduceRec.eq_some_of_kNormalizedConstant` and
 `GeneratedRecursorRuleIotaTargetResult.of_kNormalizedConstantMetadataExact`
 now carry the corresponding K-normalized constant path, retaining explicit
