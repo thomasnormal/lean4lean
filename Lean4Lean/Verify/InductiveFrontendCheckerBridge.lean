@@ -22136,6 +22136,11 @@ def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIot
     (producer.recursorWF_of_sourceTypehood (producer.constructorEnvWF history.wf) hsource)
     hsource hvalues targetWF ruleResults reduction
 
+/- Name the source-typehood ordinary projection explicitly at the
+   restoration-stage boundary for downstream checker consumers. -/
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStages :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood
+
 /- The restoration-stage route exposes both iota endpoints while retaining the
    selected metadata and executable frontend scope. -/
 theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResultsPackage_of_restorationStages
