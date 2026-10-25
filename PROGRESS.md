@@ -217,6 +217,12 @@ and structures all delegate dispatcher-to-target transport to their exact
 non-metadata endpoints after assembling their own metadata packages. Each
 wrapper retains its branch-specific normalization, adaptation, alignment,
 shape, translation, typing, and sort-arity obligations.
+The restored source-indexed target-reduction boundary now also has an exact
+variant: `sourceRecursorGeneratedRuleIotaTargetReductionExact` carries a
+reducer equation whose result is definitionally the stored rule RHS through
+the same indexed lookup and generated-rule witnesses. This keeps the exact
+output contract available after restored-record source alignment; it does not
+claim the final inductive soundness theorem.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

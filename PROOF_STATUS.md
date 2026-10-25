@@ -143,6 +143,12 @@ consumer delegates dispatcher transport to its exact non-metadata endpoint
 after assembling the branch-specific metadata package. No branch-specific
 normalization, adaptation, alignment, shape, translation, typing, or sort
 arity premise is hidden by this reuse.
+The restored source-indexed target-reduction consumer now has an exact-output
+variant, `sourceRecursorGeneratedRuleIotaTargetReductionExact`. It applies the
+exact generated-rule eliminator to the restored indexed lookup and preserves
+the stored RHS equation through the constructor/minor and source metadata
+witnesses. The broader inductive frontend and final iota/recursor theorem
+remain open.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,
