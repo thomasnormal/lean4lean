@@ -56,7 +56,9 @@ obligation. The K-application endpoint now consumes its characterized
 conditional RHS with that shape equality, leaving the same shape premises for
 the other branches. The conditional bridge is now factored as a reusable
 target-result consumer for every dispatcher branch, and both K-literal target
-endpoints now use it with their constructor/expansion-specific shapes.
+endpoints now use it with their constructor/expansion-specific shapes. The
+non-K Nat and String literal endpoints now use the same bridge with their
+canonical-constructor and String-expansion shapes.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
