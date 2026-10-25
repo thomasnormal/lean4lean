@@ -199,9 +199,8 @@ theorem InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedRecursorTyp
     nextWF
 
 /- The frontend scope carries the same concrete generated rule-result package
-   as the registration CPS layer.  Keep the complete stored-rule semantics
-   callback separate: indexed constructor receipts alone do not cover every
-   stored rule. -/
+   as the registration CPS layer.  Complete stored-rule semantic coverage is
+   reconstructed from the paired indexed callbacks and ordered rule lengths. -/
 theorem InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultCPS
     {ResultType : Type} {venv : VEnv} {universes : List Name}
     {nparams numNested : Nat} {types : Array InductiveType}

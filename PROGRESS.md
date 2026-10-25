@@ -1,6 +1,6 @@
 # Progress and upstream comparison
 
-Last reviewed: **2026-10-21 (UTC)**. This is the readable overview of the
+Last reviewed: **2026-10-25 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
@@ -31,9 +31,21 @@ permission to rewrite the review branch remains pending.
 
 The rule-result continuation retains the explicit generated result relation
 and closed rule translations. Its complete per-recursor rule-semantics
-callback remains a separate premise; it does not yet derive that contract
-from the indexed constructor callback. Inductive frontend soundness,
-rejection-consumer migration, and `AddInduct` remain open.
+coverage is now derived from the paired indexed constructor callback and the
+ordered recursor-rule length invariant; the continuation still exposes that
+coverage alongside the indexed generated results for downstream consumers.
+Inductive frontend soundness, rejection-consumer migration, and `AddInduct`
+remain open.
+
+**Complete stored-rule generated semantics (October 25):** the indexed rule
+receipt now has an explicit stored-rule bridge that recovers the constructor,
+minor, source index, closed RHS semantic witness, and generated result for
+every member of each registered recursor's stored rule list. The existing
+complete semantic projection is defined through this paired bridge, so the
+registration CPS boundary and its frontend wrapper derive complete semantic
+coverage from one aligned indexed package. No executable behavior changed;
+the remaining obligation is to consume these receipts in the actual iota and
+recursor reduction soundness theorem.
 
 **Inhabited telescope repair:** well-founded recursion now discharges two direct
 inverse-weakening obligations by substituting zero for the Nat binders certified

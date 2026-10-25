@@ -1275,9 +1275,9 @@ theorem mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResults
     registeredWF retained metadata rhsScope results completeRuleSemantics
 
 /- Instantiate the registration CPS boundary with the named generated
-   constructor-RHS package.  The complete closed rule-body premise remains a
-   separate callback, while the result relation carried into the continuation
-   is the concrete generated package rather than an abstract placeholder. -/
+   constructor-RHS package.  The closed callback and generated callback are
+   paired at each indexed receipt; the continuation receives complete
+   stored-rule semantic coverage derived from that same indexed package. -/
 theorem mkRecInfos.registeredScopedGeneratedRuleResultCPS
     {ResultType : Type} {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)

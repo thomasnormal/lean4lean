@@ -4,6 +4,20 @@ This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
 
+## Complete stored-rule generated semantics — 2026-10-25
+
+`LocalRecursorRuleRhsScope.completeRuleResultSemanticsFromIndexed` now recovers
+the constructor, minor, source index, closed RHS translation, and generated
+result for every stored recursor rule from the paired indexed receipt package.
+`completeRuleSemanticsFromIndexed` projects its semantic component from this
+same witness, and the generated-rule registration CPS boundary continues to
+derive both complete coverage obligations from the aligned indexed callbacks.
+The proof uses only ordered recursor lookup and the constructor/rule length
+equality. It adds no admissions or axioms and does not change executable
+behavior. Actual iota equality and full recursor reduction soundness remain
+open.
+
+
 ## Reconstructing the selected index signature — 2026-10-20
 
 `TranslatedRecursorIndexTrace.reconstructedModel` proves that the original
