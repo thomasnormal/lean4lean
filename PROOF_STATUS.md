@@ -103,6 +103,11 @@ same generated target witness family.
 The K-normalized Nat-literal endpoint retains the explicit `toCtorWhenK`
 adaptation and canonical literal dispatch before entering the shared target
 package through the public dispatcher endpoint.
+The ordinary Nat-literal metadata consumer now delegates final
+dispatcher-to-target transport to `of_normalizedNatLiteralExact` after obtaining
+the canonical-constructor metadata package. Its metadata alignment,
+output-shape, generated-translation, target-typing, and sort-arity witnesses
+remain explicit.
 The K-normalized String-literal endpoint keeps both `toCtorWhenK` and
 `strLitToConstructor` equations explicit before target transport, with the
 expansion receipt paired to the metadata shape and rule lookup.

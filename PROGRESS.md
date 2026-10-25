@@ -182,6 +182,11 @@ consumer, and the metadata consumer reuses it after assembling the paired
 canonical-constructor package. This removes duplicated K Nat dispatcher
 transport while retaining explicit metadata alignment, output shape, generated
 translation, target typing, and sort-arity witnesses.
+The ordinary Nat-literal metadata consumer now reuses
+`of_normalizedNatLiteralExact` after obtaining its canonical-constructor
+metadata package, removing duplicated literal dispatcher transport while
+retaining explicit metadata alignment, output shape, generated translation,
+target typing, and sort-arity witnesses.
 The ordinary structure metadata consumer now likewise reuses
 `of_normalizedStructureExact` after assembling its receipt-backed constructor
 adaptation package, removing duplicated dispatcher transport while retaining
