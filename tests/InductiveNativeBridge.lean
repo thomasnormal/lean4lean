@@ -61,6 +61,8 @@ open Lean4Lean.AddInductive.declareConstructors
 #check addDecl.checkedPrimitiveModelAndRegistrationSemanticsGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+#check addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_checkedPrimitive
+#check addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_sourceTypehood
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_restorationStages
@@ -4541,6 +4543,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
       hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
+  have hIotaPlural :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+      hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
   have hSemanticIota :=
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
       hmap hresult coverage entries records_eq producer entry_eq hconstants history hsource hvalues
@@ -4550,6 +4556,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     hvalues ruleResult hrecursor hentry venv
   have _ := h
   have _ := hIota
+  have _ := hIotaPlural
   have _ := hSemanticIota
   have _ := hm
   trivial
@@ -4814,6 +4821,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_checkedPrimitive
       hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
       hvalues ruleResult hrecursor hentry
+  have hIotaPlural :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_checkedPrimitive
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+      hvalues ruleResult hrecursor hentry
   have hSemanticIota :=
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralIotaBaseAndTargetResults_of_checkedPrimitive
       hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
@@ -4823,6 +4834,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     hvalues ruleResult hrecursor hentry venv
   have _ := h
   have _ := hIota
+  have _ := hIotaPlural
   have _ := hSemanticIota
   have _ := hm
   trivial
