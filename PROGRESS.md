@@ -100,6 +100,9 @@ The receipt-backed companion
 `dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup`
 packages native constructor alignment, exact output shape, and executable rule
 selection at one existential boundary.
+`GeneratedRecursorRuleIotaTargetResult.of_normalizedStructureMetadataExact`
+now consumes that package at the ordinary structure reducer branch, with a
+dependent family for generated translation, target typing, and sort arity.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

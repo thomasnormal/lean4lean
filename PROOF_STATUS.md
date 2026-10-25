@@ -74,6 +74,9 @@ constructor-name uniqueness and rule selection remain explicit premises.
 The receipt-backed paired endpoint packages the native eta constructor
 alignment with the same output and lookup witnesses, while retaining the
 normalization receipt and rule-selection callbacks as explicit obligations.
+The ordinary structure generated-target endpoint consumes the paired package
+and preserves dependent translation, typing, sort-arity, normalization, and
+field-count obligations through its witness family.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.
