@@ -14,6 +14,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check AddInductive.LocalRecursorRuleRhsScope.ruleResultSemanticsAndIota
 
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIota
+#check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResults
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultsAndIota
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultsAndIotaBaseAndTargetResults
@@ -46,6 +47,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence_of_checkedPrimitive
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence_of_restorationStages
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_of_checkedPrimitive
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultAndIotaBaseAndTargetResults
@@ -93,7 +95,9 @@ example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEn
         AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
   have h := evidence.recursorGeneratedRuleResultAndIota ruleResults
+  have hGeneratedPlural := evidence.recursorGeneratedRuleResults ruleResults
   have hPlural := evidence.recursorGeneratedRuleResultsAndIota ruleResults
+  have _ := hGeneratedPlural
   exact h
 
 example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
@@ -2754,6 +2758,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
   have hRestoredCombined :=
     metadata.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultAndIotaBaseAndTargetResultsEvidence
+      coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
+  have hRestoredPluralCombined :=
+    metadata.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence
       coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
   have hCheckerCombined :=
     metadata.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaBaseAndTargetResults
