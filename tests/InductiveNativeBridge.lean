@@ -53,6 +53,8 @@ open Lean4Lean.AddInductive.declareConstructors
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+#check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 
 example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
     {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
@@ -7295,6 +7297,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
       (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
       hsource hvalues ruleResults
+  have hRestorationPluralCombined :=
+    addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
+      hsource hvalues ruleResults
   have _ := hRestoration
   have _ := hRestorationIota
   have _ := hRestorationCombined
@@ -7323,6 +7329,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
   have h := addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultAndIotaBaseAndTargetResults
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
+    hsource hvalues ruleResults
+  have hPlural := addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults
     (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
     hsource hvalues ruleResults
   trivial
