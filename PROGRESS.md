@@ -96,6 +96,10 @@ constructor value with stored metadata.
 `dispatcherConditionalShapeOfMetadataOutputWithRuleLookup` now pairs that
 shape with the executable `getRecRuleFor` equation, retaining rule-selection
 as an explicit caller-supplied obligation.
+The receipt-backed companion
+`dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup`
+packages native constructor alignment, exact output shape, and executable rule
+selection at one existential boundary.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

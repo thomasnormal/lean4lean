@@ -71,6 +71,9 @@ The companion
 `dispatcherConditionalShapeOfMetadataOutputWithRuleLookup` carries the
 metadata output shape together with the reducer's selected-rule equation;
 constructor-name uniqueness and rule selection remain explicit premises.
+The receipt-backed paired endpoint packages the native eta constructor
+alignment with the same output and lookup witnesses, while retaining the
+normalization receipt and rule-selection callbacks as explicit obligations.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.

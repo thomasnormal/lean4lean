@@ -900,6 +900,58 @@ theorem dispatcherConditionalShapeOfMetadataOutputWithRuleLookup
   exact ⟨recursor, rule, ctorInfo, replacements, hrecursor, hrule, hconstructor, hshape,
     ruleLookup recursor rule ctorInfo hrule hconstructor⟩
 
+/- The receipt-backed form packages the native structure constructor with the
+   same executable rule lookup.  This is the boundary consumed by a generated
+   target theorem: native normalization supplies the constructor metadata,
+   while rule selection remains an explicit callback. -/
+theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup
+    {types : Array InductiveType} {environment : Kernel.Environment}
+    {context : TypeChecker.Context} {constructorEntry : Constructor}
+    {expression : Expr} {levels : List Level} {info : RecursorVal}
+    {constructor major : Expr} {ctorInfo : ConstructorVal}
+    (metadata : RuleConstructorFieldMetadata types environment)
+    (parent : Nat) (parentBound : parent < types.size)
+    (index : Nat) (constructorEntryAt : types[parent]!.ctors[index]? = some constructorEntry)
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (receipt : NativeEtaStructEntryReceipt context constructor ctorInfo)
+    (contextEnvEq : context.env = environment)
+    (constructorHead : constructor.getAppFn = .const constructorEntry.name levels)
+    (appNumArgsEq : constructor.getAppNumArgs = constructor.getAppArgs.size)
+    (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
+      recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false)
+    (ruleLookup : ∀ (recursor : RecursorVal) (rule : RecursorRule)
+      (metadataInfo : ConstructorVal),
+      recursor.rules[index]? = some rule →
+      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) →
+      getRecRuleFor info constructor = some rule) :
+    ∃ (recursor : RecursorVal) (rule : RecursorRule) (metadataInfo : ConstructorVal)
+      (replacements : List Expr),
+      environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      recursor.rules[index]? = some rule ∧
+      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) ∧
+      (if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+              constructor.getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs
+       else
+        mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs) = rule.rhs.mkAppList replacements ∧
+      getRecRuleFor info constructor = some rule := by
+  obtain ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
+      hshape⟩ :=
+    dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt metadata
+      parent parentBound index constructorEntryAt selected receipt contextEnvEq constructorHead
+      appNumArgsEq noLevelParam
+  exact ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor, hshape,
+    ruleLookup recursor rule metadataInfo hrule hconstructor⟩
+
 theorem instantiateLevelParams_eq_self_of_noLevelParam
     {expression : Expr} {parameters : List Name} {levels : List Level}
     (noLevelParam : expression.hasLevelParam' = false) :
