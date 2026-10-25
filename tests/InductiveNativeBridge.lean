@@ -53,6 +53,9 @@ open Lean4Lean.AddInductive.declareConstructors
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_sourceTypehood
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 
@@ -1374,6 +1377,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
   have h := addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+  have hPlural := addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage
     (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
     hsource hvalues ruleResults
   trivial
@@ -6562,6 +6568,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage_of_sourceTypehood
       (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource hvalues
       ruleResults
+  have hPluralCombined :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_sourceTypehood
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource hvalues
+      ruleResults
   have _ := hCombined
   trivial
 
@@ -7136,6 +7146,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
   have h := addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage_of_restorationStages
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+  have hPlural := addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_restorationStages
     (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
     hsource hvalues ruleResults
   trivial
