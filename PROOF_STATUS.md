@@ -34,6 +34,10 @@ shapes. The non-K structure endpoint now uses the same bridge with its
 nonliteral exclusions and adapted-constructor shape.
 The K structure endpoint now uses the same bridge with its `toCtorWhenK`
 witness, nonliteral exclusions, and adapted-constructor shape.
+The reusable `dispatcherConditionalShapeOfReplacementDecomposition` theorem
+now proves the native three-slice assembly equals one generated replacement
+list from explicit argument decompositions and level-instantiation equality;
+deriving those decompositions from stored metadata remains open.
 
 
 ## Complete stored-rule generated semantics — 2026-10-25

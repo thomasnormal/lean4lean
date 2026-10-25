@@ -450,6 +450,81 @@ theorem _root_.Lean4Lean.inductiveReduceRec.eq_some_of_kNormalizedStructure
     dsimp only
     simp [Nat.not_lt_of_ge fieldCount, levelCount]
 
+/- The native reducer assembles its result from three slices: the recursor
+   prefix, the constructor fields, and any trailing arguments.  This helper
+   turns explicit list decompositions for those slices into the single
+   generated replacement-list shape used by the target consumer. -/
+theorem dispatcherConditionalShapeOfReplacementDecomposition
+    {expression : Expr} {levels : List Level} {info : RecursorVal}
+    {constructor : Expr} {rule : RecursorRule}
+    {headArgs omitted trailing ctorPrefix fields replacements : List Expr}
+    (argsShape : expression.getAppArgs.toList = headArgs ++ omitted ++ trailing)
+    (argsPrefixLength : headArgs.length = info.getFirstIndexIdx)
+    (argsMajorEnd : (headArgs ++ omitted).length = info.getMajorIdx + 1)
+    (argsEnd : (headArgs ++ omitted ++ trailing).length = expression.getAppArgs.size)
+    (ctorShape : constructor.getAppArgs.toList = ctorPrefix ++ fields)
+    (ctorPrefixLength : ctorPrefix.length = constructor.getAppArgs.size - rule.nfields)
+    (ctorEnd : (ctorPrefix ++ fields).length = constructor.getAppArgs.size)
+    (levelShape : rule.rhs.instantiateLevelParams info.levelParams levels = rule.rhs)
+    (replacementShape : replacements = headArgs ++ fields ++ trailing) :
+    (if info.getMajorIdx + 1 < expression.getAppArgs.size then
+      mkAppRange
+        (mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs)
+        (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs
+     else
+      mkAppRange
+        (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+          0 info.getFirstIndexIdx expression.getAppArgs)
+        (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+          constructor.getAppArgs) = rule.rhs.mkAppList replacements := by
+  rw [levelShape]
+  have prefixSlice :
+      mkAppRange rule.rhs 0 info.getFirstIndexIdx expression.getAppArgs =
+        rule.rhs.mkAppList headArgs := by
+    apply Expr.mkAppRange_eq (e := rule.rhs) (args := expression.getAppArgs)
+      (l₁ := []) (l₂ := headArgs) (l₃ := omitted ++ trailing)
+    · simpa [argsShape, List.append_assoc]
+    · simp
+    · simpa [argsPrefixLength]
+  have fieldSlice :
+      mkAppRange (rule.rhs.mkAppList headArgs)
+        (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+        constructor.getAppArgs =
+        (rule.rhs.mkAppList headArgs).mkAppList fields := by
+    apply Expr.mkAppRange_eq (e := rule.rhs.mkAppList headArgs)
+      (args := constructor.getAppArgs) (l₁ := ctorPrefix) (l₂ := fields) (l₃ := [])
+    · simpa [ctorShape]
+    · exact ctorPrefixLength
+    · exact ctorEnd
+  by_cases hTrailing : info.getMajorIdx + 1 < expression.getAppArgs.size
+  · simp only [hTrailing, if_true]
+    have trailingSlice :
+        mkAppRange ((rule.rhs.mkAppList headArgs).mkAppList fields)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs =
+          ((rule.rhs.mkAppList headArgs).mkAppList fields).mkAppList trailing := by
+      apply Expr.mkAppRange_eq
+        (e := (rule.rhs.mkAppList headArgs).mkAppList fields)
+        (args := expression.getAppArgs) (l₁ := headArgs ++ omitted) (l₂ := trailing) (l₃ := [])
+      · simpa [argsShape, List.append_assoc]
+      · exact argsMajorEnd
+      · exact argsEnd
+    rw [prefixSlice, fieldSlice, trailingSlice]
+    simp [Expr.mkAppList_append, replacementShape, List.append_assoc]
+  · simp only [hTrailing, if_false]
+    have trailingNil : trailing = [] := by
+      apply List.eq_nil_of_length_eq_zero
+      have hSize : info.getMajorIdx + 1 ≥ expression.getAppArgs.size := by omega
+      have hCombined : (headArgs ++ omitted).length + trailing.length =
+          expression.getAppArgs.size := by
+        simpa [List.length_append, Nat.add_assoc] using argsEnd
+      omega
+    rw [prefixSlice, fieldSlice]
+    simp [Expr.mkAppList_append, replacementShape, trailingNil, List.append_assoc]
+
 /- Consume a successful native reduction at the generated-rule boundary.  The
    executable reducer and generated replacement list are deliberately connected
    by the explicit `outputShape` premise; this keeps the remaining native branch
