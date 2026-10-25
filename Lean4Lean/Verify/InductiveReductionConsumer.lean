@@ -84,4 +84,68 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_inductiveReduceRecWithType
       (envWF := envWF) (targetWF := targetWF)
   exact ⟨reduction, ordinary, typed, sortArity⟩
 
+/- A reducer consumer needs the generated target witnesses and the native
+   output-shape equation at the same existential boundary.  Keep those facts
+   paired so the ordinary checker transport cannot accidentally mix witnesses
+   from different generated rules. -/
+abbrev GeneratedRecursorRuleIotaTargetReduction
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression reduced : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule} : Prop :=
+  ∃ (target : MLCtx) (count : Nat) (arguments : List VExpr) (resultType : VExpr)
+    (insertionLift : Lift) (replacements : List Expr) (rhsSemantic : VExpr),
+    TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift))) ∧
+    env.HasType universes.length target.vlctx.toCtx
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift)))
+      (resultType.lift' insertionLift) ∧
+    env.SortArity universes.length target.vlctx.toCtx count
+      (resultType.lift' insertionLift) ∧
+    inductiveReduceRec environment expression normalize infer compare =
+      pure (some reduced) ∧
+    reduced = rule.rhs.mkAppList replacements
+
+theorem GeneratedRecursorRuleIotaTargetReduction.toOrdinary
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression reduced : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (package : GeneratedRecursorRuleIotaTargetReduction
+      (environment := environment) (expression := expression) (reduced := reduced)
+      (normalize := normalize) (infer := infer) (compare := compare)
+      (env := env) (universes := universes) (stats := stats) (motives := motives)
+      (minors := minors) (ctx := ctx) (constructor := constructor) (minor := minor)
+      (rule := rule))
+    (envWF : env.WF) (targetWF : ∀ target : MLCtx, target.WF env universes) :
+    ∃ (target : MLCtx) (count : Nat) (arguments : List VExpr) (resultType : VExpr)
+      (insertionLift : Lift) (replacements : List Expr) (rhsSemantic : VExpr),
+      inductiveReduceRec environment expression normalize infer compare = pure (some reduced) ∧
+      TrExpr env universes target.vlctx reduced
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift))) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift)))
+        (resultType.lift' insertionLift) ∧
+      env.SortArity universes.length target.vlctx.toCtx count
+        (resultType.lift' insertionLift) := by
+  rcases package with ⟨target, count, arguments, resultType, insertionLift,
+    replacements, rhsSemantic, translated, typed, sortArity, reduction, outputShape⟩
+  exact ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
+    GeneratedRecursorRuleIotaTargetResult.of_inductiveReduceRecWithType
+      (env := env) (universes := universes) (_stats := stats) (_motives := motives)
+      (_minors := minors) (_ctx := ctx) (_constructor := constructor) (_minor := minor)
+      (rule := rule) (target := target) (_count := count) (arguments := arguments)
+      (_resultType := resultType) (insertionLift := insertionLift)
+      (replacements := replacements) (rhsSemantic := rhsSemantic)
+      (translated := translated) (typed := typed) (sortArity := sortArity)
+      (reduction := reduction) (outputShape := outputShape) envWF (targetWF target)⟩
+
 end Lean4Lean.AddInductive
