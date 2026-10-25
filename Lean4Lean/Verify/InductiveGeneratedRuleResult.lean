@@ -670,6 +670,48 @@ theorem LocalRecursorRuleRhsScope.completeRuleResultSemantics
     receipt.fvars.counts.receipt
   exact ⟨index, _, minor, semantic, ctorLookup, minorLookup, ruleLookup, translated, generated⟩
 
+/- Keep the complete stored-rule coverage while exposing the paired base/target
+   iota endpoint from the same generated witness.  Ordered recursor rules still
+   supply the index recovery; this theorem only packages the existing projection. -/
+theorem LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaBaseAndTargetResults
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    {env : VEnv} {universes : List Name}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (ordered : OrderedRecursorRules types kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat) (ctor : Constructor)
+      (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := infos.map (·.motive))
+          (minors := infos.flatMap (·.minors)) (ctx := ctx)
+          (constructor := ctor) (minor := minor) (rule := rule)) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ rule ∈ recursor.rules, ∃ (index : Nat) (ctor : Constructor) (minor : Expr)
+        (semantic : VExpr),
+        types[parent]!.ctors[index]? = some ctor ∧
+        infos[parent]!.minors[index]? = some minor ∧
+        recursor.rules[index]? = some rule ∧
+        TrExprS env universes [] rule.rhs semantic ∧
+        GeneratedRecursorRuleResult env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule ∧
+        GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) ctx ctor minor rule := by
+  intro parent hparent
+  obtain ⟨recursor, lookup, hrules⟩ :=
+    hscope.completeRuleResultSemantics ordered head parent hparent
+  refine ⟨recursor, lookup, ?_⟩
+  intro rule hmem
+  obtain ⟨index, ctor, minor, semantic, hctor, hminor, hrule, hsemantic, hgenerated⟩ :=
+    hrules rule hmem
+  exact ⟨index, ctor, minor, semantic, hctor, hminor, hrule, hsemantic, hgenerated,
+    hgenerated.iotaKind.baseAndTargetResults⟩
+
 /- Named-result wrappers avoid unfolding the generated package at each caller. -/
 theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResult
     {env : VEnv} {universes : List Name}
