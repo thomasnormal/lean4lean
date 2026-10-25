@@ -120,6 +120,10 @@ The ordinary normalized-constant endpoint now provides the matching target
 consumer for the nullary-constant dispatcher branch, with explicit constant
 normalization, structure adaptation, rule selection, field count, output shape,
 translation, typing, and sort arity.
+The ordinary normalized-constant metadata endpoint now consumes a paired
+adaptation and metadata output package, exposing the same field-count, rule,
+translation, typing, and sort-arity obligations at the registered-rule
+boundary.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.

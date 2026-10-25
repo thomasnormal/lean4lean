@@ -141,6 +141,11 @@ non-K dispatcher equation.
 `GeneratedRecursorRuleIotaTargetResult.of_normalizedConstantExact` now carries
 the ordinary nullary-constant dispatcher equation through the same generated
 translation, typing, sort-arity, and conditional output-shape endpoint.
+`dispatcherConditionalShapeOfMetadataOutputOfNormalizedConstant` and
+`GeneratedRecursorRuleIotaTargetResult.of_normalizedConstantMetadataExact`
+now provide the corresponding metadata-driven constant package and target
+consumer, retaining explicit constructor adaptation, field bounds, rule
+selection, and dependent target witnesses.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
