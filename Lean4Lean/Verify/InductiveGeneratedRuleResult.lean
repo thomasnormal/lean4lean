@@ -1019,6 +1019,24 @@ theorem RecursorRuleRhsScope.registrationRuleHeadAndIota
       (ctors.zipIdx initial) rules :=
   hscope.impGeneratedRecursorRuleResultSemanticsAndIota head
 
+theorem RecursorRuleRhsScope.registrationRuleHeadAndIotaBaseAndTargetResults
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        GeneratedRecursorRuleResultSemantics env universes stats motives minors ctx
+          entry.1 minors[entry.2]! rule) :
+    List.Forall₂ (fun entry rule =>
+      GeneratedRecursorRuleResultSemantics env universes stats motives minors ctx
+        entry.1 minors[entry.2]! rule ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors ctx
+        entry.1 minors[entry.2]! rule)
+      (ctors.zipIdx initial) rules := by
+  exact hscope.registrationRuleHeadAndIota head
+
 theorem LocalRecursorRuleRhsScope.registrationRuleHead
     {env : VEnv} {universes : List Name}
     {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
@@ -1064,6 +1082,30 @@ theorem LocalRecursorRuleRhsScope.registrationRuleHeadAndIota
            GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats (infos.map (·.motive))
             (infos.flatMap (·.minors)) ctx ctor minor rule) :=
   hscope.impGeneratedRecursorRuleResultSemanticsAndIota head
+
+theorem LocalRecursorRuleRhsScope.registrationRuleHeadAndIotaBaseAndTargetResults
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        GeneratedRecursorRuleResultSemantics env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          (GeneratedRecursorRuleResultSemantics env universes stats (infos.map (·.motive))
+            (infos.flatMap (·.minors)) ctx ctor minor rule ∧
+           GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats (infos.map (·.motive))
+            (infos.flatMap (·.minors)) ctx ctor minor rule) := by
+  exact hscope.registrationRuleHeadAndIota head
 
 /- Pair the closed rule-body semantic witness required by registration with the
    generated applied-result package.  This is the local indexed seam used by
@@ -1144,6 +1186,36 @@ theorem LocalRecursorRuleRhsScope.ruleResultSemanticsAndIota
   obtain ⟨semantic, translated⟩ := closed
   exact ⟨rule, minor, hrule, hminor, ⟨semantic, translated⟩, generated,
     generated.iotaKind.baseAndTargetResults⟩
+
+theorem LocalRecursorRuleRhsScope.ruleResultSemanticsAndIotaBaseAndTargetResults
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := infos.map (·.motive))
+          (minors := infos.flatMap (·.minors)) (ctx := ctx)
+          (constructor := ctor) (minor := minor) (rule := rule)) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+          GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+            (stats := stats) (motives := infos.map (·.motive))
+            (minors := infos.flatMap (·.minors)) (ctx := ctx)
+            (constructor := ctor) (minor := minor) (rule := rule) ∧
+          GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) ctx ctor minor rule := by
+  exact hscope.ruleResultSemanticsAndIota head
 
 /- Keep the closed RHS translation and the generated applied-result package as
    separate producer callbacks until the indexed registration boundary pairs
@@ -1234,6 +1306,28 @@ theorem RecursorRuleRhsScope.impRuleResultSemanticsAndIota
     obtain ⟨closed, generated⟩ := head entry rule scopedReceipt ordinaryReceipt
     exact ⟨closed, generated, generated.iotaKind.baseAndTargetResults⟩)
 
+theorem RecursorRuleRhsScope.impRuleResultSemanticsAndIotaBaseAndTargetResults
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+          (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule)) :
+    List.Forall₂ (fun entry rule =>
+      (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+      GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+        (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+        (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule) ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors ctx
+        entry.1 minors[entry.2]! rule)
+      (ctors.zipIdx initial) rules := by
+  exact hscope.impRuleResultSemanticsAndIota head
+
 /- The all-rule consumer has the same split form as the indexed consumer: keep
    the closed translation and generated package callbacks independent, then
    preserve their chronological constructor/rule alignment. -/
@@ -1292,6 +1386,31 @@ theorem RecursorRuleRhsScope.impRuleResultSemanticsAndIotaSplit
     (fun entry rule scopedReceipt ordinaryReceipt => by
       exact ⟨closedHead entry rule scopedReceipt ordinaryReceipt,
         generatedHead entry rule scopedReceipt ordinaryReceipt⟩)
+
+theorem RecursorRuleRhsScope.impRuleResultSemanticsAndIotaSplitBaseAndTargetResults
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (closedHead : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        ∃ semantic, TrExprS env universes [] rule.rhs semantic)
+    (generatedHead : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+          (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule)) :
+    List.Forall₂ (fun entry rule =>
+      (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+      GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+        (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+        (constructor := entry.1) (minor := minors[entry.2]!) (rule := rule) ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors ctx
+        entry.1 minors[entry.2]! rule)
+      (ctors.zipIdx initial) rules := by
+  exact hscope.impRuleResultSemanticsAndIotaSplit closedHead generatedHead
 
 /- Registration only needs the closed RHS translation from the paired result
    callback.  Project it without reopening or rebuilding the generated package.
