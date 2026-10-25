@@ -1556,6 +1556,7 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResults
 #print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultCPS
 #print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleIotaCPS
+#print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleIotaBaseAndTargetResultsCPS
 #print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultAndIotaCPS
 #print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultAndIotaBaseAndTargetResultsCPS
 #print axioms registeredScopedGetterPassesCombinedTypehoodToContinuation
@@ -1636,6 +1637,7 @@ run_meta
       ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResults,
       ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultCPS,
       ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleIotaCPS,
+      ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleIotaBaseAndTargetResultsCPS,
       ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultAndIotaCPS,
       ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultAndIotaBaseAndTargetResultsCPS,
       ``registeredScopedGetterPassesCombinedTypehoodToContinuation,
