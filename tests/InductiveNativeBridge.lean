@@ -74,6 +74,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check addDecl.checkedPrimitiveModelAndRestoredAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
 #check addDecl.checkedPrimitiveModelAndConstructiveRestoredAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
 #check addDecl.checkedPrimitiveModelAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
+#check addDecl.checkedPrimitiveModelAndGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence
 
 example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
     {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
@@ -5813,6 +5814,9 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       hlookups, hbranch, hfinal⟩ :=
     addDecl.checkedPrimitiveModelAndGeneratedRuleResultAndIotaBaseAndTargetResultsEvidence hmap hcheck hresult coverage entries
       records_eq producer entry_eq hconstants history hsource hvalues ruleResult hrecursor hentry venv
+  have hPlural :=
+    addDecl.checkedPrimitiveModelAndGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence hmap hcheck hresult coverage entries
+      records_eq producer entry_eq hconstants history hsource hvalues ruleResult hrecursor hentry venv
   have _modelDecl : VInductDecl := modelDecl
   have _kind := hkind
   have _headers := hheaders
@@ -5838,6 +5842,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := hlookups
   have _ := hbranch
   have _ := hfinal
+  have _ := hPlural
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
