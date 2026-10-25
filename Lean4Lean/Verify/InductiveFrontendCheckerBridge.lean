@@ -22436,6 +22436,11 @@ def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIo
 def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStages :=
   @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood
 
+/- Plural generated-results name for the restoration-stage source-typehood
+   ordinary target package. -/
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStages :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehood
+
 /- The restoration-stage route exposes both iota endpoints while retaining the
    selected metadata and executable frontend scope. -/
 theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResultsPackage_of_restorationStages
