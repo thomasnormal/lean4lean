@@ -228,6 +228,10 @@ The companion
 keeps the complete generated-rule result paired with that exact reducer
 equation, so callers can retain constructor/minor, source metadata, and target
 translation witnesses in one restored-record package.
+The registration boundary now exposes the matching
+`recursorGeneratedRuleResultAndIotaTargetReductionExact` consumer, preserving
+the same generated result and exact stored-RHS equation before source-indexed
+restoration.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
