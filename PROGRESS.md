@@ -174,6 +174,9 @@ package, with its metadata field bound and rule lookup aligned.
 `GeneratedRecursorRuleIotaTargetResult.of_kNormalizedConstantExact` now
 provides the non-metadata K constant target endpoint, carrying the explicit K
 conversion and structure adaptation through the proved K dispatcher equation.
+The K constant metadata consumer now reuses that target endpoint after its
+registered-rule package is assembled, so the K dispatcher transport is shared
+without hiding metadata or generated-target obligations.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
