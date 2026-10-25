@@ -21530,6 +21530,62 @@ theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResu
     obtain ⟨constructor, minor, hgenerated⟩ := hgenerated
     exact ⟨semantic, hsemantic, constructor, minor, hgenerated.iotaKind.baseAndTargetResults⟩
 
+/- Source typehood supplies the recursor model-WF premise for the
+   restoration-stage paired base/target result package. -/
+theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResultsPackage_of_sourceTypehood_and_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool} {venv : VEnv}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
+      modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
+      (∀ venv', venv.addInductHeaders modelDecl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types modelDecl) ∧
+      SafeInductiveRestorationMetadata env lparams nparams types true fuel result ∧
+      SafeInductiveFrontendScope env lparams nparams types true fuel result ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      Aligned .safe resultConstants semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive .safe resultConstants Q semanticResult ∧
+      CheckerEnvInductive .safe result semanticResult Q ∧
+      ∀ entry ∈ producer.orderedEntries,
+        entry.RuleSemantics semanticResult ∧ match entry with
+          | .header _ | .constructor _ => True
+          | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+              TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+              ∃ (constructor : Constructor) (minor : Expr),
+                AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                  (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  have hrecursors := producer.recursorWF_of_sourceTypehood
+    (producer.constructorEnvWF history.wf) hsource
+  exact addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResultsPackage_of_restorationStages
+    hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+
 /- Retain the restoration metadata and executable scope while pairing the
    complete generated-rule witness with both iota endpoints. -/
 theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage_of_restorationStages
