@@ -32,6 +32,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaBaseAndTargetResults
+#check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.orderedGeneratedRuleResultAndIotaBaseAndTargetResults_of_generatedRuleResults
 
 example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
@@ -543,6 +544,9 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
       ∃ entry : RecursorEntry, (.recursor entry : RegistrationEntry) ∈ restored.entries ∧
         entry.info.name = mkRecName types[index].name) : True := by
   have h := restored.sourceRecursorGeneratedRuleResultsAndIota producer halign hlookups
+    (stats := stats) (infos := infos) (source := source) (universes := universes)
+    ruleResult hrecursor hentry
+  have hPlural := restored.sourceRecursorGeneratedRuleResultsAndIotaBaseAndTargetResults producer halign hlookups
     (stats := stats) (infos := infos) (source := source) (universes := universes)
     ruleResult hrecursor hentry
   trivial
