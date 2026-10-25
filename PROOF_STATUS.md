@@ -183,6 +183,9 @@ At the checked primitive restoration-stage boundary,
 now retains the same frontend receipts while exposing
 `GeneratedRecursorRuleIotaTargetReductionExact`; source typehood and final
 inductive soundness remain separate caller obligations.
+The source-typehood exact wrapper and its restoration-stage/plural aliases now
+reuse that package after deriving recursor model WF from the explicit source
+typehood callback; no reducer or target obligation is hidden.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

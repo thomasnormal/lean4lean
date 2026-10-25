@@ -23316,6 +23316,68 @@ def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIo
 def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetReductionPackage_of_sourceTypehood_and_restorationStages :=
   @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetReductionPackage_of_sourceTypehood
 
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_sourceTypehoodExact := fun
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool} {venv : VEnv}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (reduction : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ (rule : RecursorRule), rule ∈ entry.info.rules →
+      ∀ (constructor : Constructor) (minor : Expr),
+      ∀ (target : TypeChecker.MLCtx) (count : Nat) (arguments : List VExpr)
+        (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+        (rhsSemantic : VExpr),
+        TrExprS semanticEnv universes target.vlctx (rule.rhs.mkAppList replacements)
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift))) →
+        semanticEnv.HasType universes.length target.vlctx.toCtx
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift)))
+          (resultType.lift' insertionLift) →
+        semanticEnv.SortArity universes.length target.vlctx.toCtx count
+          (resultType.lift' insertionLift) →
+        inductiveReduceRec environment expression normalize infer compare =
+          pure (some (rule.rhs.mkAppList replacements))) =>
+  addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_restorationStagesExact
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
+    (producer.recursorWF_of_sourceTypehood (producer.constructorEnvWF history.wf) hsource)
+    hsource hvalues ruleResults reduction
+
+/- Exact source-typehood aliases retain the stored-RHS equation while deriving
+   recursor model well-formedness from the source typehood callback. -/
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_sourceTypehood_and_restorationStagesExact :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_sourceTypehoodExact
+
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetReductionPackage_of_sourceTypehoodExact :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_sourceTypehoodExact
+
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetReductionPackage_of_sourceTypehood_and_restorationStagesExact :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetReductionPackage_of_sourceTypehoodExact
+
 /- The restoration-stage aggregate can also be consumed by the ordinary
    checker.  Preserve every frontend receipt while projecting the ordered
    target-reduction packages with the supplied semantic and target WF facts. -/
