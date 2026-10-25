@@ -283,6 +283,9 @@ constraint.
 The direct checked `IotaTargetReductionPackage` spelling now has matching
 exact restoration and source-typehood aliases, reusing the same endpoint
 package so its reducer equation remains definitionally tied to the stored RHS.
+The direct checked ordinary-target package now has exact restoration and
+source-typehood aliases, reusing the generated ordinary exact consumer with
+its explicit semantic-environment and target WF callbacks.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

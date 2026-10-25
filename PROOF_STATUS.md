@@ -207,6 +207,10 @@ therefore cannot hide the constructor/minor or native stored-RHS obligations.
 The direct checked `IotaTargetReductionPackage` spelling has the matching
 exact restoration and source-typehood aliases, with the same generated-rule
 receipt and stored-RHS reducer equation preserved.
+The direct checked ordinary-target package now has matching exact restoration
+and source-typehood aliases.  Its ordinary translation is derived from the
+exact target-reduction relation while retaining the explicit environment WF,
+target WF, generated-rule, and stored-RHS obligations.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,
