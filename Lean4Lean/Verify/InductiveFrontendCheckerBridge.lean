@@ -17379,6 +17379,172 @@ theorem addDecl.checkedPrimitiveModelAndRestoredAlignmentGeneratedRuleResultAndI
 /- Attach the constructive registration receipt to the executable restored
    alignment package.  The nested branch stays conditional, while the
    producer-side AddInduct evidence is available unconditionally. -/
+
+/- Name the restored-alignment model package in its plural generated-results form. -/
+theorem addDecl.checkedPrimitiveModelAndRestoredAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (coverage : InductiveRestorationSourceCoverage env lparams nparams types true fuel)
+    (entries : ElimNestedInductive.Result → Kernel.Environment → List NativeInductive.RegistrationEntry)
+    (records_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries preprocessing staged).map NativeInductive.RegistrationEntry.toConstantInfo)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (entry_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 →
+      entries preprocessing staged = producer.orderedEntries)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {universes : List Name}
+    (ruleResult : ∀ (stats : AddInductive.InductiveStats) (infos : Array AddInductive.RecInfo)
+      (source : AddInductive.Context) (entry : NativeInductive.RecursorEntry),
+      entry ∈ producer.recursors → ∀ rule, rule ∈ entry.info.rules →
+        ∃ (constructor : Constructor) (minor : Expr),
+          AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (hrecursor : ∀ (index : Nat) (hindex : index < types.length)
+      (recursor : RecursorVal),
+      result.find? recursor.name = some (.recInfo recursor) →
+      recursor.name = mkRecName types[index].name)
+    (hentry : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 →
+      ∀ (index : Nat) (hindex : index < types.length),
+        ∃ entry : NativeInductive.RecursorEntry,
+          (.recursor entry : NativeInductive.RegistrationEntry) ∈ entries preprocessing staged ∧
+          entry.info.name = mkRecName types[index].name)
+    (venv : VEnv) :
+    ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
+      modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
+      (∀ venv', venv.addInductHeaders modelDecl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types modelDecl) ∧
+      ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+        (stats : AddInductive.InductiveStats) (root : AddInductive.Context)
+        (constructors : Kernel.Environment) (elimLevel : Level)
+        (infos : Array AddInductive.RecInfo) (source : AddInductive.Context),
+        inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+        AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+          (inductiveScopeContext env lparams true fuel) = .ok staged ∧
+        stats.SafeRunScope nparams preprocessing.types.toArray preprocessing.aux2nested.size
+          (inductiveScopeContext env lparams true fuel) root constructors staged ∧
+        InductiveArityPrefix types.toArray preprocessing.types.toArray ∧
+        SourceRecursorRuleLookups nparams lparams types preprocessing staged result ∧
+        (preprocessing.aux2nested.size ≠ 0 →
+          (∃ restored : NativeInductive.RestoredRecordEvidence preprocessing staged
+              (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
+              (restoredEnvironmentRecords preprocessing staged types),
+            restored.entries = entries preprocessing staged ∧
+              Aligned .safe resultConstants semanticResult ∧
+              result.constants = resultConstants ∧
+              TrEnvInductive .safe resultConstants Q semanticResult ∧
+              CheckerEnvInductive .safe result semanticResult Q ∧
+              ∀ entry ∈ restored.entries,
+                entry.RuleSemantics semanticResult ∧ match entry with
+                  | .header _ | .constructor _ => True
+                  | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+                      TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+                      ∃ (constructor : Constructor) (minor : Expr),
+                        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                          (infos.map (·.motive)) (infos.flatMap (·.minors)) source
+                          constructor minor rule ∧
+                        AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                          (infos.map (·.motive)) (infos.flatMap (·.minors)) source
+                          constructor minor rule)) ∧
+        (preprocessing.aux2nested.size ≠ 0 →
+          ∀ (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+            (hctor : ctorIndex < types[index].ctors.length),
+            ∃ (entry : NativeInductive.RecursorEntry) (recursor : RecursorVal)
+              (rule : RecursorRule) (info : ConstructorVal) (semantic : VExpr)
+              (constructor : Constructor) (minor : Expr),
+              result.find? recursor.name = some (.recInfo recursor) ∧
+              entry.info.name = mkRecName types[index].name ∧
+              recursor.rules.length = types[index].ctors.length ∧
+              recursor.rules[ctorIndex]? = some rule ∧
+              staged.find? types[index].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+              SourceConstructorMetadata nparams lparams types[index] ctorIndex info ∧
+              SourceConstructorFields nparams types[index] ctorIndex info ∧
+              rule.nfields = info.numFields ∧
+              rule.nfields = arity 0 types[index].ctors[ctorIndex].type - nparams ∧
+              nparams + rule.nfields = arity 0 types[index].ctors[ctorIndex].type ∧
+              TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+              ∃ (generatedConstructor : Constructor) (generatedMinor : Expr),
+                AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                  (infos.map (·.motive)) (infos.flatMap (·.minors)) source
+                  generatedConstructor generatedMinor rule ∧
+                AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                  (infos.map (·.motive)) (infos.flatMap (·.minors)) source
+                  generatedConstructor generatedMinor rule) := by
+  have hmodel := Environment.checkPrimitiveInductive.toVDecl_WF_model
+    env venv lparams nparams types false
+  have hprimitive := (hmodel true hcheck) rfl
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation,
+      ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
+        hpre, hrun, hscope, hprefix, hlookups, hconditional⟩⟩ :=
+    addDecl.checkedPrimitiveModelAndRestoredRuleEvidence hmap hcheck hresult coverage entries
+      records_eq producer entry_eq hrecursor hentry ruleResult venv
+  refine ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation,
+    ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
+      hpre, hrun, hscope, hprefix, hlookups, ?_⟩⟩
+  constructor
+  · intro hnested
+    obtain ⟨⟨restored, hentries⟩, _⟩ := hconditional hnested
+    have halign : restored.entries = producer.orderedEntries := by
+      calc
+        restored.entries = entries preprocessing staged := hentries
+        _ = producer.orderedEntries := entry_eq preprocessing staged hpre hrun hnested
+    have hsemantic :=
+      restored.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultSemantics_of_sourceTypehood
+        producer halign hconstants history hsource hvalues
+        (fun entry hentry rule hrule => by
+          exact ruleResult stats infos source entry hentry rule hrule)
+    refine ⟨restored, hentries, hsemantic.1, hresultConstants, hsemantic.2.2.1,
+      hsemantic.2.2.2.1, ?_⟩
+    intro entry hentry
+    obtain ⟨hsemantics, hrule⟩ := hsemantic.2.2.2.2 entry hentry
+    refine ⟨hsemantics, ?_⟩
+    cases entry with
+    | header _ => trivial
+    | constructor _ => trivial
+    | recursor entry =>
+      intro rule hrule'
+      obtain ⟨semantic, hsemantic', hgenerated⟩ := hrule rule hrule'
+      obtain ⟨constructor, minor, hgenerated⟩ := hgenerated
+      exact ⟨semantic, hsemantic', constructor, minor, hgenerated, hgenerated.iotaKind.baseAndTargetResults⟩
+  · intro hnested
+    intro index hindex ctorIndex hctor
+    obtain ⟨entry, recursor, rule, info, semantic, constructor, minor,
+        hresult, hentryName, hlength, hrule, hctorInfo, hmetadata, hfields,
+        hnumFields, hfieldCount, htotal, hsemantic, generatedConstructor,
+        generatedMinor, hgenerated⟩ := (hconditional hnested).2 index hindex ctorIndex hctor
+    exact ⟨entry, recursor, rule, info, semantic, constructor, minor, hresult,
+      hentryName, hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields,
+      hfieldCount, htotal, hsemantic, generatedConstructor, generatedMinor,
+      hgenerated, hgenerated.iotaKind.baseAndTargetResults⟩
+/- Attach the constructive registration receipt to the executable restored
+   alignment package.  The nested branch stays conditional, while the
+   producer-side AddInduct evidence is available unconditionally. -/
 theorem addDecl.checkedPrimitiveModelAndConstructiveRestoredAlignmentSemantics
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
@@ -17609,6 +17775,133 @@ theorem addDecl.checkedPrimitiveModelAndConstructiveRestoredAlignmentIotaBaseAnd
 /- Keep constructive restored-alignment semantics together with the complete
    generated rule result and its paired base/target iota endpoints. -/
 theorem addDecl.checkedPrimitiveModelAndConstructiveRestoredAlignmentGeneratedRuleResultAndIotaBaseAndTargetResultsSemantics
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (coverage : InductiveRestorationSourceCoverage env lparams nparams types true fuel)
+    (entries : ElimNestedInductive.Result → Kernel.Environment → List NativeInductive.RegistrationEntry)
+    (records_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries preprocessing staged).map NativeInductive.RegistrationEntry.toConstantInfo)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (entry_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 → entries preprocessing staged = producer.orderedEntries)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {universes : List Name}
+    (ruleResult : ∀ (stats : AddInductive.InductiveStats) (infos : Array AddInductive.RecInfo)
+      (source : AddInductive.Context) (entry : NativeInductive.RecursorEntry),
+      entry ∈ producer.recursors → ∀ rule, rule ∈ entry.info.rules →
+      ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (hrecursor : ∀ (index : Nat) (hindex : index < types.length) (recursor : RecursorVal),
+      result.find? recursor.name = some (.recInfo recursor) →
+      recursor.name = mkRecName types[index].name)
+    (hentry : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 →
+      ∀ (index : Nat) (hindex : index < types.length),
+        ∃ entry : NativeInductive.RecursorEntry,
+          (.recursor entry : NativeInductive.RegistrationEntry) ∈ entries preprocessing staged ∧
+          entry.info.name = mkRecName types[index].name)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (venv : VEnv) :
+    ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
+      modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
+      (∀ venv', venv.addInductHeaders modelDecl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types modelDecl) ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+        (stats : AddInductive.InductiveStats) (root : AddInductive.Context)
+        (constructors : Kernel.Environment) (elimLevel : Level)
+        (infos : Array AddInductive.RecInfo) (source : AddInductive.Context),
+        inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+        AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+          (inductiveScopeContext env lparams true fuel) = .ok staged ∧
+        stats.SafeRunScope nparams preprocessing.types.toArray preprocessing.aux2nested.size
+          (inductiveScopeContext env lparams true fuel) root constructors staged ∧
+        InductiveArityPrefix types.toArray preprocessing.types.toArray ∧
+        SourceRecursorRuleLookups nparams lparams types preprocessing staged result ∧
+        (preprocessing.aux2nested.size ≠ 0 →
+          (∃ restored : NativeInductive.RestoredRecordEvidence preprocessing staged
+              (types.map (·.name)) (mkAuxRecNameMap staged types).2 env result
+              (restoredEnvironmentRecords preprocessing staged types),
+            restored.entries = entries preprocessing staged ∧
+              Aligned .safe resultConstants semanticResult ∧
+              result.constants = resultConstants ∧
+              TrEnvInductive .safe resultConstants Q semanticResult ∧
+              CheckerEnvInductive .safe result semanticResult Q ∧
+              ∀ entry ∈ restored.entries,
+                entry.RuleSemantics semanticResult ∧ match entry with
+                  | .header _ | .constructor _ => True
+                  | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+                      TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+                      ∃ (constructor : Constructor) (minor : Expr),
+                        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                          (infos.map (·.motive)) (infos.flatMap (·.minors)) source
+                          constructor minor rule ∧
+                        AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                          (infos.map (·.motive)) (infos.flatMap (·.minors)) source
+                          constructor minor rule)) := by
+  have hconstantsWF : constants.WF := by
+    rw [← hconstants]
+    exact hmap
+  have hregistration := producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hstages⟩ :=
+    addDecl.checkedPrimitiveModelAndRestoredAlignmentSemantics hmap hcheck hresult coverage
+      entries records_eq producer entry_eq hconstants hresultConstants history hsource hvalues
+      ruleResult hrecursor hentry venv
+  obtain ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
+      hpre, hrun, hscope, hprefix, hlookups, hsemantic, _hgenerated⟩ := hstages
+  refine ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hregistration,
+    preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
+    hpre, hrun, hscope, hprefix, hlookups, ?_⟩
+  intro hnested
+  obtain ⟨restored, hentries, haligned, hresultConstants', hhistory, hchecker, hrules⟩ :=
+    hsemantic hnested
+  refine ⟨restored, hentries, haligned, hresultConstants', hhistory, hchecker, ?_⟩
+  intro entry hentry
+  obtain ⟨hsemantics, hrule⟩ := hrules entry hentry
+  refine ⟨hsemantics, ?_⟩
+  cases entry with
+  | header _ => trivial
+  | constructor _ => trivial
+  | recursor entry =>
+    intro rule hrule'
+    obtain ⟨semantic, hsemantic', hgenerated⟩ := hrule rule hrule'
+    obtain ⟨constructor, minor, hgenerated⟩ := hgenerated
+    exact ⟨semantic, hsemantic', constructor, minor, hgenerated, hgenerated.iotaKind.baseAndTargetResults⟩
+/- Attach constructive model registration to the executable restored-record
+   package while preserving its conditional nested branch. -/
+
+/- Name the constructive restored-alignment model package in its plural generated-results form. -/
+theorem addDecl.checkedPrimitiveModelAndConstructiveRestoredAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
     (hmap : env.constants.WF)
@@ -18145,6 +18438,127 @@ theorem addDecl.checkedPrimitiveModelAndAlignmentGeneratedRuleResultAndIotaBaseA
     exact ⟨semantic, hsemantic, constructor, minor, hgenerated,
       hgenerated.iotaKind.baseAndTargetResults⟩
 
+
+/- Name the alignment model package in its plural generated-results form. -/
+theorem addDecl.checkedPrimitiveModelAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    (coverage : InductiveRestorationSourceCoverage env lparams nparams types true fuel)
+    (entries : ElimNestedInductive.Result → Kernel.Environment → List NativeInductive.RegistrationEntry)
+    (records_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries preprocessing staged).map NativeInductive.RegistrationEntry.toConstantInfo)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (entry_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 →
+      entries preprocessing staged = producer.orderedEntries)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {universes : List Name}
+    (ruleResult : ∀ (stats : AddInductive.InductiveStats) (infos : Array AddInductive.RecInfo)
+      (source : AddInductive.Context) (entry : NativeInductive.RecursorEntry),
+      entry ∈ producer.recursors → ∀ rule, rule ∈ entry.info.rules →
+        ∃ (constructor : Constructor) (minor : Expr),
+          AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (hrecursor : ∀ (index : Nat) (hindex : index < types.length)
+      (recursor : RecursorVal),
+      result.find? recursor.name = some (.recInfo recursor) →
+      recursor.name = mkRecName types[index].name)
+    (hentry : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams true fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 →
+      ∀ (index : Nat) (hindex : index < types.length),
+        ∃ entry : NativeInductive.RecursorEntry,
+          (.recursor entry : NativeInductive.RegistrationEntry) ∈ entries preprocessing staged ∧
+          entry.info.name = mkRecName types[index].name)
+    (venv : VEnv) :
+    ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
+      modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
+      (∀ venv', venv.addInductHeaders modelDecl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types modelDecl) ∧
+      ∃ (preprocessing : ElimNestedInductive.Result) (staged : Kernel.Environment)
+        (stats : AddInductive.InductiveStats) (root : AddInductive.Context)
+        (constructors : Kernel.Environment) (elimLevel : Level)
+        (infos : Array AddInductive.RecInfo) (source : AddInductive.Context),
+        inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+        AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+          (inductiveScopeContext env lparams true fuel) = .ok staged ∧
+        stats.SafeRunScope nparams preprocessing.types.toArray preprocessing.aux2nested.size
+          (inductiveScopeContext env lparams true fuel) root constructors staged ∧
+        InductiveArityPrefix types.toArray preprocessing.types.toArray ∧
+        ({ root with env := constructors } : AddInductive.Context).RecursorScopeFrame source ∧
+        RecursorInfoCounts preprocessing.types.toArray infos ∧
+        RecursorMinorIndexing preprocessing.types.toArray infos ∧
+        LocalRecursorRuleRhsDistinct stats preprocessing.types.toArray infos source staged ∧
+        SourceRecursorRuleSources nparams types preprocessing.types.toArray stats elimLevel infos
+          source staged ∧
+        SourceRecursorRuleLookups nparams lparams types preprocessing staged result ∧
+        InductiveFrontendBranch preprocessing staged types env result ∧
+        (preprocessing.aux2nested.size ≠ 0 →
+          Aligned .safe resultConstants semanticResult ∧
+          result.constants = resultConstants ∧
+          TrEnvInductive .safe resultConstants Q semanticResult ∧
+          CheckerEnvInductive .safe result semanticResult Q ∧
+          ∀ entry ∈ producer.orderedEntries,
+            entry.RuleSemantics semanticResult ∧ match entry with
+              | .header _ | .constructor _ => True
+              | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+                  TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+                  ∃ (constructor : Constructor) (minor : Expr),
+                    AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                      (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+                    AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                      (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) := by
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation,
+      preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
+      hpre, hrun, hscope, hprefix, hframe, hcounts, hindexing, hdistinct, hsources,
+      hlookups, hbranch, hfinal⟩ :=
+    addDecl.checkedPrimitiveModelAndAlignmentSemantics
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants
+      hresultConstants history hsource hvalues ruleResult hrecursor hentry venv
+  refine ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation,
+    preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
+    hpre, hrun, hscope, hprefix, hframe, hcounts, hindexing, hdistinct, hsources,
+    hlookups, hbranch, ?_⟩
+  intro hnested
+  obtain ⟨haligned, hresultConstants', hhistory, hchecker, hresults⟩ := hfinal hnested
+  refine ⟨haligned, hresultConstants', hhistory, hchecker, ?_⟩
+  intro entry hentry
+  obtain ⟨hsemantics, hrules⟩ := hresults entry hentry
+  refine ⟨hsemantics, ?_⟩
+  cases entry with
+  | header _ => trivial
+  | constructor _ => trivial
+  | recursor entry =>
+    intro rule hrule
+    obtain ⟨semantic, hsemantic, hgenerated⟩ := hrules rule hrule
+    obtain ⟨constructor, minor, hgenerated⟩ := hgenerated
+    exact ⟨semantic, hsemantic, constructor, minor, hgenerated,
+      hgenerated.iotaKind.baseAndTargetResults⟩
 theorem addDecl.checkedPrimitiveModelAndConstructiveRegistration
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {check : Bool} {fuel : FuelConfig}

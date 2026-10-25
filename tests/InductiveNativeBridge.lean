@@ -71,6 +71,9 @@ open Lean4Lean.AddInductive.declareConstructors
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+#check addDecl.checkedPrimitiveModelAndRestoredAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
+#check addDecl.checkedPrimitiveModelAndConstructiveRestoredAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
+#check addDecl.checkedPrimitiveModelAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
 
 example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
     {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
@@ -6119,7 +6122,12 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.checkedPrimitiveModelAndAlignmentGeneratedRuleResultAndIotaBaseAndTargetResultsSemantics
       hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants hresultConstants
       history hsource hvalues ruleResult hrecursor hentry venv
+  have _combinedAlignmentPlural :=
+    addDecl.checkedPrimitiveModelAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants hresultConstants
+      history hsource hvalues ruleResult hrecursor hentry venv
   have _ := _combinedAlignment
+  have _ := _combinedAlignmentPlural
   have _modelDecl : VInductDecl := modelDecl
   have _kind := hkind
   have _headers := hheaders
@@ -6212,6 +6220,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.checkedPrimitiveModelAndConstructiveRestoredAlignmentGeneratedRuleResultAndIotaBaseAndTargetResultsSemantics hmap hcheck hresult
       coverage entries records_eq producer entry_eq hconstants hresultConstants history hsource
       hvalues ruleResult hrecursor hentry hrecursors venv
+  have _combinedConstructivePlural :=
+    addDecl.checkedPrimitiveModelAndConstructiveRestoredAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics hmap hcheck hresult
+      coverage entries records_eq producer entry_eq hconstants hresultConstants history hsource
+      hvalues ruleResult hrecursor hentry hrecursors venv
   have _modelDeclCombined : VInductDecl := modelDeclCombined
   have _ := hkindCombined
   have _ := hheadersCombined
@@ -6232,6 +6244,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := hprefixCombined
   have _ := hlookupsCombined
   have _ := hsemanticCombined
+  have _ := _combinedConstructivePlural
   obtain ⟨modelDeclRestored, hkindRestored, hheadersRestored, hdeclWFRestored,
       htranslationRestored,
       ⟨preprocessingRestored, stagedRestored, statsRestored, rootRestored,
@@ -6446,6 +6459,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.checkedPrimitiveModelAndRestoredAlignmentGeneratedRuleResultAndIotaBaseAndTargetResultsSemantics
       hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants
       hresultConstants history hsource hvalues ruleResult hrecursor hentry venv
+  have _combinedRestoredPlural :=
+    addDecl.checkedPrimitiveModelAndRestoredAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants
+      hresultConstants history hsource hvalues ruleResult hrecursor hentry venv
   have _modelDeclRestoredIota : VInductDecl := modelDeclRestoredIota
   have _ := hkindRestoredIota
   have _ := hheadersRestoredIota
@@ -6466,6 +6483,7 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := hlookupsRestoredIota
   have _ := hsemanticRestoredIota
   have _ := hfinalRestoredIota
+  have _ := _combinedRestoredPlural
   obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation,
       ⟨preprocessing, staged, stats, root, constructors, elimLevel, infos, source,
         hpre, hrun, hscope, hprefix, hframe, hcounts, hindexing, hdistinct, hsources,
