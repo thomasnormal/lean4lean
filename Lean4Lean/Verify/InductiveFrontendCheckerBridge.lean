@@ -4339,6 +4339,16 @@ theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTy
     producer halign hlookups ruleResult hrecursor hentry
   exact ⟨hchecker, htarget⟩
 
+/- Plural generated-rule spelling for the restored checker target endpoints. -/
+def NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultsAndIotaTargetOrdinary :=
+  @NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaTargetOrdinary
+
+def NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultsAndIotaTargetReduction :=
+  @NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaTargetReduction
+
+def NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultsAndIotaTargetResult :=
+  @NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaTargetResult
+
 /- Singular-name alias for consumers that request one indexed target result. -/
 theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetResult
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
