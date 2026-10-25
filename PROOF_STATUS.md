@@ -37,7 +37,13 @@ witness, nonliteral exclusions, and adapted-constructor shape.
 The reusable `dispatcherConditionalShapeOfReplacementDecomposition` theorem
 now proves the native three-slice assembly equals one generated replacement
 list from explicit argument decompositions and level-instantiation equality;
-deriving those decompositions from stored metadata remains open.
+`dispatcherArgumentSliceDecomposition` and
+`dispatcherConstructorSliceDecomposition` now derive the canonical argument
+and constructor-field slices from selected-major and field-count metadata, and
+`dispatcherConditionalShapeOfCanonicalDecomposition` feeds those slices into
+the RHS bridge. The generic frontend still supplies the level-instantiation
+relation and native field-count witness explicitly; complete iota and recursor
+reduction soundness remain open.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.

@@ -67,6 +67,13 @@ now proves the native three-slice assembly equals one generated replacement
 list from explicit argument decompositions and level-instantiation equality.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 that level equality from the stored RHS's structural no-level-parameter flag.
+The new `dispatcherArgumentSliceDecomposition` and
+`dispatcherConstructorSliceDecomposition` lemmas construct the canonical
+recursor and constructor list slices from the selected-major and field-count
+metadata, and `dispatcherConditionalShapeOfCanonicalDecomposition` packages
+those slices with the reusable RHS bridge. The generic frontend still leaves
+the level-instantiation relation and the native field-count witness explicit;
+this is a decomposition bridge, not complete iota or recursor soundness.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

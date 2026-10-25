@@ -525,6 +525,150 @@ theorem dispatcherConditionalShapeOfReplacementDecomposition
     rw [prefixSlice, fieldSlice]
     simp [Expr.mkAppList_append, replacementShape, trailingNil, List.append_assoc]
 
+/- The selected major premise determines canonical list slices for the
+   recursor application.  This is the list-level metadata bridge used by the
+   generated-rule consumer: the prefix ends at `getFirstIndexIdx`, the middle
+   slice ends immediately after the major, and the final slice contains any
+   trailing application arguments. -/
+theorem dispatcherArgumentSliceDecomposition
+    {expression : Expr} {info : RecursorVal} {major : Expr}
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major) :
+    ∃ (headArgs omitted trailing : List Expr),
+      expression.getAppArgs.toList = headArgs ++ omitted ++ trailing ∧
+      headArgs.length = info.getFirstIndexIdx ∧
+      (headArgs ++ omitted).length = info.getMajorIdx + 1 ∧
+      (headArgs ++ omitted ++ trailing).length = expression.getAppArgs.size := by
+  let args := expression.getAppArgs.toList
+  let headArgs := args.take info.getFirstIndexIdx
+  let omitted := (args.drop info.getFirstIndexIdx).take (info.numIndices + 1)
+  let trailing := args.drop (info.getMajorIdx + 1)
+  have hmajorArray : info.getMajorIdx < expression.getAppArgs.size := by
+    by_contra hbound
+    have hnone : expression.getAppArgs[info.getMajorIdx]? = none :=
+      Array.getElem?_eq_none (show expression.getAppArgs.size ≤ info.getMajorIdx by omega)
+    rw [hnone] at selected
+    cases selected
+  have hmajor : info.getMajorIdx < args.length := by
+    simpa [args] using hmajorArray
+  have hfirst : info.getFirstIndexIdx ≤ args.length := by
+    dsimp [RecursorVal.getMajorIdx, RecursorVal.getFirstIndexIdx] at hmajor ⊢
+    omega
+  have hmiddle : info.numIndices + 1 ≤ args.length - info.getFirstIndexIdx := by
+    dsimp [RecursorVal.getMajorIdx, RecursorVal.getFirstIndexIdx] at hmajor ⊢
+    omega
+  have hargsSize : args.length = expression.getAppArgs.size := by simp [args]
+  have hdrop : (args.drop info.getFirstIndexIdx).drop (info.numIndices + 1) =
+      args.drop (info.getMajorIdx + 1) := by
+    rw [List.drop_drop]
+    dsimp [RecursorVal.getMajorIdx, RecursorVal.getFirstIndexIdx]
+    congr 1
+  have hmajorIndex : info.getMajorIdx = info.getFirstIndexIdx + info.numIndices := by
+    simp [RecursorVal.getMajorIdx, RecursorVal.getFirstIndexIdx, Nat.add_assoc]
+  refine ⟨headArgs, omitted, trailing, ?_, ?_, ?_, ?_⟩
+  · dsimp [headArgs, omitted, trailing]
+    change args = args.take info.getFirstIndexIdx ++
+      (args.drop info.getFirstIndexIdx).take (info.numIndices + 1) ++
+      args.drop (info.getMajorIdx + 1)
+    calc
+      args = args.take info.getFirstIndexIdx ++ args.drop info.getFirstIndexIdx :=
+        (List.take_append_drop _ _).symm
+      _ = args.take info.getFirstIndexIdx ++
+          ((args.drop info.getFirstIndexIdx).take (info.numIndices + 1) ++
+            (args.drop info.getFirstIndexIdx).drop (info.numIndices + 1)) := by
+        exact congrArg (fun xs => args.take info.getFirstIndexIdx ++ xs)
+          (List.take_append_drop (info.numIndices + 1) (args.drop info.getFirstIndexIdx)).symm
+      _ = args.take info.getFirstIndexIdx ++
+          ((args.drop info.getFirstIndexIdx).take (info.numIndices + 1) ++
+            args.drop (info.getMajorIdx + 1)) := by
+        exact congrArg (fun xs => args.take info.getFirstIndexIdx ++
+          ((args.drop info.getFirstIndexIdx).take (info.numIndices + 1) ++ xs)) hdrop
+      _ = args.take info.getFirstIndexIdx ++
+          (args.drop info.getFirstIndexIdx).take (info.numIndices + 1) ++
+            args.drop (info.getMajorIdx + 1) :=
+        (List.append_assoc (args.take info.getFirstIndexIdx)
+          ((args.drop info.getFirstIndexIdx).take (info.numIndices + 1))
+          (args.drop (info.getMajorIdx + 1))).symm
+  · dsimp [headArgs]
+    rw [List.length_take]
+    exact Nat.min_eq_left hfirst
+  · dsimp [headArgs, omitted]
+    simp only [List.length_append, List.length_take, List.length_drop]
+    rw [Nat.min_eq_left hfirst, Nat.min_eq_left hmiddle, hmajorIndex]
+    omega
+  · dsimp [headArgs, omitted, trailing]
+    simp only [List.length_append, List.length_take, List.length_drop]
+    rw [Nat.min_eq_left hfirst, Nat.min_eq_left hmiddle, hmajorIndex]
+    omega
+
+/- The rule field count determines canonical prefix and field slices for the
+   constructor application. -/
+theorem dispatcherConstructorSliceDecomposition
+    {constructor : Expr} {rule : RecursorRule}
+    (fieldCount : rule.nfields ≤ constructor.getAppArgs.size) :
+    ∃ (ctorPrefix fields : List Expr),
+      constructor.getAppArgs.toList = ctorPrefix ++ fields ∧
+      ctorPrefix.length = constructor.getAppArgs.size - rule.nfields ∧
+      (ctorPrefix ++ fields).length = constructor.getAppArgs.size := by
+  let args := constructor.getAppArgs.toList
+  let ctorPrefix := args.take (constructor.getAppArgs.size - rule.nfields)
+  let fields := args.drop (constructor.getAppArgs.size - rule.nfields)
+  have hsize : args.length = constructor.getAppArgs.size := by simp [args]
+  have hprefix : constructor.getAppArgs.size - rule.nfields ≤ args.length := by
+    simpa [hsize] using Nat.sub_le _ _
+  refine ⟨ctorPrefix, fields, ?_, ?_, ?_⟩
+  · dsimp [ctorPrefix, fields]
+    exact (List.take_append_drop _ _).symm
+  · dsimp [ctorPrefix]
+    rw [List.length_take]
+    exact Nat.min_eq_left hprefix
+  · dsimp [ctorPrefix, fields]
+    rw [List.length_append, List.length_take, List.length_drop]
+    simp [hsize]
+
+/- Combine the two canonical decompositions and choose the generated
+   replacement list.  The remaining level-instantiation relation is kept as an
+   explicit premise because stored recursor RHS metadata can still contain
+   level parameters in the general frontend contract. -/
+theorem dispatcherConditionalShapeOfCanonicalDecomposition
+    {expression : Expr} {levels : List Level} {info : RecursorVal}
+    {constructor major : Expr} {rule : RecursorRule}
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (fieldCount : rule.nfields ≤ constructor.getAppArgs.size)
+    (levelShape : rule.rhs.instantiateLevelParams info.levelParams levels = rule.rhs) :
+    ∃ (headArgs omitted trailing ctorPrefix fields replacements : List Expr),
+      expression.getAppArgs.toList = headArgs ++ omitted ++ trailing ∧
+      headArgs.length = info.getFirstIndexIdx ∧
+      (headArgs ++ omitted).length = info.getMajorIdx + 1 ∧
+      (headArgs ++ omitted ++ trailing).length = expression.getAppArgs.size ∧
+      constructor.getAppArgs.toList = ctorPrefix ++ fields ∧
+      ctorPrefix.length = constructor.getAppArgs.size - rule.nfields ∧
+      (ctorPrefix ++ fields).length = constructor.getAppArgs.size ∧
+      replacements = headArgs ++ fields ++ trailing ∧
+      (if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+              constructor.getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs
+       else
+        mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs) = rule.rhs.mkAppList replacements := by
+  obtain ⟨headArgs, omitted, trailing, hargs, hprefix, hmajor, hend⟩ :=
+    dispatcherArgumentSliceDecomposition (expression := expression) (info := info)
+      (major := major) selected
+  obtain ⟨ctorPrefix, fields, hctor, hctorPrefix, hctorEnd⟩ :=
+    dispatcherConstructorSliceDecomposition (constructor := constructor) (rule := rule) fieldCount
+  let replacements := headArgs ++ fields ++ trailing
+  refine ⟨headArgs, omitted, trailing, ctorPrefix, fields, replacements, hargs, hprefix,
+    hmajor, hend, hctor, hctorPrefix, hctorEnd, rfl, ?_⟩
+  exact dispatcherConditionalShapeOfReplacementDecomposition hargs hprefix hmajor hend
+    hctor hctorPrefix hctorEnd levelShape rfl
+
 theorem instantiateLevelParams_eq_self_of_noLevelParam
     {expression : Expr} {parameters : List Name} {levels : List Level}
     (noLevelParam : expression.hasLevelParam' = false) :
