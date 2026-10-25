@@ -80,6 +80,8 @@ explicit.
 The Nat-literal generated-target endpoint carries the canonical literal
 dispatch equation into the exact generated reduction result and keeps its
 translation, typing, and sort-arity family explicit.
+The String-literal endpoint retains the explicit `strLitToConstructor`
+expansion equation while carrying the same generated target witness family.
 The ordinary structure generated-target endpoint consumes the paired package
 and preserves dependent translation, typing, sort-arity, normalization, and
 field-count obligations through its witness family.
