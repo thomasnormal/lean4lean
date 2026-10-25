@@ -161,6 +161,10 @@ selection, and generated target witnesses.
 now carry the corresponding K-normalized application package, retaining both
 `toCtorWhenK` and structure adaptation together with metadata field bounds,
 rule selection, and dependent target witnesses.
+`dispatcherConditionalShapeOfMetadataOutputOfKNormalizedConstant` now gives
+the K constant branch the same paired adaptation package, so its target
+consumer no longer combines an ordinary metadata package with a separate
+K-conversion receipt.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

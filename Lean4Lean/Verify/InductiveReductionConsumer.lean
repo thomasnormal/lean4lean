@@ -1357,6 +1357,67 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfKNormalizedApplication
   exact ⟨recursor, rule, ctorInfo, replacements, hrecursor, hrule, hconstructor,
     hfieldCount, hshape, hruleLookup, kAdapted, hadapted⟩
 
+/- Pair the K-normalized constant adaptations with the metadata-driven output
+   package, retaining both the preliminary K conversion and the constant's
+   structure adaptation at the registered-rule boundary. -/
+theorem dispatcherConditionalShapeOfMetadataOutputOfKNormalizedConstant
+    {m : Type → Type} [Monad m]
+    {types : Array InductiveType} {environment : Kernel.Environment}
+    {expression : Expr} {levels : List Level} {info : RecursorVal}
+    {major adapted constructor : Expr} {normalizedName : Name} {normalizedLevels : List Level}
+    (normalize infer : Expr → m Expr) (compare : Expr → Expr → m Bool)
+    (metadata : RuleConstructorFieldMetadata types environment)
+    (parent : Nat) (parentBound : parent < types.size)
+    (index : Nat) (constructorEntry : Constructor)
+    (constructorEntryAt : types[parent]!.ctors[index]? = some constructorEntry)
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (kAdapted : toCtorWhenK environment normalize infer compare info major = pure adapted)
+    (adaptedStruct : toCtorWhenStruct environment normalize infer info.getMajorInduct
+      (.const normalizedName normalizedLevels) = pure constructor)
+    (constructorFieldBound : ∀ ctorInfo : ConstructorVal,
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) →
+      ctorInfo.numFields ≤ constructor.getAppArgs.size)
+    (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
+      recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false)
+    (ruleLookup : ∀ (recursor : RecursorVal) (rule : RecursorRule)
+      (ctorInfo : ConstructorVal),
+      recursor.rules[index]? = some rule →
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) →
+      getRecRuleFor info constructor = some rule) :
+    ∃ (recursor : RecursorVal) (rule : RecursorRule) (ctorInfo : ConstructorVal)
+      (replacements : List Expr),
+      environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      recursor.rules[index]? = some rule ∧
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) ∧
+      rule.nfields ≤ constructor.getAppArgs.size ∧
+      (if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+              constructor.getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs
+       else
+        mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs) = rule.rhs.mkAppList replacements ∧
+      getRecRuleFor info constructor = some rule ∧
+      toCtorWhenK environment normalize infer compare info major = pure adapted ∧
+      toCtorWhenStruct environment normalize infer info.getMajorInduct
+        (.const normalizedName normalizedLevels) = pure constructor := by
+  obtain ⟨recursor, rule, ctorInfo, replacements, hrecursor, hrule, hconstructor,
+      hfieldCount, hshape, hruleLookup⟩ :=
+    dispatcherConditionalShapeOfMetadataOutputWithRuleLookupAndFieldCount
+      (types := types) (environment := environment) (expression := expression)
+      (levels := levels) (info := info) (constructor := constructor)
+      metadata parent parentBound index constructorEntry constructorEntryAt selected
+      constructorFieldBound noLevelParam ruleLookup
+  exact ⟨recursor, rule, ctorInfo, replacements, hrecursor, hrule, hconstructor,
+    hfieldCount, hshape, hruleLookup, kAdapted, adaptedStruct⟩
+
 /- Pair String-literal expansion with the metadata-driven output package.  The
    expansion callback remains explicit, but downstream target consumers can no
    longer accidentally combine it with a shape or rule lookup from another
@@ -2271,18 +2332,19 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_kNormalizedConstantMetadataExac
       env.SortArity universes.length target.vlctx.toCtx _count
         (_resultType.lift' insertionLift) := by
   obtain ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
-      hfieldCount, hshape, hruleLookup, hadaptedStruct⟩ :=
-    dispatcherConditionalShapeOfMetadataOutputOfNormalizedConstant
+      hfieldCount, hshape, hruleLookup, hkAdapted, hadaptedStruct⟩ :=
+    dispatcherConditionalShapeOfMetadataOutputOfKNormalizedConstant
       (types := types) (environment := environment) (expression := expression)
       (levels := levels) (info := info) (constructor := constructor)
       (normalizedName := normalizedName) (normalizedLevels := normalizedLevels)
-      normalize infer metadata parent parentBound index constructorEntry constructorEntryAt
-      selected adaptedStruct constructorFieldBound noLevelParam ruleLookup
+      normalize infer compare metadata parent parentBound index constructorEntry
+      constructorEntryAt selected kAdapted adaptedStruct constructorFieldBound noLevelParam
+      ruleLookup
   obtain ⟨translated, typed, sortArity⟩ := generated recursor rule metadataInfo replacements
     hrecursor hrule hconstructor hshape
   have dispatch := inductiveReduceRec.eq_some_of_kNormalizedConstant
     (environment := environment) expression normalize infer compare head lookup selected isK
-    kAdapted normalized hadaptedStruct hruleLookup hfieldCount levelCount
+    hkAdapted normalized hadaptedStruct hruleLookup hfieldCount levelCount
   obtain ⟨reduction, ordinary, typed, sortArity⟩ :=
     GeneratedRecursorRuleIotaTargetResult.of_dispatcherConditionalExact
       (env := env) (universes := universes) (_stats := _stats) (_motives := _motives)
