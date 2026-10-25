@@ -36,6 +36,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerAndMapWFGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_sourceRecursorGeneratedRuleStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check NativeInductive.RestoredRecordEvidence.registrationSemanticAndStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaBaseAndTargetResults
@@ -3654,6 +3655,9 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
     hvalues hlookups ruleResult hrecursor hentry
   have hCombined :=
     restored.registrationSemanticAndStructuralGeneratedRuleResultAndIotaBaseAndTargetResults
+      producer halign hconstants history hsource hvalues hlookups ruleResult hrecursor hentry
+  have hPluralCombined :=
+    restored.registrationSemanticAndStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
       producer halign hconstants history hsource hvalues hlookups ruleResult hrecursor hentry
   have _ := hCombined
   trivial
