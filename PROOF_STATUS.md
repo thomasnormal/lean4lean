@@ -81,9 +81,9 @@ The ordinary String-literal metadata endpoint now consumes the packaged
 field bound while retaining explicit String expansion and target transport.
 The K-normalized String-literal metadata endpoint consumes the same packaged
 bound while retaining explicit K adaptation and String expansion.
-The receipt-backed paired endpoint packages the native eta constructor
-alignment with the same output and lookup witnesses, while retaining the
-normalization receipt and rule-selection callbacks as explicit obligations.
+The receipt-backed paired endpoint now also carries the field bound derived
+from the native eta arity receipt, while retaining the normalization receipt
+and rule-selection callbacks as explicit obligations.
 The Nat-literal metadata projection uses the reducer's canonical constructor
 expression and leaves its constructor bound and rule-selection callbacks
 explicit.

@@ -117,8 +117,8 @@ adds the corresponding K-normalized String expansion path and consumes the
 packaged metadata-derived reducer field bound.
 The receipt-backed companion
 `dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup`
-packages native constructor alignment, exact output shape, and executable rule
-selection at one existential boundary.
+packages native constructor alignment, the receipt-derived reducer field bound,
+exact output shape, and executable rule selection at one existential boundary.
 `GeneratedRecursorRuleIotaTargetResult.of_normalizedStructureMetadataExact`
 now consumes that package at the ordinary structure reducer branch, with a
 dependent family for generated translation, target typing, and sort arity.

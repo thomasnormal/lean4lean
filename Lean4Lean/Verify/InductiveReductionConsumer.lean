@@ -984,6 +984,7 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptW
       environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
       recursor.rules[index]? = some rule ∧
       environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) ∧
+      rule.nfields ≤ constructor.getAppArgs.size ∧
       (if info.getMajorIdx + 1 < expression.getAppArgs.size then
         mkAppRange
           (mkAppRange
@@ -999,13 +1000,27 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptW
           (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
             constructor.getAppArgs) = rule.rhs.mkAppList replacements ∧
       getRecRuleFor info constructor = some rule := by
-  obtain ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
-      hshape⟩ :=
-    dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt metadata
-      parent parentBound index constructorEntryAt selected receipt contextEnvEq constructorHead
-      appNumArgsEq noLevelParam
-  exact ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor, hshape,
-    ruleLookup recursor rule metadataInfo hrule hconstructor⟩
+  obtain ⟨receiptName, receiptLevels, receiptHead, receiptLookup⟩ := receipt.lookup
+  have hhead : Expr.const receiptName receiptLevels =
+      Expr.const constructorEntry.name levels := receiptHead.symm.trans constructorHead
+  have hname : receiptName = constructorEntry.name := by
+    injection hhead
+  subst receiptName
+  rw [contextEnvEq] at receiptLookup
+  have constructorFieldBound : ∀ metadataInfo : ConstructorVal,
+      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) →
+        metadataInfo.numFields ≤ constructor.getAppArgs.size := by
+    intro metadataInfo metadataLookup
+    have hlookup : some (ConstantInfo.ctorInfo metadataInfo) =
+        some (ConstantInfo.ctorInfo ctorInfo) := metadataLookup.symm.trans receiptLookup
+    have hconst : ConstantInfo.ctorInfo metadataInfo = ConstantInfo.ctorInfo ctorInfo :=
+      Option.some.inj hlookup
+    have hinfo : metadataInfo = ctorInfo := ConstantInfo.ctorInfo.inj hconst
+    subst metadataInfo
+    exact dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt receipt appNumArgsEq
+  exact dispatcherConditionalShapeOfMetadataOutputWithRuleLookupAndFieldCount
+    metadata parent parentBound index constructorEntry constructorEntryAt selected
+    constructorFieldBound noLevelParam ruleLookup
 
 /- Literal branches use a canonical constructor expression produced by the
    reducer itself.  Specialize the metadata package to that expression while
@@ -1516,11 +1531,6 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_normalizedStructureMetadataExac
     (appNumArgsEq : constructor.getAppNumArgs = constructor.getAppArgs.size)
     (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
       recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false)
-    (fieldCount : ∀ (recursor : RecursorVal) (rule : RecursorRule)
-      (metadataInfo : ConstructorVal),
-      recursor.rules[index]? = some rule →
-      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) →
-      rule.nfields ≤ constructor.getAppArgs.size)
     (ruleLookup : ∀ (recursor : RecursorVal) (rule : RecursorRule)
       (metadataInfo : ConstructorVal),
       recursor.rules[index]? = some rule →
@@ -1573,11 +1583,10 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_normalizedStructureMetadataExac
       env.SortArity universes.length target.vlctx.toCtx _count
         (_resultType.lift' insertionLift) := by
   obtain ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
-      hshape, hruleLookup⟩ :=
+      hfieldCount, hshape, hruleLookup⟩ :=
     dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup
       metadata parent parentBound index constructorEntryAt selected receipt contextEnvEq
       constructorHead appNumArgsEq noLevelParam ruleLookup
-  have hfieldCount := fieldCount recursor rule metadataInfo hrule hconstructor
   obtain ⟨translated, typed, sortArity⟩ := generated recursor rule metadataInfo replacements
     hrecursor hrule hconstructor hshape
   have dispatch := inductiveReduceRec.eq_some_of_normalizedStructure
@@ -2107,11 +2116,6 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStructureMetadataExa
     (appNumArgsEq : constructor.getAppNumArgs = constructor.getAppArgs.size)
     (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
       recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false)
-    (fieldCount : ∀ (recursor : RecursorVal) (rule : RecursorRule)
-      (metadataInfo : ConstructorVal),
-      recursor.rules[index]? = some rule →
-      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) →
-      rule.nfields ≤ constructor.getAppArgs.size)
     (ruleLookup : ∀ (recursor : RecursorVal) (rule : RecursorRule)
       (metadataInfo : ConstructorVal),
       recursor.rules[index]? = some rule →
@@ -2164,11 +2168,10 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStructureMetadataExa
       env.SortArity universes.length target.vlctx.toCtx _count
         (_resultType.lift' insertionLift) := by
   obtain ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
-      hshape, hruleLookup⟩ :=
+      hfieldCount, hshape, hruleLookup⟩ :=
     dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup
       metadata parent parentBound index constructorEntryAt selected receipt contextEnvEq
       constructorHead appNumArgsEq noLevelParam ruleLookup
-  have hfieldCount := fieldCount recursor rule metadataInfo hrule hconstructor
   obtain ⟨translated, typed, sortArity⟩ := generated recursor rule metadataInfo replacements
     hrecursor hrule hconstructor hshape
   have dispatch := inductiveReduceRec.eq_some_of_kNormalizedStructure
