@@ -11,10 +11,13 @@ producer consumes the complete generated-rule receipt and packages the target
 translation, target typing, sort arity, and exact reducer equation together;
 `toOrdinary` then exposes the translated reducer result at the target context.
 The registration evidence now has a matching per-recursor consumer, so stored
-rules cannot be paired with an unrelated output-shape equality. No executable
-behavior or admissions changed. The remaining work is to derive this exact
-equation from the native dispatcher and consume it in full iota/recursor
-soundness.
+rules cannot be paired with an unrelated output-shape equality. The proved
+`inductiveReduceRec.eq_some_of_normalizedApplication` lemma now unfolds the
+native non-K application branch and exposes its exact RHS assembly under
+explicit branch witnesses. No executable behavior or admissions changed.
+Connecting that equation to generated replacement lists, covering the remaining
+literal/K/structure branches, and consuming it in full iota/recursor soundness
+remain open.
 
 
 ## Complete stored-rule generated semantics — 2026-10-25
