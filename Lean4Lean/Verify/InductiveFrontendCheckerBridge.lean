@@ -22426,6 +22426,11 @@ def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIot
     (producer.recursorWF_of_sourceTypehood (producer.constructorEnvWF history.wf) hsource)
     hsource hvalues targetWF ruleResults reduction
 
+/- Plural generated-results name for the source-typehood ordinary target
+   package; this alias keeps the same explicit WF and reducer premises. -/
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehood :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood
+
 /- Name the source-typehood ordinary projection explicitly at the
    restoration-stage boundary for downstream checker consumers. -/
 def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStages :=
