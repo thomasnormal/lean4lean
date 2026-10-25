@@ -77,6 +77,8 @@ normalization receipt and rule-selection callbacks as explicit obligations.
 The ordinary structure generated-target endpoint consumes the paired package
 and preserves dependent translation, typing, sort-arity, normalization, and
 field-count obligations through its witness family.
+The K-normalized structure endpoint carries the explicit K adaptation and
+normalization exclusions through the same generated-target package.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.

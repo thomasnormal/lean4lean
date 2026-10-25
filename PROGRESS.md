@@ -103,6 +103,9 @@ selection at one existential boundary.
 `GeneratedRecursorRuleIotaTargetResult.of_normalizedStructureMetadataExact`
 now consumes that package at the ordinary structure reducer branch, with a
 dependent family for generated translation, target typing, and sort arity.
+The K-normalized companion
+`GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStructureMetadataExact`
+preserves the same package for the explicit `toCtorWhenK` path.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
