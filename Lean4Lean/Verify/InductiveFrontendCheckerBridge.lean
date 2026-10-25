@@ -907,6 +907,27 @@ theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaB
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
   exact evidence.recursorGeneratedRuleResultAndIota ruleResults
 
+/- Expose the same per-recursor package under the plural generated-results
+   name used by aggregate registration callbacks. -/
+theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultsAndIotaBaseAndTargetResults
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules, ∃ semantic,
+      TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+      ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+        AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  exact evidence.recursorGeneratedRuleResultAndIota ruleResults
+
 /- Registration consumers commonly need the explicit lifted iota result rather
    than the full constructor-body package.  Project it at the same per-rule
    boundary, preserving the producer's constructor/minor witness and rule

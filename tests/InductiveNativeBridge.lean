@@ -15,6 +15,7 @@ open Lean4Lean.AddInductive.declareConstructors
 
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIota
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaBaseAndTargetResults
+#check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIota
 #check NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults
@@ -76,8 +77,10 @@ example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEn
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
         AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
-          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule :=
-  evidence.recursorGeneratedRuleResultAndIotaBaseAndTargetResults ruleResults
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  have h := evidence.recursorGeneratedRuleResultAndIotaBaseAndTargetResults ruleResults
+  have hPlural := evidence.recursorGeneratedRuleResultsAndIotaBaseAndTargetResults ruleResults
+  exact h
 
 example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
     {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
