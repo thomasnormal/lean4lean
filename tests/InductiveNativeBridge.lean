@@ -12,6 +12,7 @@ open Lean Lean4Lean Lean4Lean.NativeInductive
 open Lean4Lean.AddInductive.declareConstructors
 
 #check AddInductive.LocalRecursorRuleRhsScope.ruleResultSemanticsAndIota
+#check AddInductive.LocalRecursorRuleRhsScope.completeRuleResultSemanticsIndexed
 #check AddInductive.LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaBaseAndTargetResults
 
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIota
