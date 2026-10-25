@@ -165,6 +165,9 @@ rule selection, and dependent target witnesses.
 the K constant branch the same paired adaptation package, so its target
 consumer no longer combines an ordinary metadata package with a separate
 K-conversion receipt.
+`dispatcherConditionalShapeOfMetadataOutputOfKNormalizedStringLiteralExpansion`
+now gives the K String branch a paired K-conversion and expansion package,
+keeping its constructor metadata and rule witnesses aligned.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

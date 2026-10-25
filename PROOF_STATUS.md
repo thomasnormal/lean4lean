@@ -137,6 +137,9 @@ consumer keeps generated translation, typing, and sort arity explicit.
 The K-normalized constant metadata endpoint now consumes a paired K and
 structure adaptation package, keeping its metadata field bound and rule
 selection aligned with the same constructor witness.
+The K-normalized String metadata endpoint now pairs `toCtorWhenK` with the
+String constructor expansion before carrying the registered-rule target
+witnesses.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.
