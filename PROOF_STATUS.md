@@ -149,6 +149,11 @@ exact generated-rule eliminator to the restored indexed lookup and preserves
 the stored RHS equation through the constructor/minor and source metadata
 witnesses. The broader inductive frontend and final iota/recursor theorem
 remain open.
+Its companion
+`sourceRecursorGeneratedRuleResultsAndIotaTargetReductionExact` preserves the
+complete generated-rule result alongside the exact reducer equation, keeping
+the constructor/minor, source metadata, generated translation, and target
+obligations paired at the restored-record boundary.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

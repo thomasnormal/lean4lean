@@ -223,6 +223,11 @@ reducer equation whose result is definitionally the stored rule RHS through
 the same indexed lookup and generated-rule witnesses. This keeps the exact
 output contract available after restored-record source alignment; it does not
 claim the final inductive soundness theorem.
+The companion
+`sourceRecursorGeneratedRuleResultsAndIotaTargetReductionExact` endpoint now
+keeps the complete generated-rule result paired with that exact reducer
+equation, so callers can retain constructor/minor, source metadata, and target
+translation witnesses in one restored-record package.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
