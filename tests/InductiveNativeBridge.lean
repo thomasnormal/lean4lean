@@ -33,6 +33,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerAndMapWFGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaBaseAndTargetResults
@@ -3467,6 +3468,9 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
     producer halign hlookups ruleResult hrecursor hentry
   have hCombined :=
     restored.sourceRecursorGeneratedRuleStructuralGeneratedRuleResultAndIotaBaseAndTargetResults
+      producer halign hlookups ruleResult hrecursor hentry
+  have hPluralCombined :=
+    restored.sourceRecursorGeneratedRuleStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
       producer halign hlookups ruleResult hrecursor hentry
   have _ := hCombined
   trivial

@@ -3690,6 +3690,69 @@ theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleStruct
     hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields, hfieldCount, htotal,
     hsemantic, hgenerated, hgenerated.iotaKind.baseAndTargetResults, hshape, hregistration⟩
 
+/- Name the complete structural source package in its plural generated-results
+   form while retaining the same registration and paired-iota receipts. -/
+theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    {nparams : Nat} {lparams : List Name} {types : List InductiveType}
+    (hlookups : SourceRecursorRuleLookups nparams lparams types preprocessing staged result)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResult : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules →
+        ∃ (constructor : Constructor) (minor : Expr),
+          AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (hrecursor : ∀ (index : Nat) (hindex : index < types.length)
+      (recursor : RecursorVal),
+      result.find? recursor.name = some (.recInfo recursor) →
+      recursor.name = mkRecName types[index].name)
+    (hentry : ∀ (index : Nat) (hindex : index < types.length),
+      ∃ entry : NativeInductive.RecursorEntry,
+        (.recursor entry : NativeInductive.RegistrationEntry) ∈ restored.entries ∧
+        entry.info.name = mkRecName types[index].name) :
+    ∀ (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+      (hctor : ctorIndex < types[index].ctors.length),
+      ∃ (entry : NativeInductive.RecursorEntry) (recursor : RecursorVal)
+        (rule : RecursorRule) (info : ConstructorVal) (semantic : VExpr)
+        (constructor : Constructor) (minor : Expr),
+        result.find? recursor.name = some (.recInfo recursor) ∧
+        entry.info.name = mkRecName types[index].name ∧
+        recursor.rules.length = types[index].ctors.length ∧
+        recursor.rules[ctorIndex]? = some rule ∧
+        staged.find? types[index].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+        SourceConstructorMetadata nparams lparams types[index] ctorIndex info ∧
+        SourceConstructorFields nparams types[index] ctorIndex info ∧
+        rule.nfields = info.numFields ∧
+        rule.nfields = arity 0 types[index].ctors[ctorIndex].type - nparams ∧
+        nparams + rule.nfields = arity 0 types[index].ctors[ctorIndex].type ∧
+        TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+        AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+        (.recursor entry : NativeInductive.RegistrationEntry).ModelShape ∧
+        (.recursor entry : NativeInductive.RegistrationEntry).Metadata decl
+          producer.constructors := by
+  intro index hindex ctorIndex hctor
+  obtain ⟨entry, recursor, rule, info, semantic, constructor, minor, hresult, hentryName,
+      hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields, hfieldCount, htotal,
+      hsemantic, hgenerated, hshape, hregistration⟩ :=
+    restored.sourceRecursorGeneratedRuleStructural producer halign hlookups ruleResult
+      hrecursor hentry index hindex ctorIndex hctor
+  exact ⟨entry, recursor, rule, info, semantic, constructor, minor, hresult, hentryName,
+    hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields, hfieldCount, htotal,
+    hsemantic, hgenerated, hgenerated.iotaKind.baseAndTargetResults, hshape, hregistration⟩
+
 /- Preserve the structural registration receipts together with both the full
    generated package and its paired iota endpoint.  All three generated,
    structural, and iota projections are derived from the same source rule
