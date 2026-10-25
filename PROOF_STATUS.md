@@ -32,6 +32,8 @@ their canonical-constructor and String-expansion shapes. The non-K Nat and
 String literal endpoints now use the same bridge with their corresponding
 shapes. The non-K structure endpoint now uses the same bridge with its
 nonliteral exclusions and adapted-constructor shape.
+The K structure endpoint now uses the same bridge with its `toCtorWhenK`
+witness, nonliteral exclusions, and adapted-constructor shape.
 
 
 ## Complete stored-rule generated semantics — 2026-10-25

@@ -60,7 +60,8 @@ endpoints now use it with their constructor/expansion-specific shapes. The
 non-K Nat and String literal endpoints now use the same bridge with their
 canonical-constructor and String-expansion shapes. The non-K structure
 endpoint now uses the same bridge with its nonliteral exclusions and adapted
-constructor shape.
+constructor shape. The K structure endpoint now uses the same bridge with its
+`toCtorWhenK` witness, nonliteral exclusions, and adapted-constructor shape.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
