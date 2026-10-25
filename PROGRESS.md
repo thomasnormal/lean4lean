@@ -187,6 +187,11 @@ The ordinary Nat-literal metadata consumer now reuses
 metadata package, removing duplicated literal dispatcher transport while
 retaining explicit metadata alignment, output shape, generated translation,
 target typing, and sort-arity witnesses.
+The ordinary String-literal metadata consumer now reuses
+`of_normalizedStringLiteralExact` after obtaining its paired expansion package,
+removing duplicated String dispatcher transport while retaining explicit
+metadata alignment, output shape, generated translation, target typing, and
+sort-arity witnesses.
 The ordinary structure metadata consumer now likewise reuses
 `of_normalizedStructureExact` after assembling its receipt-backed constructor
 adaptation package, removing duplicated dispatcher transport while retaining

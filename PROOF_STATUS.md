@@ -111,6 +111,11 @@ remain explicit.
 The K-normalized String-literal endpoint keeps both `toCtorWhenK` and
 `strLitToConstructor` equations explicit before target transport, with the
 expansion receipt paired to the metadata shape and rule lookup.
+The ordinary String-literal metadata consumer now delegates final
+dispatcher-to-target transport to `of_normalizedStringLiteralExact` after
+obtaining the paired expansion package. Its metadata alignment, output-shape,
+generated-translation, target-typing, and sort-arity witnesses remain
+explicit.
 The ordinary structure generated-target endpoint consumes the paired package
 and preserves dependent translation, typing, sort-arity, normalization, and
 field-count obligations through its witness family.
