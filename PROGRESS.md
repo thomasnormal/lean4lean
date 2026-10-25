@@ -90,9 +90,9 @@ native structure-normalization arity receipt into the reducer field-count
 bound, retaining the explicit `getAppNumArgs = getAppArgs.size` representation
 bridge.
 `dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt` now
-consumes that receipt at the metadata-driven output boundary, using explicit
-constructor-head and context/environment equalities to align the native
-constructor value with stored metadata.
+returns the receipt-derived field bound at the metadata-driven output
+boundary, using explicit constructor-head and context/environment equalities
+to align the native constructor value with stored metadata.
 `dispatcherConditionalShapeOfMetadataOutputWithRuleLookup` now pairs that
 shape with the executable `getRecRuleFor` equation, retaining rule-selection
 as an explicit caller-supplied obligation.
@@ -118,7 +118,8 @@ packaged metadata-derived reducer field bound.
 The receipt-backed companion
 `dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup`
 packages native constructor alignment, the receipt-derived reducer field bound,
-exact output shape, and executable rule selection at one existential boundary.
+exact output shape, and executable rule selection at one existential boundary,
+reusing the lower-level receipt endpoint.
 `GeneratedRecursorRuleIotaTargetResult.of_normalizedStructureMetadataExact`
 now consumes that package at the ordinary structure reducer branch, with a
 dependent family for generated translation, target typing, and sort arity.

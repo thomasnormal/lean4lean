@@ -811,6 +811,7 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt
       environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
       recursor.rules[index]? = some rule ∧
       environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) ∧
+      rule.nfields ≤ constructor.getAppArgs.size ∧
       (if info.getMajorIdx + 1 < expression.getAppArgs.size then
         mkAppRange
           (mkAppRange
@@ -844,10 +845,14 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt
     have hinfo : metadataInfo = ctorInfo := ConstantInfo.ctorInfo.inj hconst
     subst metadataInfo
     exact dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt receipt appNumArgsEq
-  exact dispatcherConditionalShapeOfMetadataOutput (types := types) (environment := environment)
-    (expression := expression) (levels := levels) (info := info) (constructor := constructor)
-    (major := major) metadata parent parentBound index constructorEntry constructorEntryAt selected
-    constructor constructorFieldBound noLevelParam
+  obtain ⟨recursor, rule, metadataInfo, hrecursor, hrule, hconstructor, hfieldCount⟩ :=
+    dispatcherFieldCountOfConstructorMetadata metadata parent parentBound index
+      constructorEntry constructorEntryAt constructor constructorFieldBound
+  have hnoLevelParam := noLevelParam recursor rule hrule
+  obtain ⟨replacements, hshape⟩ :=
+    dispatcherConditionalShapeOfCanonicalOutput selected hfieldCount hnoLevelParam
+  exact ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
+    hfieldCount, hshape⟩
 
 /- Carry the executable rule lookup alongside the metadata-derived output
    shape.  The lookup callback is intentionally explicit: metadata alignment
@@ -1000,27 +1005,13 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptW
           (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
             constructor.getAppArgs) = rule.rhs.mkAppList replacements ∧
       getRecRuleFor info constructor = some rule := by
-  obtain ⟨receiptName, receiptLevels, receiptHead, receiptLookup⟩ := receipt.lookup
-  have hhead : Expr.const receiptName receiptLevels =
-      Expr.const constructorEntry.name levels := receiptHead.symm.trans constructorHead
-  have hname : receiptName = constructorEntry.name := by
-    injection hhead
-  subst receiptName
-  rw [contextEnvEq] at receiptLookup
-  have constructorFieldBound : ∀ metadataInfo : ConstructorVal,
-      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) →
-        metadataInfo.numFields ≤ constructor.getAppArgs.size := by
-    intro metadataInfo metadataLookup
-    have hlookup : some (ConstantInfo.ctorInfo metadataInfo) =
-        some (ConstantInfo.ctorInfo ctorInfo) := metadataLookup.symm.trans receiptLookup
-    have hconst : ConstantInfo.ctorInfo metadataInfo = ConstantInfo.ctorInfo ctorInfo :=
-      Option.some.inj hlookup
-    have hinfo : metadataInfo = ctorInfo := ConstantInfo.ctorInfo.inj hconst
-    subst metadataInfo
-    exact dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt receipt appNumArgsEq
-  exact dispatcherConditionalShapeOfMetadataOutputWithRuleLookupAndFieldCount
-    metadata parent parentBound index constructorEntry constructorEntryAt selected
-    constructorFieldBound noLevelParam ruleLookup
+  obtain ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
+      hfieldCount, hshape⟩ :=
+    dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt metadata
+      parent parentBound index constructorEntryAt selected receipt contextEnvEq constructorHead
+      appNumArgsEq noLevelParam
+  exact ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
+    hfieldCount, hshape, ruleLookup recursor rule metadataInfo hrule hconstructor⟩
 
 /- Literal branches use a canonical constructor expression produced by the
    reducer itself.  Specialize the metadata package to that expression while

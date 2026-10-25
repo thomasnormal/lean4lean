@@ -64,7 +64,7 @@ while retaining an explicit equality between `getAppNumArgs` and the
 reducer's `getAppArgs.size` representation.
 The metadata output endpoint
 `dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt`
-packages that field-bound derivation with constructor-head and
+returns that field-bound derivation with constructor-head and
 context/environment alignment, while leaving the normalization receipt and
 all reducer branch decisions explicit.
 The companion
@@ -83,7 +83,8 @@ The K-normalized String-literal metadata endpoint consumes the same packaged
 bound while retaining explicit K adaptation and String expansion.
 The receipt-backed paired endpoint now also carries the field bound derived
 from the native eta arity receipt, while retaining the normalization receipt
-and rule-selection callbacks as explicit obligations.
+and rule-selection callbacks as explicit obligations; it reuses the lower-level
+receipt endpoint for that alignment.
 The Nat-literal metadata projection uses the reducer's canonical constructor
 expression and leaves its constructor bound and rule-selection callbacks
 explicit.
