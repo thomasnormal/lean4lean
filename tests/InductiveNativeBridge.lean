@@ -42,6 +42,8 @@ open Lean4Lean.AddInductive.declareConstructors
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics_of_checkedPrimitive
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics_of_restorationStages
+#check addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence_of_checkedPrimitive
+#check addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence_of_restorationStages
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaBaseAndTargetResults
@@ -4166,8 +4168,12 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have hCombined :=
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultAndIotaBaseAndTargetResultsEvidence_of_restorationStages
       hmap hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
+  have hPlural :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence_of_restorationStages
+      hmap hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
   have _ := h
   have _ := hCombined
+  have _ := hPlural
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
@@ -4236,8 +4242,12 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have hCombined :=
     addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultAndIotaBaseAndTargetResultsEvidence_of_checkedPrimitive
       hmap hcheck hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
+  have hPlural :=
+    addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence_of_checkedPrimitive
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hrecursor hentry ruleResult
   have _ := h
   have _ := hCombined
+  have _ := hPlural
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
