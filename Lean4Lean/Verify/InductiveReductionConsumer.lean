@@ -669,6 +669,38 @@ theorem dispatcherConditionalShapeOfCanonicalDecomposition
   exact dispatcherConditionalShapeOfReplacementDecomposition hargs hprefix hmajor hend
     hctor hctorPrefix hctorEnd levelShape rfl
 
+/- A caller that has the generated RHS no-level-parameter receipt only needs
+   the final replacement-list equation.  Hide the intermediate list slices
+   while retaining the native field-count obligation. -/
+theorem dispatcherConditionalShapeOfCanonicalOutput
+    {expression : Expr} {levels : List Level} {info : RecursorVal}
+    {constructor major : Expr} {rule : RecursorRule}
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (fieldCount : rule.nfields ≤ constructor.getAppArgs.size)
+    (noLevelParam : rule.rhs.hasLevelParam' = false) :
+    ∃ replacements : List Expr,
+      (if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+              constructor.getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs
+       else
+        mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs) = rule.rhs.mkAppList replacements := by
+  have levelShape : rule.rhs.instantiateLevelParams info.levelParams levels = rule.rhs := by
+    rw [Expr.instantiateLevelParams_eq]
+    exact Expr.instantiateLevelParamsCore_eq_self noLevelParam
+  obtain ⟨headArgs, omitted, trailing, ctorPrefix, fields, replacements,
+    hargs, hprefix, hmajor, hend, hctor, hctorPrefix, hctorEnd, hreplacement, houtput⟩ :=
+    dispatcherConditionalShapeOfCanonicalDecomposition selected fieldCount levelShape
+  exact ⟨replacements, houtput⟩
+
 theorem instantiateLevelParams_eq_self_of_noLevelParam
     {expression : Expr} {parameters : List Name} {levels : List Level}
     (noLevelParam : expression.hasLevelParam' = false) :

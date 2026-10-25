@@ -74,6 +74,9 @@ metadata, and `dispatcherConditionalShapeOfCanonicalDecomposition` packages
 those slices with the reusable RHS bridge. The generic frontend still leaves
 the level-instantiation relation and the native field-count witness explicit;
 this is a decomposition bridge, not complete iota or recursor soundness.
+`dispatcherConditionalShapeOfCanonicalOutput` now hides the intermediate
+slice witnesses for callers whose stored RHS carries the no-level-parameter
+receipt, deriving the exact generated replacement-list equality directly.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

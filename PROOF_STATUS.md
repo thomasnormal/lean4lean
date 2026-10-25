@@ -44,6 +44,10 @@ and constructor-field slices from selected-major and field-count metadata, and
 the RHS bridge. The generic frontend still supplies the level-instantiation
 relation and native field-count witness explicitly; complete iota and recursor
 reduction soundness remain open.
+The caller-facing `dispatcherConditionalShapeOfCanonicalOutput` additionally
+discharges the level relation from the stored RHS no-level-parameter flag and
+returns only the exact generated replacement-list equality; the native
+field-count bound remains explicit.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.
