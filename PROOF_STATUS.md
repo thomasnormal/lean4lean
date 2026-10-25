@@ -27,7 +27,8 @@ typing, and sort-arity witnesses. Deriving that equation from each dispatcher
 branch and consuming it in full iota/recursor soundness remain open; the K
 application endpoint now combines its characterized conditional RHS with an
 explicit generated-list shape equality, using the reusable conditional target
-consumer.
+consumer. The K Nat and String literal endpoints now use the same bridge with
+their canonical-constructor and String-expansion shapes.
 
 
 ## Complete stored-rule generated semantics — 2026-10-25
