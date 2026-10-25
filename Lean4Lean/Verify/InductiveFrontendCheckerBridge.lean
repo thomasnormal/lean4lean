@@ -1130,6 +1130,66 @@ theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaT
       sortArity => reduction entry hentry rule hrule constructor minor target count arguments
       resultType insertionLift replacements rhsSemantic translated typed sortArity)
 
+/- Consume the paired generated-rule/reduction package at the ordinary checker
+   boundary.  The ordinary translation is projected from the same target
+   witnesses that supplied the generated result and native reduction facts. -/
+theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaTargetOrdinaryOf
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression reduced : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult)
+    (envWF : semanticEnv.WF)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (targetWF : ∀ target : TypeChecker.MLCtx, target.WF semanticEnv universes)
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (reduction : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ (rule : RecursorRule), rule ∈ entry.info.rules →
+      ∀ (constructor : Constructor) (minor : Expr),
+      ∀ (target : TypeChecker.MLCtx) (count : Nat) (arguments : List VExpr)
+        (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+        (rhsSemantic : VExpr),
+        TrExprS semanticEnv universes target.vlctx (rule.rhs.mkAppList replacements)
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift))) →
+        semanticEnv.HasType universes.length target.vlctx.toCtx
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift)))
+          (resultType.lift' insertionLift) →
+        semanticEnv.SortArity universes.length target.vlctx.toCtx count
+          (resultType.lift' insertionLift) →
+        inductiveReduceRec environment expression normalize infer compare = pure (some reduced) ∧
+        reduced = rule.rhs.mkAppList replacements) :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules, ∃ semantic,
+      TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+      ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+        ∃ (target : TypeChecker.MLCtx) (count : Nat) (arguments : List VExpr)
+          (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+          (rhsSemantic : VExpr),
+          inductiveReduceRec environment expression normalize infer compare = pure (some reduced) ∧
+          TrExpr semanticEnv universes target.vlctx reduced
+            (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+              (arguments.map (VExpr.lift' · insertionLift))) ∧
+          semanticEnv.HasType universes.length target.vlctx.toCtx
+            (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+              (arguments.map (VExpr.lift' · insertionLift)))
+            (resultType.lift' insertionLift) ∧
+          semanticEnv.SortArity universes.length target.vlctx.toCtx count
+            (resultType.lift' insertionLift) := by
+  intro entry hentry rule hrule
+  obtain ⟨semantic, translated, constructor, minor, generated, reductionPackage⟩ :=
+    evidence.recursorGeneratedRuleResultAndIotaTargetReductionOf ruleResults reduction
+      entry hentry rule hrule
+  exact ⟨semantic, translated, constructor, minor, generated,
+    reductionPackage.toOrdinary envWF targetWF⟩
+
 /- Keep the pre-lift and target-side iota endpoints together at the registration
    boundary.  A reduction consumer can use the shared replacement and argument
    witnesses without reopening the full generated constructor package. -/
