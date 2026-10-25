@@ -74,6 +74,9 @@ constructor-name uniqueness and rule selection remain explicit premises.
 The receipt-backed paired endpoint packages the native eta constructor
 alignment with the same output and lookup witnesses, while retaining the
 normalization receipt and rule-selection callbacks as explicit obligations.
+The Nat-literal metadata projection uses the reducer's canonical constructor
+expression and leaves its constructor bound and rule-selection callbacks
+explicit.
 The ordinary structure generated-target endpoint consumes the paired package
 and preserves dependent translation, typing, sort-arity, normalization, and
 field-count obligations through its witness family.

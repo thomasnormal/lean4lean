@@ -952,6 +952,56 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptW
   exact ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor, hshape,
     ruleLookup recursor rule metadataInfo hrule hconstructor⟩
 
+/- Literal branches use a canonical constructor expression produced by the
+   reducer itself.  Specialize the metadata package to that expression while
+   keeping constructor-value bounds and executable rule selection explicit. -/
+theorem dispatcherConditionalShapeOfMetadataOutputOfNormalizedNatLiteral
+    {types : Array InductiveType} {environment : Kernel.Environment}
+    (metadata : RuleConstructorFieldMetadata types environment)
+    (parent : Nat) (parentBound : parent < types.size)
+    (index : Nat) (constructorEntry : Constructor)
+    (constructorEntryAt : types[parent]!.ctors[index]? = some constructorEntry)
+    {expression : Expr} {levels : List Level} {info : RecursorVal}
+    {major : Expr} {value : Nat}
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (constructorFieldBound : ∀ ctorInfo : ConstructorVal,
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) →
+      ctorInfo.numFields ≤ (Expr.natLitToConstructor value).getAppArgs.size)
+    (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
+      recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false)
+    (ruleLookup : ∀ (recursor : RecursorVal) (rule : RecursorRule)
+      (metadataInfo : ConstructorVal),
+      recursor.rules[index]? = some rule →
+      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) →
+      getRecRuleFor info (Expr.natLitToConstructor value) = some rule) :
+    ∃ (recursor : RecursorVal) (rule : RecursorRule) (metadataInfo : ConstructorVal)
+      (replacements : List Expr),
+      environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      recursor.rules[index]? = some rule ∧
+      environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) ∧
+      (if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            ((Expr.natLitToConstructor value).getAppArgs.size - rule.nfields)
+            (Expr.natLitToConstructor value).getAppArgs.size
+              (Expr.natLitToConstructor value).getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs
+       else
+        mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          ((Expr.natLitToConstructor value).getAppArgs.size - rule.nfields)
+          (Expr.natLitToConstructor value).getAppArgs.size
+            (Expr.natLitToConstructor value).getAppArgs) = rule.rhs.mkAppList replacements ∧
+      getRecRuleFor info (Expr.natLitToConstructor value) = some rule := by
+  exact dispatcherConditionalShapeOfMetadataOutputWithRuleLookup
+    (types := types) (environment := environment) (expression := expression)
+    (levels := levels) (info := info) (constructor := Expr.natLitToConstructor value)
+    metadata parent parentBound index constructorEntry constructorEntryAt selected
+    constructorFieldBound noLevelParam ruleLookup
+
 theorem instantiateLevelParams_eq_self_of_noLevelParam
     {expression : Expr} {parameters : List Name} {levels : List Level}
     (noLevelParam : expression.hasLevelParam' = false) :

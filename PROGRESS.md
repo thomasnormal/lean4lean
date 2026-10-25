@@ -96,6 +96,9 @@ constructor value with stored metadata.
 `dispatcherConditionalShapeOfMetadataOutputWithRuleLookup` now pairs that
 shape with the executable `getRecRuleFor` equation, retaining rule-selection
 as an explicit caller-supplied obligation.
+`dispatcherConditionalShapeOfMetadataOutputOfNormalizedNatLiteral` now
+specializes that package to the reducer's canonical Nat-literal constructor,
+while keeping constructor bounds and executable rule selection explicit.
 The receipt-backed companion
 `dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup`
 packages native constructor alignment, exact output shape, and executable rule
