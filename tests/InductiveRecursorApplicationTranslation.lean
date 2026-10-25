@@ -1557,6 +1557,7 @@ private def checkAuditRejections (logical : List Name) : MetaM Unit := do
 #print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultCPS
 #print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleIotaCPS
 #print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultAndIotaCPS
+#print axioms Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultAndIotaBaseAndTargetResultsCPS
 #print axioms registeredScopedGetterPassesCombinedTypehoodToContinuation
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF
 #print axioms Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_closedTranslation
@@ -1636,6 +1637,7 @@ run_meta
       ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultCPS,
       ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleIotaCPS,
       ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultAndIotaCPS,
+      ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleResultAndIotaBaseAndTargetResultsCPS,
       ``registeredScopedGetterPassesCombinedTypehoodToContinuation,
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF,
       ``Lean4Lean.AddInductive.RecursorTypeModelReceipt.initialStoredWF_of_closedTranslation,
