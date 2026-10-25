@@ -20901,13 +20901,119 @@ theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPa
                   (motives := infos.map (·.motive)) (minors := infos.flatMap (·.minors))
                   (ctx := source) (constructor := constructor) (minor := minor) (rule := rule) := by
   obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hmetadata, hscope,
-      hregistration, haligned, hmapResult, hhistory, hchecker, _hresults⟩ :=
+      hregistration, haligned, hmapResult, hhistory, hchecker, hresults⟩ :=
     addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage_of_restorationStages
       (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
       hsource hvalues ruleResults
   refine ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hmetadata, hscope,
     hregistration, haligned, hmapResult, hhistory, hchecker, ?_⟩
   exact producer.orderedGeneratedRuleIotaTargetReductionsOf ruleResults reduction
+
+/- Retain each generated-rule witness together with the target-reduction
+   package built from that same constructor/minor result. -/
+theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_restorationStages
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression reduced : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool} {venv : VEnv}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (reduction : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ (rule : RecursorRule), rule ∈ entry.info.rules →
+      ∀ (constructor : Constructor) (minor : Expr),
+      ∀ (target : TypeChecker.MLCtx) (count : Nat) (arguments : List VExpr)
+        (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+        (rhsSemantic : VExpr),
+        TrExprS semanticEnv universes target.vlctx (rule.rhs.mkAppList replacements)
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift))) →
+        semanticEnv.HasType universes.length target.vlctx.toCtx
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift)))
+          (resultType.lift' insertionLift) →
+        semanticEnv.SortArity universes.length target.vlctx.toCtx count
+          (resultType.lift' insertionLift) →
+        inductiveReduceRec environment expression normalize infer compare = pure (some reduced) ∧
+        reduced = rule.rhs.mkAppList replacements) :
+    ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
+      modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
+      (∀ venv', venv.addInductHeaders modelDecl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types modelDecl) ∧
+      SafeInductiveRestorationMetadata env lparams nparams types true fuel result ∧
+      SafeInductiveFrontendScope env lparams nparams types true fuel result ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      Aligned .safe resultConstants semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive .safe resultConstants Q semanticResult ∧
+      CheckerEnvInductive .safe result semanticResult Q ∧
+      ∀ entry ∈ producer.orderedEntries,
+        entry.RuleSemantics semanticResult ∧ match entry with
+          | .header _ | .constructor _ => True
+          | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+              TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+              ∃ (constructor : Constructor) (minor : Expr),
+                AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                  (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+                AddInductive.GeneratedRecursorRuleIotaTargetReduction
+                  (environment := environment) (expression := expression) (reduced := reduced)
+                  (normalize := normalize) (infer := infer) (compare := compare)
+                  (env := semanticEnv) (universes := universes) (stats := stats)
+                  (motives := infos.map (·.motive)) (minors := infos.flatMap (·.minors))
+                  (ctx := source) (constructor := constructor) (minor := minor) (rule := rule) := by
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hmetadata, hscope,
+      hregistration, haligned, hmapResult, hhistory, hchecker, _hresults⟩ :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage_of_restorationStages
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+      hsource hvalues ruleResults
+  refine ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hmetadata, hscope,
+    hregistration, haligned, hmapResult, hhistory, hchecker, ?_⟩
+  intro entry hmem
+  simp only [NativeInductive.RegistrationEvidence.orderedEntries, List.mem_append] at hmem
+  rcases hmem with hphase | hrecursors
+  · rcases hphase with hheaders | hconstructors
+    · rcases List.mem_map.mp hheaders with ⟨header, _, rfl⟩
+      exact ⟨trivial, trivial⟩
+    · rcases List.mem_map.mp hconstructors with ⟨constructor, _, rfl⟩
+      exact ⟨trivial, trivial⟩
+  · rcases List.mem_map.mp hrecursors with ⟨recursor, hentry, rfl⟩
+    refine ⟨?_, ?_⟩
+    · intro rule hrule
+      exact producer.recursorRuleTranslation recursor hentry rule hrule
+    · intro rule hrule
+      obtain ⟨semantic, translated, constructor, minor, generated⟩ :=
+        producer.recursorGeneratedRuleResult ruleResults recursor hentry rule hrule
+      refine ⟨semantic, translated, constructor, minor, generated, ?_⟩
+      exact generated.iotaTargetReductionOf
+        (fun target count arguments resultType insertionLift replacements rhsSemantic translated
+          typed sortArity => reduction recursor hentry rule hrule constructor minor target count
+          arguments resultType insertionLift replacements rhsSemantic translated typed sortArity)
 
 /- The restoration-stage route exposes both iota endpoints while retaining the
    selected metadata and executable frontend scope. -/
