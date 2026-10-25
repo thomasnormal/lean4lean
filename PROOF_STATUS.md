@@ -78,9 +78,11 @@ package directly instead of repeating a lower-level package call. The
 K-normalized Nat-literal metadata endpoint uses that same canonical package
 while retaining its explicit K adaptation and literal dispatch premises.
 The ordinary String-literal metadata endpoint now consumes the packaged
-field bound while retaining explicit String expansion and target transport.
+field bound and paired expansion receipt while retaining explicit String
+normalization and target transport.
 The K-normalized String-literal metadata endpoint consumes the same packaged
-bound while retaining explicit K adaptation and String expansion.
+bound and expansion receipt while retaining explicit K adaptation and String
+normalization.
 The receipt-backed paired endpoint now also carries the field bound derived
 from the native eta arity receipt, while retaining the normalization receipt
 and rule-selection callbacks as explicit obligations; it reuses the lower-level
@@ -93,12 +95,14 @@ dispatch equation into the exact generated reduction result through the
 public dispatcher package and keeps its translation, typing, and sort-arity
 family explicit.
 The String-literal endpoint retains the explicit `strLitToConstructor`
-expansion equation while carrying the same generated target witness family.
+expansion equation through the paired dispatcher package while carrying the
+same generated target witness family.
 The K-normalized Nat-literal endpoint retains the explicit `toCtorWhenK`
 adaptation and canonical literal dispatch before entering the shared target
 package through the public dispatcher endpoint.
 The K-normalized String-literal endpoint keeps both `toCtorWhenK` and
-`strLitToConstructor` equations explicit before target transport.
+`strLitToConstructor` equations explicit before target transport, with the
+expansion receipt paired to the metadata shape and rule lookup.
 The ordinary structure generated-target endpoint consumes the paired package
 and preserves dependent translation, typing, sort-arity, normalization, and
 field-count obligations through its witness family.

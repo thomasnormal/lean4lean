@@ -1064,6 +1064,64 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNormalizedNatLiteral
     metadata parent parentBound index constructorEntry constructorEntryAt selected
     constructorFieldBound noLevelParam ruleLookup
 
+/- Pair String-literal expansion with the metadata-driven output package.  The
+   expansion callback remains explicit, but downstream target consumers can no
+   longer accidentally combine it with a shape or rule lookup from another
+   constructor package. -/
+theorem dispatcherConditionalShapeOfMetadataOutputOfStringLiteralExpansion
+    {m : Type → Type} [Monad m]
+    {types : Array InductiveType} {environment : Kernel.Environment}
+    (normalize : Expr → m Expr)
+    (metadata : RuleConstructorFieldMetadata types environment)
+    (parent : Nat) (parentBound : parent < types.size)
+    (index : Nat) (constructorEntry : Constructor)
+    (constructorEntryAt : types[parent]!.ctors[index]? = some constructorEntry)
+    {expression : Expr} {levels : List Level} {info : RecursorVal}
+    {constructor major : Expr} {text : String}
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (expanded : normalize (.strLitToConstructor text) = pure constructor)
+    (constructorFieldBound : ∀ ctorInfo : ConstructorVal,
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) →
+      ctorInfo.numFields ≤ constructor.getAppArgs.size)
+    (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
+      recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false)
+    (ruleLookup : ∀ (recursor : RecursorVal) (rule : RecursorRule)
+      (ctorInfo : ConstructorVal),
+      recursor.rules[index]? = some rule →
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) →
+      getRecRuleFor info constructor = some rule) :
+    ∃ (recursor : RecursorVal) (rule : RecursorRule) (ctorInfo : ConstructorVal)
+      (replacements : List Expr),
+      environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      recursor.rules[index]? = some rule ∧
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) ∧
+      rule.nfields ≤ constructor.getAppArgs.size ∧
+      (if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+              constructor.getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs
+       else
+        mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs) = rule.rhs.mkAppList replacements ∧
+      getRecRuleFor info constructor = some rule ∧
+      normalize (.strLitToConstructor text) = pure constructor := by
+  obtain ⟨recursor, rule, ctorInfo, replacements, hrecursor, hrule, hconstructor,
+      hfieldCount, hshape, hruleLookup⟩ :=
+    dispatcherConditionalShapeOfMetadataOutputWithRuleLookupAndFieldCount
+      (types := types) (environment := environment) (expression := expression)
+      (levels := levels) (info := info) (constructor := constructor)
+      metadata parent parentBound index constructorEntry constructorEntryAt selected
+      constructorFieldBound noLevelParam ruleLookup
+  exact ⟨recursor, rule, ctorInfo, replacements, hrecursor, hrule, hconstructor,
+    hfieldCount, hshape, hruleLookup, expanded⟩
+
 theorem instantiateLevelParams_eq_self_of_noLevelParam
     {expression : Expr} {parameters : List Name} {levels : List Level}
     (noLevelParam : expression.hasLevelParam' = false) :
@@ -1917,18 +1975,19 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_normalizedStringLiteralMetadata
       env.SortArity universes.length target.vlctx.toCtx _count
         (_resultType.lift' insertionLift) := by
   obtain ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
-      hfieldCount, hshape, hruleLookup⟩ :=
-    dispatcherConditionalShapeOfMetadataOutputWithRuleLookupAndFieldCount
+      hfieldCount, hshape, hruleLookup, hexpanded⟩ :=
+    dispatcherConditionalShapeOfMetadataOutputOfStringLiteralExpansion
       (types := types) (environment := environment) (expression := expression)
+      (normalize := normalize)
       (levels := levels) (info := info)
       (constructor := constructor)
       metadata parent parentBound index constructorEntry constructorEntryAt
-      selected constructorFieldBound noLevelParam ruleLookup
+      selected expanded constructorFieldBound noLevelParam ruleLookup
   obtain ⟨translated, typed, sortArity⟩ := generated recursor rule metadataInfo replacements
     hrecursor hrule hconstructor hshape
   have dispatch := inductiveReduceRec.eq_some_of_normalizedStringLiteral
     (environment := environment) expression normalize infer compare head lookup selected notK
-    normalized expanded hruleLookup hfieldCount levelCount
+    normalized hexpanded hruleLookup hfieldCount levelCount
   obtain ⟨reduction, ordinary, typed, sortArity⟩ :=
     GeneratedRecursorRuleIotaTargetResult.of_dispatcherConditionalExact
       (env := env) (universes := universes) (_stats := _stats) (_motives := _motives)
@@ -2035,18 +2094,19 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStringLiteralMetadat
       env.SortArity universes.length target.vlctx.toCtx _count
         (_resultType.lift' insertionLift) := by
   obtain ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
-      hfieldCount, hshape, hruleLookup⟩ :=
-    dispatcherConditionalShapeOfMetadataOutputWithRuleLookupAndFieldCount
+      hfieldCount, hshape, hruleLookup, hexpanded⟩ :=
+    dispatcherConditionalShapeOfMetadataOutputOfStringLiteralExpansion
       (types := types) (environment := environment) (expression := expression)
+      (normalize := normalize)
       (levels := levels) (info := info)
       (constructor := constructor)
       metadata parent parentBound index constructorEntry constructorEntryAt
-      selected constructorFieldBound noLevelParam ruleLookup
+      selected expanded constructorFieldBound noLevelParam ruleLookup
   obtain ⟨translated, typed, sortArity⟩ := generated recursor rule metadataInfo replacements
     hrecursor hrule hconstructor hshape
   have dispatch := inductiveReduceRec.eq_some_of_kNormalizedStringLiteral
     (environment := environment) expression normalize infer compare head lookup selected isK
-    kAdapted normalized expanded hruleLookup hfieldCount levelCount
+    kAdapted normalized hexpanded hruleLookup hfieldCount levelCount
   obtain ⟨reduction, ordinary, typed, sortArity⟩ :=
     GeneratedRecursorRuleIotaTargetResult.of_dispatcherConditionalExact
       (env := env) (universes := universes) (_stats := _stats) (_motives := _motives)

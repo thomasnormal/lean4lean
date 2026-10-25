@@ -103,18 +103,22 @@ bound in that same package.
 specializes that package to the reducer's canonical Nat-literal constructor,
 while exposing the packaged reducer field bound alongside the exact shape and
 executable rule selection.
+`dispatcherConditionalShapeOfMetadataOutputOfStringLiteralExpansion` now pairs
+the explicit `strLitToConstructor` expansion receipt with the metadata-derived
+field bound, exact output shape, and executable rule selection.
 `GeneratedRecursorRuleIotaTargetResult.of_normalizedNatLiteralMetadataExact`
 now consumes that canonical Nat-literal package at the generated target
 boundary, retaining literal dispatch and dependent target witness obligations.
 `GeneratedRecursorRuleIotaTargetResult.of_normalizedStringLiteralMetadataExact`
 adds the corresponding explicit string-expansion path for generated targets
-and consumes the packaged metadata-derived reducer field bound.
+and consumes that paired expansion package and metadata-derived reducer field
+bound.
 `GeneratedRecursorRuleIotaTargetResult.of_kNormalizedNatLiteralMetadataExact`
 adds the K-normalized Nat-literal path with explicit K adaptation and consumes
 the same canonical dispatcher package and metadata-derived field bound.
 `GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStringLiteralMetadataExact`
 adds the corresponding K-normalized String expansion path and consumes the
-packaged metadata-derived reducer field bound.
+same paired expansion package and metadata-derived reducer field bound.
 The receipt-backed companion
 `dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup`
 packages native constructor alignment, the receipt-derived reducer field bound,
