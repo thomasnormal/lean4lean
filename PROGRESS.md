@@ -52,7 +52,9 @@ complete iota/recursor soundness theorem remain open. The target-result
 consumer now packages a supplied exact `rule.rhs.mkAppList replacements`
 equation alongside its translated, typed, and sort-arity endpoint; deriving
 that equation from each assembled branch is still an explicit caller
-obligation.
+obligation. The K-application endpoint now consumes its characterized
+conditional RHS with that shape equality, leaving the same shape premises for
+the other branches.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
