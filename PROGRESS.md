@@ -44,9 +44,9 @@ registration consumer. The non-K application, normalized constant, Nat-literal,
 and string-literal branches of the native dispatcher now have proved equations
 exposing their exact assembled RHS under explicit normalization, constructor
 adaptation, rule lookup, arity, and universe-length premises. Connecting those
-branch witnesses to generated replacement lists, covering K/structure
-adaptation, and using the result in the complete iota/recursor soundness theorem
-remain open.
+branch witnesses to generated replacement lists and covering the K application
+adaptation path now have the same explicit equations; K literal branches and
+the final complete iota/recursor soundness theorem remain open.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
