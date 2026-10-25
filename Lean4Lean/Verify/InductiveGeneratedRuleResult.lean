@@ -437,6 +437,21 @@ theorem GeneratedConstructorRuleRhsResult.resultAndIota
         constructor minor rule :=
   ⟨result, GeneratedRecursorRuleIotaKind.baseAndTargetResults result.iotaKind⟩
 
+/- Explicitly name the paired base/target endpoint exposed by the complete
+   generated constructor-RHS result. -/
+theorem GeneratedConstructorRuleRhsResult.resultAndIotaBaseAndTargetResults
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (result : GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+      (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+      (constructor := constructor) (minor := minor) (rule := rule)) :
+    GeneratedRecursorRuleResult env universes stats motives minors ctx constructor minor rule ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors ctx
+        constructor minor rule := by
+  exact result.resultAndIota
+
+
 /- Canonical same-witness pairing for consumers that already hold the full
    generated recursor-rule result. -/
 theorem GeneratedRecursorRuleResult.resultAndIota
@@ -448,6 +463,19 @@ theorem GeneratedRecursorRuleResult.resultAndIota
       GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors ctx
         constructor minor rule :=
   ⟨result, GeneratedRecursorRuleIotaKind.baseAndTargetResults result.iotaKind⟩
+
+/- Explicitly name the paired base/target endpoint exposed by a complete
+   generated recursor-rule result. -/
+theorem GeneratedRecursorRuleResult.resultAndIotaBaseAndTargetResults
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (result : GeneratedRecursorRuleResult env universes stats motives minors ctx constructor minor rule) :
+    GeneratedRecursorRuleResult env universes stats motives minors ctx constructor minor rule ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors ctx
+        constructor minor rule := by
+  exact result.resultAndIota
+
 
 /- Named eliminators for the paired endpoint let consumers select one side
    without reopening the full generated-rule receipt. -/
@@ -692,6 +720,25 @@ theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResultAndIota
   exact hscope.impScopedReceipts (fun entry rule scopedReceipt ordinaryReceipt =>
     head entry rule scopedReceipt ordinaryReceipt)
 
+/- Explicitly name the paired base/target endpoint in the scoped traversal. -/
+theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResultAndIotaBaseAndTargetResults
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        GeneratedRecursorRuleResult env universes stats motives minors ctx entry.1 minors[entry.2]! rule ∧
+        GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors
+          ctx entry.1 minors[entry.2]! rule) :
+    List.Forall₂ (fun entry rule =>
+      GeneratedRecursorRuleResult env universes stats motives minors ctx entry.1 minors[entry.2]! rule ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors
+        ctx entry.1 minors[entry.2]! rule) (ctors.zipIdx initial) rules := by
+  exact hscope.impGeneratedRecursorRuleResultAndIota head
+
+
 theorem LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResult
     {env : VEnv} {universes : List Name}
     {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
@@ -769,6 +816,35 @@ theorem LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResultAndIota
     (fun parent recursor index ctor rule minor scopedReceipt ordinaryReceipt =>
       head parent recursor index ctor rule minor scopedReceipt ordinaryReceipt)
 
+/- Explicitly name the paired base/target endpoint in the indexed local
+   traversal. -/
+theorem LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResultAndIotaBaseAndTargetResults
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        GeneratedRecursorRuleResult env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule ∧
+        GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) ctx ctor minor rule) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          GeneratedRecursorRuleResult env universes stats (infos.map (·.motive))
+            (infos.flatMap (·.minors)) ctx ctor minor rule ∧
+          GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) ctx ctor minor rule := by
+  exact hscope.impGeneratedRecursorRuleResultAndIota head
+
+
 theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResultSemantics
     {env : VEnv} {universes : List Name}
     {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
@@ -803,6 +879,27 @@ theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResultSemanticsAndIota
   exact hscope.impScopedReceipts (fun entry rule scopedReceipt ordinaryReceipt => by
     obtain ⟨semantic, generated⟩ := head entry rule scopedReceipt ordinaryReceipt
     exact ⟨⟨semantic, generated⟩, generated.iotaKind.baseAndTargetResults⟩)
+
+/- Explicitly name the paired base/target endpoint for scoped semantic
+   generated-result traversal. -/
+theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResultSemanticsAndIotaBaseAndTargetResults
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {motives minors : Array Expr} {ctx : Context}
+    {ctors : List Constructor} {rules : List RecursorRule} {initial : Nat}
+    (hscope : RecursorRuleRhsScope stats motives minors ctx ctors rules initial)
+    (head : ∀ (entry : Constructor × Nat) (rule : RecursorRule),
+      RecursorRuleRhsScopeReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        RecursorRuleRhsReceipt stats motives minors ctx entry.1 minors[entry.2]! rule →
+        GeneratedRecursorRuleResultSemantics env universes stats motives minors
+          ctx entry.1 minors[entry.2]! rule) :
+    List.Forall₂ (fun entry rule =>
+      GeneratedRecursorRuleResultSemantics env universes stats motives minors
+        ctx entry.1 minors[entry.2]! rule ∧
+      GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats motives minors
+        ctx entry.1 minors[entry.2]! rule)
+      (ctors.zipIdx initial) rules := by
+  exact hscope.impGeneratedRecursorRuleResultSemanticsAndIota head
+
 
 theorem LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResultSemantics
     {env : VEnv} {universes : List Name}
@@ -860,6 +957,33 @@ theorem LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResultSemanticsAndIota
       obtain ⟨semantic, generated⟩ :=
         head parent recursor index ctor rule minor scopedReceipt ordinaryReceipt
       exact ⟨⟨semantic, generated⟩, generated.iotaKind.baseAndTargetResults⟩)
+
+/- Explicitly name the paired base/target endpoint for indexed local semantic
+   generated-result traversal. -/
+theorem LocalRecursorRuleRhsScope.impGeneratedRecursorRuleResultSemanticsAndIotaBaseAndTargetResults
+    {env : VEnv} {universes : List Name}
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        GeneratedRecursorRuleResultSemantics env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ (index : Nat) (ctor : Constructor), types[parent]!.ctors[index]? = some ctor →
+        ∃ (rule : RecursorRule) (minor : Expr), recursor.rules[index]? = some rule ∧
+          infos[parent]!.minors[index]? = some minor ∧
+          (GeneratedRecursorRuleResultSemantics env universes stats (infos.map (·.motive))
+            (infos.flatMap (·.minors)) ctx ctor minor rule ∧
+           GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats (infos.map (·.motive))
+            (infos.flatMap (·.minors)) ctx ctor minor rule) := by
+  exact hscope.impGeneratedRecursorRuleResultSemanticsAndIota head
+
 
 /- Registration-facing names make the callback shape explicit at the consumer
    boundary; the proof remains the indexed receipt transport above. -/
