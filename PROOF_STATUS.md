@@ -52,6 +52,11 @@ field-count bound remains explicit.
 with its looked-up `ConstructorVal` and derives the rule field-count bound from
 the constructor-value argument bound. Establishing that native argument bound
 from each normalization callback remains a separate obligation.
+The composed `dispatcherConditionalShapeOfMetadataOutput` packages the
+registered recursor/rule/constructor lookups with the exact replacement shape
+when each stored rule supplies the no-level receipt. It still leaves the
+native constructor argument bound and branch normalization callbacks to the
+caller.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.

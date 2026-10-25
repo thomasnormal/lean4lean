@@ -82,6 +82,9 @@ constructor metadata to the recursor rule's native field-count premise, given
 the corresponding constructor-value argument bound. The actual constructor
 normalization proof still has to supply that argument bound at a concrete
 reducer call.
+`dispatcherConditionalShapeOfMetadataOutput` composes the field-count
+projection with the no-level canonical output theorem and returns a complete
+registered-rule lookup package plus the exact generated replacement shape.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

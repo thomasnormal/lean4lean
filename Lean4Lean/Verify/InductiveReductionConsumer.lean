@@ -727,6 +727,51 @@ theorem dispatcherFieldCountOfConstructorMetadata
   rw [ruleFields]
   exact constructorFieldBound info constructorLookup
 
+/- Combine the stored constructor/rule alignment with the canonical output
+   projection.  This is the first metadata-driven endpoint that returns an
+   exact generated replacement-list equation for a registered rule. -/
+theorem dispatcherConditionalShapeOfMetadataOutput
+    {types : Array InductiveType} {environment : Kernel.Environment}
+    (metadata : RuleConstructorFieldMetadata types environment)
+    (parent : Nat) (parentBound : parent < types.size)
+    (index : Nat) (constructorEntry : Constructor)
+    (constructorEntryAt : types[parent]!.ctors[index]? = some constructorEntry)
+    {expression : Expr} {levels : List Level} {info : RecursorVal}
+    {constructor major : Expr}
+    (selected : expression.getAppArgs[info.getMajorIdx]? = some major)
+    (constructor : Expr)
+    (constructorFieldBound : ∀ ctorInfo : ConstructorVal,
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) →
+      ctorInfo.numFields ≤ constructor.getAppArgs.size)
+    (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
+      recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false) :
+    ∃ (recursor : RecursorVal) (rule : RecursorRule) (ctorInfo : ConstructorVal)
+      (replacements : List Expr),
+      environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      recursor.rules[index]? = some rule ∧
+      environment.find? constructorEntry.name = some (.ctorInfo ctorInfo) ∧
+      (if info.getMajorIdx + 1 < expression.getAppArgs.size then
+        mkAppRange
+          (mkAppRange
+            (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+              0 info.getFirstIndexIdx expression.getAppArgs)
+            (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+              constructor.getAppArgs)
+          (info.getMajorIdx + 1) expression.getAppArgs.size expression.getAppArgs
+       else
+        mkAppRange
+          (mkAppRange (rule.rhs.instantiateLevelParams info.levelParams levels)
+            0 info.getFirstIndexIdx expression.getAppArgs)
+          (constructor.getAppArgs.size - rule.nfields) constructor.getAppArgs.size
+            constructor.getAppArgs) = rule.rhs.mkAppList replacements := by
+  obtain ⟨recursor, rule, ctorInfo, hrecursor, hrule, hconstructor, hfieldCount⟩ :=
+    dispatcherFieldCountOfConstructorMetadata metadata parent parentBound index
+      constructorEntry constructorEntryAt constructor constructorFieldBound
+  have hnoLevelParam := noLevelParam recursor rule hrule
+  obtain ⟨replacements, hshape⟩ :=
+    dispatcherConditionalShapeOfCanonicalOutput selected hfieldCount hnoLevelParam
+  exact ⟨recursor, rule, ctorInfo, replacements, hrecursor, hrule, hconstructor, hshape⟩
+
 theorem instantiateLevelParams_eq_self_of_noLevelParam
     {expression : Expr} {parameters : List Name} {levels : List Level}
     (noLevelParam : expression.hasLevelParam' = false) :
