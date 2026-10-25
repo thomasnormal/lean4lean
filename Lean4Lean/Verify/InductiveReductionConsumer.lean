@@ -1687,10 +1687,9 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_normalizedNatLiteralMetadataExa
         (_resultType.lift' insertionLift) := by
   obtain ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
       hfieldCount, hshape, hruleLookup⟩ :=
-    dispatcherConditionalShapeOfMetadataOutputWithRuleLookupAndFieldCount
+    dispatcherConditionalShapeOfMetadataOutputOfNormalizedNatLiteral
       (types := types) (environment := environment) (expression := expression)
-      (levels := levels) (info := info)
-      (constructor := Expr.natLitToConstructor value)
+      (levels := levels) (info := info) (value := value)
       metadata parent parentBound index constructorEntry constructorEntryAt
       selected constructorFieldBound noLevelParam ruleLookup
   obtain ⟨translated, typed, sortArity⟩ := generated recursor rule metadataInfo replacements
@@ -1803,10 +1802,9 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_kNormalizedNatLiteralMetadataEx
         (_resultType.lift' insertionLift) := by
   obtain ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
       hfieldCount, hshape, hruleLookup⟩ :=
-    dispatcherConditionalShapeOfMetadataOutputWithRuleLookupAndFieldCount
+    dispatcherConditionalShapeOfMetadataOutputOfNormalizedNatLiteral
       (types := types) (environment := environment) (expression := expression)
-      (levels := levels) (info := info)
-      (constructor := Expr.natLitToConstructor value)
+      (levels := levels) (info := info) (value := value)
       metadata parent parentBound index constructorEntry constructorEntryAt
       selected constructorFieldBound noLevelParam ruleLookup
   obtain ⟨translated, typed, sortArity⟩ := generated recursor rule metadataInfo replacements

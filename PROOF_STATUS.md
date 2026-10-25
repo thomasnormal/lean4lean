@@ -73,10 +73,10 @@ metadata output shape together with the reducer's selected-rule equation;
 constructor-name uniqueness and rule selection remain explicit premises.
 The field-count package derives the reducer bound directly from the stored
 rule/constructor metadata and the native constructor-value bound.
-The Nat-literal metadata target endpoint now consumes that packaged field
-bound directly instead of repeating a separate rule-field callback.
-The K-normalized Nat-literal metadata endpoint uses the same package while
-retaining its explicit K adaptation and literal dispatch premises.
+The Nat-literal metadata target endpoint now consumes the canonical dispatcher
+package directly instead of repeating a lower-level package call. The
+K-normalized Nat-literal metadata endpoint uses that same canonical package
+while retaining its explicit K adaptation and literal dispatch premises.
 The ordinary String-literal metadata endpoint now consumes the packaged
 field bound while retaining explicit String expansion and target transport.
 The K-normalized String-literal metadata endpoint consumes the same packaged
@@ -89,12 +89,14 @@ The Nat-literal metadata projection uses the reducer's canonical constructor
 expression and now exposes the packaged field bound alongside its explicit
 constructor-value and rule-selection callbacks.
 The Nat-literal generated-target endpoint carries the canonical literal
-dispatch equation into the exact generated reduction result and keeps its
-translation, typing, and sort-arity family explicit.
+dispatch equation into the exact generated reduction result through the
+public dispatcher package and keeps its translation, typing, and sort-arity
+family explicit.
 The String-literal endpoint retains the explicit `strLitToConstructor`
 expansion equation while carrying the same generated target witness family.
 The K-normalized Nat-literal endpoint retains the explicit `toCtorWhenK`
-adaptation and canonical literal dispatch before entering the target package.
+adaptation and canonical literal dispatch before entering the shared target
+package through the public dispatcher endpoint.
 The K-normalized String-literal endpoint keeps both `toCtorWhenK` and
 `strLitToConstructor` equations explicit before target transport.
 The ordinary structure generated-target endpoint consumes the paired package
