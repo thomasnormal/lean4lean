@@ -84,6 +84,8 @@ The String-literal endpoint retains the explicit `strLitToConstructor`
 expansion equation while carrying the same generated target witness family.
 The K-normalized Nat-literal endpoint retains the explicit `toCtorWhenK`
 adaptation and canonical literal dispatch before entering the target package.
+The K-normalized String-literal endpoint keeps both `toCtorWhenK` and
+`strLitToConstructor` equations explicit before target transport.
 The ordinary structure generated-target endpoint consumes the paired package
 and preserves dependent translation, typing, sort-arity, normalization, and
 field-count obligations through its witness family.

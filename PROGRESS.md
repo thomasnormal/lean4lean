@@ -106,6 +106,8 @@ retaining literal dispatch and dependent target witness obligations.
 adds the corresponding explicit string-expansion path for generated targets.
 `GeneratedRecursorRuleIotaTargetResult.of_kNormalizedNatLiteralMetadataExact`
 adds the K-normalized Nat-literal path with explicit K adaptation.
+`GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStringLiteralMetadataExact`
+adds the corresponding K-normalized String expansion path.
 The receipt-backed companion
 `dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup`
 packages native constructor alignment, exact output shape, and executable rule
