@@ -167,6 +167,9 @@ which keeps the checker proof and source-indexed exact package together.
 The restored ordinary target projection now has a matching exact variant,
 `sourceRecursorGeneratedRuleResultsAndIotaTargetOrdinaryExact`; its ordinary
 translation is derived from the same exact RHS package.
+The target-only spelling `sourceRecursorGeneratedRuleIotaTargetOrdinaryExact`
+projects that package while retaining the indexed source metadata and lookup
+witnesses.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

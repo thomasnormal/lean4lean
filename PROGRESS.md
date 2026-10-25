@@ -242,6 +242,9 @@ which pairs the checked environment with the source-indexed exact package.
 The restored ordinary target projection now also has an exact variant,
 `sourceRecursorGeneratedRuleResultsAndIotaTargetOrdinaryExact`, preserving the
 RHS equation while converting the same target witnesses to ordinary typing.
+Its target-only spelling,
+`sourceRecursorGeneratedRuleIotaTargetOrdinaryExact`, now exposes the same exact
+ordinary package without dropping the source metadata and constructor lookup.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
