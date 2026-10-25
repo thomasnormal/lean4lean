@@ -20998,6 +20998,39 @@ theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage_of_restoratio
   exact ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, metadata,
     metadata.toFrontendScope, hregistration, haligned, hmapResult, hhistory, hchecker, hresults⟩
 
+/- Source typehood supplies recursor model WF for the complete
+   restoration-stage constructive-checker package. -/
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage_of_sourceTypehood_and_restorationStages := fun
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool} {venv : VEnv}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) =>
+  addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage_of_restorationStages
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
+    (producer.recursorWF_of_sourceTypehood (producer.constructorEnvWF history.wf) hsource)
+    hsource hvalues ruleResults
+
 /- Expose the checked-primitive frontend package with the named generated-rule
    iota witness at the final ordered-registration boundary. -/
 theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaPackage_of_restorationStages
