@@ -1368,8 +1368,15 @@ theorem mkRecInfos.registeredScopedGeneratedRuleResultCPS
       generatedHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
         scopedReceipt ordinaryReceipt)
     (fun registeredEnv finalInfos finalReader finalModel frame counts endpoint receipts
-      registeredWF retained metadata rhsScope _results completeRuleSemantics =>
+      registeredWF retained metadata rhsScope _results _completeRuleSemantics =>
       have completeRuleResults := rhsScope.completeRuleResultSemanticsIndexed
+        metadata.metadata.orderedRules
+        (fun parent recursor index ctor rule minor scopedReceipt ordinaryReceipt =>
+          ⟨closedHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
+              scopedReceipt ordinaryReceipt,
+            generatedHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
+              scopedReceipt ordinaryReceipt⟩)
+      have completeRuleSemantics := rhsScope.completeRuleSemanticsFromIndexed
         metadata.metadata.orderedRules
         (fun parent recursor index ctor rule minor scopedReceipt ordinaryReceipt =>
           ⟨closedHead registeredEnv finalInfos finalReader rhsScope parent recursor index ctor rule minor
