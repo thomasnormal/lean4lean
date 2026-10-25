@@ -3825,6 +3825,14 @@ def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleIotaTarget
 def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetReduction :=
   @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetReduction
 
+/- Plural target-reduction spelling for clients that name all generated rules. -/
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetReductions :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetReduction
+
+/- Singular generated-result spelling with the plural target-reduction name. -/
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetReductions :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetReduction
+
 /- Project the restored target-reduction package to ordinary translation while
    retaining the indexed source lookup and generated-rule witnesses. -/
 theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetOrdinary
