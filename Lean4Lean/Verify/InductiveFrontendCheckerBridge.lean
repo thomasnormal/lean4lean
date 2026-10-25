@@ -3825,6 +3825,10 @@ theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResult
     hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields, hfieldCount, htotal,
     hsemantic, hgenerated, htarget.toOrdinary envWF targetWF⟩
 
+/- Singular generated-result spelling for the restored ordinary target package. -/
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetOrdinary :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetOrdinary
+
 /- Combine the restored ordinary reduction projection with the checker
    certificate, keeping the indexed source metadata at the same boundary. -/
 theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaTargetOrdinary
