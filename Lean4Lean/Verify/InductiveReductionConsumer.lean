@@ -529,6 +529,44 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_inductiveReduceRecWithType
       (envWF := envWF) (targetWF := targetWF)
   exact ⟨reduction, ordinary, typed, sortArity⟩
 
+/- The generated replacement list is the exact endpoint expected by the
+   dispatcher characterization.  Keep that equation in the target package so
+   consumers do not have to introduce an arbitrary intermediate `reduced` and
+   then separately recover its shape. -/
+theorem GeneratedRecursorRuleIotaTargetResult.of_inductiveReduceRecExact
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {env : VEnv} {universes : List Name} {_stats : InductiveStats}
+    {_motives _minors : Array Expr} {_ctx : Context} {_constructor : Constructor}
+    {_minor : Expr} {rule : RecursorRule}
+    {target : MLCtx} {_count : Nat} {arguments : List VExpr} {_resultType : VExpr}
+    {insertionLift : Lift} {replacements : List Expr} {rhsSemantic : VExpr}
+    (translated : TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift))))
+    (typed : env.HasType universes.length target.vlctx.toCtx
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift)))
+      (_resultType.lift' insertionLift))
+    (sortArity : env.SortArity universes.length target.vlctx.toCtx _count
+      (_resultType.lift' insertionLift))
+    (reduction : inductiveReduceRec environment expression normalize infer compare =
+      pure (some (rule.rhs.mkAppList replacements)))
+    (envWF : env.WF) (targetWF : target.WF env universes) :
+    inductiveReduceRec environment expression normalize infer compare =
+        pure (some (rule.rhs.mkAppList replacements)) ∧
+      TrExpr env universes target.vlctx (rule.rhs.mkAppList replacements)
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift))) ∧
+      env.HasType universes.length target.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+          (arguments.map (VExpr.lift' · insertionLift)))
+        (_resultType.lift' insertionLift) ∧
+      env.SortArity universes.length target.vlctx.toCtx _count
+        (_resultType.lift' insertionLift) := by
+  exact ⟨reduction, translated.trExpr envWF.ordered targetWF.tr.wf, typed, sortArity⟩
+
 /- A reducer consumer needs the generated target witnesses and the native
    output-shape equation at the same existential boundary.  Keep those facts
    paired so the ordinary checker transport cannot accidentally mix witnesses

@@ -48,7 +48,11 @@ branch witnesses to generated replacement lists and covering the K application
 adaptation path now have the same explicit equations; literal and nonliteral
 structure-adaptation branches now have matching equations, while connecting
 all branch outputs to generated replacement lists and proving the final
-complete iota/recursor soundness theorem remain open.
+complete iota/recursor soundness theorem remain open. The target-result
+consumer now packages a supplied exact `rule.rhs.mkAppList replacements`
+equation alongside its translated, typed, and sort-arity endpoint; deriving
+that equation from each assembled branch is still an explicit caller
+obligation.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

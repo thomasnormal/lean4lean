@@ -21,8 +21,10 @@ The `inductiveReduceRec.eq_some_of_normalizedApplication`,
 application/literal/constant/structure branches and expose their exact RHS
 assembly under explicit branch witnesses. No executable behavior or admissions
 changed.
-Connecting these equations to generated replacement lists and consuming them in
-full iota/recursor soundness remain open.
+`GeneratedRecursorRuleIotaTargetResult.of_inductiveReduceRecExact` now packages
+the direct generated-replacement-list equation with its target translation,
+typing, and sort-arity witnesses. Deriving that equation from each dispatcher
+branch and consuming it in full iota/recursor soundness remain open.
 
 
 ## Complete stored-rule generated semantics — 2026-10-25
