@@ -38,6 +38,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_sourceRecursorGeneratedRuleStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationSemanticAndStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaBaseAndTargetResults
@@ -2679,6 +2680,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       ruleResult hrecursor hentry
   have hAlignmentCombined :=
     metadata.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultAndIotaBaseAndTargetResultsSemantics
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
+  have hAlignmentPluralCombined :=
+    metadata.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
       coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
   have hRestoredIota :=
