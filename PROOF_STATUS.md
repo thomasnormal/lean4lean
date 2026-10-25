@@ -170,6 +170,11 @@ translation is derived from the same exact RHS package.
 The target-only spelling `sourceRecursorGeneratedRuleIotaTargetOrdinaryExact`
 projects that package while retaining the indexed source metadata and lookup
 witnesses.
+The restored checker certificate now also has
+`toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaTargetOrdinaryExact`,
+which pairs the checker proof directly with the exact ordinary target package;
+the generated-result, source alignment, reducer equation, translation, typing,
+and sort-arity obligations remain explicit.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

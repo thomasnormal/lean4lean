@@ -245,6 +245,10 @@ RHS equation while converting the same target witnesses to ordinary typing.
 Its target-only spelling,
 `sourceRecursorGeneratedRuleIotaTargetOrdinaryExact`, now exposes the same exact
 ordinary package without dropping the source metadata and constructor lookup.
+The restored checker certificate also has an exact ordinary-target companion,
+`toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaTargetOrdinaryExact`,
+which pairs the checker proof directly with that source-indexed exact ordinary
+package while retaining the generated-result and reducer obligations.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
