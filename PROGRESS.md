@@ -104,6 +104,8 @@ now consumes that Nat-literal package at the generated target boundary while
 retaining literal dispatch and dependent target witness obligations.
 `GeneratedRecursorRuleIotaTargetResult.of_normalizedStringLiteralMetadataExact`
 adds the corresponding explicit string-expansion path for generated targets.
+`GeneratedRecursorRuleIotaTargetResult.of_kNormalizedNatLiteralMetadataExact`
+adds the K-normalized Nat-literal path with explicit K adaptation.
 The receipt-backed companion
 `dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup`
 packages native constructor alignment, exact output shape, and executable rule
