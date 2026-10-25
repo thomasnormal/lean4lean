@@ -22264,6 +22264,112 @@ theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAn
     exact ⟨semantic, hsemantic, constructor, minor, hgenerated,
       hreduction.toOrdinary envWF targetWF⟩
 
+/- Plural generated-results name for the restoration-stage ordinary target package. -/
+theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_restorationStages
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression reduced : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool} {venv : VEnv}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (envWF : semanticEnv.WF)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (targetWF : ∀ target : TypeChecker.MLCtx, target.WF semanticEnv universes)
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (reduction : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ (rule : RecursorRule), rule ∈ entry.info.rules →
+      ∀ (constructor : Constructor) (minor : Expr),
+      ∀ (target : TypeChecker.MLCtx) (count : Nat) (arguments : List VExpr)
+        (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+        (rhsSemantic : VExpr),
+        TrExprS semanticEnv universes target.vlctx (rule.rhs.mkAppList replacements)
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift))) →
+        semanticEnv.HasType universes.length target.vlctx.toCtx
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift)))
+          (resultType.lift' insertionLift) →
+        semanticEnv.SortArity universes.length target.vlctx.toCtx count
+          (resultType.lift' insertionLift) →
+        inductiveReduceRec environment expression normalize infer compare = pure (some reduced) ∧
+        reduced = rule.rhs.mkAppList replacements) :
+    ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
+      modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
+      (∀ venv', venv.addInductHeaders modelDecl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types modelDecl) ∧
+      SafeInductiveRestorationMetadata env lparams nparams types true fuel result ∧
+      SafeInductiveFrontendScope env lparams nparams types true fuel result ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      Aligned .safe resultConstants semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive .safe resultConstants Q semanticResult ∧
+      CheckerEnvInductive .safe result semanticResult Q ∧
+      ∀ entry ∈ producer.orderedEntries,
+        entry.RuleSemantics semanticResult ∧ match entry with
+          | .header _ | .constructor _ => True
+          | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+              TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+              ∃ (constructor : Constructor) (minor : Expr),
+                AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                  (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+                ∃ (target : TypeChecker.MLCtx) (count : Nat) (arguments : List VExpr)
+                  (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+                  (rhsSemantic : VExpr),
+                  inductiveReduceRec environment expression normalize infer compare = pure (some reduced) ∧
+                  TrExpr semanticEnv universes target.vlctx reduced
+                    (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+                      (arguments.map (VExpr.lift' · insertionLift))) ∧
+                  semanticEnv.HasType universes.length target.vlctx.toCtx
+                    (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+                      (arguments.map (VExpr.lift' · insertionLift)))
+                    (resultType.lift' insertionLift) ∧
+                  semanticEnv.SortArity universes.length target.vlctx.toCtx count
+                    (resultType.lift' insertionLift) := by
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hmetadata, hscope,
+      hregistration, haligned, hmapResult, hhistory, hchecker, hresults⟩ :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_restorationStages
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
+      hrecursors hsource hvalues ruleResults reduction
+  refine ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hmetadata, hscope,
+    hregistration, haligned, hmapResult, hhistory, hchecker, ?_⟩
+  intro entry hentry
+  obtain ⟨hsemantics, hrules⟩ := hresults entry hentry
+  refine ⟨hsemantics, ?_⟩
+  cases entry with
+  | header _ => trivial
+  | constructor _ => trivial
+  | recursor entry =>
+    intro rule hrule
+    obtain ⟨semantic, hsemantic, hgenerated⟩ := hrules rule hrule
+    obtain ⟨constructor, minor, hgenerated, hreduction⟩ := hgenerated
+    exact ⟨semantic, hsemantic, constructor, minor, hgenerated,
+      hreduction.toOrdinary envWF targetWF⟩
+
 /- Source typehood supplies the recursor model-WF premise needed by the
    restoration-stage ordinary aggregate, so expose the same consumer without
    requiring callers to construct that auxiliary witness themselves. -/
