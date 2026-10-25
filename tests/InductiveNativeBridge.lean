@@ -34,6 +34,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndCheckerGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.orderedGeneratedRuleResultAndIotaBaseAndTargetResults_of_generatedRuleResults
 #check addDecl.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults_of_generatedRuleResults
 
@@ -3819,6 +3820,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       ruleResult hrecursor hentry
   have hCombined :=
     metadata.sourceRecursorRuleStagesGeneratedResultsAndCheckerGeneratedRuleResultAndIotaBaseAndTargetResults
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
+  have hPluralCombined :=
+    metadata.sourceRecursorRuleStagesGeneratedResultsAndCheckerGeneratedRuleResultsAndIotaBaseAndTargetResults
       coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
   have hStructuralIota :=
