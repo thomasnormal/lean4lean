@@ -77,6 +77,9 @@ normalization receipt and rule-selection callbacks as explicit obligations.
 The Nat-literal metadata projection uses the reducer's canonical constructor
 expression and leaves its constructor bound and rule-selection callbacks
 explicit.
+The Nat-literal generated-target endpoint carries the canonical literal
+dispatch equation into the exact generated reduction result and keeps its
+translation, typing, and sort-arity family explicit.
 The ordinary structure generated-target endpoint consumes the paired package
 and preserves dependent translation, typing, sort-arity, normalization, and
 field-count obligations through its witness family.

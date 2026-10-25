@@ -99,6 +99,9 @@ as an explicit caller-supplied obligation.
 `dispatcherConditionalShapeOfMetadataOutputOfNormalizedNatLiteral` now
 specializes that package to the reducer's canonical Nat-literal constructor,
 while keeping constructor bounds and executable rule selection explicit.
+`GeneratedRecursorRuleIotaTargetResult.of_normalizedNatLiteralMetadataExact`
+now consumes that Nat-literal package at the generated target boundary while
+retaining literal dispatch and dependent target witness obligations.
 The receipt-backed companion
 `dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup`
 packages native constructor alignment, exact output shape, and executable rule
