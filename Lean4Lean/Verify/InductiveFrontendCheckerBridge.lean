@@ -1078,6 +1078,57 @@ theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaTargetRedu
       sortArity => reduction entry hentry rule hrule constructor minor target count arguments
       resultType insertionLift replacements rhsSemantic translated typed sortArity)
 
+/- The exact-output form keeps the reducer result definitionally tied to the
+   stored rule RHS.  This is the registration consumer for callbacks that have
+   already unfolded the native dispatcher and proved its concrete result. -/
+theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaTargetReductionExact
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (reduction : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ (rule : RecursorRule), rule ∈ entry.info.rules →
+      ∀ (constructor : Constructor) (minor : Expr),
+      ∀ (target : TypeChecker.MLCtx) (count : Nat) (arguments : List VExpr)
+        (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+        (rhsSemantic : VExpr),
+        TrExprS semanticEnv universes target.vlctx (rule.rhs.mkAppList replacements)
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift))) →
+        semanticEnv.HasType universes.length target.vlctx.toCtx
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift)))
+          (resultType.lift' insertionLift) →
+        semanticEnv.SortArity universes.length target.vlctx.toCtx count
+          (resultType.lift' insertionLift) →
+        inductiveReduceRec environment expression normalize infer compare =
+          pure (some (rule.rhs.mkAppList replacements))) :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules, ∃ semantic,
+      TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+      ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleIotaTargetReductionExact
+          (environment := environment) (expression := expression)
+          (normalize := normalize) (infer := infer) (compare := compare)
+          (env := semanticEnv) (universes := universes) (stats := stats)
+          (motives := infos.map (·.motive)) (minors := infos.flatMap (·.minors))
+          (ctx := source) (constructor := constructor) (minor := minor) (rule := rule) := by
+  intro entry hentry rule hrule
+  obtain ⟨semantic, translated, constructor, minor, generated⟩ :=
+    evidence.recursorGeneratedRuleResult ruleResults entry hentry rule hrule
+  refine ⟨semantic, translated, constructor, minor, ?_⟩
+  exact AddInductive.GeneratedConstructorRuleRhsResult.iotaTargetReductionOfExact generated
+    (fun target count arguments resultType insertionLift replacements rhsSemantic translated
+      typed sortArity => reduction entry hentry rule hrule constructor minor target count
+      arguments resultType insertionLift replacements rhsSemantic translated typed sortArity)
+
 /- Preserve the complete generated-rule result when attaching the explicit
    target-reduction package, so downstream consumers retain one aligned witness. -/
 theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaTargetReductionOf

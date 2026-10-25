@@ -37,6 +37,12 @@ coverage alongside the indexed generated results for downstream consumers.
 Inductive frontend soundness, rejection-consumer migration, and `AddInduct`
 remain open.
 
+The reducer boundary now also accepts an exact equation whose result is the
+stored rule RHS. This packages the generated target translation, typing, sort
+arity, and native reducer success in one receipt, with a per-recursor
+registration consumer. Deriving that equation from the dispatcher and using it
+in the complete iota/recursor soundness theorem remain open.
+
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
 minor, source index, closed RHS semantic witness, and generated result for

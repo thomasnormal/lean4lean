@@ -3,6 +3,19 @@
 This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
+## Exact generated RHS reduction consumer — 2026-10-25
+
+`GeneratedRecursorRuleIotaTargetReductionExact` records a successful native
+inductive reducer call whose output is definitionally the stored rule RHS. Its
+producer consumes the complete generated-rule receipt and packages the target
+translation, target typing, sort arity, and exact reducer equation together;
+`toOrdinary` then exposes the translated reducer result at the target context.
+The registration evidence now has a matching per-recursor consumer, so stored
+rules cannot be paired with an unrelated output-shape equality. No executable
+behavior or admissions changed. The remaining work is to derive this exact
+equation from the native dispatcher and consume it in full iota/recursor
+soundness.
+
 
 ## Complete stored-rule generated semantics — 2026-10-25
 
