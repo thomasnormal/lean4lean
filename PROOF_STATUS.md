@@ -140,6 +140,8 @@ selection aligned with the same constructor witness.
 The K-normalized String metadata endpoint now pairs `toCtorWhenK` with the
 String constructor expansion before carrying the registered-rule target
 witnesses.
+The K-normalized Nat metadata endpoint likewise pairs `toCtorWhenK` with the
+canonical Nat constructor package before target transport.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.
