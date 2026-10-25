@@ -124,12 +124,15 @@ The receipt-backed companion
 packages native constructor alignment, the receipt-derived reducer field bound,
 exact output shape, and executable rule selection at one existential boundary,
 reusing the lower-level receipt endpoint.
+`dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookupAndAdaptation`
+now pairs that receipt package with the explicit `toCtorWhenStruct` result.
 `GeneratedRecursorRuleIotaTargetResult.of_normalizedStructureMetadataExact`
 now consumes that package at the ordinary structure reducer branch, with a
 dependent family for generated translation, target typing, and sort arity.
 The K-normalized companion
 `GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStructureMetadataExact`
-preserves the same package for the explicit `toCtorWhenK` path.
+preserves the same receipt/adaptation package for the explicit `toCtorWhenK`
+path.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

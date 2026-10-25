@@ -87,6 +87,9 @@ The receipt-backed paired endpoint now also carries the field bound derived
 from the native eta arity receipt, while retaining the normalization receipt
 and rule-selection callbacks as explicit obligations; it reuses the lower-level
 receipt endpoint for that alignment.
+Its adaptation companion pairs the same receipt-backed package with the
+explicit `toCtorWhenStruct` result used by both ordinary and K-normalized
+structure branches.
 The Nat-literal metadata projection uses the reducer's canonical constructor
 expression and now exposes the packaged field bound alongside its explicit
 constructor-value and rule-selection callbacks.
@@ -107,7 +110,8 @@ The ordinary structure generated-target endpoint consumes the paired package
 and preserves dependent translation, typing, sort-arity, normalization, and
 field-count obligations through its witness family.
 The K-normalized structure endpoint carries the explicit K adaptation and
-normalization exclusions through the same generated-target package.
+normalization exclusions through the receipt/adaptation package and the same
+generated-target package.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.
