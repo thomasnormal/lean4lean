@@ -1040,6 +1040,7 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNormalizedNatLiteral
       environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
       recursor.rules[index]? = some rule ∧
       environment.find? constructorEntry.name = some (.ctorInfo metadataInfo) ∧
+      rule.nfields ≤ (Expr.natLitToConstructor value).getAppArgs.size ∧
       (if info.getMajorIdx + 1 < expression.getAppArgs.size then
         mkAppRange
           (mkAppRange
@@ -1057,7 +1058,7 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNormalizedNatLiteral
           (Expr.natLitToConstructor value).getAppArgs.size
             (Expr.natLitToConstructor value).getAppArgs) = rule.rhs.mkAppList replacements ∧
       getRecRuleFor info (Expr.natLitToConstructor value) = some rule := by
-  exact dispatcherConditionalShapeOfMetadataOutputWithRuleLookup
+  exact dispatcherConditionalShapeOfMetadataOutputWithRuleLookupAndFieldCount
     (types := types) (environment := environment) (expression := expression)
     (levels := levels) (info := info) (constructor := Expr.natLitToConstructor value)
     metadata parent parentBound index constructorEntry constructorEntryAt selected

@@ -101,7 +101,8 @@ keeps the metadata-derived `rule.nfields ≤ constructor.getAppArgs.size`
 bound in that same package.
 `dispatcherConditionalShapeOfMetadataOutputOfNormalizedNatLiteral` now
 specializes that package to the reducer's canonical Nat-literal constructor,
-while keeping constructor bounds and executable rule selection explicit.
+while exposing the packaged reducer field bound alongside the exact shape and
+executable rule selection.
 `GeneratedRecursorRuleIotaTargetResult.of_normalizedNatLiteralMetadataExact`
 now consumes that Nat-literal package at the generated target boundary while
 deriving the reducer field bound from the same metadata package and retaining

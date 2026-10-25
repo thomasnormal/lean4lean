@@ -86,8 +86,8 @@ from the native eta arity receipt, while retaining the normalization receipt
 and rule-selection callbacks as explicit obligations; it reuses the lower-level
 receipt endpoint for that alignment.
 The Nat-literal metadata projection uses the reducer's canonical constructor
-expression and leaves its constructor bound and rule-selection callbacks
-explicit.
+expression and now exposes the packaged field bound alongside its explicit
+constructor-value and rule-selection callbacks.
 The Nat-literal generated-target endpoint carries the canonical literal
 dispatch equation into the exact generated reduction result and keeps its
 translation, typing, and sort-arity family explicit.
