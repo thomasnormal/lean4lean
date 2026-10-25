@@ -50,6 +50,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 
 example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
     {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
@@ -1502,6 +1503,11 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     hvalues ruleResult hrecursor hentry
   have hGenerated :=
     addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
+      (venv := venv)
+      hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
+      hvalues ruleResult hrecursor hentry
+  have hGeneratedPlural :=
+    addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
       (venv := venv)
       hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history hsource
       hvalues ruleResult hrecursor hentry
