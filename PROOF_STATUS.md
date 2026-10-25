@@ -112,6 +112,10 @@ field-count obligations through its witness family.
 The K-normalized structure endpoint carries the explicit K adaptation and
 normalization exclusions through the receipt/adaptation package and the same
 generated-target package.
+The ordinary application endpoint now mirrors the existing K application
+endpoint with the non-K dispatcher equation, retaining explicit normalized
+application, structure adaptation, rule lookup, field-count, output-shape,
+translation, typing, and sort-arity premises.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.

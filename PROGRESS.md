@@ -133,6 +133,11 @@ The K-normalized companion
 `GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStructureMetadataExact`
 preserves the same receipt/adaptation package for the explicit `toCtorWhenK`
 path.
+`GeneratedRecursorRuleIotaTargetResult.of_normalizedApplicationExact` now
+provides the corresponding ordinary application endpoint, carrying the
+normalized application, structure adaptation, rule lookup, field bound, exact
+conditional output shape, and dependent target witnesses through the proved
+non-K dispatcher equation.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
