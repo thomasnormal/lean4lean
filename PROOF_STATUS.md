@@ -200,6 +200,10 @@ spellings for `GeneratedRecursorRuleIotaTargetReductionExact`, exposed also as
 `GeneratedRecursorRuleIotaTargetResultExact`; the exact target translation,
 typing, sort arity, and stored-RHS reducer equation remain in one relation.
 No weaker target-only exact relation was introduced.
+The lower-level checked `IotaTargetResultPackage` endpoint has matching exact
+restoration and source-typehood aliases.  They retain the complete generated
+rule receipt alongside the exact target-reduction relation; the direct spelling
+therefore cannot hide the constructor/minor or native stored-RHS obligations.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

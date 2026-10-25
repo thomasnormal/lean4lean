@@ -275,6 +275,11 @@ reuse `GeneratedRecursorRuleIotaTargetReductionExact` through the new
 `GeneratedRecursorRuleIotaTargetResultExact` spelling, so translated target
 witnesses remain paired with the native reducer equation whose result is the
 stored rule RHS.
+The lower-level checked `IotaTargetResultPackage` spelling now has exact
+restoration and source-typehood aliases as well.  These aliases intentionally
+retain the complete generated-rule witness together with the exact target
+reduction equation, so dropping that witness never drops the native result
+constraint.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

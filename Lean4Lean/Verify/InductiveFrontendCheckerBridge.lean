@@ -24589,6 +24589,11 @@ theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPacka
     obtain ⟨constructor, minor, hgenerated⟩ := hgenerated
     exact ⟨semantic, hsemantic, constructor, minor, hgenerated.iotaKind.targetResult⟩
 
+/- The direct target-result spelling retains the complete generated-rule
+   witness and its exact target-reduction equation. -/
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_restorationStagesExact :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetResultPackage_of_restorationStagesExact
+
 /- Source typehood supplies the recursor model-WF premise for the
    restoration-stage target-result package. -/
 def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood_and_restorationStages := fun
@@ -24621,6 +24626,14 @@ def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_o
     (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
     (producer.recursorWF_of_sourceTypehood (producer.constructorEnvWF history.wf) hsource)
     hsource hvalues ruleResults
+
+/- Source typehood also exposes the exact direct target-result spelling while
+   retaining the complete generated-rule witness. -/
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehoodExact :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetResultPackage_of_sourceTypehoodExact
+
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood_and_restorationStagesExact :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehoodExact
 
 
 theorem addDecl.sourceRecursorRuleStagesGeneratedResultsAndCheckerStructuralIotaBaseAndTargetResults_of_checkedPrimitive
