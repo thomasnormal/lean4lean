@@ -142,6 +142,9 @@ String constructor expansion before carrying the registered-rule target
 witnesses.
 The K-normalized Nat metadata endpoint likewise pairs `toCtorWhenK` with the
 canonical Nat constructor package before target transport.
+The non-metadata K constant target endpoint now carries the same explicit K
+conversion, constant normalization, structure adaptation, rule selection, and
+target witnesses as its metadata-backed counterpart.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.

@@ -171,6 +171,9 @@ keeping its constructor metadata and rule witnesses aligned.
 `dispatcherConditionalShapeOfMetadataOutputOfKNormalizedNatLiteral` now gives
 the K Nat branch the analogous paired K-conversion and canonical-constructor
 package, with its metadata field bound and rule lookup aligned.
+`GeneratedRecursorRuleIotaTargetResult.of_kNormalizedConstantExact` now
+provides the non-metadata K constant target endpoint, carrying the explicit K
+conversion and structure adaptation through the proved K dispatcher equation.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
