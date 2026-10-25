@@ -113,7 +113,8 @@ and consumes the packaged metadata-derived reducer field bound.
 adds the K-normalized Nat-literal path with explicit K adaptation and consumes
 the packaged metadata-derived reducer field bound.
 `GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStringLiteralMetadataExact`
-adds the corresponding K-normalized String expansion path.
+adds the corresponding K-normalized String expansion path and consumes the
+packaged metadata-derived reducer field bound.
 The receipt-backed companion
 `dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookup`
 packages native constructor alignment, exact output shape, and executable rule

@@ -79,6 +79,8 @@ The K-normalized Nat-literal metadata endpoint uses the same package while
 retaining its explicit K adaptation and literal dispatch premises.
 The ordinary String-literal metadata endpoint now consumes the packaged
 field bound while retaining explicit String expansion and target transport.
+The K-normalized String-literal metadata endpoint consumes the same packaged
+bound while retaining explicit K adaptation and String expansion.
 The receipt-backed paired endpoint packages the native eta constructor
 alignment with the same output and lookup witnesses, while retaining the
 normalization receipt and rule-selection callbacks as explicit obligations.
