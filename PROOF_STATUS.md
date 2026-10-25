@@ -142,6 +142,11 @@ String constructor expansion before carrying the registered-rule target
 witnesses.
 The K-normalized Nat metadata endpoint likewise pairs `toCtorWhenK` with the
 canonical Nat constructor package before target transport.
+The non-metadata K-normalized Nat-literal endpoint now precedes its metadata
+consumer, and the metadata consumer delegates final dispatcher-to-target
+transport to that endpoint after obtaining the paired canonical-constructor
+package. The metadata, output-shape, generated-translation, target-typing,
+and sort-arity witnesses remain explicit.
 The non-metadata K constant target endpoint now carries the same explicit K
 conversion, constant normalization, structure adaptation, rule selection, and
 target witnesses as its metadata-backed counterpart.

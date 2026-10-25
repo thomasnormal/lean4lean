@@ -177,6 +177,11 @@ conversion and structure adaptation through the proved K dispatcher equation.
 The K constant metadata consumer now reuses that target endpoint after its
 registered-rule package is assembled, so the K dispatcher transport is shared
 without hiding metadata or generated-target obligations.
+The non-metadata K Nat-literal endpoint is now placed before its metadata
+consumer, and the metadata consumer reuses it after assembling the paired
+canonical-constructor package. This removes duplicated K Nat dispatcher
+transport while retaining explicit metadata alignment, output shape, generated
+translation, target typing, and sort-arity witnesses.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
