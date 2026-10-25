@@ -197,6 +197,11 @@ consumer, and the metadata consumer delegates final dispatcher-to-target
 transport to it after assembling the paired K-conversion and String-expansion
 package. Metadata alignment, output shape, generated translation, target
 typing, and sort arity remain explicit.
+The K-normalized structure metadata consumer now reuses
+`of_kNormalizedStructureExact` after assembling its receipt-backed K and
+structure-adaptation package, removing duplicated dispatcher transport while
+retaining explicit normalization exclusions, metadata alignment, output shape,
+generated translation, target typing, and sort arity.
 The ordinary structure metadata consumer now likewise reuses
 `of_normalizedStructureExact` after assembling its receipt-backed constructor
 adaptation package, removing duplicated dispatcher transport while retaining
