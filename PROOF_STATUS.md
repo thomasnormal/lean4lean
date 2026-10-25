@@ -158,6 +158,9 @@ The registration layer now exposes the matching
 `recursorGeneratedRuleResultAndIotaTargetReductionExact` package, so the exact
 stored-RHS equation and generated result are available before restored source
 alignment as well.
+The ordered registration traversal now carries that exact package through each
+stored recursor rule, preserving the complete generated result and exact RHS
+equation while leaving non-recursor entries as trivial cases.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

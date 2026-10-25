@@ -1714,6 +1714,79 @@ theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTa
       exact evidence.recursorGeneratedRuleResultAndIotaTargetReductionOf ruleResults reduction
         recursor hentry rule hrule
 
+/- Preserve the complete generated result in the ordered exact-output
+   traversal, using the registration package that keeps the reducer result
+   definitionally tied to each stored rule RHS. -/
+theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetReductionsExact
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (reduction : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ evidence.recursors →
+      ∀ (rule : RecursorRule), rule ∈ entry.info.rules →
+      ∀ (constructor : Constructor) (minor : Expr),
+      ∀ (target : TypeChecker.MLCtx) (count : Nat) (arguments : List VExpr)
+        (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+        (rhsSemantic : VExpr),
+        TrExprS semanticEnv universes target.vlctx (rule.rhs.mkAppList replacements)
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift))) →
+        semanticEnv.HasType universes.length target.vlctx.toCtx
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift)))
+          (resultType.lift' insertionLift) →
+        semanticEnv.SortArity universes.length target.vlctx.toCtx count
+          (resultType.lift' insertionLift) →
+        inductiveReduceRec environment expression normalize infer compare =
+          pure (some (rule.rhs.mkAppList replacements))) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.RuleSemantics semanticResult ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+            ∃ (constructor : Constructor) (minor : Expr),
+              AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+              AddInductive.GeneratedRecursorRuleIotaTargetReductionExact
+                (environment := environment) (expression := expression)
+                (normalize := normalize) (infer := infer) (compare := compare)
+                (env := semanticEnv) (universes := universes) (stats := stats)
+                (motives := infos.map (·.motive)) (minors := infos.flatMap (·.minors))
+                (ctx := source) (constructor := constructor) (minor := minor) (rule := rule) := by
+  intro entry hmem
+  simp only [NativeInductive.RegistrationEvidence.orderedEntries, List.mem_append] at hmem
+  rcases hmem with hphase | hrecursors
+  · rcases hphase with hheaders | hconstructors
+    · rcases List.mem_map.mp hheaders with ⟨header, _, rfl⟩
+      exact ⟨trivial, trivial⟩
+    · rcases List.mem_map.mp hconstructors with ⟨constructor, _, rfl⟩
+      exact ⟨trivial, trivial⟩
+  · rcases List.mem_map.mp hrecursors with ⟨recursor, hentry, rfl⟩
+    refine ⟨?_, ?_⟩
+    · intro rule hrule
+      exact evidence.recursorRuleTranslation recursor hentry rule hrule
+    · intro rule hrule
+      exact evidence.recursorGeneratedRuleResultAndIotaTargetReductionExact
+        ruleResults reduction recursor hentry rule hrule
+
+/- Singular and plural aliases for the ordered exact-output package. -/
+def NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetReductionExact :=
+  @NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetReductionsExact
+
+def NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaTargetReductionExact :=
+  @NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetReductionsExact
+
+def NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaTargetReductionsExact :=
+  @NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetReductionsExact
+
 /- Singular target-reduction spellings for ordered registration consumers. -/
 def NativeInductive.RegistrationEvidence.orderedGeneratedRuleIotaTargetReductionOf :=
   @NativeInductive.RegistrationEvidence.orderedGeneratedRuleIotaTargetReductionsOf

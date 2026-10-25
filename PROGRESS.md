@@ -232,6 +232,10 @@ The registration boundary now exposes the matching
 `recursorGeneratedRuleResultAndIotaTargetReductionExact` consumer, preserving
 the same generated result and exact stored-RHS equation before source-indexed
 restoration.
+Its ordered registration traversal now has the corresponding exact-output
+package, retaining the complete generated result and exact reducer equation for
+every stored recursor rule while keeping header and constructor branches
+trivial.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
