@@ -21967,6 +21967,11 @@ def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIot
     (producer.recursorWF_of_sourceTypehood (producer.constructorEnvWF history.wf) hsource)
     hsource hvalues ruleResults reduction
 
+/- Name the same source-typehood projection explicitly at the
+   restoration-stage boundary for downstream declaration consumers. -/
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_sourceTypehood_and_restorationStages :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_sourceTypehood
+
 /- The restoration-stage aggregate can also be consumed by the ordinary
    checker.  Preserve every frontend receipt while projecting the ordered
    target-reduction packages with the supplied semantic and target WF facts. -/
