@@ -138,6 +138,9 @@ provides the corresponding ordinary application endpoint, carrying the
 normalized application, structure adaptation, rule lookup, field bound, exact
 conditional output shape, and dependent target witnesses through the proved
 non-K dispatcher equation.
+`GeneratedRecursorRuleIotaTargetResult.of_normalizedConstantExact` now carries
+the ordinary nullary-constant dispatcher equation through the same generated
+translation, typing, sort-arity, and conditional output-shape endpoint.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

@@ -116,6 +116,10 @@ The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,
 translation, typing, and sort-arity premises.
+The ordinary normalized-constant endpoint now provides the matching target
+consumer for the nullary-constant dispatcher branch, with explicit constant
+normalization, structure adaptation, rule selection, field count, output shape,
+translation, typing, and sort arity.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.
