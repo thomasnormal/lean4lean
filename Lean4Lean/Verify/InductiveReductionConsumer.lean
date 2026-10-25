@@ -525,6 +525,13 @@ theorem dispatcherConditionalShapeOfReplacementDecomposition
     rw [prefixSlice, fieldSlice]
     simp [Expr.mkAppList_append, replacementShape, trailingNil, List.append_assoc]
 
+theorem instantiateLevelParams_eq_self_of_noLevelParam
+    {expression : Expr} {parameters : List Name} {levels : List Level}
+    (noLevelParam : expression.hasLevelParam' = false) :
+    expression.instantiateLevelParams parameters levels = expression := by
+  rw [Expr.instantiateLevelParams_eq]
+  exact Expr.instantiateLevelParamsCore_eq_self noLevelParam
+
 /- Consume a successful native reduction at the generated-rule boundary.  The
    executable reducer and generated replacement list are deliberately connected
    by the explicit `outputShape` premise; this keeps the remaining native branch

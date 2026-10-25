@@ -38,6 +38,9 @@ The reusable `dispatcherConditionalShapeOfReplacementDecomposition` theorem
 now proves the native three-slice assembly equals one generated replacement
 list from explicit argument decompositions and level-instantiation equality;
 deriving those decompositions from stored metadata remains open.
+The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
+the level equality from the stored RHS's structural no-level-parameter flag;
+level-bearing rules still require an explicit instantiation relation.
 
 
 ## Complete stored-rule generated semantics — 2026-10-25

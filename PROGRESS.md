@@ -65,6 +65,8 @@ constructor shape. The K structure endpoint now uses the same bridge with its
 The reusable `dispatcherConditionalShapeOfReplacementDecomposition` theorem
 now proves the native three-slice assembly equals one generated replacement
 list from explicit argument decompositions and level-instantiation equality.
+The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
+that level equality from the stored RHS's structural no-level-parameter flag.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
