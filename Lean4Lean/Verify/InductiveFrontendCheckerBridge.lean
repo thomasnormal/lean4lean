@@ -4202,6 +4202,20 @@ def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAnd
 def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetReductions :=
   @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetReduction
 
+/- Exact target-reduction spellings preserve the same generated-result and
+   stored-RHS equation while matching the ordinary endpoint aliases. -/
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleIotaTargetReductionsExact :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleIotaTargetReductionExact
+
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetReductionExact :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetReductionExact
+
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetReductionsExact :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetReductionExact
+
+def NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetReductionsExact :=
+  @NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetReductionExact
+
 /- Project the restored target-reduction package to ordinary translation while
    retaining the indexed source lookup and generated-rule witnesses. -/
 theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetOrdinary
@@ -5089,6 +5103,14 @@ def NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypeho
 
 def NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultsAndIotaTargetResult :=
   @NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaTargetResult
+
+/- Exact checker aliases retain the exact stored-RHS reducer equation while
+   supporting the established plural generated-rule spelling. -/
+def NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultsAndIotaTargetOrdinaryExact :=
+  @NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaTargetOrdinaryExact
+
+def NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultsAndIotaTargetReductionExact :=
+  @NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaTargetReductionExact
 
 /- Singular-name alias for consumers that request one indexed target result. -/
 theorem NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetResult

@@ -175,6 +175,9 @@ The restored checker certificate now also has
 which pairs the checker proof directly with the exact ordinary target package;
 the generated-result, source alignment, reducer equation, translation, typing,
 and sort-arity obligations remain explicit.
+The exact restored target-reduction and checker packages now provide the
+matching plural generated-rule aliases (including plural target-reduction
+spellings); these are definitional API aliases and add no proof assumptions.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,
