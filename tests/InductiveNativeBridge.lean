@@ -47,6 +47,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndCheckerGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.orderedGeneratedRuleResultAndIotaBaseAndTargetResults_of_generatedRuleResults
 #check addDecl.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults_of_generatedRuleResults
+#check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 
 example {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
     {decl : VInductDecl} (evidence : RegistrationEvidence constants semanticEnv decl
@@ -1428,6 +1429,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     hsource hvalues ruleResult hrecursor hentry
   have hModelGenerated :=
     addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults
+      (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
+      hsource hvalues ruleResult hrecursor hentry
+  have hModelGeneratedPlural :=
+    addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
       (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
       hsource hvalues ruleResult hrecursor hentry
   have _ := h
