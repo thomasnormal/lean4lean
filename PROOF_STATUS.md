@@ -67,6 +67,10 @@ The metadata output endpoint
 packages that field-bound derivation with constructor-head and
 context/environment alignment, while leaving the normalization receipt and
 all reducer branch decisions explicit.
+The companion
+`dispatcherConditionalShapeOfMetadataOutputWithRuleLookup` carries the
+metadata output shape together with the reducer's selected-rule equation;
+constructor-name uniqueness and rule selection remain explicit premises.
 The companion `instantiateLevelParams_eq_self_of_noLevelParam` helper derives
 the level equality from the stored RHS's structural no-level-parameter flag;
 level-bearing rules still require an explicit instantiation relation.
