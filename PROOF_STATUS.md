@@ -211,6 +211,10 @@ The direct checked ordinary-target package now has matching exact restoration
 and source-typehood aliases.  Its ordinary translation is derived from the
 exact target-reduction relation while retaining the explicit environment WF,
 target WF, generated-rule, and stored-RHS obligations.
+Registration and ordered-registration exact consumers now expose matching
+target-result spellings, including singular and plural generated-result
+aliases.  These are endpoint aliases for the exact target-reduction packages;
+they preserve the native stored-RHS equation and constructor/minor alignment.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

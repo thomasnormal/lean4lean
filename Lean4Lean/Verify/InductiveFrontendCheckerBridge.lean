@@ -1186,6 +1186,16 @@ theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaT
 def NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultsAndIotaTargetReductionExact :=
   @NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaTargetReductionExact
 
+/- Endpoint-oriented aliases for the exact registration package. -/
+def NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaTargetResultExact :=
+  @NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaTargetReductionExact
+
+def NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaTargetResultExact :=
+  @NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaTargetReductionExact
+
+def NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultsAndIotaTargetResultExact :=
+  @NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaTargetReductionExact
+
 /- Preserve the complete generated-rule result when attaching the explicit
    target-reduction package, so downstream consumers retain one aligned witness. -/
 theorem NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaTargetReductionOf
@@ -1786,6 +1796,19 @@ def NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaTarge
 
 def NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaTargetReductionsExact :=
   @NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetReductionsExact
+
+/- Endpoint-oriented aliases for ordered exact registration consumers. -/
+def NativeInductive.RegistrationEvidence.orderedGeneratedRuleIotaTargetResultExact :=
+  @NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetReductionExact
+
+def NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetResultExact :=
+  @NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetReductionExact
+
+def NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaTargetResultExact :=
+  @NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaTargetReductionExact
+
+def NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaTargetResultsExact :=
+  @NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaTargetReductionsExact
 
 /- Singular target-reduction spellings for ordered registration consumers. -/
 def NativeInductive.RegistrationEvidence.orderedGeneratedRuleIotaTargetReductionOf :=

@@ -286,6 +286,11 @@ package so its reducer equation remains definitionally tied to the stored RHS.
 The direct checked ordinary-target package now has exact restoration and
 source-typehood aliases, reusing the generated ordinary exact consumer with
 its explicit semantic-environment and target WF callbacks.
+Registration and ordered-registration exact consumers now also expose
+target-result spellings, including singular/plural generated-result aliases.
+They are definitional endpoint names for the exact target-reduction packages,
+so the stored-RHS equation and generated constructor/minor witness remain
+paired at registration.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
