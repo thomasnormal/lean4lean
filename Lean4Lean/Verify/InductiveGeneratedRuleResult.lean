@@ -805,14 +805,30 @@ theorem LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaBaseAndTarge
         GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) ctx ctor minor rule := by
   intro parent hparent
-  obtain ⟨recursor, lookup, hrules⟩ :=
-    hscope.completeRuleResultSemantics ordered head parent hparent
+  obtain ⟨recursor, lookup, entries⟩ :=
+    hscope.completeRuleResultSemanticsIndexed ordered head parent hparent
+  obtain ⟨stored, storedLookup, _, count⟩ := ordered parent hparent
+  have same : recursor = stored := ConstantInfo.recInfo.inj
+    (Option.some.inj (lookup.symm.trans storedLookup))
+  subst stored
   refine ⟨recursor, lookup, ?_⟩
   intro rule hmem
-  obtain ⟨index, ctor, minor, semantic, hctor, hminor, hrule, hsemantic, hgenerated⟩ :=
-    hrules rule hmem
-  exact ⟨index, ctor, minor, semantic, hctor, hminor, hrule, hsemantic, hgenerated,
-    hgenerated.iotaKind.baseAndTargetResults⟩
+  obtain ⟨index, indexBound, atIndex⟩ := List.mem_iff_getElem.mp hmem
+  have ctorBound : index < types[parent]!.ctors.length := by
+    rw [← count]
+    exact indexBound
+  have ctorLookup : types[parent]!.ctors[index]? = some types[parent]!.ctors[index] :=
+    List.getElem?_eq_getElem ctorBound
+  obtain ⟨matched, minor, ruleLookup, minorLookup, result, generated⟩ :=
+    entries index types[parent]!.ctors[index] ctorLookup
+  have sameRule : matched = rule := by
+    exact Option.some.inj (ruleLookup.symm.trans
+      ((List.getElem?_eq_getElem indexBound).trans (congrArg some atIndex)))
+  subst matched
+  obtain ⟨semantic, semanticResult⟩ := result
+  exact ⟨index, types[parent]!.ctors[index], minor, semantic, ctorLookup, minorLookup,
+    ruleLookup, semanticResult, generated,
+    generated.iotaKind.baseAndTargetResults⟩
 
 /- Named-result wrappers avoid unfolding the generated package at each caller. -/
 theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResult
