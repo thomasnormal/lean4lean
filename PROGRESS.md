@@ -253,6 +253,12 @@ Exact restored target-reduction and checker packages now also expose the
 established plural generated-rule aliases, including plural target-reduction
 spellings, so callers can preserve the exact stored-RHS equation without
 renaming their traversal-level contracts.
+The checked primitive restoration-stage package now has an exact generated-rule
+target-reduction companion,
+`addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_restorationStagesExact`.
+It preserves the existing model, checker, registration, and restoration
+receipts while returning the exact stored-RHS reducer relation through the
+ordered exact registration consumer.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

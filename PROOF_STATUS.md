@@ -178,6 +178,11 @@ and sort-arity obligations remain explicit.
 The exact restored target-reduction and checker packages now provide the
 matching plural generated-rule aliases (including plural target-reduction
 spellings); these are definitional API aliases and add no proof assumptions.
+At the checked primitive restoration-stage boundary,
+`addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_restorationStagesExact`
+now retains the same frontend receipts while exposing
+`GeneratedRecursorRuleIotaTargetReductionExact`; source typehood and final
+inductive soundness remain separate caller obligations.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,
