@@ -161,6 +161,9 @@ alignment as well.
 The ordered registration traversal now carries that exact package through each
 stored recursor rule, preserving the complete generated result and exact RHS
 equation while leaving non-recursor entries as trivial cases.
+The restored checker certificate has a matching exact target-reduction theorem,
+`toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaTargetReductionExact`,
+which keeps the checker proof and source-indexed exact package together.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

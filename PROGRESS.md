@@ -236,6 +236,9 @@ Its ordered registration traversal now has the corresponding exact-output
 package, retaining the complete generated result and exact reducer equation for
 every stored recursor rule while keeping header and constructor branches
 trivial.
+The restored checker certificate now has an exact target-reduction companion,
+`toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaTargetReductionExact`,
+which pairs the checked environment with the source-indexed exact package.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
