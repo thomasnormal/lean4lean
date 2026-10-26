@@ -20,6 +20,10 @@ The model companion `refinesPrimitiveHeaderConstructorCheckerWithModelAndVDeclWF
 retains the public `HeadersWF` and declaration `WF` facts alongside that
 checker receipt and its registered `VDecl.WF`; it is only a packaging theorem
 and adds no recursor or iota result.
+The checked-primitive constructive-history companion carries the producer's
+semantic `VDecl.WF` beside the registration evidence and final
+`TrEnvInductive` history, while retaining recursor model WF as an explicit
+premise.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

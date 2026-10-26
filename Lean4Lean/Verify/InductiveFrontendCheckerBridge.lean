@@ -22026,6 +22026,42 @@ theorem addDecl.checkedPrimitiveModelAndConstructiveHistory
   have hhistory := producer.to_trEnvInductive history hconstantsWF hrecursors
   exact ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hscope, hregistration, hhistory⟩
 
+/- Keep the semantic declaration receipt alongside the checked-primitive
+   registration history. The producer's constructive header/constructor
+   realization supplies this `VDecl.WF`; recursor WF remains an explicit input
+   to the registration package. -/
+theorem addDecl.checkedPrimitiveModelAndConstructiveHistoryAndVDeclWF
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool} {venv : VEnv}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    ∃ modelDecl, (modelDecl = boolInductDecl ∨ modelDecl = natInductDecl) ∧
+      modelDecl.HeadersWF venv ∧ modelDecl.WF venv ∧
+      (∀ venv', venv.addInductHeaders modelDecl.types = some venv' →
+        TrInductDecl venv venv' lparams nparams types modelDecl) ∧
+      SafeInductiveFrontendScope env lparams nparams types true fuel result ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      TrEnvInductive .safe resultConstants Q semanticResult ∧
+      VDecl.WF semanticEnv (.induct decl) producer.constructorEnv := by
+  obtain ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hscope, hregistration,
+      hhistory⟩ :=
+    addDecl.checkedPrimitiveModelAndConstructiveHistory (venv := venv) hmap hcheck hresult
+      producer hconstants history hrecursors
+  exact ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, hscope, hregistration,
+    hhistory, producer.inductiveDeclWF⟩
+
 /- Combine the primitive model receipt with the full checked-primitive semantic
    package: alignment, declaration history, checker scope, and generated rule
    translations.  All source and value hypotheses stay explicit. -/
