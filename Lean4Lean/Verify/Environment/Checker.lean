@@ -177,6 +177,30 @@ theorem AddInductWithRecursorsEvidence.toCheckerEnvInductive_and_wf
   have checker := H.toCheckerEnvInductive native resultNative history hmap hresultMap hdecl hvalues
   exact ⟨checker, checker.map_wf, checker.venv_wf⟩
 
+/- Pair the generic checker consumer with semantic alignment of the resulting
+   constant map. The initial alignment and map equalities remain caller inputs.
+   -/
+theorem AddInductWithRecursorsEvidence.toCheckerEnvInductive_and_aligned
+    {safety : DefinitionSafety}
+    (H : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
+      recursors models C' env')
+    (native resultNative : Kernel.Environment)
+    (history : TrEnvInductive safety native.constants Q env)
+    (hmap : native.constants = C) (hresultMap : resultNative.constants = C')
+    (haligned : Aligned safety C env)
+    (hdecl : VDecl.WF env (.induct decl) inductiveEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr env' ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety resultNative env' Q ∧
+      Aligned safety resultNative.constants env' := by
+  subst C
+  subst C'
+  have checker := H.toCheckerEnvInductive native resultNative history rfl rfl hdecl hvalues
+  exact ⟨checker, Aligned.addInductWithRecursorsEvidence H haligned⟩
+
 theorem CheckerEnvInductive.toCheckerEnv
     (H : CheckerEnvInductive safety env venv Q) : CheckerEnv safety env venv :=
   ⟨H.history.aligned, H.history.wf, H.safeValues⟩

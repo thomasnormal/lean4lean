@@ -76,6 +76,10 @@ alongside final constant-map WF and semantic-environment WF. The native
 registration wrapper and its source-typehood form delegate to it, retaining
 the explicit map equalities, staged declaration WF, recursor/value premises,
 and all generated-rule/iota boundaries.
+The generic `toCheckerEnvInductive_and_aligned` consumer now pairs the checker
+with final semantic alignment. The native aligned bridge delegates through this
+receipt consumer and transports the explicit native/result map equality without
+changing its declaration-WF, recursor, or safe-value obligations.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

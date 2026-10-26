@@ -549,8 +549,14 @@ theorem RegistrationEvidence.toCheckerEnvInductive_and_aligned
         (.const ci.name (VLevel.params ci.levelParams.length))) :
     CheckerEnvInductive safety resultNative result Q ∧
       Aligned safety resultConstants result := by
-  exact ⟨evidence.toCheckerEnvInductive native resultNative history hmap hresultMap
-      hconstants hrecursors hvalues, evidence.aligned haligned⟩
+  have hdecl : VDecl.WF env (.induct decl) evidence.constructorEnv :=
+    evidence.inductiveDeclWF
+  have hregistration := evidence.to_addInductWithRecursorsEvidence_at safety
+    hconstants hrecursors
+  obtain ⟨hchecker, haligned'⟩ :=
+    hregistration.toCheckerEnvInductive_and_aligned native resultNative history
+      hmap hresultMap haligned hdecl hvalues
+  exact ⟨hchecker, by simpa [hresultMap] using haligned'⟩
 
 theorem RegistrationEvidence.toCheckerEnvInductive_and_aligned_of_sourceTypehood
     {safety : DefinitionSafety}

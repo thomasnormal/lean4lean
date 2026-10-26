@@ -63,6 +63,10 @@ consumer returns the same checker with final constant-map WF and semantic
 environment WF projections. Native registration and source-typehood wrappers
 delegate to this pair without hiding map equalities, staged declaration WF,
 recursor model WF, or safe-value translation obligations.
+The paired `AddInductWithRecursorsEvidence.toCheckerEnvInductive_and_aligned`
+consumer also returns final semantic alignment. The native aligned bridge now
+delegates through it and transports the explicit result-map equality; no
+registration, recursor/iota, or executable frontend claim is added.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
