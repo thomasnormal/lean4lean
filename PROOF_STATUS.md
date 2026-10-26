@@ -40,6 +40,18 @@ transports this receipt through the native-to-checker scope bridge and returns
 it alongside `CheckerEnvInductive`. The native constant-map equality remains
 explicit, and the theorem adds no executable frontend or recursor/iota claim.
 
+## Restored registration receipt and map — 2026-10-26
+
+`NativeInductive.RestoredRecordEvidence.registrationReceiptAndMap` packages
+the restored semantic, metadata, rule, model-shape, installation, and staged
+source receipts with the explicit result-map equation and the native result
+map's WF proof. It uses the restored registration receipt for installed-record
+lookups and the producer/restored ordered-map alignment; it deliberately does
+not invoke the constructive persistent-map lookup interface. Its transitive
+axiom audit is `[propext, sorryAx, Classical.choice, Quot.sound]`. This is a
+restored-record consumer bridge and does not construct `AddInduct` or prove
+inductive recursor/iota soundness.
+
 ## Checked primitive registration lookup — 2026-10-26
 
 `addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup` now

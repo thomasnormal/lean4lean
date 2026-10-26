@@ -45,6 +45,13 @@ the constructive ordered lookup theorem. The native recursor model-WF premise
 and map equality remain explicit; this does not construct `AddInduct` or prove
 recursor/iota semantics.
 
+The restored-record boundary now also packages the semantic registration
+receipt, the explicit ordered map equation, and the native result-map WF proof
+in `RestoredRecordEvidence.registrationReceiptAndMap`. Its installation
+receipt comes directly from the restored registration trace, so its audited
+dependencies remain the standard logic and retained translation admission; it
+does not route through the persistent-map lookup interface.
+
 The reducer boundary now also accepts an exact equation whose result is the
 stored rule RHS. This packages the generated target translation, typing, sort
 arity, and native reducer success in one receipt, with a per-recursor
