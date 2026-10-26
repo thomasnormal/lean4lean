@@ -78,6 +78,12 @@ that explicit-history checker result. It remains independent of persistent-map
 lookup interfaces and does not claim result-map WF, `AddInduct`, or recursor
 soundness.
 
+`NativeInductive.RegistrationEvidence.orderedEntryReceiptAndMap` packages the
+ordered producer receipt with `resultConstants = insertOrdered constants
+evidence.orderedEntries`. Its audit is `[propext, sorryAx, Classical.choice,
+Quot.sound]`; it does not invoke positive persistent-map lookup or add an
+`AddInduct`/recursor-soundness claim.
+
 ## Checked primitive registration lookup — 2026-10-26
 
 `addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup` now

@@ -227,6 +227,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_orderedEntryLookup
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistory
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistoryAndMapWF
+#check NativeInductive.RegistrationEvidence.orderedEntryReceiptAndMap
 #check addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
@@ -588,6 +589,11 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
             ∃ constructor ∈ decl.constructorHeaders, entry.model = constructor
           | .recursor _ => True :=
   evidence.orderedEntryReceipt
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result) :
+    resultConstants = insertOrdered constants evidence.orderedEntries :=
+  evidence.orderedEntryReceiptAndMap |>.2
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :

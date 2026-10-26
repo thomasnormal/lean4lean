@@ -74,6 +74,11 @@ also returns the explicit final-map equality and the initial `ConstMap.WF`
 proof obtained from the scope's original environment. This gives constructive
 registration callers the map premise without deriving lookup receipts.
 
+`RegistrationEvidence.orderedEntryReceiptAndMap` pairs the producer's ordered
+semantic, model-shape, type-translation, and declaration-membership receipt
+with its explicit `insertOrdered` map equation. It is a map-alignment package;
+positive final-map lookup remains a separate audited interface.
+
 The reducer boundary now also accepts an exact equation whose result is the
 stored rule RHS. This packages the generated target translation, typing, sort
 arity, and native reducer success in one receipt, with a per-recursor
