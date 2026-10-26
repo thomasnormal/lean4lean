@@ -12,6 +12,20 @@ namespace Lean4Lean.Tests.InductiveNativeBridge
 open Lean Lean4Lean Lean4Lean.NativeInductive
 open Lean4Lean.AddInductive.declareConstructors
 
+#check AddInduct.ofEvidence
+
+example {constants resultConstants : ConstMap}
+    {env resultEnv : VEnv} {decl : VInductDecl}
+    (evidence : AddInductEvidence .safe constants env decl resultConstants resultEnv) :
+    AddInduct constants env decl resultConstants resultEnv :=
+  .ofEvidence evidence
+
+example {constants resultConstants : ConstMap}
+    {env resultEnv : VEnv} {decl : VInductDecl}
+    (evidence : AddInductEvidence .safe constants env decl resultConstants resultEnv) :
+    env.addInduct decl = some resultEnv :=
+  (AddInduct.ofEvidence evidence).to_addInduct
+
 #check AddInductive.LocalRecursorRuleRhsScope.ruleResultSemanticsAndIota
 #check AddInductive.GeneratedRecursorRuleIotaTargetResult.of_inductiveReduceRec
 #check AddInductive.GeneratedRecursorRuleIotaTargetResult.of_inductiveReduceRecWithType
@@ -3206,7 +3220,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
     ∀ entry ∈ restored.entries,
       resultConstants.find?' entry.toConstantInfo.name = some entry.toConstantInfo := by
   exact (restored.registrationReceiptAndMapAndOrderedEntryFindPrime producer halign hconstants
-    hresultConstants).2.2.2.2
+    hresultConstants).2.2.2
 
 example {safety : DefinitionSafety} {constants : ConstMap}
     {semanticEnv semanticResult : VEnv} {decl : VInductDecl}

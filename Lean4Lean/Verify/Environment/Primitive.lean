@@ -67,9 +67,9 @@ theorem checkDef.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env)
 rather than a check of equations: it is what stops a declaration from taking one of those two
 names without the shape the model assumes for it. -/
 
-/-- Adding a run of constants, one after another. Whatever `AddInduct` turns out to be, this is
-the part of it the primitive invariant depends on: the declared type and its constructors become
-constants of the types declared for them, and nothing else changes. -/
+/-- Adding a run of constants, one after another. This is the primitive-side portion of the
+constructive `AddInductEvidence` receipt: the declared type and its constructors become constants
+of the types declared for them, and nothing else changes. -/
 inductive AddsConsts : VEnv → List (Name × VExpr) → VEnv → Prop
   | id {env} : AddsConsts env [] env
   | const {env env₁ env₂ n ty l} : env.addConst n ⟨0, ty⟩ = some env₁ →
@@ -156,9 +156,9 @@ type at `Type`, and the constructors `primSpecs` speaks about -- and adding the 
 contributes keeps the primitive invariant.
 
 The second half is what the guard is *for*: `containsImplies` needs the constructors to arrive
-with the type, and the two `typeEq` entries need them to have exactly the declared types. What is
-still missing is the other side of the handshake -- a constructive `AddInduct` whose added
-constants are these, which is what `addDecl.WF`'s `inductDecl` case waits on. -/
+with the type, and the two `typeEq` entries need them to have exactly the declared types. The
+constructive `AddInductEvidence` boundary now records this handshake; integrating it into the
+general `addDecl.WF` inductive case remains a separate frontend obligation. -/
 def PrimitiveInductiveResult (lparams : List Name) (nparams : Nat)
     (types : List InductiveType) (isUnsafe : Bool) : Prop :=
   isUnsafe = false ∧ lparams = [] ∧ nparams = 0 ∧

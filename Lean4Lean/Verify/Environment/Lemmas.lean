@@ -79,9 +79,16 @@ nonrec theorem Aligned.addQuot (H : AddQuot C₁ C₂ venv₁ venv₂)
   refine (addQuot1 <| addQuot1 <| addQuot1 <| addQuot1 ?_) _ _ wf H
   rintro _ _ h ⟨rfl, rfl⟩; exact h.defeq
 
-theorem Aligned.addInduct (H : AddInduct C₁ venv₁ decl C₂ venv₂) :
-    Aligned safety C₁ env₁ → Aligned safety C₂ env₂ :=
-  nomatch H
+theorem AddInductEvidence.sf_mono (hsf : safety ≤ safety')
+    (H : AddInductEvidence safety' m₁ env₁ decl m₂ env₂) :
+    AddInductEvidence safety m₁ env₁ decl m₂ env₂ := by
+  cases H with
+  | intro headers constructors headerEnv hheaders hconstructors headerAdd constructorAdd
+      headerNodup constructorNodup headerFresh constructorFresh mapEq =>
+    refine .intro headers constructors headerEnv ?_ ?_ headerAdd constructorAdd
+      headerNodup constructorNodup headerFresh constructorFresh mapEq
+    · exact List.Forall₂.imp (fun _ _ h => ⟨h.1, h.2.sf_mono hsf⟩) hheaders
+    · exact List.Forall₂.imp (fun _ _ h => ⟨h.1, h.2.sf_mono hsf⟩) hconstructors
 
 theorem Aligned.addInductEvidence
     (H : AddInductEvidence safety C₁ venv₁ decl C₂ venv₂)
@@ -196,6 +203,12 @@ theorem Aligned.addInductEvidence
       constructorNodup constructorAdd
     rw [mapEq, insertConsts_append]
     exact hconstructors
+
+theorem Aligned.addInduct (H : AddInduct C₁ venv₁ decl C₂ venv₂) :
+    Aligned safety C₁ venv₁ → Aligned safety C₂ venv₂ := by
+  cases H with
+  | ofEvidence evidence =>
+    exact Aligned.addInductEvidence (evidence.sf_mono DefinitionSafety.le_safe)
 
 theorem Aligned.addInductWithRecursorsEvidence
     (H : AddInductWithRecursorsEvidence safety C₁ venv₁ decl inductiveConstants inductiveEnv
@@ -316,7 +329,6 @@ theorem TrEnv'.aligned (H : TrEnv' safety C Q venv) : Aligned safety C venv := b
     exact Aligned.addDefEqs <| ih.insertDefs hnd hfr
       (Lean4Lean.List.Forall₂.imp (fun _ _ h => h.1) hblk) hadd
   | quot _ h _ ih => exact ih.addQuot h
-  | induct _ h _ ih => exact ih.addInduct h
 
 theorem TrEnv'.map_wf (H : TrEnv' safety C Q venv) : C.WF := H.aligned.map_wf
 
@@ -478,7 +490,6 @@ theorem TrEnv'.of_value (H : TrEnv' safety C Q venv) (h : C.find? name = some ci
     obtain h | ⟨rfl, rfl⟩ := this wf.map_wf (ih _ _ wf' h5)
     · exact h
     · contradiction
-  | induct _ h1 H ih => cases h1
 
 nonrec theorem TrEnv.of_value (H : TrEnv safety env venv) (h : env.find? name = some ci)
     (hs : safety ≤ ci.safety) (hv : ci.deltaValue? = some v) :
@@ -544,7 +555,6 @@ private theorem TrEnv'.inductiveFamilyLookupsRejected
       exact impossible.elim
   | quot _ added previous inductionHypothesis =>
     exact inductionHypothesis.addQuot added previous.map_wf
-  | induct _ impossible _ _ => cases impossible
 
 theorem TrEnv'.inductiveLookupRejected (valid : TrEnv' safety constants quotient environment)
     (found : constants.find? name = some (.inductInfo header)) :
@@ -614,17 +624,6 @@ theorem TrEnv.rejectsInductiveFamilies (valid : TrEnv safety native environment)
   inductiveNotInModel := valid.inductiveNotInModel
   recursorNotInModel := valid.recursorNotInModel
   constructorNotInModel := valid.constructorNotInModel
-
-theorem AddInductEvidence.sf_mono (hsf : safety ≤ safety')
-    (H : AddInductEvidence safety' m₁ env₁ decl m₂ env₂) :
-    AddInductEvidence safety m₁ env₁ decl m₂ env₂ := by
-  cases H with
-  | intro headers constructors headerEnv hheaders hconstructors headerAdd constructorAdd
-      headerNodup constructorNodup headerFresh constructorFresh mapEq =>
-    refine .intro headers constructors headerEnv ?_ ?_ headerAdd constructorAdd
-      headerNodup constructorNodup headerFresh constructorFresh mapEq
-    · exact List.Forall₂.imp (fun _ _ h => ⟨h.1, h.2.sf_mono hsf⟩) hheaders
-    · exact List.Forall₂.imp (fun _ _ h => ⟨h.1, h.2.sf_mono hsf⟩) hconstructors
 
 theorem AddInductWithRecursorsEvidence.sf_mono (hsf : safety ≤ safety')
     (H : AddInductWithRecursorsEvidence safety' m₁ env₁ decl inductiveConstants inductiveEnv
@@ -950,7 +949,6 @@ theorem TrEnv'.quotientObjects (valid : TrEnv' safety constants true environment
   | «opaque» _ _ _ added _ inductionHypothesis =>
     exact (inductionHypothesis quotientEq).mono (VEnv.addConst_le added)
   | quot _ added _ inductionHypothesis => exact VEnv.addQuot_objs added.to_addQuot
-  | induct _ unsupported _ inductionHypothesis => cases unsupported
 
 theorem TrEnv.quotientObjects (valid : TrEnv safety native environment)
     (initialized : native.quotInit = true) :

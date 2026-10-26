@@ -103,9 +103,9 @@ nonrec theorem AddQuot.le (H : AddQuot m₁ m₂ env₁ env₂) : env₁ ≤ env
 
 /-! ### Constructive evidence for the shared inductive stages
 
-The current `TrEnv` relation still uses the legacy admission boundary below.  This
-separate witness records the constructive header and constructor stages so frontend
-bridges can consume them while the family-lookup consumers are migrated.
+This witness records the constructive header and constructor stages. The legacy
+`AddInduct` boundary below exposes that receipt to callers of the old API, while
+`TrEnvInductive` uses the richer recursor-stage receipt.
  -/
 
 def insertConsts (C : ConstMap) (cis : List ConstantInfo) : ConstMap :=
@@ -307,14 +307,18 @@ theorem insertConsts_mem {cis : List ConstantInfo} {C : ConstMap} (hC : C.WF)
     · exact ih (hC.insert _ _ (hfr _ (.head _))) hfr' hnd'.2 htail
 
 
-/-- The legacy inductive admission boundary remains explicit until lookup consumers migrate. -/
+/-- The legacy inductive boundary is retained for declaration-history compatibility,
+   but its constructor now requires constructive staged evidence. -/
 inductive AddInduct (m₁ : ConstMap) (env₁ : VEnv) (decl : VInductDecl)
     (m₂ : ConstMap) (env₂ : VEnv) : Prop
-  -- TODO
+  | ofEvidence :
+    AddInductEvidence .safe m₁ env₁ decl m₂ env₂ →
+    AddInduct m₁ env₁ decl m₂ env₂
 
 nonrec theorem AddInduct.to_addInduct
     (H : AddInduct m₁ env₁ decl m₂ env₂) : env₁.addInduct decl = some env₂ :=
-  nomatch H
+  match H with
+  | .ofEvidence evidence => evidence.to_addInduct
 
 /-- Insert a whole block of definitions into the constant map. -/
 def insertDefs (C : ConstMap) (cis : List DefinitionVal) : ConstMap :=
@@ -377,11 +381,6 @@ inductive TrEnv' : ConstMap → Bool → VEnv → Prop where
     AddQuot C C' env env' →
     TrEnv' C false env →
     TrEnv' C' true env'
-  | induct :
-    decl.WF env →
-    AddInduct C env decl C' env' →
-    TrEnv' C Q env →
-    TrEnv' C' Q env'
 
 def TrEnv (safety : DefinitionSafety) (env : Environment) (venv : VEnv) : Prop :=
   TrEnv' safety env.constants env.quotInit venv
@@ -412,6 +411,3 @@ theorem TrEnv'.wf (H : TrEnv' safety C Q venv) : venv.WF := by
   | quot h1 h2 _ ih =>
     have ⟨_, H⟩ := ih
     exact ⟨_, H.decl <| .quot h1 h2.to_addQuot⟩
-  | induct h1 h2 _ ih =>
-    have ⟨_, H⟩ := ih
-    exact ⟨_, H.decl <| .induct h1 h2.to_addInduct⟩

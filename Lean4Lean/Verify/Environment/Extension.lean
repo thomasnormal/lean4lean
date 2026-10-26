@@ -45,7 +45,6 @@ theorem TrEnv'.no_inductInfo (H : TrEnv' .unsafe C Q venv) :
     rw [wf₂.find?_insert]; split <;> [simp; skip]
     rw [wf₁.find?_insert]; split <;> [simp; skip]
     rw [wf₀.find?_insert]; split <;> [simp; exact ih]
-  | induct _ hadd => cases hadd
 
 theorem VEnv.addConst_mono {env₁ env₂ env₁' env₂' : VEnv} (H : env₁ ≤ env₂)
     (h₁ : env₁.addConst name ci = some env₁') (h₂ : env₂.addConst name ci = some env₂') :

@@ -137,9 +137,8 @@ theorem addOpaque.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env) (v : Op
 
 theorem checkEqType.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env) :
     (checkEqType env).WF fun _ => False := by
-  -- `AddInduct` currently has no constructors, so the unsafe translation cannot contain
-  -- the inductive `Eq` declaration required by quotient initialization. This case becomes
-  -- constructive when the inductive-declaration verification boundary is implemented.
+  -- The legacy `TrEnv` relation is intentionally non-inductive; constructive inductive
+  -- histories use `TrEnvInductive` and do not enter this quotient-initialization path.
   intro _ h
   unfold checkEqType at h
   simp only [Environment.get] at h
@@ -153,8 +152,8 @@ theorem checkEqType.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env) :
     exact False.elim <| (wf.tr (safety := .unsafe)).no_inductInfo hfind'
   | _ => simp_all [( · >>= · ), Except.bind, pure, Pure.pure, Except.pure]
 
-/-- This is currently vacuous in the non-initialized case: `TrEnv` cannot contain the
-inductive `Eq` declaration until `AddInduct` is implemented. -/
+/-- This remains vacuous in the non-initialized legacy path: `TrEnv` cannot contain the
+inductive `Eq` declaration. Constructive inductive histories use `TrEnvInductive`. -/
 theorem addQuot.WF {env : Environment} {ves : VEnvs} (wf : ves.WF env) :
     (Environment.addQuot env).WF fun env' =>
       ∃ ves' : VEnvs, ves'.WF env' ∧ ∀ safety, ves.venv safety ≤ ves'.venv safety := by
