@@ -45,6 +45,8 @@ The restoration-metadata wrapper preserves the same assumptions through the
 explicit restoration-stage scope.
 The ordinary restoration-stage wrapper keeps the metadata and `allowPrimitive`
 result visible alongside the target endpoint receipts.
+Its checked-primitive counterpart retains the primitive checker result and
+restoration metadata as explicit premises of the target package.
 Restored target-iota packaging now follows the same explicit history,
 alignment, recursor-WF, and value-translation boundary.
 

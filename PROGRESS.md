@@ -41,6 +41,8 @@ Restoration metadata now lifts the target-only package through its
 source-typehood frontend scope while retaining the restoration-stage boundary.
 The ordinary restoration-stage `addDecl` wrapper now returns that metadata and
 the target-only package together, including the explicit primitive bit.
+The checked-primitive restoration-stage path exposes the target-only package
+with its primitive checker and metadata obligations retained.
 The restored-record checker bridge now also exposes a generic target-iota
 alignment/history package with explicit recursor WF.
 
