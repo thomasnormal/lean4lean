@@ -37,6 +37,8 @@ both result witnesses explicit.
 The generic target-only generated-rule iota package preserves the same
 explicit-WF boundary and retains the target translation, type, and sort-arity
 receipts.
+The paired generated-result/target package retains the full generated receipt
+and its target endpoint under the same explicit WF boundary.
 The ordinary `addDecl` wrapper preserves the same conditional contract and
 returns the frontend's primitive-authorization bit explicitly.
 Its checked-primitive wrapper keeps the primitive checker result and all
