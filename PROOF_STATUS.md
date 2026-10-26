@@ -30,6 +30,9 @@ rule semantics; source/value and recursor obligations remain explicit.
 The restoration-stage checker-history companion carries that declaration
 `VDecl.WF` through the existential stage selection without hiding the
 source/value or generated-rule premises.
+The checked-primitive base/target-iota consumer likewise carries the producer
+`VDecl.WF` beside its retained endpoints, with stored-RHS and target-typing
+obligations unchanged.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

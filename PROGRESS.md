@@ -36,6 +36,10 @@ The restoration-stage checker-history companion preserves the same declaration
 `VDecl.WF` across the existential stage selection, with source/value and
 generated-rule obligations still visible.
 
+The checked-primitive base/target-iota consumer now carries the same producer
+`VDecl.WF` beside its retained iota endpoints; stored-RHS and target typing
+obligations remain unchanged.
+
 ## All-safety inductive checker boundary — 2026-10-26
 
 `VEnvs.InductiveWF` now records an all-safety `TrEnvInductive` history together
