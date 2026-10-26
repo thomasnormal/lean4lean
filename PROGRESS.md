@@ -101,6 +101,8 @@ premise and keeps the initial alignment explicit.
 `SafeInductiveRestorationMetadata` now lifts that aligned registration receipt
 directly through its frontend scope, preserving the same explicit history,
 alignment, map, and safe-value inputs for restoration callers.
+The explicit-recursors companion exposes the same package when recursor model
+WF has already been constructed, avoiding any hidden source-typehood step.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

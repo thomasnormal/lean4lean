@@ -85,6 +85,8 @@ equalities, and safe-value translation remain explicit inputs.
 The restoration-metadata frontend wrapper now exposes that same aligned
 registration receipt without requiring callers to unpack the executable
 scope; it retains all of those explicit obligations.
+An explicit-recursors companion is also available for restoration callers
+that already hold the model-WF witness.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
