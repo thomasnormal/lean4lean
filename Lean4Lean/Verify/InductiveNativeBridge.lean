@@ -856,6 +856,24 @@ theorem RegistrationEvidence.to_addInductEvidence_at
       evidence.constructorEnv :=
   (evidence.to_addInductEvidence hconstants).sf_mono DefinitionSafety.le_safe
 
+/- Expose the constructive staged receipt through the legacy `AddInduct`
+   boundary as well.  The boundary is intentionally limited to the header and
+   constructor environment; generated recursors remain in
+   `AddInductWithRecursorsEvidence`. -/
+theorem RegistrationEvidence.to_legacyAddInduct
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) :
+    AddInduct constants env decl evidence.constructorConstants evidence.constructorEnv :=
+  .ofEvidence (evidence.to_addInductEvidence hconstants)
+
+theorem RegistrationEvidence.to_legacyAddInduct_and_aligned
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (haligned : Aligned .safe constants env) :
+    AddInduct constants env decl evidence.constructorConstants evidence.constructorEnv ∧
+      Aligned .safe evidence.constructorConstants evidence.constructorEnv := by
+  have hlegacy := evidence.to_legacyAddInduct hconstants
+  exact ⟨hlegacy, Aligned.addInduct hlegacy haligned⟩
+
 private theorem insertConsts_recursorInfos (constants : ConstMap) (entries : List RecursorEntry) :
     insertConsts constants (entries.map (.recInfo ·.info)) =
       insertRecursors constants entries := by

@@ -1,5 +1,20 @@
 # Non-inductive verification proof of concept
 
+## Constructive legacy `AddInduct` consumer — 2026-10-26
+
+`RegistrationEvidence.to_legacyAddInduct` now turns a verified native
+registration receipt into the legacy `AddInduct` relation through its
+constructive `AddInduct.ofEvidence` constructor. The paired
+`to_legacyAddInduct_and_aligned` theorem also transports the existing aligned
+map invariant through that boundary. The bridge stops after headers and
+constructors; generated recursors remain in
+`AddInductWithRecursorsEvidence`, and no recursor/iota or complete `addDecl`
+soundness theorem is claimed. The direct theorem audit is
+`[propext, sorryAx, Classical.choice, Quot.sound,
+PersistentHashMap.findAux_isSome, PersistentHashMap.WF.find?_eq,
+PersistentHashMap.WF.toList'_insert]`, inherited from the existing constructive
+lookup infrastructure.
+
 This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 

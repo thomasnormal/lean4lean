@@ -243,6 +243,8 @@ example {constants resultConstants : ConstMap}
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistoryAndMapWF
 #check NativeInductive.RegistrationEvidence.orderedEntryReceiptAndMap
 #check NativeInductive.RegistrationEvidence.orderedEntryReceiptAndMapAndAlignment
+#check NativeInductive.RegistrationEvidence.to_legacyAddInduct
+#check NativeInductive.RegistrationEvidence.to_legacyAddInduct_and_aligned
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistoryAndMapWF_and_orderedEntryReceiptAndMapAndAlignment
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_orderedEntryReceiptAndMapAndAlignment
 #check addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup
@@ -501,6 +503,19 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
     AddInductEvidence .safe constants env decl evidence.constructorConstants
       evidence.constructorEnv :=
   evidence.to_addInductEvidence hconstants
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) :
+    AddInduct constants env decl evidence.constructorConstants evidence.constructorEnv :=
+  evidence.to_legacyAddInduct hconstants
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (haligned : Aligned .safe constants env) :
+    AddInduct constants env decl evidence.constructorConstants evidence.constructorEnv ∧
+      Aligned .safe evidence.constructorConstants evidence.constructorEnv :=
+  evidence.to_legacyAddInduct_and_aligned hconstants haligned
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)

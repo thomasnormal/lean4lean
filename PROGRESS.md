@@ -6,6 +6,11 @@ detailed theorem contracts, dependency audits, and regression evidence.
 
 ## Bottom line
 
+The legacy `AddInduct` boundary now has a constructive producer: `RegistrationEvidence.to_legacyAddInduct`
+packages the verified header/constructor stages, and its aligned companion exposes the corresponding
+`Aligned` result. Generated recursors remain represented by the richer
+`AddInductWithRecursorsEvidence`; this bridge does not claim recursor or iota soundness.
+
 Our fork has substantial additional checker verification, primitive proofs,
 inductive staging work, and regression coverage. It is **not a completed
 verification of Lean's kernel**, and it is **not uniformly ahead of official
