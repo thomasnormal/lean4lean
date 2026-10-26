@@ -3568,6 +3568,43 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   scope.toCheckerEnvInductive_of_explicitHistoryAndMapWF history hconstants
     hresultConstants hvalues
 
+example {safety : DefinitionSafety} {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe resultConstants Q semanticResult)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    (haligned : Aligned safety constants semanticEnv) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      (result.constants = resultConstants ∧ constants.WF) ∧
+      (((∀ entry ∈ producer.orderedEntries,
+        entry.Semantic semanticEnv producer.headerEnv producer.constructorEnv ∧
+          entry.ModelShape ∧
+          (∃ semantic, match entry with
+            | .header entry =>
+              TrExprS semanticEnv entry.info.levelParams [] entry.info.type semantic
+            | .constructor entry =>
+              TrExprS producer.headerEnv entry.info.levelParams [] entry.info.type semantic
+            | .recursor entry =>
+              TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic) ∧
+          match entry with
+            | .header entry => ∃ type ∈ decl.types, entry.model = type.toVConstVal
+            | .constructor entry =>
+              ∃ constructor ∈ decl.constructorHeaders, entry.model = constructor
+            | .recursor _ => True) ∧
+        resultConstants = NativeInductive.insertOrdered constants producer.orderedEntries) ∧
+        Aligned safety resultConstants semanticResult) :=
+  scope.toCheckerEnvInductive_of_explicitHistoryAndMapWF_and_orderedEntryReceiptAndMapAndAlignment
+    history producer hconstants hresultConstants hvalues haligned
+
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
     (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
