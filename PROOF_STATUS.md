@@ -84,6 +84,12 @@ evidence.orderedEntries`. Its audit is `[propext, sorryAx, Classical.choice,
 Quot.sound]`; it does not invoke positive persistent-map lookup or add an
 `AddInduct`/recursor-soundness claim.
 
+`NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrime`
+projects the restored installation receipt's exact staged-map (`find?'`) lookup
+to the explicitly supplied `resultConstants` map using the result-map equality.
+Its proof does not construct a persistent-map lookup and adds no
+`AddInduct`/recursor-soundness claim.
+
 ## Checked primitive registration lookup — 2026-10-26
 
 `addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup` now

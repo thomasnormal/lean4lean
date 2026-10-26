@@ -2122,6 +2122,35 @@ theorem NativeInductive.RestoredRecordEvidence.registrationReceiptAndMap
     restored.registrationMap producer halign hconstants hresultConstants, ?_⟩
   exact restored.registrationReceipt producer halign
 
+/- Re-express the restored installation lookup against the producer's explicit
+   result map.  The prime lookup is the kernel environment's staged-map view;
+   transporting it across `hresultConstants` avoids the constructive
+   persistent-map conversion used by the separate checker lookup interface. -/
+theorem NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrime
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hresultConstants : result.constants = resultConstants) :
+    result.constants = resultConstants ∧
+      result.constants.WF ∧
+      result.constants = insertOrdered constants restored.entries ∧
+      (∀ entry ∈ restored.entries,
+        resultConstants.find?' entry.toConstantInfo.name = some entry.toConstantInfo) := by
+  have hreceipt := restored.registrationReceiptAndMap producer halign hconstants hresultConstants
+  refine ⟨hreceipt.1, hreceipt.2.1, hreceipt.2.2.1, ?_⟩
+  intro entry hentry
+  obtain ⟨_, _, _, _, _, hlookup, _, _⟩ := hreceipt.2.2.2 entry hentry
+  rw [← hresultConstants]
+  simpa only [Kernel.Environment.find?] using hlookup
+
 /- Extend the dependency-safe restored receipt with the producer's semantic
    alignment, keeping the native map and installed-record facts available to a
    checker consumer in one package. -/

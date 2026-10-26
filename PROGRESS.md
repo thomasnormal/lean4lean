@@ -79,6 +79,12 @@ semantic, model-shape, type-translation, and declaration-membership receipt
 with its explicit `insertOrdered` map equation. It is a map-alignment package;
 positive final-map lookup remains a separate audited interface.
 
+`RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrime`
+re-expresses each restored installation lookup against the producer's explicit
+`resultConstants` map using the kernel environment's staged-map (`find?'`)
+view. It only transports the restored receipt across the supplied map equality
+and does not invoke persistent-map lookup conversion.
+
 The reducer boundary now also accepts an exact equation whose result is the
 stored rule RHS. This packages the generated target translation, typing, sort
 arity, and native reducer success in one receipt, with a per-recursor
