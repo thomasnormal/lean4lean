@@ -31,6 +31,8 @@ Its paired generated-rule iota base/target package is also available with
 explicit recursor WF; the source-typehood wrapper derives that witness.
 The combined generated-result plus iota package now has the same generic
 explicit-WF form and delegates its source-typehood wrapper.
+The generic checker bridge also exposes a target-only generated-rule iota
+package with the same explicit recursor-WF boundary.
 The restored-record checker bridge now also exposes a generic target-iota
 alignment/history package with explicit recursor WF.
 

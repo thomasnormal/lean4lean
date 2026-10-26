@@ -34,6 +34,9 @@ The generated-rule iota base/target package follows the same explicit-WF
 boundary and does not assert general iota soundness.
 The combined generated-result/iota package preserves that boundary and keeps
 both result witnesses explicit.
+The generic target-only generated-rule iota package preserves the same
+explicit-WF boundary and retains the target translation, type, and sort-arity
+receipts.
 Restored target-iota packaging now follows the same explicit history,
 alignment, recursor-WF, and value-translation boundary.
 
