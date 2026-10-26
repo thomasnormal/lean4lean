@@ -89,6 +89,10 @@ extends that package with `Aligned safety resultConstants semanticResult` from
 the producer's alignment theorem. The same standard axiom set and explicit
 registration obligations remain in force.
 
+The corresponding explicit-history scope/map-WF composite returns the checker,
+the final-map equality and initial `ConstMap.WF`, and the ordered receipt with
+alignment. It uses no persistent-map conversion.
+
 `SafeInductiveFrontendScope.toCheckerEnvInductive_and_orderedEntryReceiptAndMapAndAlignment`
 uses an explicit final safe history and value callback to pair the checker
 environment with the ordered producer receipt/map/alignment package. Its audit

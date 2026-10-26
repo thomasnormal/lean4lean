@@ -83,6 +83,9 @@ positive final-map lookup remains a separate audited interface.
 producer's `Aligned` result-map invariant to that package without changing the
 explicit map or recursor-WF obligations.
 
+The explicit-history scope/map-WF bridge now also exposes that ordered receipt
+and alignment while retaining `constants.WF` as a separate result.
+
 `SafeInductiveFrontendScope.toCheckerEnvInductive_and_orderedEntryReceiptAndMapAndAlignment`
 consumes an explicit final checker history and value-translation callback, then
 pairs the checked scope with that producer receipt and alignment. It avoids the
