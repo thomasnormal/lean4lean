@@ -22,6 +22,9 @@ open Lean4Lean.AddInductive.declareConstructors
 #check VEnvs.InductiveWF.map_wf
 #check VEnvs.InductiveWF.venv_wf
 #check VEnvs.InductiveWF.toCheckerEnvInductive
+#check VEnvs.InductiveWF.toCheckerEnvInductive_and_wf
+#check CheckerEnvInductive.map_wf
+#check CheckerEnvInductive.venv_wf
 
 example {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
     (model : VEnvs.InductiveWF env ves Q) : env.constants.WF :=
@@ -35,6 +38,21 @@ example {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
         (.const ci.name (VLevel.params ci.levelParams.length))) :
     CheckerEnvInductive safety env (ves.venv safety) Q :=
   model.toCheckerEnvInductive safety safeValues
+
+example {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
+    (model : VEnvs.InductiveWF env ves Q) (safety : DefinitionSafety)
+    (safeValues : ∀ {name ci value}, env.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr (ves.venv safety) ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety env (ves.venv safety) Q ∧
+      env.constants.WF ∧ (ves.venv safety).WF :=
+  model.toCheckerEnvInductive_and_wf safety safeValues
+
+example {env : Kernel.Environment} {venv : VEnv} {Q : Bool}
+    (checker : CheckerEnvInductive safety env venv Q) :
+    env.constants.WF ∧ venv.WF :=
+  ⟨checker.map_wf, checker.venv_wf⟩
 
 example {constants resultConstants : ConstMap}
     {env resultEnv : VEnv} {decl : VInductDecl}

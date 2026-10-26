@@ -12,8 +12,10 @@ projections expose the map and per-safety environment obligations, and
 `toCheckerEnvInductive` constructs the inductive checker environment when the
 caller supplies the safe-value translation callback. This is a semantic
 consumer boundary for inductive histories; the legacy `VEnvs.WF` relation still
-rejects inductive families and is intentionally unchanged. The regression
-fixture checks the new projections and construction. Inductive registration,
+rejects inductive families and is intentionally unchanged. The combined
+checker/WF package and checker-side map/environment WF projections make those
+facts available without reopening the history. The regression fixture checks
+the new projections and construction. Inductive registration,
 recursor/iota soundness, and executable frontend soundness remain open.
 
 ## Bottom line

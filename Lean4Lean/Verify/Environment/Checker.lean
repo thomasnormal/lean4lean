@@ -115,6 +115,24 @@ theorem VEnvs.InductiveWF.toCheckerEnvInductive
     CheckerEnvInductive safety env (ves.venv safety) Q :=
   ⟨H.history, safeValues⟩
 
+theorem VEnvs.InductiveWF.toCheckerEnvInductive_and_wf
+    (H : VEnvs.InductiveWF env ves Q) (safety : DefinitionSafety)
+    (safeValues : ∀ {name ci value}, env.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr (ves.venv safety) ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety env (ves.venv safety) Q ∧
+      env.constants.WF ∧ (ves.venv safety).WF :=
+  ⟨H.toCheckerEnvInductive safety safeValues, H.map_wf, H.venv_wf safety⟩
+
+theorem CheckerEnvInductive.map_wf
+    (H : CheckerEnvInductive safety env venv Q) : env.constants.WF :=
+  H.history.map_wf
+
+theorem CheckerEnvInductive.venv_wf
+    (H : CheckerEnvInductive safety env venv Q) : venv.WF :=
+  H.history.wf
+
 theorem CheckerEnvInductive.toCheckerEnv
     (H : CheckerEnvInductive safety env venv Q) : CheckerEnv safety env venv :=
   ⟨H.history.aligned, H.history.wf, H.safeValues⟩

@@ -8,7 +8,10 @@ every safety level, the primitive invariants, and safety monotonicity.
 `VEnvs.InductiveWF.map_wf` and `.venv_wf` project the initial constant-map WF
 and each safety-indexed model WF. Its `.toCheckerEnvInductive` theorem consumes
 an explicit safe-value translation callback and constructs the checker-facing
-environment. The boundary is separate from legacy `VEnvs.WF`, whose `TrEnv`
+environment. `.toCheckerEnvInductive_and_wf` returns that checker together with
+both WF projections, while `CheckerEnvInductive.map_wf` and `.venv_wf` expose
+the same facts from the checker-facing package. The boundary is separate from
+legacy `VEnvs.WF`, whose `TrEnv`
 lookup-rejection contract cannot represent inductive declarations. The native
 bridge regression checks the API and both projections. This is a semantic
 checker-consumer migration point: it does not construct `AddInduct`, prove
