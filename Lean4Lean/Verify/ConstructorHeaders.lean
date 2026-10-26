@@ -418,4 +418,39 @@ theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorVDeclW
       (by simpa [huniverses] using htr), hctorAdd, hctorWF,
       .induct (natInductDecl.wf_public venv) hadd, haligned'⟩
 
+/- Consume the same staged receipt against a checker environment.  The
+   `NativeValueFrame` transport keeps safe-value checking explicit while the
+   semantic `VDecl.WF` witness records the registered inductive declaration. -/
+theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorCheckerVDeclWF
+    (ctx : AddInductive.Context) (numParams : Nat) (types : List InductiveType)
+    (numNested : Nat) (isUnsafe : Bool) {safety : DefinitionSafety} {venv : VEnv}
+    (hchecker : CheckerEnv safety ctx.env venv)
+    (hprimitive : Environment.checkPrimitiveInductive
+      ctx.env ctx.lparams numParams types isUnsafe = .ok true) :
+    (checkInductiveTypes numParams types.toArray (fun stats => do
+      withEnv (← declareInductiveTypes stats numParams types.toArray numNested isUnsafe) do
+        checkConstructors types.toArray stats isUnsafe
+        declareConstructors stats types.toArray isUnsafe) ctx).WF fun env' =>
+      ∃ decl headerEnv ctorEnv, (decl = boolInductDecl ∨ decl = natInductDecl) ∧
+        decl.HeadersWF venv ∧ decl.WF venv ∧
+        venv.addInductHeaders decl.types = some headerEnv ∧ headerEnv.WF ∧
+        TrInductDecl venv headerEnv ctx.lparams numParams types decl ∧
+        headerEnv.addConstructorHeaders (decl.types.flatMap (fun type => type.ctors)) =
+          some ctorEnv ∧
+        ctorEnv.WF ∧ VDecl.WF venv (.induct decl) ctorEnv ∧
+        CheckerEnv safety env' ctorEnv := by
+  intro env' accepted
+  obtain ⟨decl, headerEnv, ctorEnv, hkind, hheaders, hdeclWF, hheaderAdd, hheaderWF,
+      htr, hctorAdd, hctorWF, hdeclVWF, haligned'⟩ :=
+    (AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorVDeclWF
+      ctx numParams types numNested isUnsafe hchecker.aligned hchecker.wf hprimitive)
+      env' accepted
+  have hframe := AddInductive.checkInductiveTypes.preservesHeaderConstructorValues
+    ctx numParams types.toArray numNested isUnsafe hchecker.map_wf env' accepted
+  exact ⟨decl, headerEnv, ctorEnv, hkind, hheaders, hdeclWF, hheaderAdd, hheaderWF,
+    htr, hctorAdd, hctorWF, hdeclVWF,
+    hchecker.of_valueFrame hframe
+      ((VEnv.addInductHeaders.le hheaderAdd).trans
+        (VEnv.addConstructorHeaders.le hctorAdd)) hctorWF haligned'⟩
+
 end Lean4Lean

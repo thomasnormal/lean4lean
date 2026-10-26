@@ -12,6 +12,10 @@ name translation. This is a staged declaration receipt only; generated
 recursors, recursor/iota equations, and the complete executable frontend
 theorem remain open. The public `wf_public` projections expose the existing
 private canonical model proofs without adding assumptions.
+The checker companion transports safe values through the native
+header/constructor frame and returns the resulting `CheckerEnv` together with
+the same semantic `VDecl.WF` receipt. It remains a staged checker boundary;
+recursor registration and iota soundness stay explicit obligations.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

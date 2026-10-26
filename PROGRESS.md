@@ -13,6 +13,10 @@ its `HeadersWF` and `WF` receipts, the semantic header and constructor maps,
 and a `VDecl.WF` witness for the registered inductive declaration. The theorem
 stops at the header/constructor boundary; generated recursor registration and
 recursor/iota soundness remain explicit downstream obligations.
+Its checker companion transports the safe-value facts through the native
+header/constructor frame and returns the transported `CheckerEnv` together
+with the same semantic `VDecl.WF` receipt. This remains a staged checker
+boundary; it does not establish recursor registration or iota soundness.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
