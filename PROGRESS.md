@@ -477,6 +477,13 @@ entries available to checker-facing consumers while retaining the explicit
 staging and translation premises. They do not complete `AddInduct`, the
 inductive frontend, or recursor/iota soundness.
 
+`AddInductWithRecursorsEvidence.lookupReceipt` now transports the header and
+constructor lookups through the generated-recursor insertion and returns all
+three exact lookup families in the final constant map. A regression consumes
+this combined receipt through actual `RegistrationEvidence`; no lookup is
+obtained by assuming a map equation without its freshness and no-duplication
+premises.
+
 **Universal original-core simulation:** every actual `NormalEq` in a
 well-formed environment with the checked quotient rule registered now simulates
 any original parallel step, and any finite original-core path, using the

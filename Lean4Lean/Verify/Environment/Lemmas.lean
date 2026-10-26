@@ -854,6 +854,66 @@ theorem AddInductWithRecursorsEvidence.recursorLookup
     insertConsts_mem hbase hfresh hnodup
       (List.mem_map.mpr ⟨info, hinfo, rfl⟩)
 
+/- The complete staged receipt keeps the earlier header and constructor
+   lookups available after generated recursors are inserted. -/
+theorem AddInductWithRecursorsEvidence.lookupReceipt
+    (H : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
+      recursors models C' env') (hC : C.WF) :
+    ∃ (headers : List InductiveVal) (constructors : List ConstructorVal) (headerEnv : VEnv),
+      List.Forall₂
+        (fun info header => info.name = header.name ∧
+          TrConstant safety env (.inductInfo info) header.toVConstant)
+        headers decl.types ∧
+      List.Forall₂
+        (fun info ctor => info.name = ctor.name ∧
+          TrConstant safety headerEnv (.ctorInfo info) ctor.toVConstant)
+        constructors decl.constructorHeaders ∧
+      (∀ info ∈ headers, C'.find? info.name = some (.inductInfo info)) ∧
+      (∀ ctor ∈ constructors, C'.find? ctor.name = some (.ctorInfo ctor)) ∧
+      (∀ info ∈ recursors, C'.find? info.name = some (.recInfo info)) := by
+  obtain ⟨headers, constructors, headerEnv, hheaders, hconstructors,
+      hheader, hconstructor⟩ := H.inductiveEvidence.lookupReceipt hC
+  have hbase : inductiveConstants.WF := H.inductiveEvidence.map_wf hC
+  have hfresh : ∀ ci ∈ recursors.map (ConstantInfo.recInfo ·),
+      inductiveConstants.find? ci.name = none := by
+    intro ci hci
+    obtain ⟨recursor, hrecursor, rfl⟩ := List.mem_map.mp hci
+    obtain ⟨model, hmodel, htranslation⟩ :=
+      Lean4Lean.List.Forall₂.forall_exists_l H.translations recursor hrecursor
+    have hname : (ConstantInfo.recInfo recursor).name = model.name := by
+      simpa only [ConstantInfo.name, ConstantInfo.toConstantVal] using htranslation.1
+    rw [hname]
+    exact H.recursorFresh model hmodel
+  have hnodup :
+      (recursors.map (ConstantInfo.recInfo ·)).map (·.name) |>.Nodup := by
+    have htranslations : List.Forall₂
+        (fun recursor model => recursor.name = model.name) recursors models :=
+      Lean4Lean.List.Forall₂.imp (fun _ _ h => h.1) H.translations
+    have hpair : List.Forall₂ Eq (recursors.map (·.name)) (models.map (·.name)) := by
+      rw [List.forall₂_map_left_iff, List.forall₂_map_right_iff]
+      exact htranslations
+    have hnames :
+        (recursors.map (ConstantInfo.recInfo ·)).map (·.name) = recursors.map (·.name) := by
+      induction recursors with
+      | nil => rfl
+      | cons info recursors ih =>
+        simp [ConstantInfo.name, ConstantInfo.toConstantVal]
+    rw [hnames]
+    exact (List.forall₂_eq.mp hpair).symm ▸ H.recursorNodup
+  have hmap : C'.find? =
+      (insertConsts inductiveConstants (recursors.map (ConstantInfo.recInfo ·))).find? := by
+    rw [H.resultMap]
+  refine ⟨headers, constructors, headerEnv, hheaders, hconstructors, ?_, ?_, ?_⟩
+  · intro info hinfo
+    rw [hmap]
+    simpa only [ConstantInfo.name, ConstantInfo.toConstantVal] using
+      insertConsts_preserves_find? hbase hfresh hnodup (hheader info hinfo)
+  · intro ctor hctor
+    rw [hmap]
+    simpa only [ConstantInfo.name, ConstantInfo.toConstantVal] using
+      insertConsts_preserves_find? hbase hfresh hnodup (hconstructor ctor hctor)
+  · exact H.recursorLookup hC
+
 theorem TrEnvInductive.env_find? {env : Environment}
     (H : TrEnvInductive safety env.constants Q venv)
     (h : env.find? name = some ci) (hs : safety ≤ ci.safety) :

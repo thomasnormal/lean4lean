@@ -74,6 +74,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check AddInductive.GeneratedRecursorRuleIotaTargetReductionExact
 #check AddInductEvidence.lookupReceipt
 #check AddInductWithRecursorsEvidence.recursorLookup
+#check AddInductWithRecursorsEvidence.lookupReceipt
 #check AddInductive.GeneratedConstructorRuleRhsResult.iotaTargetReductionOfExact
 #check AddInductive.GeneratedRecursorRuleIotaTargetReductionExact.toOrdinary
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaTargetReductionOf
@@ -495,6 +496,22 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
   intro info hinfo
   exact (evidence.to_addInductWithRecursorsEvidence hconstants hrecursors).recursorLookup
     hconstants info hinfo
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv) :
+    ∃ (headers : List InductiveVal) (constructors : List ConstructorVal) (headerEnv : VEnv),
+      (∀ info ∈ headers, resultConstants.find? info.name =
+        some (.inductInfo info)) ∧
+      (∀ ctor ∈ constructors, resultConstants.find? ctor.name =
+        some (.ctorInfo ctor)) ∧
+      (∀ info ∈ evidence.recursors.map (·.info), resultConstants.find? info.name =
+        some (.recInfo info)) := by
+  obtain ⟨headers, constructors, headerEnv, _, _, hheaders, hconstructors, hrecursors⟩ :=
+    (evidence.to_addInductWithRecursorsEvidence hconstants hrecursors).lookupReceipt hconstants
+  exact ⟨headers, constructors, headerEnv, hheaders, hconstructors, hrecursors⟩
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :

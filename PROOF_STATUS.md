@@ -19,6 +19,14 @@ checks exact header, constructor, and recursor entries. No executable
 frontend behavior changed, and `AddInduct`, full inductive registration, and
 iota/recursor soundness remain open.
 
+`AddInductWithRecursorsEvidence.lookupReceipt` now composes these stage-local
+receipts after the generated recursor insertion. It returns the exact final
+map lookup for every header, constructor, and recursor, preserving the
+`Forall₂` translations and the fresh, name-unique insertion premises. The
+regression consumes this combined package through `RegistrationEvidence`.
+This is a registration lookup bridge; it does not construct the missing
+`AddInduct` constructor or prove inductive recursor semantics.
+
 ## Exact generated RHS reduction consumer — 2026-10-25
 
 `GeneratedRecursorRuleIotaTargetReductionExact` records a successful native
