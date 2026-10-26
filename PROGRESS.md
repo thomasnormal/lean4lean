@@ -19,6 +19,9 @@ convenience form that derives recursor WF from the same explicit obligations.
 The checker bridge now has a generic `toCheckerEnvInductive_and_aligned` form
 that retains explicit recursor WF and value-translation witnesses, while the
 source-typehood form delegates to it.
+`SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationHistory`
+similarly combines generic checker construction with the explicit final
+declaration history; its source-typehood form now delegates to that theorem.
 
 Our fork has substantial additional checker verification, primitive proofs,
 inductive staging work, and regression coverage. It is **not a completed

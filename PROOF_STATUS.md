@@ -23,6 +23,9 @@ recursor typehood/WF obligations explicit.
 Its checker-facing paired bridge accepts the same explicit recursor WF and
 value-translation obligations and returns the checker environment with the
 aligned result map.
+The frontend-scope bridge also exposes the generic checker/history pair while
+retaining explicit map equalities, initial map WF, recursor WF, and value
+translation.
 
 This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
