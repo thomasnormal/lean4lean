@@ -76,6 +76,8 @@ additional recursor, iota, or frontend soundness result.
 The frontend-scope wrapper carries the executable registration equation and
 its WF projections into the checker boundary without adding a frontend,
 recursor, or iota soundness claim.
+Its source-typehood companion derives only the existing recursor-WF premise
+from source translation and keeps all registration and checker obligations.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

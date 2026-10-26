@@ -69,6 +69,34 @@ theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationWF
   exact producer.toCheckerEnvInductive_and_registrationWF env result history rfl
     hresultConstants hconstantsWF hrecursors hvalues
 
+theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationWF_of_sourceTypehood
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      semanticEnv.addInductWithRecursors decl (producer.recursors.map (·.model)) =
+        some semanticResult ∧
+      semanticResult.WF ∧ result.constants.WF := by
+  have hrecursors := producer.recursorWF_of_sourceTypehood
+    (producer.constructorEnvWF history.wf) hsource
+  exact scope.toCheckerEnvInductive_and_registrationWF history producer hconstants
+    hresultConstants hrecursors hvalues
+
 /- A checked frontend scope can also be consumed when its final declaration
    history is supplied independently. This keeps checker construction from
    silently rebuilding registration or map-WF evidence. -/
