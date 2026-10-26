@@ -90,6 +90,8 @@ that already hold the model-WF witness.
 Frontend scopes now expose the corresponding ordinary `CheckerEnv` package
 through `CheckerEnvInductive.toCheckerEnv`; the source-typehood form only
 derives the existing recursor model-WF witness.
+Restoration metadata has the matching frontend source-typehood projection
+for callers that consume the ordinary checker interface.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

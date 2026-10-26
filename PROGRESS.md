@@ -106,6 +106,8 @@ WF has already been constructed, avoiding any hidden source-typehood step.
 The scope now also projects `CheckerEnvInductive` to the existing `CheckerEnv`
 consumer interface, with an explicit-recursors form and a source-typehood
 convenience form.
+Restoration metadata exposes the matching ordinary `CheckerEnv` projection
+through its frontend source-typehood path.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
