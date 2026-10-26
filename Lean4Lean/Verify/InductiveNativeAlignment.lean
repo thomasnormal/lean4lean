@@ -304,6 +304,37 @@ theorem RegistrationEvidence.to_trEnvInductive_of_sourceTypehood
     (evidence.constructorEnvWF henv) hsource
   exact evidence.to_trEnvInductive history hconstants hrecursors
 
+/- Pair the constructive declaration history with the corresponding semantic
+   alignment. Both the history and the initial alignment remain explicit
+   caller obligations, so this bridge does not rebuild either relation. -/
+theorem RegistrationEvidence.to_trEnvInductive_and_aligned
+    {safety : DefinitionSafety}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (history : TrEnvInductive safety constants Q env)
+    (haligned : Aligned safety constants env) (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv) :
+    TrEnvInductive safety resultConstants Q result ∧
+      Aligned safety resultConstants result := by
+  have hregistration := evidence.to_addInductWithRecursorsEvidence_at
+    safety hconstants hrecursors
+  exact ⟨evidence.to_trEnvInductive history hconstants hrecursors,
+    Aligned.addInductWithRecursorsEvidence hregistration haligned⟩
+
+theorem RegistrationEvidence.to_trEnvInductive_and_aligned_of_sourceTypehood
+    {safety : DefinitionSafety}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (history : TrEnvInductive safety constants Q env)
+    (haligned : Aligned safety constants env) (hconstants : constants.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    TrEnvInductive safety resultConstants Q result ∧
+      Aligned safety resultConstants result := by
+  exact evidence.to_trEnvInductive_and_aligned history haligned hconstants
+    (evidence.recursorWF_of_sourceTypehood
+      (evidence.constructorEnvWF history.wf) hsource)
+
 theorem RegistrationEvidence.registrationWF
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)

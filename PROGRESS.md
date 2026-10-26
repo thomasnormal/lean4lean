@@ -13,6 +13,9 @@ packages the verified header/constructor stages, and its aligned companion expos
 The boundary also exposes `AddInduct.map_wf` and `AddInduct.lookupReceipt` so
 older consumers can use its constructive map and positive lookup facts without
 reopening the evidence constructor.
+`RegistrationEvidence.to_trEnvInductive_and_aligned` now pairs the explicit
+declaration history with the aligned result map, with a source-typehood
+convenience form that derives recursor WF from the same explicit obligations.
 
 Our fork has substantial additional checker verification, primitive proofs,
 inductive staging work, and regression coverage. It is **not a completed

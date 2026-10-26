@@ -17,6 +17,9 @@ lookup infrastructure.
 `AddInduct.map_wf` and `AddInduct.lookupReceipt` expose the same map and
 header/constructor lookup facts to legacy callers without weakening that
 boundary.
+The registration bridge also exposes paired `TrEnvInductive` history and
+`Aligned` results, while keeping initial history, alignment, map WF, and
+recursor typehood/WF obligations explicit.
 
 This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.

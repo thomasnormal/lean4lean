@@ -15,6 +15,8 @@ open Lean4Lean.AddInductive.declareConstructors
 #check AddInduct.ofEvidence
 #check AddInduct.map_wf
 #check AddInduct.lookupReceipt
+#check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned
+#check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned_of_sourceTypehood
 
 example {constants resultConstants : ConstMap}
     {env resultEnv : VEnv} {decl : VInductDecl}
@@ -536,6 +538,30 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
     AddInduct constants env decl evidence.constructorConstants evidence.constructorEnv ∧
       Aligned .safe evidence.constructorConstants evidence.constructorEnv :=
   evidence.to_legacyAddInduct_and_aligned hconstants haligned
+
+example {safety : DefinitionSafety} {Q : Bool}
+    {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (history : TrEnvInductive safety constants Q env)
+    (haligned : Aligned safety constants env) (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv) :
+    TrEnvInductive safety resultConstants Q result ∧
+      Aligned safety resultConstants result :=
+  evidence.to_trEnvInductive_and_aligned history haligned hconstants hrecursors
+
+example {safety : DefinitionSafety} {Q : Bool}
+    {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (history : TrEnvInductive safety constants Q env)
+    (haligned : Aligned safety constants env) (hconstants : constants.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic) :
+    TrEnvInductive safety resultConstants Q result ∧
+      Aligned safety resultConstants result :=
+  evidence.to_trEnvInductive_and_aligned_of_sourceTypehood
+    history haligned hconstants hsource
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
