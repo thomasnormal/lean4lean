@@ -784,6 +784,30 @@ theorem AddInductEvidence.lookupReceipt
           ConstantInfo.toConstantVal] using constructorNodup)
         (List.mem_map.mpr ⟨ctor, hctor, rfl⟩)
 
+/- Legacy consumers can now use the constructive `AddInduct` boundary without
+   unpacking its evidence constructor themselves. Generated recursor lookups
+   remain on `AddInductWithRecursorsEvidence`. -/
+theorem AddInduct.map_wf
+    (H : AddInduct C env decl C' env') (hC : C.WF) : C'.WF := by
+  cases H with
+  | ofEvidence evidence => exact evidence.map_wf hC
+
+theorem AddInduct.lookupReceipt
+    (H : AddInduct C env decl C' env') (hC : C.WF) :
+    ∃ (headers : List InductiveVal) (constructors : List ConstructorVal) (headerEnv : VEnv),
+      List.Forall₂
+        (fun info header => info.name = header.name ∧
+          TrConstant .safe env (.inductInfo info) header.toVConstant)
+        headers decl.types ∧
+      List.Forall₂
+        (fun info ctor => info.name = ctor.name ∧
+          TrConstant .safe headerEnv (.ctorInfo info) ctor.toVConstant)
+        constructors decl.constructorHeaders ∧
+      (∀ info ∈ headers, C'.find? info.name = some (.inductInfo info)) ∧
+      (∀ ctor ∈ constructors, C'.find? ctor.name = some (.ctorInfo ctor)) := by
+  cases H with
+  | ofEvidence evidence => exact evidence.lookupReceipt hC
+
 theorem AddInductWithRecursorsEvidence.map_wf
     (H : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
       recursors models C' env') (hC : C.WF) : C'.WF := by

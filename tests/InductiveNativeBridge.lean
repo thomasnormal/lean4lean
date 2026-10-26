@@ -13,6 +13,8 @@ open Lean Lean4Lean Lean4Lean.NativeInductive
 open Lean4Lean.AddInductive.declareConstructors
 
 #check AddInduct.ofEvidence
+#check AddInduct.map_wf
+#check AddInduct.lookupReceipt
 
 example {constants resultConstants : ConstMap}
     {env resultEnv : VEnv} {decl : VInductDecl}
@@ -509,6 +511,24 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
     (hconstants : constants.WF) :
     AddInduct constants env decl evidence.constructorConstants evidence.constructorEnv :=
   evidence.to_legacyAddInduct hconstants
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) :
+    evidence.constructorConstants.WF :=
+  (evidence.to_legacyAddInduct hconstants).map_wf hconstants
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) :
+    ∃ (headers : List InductiveVal) (constructors : List ConstructorVal) (headerEnv : VEnv),
+      (∀ info ∈ headers, evidence.constructorConstants.find? info.name =
+        some (.inductInfo info)) ∧
+      (∀ ctor ∈ constructors, evidence.constructorConstants.find? ctor.name =
+        some (.ctorInfo ctor)) := by
+  obtain ⟨headers, constructors, headerEnv, _, _, hheaders, hconstructors⟩ :=
+    (evidence.to_legacyAddInduct hconstants).lookupReceipt hconstants
+  exact ⟨headers, constructors, headerEnv, hheaders, hconstructors⟩
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)

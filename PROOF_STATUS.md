@@ -14,6 +14,9 @@ soundness theorem is claimed. The direct theorem audit is
 PersistentHashMap.findAux_isSome, PersistentHashMap.WF.find?_eq,
 PersistentHashMap.WF.toList'_insert]`, inherited from the existing constructive
 lookup infrastructure.
+`AddInduct.map_wf` and `AddInduct.lookupReceipt` expose the same map and
+header/constructor lookup facts to legacy callers without weakening that
+boundary.
 
 This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.

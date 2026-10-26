@@ -10,6 +10,9 @@ The legacy `AddInduct` boundary now has a constructive producer: `RegistrationEv
 packages the verified header/constructor stages, and its aligned companion exposes the corresponding
 `Aligned` result. Generated recursors remain represented by the richer
 `AddInductWithRecursorsEvidence`; this bridge does not claim recursor or iota soundness.
+The boundary also exposes `AddInduct.map_wf` and `AddInduct.lookupReceipt` so
+older consumers can use its constructive map and positive lookup facts without
+reopening the evidence constructor.
 
 Our fork has substantial additional checker verification, primitive proofs,
 inductive staging work, and regression coverage. It is **not a completed
