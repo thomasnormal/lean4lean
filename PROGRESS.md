@@ -89,6 +89,10 @@ and does not invoke persistent-map lookup conversion.
 packages that staged-map lookup receipt with the producer's `Aligned` semantic
 map invariant for consumers needing both installation and model transport.
 
+`RestoredRecordEvidence.toCheckerEnvInductive_and_registrationReceiptAndMapAndOrderedEntryFindPrimeAndAlignment`
+now lifts that package through the explicit-history checker boundary. The final
+declaration history and safe-value translation remain explicit caller inputs.
+
 The reducer boundary now also accepts an exact equation whose result is the
 stored rule RHS. This packages the generated target translation, typing, sort
 arity, and native reducer success in one receipt, with a per-recursor

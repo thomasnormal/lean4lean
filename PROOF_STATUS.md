@@ -95,6 +95,11 @@ pairs that staged-map lookup package with `Aligned safety resultConstants
 semanticResult` from the producer receipt. It has the same standard axiom set
 and preserves the explicit registration and history obligations.
 
+`NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationReceiptAndMapAndOrderedEntryFindPrimeAndAlignment`
+consumes an explicit safe declaration history and value-translation callback,
+then returns the checker environment paired with the staged-map lookup and
+alignment package. Its trust boundary remains unchanged.
+
 ## Checked primitive registration lookup — 2026-10-26
 
 `addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup` now

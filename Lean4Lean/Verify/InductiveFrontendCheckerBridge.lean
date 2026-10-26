@@ -2262,6 +2262,42 @@ theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registr
     restored.registrationReceiptAndMapAndAlignment producer halign hconstants hresultConstants
       haligned⟩
 
+/- Lift the staged-map lookup/alignment package through the explicit-history
+   checker boundary.  Declaration-history construction and value translation
+   remain supplied by the caller. -/
+theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationReceiptAndMapAndOrderedEntryFindPrimeAndAlignment
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe resultConstants Q semanticResult)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    (haligned : Aligned .safe constants semanticEnv) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      ((result.constants = resultConstants ∧
+        result.constants.WF ∧
+        result.constants = insertOrdered constants restored.entries ∧
+        (∀ entry ∈ restored.entries,
+          resultConstants.find?' entry.toConstantInfo.name = some entry.toConstantInfo)) ∧
+        Aligned .safe resultConstants semanticResult) := by
+  have hchecker := restored.toCheckerEnvInductive_and_registrationReceiptAndMapAndAlignment
+    producer halign hconstants hresultConstants history hvalues haligned
+  have hpkg := restored.registrationReceiptAndMapAndOrderedEntryFindPrimeAndAlignment
+    producer halign hconstants hresultConstants haligned
+  exact ⟨hchecker.1, hpkg⟩
+
 theorem NativeInductive.RestoredRecordEvidence.registrationConstructiveAndMapWF_of_sourceTypehood
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}
