@@ -459,11 +459,12 @@ theorem RegistrationEvidence.toCheckerEnvInductive
       TrExpr result ci.levelParams [] value
         (.const ci.name (VLevel.params ci.levelParams.length))) :
     CheckerEnvInductive safety resultNative result Q := by
-  subst constants
-  subst resultConstants
-  refine ⟨evidence.to_trEnvInductive history hconstants hrecursors, ?_⟩
-  intro name ci value h hs hsafe hv
-  exact hvalues name ci h hs hsafe hv
+  have hdecl : VDecl.WF env (.induct decl) evidence.constructorEnv :=
+    evidence.inductiveDeclWF
+  have hregistration := evidence.to_addInductWithRecursorsEvidence_at safety
+    hconstants hrecursors
+  exact hregistration.toCheckerEnvInductive native resultNative history hmap hresultMap
+    hdecl hvalues
 
 theorem RegistrationEvidence.toCheckerEnvInductive_of_sourceTypehood
     (evidence : RegistrationEvidence constants env decl resultConstants result)

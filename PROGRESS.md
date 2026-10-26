@@ -63,6 +63,15 @@ uses this generic consumer, so native registration no longer reconstructs the
 history constructor's parameter plumbing. Recursor model WF and all rule/iota
 obligations remain caller-visible.
 
+`AddInductWithRecursorsEvidence.toCheckerEnvInductive` now consumes the
+constructive generated-recursors receipt at the checker boundary. The prior
+`TrEnvInductive` history, native/result constant-map equalities, staged
+declaration `VDecl.WF`, and safe-value translation callback remain explicit.
+`RegistrationEvidence.toCheckerEnvInductive` delegates to this generic
+consumer, so the native bridge shares the same visible obligations. This is a
+checker packaging result; recursor model WF, generated-rule semantics, iota
+soundness, and executable inductive frontend soundness remain open.
+
 ## All-safety inductive checker boundary — 2026-10-26
 
 `VEnvs.InductiveWF` now records an all-safety `TrEnvInductive` history together

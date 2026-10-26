@@ -88,6 +88,30 @@ structure CheckerEnvInductive (safety : DefinitionSafety) (env : Environment) (v
     safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
     TrExpr venv ci.levelParams [] value (.const ci.name (VLevel.params ci.levelParams.length))
 
+/- Consume a constructive generated-recursors receipt at the checker boundary.
+   The prior history, map equalities, declaration WF, and safe-value callback
+   remain explicit; this theorem only packages them into the checker-facing
+   history structure. -/
+theorem AddInductWithRecursorsEvidence.toCheckerEnvInductive
+    {safety : DefinitionSafety}
+    (H : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
+      recursors models C' env')
+    (native resultNative : Kernel.Environment)
+    (history : TrEnvInductive safety native.constants Q env)
+    (hmap : native.constants = C) (hresultMap : resultNative.constants = C')
+    (hdecl : VDecl.WF env (.induct decl) inductiveEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr env' ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety resultNative env' Q := by
+  subst C
+  subst C'
+  refine ⟨H.to_trEnvInductive history hdecl, ?_⟩
+  intro name ci value h hs hsafe hv
+  exact hvalues name ci h hs hsafe hv
+
 /- A safety-indexed environment model whose histories may contain registered
    inductive families. This is deliberately separate from `VEnvs.WF`: the
    latter stores the legacy `TrEnv` relation, whose lookup-rejection contract

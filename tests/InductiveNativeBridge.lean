@@ -135,6 +135,7 @@ example {constants resultConstants : ConstMap}
 #check AddInductWithRecursorsEvidence.inductiveDeclWF
 #check AddInductWithRecursorsEvidence.result_wf
 #check AddInductWithRecursorsEvidence.to_trEnvInductive
+#check AddInductWithRecursorsEvidence.toCheckerEnvInductive
 #check AddInductive.GeneratedConstructorRuleRhsResult.iotaTargetReductionOfExact
 #check AddInductive.GeneratedRecursorRuleIotaTargetReductionExact.toOrdinary
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaTargetReductionOf

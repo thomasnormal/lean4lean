@@ -48,6 +48,16 @@ and generated rule/iota obligations as explicit inputs.
 The restoration-stage base/target-iota consumer carries the producer
 `VDecl.WF` through stage selection while retaining both endpoints and their
 source/value obligations.
+The generic `AddInductWithRecursorsEvidence.toCheckerEnvInductive` consumer now
+packages that constructive generated-recursors receipt directly into a
+`CheckerEnvInductive`. It requires the prior `TrEnvInductive` history, native
+and result constant-map equalities, staged declaration `VDecl.WF`, and an
+explicit safe-value translation callback; the result remains a checker package
+only, with recursor model WF, generated-rule semantics, iota soundness, and
+the executable inductive frontend theorem outside its contract.
+`RegistrationEvidence.toCheckerEnvInductive` delegates to this generic
+consumer, preserving those map, history, declaration-WF, and value obligations
+at the native bridge.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
