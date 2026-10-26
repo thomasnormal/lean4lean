@@ -27,6 +27,9 @@ premise.
 The corresponding checker-history consumer retains that producer `VDecl.WF`
 beside aligned constants, final history, checker construction, and generated
 rule semantics; source/value and recursor obligations remain explicit.
+The restoration-stage checker-history companion carries that declaration
+`VDecl.WF` through the existential stage selection without hiding the
+source/value or generated-rule premises.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

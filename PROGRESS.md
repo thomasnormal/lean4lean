@@ -32,6 +32,10 @@ The corresponding checker-history consumer now retains that same producer
 generated-rule semantics. Its source/value and recursor obligations remain
 explicit.
 
+The restoration-stage checker-history companion preserves the same declaration
+`VDecl.WF` across the existential stage selection, with source/value and
+generated-rule obligations still visible.
+
 ## All-safety inductive checker boundary — 2026-10-26
 
 `VEnvs.InductiveWF` now records an all-safety `TrEnvInductive` history together
