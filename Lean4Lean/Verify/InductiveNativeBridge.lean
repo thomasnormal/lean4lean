@@ -149,6 +149,76 @@ theorem insertOrdered_modelShape (constants : ConstMap) (entries : List Registra
     rw [entry.insert_modelShape (hshape entry (by simp))]
     simpa [RegistrationEntry.insertModel] using ih (entry.insertModel constants) htail
 
+theorem insertOrdered_toInsertConsts (constants : ConstMap) (entries : List RegistrationEntry)
+    (hshape : ∀ entry ∈ entries, entry.ModelShape) :
+    insertOrdered constants entries =
+      insertConsts constants (entries.map RegistrationEntry.toConstantInfo) := by
+  induction entries generalizing constants with
+  | nil => rfl
+  | cons entry entries ih =>
+    simp only [insertOrdered, insertConsts, List.foldl_cons, List.map_cons]
+    have hentryShape := hshape entry (by simp)
+    rw [entry.insert_modelShape hentryShape]
+    simpa [insertConsts, hentryShape.toConstantInfo.1] using
+      ih (constants.insert entry.model.name entry.toConstantInfo)
+      (fun current hcurrent => hshape current (by simp [hcurrent]))
+
+theorem FreshOrdered.baseFresh {constants : ConstMap} {entries : List RegistrationEntry}
+    (hconstants : constants.WF) (hshape : ∀ entry ∈ entries, entry.ModelShape)
+    (hfresh : FreshOrdered constants entries) :
+    ∀ entry ∈ entries, constants.find? entry.toConstantInfo.name = none := by
+  induction entries generalizing constants with
+  | nil => simp
+  | cons entry entries ih =>
+    intro current hcurrent
+    simp only [FreshOrdered] at hfresh
+    have hentryShape := hshape entry (by simp)
+    have hentryInsert : entry.insert constants =
+        constants.insert entry.model.name entry.toConstantInfo :=
+      entry.insert_modelShape hentryShape
+    rw [hentryInsert] at hfresh
+    have hbase' : (constants.insert entry.toConstantInfo.name entry.toConstantInfo).WF :=
+      hconstants.insert _ _ hfresh.1
+    have hbase : (constants.insert entry.model.name entry.toConstantInfo).WF := by
+      simpa [hentryShape.toConstantInfo.1] using hbase'
+    rcases List.mem_cons.mp hcurrent with hcurrent | hcurrent
+    · simpa [hcurrent] using hfresh.1
+    · have htail := ih hbase
+        (fun current hcurrent => hshape current (by simp [hcurrent])) hfresh.2
+        current hcurrent
+      rw [hconstants.find?_insert] at htail
+      split at htail
+      · contradiction
+      · exact htail
+
+theorem FreshOrdered.nodup {constants : ConstMap} {entries : List RegistrationEntry}
+    (hconstants : constants.WF) (hshape : ∀ entry ∈ entries, entry.ModelShape)
+    (hfresh : FreshOrdered constants entries) :
+    (entries.map (fun entry => entry.toConstantInfo.name)).Nodup := by
+  induction entries generalizing constants with
+  | nil => simp
+  | cons entry entries ih =>
+    simp only [FreshOrdered] at hfresh
+    have hentryShape := hshape entry (by simp)
+    have hentryInsert : entry.insert constants =
+        constants.insert entry.model.name entry.toConstantInfo :=
+      entry.insert_modelShape hentryShape
+    rw [hentryInsert] at hfresh
+    have hbase' : (constants.insert entry.toConstantInfo.name entry.toConstantInfo).WF :=
+      hconstants.insert _ _ hfresh.1
+    have hbase : (constants.insert entry.model.name entry.toConstantInfo).WF := by
+      simpa [hentryShape.toConstantInfo.1] using hbase'
+    apply List.nodup_cons.mpr
+    refine ⟨?_, ih hbase
+      (fun current hcurrent => hshape current (by simp [hcurrent])) hfresh.2⟩
+    intro hname
+    obtain ⟨other, hother, hname⟩ := List.mem_map.mp hname
+    have htail := FreshOrdered.baseFresh hbase
+      (fun current hcurrent => hshape current (by simp [hcurrent])) hfresh.2
+      other hother
+    rw [hconstants.find?_insert] at htail
+    split at htail <;> simp_all [hentryShape.toConstantInfo.1]
+
 def HeaderEntry.toConstantInfo (entry : HeaderEntry) : ConstantInfo :=
   .inductInfo entry.info
 

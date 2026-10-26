@@ -27,6 +27,14 @@ regression consumes this combined package through `RegistrationEvidence`.
 This is a registration lookup bridge; it does not construct the missing
 `AddInduct` constructor or prove inductive recursor semantics.
 
+`NativeInductive.RegistrationEvidence.orderedEntryLookup` packages the final
+checker-facing lookup invariant over the ordered registration entries. It uses
+the ordered map equation, model-shape transport, and constructive freshness
+and no-duplication lemmas to return the exact stored `ConstantInfo` for every
+header, constructor, and recursor. The recursor model-WF premise remains
+explicit at this boundary; no inductive frontend or recursor semantics claim
+is added.
+
 ## Exact generated RHS reduction consumer — 2026-10-25
 
 `GeneratedRecursorRuleIotaTargetReductionExact` records a successful native

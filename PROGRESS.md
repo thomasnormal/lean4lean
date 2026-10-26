@@ -484,6 +484,13 @@ this combined receipt through actual `RegistrationEvidence`; no lookup is
 obtained by assuming a map equation without its freshness and no-duplication
 premises.
 
+`NativeInductive.RegistrationEvidence.orderedEntryLookup` now exposes the
+checker-facing form of that invariant: every ordered header, constructor, and
+generated-recursor entry has its exact `ConstantInfo` in the final model map.
+The proof converts the ordered fresh/model-shaped registration batch to the
+constructive `insertConsts` lookup principle and retains the explicit recursor
+WF callback at the registration boundary.
+
 **Universal original-core simulation:** every actual `NormalEq` in a
 well-formed environment with the checked quotient rule registered now simulates
 any original parallel step, and any finite original-core path, using the

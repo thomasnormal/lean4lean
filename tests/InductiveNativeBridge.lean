@@ -514,6 +514,15 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
   exact ⟨headers, constructors, headerEnv, hheaders, hconstructors, hrecursors⟩
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv) :
+    ∀ entry ∈ evidence.orderedEntries,
+      resultConstants.find? entry.toConstantInfo.name = some entry.toConstantInfo :=
+  evidence.orderedEntryLookup hconstants hrecursors
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :
     resultConstants = insertRecursors (insertConstructors (insertHeaders constants evidence.headers)
       evidence.constructors) evidence.recursors :=

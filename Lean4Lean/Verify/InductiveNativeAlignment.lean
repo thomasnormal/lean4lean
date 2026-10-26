@@ -321,6 +321,42 @@ theorem RegistrationEvidence.registrationMapWF
     resultConstants.WF :=
   (evidence.to_addInductWithRecursorsEvidence hconstants hrecursors).map_wf hconstants
 
+/- The checker-facing map invariant packages the staged receipt as one lookup
+   theorem over the ordered native registration entries.  The ordered map and
+   freshness proofs are transported to `insertConsts`, where the constructive
+   positive lookup lemma applies to the exact stored `ConstantInfo`. -/
+theorem RegistrationEvidence.orderedEntryLookup
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv) :
+    ∀ entry ∈ evidence.orderedEntries,
+      resultConstants.find? entry.toConstantInfo.name = some entry.toConstantInfo := by
+  have _registration := evidence.to_addInductWithRecursorsEvidence hconstants hrecursors
+  have hshape := evidence.orderedModelShape
+  have hfresh := evidence.orderedFresh
+  have hbaseFresh := FreshOrdered.baseFresh hconstants hshape hfresh
+  have hnodup := FreshOrdered.nodup hconstants hshape hfresh
+  have hbaseFresh' : ∀ ci ∈ evidence.orderedEntries.map RegistrationEntry.toConstantInfo,
+      constants.find? ci.name = none := by
+    intro ci hci
+    obtain ⟨entry, hentry, rfl⟩ := List.mem_map.mp hci
+    exact hbaseFresh entry hentry
+  have hnodup' :
+      (evidence.orderedEntries.map RegistrationEntry.toConstantInfo).map (·.name) |>.Nodup := by
+    simpa only [List.map_map, Function.comp_def] using hnodup
+  have hmap : resultConstants = insertConsts constants
+      (evidence.orderedEntries.map RegistrationEntry.toConstantInfo) := by
+    calc
+      resultConstants = insertOrdered constants evidence.orderedEntries := evidence.orderedMap
+      _ = insertConsts constants
+          (evidence.orderedEntries.map RegistrationEntry.toConstantInfo) :=
+        insertOrdered_toInsertConsts constants evidence.orderedEntries hshape
+  intro entry hentry
+  rw [hmap]
+  exact insertConsts_mem hconstants hbaseFresh' hnodup'
+    (List.mem_map.mpr ⟨entry, hentry, rfl⟩)
+
 theorem RegistrationEvidence.registrationWF_and_mapWF
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (hconstants : constants.WF) (henv : env.WF)
