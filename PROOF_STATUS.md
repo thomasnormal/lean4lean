@@ -39,6 +39,8 @@ explicit-WF boundary and retains the target translation, type, and sort-arity
 receipts.
 The ordinary `addDecl` wrapper preserves the same conditional contract and
 returns the frontend's primitive-authorization bit explicitly.
+Its checked-primitive wrapper keeps the primitive checker result and all
+source-typehood assumptions visible while returning the target receipts.
 Restored target-iota packaging now follows the same explicit history,
 alignment, recursor-WF, and value-translation boundary.
 
