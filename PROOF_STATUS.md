@@ -89,6 +89,12 @@ extends that package with `Aligned safety resultConstants semanticResult` from
 the producer's alignment theorem. The same standard axiom set and explicit
 registration obligations remain in force.
 
+`SafeInductiveFrontendScope.toCheckerEnvInductive_and_orderedEntryReceiptAndMapAndAlignment`
+uses an explicit final safe history and value callback to pair the checker
+environment with the ordered producer receipt/map/alignment package. Its audit
+is `[propext, sorryAx, Classical.choice, Quot.sound]` and avoids the
+persistent-map conversion route.
+
 `NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrime`
 projects the restored installation receipt's exact staged-map (`find?'`) lookup
 to the explicitly supplied `resultConstants` map using the result-map equality.

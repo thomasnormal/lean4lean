@@ -83,6 +83,11 @@ positive final-map lookup remains a separate audited interface.
 producer's `Aligned` result-map invariant to that package without changing the
 explicit map or recursor-WF obligations.
 
+`SafeInductiveFrontendScope.toCheckerEnvInductive_and_orderedEntryReceiptAndMapAndAlignment`
+consumes an explicit final checker history and value-translation callback, then
+pairs the checked scope with that producer receipt and alignment. It avoids the
+older producer-based checker constructor and its persistent-map conversion.
+
 `RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrime`
 re-expresses each restored installation lookup against the producer's explicit
 `resultConstants` map using the kernel environment's staged-map (`find?'`)
