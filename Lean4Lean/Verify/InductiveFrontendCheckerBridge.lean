@@ -97,6 +97,73 @@ theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationWF_of_s
   exact scope.toCheckerEnvInductive_and_registrationWF history producer hconstants
     hresultConstants hrecursors hvalues
 
+/- Pair the checker, semantic alignment, executable registration equation, and
+   both WF projections in one frontend-scope receipt. -/
+theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_aligned_and_registrationWF
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (haligned : Aligned .safe constants semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      Aligned .safe resultConstants semanticResult ∧
+      semanticEnv.addInductWithRecursors decl (producer.recursors.map (·.model)) =
+        some semanticResult ∧
+      semanticResult.WF ∧ result.constants.WF := by
+  have hconstantsWF : env.constants.WF := scope.originalWF
+  subst constants
+  have hregistration := producer.to_addInductWithRecursorsEvidence_at
+    .safe hconstantsWF hrecursors
+  obtain ⟨hchecker, haligned', hmapWF, hsemanticWF⟩ :=
+    hregistration.toCheckerEnvInductive_and_aligned_and_wf env result history rfl
+      hresultConstants haligned producer.inductiveDeclWF hvalues
+  exact ⟨hchecker, by simpa [hresultConstants] using haligned',
+    by simpa using hregistration.to_addInductWithRecursors,
+    hsemanticWF, by simpa [hresultConstants] using hmapWF⟩
+
+theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_aligned_and_registrationWF_of_sourceTypehood
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (haligned : Aligned .safe constants semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      Aligned .safe resultConstants semanticResult ∧
+      semanticEnv.addInductWithRecursors decl (producer.recursors.map (·.model)) =
+        some semanticResult ∧
+      semanticResult.WF ∧ result.constants.WF := by
+  have hrecursors := producer.recursorWF_of_sourceTypehood
+    (producer.constructorEnvWF history.wf) hsource
+  exact scope.toCheckerEnvInductive_and_aligned_and_registrationWF history producer
+    hconstants hresultConstants haligned hrecursors hvalues
+
 /- A checked frontend scope can also be consumed when its final declaration
    history is supplied independently. This keeps checker construction from
    silently rebuilding registration or map-WF evidence. -/

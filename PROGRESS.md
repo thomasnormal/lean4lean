@@ -94,6 +94,10 @@ registration or checker boundary.
 The checked `SafeInductiveFrontendScope` now exposes the same executable
 registration equation and WF receipts beside its checker environment, while
 keeping the producer, history, map, recursor, and safe-value inputs explicit.
+Its aligned registration companion now returns semantic alignment alongside
+the checker, executable registration equation, semantic environment WF, and
+result-map WF; the source-typehood form derives only the recursor model-WF
+premise and keeps the initial alignment explicit.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

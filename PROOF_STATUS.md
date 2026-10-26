@@ -78,6 +78,10 @@ its WF projections into the checker boundary without adding a frontend,
 recursor, or iota soundness claim.
 Its source-typehood companion derives only the existing recursor-WF premise
 from source translation and keeps all registration and checker obligations.
+The aligned registration companion packages the same receipt with final
+semantic alignment, the executable registration equation, semantic
+environment WF, and result-map WF. Initial alignment, history, map
+equalities, and safe-value translation remain explicit inputs.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
