@@ -245,6 +245,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerAndMapWFGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMap
 #check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrime
+#check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrimeAndAlignment
 #check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndAlignment
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationReceiptAndMapAndAlignment
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
@@ -3195,6 +3196,22 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
       resultConstants.find?' entry.toConstantInfo.name = some entry.toConstantInfo := by
   exact (restored.registrationReceiptAndMapAndOrderedEntryFindPrime producer halign hconstants
     hresultConstants).2.2.2.2
+
+example {safety : DefinitionSafety} {constants : ConstMap}
+    {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} {preprocessing : ElimNestedInductive.Result}
+    {staged : Kernel.Environment} {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (haligned : Aligned safety constants semanticEnv) :
+    Aligned safety resultConstants semanticResult :=
+  (restored.registrationReceiptAndMapAndOrderedEntryFindPrimeAndAlignment producer halign
+    hconstants hresultConstants haligned).2
 
 example {safety : DefinitionSafety} {constants : ConstMap}
     {semanticEnv semanticResult : VEnv} {decl : VInductDecl}

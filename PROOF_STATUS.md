@@ -90,6 +90,11 @@ to the explicitly supplied `resultConstants` map using the result-map equality.
 Its proof does not construct a persistent-map lookup and adds no
 `AddInduct`/recursor-soundness claim.
 
+`NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrimeAndAlignment`
+pairs that staged-map lookup package with `Aligned safety resultConstants
+semanticResult` from the producer receipt. It has the same standard axiom set
+and preserves the explicit registration and history obligations.
+
 ## Checked primitive registration lookup — 2026-10-26
 
 `addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup` now

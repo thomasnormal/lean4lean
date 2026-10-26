@@ -85,6 +85,10 @@ re-expresses each restored installation lookup against the producer's explicit
 view. It only transports the restored receipt across the supplied map equality
 and does not invoke persistent-map lookup conversion.
 
+`RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrimeAndAlignment`
+packages that staged-map lookup receipt with the producer's `Aligned` semantic
+map invariant for consumers needing both installation and model transport.
+
 The reducer boundary now also accepts an exact equation whose result is the
 stored rule RHS. This packages the generated target translation, typing, sort
 arity, and native reducer success in one receipt, with a per-recursor

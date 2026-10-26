@@ -2151,6 +2151,33 @@ theorem NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrder
   rw [← hresultConstants]
   simpa only [Kernel.Environment.find?] using hlookup
 
+/- Pair the staged-map lookup receipt with the producer's semantic alignment
+   for consumers that need both native installation facts and model transport. -/
+theorem NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrimeAndAlignment
+    {safety : DefinitionSafety}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (haligned : Aligned safety constants semanticEnv) :
+    (result.constants = resultConstants ∧
+      result.constants.WF ∧
+      result.constants = insertOrdered constants restored.entries ∧
+      (∀ entry ∈ restored.entries,
+        resultConstants.find?' entry.toConstantInfo.name = some entry.toConstantInfo)) ∧
+      Aligned safety resultConstants semanticResult := by
+  refine ⟨restored.registrationReceiptAndMapAndOrderedEntryFindPrime producer halign
+    hconstants hresultConstants, ?_⟩
+  exact producer.aligned haligned
+
 /- Extend the dependency-safe restored receipt with the producer's semantic
    alignment, keeping the native map and installed-record facts available to a
    checker consumer in one package. -/
