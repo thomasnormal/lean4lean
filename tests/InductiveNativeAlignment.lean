@@ -374,6 +374,14 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
       evidence.constructorEnv) : result.WF :=
   evidence.resultWF henv hrecursors
 
+example {constants resultConstants : ConstMap} {env inductiveEnv result : VEnv}
+    {decl : VInductDecl} {recursors : List RecursorVal} {models : List VConstVal}
+    (evidence : AddInductWithRecursorsEvidence .safe constants env decl
+      constants inductiveEnv recursors models resultConstants result)
+    (henv : env.WF)
+    (hdecl : VDecl.WF env (.induct decl) inductiveEnv) : result.WF :=
+  evidence.result_wf henv hdecl
+
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)

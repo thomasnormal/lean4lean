@@ -635,6 +635,23 @@ theorem AddInductWithRecursorsEvidence.sf_mono (hsf : safety ≤ safety')
     refine .mk (inductiveEvidence.sf_mono hsf) ?_ recursorAdd recursorNodup recursorFresh resultMap
     exact List.Forall₂.imp (fun _ _ h => ⟨h.1, h.2.1.sf_mono hsf, h.2.2⟩) translations
 
+/- The complete constructive receipt also proves well-formedness of the
+   semantic environment after the generated recursor signatures are added.
+   The staged declaration WF premise is kept explicit because the receipt
+   records translations and insertion equations, while the recursor stage
+   supplies the final `VEnv.WF` extension. -/
+theorem AddInductWithRecursorsEvidence.result_wf
+    (H : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
+      recursors models C' env') (henv : env.WF)
+    (hdecl : VDecl.WF env (.induct decl) inductiveEnv) : env'.WF := by
+  have hinductive : inductiveEnv.WF :=
+    VEnv.WF.decl henv hdecl
+  exact VEnv.addConstructorHeaders.wf hinductive (by
+    intro model hmem
+    obtain ⟨info, hinfo, htranslation⟩ :=
+      Lean4Lean.List.Forall₂.forall_exists_r H.translations model hmem
+    exact htranslation.2.2) H.recursorAdd
+
 /-! A staging relation for environments after a constructive inductive registration.
 
 `TrEnv'` retains the non-inductive lookup-rejection contract used by the current
@@ -653,12 +670,7 @@ theorem TrEnvInductive.wf (H : TrEnvInductive safety C Q venv) : venv.WF := by
   induction H with
   | legacy H => exact H.wf
   | induct previous hdecl evidence ih =>
-    have hinductive := VEnv.WF.decl ih hdecl
-    exact VEnv.addConstructorHeaders.wf hinductive (by
-      intro model hmem
-      obtain ⟨info, hinfo, htranslation⟩ :=
-        Lean4Lean.List.Forall₂.forall_exists_r evidence.translations model hmem
-      exact htranslation.2.2) evidence.recursorAdd
+    exact evidence.result_wf ih hdecl
 
 theorem TrEnvInductive.aligned (H : TrEnvInductive safety C Q venv) :
     Aligned safety C venv := by

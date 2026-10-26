@@ -37,6 +37,10 @@ The generic `AddInductWithRecursorsEvidence.inductiveDeclWF` projection now
 exposes the semantic declaration receipt from constructive registration while
 keeping declaration `WF` explicit; generated recursor registration remains a
 separate stage.
+Its `result_wf` projection now consumes the staged declaration receipt and
+initial environment WF to prove WF after generated recursor signatures are
+inserted. `TrEnvInductive.wf` delegates to this reusable registration result,
+while recursor model WF and rule/iota semantics remain explicit obligations.
 The restoration-stage base/target-iota consumer carries the producer
 `VDecl.WF` through stage selection while retaining both endpoints and their
 source/value obligations.

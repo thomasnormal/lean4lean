@@ -49,6 +49,13 @@ existing source/value obligations.
 when the declaration model `WF` is supplied explicitly. Recursor registration
 remains a separate evidence stage.
 
+`AddInductWithRecursorsEvidence.result_wf` now consumes that staged declaration
+receipt and the initial semantic environment WF to prove WF of the environment
+after generated recursor signatures are inserted. `TrEnvInductive.wf` uses this
+projection directly, keeping recursor model WF and declaration history explicit.
+This remains a registration-stage result and does not establish recursor rule
+semantics, iota soundness, or complete executable inductive frontend soundness.
+
 ## All-safety inductive checker boundary — 2026-10-26
 
 `VEnvs.InductiveWF` now records an all-safety `TrEnvInductive` history together
