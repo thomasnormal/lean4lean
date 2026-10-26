@@ -79,6 +79,10 @@ semantic, model-shape, type-translation, and declaration-membership receipt
 with its explicit `insertOrdered` map equation. It is a map-alignment package;
 positive final-map lookup remains a separate audited interface.
 
+`RegistrationEvidence.orderedEntryReceiptAndMapAndAlignment` adds the
+producer's `Aligned` result-map invariant to that package without changing the
+explicit map or recursor-WF obligations.
+
 `RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrime`
 re-expresses each restored installation lookup against the producer's explicit
 `resultConstants` map using the kernel environment's staged-map (`find?'`)

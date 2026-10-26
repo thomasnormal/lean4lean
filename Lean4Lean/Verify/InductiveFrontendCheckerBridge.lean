@@ -145,6 +145,34 @@ theorem NativeInductive.RegistrationEvidence.orderedEntryReceiptAndMap
       resultConstants = insertOrdered constants evidence.orderedEntries := by
   exact ⟨evidence.orderedEntryReceipt, evidence.orderedMap⟩
 
+/- Pair the ordered producer receipt/map equation with semantic alignment for
+   consumers that transport the registration model to the result environment. -/
+theorem NativeInductive.RegistrationEvidence.orderedEntryReceiptAndMapAndAlignment
+    {safety : DefinitionSafety}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    (evidence : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (haligned : Aligned safety constants semanticEnv) :
+    ((∀ entry ∈ evidence.orderedEntries,
+      entry.Semantic semanticEnv evidence.headerEnv evidence.constructorEnv ∧
+        entry.ModelShape ∧
+        (∃ semantic, match entry with
+          | .header entry =>
+            TrExprS semanticEnv entry.info.levelParams [] entry.info.type semantic
+          | .constructor entry =>
+            TrExprS evidence.headerEnv entry.info.levelParams [] entry.info.type semantic
+          | .recursor entry =>
+            TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic) ∧
+        match entry with
+          | .header entry => ∃ type ∈ decl.types, entry.model = type.toVConstVal
+          | .constructor entry =>
+            ∃ constructor ∈ decl.constructorHeaders, entry.model = constructor
+          | .recursor _ => True) ∧
+      resultConstants = insertOrdered constants evidence.orderedEntries) ∧
+      Aligned safety resultConstants semanticResult := by
+  exact ⟨evidence.orderedEntryReceiptAndMap, evidence.aligned haligned⟩
+
 theorem SafeInductiveFrontendScope.registrationHistory
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}

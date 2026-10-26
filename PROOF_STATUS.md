@@ -84,6 +84,11 @@ evidence.orderedEntries`. Its audit is `[propext, sorryAx, Classical.choice,
 Quot.sound]`; it does not invoke positive persistent-map lookup or add an
 `AddInduct`/recursor-soundness claim.
 
+`NativeInductive.RegistrationEvidence.orderedEntryReceiptAndMapAndAlignment`
+extends that package with `Aligned safety resultConstants semanticResult` from
+the producer's alignment theorem. The same standard axiom set and explicit
+registration obligations remain in force.
+
 `NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrime`
 projects the restored installation receipt's exact staged-map (`find?'`) lookup
 to the explicitly supplied `resultConstants` map using the result-map equality.
