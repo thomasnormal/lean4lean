@@ -72,6 +72,12 @@ It takes the final map equation and safe-value callback as premises rather
 than deriving producer registration, and its audit is the same standard
 logical/translation baseline with no persistent-map interface axioms.
 
+`SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistoryAndMapWF`
+adds the scope's original `ConstMap.WF` evidence and the final map equality to
+that explicit-history checker result. It remains independent of persistent-map
+lookup interfaces and does not claim result-map WF, `AddInduct`, or recursor
+soundness.
+
 ## Checked primitive registration lookup — 2026-10-26
 
 `addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup` now

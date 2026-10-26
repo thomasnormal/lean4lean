@@ -62,6 +62,30 @@ theorem SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistory
   · intro name ci value h hs hsafe hv
     exact hvalues name ci h hs hsafe hv
 
+/- Retain the scope's original semantic-map WF proof when an explicit final
+   history is consumed, so later constructive producers can use it directly. -/
+theorem SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistoryAndMapWF
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticResult : VEnv} {Q : Bool}
+    (history : TrEnvInductive .safe resultConstants Q semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      result.constants = resultConstants ∧ constants.WF := by
+  have hchecker := scope.toCheckerEnvInductive_of_explicitHistory history
+    hresultConstants hvalues
+  have hconstantsWF : constants.WF := by
+    rw [← hconstants]
+    exact scope.originalWF
+  exact ⟨hchecker, hresultConstants, hconstantsWF⟩
+
 /- Pair the checker environment with the exact final-map receipt for every
    ordered native registration entry.  The native scope supplies the constant
    map WF proof; the producer keeps the recursor model-WF obligation explicit. -/

@@ -69,6 +69,11 @@ the corresponding direct scope consumer: callers provide the final history,
 map equality, and safe-value translation callback, and receive the checker
 environment without invoking producer registration or persistent-map WF lemmas.
 
+`SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistoryAndMapWF`
+also returns the explicit final-map equality and the initial `ConstMap.WF`
+proof obtained from the scope's original environment. This gives constructive
+registration callers the map premise without deriving lookup receipts.
+
 The reducer boundary now also accepts an exact equation whose result is the
 stored rule RHS. This packages the generated target translation, typing, sort
 arity, and native reducer success in one receipt, with a per-recursor
