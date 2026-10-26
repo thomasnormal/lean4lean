@@ -52,6 +52,13 @@ axiom audit is `[propext, sorryAx, Classical.choice, Quot.sound]`. This is a
 restored-record consumer bridge and does not construct `AddInduct` or prove
 inductive recursor/iota soundness.
 
+`NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndAlignment`
+extends this package with `Aligned safety resultConstants semanticResult` from
+the producer's staged alignment theorem. The extension keeps the restored
+installation and map facts together with the semantic map invariant and has
+the same transitive axiom set; it does not add a declaration-history or
+recursor/iota soundness claim.
+
 ## Checked primitive registration lookup — 2026-10-26
 
 `addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup` now

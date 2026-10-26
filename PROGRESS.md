@@ -52,6 +52,12 @@ receipt comes directly from the restored registration trace, so its audited
 dependencies remain the standard logic and retained translation admission; it
 does not route through the persistent-map lookup interface.
 
+`RestoredRecordEvidence.registrationReceiptAndMapAndAlignment` extends that
+package with the producer's `Aligned` semantic map invariant. The alignment is
+derived directly from the producer receipt, so this checker-facing extension
+retains the same dependency-safe audit and leaves history/`AddInduct` and
+recursor soundness obligations explicit.
+
 The reducer boundary now also accepts an exact equation whose result is the
 stored rule RHS. This packages the generated target translation, typing, sort
 arity, and native reducer success in one receipt, with a per-recursor

@@ -241,6 +241,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerAndMapWFGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMap
+#check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndAlignment
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_sourceRecursorGeneratedRuleStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationSemanticAndStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
@@ -3169,6 +3170,22 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
           entry.toConstantInfo ∧
         ∃ name info, staged.find? name = some info) :=
   restored.registrationReceiptAndMap producer halign hconstants hresultConstants
+
+example {safety : DefinitionSafety} {constants : ConstMap}
+    {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} {preprocessing : ElimNestedInductive.Result}
+    {staged : Kernel.Environment} {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (haligned : Aligned safety constants semanticEnv) :
+    Aligned safety resultConstants semanticResult := by
+  exact (restored.registrationReceiptAndMapAndAlignment producer halign hconstants
+    hresultConstants haligned).2.2.2.2
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap} {preprocessing : ElimNestedInductive.Result}

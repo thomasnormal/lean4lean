@@ -2051,6 +2051,42 @@ theorem NativeInductive.RestoredRecordEvidence.registrationReceiptAndMap
     restored.registrationMap producer halign hconstants hresultConstants, ?_⟩
   exact restored.registrationReceipt producer halign
 
+/- Extend the dependency-safe restored receipt with the producer's semantic
+   alignment, keeping the native map and installed-record facts available to a
+   checker consumer in one package. -/
+theorem NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndAlignment
+    {safety : DefinitionSafety}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (haligned : Aligned safety constants semanticEnv) :
+    result.constants = resultConstants ∧
+      result.constants.WF ∧
+      result.constants = insertOrdered constants restored.entries ∧
+      (∀ entry ∈ restored.entries,
+        entry.Semantic semanticEnv producer.headerEnv producer.constructorEnv ∧
+        entry.Metadata decl producer.constructors ∧
+        entry.RuleSemantics semanticResult ∧
+        entry.model.name = entry.toConstantInfo.name ∧
+        entry.model.uvars = entry.toConstantInfo.levelParams.length ∧
+        result.find? entry.toConstantInfo.name = some entry.toConstantInfo ∧
+        RestoredInductiveRecord preprocessing staged allIndNames recNameMap
+          entry.toConstantInfo ∧
+        ∃ name info, staged.find? name = some info) ∧
+      Aligned safety resultConstants semanticResult := by
+  have hreceipt := restored.registrationReceiptAndMap producer halign hconstants hresultConstants
+  refine ⟨hreceipt.1, hreceipt.2.1, hreceipt.2.2.1, hreceipt.2.2.2, ?_⟩
+  exact producer.aligned haligned
+
 theorem NativeInductive.RestoredRecordEvidence.registrationConstructiveAndMapWF_of_sourceTypehood
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}
