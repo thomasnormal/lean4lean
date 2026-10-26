@@ -201,6 +201,31 @@ theorem AddInductWithRecursorsEvidence.toCheckerEnvInductive_and_aligned
   have checker := H.toCheckerEnvInductive native resultNative history rfl rfl hdecl hvalues
   exact ⟨checker, Aligned.addInductWithRecursorsEvidence H haligned⟩
 
+/- Combine the checker, alignment, and WF projections for consumers that need
+   one complete constructive registration receipt. -/
+theorem AddInductWithRecursorsEvidence.toCheckerEnvInductive_and_aligned_and_wf
+    {safety : DefinitionSafety}
+    (H : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
+      recursors models C' env')
+    (native resultNative : Kernel.Environment)
+    (history : TrEnvInductive safety native.constants Q env)
+    (hmap : native.constants = C) (hresultMap : resultNative.constants = C')
+    (haligned : Aligned safety C env)
+    (hdecl : VDecl.WF env (.induct decl) inductiveEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr env' ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety resultNative env' Q ∧
+      Aligned safety resultNative.constants env' ∧
+      resultNative.constants.WF ∧ env'.WF := by
+  subst C
+  subst C'
+  have checker := H.toCheckerEnvInductive native resultNative history rfl rfl hdecl hvalues
+  exact ⟨checker, Aligned.addInductWithRecursorsEvidence H haligned,
+    checker.map_wf, checker.venv_wf⟩
+
 theorem CheckerEnvInductive.toCheckerEnv
     (H : CheckerEnvInductive safety env venv Q) : CheckerEnv safety env venv :=
   ⟨H.history.aligned, H.history.wf, H.safeValues⟩

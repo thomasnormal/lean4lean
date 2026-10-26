@@ -67,6 +67,9 @@ The paired `AddInductWithRecursorsEvidence.toCheckerEnvInductive_and_aligned`
 consumer also returns final semantic alignment. The native aligned bridge now
 delegates through it and transports the explicit result-map equality; no
 registration, recursor/iota, or executable frontend claim is added.
+The combined checker/alignment/WF consumer and its native source-typehood
+wrappers package these four projections together without inferring any new
+registration, recursor, iota, or executable frontend fact.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

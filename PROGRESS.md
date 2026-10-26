@@ -80,6 +80,10 @@ The generic `toCheckerEnvInductive_and_aligned` consumer now pairs the checker
 with final semantic alignment. The native aligned bridge delegates through this
 receipt consumer and transports the explicit native/result map equality without
 changing its declaration-WF, recursor, or safe-value obligations.
+The combined `toCheckerEnvInductive_and_aligned_and_wf` consumer now returns
+the checker, final alignment, constant-map WF, and semantic-environment WF in
+one receipt. Native and source-typehood wrappers preserve the same explicit
+declaration, recursor, map, alignment, and safe-value obligations.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

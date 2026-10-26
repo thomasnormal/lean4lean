@@ -608,6 +608,26 @@ example {constants resultConstants : ConstMap} {env inductiveEnv result : VEnv}
   evidence.toCheckerEnvInductive_and_aligned native resultNative history hmap hresultMap
     haligned hdecl hvalues
 
+example {constants resultConstants : ConstMap} {env inductiveEnv result : VEnv}
+    {decl : VInductDecl} {recursors : List RecursorVal} {models : List VConstVal}
+    {native resultNative : Kernel.Environment} {Q : Bool}
+    (evidence : AddInductWithRecursorsEvidence .safe constants env decl
+      constants inductiveEnv recursors models resultConstants result)
+    (history : TrEnvInductive .safe native.constants Q env)
+    (hmap : native.constants = constants) (hresultMap : resultNative.constants = resultConstants)
+    (haligned : Aligned .safe constants env)
+    (hdecl : VDecl.WF env (.induct decl) inductiveEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr result ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe resultNative result Q ∧
+      Aligned .safe resultNative.constants result ∧
+      resultNative.constants.WF ∧ result.WF :=
+  evidence.toCheckerEnvInductive_and_aligned_and_wf native resultNative history hmap hresultMap
+    haligned hdecl hvalues
+
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     {native resultNative : Kernel.Environment} {Q : Bool}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
