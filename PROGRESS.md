@@ -103,6 +103,9 @@ directly through its frontend scope, preserving the same explicit history,
 alignment, map, and safe-value inputs for restoration callers.
 The explicit-recursors companion exposes the same package when recursor model
 WF has already been constructed, avoiding any hidden source-typehood step.
+The scope now also projects `CheckerEnvInductive` to the existing `CheckerEnv`
+consumer interface, with an explicit-recursors form and a source-typehood
+convenience form.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

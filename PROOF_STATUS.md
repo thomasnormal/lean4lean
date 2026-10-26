@@ -87,6 +87,9 @@ registration receipt without requiring callers to unpack the executable
 scope; it retains all of those explicit obligations.
 An explicit-recursors companion is also available for restoration callers
 that already hold the model-WF witness.
+Frontend scopes now expose the corresponding ordinary `CheckerEnv` package
+through `CheckerEnvInductive.toCheckerEnv`; the source-typehood form only
+derives the existing recursor model-WF witness.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
