@@ -33,6 +33,8 @@ The combined generated-result plus iota package now has the same generic
 explicit-WF form and delegates its source-typehood wrapper.
 The generic checker bridge also exposes a target-only generated-rule iota
 package with the same explicit recursor-WF boundary.
+The ordinary `addDecl` frontend now lifts that target-only package through its
+source-typehood path while retaining the frontend's `allowPrimitive` result.
 The restored-record checker bridge now also exposes a generic target-iota
 alignment/history package with explicit recursor WF.
 

@@ -37,6 +37,8 @@ both result witnesses explicit.
 The generic target-only generated-rule iota package preserves the same
 explicit-WF boundary and retains the target translation, type, and sort-arity
 receipts.
+The ordinary `addDecl` wrapper preserves the same conditional contract and
+returns the frontend's primitive-authorization bit explicitly.
 Restored target-iota packaging now follows the same explicit history,
 alignment, recursor-WF, and value-translation boundary.
 
