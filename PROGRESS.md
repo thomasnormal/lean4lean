@@ -84,6 +84,10 @@ The combined `toCheckerEnvInductive_and_aligned_and_wf` consumer now returns
 the checker, final alignment, constant-map WF, and semantic-environment WF in
 one receipt. Native and source-typehood wrappers preserve the same explicit
 declaration, recursor, map, alignment, and safe-value obligations.
+The registration consumer now pairs that checker receipt with the executable
+`addInductWithRecursors` equation, final semantic-environment WF, and result
+map WF. Its native and source-typehood forms retain the same explicit
+recursor and safe-value premises.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

@@ -226,6 +226,30 @@ theorem AddInductWithRecursorsEvidence.toCheckerEnvInductive_and_aligned_and_wf
   exact ⟨checker, Aligned.addInductWithRecursorsEvidence H haligned,
     checker.map_wf, checker.venv_wf⟩
 
+/- Connect the checker receipt to the executable registration equation and its
+   semantic/map WF projections. -/
+theorem AddInductWithRecursorsEvidence.toCheckerEnvInductive_and_registrationWF
+    {safety : DefinitionSafety}
+    (H : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
+      recursors models C' env')
+    (native resultNative : Kernel.Environment)
+    (history : TrEnvInductive safety native.constants Q env)
+    (hmap : native.constants = C) (hresultMap : resultNative.constants = C')
+    (hdecl : VDecl.WF env (.induct decl) inductiveEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr env' ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety resultNative env' Q ∧
+      env.addInductWithRecursors decl models = some env' ∧
+      env'.WF ∧ resultNative.constants.WF := by
+  subst C
+  subst C'
+  have checker := H.toCheckerEnvInductive native resultNative history rfl rfl hdecl hvalues
+  exact ⟨checker, H.to_addInductWithRecursors,
+    H.result_wf history.wf hdecl, checker.map_wf⟩
+
 theorem CheckerEnvInductive.toCheckerEnv
     (H : CheckerEnvInductive safety env venv Q) : CheckerEnv safety env venv :=
   ⟨H.history.aligned, H.history.wf, H.safeValues⟩

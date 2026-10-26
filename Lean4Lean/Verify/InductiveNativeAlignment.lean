@@ -629,5 +629,54 @@ theorem RegistrationEvidence.toCheckerEnvInductive_and_aligned_and_wf_of_sourceT
     (evidence.recursorWF_of_sourceTypehood
       (evidence.constructorEnvWF history.wf) hsource) hvalues
 
+theorem RegistrationEvidence.toCheckerEnvInductive_and_registrationWF
+    {safety : DefinitionSafety}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (native resultNative : Kernel.Environment)
+    (history : TrEnvInductive safety native.constants Q env)
+    (hmap : native.constants = constants) (hresultMap : resultNative.constants = resultConstants)
+    (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr result ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety resultNative result Q ∧
+      env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result ∧
+      result.WF ∧ resultNative.constants.WF := by
+  have hdecl : VDecl.WF env (.induct decl) evidence.constructorEnv :=
+    evidence.inductiveDeclWF
+  have hregistration := evidence.to_addInductWithRecursorsEvidence_at safety
+    hconstants hrecursors
+  obtain ⟨hchecker, hadd, hwf, hmapWF⟩ :=
+    hregistration.toCheckerEnvInductive_and_registrationWF native resultNative history
+      hmap hresultMap hdecl hvalues
+  exact ⟨hchecker, by simpa using hadd, by simpa using hwf, by simpa [hresultMap] using hmapWF⟩
+
+theorem RegistrationEvidence.toCheckerEnvInductive_and_registrationWF_of_sourceTypehood
+    {safety : DefinitionSafety}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (native resultNative : Kernel.Environment)
+    (history : TrEnvInductive safety native.constants Q env)
+    (hmap : native.constants = constants) (hresultMap : resultNative.constants = resultConstants)
+    (hconstants : constants.WF)
+    (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
+      TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      evidence.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr result ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety resultNative result Q ∧
+      env.addInductWithRecursors decl (evidence.recursors.map (·.model)) = some result ∧
+      result.WF ∧ resultNative.constants.WF := by
+  exact evidence.toCheckerEnvInductive_and_registrationWF native resultNative history
+    hmap hresultMap hconstants
+    (evidence.recursorWF_of_sourceTypehood
+      (evidence.constructorEnvWF history.wf) hsource) hvalues
+
 end NativeInductive
 end Lean4Lean
