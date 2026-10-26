@@ -40,6 +40,10 @@ The checked-primitive base/target-iota consumer now carries the same producer
 `VDecl.WF` beside its retained iota endpoints; stored-RHS and target typing
 obligations remain unchanged.
 
+The restoration-stage base/target-iota consumer now carries the producer
+`VDecl.WF` through stage selection, retaining both iota endpoints and their
+existing source/value obligations.
+
 ## All-safety inductive checker boundary — 2026-10-26
 
 `VEnvs.InductiveWF` now records an all-safety `TrEnvInductive` history together

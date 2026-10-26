@@ -33,6 +33,9 @@ source/value or generated-rule premises.
 The checked-primitive base/target-iota consumer likewise carries the producer
 `VDecl.WF` beside its retained endpoints, with stored-RHS and target-typing
 obligations unchanged.
+The restoration-stage base/target-iota consumer carries the producer
+`VDecl.WF` through stage selection while retaining both endpoints and their
+source/value obligations.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
