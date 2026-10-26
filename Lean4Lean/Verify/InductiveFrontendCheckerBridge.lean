@@ -8163,6 +8163,33 @@ theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTy
     (producer.constructorEnvWF history.wf) hsource
   exact restored.toCheckerEnvInductive producer halign hconstants history hrecursors hvalues
 
+/- Existing checker consumers can use a restored native record receipt after
+   projecting its source-typehood inductive checker package. -/
+theorem NativeInductive.RestoredRecordEvidence.toCheckerEnv_of_sourceTypehood
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnv .safe result semanticResult :=
+  (restored.toCheckerEnvInductive_of_sourceTypehood producer halign hconstants history hsource
+    hvalues).toCheckerEnv
+
 theorem SafeInductiveRestorationMetadata.toRestoredRecordEvidence
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}

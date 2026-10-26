@@ -92,6 +92,8 @@ through `CheckerEnvInductive.toCheckerEnv`; the source-typehood form only
 derives the existing recursor model-WF witness.
 Restoration metadata has the matching frontend source-typehood projection
 for callers that consume the ordinary checker interface.
+Restored native record evidence has a matching source-typehood projection for
+ordinary checker consumers.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

@@ -108,6 +108,8 @@ consumer interface, with an explicit-recursors form and a source-typehood
 convenience form.
 Restoration metadata exposes the matching ordinary `CheckerEnv` projection
 through its frontend source-typehood path.
+Restored native record evidence now exposes the same ordinary checker
+projection directly from its source-typehood receipt.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
