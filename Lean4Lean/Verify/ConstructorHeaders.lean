@@ -351,4 +351,71 @@ theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorChecke
       ((VEnv.addInductHeaders.le haddHeaders).trans (VEnv.addConstructorHeaders.le haddCtors))
       ctorWF haligned⟩
 
+/- The primitive preflight also supplies the semantic declaration model itself.  Pair that
+   receipt with the checked header/constructor registration so the staged frontend exposes a
+   genuine `VDecl.WF` witness.  Recursors remain outside this theorem: they are added by the
+   later `AddInductWithRecursorsEvidence` boundary. -/
+theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorVDeclWF
+    (ctx : AddInductive.Context) (numParams : Nat) (types : List InductiveType)
+    (numNested : Nat) (isUnsafe : Bool) {safety : DefinitionSafety} {venv : VEnv}
+    (haligned : Aligned safety ctx.env.constants venv) (hvenv : venv.WF)
+    (hprimitive : Environment.checkPrimitiveInductive
+      ctx.env ctx.lparams numParams types isUnsafe = .ok true) :
+    (checkInductiveTypes numParams types.toArray (fun stats => do
+      withEnv (← declareInductiveTypes stats numParams types.toArray numNested isUnsafe) do
+        checkConstructors types.toArray stats isUnsafe
+        declareConstructors stats types.toArray isUnsafe) ctx).WF fun env' =>
+      ∃ decl headerEnv ctorEnv, (decl = boolInductDecl ∨ decl = natInductDecl) ∧
+        decl.HeadersWF venv ∧ decl.WF venv ∧
+        venv.addInductHeaders decl.types = some headerEnv ∧ headerEnv.WF ∧
+        TrInductDecl venv headerEnv ctx.lparams numParams types decl ∧
+        headerEnv.addConstructorHeaders (decl.types.flatMap (fun type => type.ctors)) =
+          some ctorEnv ∧
+        ctorEnv.WF ∧ VDecl.WF venv (.induct decl) ctorEnv ∧
+        Aligned safety env'.constants ctorEnv := by
+  refine (AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorWF
+    ctx numParams types numNested isUnsafe haligned hvenv hprimitive).mono ?_
+  rintro env' ⟨decl, headerEnv, ctorEnv, hkind, hheaderAdd, hheaderWF, htr, hctorAdd,
+    hctorWF, haligned'⟩
+  have hp := (Environment.checkPrimitiveInductive.eq_true_iff
+    ctx.env ctx.lparams numParams types isUnsafe).mp hprimitive
+  generalize huniverses : ctx.lparams = universes at hp
+  cases hp with
+  | bool =>
+    have hdeclEq : decl = boolInductDecl := by
+      rcases hkind with hdecl | hdecl
+      · exact hdecl
+      · subst decl
+        have hcross := htr.2
+        simp [natInductDecl] at hcross
+        have hn := hcross.1
+        simp at hn
+    subst decl
+    have hadd : venv.addInduct boolInductDecl = some ctorEnv := by
+      unfold VEnv.addInduct
+      rw [hheaderAdd]
+      exact hctorAdd
+    exact ⟨boolInductDecl, headerEnv, ctorEnv, .inl rfl, boolInductDecl.headersWF,
+      boolInductDecl.wf_public venv, hheaderAdd, hheaderWF,
+      (by simpa [huniverses] using htr), hctorAdd, hctorWF,
+      .induct (boolInductDecl.wf_public venv) hadd, haligned'⟩
+  | nat binderName binderInfo =>
+    have hdeclEq : decl = natInductDecl := by
+      rcases hkind with hdecl | hdecl
+      · subst decl
+        have hcross := htr.2
+        simp [boolInductDecl] at hcross
+        have hn := hcross.1
+        simp at hn
+      · exact hdecl
+    subst decl
+    have hadd : venv.addInduct natInductDecl = some ctorEnv := by
+      unfold VEnv.addInduct
+      rw [hheaderAdd]
+      exact hctorAdd
+    exact ⟨natInductDecl, headerEnv, ctorEnv, .inr rfl, natInductDecl.headersWF,
+      natInductDecl.wf_public venv, hheaderAdd, hheaderWF,
+      (by simpa [huniverses] using htr), hctorAdd, hctorWF,
+      .induct (natInductDecl.wf_public venv) hadd, haligned'⟩
+
 end Lean4Lean

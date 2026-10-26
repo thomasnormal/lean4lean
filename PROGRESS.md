@@ -4,6 +4,16 @@ Last reviewed: **2026-10-26 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Primitive staged `VDecl.WF` receipt — 2026-10-26
+
+`AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorVDeclWF`
+now combines the successful primitive Bool/Nat preflight with the checked
+header/constructor stage. Its result includes the canonical model declaration,
+its `HeadersWF` and `WF` receipts, the semantic header and constructor maps,
+and a `VDecl.WF` witness for the registered inductive declaration. The theorem
+stops at the header/constructor boundary; generated recursor registration and
+recursor/iota soundness remain explicit downstream obligations.
+
 ## All-safety inductive checker boundary — 2026-10-26
 
 `VEnvs.InductiveWF` now records an all-safety `TrEnvInductive` history together

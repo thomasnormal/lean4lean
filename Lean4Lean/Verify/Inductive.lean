@@ -100,6 +100,14 @@ private theorem natInductDecl.wf (env : VEnv) : natInductDecl.WF env := by
   exact ⟨natConstructorUvars ctor hmem,
     natInductDecl.constructorWF hadd ctor hmem⟩
 
+/- Public projections used when a primitive preflight has fixed the canonical model constructor.
+   The underlying proofs remain the same all-safety Bool/Nat model checks above. -/
+theorem boolInductDecl.wf_public (env : VEnv) : boolInductDecl.WF env :=
+  boolInductDecl.wf env
+
+theorem natInductDecl.wf_public (env : VEnv) : natInductDecl.WF env :=
+  natInductDecl.wf env
+
 theorem Environment.PrimitiveInductiveDecl.toVDecl_WF
     (hdecl : PrimitiveInductiveDecl lparams nparams types isUnsafe) (env : VEnv) :
     ∃ decl, (decl = boolInductDecl ∨ decl = natInductDecl) ∧ decl.HeadersWF env ∧

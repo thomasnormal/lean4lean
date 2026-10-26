@@ -25,6 +25,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check VEnvs.InductiveWF.toCheckerEnvInductive_and_wf
 #check CheckerEnvInductive.map_wf
 #check CheckerEnvInductive.venv_wf
+#check AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorVDeclWF
 
 example {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
     (model : VEnvs.InductiveWF env ves Q) : env.constants.WF :=

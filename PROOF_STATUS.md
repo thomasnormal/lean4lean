@@ -1,5 +1,18 @@
 # Non-inductive verification proof of concept
 
+## Primitive staged `VDecl.WF` receipt — 2026-10-26
+
+`AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorVDeclWF`
+combines `checkPrimitiveInductive`'s canonical Bool/Nat classification with
+the existing checked header/constructor registration proof. It returns the
+canonical model's `HeadersWF` and `WF` facts, the translated `TrInductDecl`,
+the semantic header/constructor map receipts, and `VDecl.WF venv (.induct
+decl) ctorEnv`. The opposite canonical branch is eliminated from the source
+name translation. This is a staged declaration receipt only; generated
+recursors, recursor/iota equations, and the complete executable frontend
+theorem remain open. The public `wf_public` projections expose the existing
+private canonical model proofs without adding assumptions.
+
 ## All-safety inductive checker boundary — 2026-10-26
 
 `VEnvs.InductiveWF` is an explicit model boundary for environments whose
