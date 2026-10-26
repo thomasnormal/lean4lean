@@ -32,6 +32,8 @@ Generated-rule semantic packaging likewise accepts explicit recursor WF and
 keeps rule-result witnesses separate from source typehood derivation.
 The generated-rule iota base/target package follows the same explicit-WF
 boundary and does not assert general iota soundness.
+The combined generated-result/iota package preserves that boundary and keeps
+both result witnesses explicit.
 
 This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.

@@ -29,6 +29,8 @@ The first generated-rule semantic package now has the same generic explicit-WF
 form, with the source-typehood variant deriving WF and delegating to it.
 Its paired generated-rule iota base/target package is also available with
 explicit recursor WF; the source-typehood wrapper derives that witness.
+The combined generated-result plus iota package now has the same generic
+explicit-WF form and delegates its source-typehood wrapper.
 
 Our fork has substantial additional checker verification, primitive proofs,
 inductive staging work, and regression coverage. It is **not a completed
