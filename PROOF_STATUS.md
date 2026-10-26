@@ -41,6 +41,8 @@ The ordinary `addDecl` wrapper preserves the same conditional contract and
 returns the frontend's primitive-authorization bit explicitly.
 Its checked-primitive wrapper keeps the primitive checker result and all
 source-typehood assumptions visible while returning the target receipts.
+The restoration-metadata wrapper preserves the same assumptions through the
+explicit restoration-stage scope.
 Restored target-iota packaging now follows the same explicit history,
 alignment, recursor-WF, and value-translation boundary.
 

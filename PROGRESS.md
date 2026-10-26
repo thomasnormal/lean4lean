@@ -37,6 +37,8 @@ The ordinary `addDecl` frontend now lifts that target-only package through its
 source-typehood path while retaining the frontend's `allowPrimitive` result.
 The checked-primitive `addDecl` path exposes the same target-only package with
 its primitive checker and source-typehood preconditions explicit.
+Restoration metadata now lifts the target-only package through its
+source-typehood frontend scope while retaining the restoration-stage boundary.
 The restored-record checker bridge now also exposes a generic target-iota
 alignment/history package with explicit recursor WF.
 
