@@ -40,6 +40,40 @@ theorem SafeInductiveFrontendScope.toCheckerEnvInductive
   exact producer.toCheckerEnvInductive env result history rfl hresultConstants
     hconstantsWF hrecursors hvalues
 
+/- Pair the checker environment with the exact final-map receipt for every
+   ordered native registration entry.  The native scope supplies the constant
+   map WF proof; the producer keeps the recursor model-WF obligation explicit. -/
+theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_orderedEntryLookup
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      (∀ entry ∈ producer.orderedEntries,
+        result.constants.find? entry.toConstantInfo.name = some entry.toConstantInfo) := by
+  have hconstantsWF : env.constants.WF := by
+    exact scope.originalWF
+  subst constants
+  have hlookup := producer.orderedEntryLookup hconstantsWF hrecursors
+  refine ⟨producer.toCheckerEnvInductive env result history rfl hresultConstants
+      hconstantsWF hrecursors hvalues, ?_⟩
+  intro entry hentry
+  rw [hresultConstants]
+  exact hlookup entry hentry
+
 theorem SafeInductiveFrontendScope.registrationHistory
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}

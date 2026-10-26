@@ -35,6 +35,11 @@ header, constructor, and recursor. The recursor model-WF premise remains
 explicit at this boundary; no inductive frontend or recursor semantics claim
 is added.
 
+`SafeInductiveFrontendScope.toCheckerEnvInductive_and_orderedEntryLookup`
+transports this receipt through the native-to-checker scope bridge and returns
+it alongside `CheckerEnvInductive`. The native constant-map equality remains
+explicit, and the theorem adds no executable frontend or recursor/iota claim.
+
 ## Exact generated RHS reduction consumer — 2026-10-25
 
 `GeneratedRecursorRuleIotaTargetReductionExact` records a successful native

@@ -491,6 +491,12 @@ The proof converts the ordered fresh/model-shaped registration batch to the
 constructive `insertConsts` lookup principle and retains the explicit recursor
 WF callback at the registration boundary.
 
+`SafeInductiveFrontendScope.toCheckerEnvInductive_and_orderedEntryLookup` now
+returns that exact lookup receipt alongside the constructed checker environment,
+transporting the native scope's constant-map equality and WF proof through the
+registration bridge. This connects the final model-map invariant to a
+checker-facing frontend package without changing executable behavior.
+
 **Universal original-core simulation:** every actual `NormalEq` in a
 well-formed environment with the checked quotient rule registered now simulates
 any original parallel step, and any finite original-core path, using the
