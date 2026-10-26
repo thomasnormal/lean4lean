@@ -1,5 +1,20 @@
 # Non-inductive verification proof of concept
 
+## All-safety inductive checker boundary — 2026-10-26
+
+`VEnvs.InductiveWF` is an explicit model boundary for environments whose
+histories may contain inductive families. It stores `TrEnvInductive` history at
+every safety level, the primitive invariants, and safety monotonicity.
+`VEnvs.InductiveWF.map_wf` and `.venv_wf` project the initial constant-map WF
+and each safety-indexed model WF. Its `.toCheckerEnvInductive` theorem consumes
+an explicit safe-value translation callback and constructs the checker-facing
+environment. The boundary is separate from legacy `VEnvs.WF`, whose `TrEnv`
+lookup-rejection contract cannot represent inductive declarations. The native
+bridge regression checks the API and both projections. This is a semantic
+checker-consumer migration point: it does not construct `AddInduct`, prove
+registration, establish recursor/iota soundness, or close the executable
+inductive frontend theorem.
+
 ## Constructive legacy `AddInduct` consumer — 2026-10-26
 
 `RegistrationEvidence.to_legacyAddInduct` now turns a verified native

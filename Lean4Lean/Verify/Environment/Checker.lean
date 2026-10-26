@@ -88,6 +88,33 @@ structure CheckerEnvInductive (safety : DefinitionSafety) (env : Environment) (v
     safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
     TrExpr venv ci.levelParams [] value (.const ci.name (VLevel.params ci.levelParams.length))
 
+/- A safety-indexed environment model whose histories may contain registered
+   inductive families. This is deliberately separate from `VEnvs.WF`: the
+   latter stores the legacy `TrEnv` relation, whose lookup-rejection contract
+   cannot represent an inductive declaration. -/
+structure VEnvs.InductiveWF (env : Environment) (ves : VEnvs) (Q : Bool) : Prop where
+  history : ∀ {safety}, TrEnvInductive safety env.constants Q (ves.venv safety)
+  hasPrimitives : ∀ {safety}, (ves.venv safety).HasPrimitives
+  safePrimitives : env.find? n = some ci →
+    Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = []
+  mono : ∀ {safety safety'}, safety ≤ safety' → ves.venv safety' ≤ ves.venv safety
+
+theorem VEnvs.InductiveWF.map_wf (H : VEnvs.InductiveWF env ves Q) : env.constants.WF :=
+  (H.history (safety := .safe)).map_wf
+
+theorem VEnvs.InductiveWF.venv_wf (H : VEnvs.InductiveWF env ves Q)
+    (safety : DefinitionSafety) : (ves.venv safety).WF :=
+  (H.history (safety := safety)).wf
+
+theorem VEnvs.InductiveWF.toCheckerEnvInductive
+    (H : VEnvs.InductiveWF env ves Q) (safety : DefinitionSafety)
+    (safeValues : ∀ {name ci value}, env.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr (ves.venv safety) ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety env (ves.venv safety) Q :=
+  ⟨H.history, safeValues⟩
+
 theorem CheckerEnvInductive.toCheckerEnv
     (H : CheckerEnvInductive safety env venv Q) : CheckerEnv safety env venv :=
   ⟨H.history.aligned, H.history.wf, H.safeValues⟩

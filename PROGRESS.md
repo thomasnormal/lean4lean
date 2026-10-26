@@ -4,6 +4,18 @@ Last reviewed: **2026-10-26 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## All-safety inductive checker boundary — 2026-10-26
+
+`VEnvs.InductiveWF` now records an all-safety `TrEnvInductive` history together
+with primitive invariants and safety monotonicity. Its `map_wf` and `venv_wf`
+projections expose the map and per-safety environment obligations, and
+`toCheckerEnvInductive` constructs the inductive checker environment when the
+caller supplies the safe-value translation callback. This is a semantic
+consumer boundary for inductive histories; the legacy `VEnvs.WF` relation still
+rejects inductive families and is intentionally unchanged. The regression
+fixture checks the new projections and construction. Inductive registration,
+recursor/iota soundness, and executable frontend soundness remain open.
+
 ## Bottom line
 
 The legacy `AddInduct` boundary now has a constructive producer: `RegistrationEvidence.to_legacyAddInduct`

@@ -18,6 +18,23 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned
 #check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned_of_sourceTypehood
 #check NativeInductive.RegistrationEvidence.toCheckerEnvInductive_and_aligned
+#check VEnvs.InductiveWF
+#check VEnvs.InductiveWF.map_wf
+#check VEnvs.InductiveWF.venv_wf
+#check VEnvs.InductiveWF.toCheckerEnvInductive
+
+example {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
+    (model : VEnvs.InductiveWF env ves Q) : env.constants.WF :=
+  model.map_wf
+
+example {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
+    (model : VEnvs.InductiveWF env ves Q) (safety : DefinitionSafety)
+    (safeValues : ∀ {name ci value}, env.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr (ves.venv safety) ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety env (ves.venv safety) Q :=
+  model.toCheckerEnvInductive safety safeValues
 
 example {constants resultConstants : ConstMap}
     {env resultEnv : VEnv} {decl : VInductDecl}
