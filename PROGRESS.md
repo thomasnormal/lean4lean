@@ -25,6 +25,8 @@ declaration history; its source-typehood form now delegates to that theorem.
 The corresponding `toCheckerEnvInductive_and_registrationAlignmentHistory`
 package returns checker construction, aligned result map, final map equality,
 and declaration history from the same explicit recursor-WF witness.
+The first generated-rule semantic package now has the same generic explicit-WF
+form, with the source-typehood variant deriving WF and delegating to it.
 
 Our fork has substantial additional checker verification, primitive proofs,
 inductive staging work, and regression coverage. It is **not a completed
