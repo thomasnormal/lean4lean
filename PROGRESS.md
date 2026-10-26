@@ -56,6 +56,13 @@ projection directly, keeping recursor model WF and declaration history explicit.
 This remains a registration-stage result and does not establish recursor rule
 semantics, iota soundness, or complete executable inductive frontend soundness.
 
+`AddInductWithRecursorsEvidence.to_trEnvInductive` now packages the same staged
+receipt into a `TrEnvInductive` history step when the prior history and staged
+declaration WF are supplied explicitly. `RegistrationEvidence.to_trEnvInductive`
+uses this generic consumer, so native registration no longer reconstructs the
+history constructor's parameter plumbing. Recursor model WF and all rule/iota
+obligations remain caller-visible.
+
 ## All-safety inductive checker boundary — 2026-10-26
 
 `VEnvs.InductiveWF` now records an all-safety `TrEnvInductive` history together

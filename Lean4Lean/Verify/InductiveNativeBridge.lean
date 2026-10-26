@@ -1008,14 +1008,13 @@ theorem RegistrationEvidence.to_trEnvInductive
     unfold VEnv.addInduct
     rw [evidence.headerAdd]
     exact evidence.constructorAdd
-  refine TrEnvInductive.induct (C := constants) (Q := Q) (env := env) (decl := decl)
-    (inductiveEnv := evidence.constructorEnv)
-    (inductiveConstants := evidence.constructorConstants)
-    (recursors := evidence.recursors.map (·.info))
-    (models := evidence.recursors.map (·.model))
-    (resultConstants := resultConstants) (result := result) history hdecl ?_
-  exact (evidence.to_addInductWithRecursorsEvidence hconstants hrecursors).sf_mono
-    DefinitionSafety.le_safe
+  have hregistration : AddInductWithRecursorsEvidence safety constants env decl
+      evidence.constructorConstants evidence.constructorEnv
+      (evidence.recursors.map (·.info)) (evidence.recursors.map (·.model))
+      resultConstants result :=
+    (evidence.to_addInductWithRecursorsEvidence hconstants hrecursors).sf_mono
+      DefinitionSafety.le_safe
+  exact hregistration.to_trEnvInductive history hdecl
 
 theorem RegistrationEvidence.to_addInduct
     (evidence : RegistrationEvidence constants env decl resultConstants result) :

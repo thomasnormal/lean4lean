@@ -666,6 +666,17 @@ inductive TrEnvInductive (safety : DefinitionSafety) : ConstMap → Bool → VEn
       recursors models resultConstants result →
     TrEnvInductive safety resultConstants Q result
 
+/- Consume a constructive generated-recursors receipt at the declaration-history
+   boundary. Both the prior history and staged declaration WF stay explicit;
+   this theorem does not infer either obligation from native registration. -/
+theorem AddInductWithRecursorsEvidence.to_trEnvInductive
+    (H : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
+      recursors models C' env')
+    (history : TrEnvInductive safety C Q env)
+    (hdecl : VDecl.WF env (.induct decl) inductiveEnv) :
+    TrEnvInductive safety C' Q env' :=
+  .induct history hdecl H
+
 theorem TrEnvInductive.wf (H : TrEnvInductive safety C Q venv) : venv.WF := by
   induction H with
   | legacy H => exact H.wf

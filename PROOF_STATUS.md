@@ -41,6 +41,10 @@ Its `result_wf` projection now consumes the staged declaration receipt and
 initial environment WF to prove WF after generated recursor signatures are
 inserted. `TrEnvInductive.wf` delegates to this reusable registration result,
 while recursor model WF and rule/iota semantics remain explicit obligations.
+Its `to_trEnvInductive` projection now consumes an explicit prior history and
+staged declaration WF to construct the corresponding history step. The native
+registration bridge uses this consumer directly, retaining recursor model WF
+and generated rule/iota obligations as explicit inputs.
 The restoration-stage base/target-iota consumer carries the producer
 `VDecl.WF` through stage selection while retaining both endpoints and their
 source/value obligations.
