@@ -17,6 +17,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check AddInduct.lookupReceipt
 #check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned
 #check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned_of_sourceTypehood
+#check NativeInductive.RegistrationEvidence.toCheckerEnvInductive_and_aligned
 
 example {constants resultConstants : ConstMap}
     {env resultEnv : VEnv} {decl : VInductDecl}
@@ -562,6 +563,25 @@ example {safety : DefinitionSafety} {Q : Bool}
       Aligned safety resultConstants result :=
   evidence.to_trEnvInductive_and_aligned_of_sourceTypehood
     history haligned hconstants hsource
+
+example {safety : DefinitionSafety} {Q : Bool}
+    {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (native resultNative : Kernel.Environment)
+    (history : TrEnvInductive safety native.constants Q env)
+    (hmap : native.constants = constants) (hresultMap : resultNative.constants = resultConstants)
+    (haligned : Aligned safety constants env) (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr result ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety resultNative result Q ∧
+      Aligned safety resultConstants result :=
+  evidence.toCheckerEnvInductive_and_aligned native resultNative history hmap hresultMap
+    haligned hconstants hrecursors hvalues
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)

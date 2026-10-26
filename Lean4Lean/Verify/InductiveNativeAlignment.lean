@@ -485,6 +485,27 @@ theorem RegistrationEvidence.toCheckerEnvInductive_of_sourceTypehood
   exact evidence.toCheckerEnvInductive native resultNative history hmap hresultMap
     hconstants hrecursors hvalues
 
+/- The checker-facing bridge can retain the caller's explicit recursor WF
+   witness while returning the semantic alignment alongside the checker env. -/
+theorem RegistrationEvidence.toCheckerEnvInductive_and_aligned
+    {safety : DefinitionSafety}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (native resultNative : Kernel.Environment)
+    (history : TrEnvInductive safety native.constants Q env)
+    (hmap : native.constants = constants) (hresultMap : resultNative.constants = resultConstants)
+    (haligned : Aligned safety constants env) (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr result ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety resultNative result Q ∧
+      Aligned safety resultConstants result := by
+  exact ⟨evidence.toCheckerEnvInductive native resultNative history hmap hresultMap
+      hconstants hrecursors hvalues, evidence.aligned haligned⟩
+
 theorem RegistrationEvidence.toCheckerEnvInductive_and_aligned_of_sourceTypehood
     {safety : DefinitionSafety}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
@@ -502,8 +523,9 @@ theorem RegistrationEvidence.toCheckerEnvInductive_and_aligned_of_sourceTypehood
         (.const ci.name (VLevel.params ci.levelParams.length))) :
     CheckerEnvInductive safety resultNative result Q ∧
       Aligned safety resultConstants result := by
-  exact ⟨evidence.toCheckerEnvInductive_of_sourceTypehood native resultNative history
-      hmap hresultMap hconstants hsource hvalues, evidence.aligned haligned⟩
+  exact evidence.toCheckerEnvInductive_and_aligned native resultNative history hmap hresultMap
+    haligned hconstants (evidence.recursorWF_of_sourceTypehood
+      (evidence.constructorEnvWF history.wf) hsource) hvalues
 
 end NativeInductive
 end Lean4Lean

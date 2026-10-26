@@ -20,6 +20,9 @@ boundary.
 The registration bridge also exposes paired `TrEnvInductive` history and
 `Aligned` results, while keeping initial history, alignment, map WF, and
 recursor typehood/WF obligations explicit.
+Its checker-facing paired bridge accepts the same explicit recursor WF and
+value-translation obligations and returns the checker environment with the
+aligned result map.
 
 This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.

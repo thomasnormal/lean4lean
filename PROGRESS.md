@@ -16,6 +16,9 @@ reopening the evidence constructor.
 `RegistrationEvidence.to_trEnvInductive_and_aligned` now pairs the explicit
 declaration history with the aligned result map, with a source-typehood
 convenience form that derives recursor WF from the same explicit obligations.
+The checker bridge now has a generic `toCheckerEnvInductive_and_aligned` form
+that retains explicit recursor WF and value-translation witnesses, while the
+source-typehood form delegates to it.
 
 Our fork has substantial additional checker verification, primitive proofs,
 inductive staging work, and regression coverage. It is **not a completed
