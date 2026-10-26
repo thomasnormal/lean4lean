@@ -27,6 +27,11 @@ The checked-primitive constructive-history consumer now has a companion that
 returns the producer's semantic `VDecl.WF` receipt alongside its registration
 and `TrEnvInductive` history. Recursor model WF remains an explicit premise.
 
+The corresponding checker-history consumer now retains that same producer
+`VDecl.WF` beside aligned constants, final history, checker construction, and
+generated-rule semantics. Its source/value and recursor obligations remain
+explicit.
+
 ## All-safety inductive checker boundary — 2026-10-26
 
 `VEnvs.InductiveWF` now records an all-safety `TrEnvInductive` history together

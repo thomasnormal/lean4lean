@@ -24,6 +24,9 @@ The checked-primitive constructive-history companion carries the producer's
 semantic `VDecl.WF` beside the registration evidence and final
 `TrEnvInductive` history, while retaining recursor model WF as an explicit
 premise.
+The corresponding checker-history consumer retains that producer `VDecl.WF`
+beside aligned constants, final history, checker construction, and generated
+rule semantics; source/value and recursor obligations remain explicit.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
