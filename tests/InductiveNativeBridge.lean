@@ -132,6 +132,7 @@ example {constants resultConstants : ConstMap}
 #check AddInductEvidence.lookupReceipt
 #check AddInductWithRecursorsEvidence.recursorLookup
 #check AddInductWithRecursorsEvidence.lookupReceipt
+#check AddInductWithRecursorsEvidence.inductiveDeclWF
 #check AddInductive.GeneratedConstructorRuleRhsResult.iotaTargetReductionOfExact
 #check AddInductive.GeneratedRecursorRuleIotaTargetReductionExact.toOrdinary
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaTargetReductionOf

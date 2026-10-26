@@ -33,6 +33,10 @@ source/value or generated-rule premises.
 The checked-primitive base/target-iota consumer likewise carries the producer
 `VDecl.WF` beside its retained endpoints, with stored-RHS and target-typing
 obligations unchanged.
+The generic `AddInductWithRecursorsEvidence.inductiveDeclWF` projection now
+exposes the semantic declaration receipt from constructive registration while
+keeping declaration `WF` explicit; generated recursor registration remains a
+separate stage.
 The restoration-stage base/target-iota consumer carries the producer
 `VDecl.WF` through stage selection while retaining both endpoints and their
 source/value obligations.

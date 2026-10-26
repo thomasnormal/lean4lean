@@ -44,6 +44,11 @@ The restoration-stage base/target-iota consumer now carries the producer
 `VDecl.WF` through stage selection, retaining both iota endpoints and their
 existing source/value obligations.
 
+`AddInductWithRecursorsEvidence.inductiveDeclWF` now projects the semantic
+`VDecl.WF` declaration receipt from constructive header/constructor evidence
+when the declaration model `WF` is supplied explicitly. Recursor registration
+remains a separate evidence stage.
+
 ## All-safety inductive checker boundary — 2026-10-26
 
 `VEnvs.InductiveWF` now records an all-safety `TrEnvInductive` history together

@@ -197,6 +197,13 @@ theorem le
     env₁ ≤ env₂ :=
   VEnv.addInductWithRecursors.le H.to_addInductWithRecursors
 
+theorem inductiveDeclWF
+    (H : AddInductWithRecursorsEvidence safety m₁ env₁ decl inductiveConstants inductiveEnv
+      recursors models m₂ env₂) (hdecl : decl.WF env₁) :
+    VDecl.WF env₁ (.induct decl) inductiveEnv := by
+  apply VDecl.WF.induct hdecl
+  exact H.inductiveEvidence.to_addInduct
+
 end AddInductWithRecursorsEvidence
 
 theorem insertConsts_append (C : ConstMap) (first second : List ConstantInfo) :
