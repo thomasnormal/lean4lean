@@ -59,6 +59,13 @@ installation and map facts together with the semantic map invariant and has
 the same transitive axiom set; it does not add a declaration-history or
 recursor/iota soundness claim.
 
+`NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationReceiptAndMapAndAlignment`
+consumes an explicit final `TrEnvInductive` history and safe-value callback,
+then returns `CheckerEnvInductive` paired with the dependency-safe restored
+receipt/map/alignment package. The theorem does not derive declaration history,
+and its transitive axiom set remains `[propext, sorryAx, Classical.choice,
+Quot.sound]` with no persistent-map interface axioms.
+
 ## Checked primitive registration lookup — 2026-10-26
 
 `addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup` now

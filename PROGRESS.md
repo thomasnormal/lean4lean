@@ -58,6 +58,12 @@ derived directly from the producer receipt, so this checker-facing extension
 retains the same dependency-safe audit and leaves history/`AddInduct` and
 recursor soundness obligations explicit.
 
+`RestoredRecordEvidence.toCheckerEnvInductive_and_registrationReceiptAndMapAndAlignment`
+now consumes an explicitly supplied final `TrEnvInductive` history and value
+translation callback alongside that receipt. It returns the checker-facing
+environment together with the restored map, installation, WF, and alignment
+facts, keeping history construction as an explicit caller obligation.
+
 The reducer boundary now also accepts an exact equation whose result is the
 stored rule RHS. This packages the generated target translation, typing, sort
 arity, and native reducer success in one receipt, with a per-recursor

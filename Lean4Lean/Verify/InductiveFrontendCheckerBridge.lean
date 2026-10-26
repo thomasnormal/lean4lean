@@ -2087,6 +2087,54 @@ theorem NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndAlign
   refine ⟨hreceipt.1, hreceipt.2.1, hreceipt.2.2.1, hreceipt.2.2.2, ?_⟩
   exact producer.aligned haligned
 
+/- Consume an explicitly supplied final declaration history alongside the
+   dependency-safe restored receipt. This keeps checker construction separate
+   from the still-open history-construction theorem. -/
+theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationReceiptAndMapAndAlignment
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe resultConstants Q semanticResult)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    (haligned : Aligned .safe constants semanticEnv) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      (result.constants = resultConstants ∧
+        result.constants.WF ∧
+        result.constants = insertOrdered constants restored.entries ∧
+        (∀ entry ∈ restored.entries,
+          entry.Semantic semanticEnv producer.headerEnv producer.constructorEnv ∧
+          entry.Metadata decl producer.constructors ∧
+          entry.RuleSemantics semanticResult ∧
+          entry.model.name = entry.toConstantInfo.name ∧
+          entry.model.uvars = entry.toConstantInfo.levelParams.length ∧
+          result.find? entry.toConstantInfo.name = some entry.toConstantInfo ∧
+          RestoredInductiveRecord preprocessing staged allIndNames recNameMap
+            entry.toConstantInfo ∧
+          ∃ name info, staged.find? name = some info) ∧
+        Aligned .safe resultConstants semanticResult) := by
+  have hchecker : CheckerEnvInductive .safe result semanticResult Q := by
+    refine ⟨?_, ?_⟩
+    rw [hresultConstants]
+    exact history
+    intro name ci value h hs hsafe hv
+    exact hvalues name ci h hs hsafe hv
+  exact ⟨hchecker,
+    restored.registrationReceiptAndMapAndAlignment producer halign hconstants hresultConstants
+      haligned⟩
+
 theorem NativeInductive.RestoredRecordEvidence.registrationConstructiveAndMapWF_of_sourceTypehood
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}
