@@ -218,6 +218,10 @@ they preserve the native stored-RHS equation and constructor/minor alignment.
 Restored source-indexed target consumers and checker certificates now expose
 matching exact target-result aliases, including singular/plural spellings.
 They retain source lookup metadata together with the exact reducer equation.
+The registration API spelling is now complete across singular/plural
+`Reduction(s)Exact` and `Result(s)Exact` names for recursor and ordered
+traversals.  Each name remains a definitional alias of an existing exact
+package and adds no assumptions.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

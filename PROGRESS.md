@@ -294,6 +294,10 @@ paired at registration.
 Restored source-indexed consumers now expose matching exact target-result and
 checker spellings, including singular/plural aliases.  These names retain the
 restored lookup metadata and the same exact stored-RHS relation.
+Registration exact APIs now also provide the missing singular/plural
+`Reduction(s)Exact` and `Result(s)Exact` spellings for recursor and ordered
+traversals.  These are definitional aliases only; they add no proof path or
+weaken the exact reducer contract.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
