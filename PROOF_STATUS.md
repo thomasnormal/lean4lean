@@ -215,6 +215,9 @@ Registration and ordered-registration exact consumers now expose matching
 target-result spellings, including singular and plural generated-result
 aliases.  These are endpoint aliases for the exact target-reduction packages;
 they preserve the native stored-RHS equation and constructor/minor alignment.
+Restored source-indexed target consumers and checker certificates now expose
+matching exact target-result aliases, including singular/plural spellings.
+They retain source lookup metadata together with the exact reducer equation.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

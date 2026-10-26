@@ -291,6 +291,9 @@ target-result spellings, including singular/plural generated-result aliases.
 They are definitional endpoint names for the exact target-reduction packages,
 so the stored-RHS equation and generated constructor/minor witness remain
 paired at registration.
+Restored source-indexed consumers now expose matching exact target-result and
+checker spellings, including singular/plural aliases.  These names retain the
+restored lookup metadata and the same exact stored-RHS relation.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
