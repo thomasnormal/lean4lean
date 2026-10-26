@@ -71,6 +71,11 @@ declaration `VDecl.WF`, and safe-value translation callback remain explicit.
 consumer, so the native bridge shares the same visible obligations. This is a
 checker packaging result; recursor model WF, generated-rule semantics, iota
 soundness, and executable inductive frontend soundness remain open.
+The paired `toCheckerEnvInductive_and_wf` consumer returns the same checker
+alongside final constant-map WF and semantic-environment WF. The native
+registration wrapper and its source-typehood form delegate to it, retaining
+the explicit map equalities, staged declaration WF, recursor/value premises,
+and all generated-rule/iota boundaries.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

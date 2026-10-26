@@ -58,6 +58,11 @@ the executable inductive frontend theorem outside its contract.
 `RegistrationEvidence.toCheckerEnvInductive` delegates to this generic
 consumer, preserving those map, history, declaration-WF, and value obligations
 at the native bridge.
+The paired `AddInductWithRecursorsEvidence.toCheckerEnvInductive_and_wf`
+consumer returns the same checker with final constant-map WF and semantic
+environment WF projections. Native registration and source-typehood wrappers
+delegate to this pair without hiding map equalities, staged declaration WF,
+recursor model WF, or safe-value translation obligations.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

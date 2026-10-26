@@ -157,6 +157,26 @@ theorem CheckerEnvInductive.venv_wf
     (H : CheckerEnvInductive safety env venv Q) : venv.WF :=
   H.history.wf
 
+/- Pair the generic checker consumer with the map and semantic-environment WF
+   projections already carried by its resulting history. -/
+theorem AddInductWithRecursorsEvidence.toCheckerEnvInductive_and_wf
+    {safety : DefinitionSafety}
+    (H : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
+      recursors models C' env')
+    (native resultNative : Kernel.Environment)
+    (history : TrEnvInductive safety native.constants Q env)
+    (hmap : native.constants = C) (hresultMap : resultNative.constants = C')
+    (hdecl : VDecl.WF env (.induct decl) inductiveEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      resultNative.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr env' ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive safety resultNative env' Q ∧
+      resultNative.constants.WF ∧ env'.WF := by
+  have checker := H.toCheckerEnvInductive native resultNative history hmap hresultMap hdecl hvalues
+  exact ⟨checker, checker.map_wf, checker.venv_wf⟩
+
 theorem CheckerEnvInductive.toCheckerEnv
     (H : CheckerEnvInductive safety env venv Q) : CheckerEnv safety env venv :=
   ⟨H.history.aligned, H.history.wf, H.safeValues⟩
