@@ -298,6 +298,11 @@ Registration exact APIs now also provide the missing singular/plural
 `Reduction(s)Exact` and `Result(s)Exact` spellings for recursor and ordered
 traversals.  These are definitional aliases only; they add no proof path or
 weaken the exact reducer contract.
+The October 26 audit completes the same endpoint matrix for restored
+source-indexed consumers and their checker certificates: singular/plural
+`IotaTarget`, `Reduction(s)`, and `Result(s)` exact spellings now all resolve
+to the existing exact reducer package.  Source lookup metadata, generated
+constructor/minor witnesses, and the stored-RHS equation remain paired.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,

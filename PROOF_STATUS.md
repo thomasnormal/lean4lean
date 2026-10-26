@@ -222,6 +222,11 @@ The registration API spelling is now complete across singular/plural
 `Reduction(s)Exact` and `Result(s)Exact` names for recursor and ordered
 traversals.  Each name remains a definitional alias of an existing exact
 package and adds no assumptions.
+The restored source-indexed and checker-facing endpoint matrix is likewise
+complete for singular/plural `IotaTarget`, `Reduction(s)`, and `Result(s)` exact
+spellings.  These names are definitional aliases of the existing exact
+stored-RHS relation; restored lookup metadata and generated constructor/minor
+alignment remain available, with no new axioms or admissions.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,
