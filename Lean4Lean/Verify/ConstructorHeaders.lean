@@ -453,4 +453,33 @@ theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorChecke
       ((VEnv.addInductHeaders.le hheaderAdd).trans
         (VEnv.addConstructorHeaders.le hctorAdd)) hctorWF haligned'⟩
 
+/- Retain the public declaration model facts together with the checker-facing
+   staged receipt.  This is a convenience package for consumers that need the
+   declaration's `HeadersWF`/`WF` facts and its registered `VDecl.WF` witness
+   at the same boundary. -/
+theorem AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorCheckerWithModelAndVDeclWF
+    (ctx : AddInductive.Context) (numParams : Nat) (types : List InductiveType)
+    (numNested : Nat) (isUnsafe : Bool) {safety : DefinitionSafety} {venv : VEnv}
+    (hchecker : CheckerEnv safety ctx.env venv)
+    (hprimitive : Environment.checkPrimitiveInductive
+      ctx.env ctx.lparams numParams types isUnsafe = .ok true) :
+    (checkInductiveTypes numParams types.toArray (fun stats => do
+      withEnv (← declareInductiveTypes stats numParams types.toArray numNested isUnsafe) do
+        checkConstructors types.toArray stats isUnsafe
+        declareConstructors stats types.toArray isUnsafe) ctx).WF fun env' =>
+      ∃ decl headerEnv ctorEnv, (decl = boolInductDecl ∨ decl = natInductDecl) ∧
+        decl.HeadersWF venv ∧ decl.WF venv ∧
+        venv.addInductHeaders decl.types = some headerEnv ∧ headerEnv.WF ∧
+        TrInductDecl venv headerEnv ctx.lparams numParams types decl ∧
+        headerEnv.addConstructorHeaders (decl.types.flatMap (fun type => type.ctors)) =
+          some ctorEnv ∧ ctorEnv.WF ∧ VDecl.WF venv (.induct decl) ctorEnv ∧
+        CheckerEnv safety env' ctorEnv := by
+  intro env' accepted
+  obtain ⟨decl, headerEnv, ctorEnv, hkind, hheaders, hdeclWF, hheaderAdd, hheaderWF,
+      htr, hctorAdd, hctorWF, hdeclVWF, hchecker'⟩ :=
+    (AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorCheckerVDeclWF
+      ctx numParams types numNested isUnsafe hchecker hprimitive) env' accepted
+  exact ⟨decl, headerEnv, ctorEnv, hkind, hheaders, hdeclWF, hheaderAdd, hheaderWF,
+    htr, hctorAdd, hctorWF, hdeclVWF, hchecker'⟩
+
 end Lean4Lean

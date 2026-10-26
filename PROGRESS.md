@@ -18,6 +18,11 @@ header/constructor frame and returns the transported `CheckerEnv` together
 with the same semantic `VDecl.WF` receipt. This remains a staged checker
 boundary; it does not establish recursor registration or iota soundness.
 
+The companion `refinesPrimitiveHeaderConstructorCheckerWithModelAndVDeclWF`
+keeps the public declaration model facts beside that checker receipt, including
+`HeadersWF`, declaration `WF`, and the registered `VDecl.WF`. It is a packaging
+theorem for the same staged boundary and adds no recursor or iota result.
+
 ## All-safety inductive checker boundary — 2026-10-26
 
 `VEnvs.InductiveWF` now records an all-safety `TrEnvInductive` history together

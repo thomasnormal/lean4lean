@@ -16,6 +16,10 @@ The checker companion transports safe values through the native
 header/constructor frame and returns the resulting `CheckerEnv` together with
 the same semantic `VDecl.WF` receipt. It remains a staged checker boundary;
 recursor registration and iota soundness stay explicit obligations.
+The model companion `refinesPrimitiveHeaderConstructorCheckerWithModelAndVDeclWF`
+retains the public `HeadersWF` and declaration `WF` facts alongside that
+checker receipt and its registered `VDecl.WF`; it is only a packaging theorem
+and adds no recursor or iota result.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
