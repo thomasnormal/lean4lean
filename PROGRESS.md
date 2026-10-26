@@ -22,6 +22,9 @@ source-typehood form delegates to it.
 `SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationHistory`
 similarly combines generic checker construction with the explicit final
 declaration history; its source-typehood form now delegates to that theorem.
+The corresponding `toCheckerEnvInductive_and_registrationAlignmentHistory`
+package returns checker construction, aligned result map, final map equality,
+and declaration history from the same explicit recursor-WF witness.
 
 Our fork has substantial additional checker verification, primitive proofs,
 inductive staging work, and regression coverage. It is **not a completed

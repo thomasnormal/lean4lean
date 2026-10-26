@@ -399,6 +399,36 @@ theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationHistory
   exact scope.toCheckerEnvInductive_and_registrationHistory
     history producer hconstants hresultConstants hrecursors hvalues
 
+/- Combine the generic checker, alignment, and declaration-history consumers
+   while keeping all map and recursor WF witnesses explicit. -/
+theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignmentHistory
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      Aligned .safe resultConstants semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive .safe resultConstants Q semanticResult := by
+  have hchecker := scope.toCheckerEnvInductive history producer hconstants
+    hresultConstants hrecursors hvalues
+  have halignment := scope.registrationAlignmentHistory history producer
+    hconstants hresultConstants hrecursors
+  exact ⟨hchecker, halignment.1, halignment.2.1, halignment.2.2⟩
+
 theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_ruleResults
     {Result : NativeInductive.RecursorEntry → RecursorRule → Prop}
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}

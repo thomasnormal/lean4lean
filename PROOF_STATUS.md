@@ -26,6 +26,8 @@ aligned result map.
 The frontend-scope bridge also exposes the generic checker/history pair while
 retaining explicit map equalities, initial map WF, recursor WF, and value
 translation.
+It now also packages checker construction with result alignment, map equality,
+and final declaration history without adding any hidden frontend obligations.
 
 This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
