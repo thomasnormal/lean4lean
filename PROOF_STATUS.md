@@ -73,6 +73,9 @@ registration, recursor, iota, or executable frontend fact.
 The registration consumer also exposes the executable extension equation and
 its semantic/map WF projections beside the checker; it does not infer any
 additional recursor, iota, or frontend soundness result.
+The frontend-scope wrapper carries the executable registration equation and
+its WF projections into the checker boundary without adding a frontend,
+recursor, or iota soundness claim.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

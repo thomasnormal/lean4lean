@@ -40,6 +40,35 @@ theorem SafeInductiveFrontendScope.toCheckerEnvInductive
   exact producer.toCheckerEnvInductive env result history rfl hresultConstants
     hconstantsWF hrecursors hvalues
 
+/- The checked frontend scope can retain the executable semantic registration
+   equation and WF receipts alongside its checker environment. -/
+theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationWF
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      semanticEnv.addInductWithRecursors decl (producer.recursors.map (·.model)) =
+        some semanticResult ∧
+      semanticResult.WF ∧ result.constants.WF := by
+  have hconstantsWF : env.constants.WF := scope.originalWF
+  subst constants
+  exact producer.toCheckerEnvInductive_and_registrationWF env result history rfl
+    hresultConstants hconstantsWF hrecursors hvalues
+
 /- A checked frontend scope can also be consumed when its final declaration
    history is supplied independently. This keeps checker construction from
    silently rebuilding registration or map-WF evidence. -/

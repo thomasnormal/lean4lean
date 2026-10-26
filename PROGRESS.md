@@ -88,6 +88,9 @@ The registration consumer now pairs that checker receipt with the executable
 `addInductWithRecursors` equation, final semantic-environment WF, and result
 map WF. Its native and source-typehood forms retain the same explicit
 recursor and safe-value premises.
+The checked `SafeInductiveFrontendScope` now exposes the same executable
+registration equation and WF receipts beside its checker environment, while
+keeping the producer, history, map, recursor, and safe-value inputs explicit.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
