@@ -82,6 +82,9 @@ The aligned registration companion packages the same receipt with final
 semantic alignment, the executable registration equation, semantic
 environment WF, and result-map WF. Initial alignment, history, map
 equalities, and safe-value translation remain explicit inputs.
+The restoration-metadata frontend wrapper now exposes that same aligned
+registration receipt without requiring callers to unpack the executable
+scope; it retains all of those explicit obligations.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

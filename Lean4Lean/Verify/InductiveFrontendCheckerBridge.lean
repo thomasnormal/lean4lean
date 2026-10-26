@@ -11924,6 +11924,37 @@ theorem SafeInductiveRestorationMetadata.toCheckerEnvInductive_of_frontendSource
   exact metadata.toFrontendScope.toCheckerEnvInductive history producer hconstants
     hresultConstants hrecursors hvalues
 
+/- Lift the aligned registration receipt through restoration metadata without
+   requiring callers to unpack its executable frontend scope. -/
+theorem SafeInductiveRestorationMetadata.toCheckerEnvInductive_and_aligned_and_registrationWF_of_frontendSourceTypehood
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (haligned : Aligned .safe constants semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      Aligned .safe resultConstants semanticResult ∧
+      semanticEnv.addInductWithRecursors decl (producer.recursors.map (·.model)) =
+        some semanticResult ∧
+      semanticResult.WF ∧ result.constants.WF := by
+  exact metadata.toFrontendScope
+    |>.toCheckerEnvInductive_and_aligned_and_registrationWF_of_sourceTypehood
+      history producer hconstants hresultConstants haligned hsource hvalues
+
 theorem SafeInductiveRestorationMetadata.registrationHistory
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}

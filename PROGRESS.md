@@ -98,6 +98,9 @@ Its aligned registration companion now returns semantic alignment alongside
 the checker, executable registration equation, semantic environment WF, and
 result-map WF; the source-typehood form derives only the recursor model-WF
 premise and keeps the initial alignment explicit.
+`SafeInductiveRestorationMetadata` now lifts that aligned registration receipt
+directly through its frontend scope, preserving the same explicit history,
+alignment, map, and safe-value inputs for restoration callers.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
