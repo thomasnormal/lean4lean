@@ -40,6 +40,28 @@ theorem SafeInductiveFrontendScope.toCheckerEnvInductive
   exact producer.toCheckerEnvInductive env result history rfl hresultConstants
     hconstantsWF hrecursors hvalues
 
+/- A checked frontend scope can also be consumed when its final declaration
+   history is supplied independently. This keeps checker construction from
+   silently rebuilding registration or map-WF evidence. -/
+theorem SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistory
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {resultConstants : ConstMap} {semanticResult : VEnv} {Q : Bool}
+    (history : TrEnvInductive .safe resultConstants Q semanticResult)
+    (hresultConstants : result.constants = resultConstants)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe result semanticResult Q := by
+  refine ⟨?_, ?_⟩
+  · rw [hresultConstants]
+    exact history
+  · intro name ci value h hs hsafe hv
+    exact hvalues name ci h hs hsafe hv
+
 /- Pair the checker environment with the exact final-map receipt for every
    ordered native registration entry.  The native scope supplies the constant
    map WF proof; the producer keeps the recursor model-WF obligation explicit. -/

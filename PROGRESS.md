@@ -64,6 +64,11 @@ translation callback alongside that receipt. It returns the checker-facing
 environment together with the restored map, installation, WF, and alignment
 facts, keeping history construction as an explicit caller obligation.
 
+`SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistory` exposes
+the corresponding direct scope consumer: callers provide the final history,
+map equality, and safe-value translation callback, and receive the checker
+environment without invoking producer registration or persistent-map WF lemmas.
+
 The reducer boundary now also accepts an exact equation whose result is the
 stored rule RHS. This packages the generated target translation, typing, sort
 arity, and native reducer success in one receipt, with a per-recursor

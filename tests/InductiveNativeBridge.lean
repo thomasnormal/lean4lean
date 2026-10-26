@@ -225,6 +225,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_orderedEntryLookup
+#check SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistory
 #check addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
@@ -3463,6 +3464,20 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
         (.const ci.name (VLevel.params ci.levelParams.length))) :
     CheckerEnvInductive .safe result semanticResult Q :=
   scope.toCheckerEnvInductive history producer hconstants hresultConstants hrecursors hvalues
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result)
+    {resultConstants : ConstMap} {semanticResult : VEnv} {Q : Bool}
+    (history : TrEnvInductive .safe resultConstants Q semanticResult)
+    (hresultConstants : result.constants = resultConstants)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnvInductive .safe result semanticResult Q :=
+  scope.toCheckerEnvInductive_of_explicitHistory history hresultConstants hvalues
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}

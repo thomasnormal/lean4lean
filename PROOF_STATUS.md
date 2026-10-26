@@ -66,6 +66,12 @@ receipt/map/alignment package. The theorem does not derive declaration history,
 and its transitive axiom set remains `[propext, sorryAx, Classical.choice,
 Quot.sound]` with no persistent-map interface axioms.
 
+`SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistory` provides
+the same explicit-history checker construction directly from a frontend scope.
+It takes the final map equation and safe-value callback as premises rather
+than deriving producer registration, and its audit is the same standard
+logical/translation baseline with no persistent-map interface axioms.
+
 ## Checked primitive registration lookup — 2026-10-26
 
 `addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup` now
