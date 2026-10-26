@@ -725,6 +725,66 @@ theorem AddInductEvidence.map_wf
     rw [constructorNames]
     exact constructorNodup
 
+/- Exact map lookups for the constructive header and constructor receipt.  These
+   are the positive counterparts of the legacy family-rejection lemmas and keep
+   the inserted model value paired with the source metadata. -/
+theorem AddInductEvidence.lookupReceipt
+    (H : AddInductEvidence safety C env decl C' env') (hC : C.WF) :
+    ∃ (headers : List InductiveVal) (constructors : List ConstructorVal) (headerEnv : VEnv),
+      List.Forall₂
+        (fun info header => info.name = header.name ∧
+          TrConstant safety env (.inductInfo info) header.toVConstant)
+        headers decl.types ∧
+      List.Forall₂
+        (fun info ctor => info.name = ctor.name ∧
+          TrConstant safety headerEnv (.ctorInfo info) ctor.toVConstant)
+        constructors decl.constructorHeaders ∧
+      (∀ info ∈ headers, C'.find? info.name = some (.inductInfo info)) ∧
+      (∀ ctor ∈ constructors, C'.find? ctor.name = some (.ctorInfo ctor)) := by
+  cases H with
+  | @intro headers constructors headerEnv hheaders hconstructors headerAdd constructorAdd
+      headerNodup constructorNodup headerFresh constructorFresh mapEq =>
+    have headerMap : C'.find? =
+        (insertConsts (insertConsts C (headers.map (ConstantInfo.inductInfo ·)))
+          (constructors.map (ConstantInfo.ctorInfo ·))).find? := by
+      rw [mapEq, insertConsts_append]
+    have headerBase : (insertConsts C (headers.map (ConstantInfo.inductInfo ·))).WF := by
+      apply insertConsts_wf
+      · exact hC
+      · intro ci hci
+        obtain ⟨header, hheader, rfl⟩ := List.mem_map.mp hci
+        exact headerFresh header hheader
+      · simpa only [List.map_map, Function.comp_def, ConstantInfo.name,
+          ConstantInfo.toConstantVal] using headerNodup
+    have constructorFresh' : ∀ ci ∈ constructors.map (ConstantInfo.ctorInfo ·),
+        (insertConsts C (headers.map (ConstantInfo.inductInfo ·))).find? ci.name = none := by
+      intro ci hci
+      obtain ⟨ctor, hctor, rfl⟩ := List.mem_map.mp hci
+      exact constructorFresh ctor hctor
+    refine ⟨headers, constructors, headerEnv, hheaders, hconstructors, ?_, ?_⟩
+    · intro info hinfo
+      rw [headerMap]
+      have hheader :
+          (insertConsts C (headers.map (ConstantInfo.inductInfo ·))).find?
+            info.name = some (.inductInfo info) := by
+        exact insertConsts_mem hC
+          (fun ci hci => by
+            obtain ⟨header, hheader, rfl⟩ := List.mem_map.mp hci
+            exact headerFresh header hheader)
+          (by simpa only [List.map_map, Function.comp_def, ConstantInfo.name,
+            ConstantInfo.toConstantVal] using headerNodup)
+          (List.mem_map.mpr ⟨info, hinfo, rfl⟩)
+      simpa only [ConstantInfo.name, ConstantInfo.toConstantVal] using
+        insertConsts_preserves_find? headerBase constructorFresh'
+          (by simpa only [List.map_map, Function.comp_def, ConstantInfo.name,
+            ConstantInfo.toConstantVal] using constructorNodup) hheader
+    · intro ctor hctor
+      rw [headerMap]
+      exact insertConsts_mem headerBase constructorFresh'
+        (by simpa only [List.map_map, Function.comp_def, ConstantInfo.name,
+          ConstantInfo.toConstantVal] using constructorNodup)
+        (List.mem_map.mpr ⟨ctor, hctor, rfl⟩)
+
 theorem AddInductWithRecursorsEvidence.map_wf
     (H : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
       recursors models C' env') (hC : C.WF) : C'.WF := by
@@ -753,6 +813,46 @@ theorem AddInductWithRecursorsEvidence.map_wf
         simp [ConstantInfo.name, ConstantInfo.toConstantVal]
     rw [recursorNames]
     exact (List.forall₂_eq.mp hpair).symm ▸ H.recursorNodup
+
+/- Exact lookups for generated recursor signatures after the constructive
+   registration stage.  The `Forall₂` translation receipt supplies the name
+   alignment between native recursor metadata and the stored model value. -/
+theorem AddInductWithRecursorsEvidence.recursorLookup
+    (H : AddInductWithRecursorsEvidence safety C env decl inductiveConstants inductiveEnv
+      recursors models C' env') (hC : C.WF) :
+    ∀ info ∈ recursors, C'.find? info.name = some (.recInfo info) := by
+  intro info hinfo
+  rw [H.resultMap]
+  have hbase : inductiveConstants.WF := H.inductiveEvidence.map_wf hC
+  have hfresh : ∀ ci ∈ recursors.map (ConstantInfo.recInfo ·),
+      inductiveConstants.find? ci.name = none := by
+    intro ci hci
+    obtain ⟨recursor, hrecursor, rfl⟩ := List.mem_map.mp hci
+    obtain ⟨model, hmodel, htranslation⟩ :=
+      Lean4Lean.List.Forall₂.forall_exists_l H.translations recursor hrecursor
+    have hname : (ConstantInfo.recInfo recursor).name = model.name := by
+      simpa only [ConstantInfo.name, ConstantInfo.toConstantVal] using htranslation.1
+    rw [hname]
+    exact H.recursorFresh model hmodel
+  have hnodup :
+      (recursors.map (ConstantInfo.recInfo ·)).map (·.name) |>.Nodup := by
+    have htranslations : List.Forall₂
+        (fun recursor model => recursor.name = model.name) recursors models :=
+      Lean4Lean.List.Forall₂.imp (fun _ _ h => h.1) H.translations
+    have hpair : List.Forall₂ Eq (recursors.map (·.name)) (models.map (·.name)) := by
+      rw [List.forall₂_map_left_iff, List.forall₂_map_right_iff]
+      exact htranslations
+    have hnames :
+        (recursors.map (ConstantInfo.recInfo ·)).map (·.name) = recursors.map (·.name) := by
+      induction recursors with
+      | nil => rfl
+      | cons info recursors ih =>
+        simp [ConstantInfo.name, ConstantInfo.toConstantVal]
+    rw [hnames]
+    exact (List.forall₂_eq.mp hpair).symm ▸ H.recursorNodup
+  simpa only [ConstantInfo.name, ConstantInfo.toConstantVal] using
+    insertConsts_mem hbase hfresh hnodup
+      (List.mem_map.mpr ⟨info, hinfo, rfl⟩)
 
 theorem TrEnvInductive.env_find? {env : Environment}
     (H : TrEnvInductive safety env.constants Q venv)

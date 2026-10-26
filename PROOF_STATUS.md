@@ -3,6 +3,22 @@
 This fork is an incomplete, conditional verification checkpoint, not a proof of
 all of Lean. The intended review branch is `poc-verified-noninductive`.
 
+## Constructive registration lookup receipts — 2026-10-26
+
+`AddInductEvidence.lookupReceipt` now derives exact model-map lookups for
+registered inductive headers and constructors. Its proof combines freshness,
+name alignment, the header/constructor `Forall₂` translations, list
+no-duplication, and `ConstMap.WF` preservation through the staged insertions.
+`AddInductWithRecursorsEvidence.recursorLookup` provides the corresponding
+exact lookup for each generated recursor by transporting the recursor name
+through its translation receipt and applying the same insertion argument.
+The lower-level `insertConsts_preserves_find?` and `insertConsts_mem` lemmas
+are constructive positive lookup principles for fresh, name-unique batches.
+The regression uses the receipts against actual `RegistrationEvidence` and
+checks exact header, constructor, and recursor entries. No executable
+frontend behavior changed, and `AddInduct`, full inductive registration, and
+iota/recursor soundness remain open.
+
 ## Exact generated RHS reduction consumer — 2026-10-25
 
 `GeneratedRecursorRuleIotaTargetReductionExact` records a successful native

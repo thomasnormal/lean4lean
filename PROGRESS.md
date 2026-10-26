@@ -1,6 +1,6 @@
 # Progress and upstream comparison
 
-Last reviewed: **2026-10-25 (UTC)**. This is the readable overview of the
+Last reviewed: **2026-10-26 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
@@ -467,6 +467,15 @@ and map equation against the corresponding `VEnv` insertion. It covers
 arbitrary definition-safety levels by lowering the safe receipt. The
 executable frontend is unchanged; `AddInduct` and full recursor semantics
 remain open.
+
+The constructive registration receipts now also expose positive exact map
+lookups. `AddInductEvidence.lookupReceipt` derives the inserted header and
+constructor values from freshness, name alignment, `Forall₂` translations,
+and map well-formedness; `AddInductWithRecursorsEvidence.recursorLookup`
+does the same for every generated recursor. These receipts make the model
+entries available to checker-facing consumers while retaining the explicit
+staging and translation premises. They do not complete `AddInduct`, the
+inductive frontend, or recursor/iota soundness.
 
 **Universal original-core simulation:** every actual `NormalEq` in a
 well-formed environment with the checked quotient rule registered now simulates

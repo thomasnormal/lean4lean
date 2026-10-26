@@ -72,6 +72,8 @@ open Lean4Lean.AddInductive.declareConstructors
 #check AddInductive.GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStringLiteralExact
 #check AddInductive.GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStructureExact
 #check AddInductive.GeneratedRecursorRuleIotaTargetReductionExact
+#check AddInductEvidence.lookupReceipt
+#check AddInductWithRecursorsEvidence.recursorLookup
 #check AddInductive.GeneratedConstructorRuleRhsResult.iotaTargetReductionOfExact
 #check AddInductive.GeneratedRecursorRuleIotaTargetReductionExact.toOrdinary
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaTargetReductionOf
@@ -470,6 +472,29 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
     AddInductEvidence .safe constants env decl evidence.constructorConstants
       evidence.constructorEnv :=
   evidence.to_addInductEvidence hconstants
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) :
+    ∃ (headers : List InductiveVal) (constructors : List ConstructorVal) (headerEnv : VEnv),
+      (∀ info ∈ headers, evidence.constructorConstants.find? info.name =
+        some (.inductInfo info)) ∧
+      (∀ ctor ∈ constructors, evidence.constructorConstants.find? ctor.name =
+        some (.ctorInfo ctor)) := by
+  obtain ⟨headers, constructors, headerEnv, _, _, hheaders, hconstructors⟩ :=
+    (evidence.to_addInductEvidence hconstants).lookupReceipt hconstants
+  exact ⟨headers, constructors, headerEnv, hheaders, hconstructors⟩
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv) :
+    ∀ info ∈ evidence.recursors.map (·.info),
+      resultConstants.find? info.name = some (.recInfo info) := by
+  intro info hinfo
+  exact (evidence.to_addInductWithRecursorsEvidence hconstants hrecursors).recursorLookup
+    hconstants info hinfo
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :

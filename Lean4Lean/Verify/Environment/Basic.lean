@@ -248,6 +248,64 @@ theorem insertConsts_find? : ∀ {cis : List ConstantInfo} {C : ConstMap} {name 
       · exact .inl h
     · exact .inr ⟨e, .tail _ he, hn, heq⟩
 
+theorem insertConsts_preserves_find? {cis : List ConstantInfo} {C : ConstMap}
+    (hC : C.WF) (hfr : ∀ ci ∈ cis, C.find? ci.name = none)
+    (hnd : (cis.map (·.name)).Nodup) {name} {ci : ConstantInfo}
+    (hold : C.find? name = some ci) :
+    (insertConsts C cis).find? name = some ci := by
+  induction cis generalizing C with
+  | nil => exact hold
+  | cons head cis ih =>
+    have hnd' := List.nodup_cons.mp hnd
+    have hname : head.name ≠ name := by
+      intro heq
+      have hfound : C.find? head.name = some ci := by simpa [heq] using hold
+      rw [hfr head (.head _)] at hfound
+      cases hfound
+    have hC' := hC.insert head.name head (hfr head (.head _))
+    have hold' : (C.insert head.name head).find? name = some ci := by
+      rw [hC.find?_insert]
+      simp [hname, hold]
+    have hfr' : ∀ entry ∈ cis,
+        (C.insert head.name head).find? entry.name = none := by
+      intro entry hentry
+      rw [hC.find?_insert]
+      split
+      · rename_i equal
+        simp only [beq_iff_eq] at equal
+        exact False.elim (hnd'.1 (by
+          simpa [equal] using List.mem_map.mpr ⟨entry, hentry, rfl⟩))
+      · exact hfr entry (.tail _ hentry)
+    rw [show insertConsts C (head :: cis) =
+      insertConsts (C.insert head.name head) cis by rfl]
+    exact ih hC' hfr' hnd'.2 hold'
+
+theorem insertConsts_mem {cis : List ConstantInfo} {C : ConstMap} (hC : C.WF)
+    (hfr : ∀ ci ∈ cis, C.find? ci.name = none)
+    (hnd : (cis.map (·.name)).Nodup) {ci : ConstantInfo} (hci : ci ∈ cis) :
+    (insertConsts C cis).find? ci.name = some ci := by
+  induction cis generalizing C with
+  | nil => cases hci
+  | cons head cis ih =>
+    have hnd' := List.nodup_cons.mp hnd
+    have hfr' : ∀ entry ∈ cis,
+        (C.insert head.name head).find? entry.name = none := by
+      intro entry hentry
+      rw [hC.find?_insert]
+      split
+      · rename_i equal
+        simp only [beq_iff_eq] at equal
+        exact False.elim (hnd'.1 (by
+          simpa [equal] using List.mem_map.mpr ⟨entry, hentry, rfl⟩))
+      · exact hfr entry (.tail _ hentry)
+    rw [show insertConsts C (head :: cis) =
+      insertConsts (C.insert head.name head) cis by rfl]
+    rcases List.mem_cons.mp hci with hhead | htail
+    · subst ci
+      exact insertConsts_preserves_find? (hC.insert _ _ (hfr _ (.head _)))
+        hfr' hnd'.2 (by rw [hC.find?_insert]; simp)
+    · exact ih (hC.insert _ _ (hfr _ (.head _))) hfr' hnd'.2 htail
+
 
 /-- The legacy inductive admission boundary remains explicit until lookup consumers migrate. -/
 inductive AddInduct (m₁ : ConstMap) (env₁ : VEnv) (decl : VInductDecl)
