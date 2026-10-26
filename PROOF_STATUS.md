@@ -227,6 +227,10 @@ complete for singular/plural `IotaTarget`, `Reduction(s)`, and `Result(s)` exact
 spellings.  These names are definitional aliases of the existing exact
 stored-RHS relation; restored lookup metadata and generated constructor/minor
 alignment remain available, with no new axioms or admissions.
+The checked-primitive restoration-stage aggregate now includes its plural
+generated-rule exact reduction spelling as a definitional alias of the
+singular exact package; the explicit reducer callback and stored-RHS equation
+are unchanged.
 The ordinary application endpoint now mirrors the existing K application
 endpoint with the non-K dispatcher equation, retaining explicit normalized
 application, structure adaptation, rule lookup, field-count, output-shape,

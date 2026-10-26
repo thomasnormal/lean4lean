@@ -303,6 +303,9 @@ source-indexed consumers and their checker certificates: singular/plural
 `IotaTarget`, `Reduction(s)`, and `Result(s)` exact spellings now all resolve
 to the existing exact reducer package.  Source lookup metadata, generated
 constructor/minor witnesses, and the stored-RHS equation remain paired.
+The checked-primitive restoration-stage aggregate now also has the missing
+plural generated-rule `IotaTargetReductionPackage` exact spelling, reusing the
+singular exact theorem without changing its callback or stored-RHS equation.
 
 **Complete stored-rule generated semantics (October 25):** the indexed rule
 receipt now has an explicit stored-rule bridge that recovers the constructor,
