@@ -37,6 +37,14 @@ coverage alongside the indexed generated results for downstream consumers.
 Inductive frontend soundness, rejection-consumer migration, and `AddInduct`
 remain open.
 
+The checked primitive registration boundary now also packages the exact final
+native constant-map lookup for every ordered header, constructor, and recursor.
+`addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup` composes
+the executable checked-primitive scope and semantic registration receipt with
+the constructive ordered lookup theorem. The native recursor model-WF premise
+and map equality remain explicit; this does not construct `AddInduct` or prove
+recursor/iota semantics.
+
 The reducer boundary now also accepts an exact equation whose result is the
 stored rule RHS. This packages the generated target translation, typing, sort
 arity, and native reducer success in one receipt, with a per-recursor

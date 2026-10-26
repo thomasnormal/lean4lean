@@ -40,6 +40,17 @@ transports this receipt through the native-to-checker scope bridge and returns
 it alongside `CheckerEnvInductive`. The native constant-map equality remains
 explicit, and the theorem adds no executable frontend or recursor/iota claim.
 
+## Checked primitive registration lookup — 2026-10-26
+
+`addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup` now
+composes the successful checked-primitive `addDecl` scope and constructive
+`AddInductWithRecursorsEvidence` with `RegistrationEvidence.orderedEntryLookup`.
+It returns the semantic registration equation, the final native map equality,
+and an exact lookup for every ordered header, constructor, and recursor. The
+recursor model-WF callback remains explicit, and no executable behavior,
+admission, `AddInduct` constructor, or recursor/iota soundness theorem is
+introduced.
+
 ## Exact generated RHS reduction consumer — 2026-10-25
 
 `GeneratedRecursorRuleIotaTargetReductionExact` records a successful native

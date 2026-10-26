@@ -22376,6 +22376,47 @@ theorem addDecl.checkedPrimitiveRegistrationRealization
     exact hmap
   have hregistration := producer.to_addInductWithRecursorsEvidence hconstantsWF hrecursors
   exact ⟨hscope, hregistration.to_addInductWithRecursors, hresultConstants, hregistration⟩
+
+/- The checked primitive entry point also exposes the exact final native lookup
+   for every ordered registration entry.  This keeps the executable
+   `addDecl` realization and the constructive map receipt paired at the same
+   frontend boundary. -/
+theorem addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) :
+    ∃ scope : SafeInductiveFrontendScope env lparams nparams types true fuel result,
+      semanticEnv.addInductWithRecursors decl
+          (producer.recursors.map (·.model)) = some semanticResult ∧
+      result.constants = resultConstants ∧
+      AddInductWithRecursorsEvidence .safe constants semanticEnv decl
+        producer.constructorConstants producer.constructorEnv
+        (producer.recursors.map (·.info)) (producer.recursors.map (·.model))
+        resultConstants semanticResult ∧
+      (∀ entry ∈ producer.orderedEntries,
+        result.constants.find? entry.toConstantInfo.name = some entry.toConstantInfo) := by
+  obtain ⟨scope, hregistration, hresultConstants', hreceipt⟩ :=
+    addDecl.checkedPrimitiveRegistrationRealization hmap hcheck hresult producer
+      hconstants hresultConstants hrecursors
+  have hconstantsWF : constants.WF := by
+    rw [← hconstants]
+    exact hmap
+  have hlookup := producer.orderedEntryLookup hconstantsWF hrecursors
+  refine ⟨scope, hregistration, hresultConstants', hreceipt, ?_⟩
+  intro entry hentry
+  rw [hresultConstants']
+  exact hlookup entry hentry
+
 /- The source-typehood route also preserves the direct target endpoint. -/
 theorem addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}

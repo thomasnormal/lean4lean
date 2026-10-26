@@ -225,6 +225,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_orderedEntryLookup
+#check addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_checkedPrimitive
@@ -6823,6 +6824,27 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _translation := htranslation
   have _scope := hscope
   have _registration := hregistration
+  trivial
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants) (hresultConstants : result.constants = resultConstants)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv) : True := by
+  obtain ⟨scope, hmodelResult, hmap, hregistration, hlookup⟩ :=
+    addDecl.checkedPrimitiveRegistrationRealizationAndOrderedEntryLookup hmap hcheck hresult
+      producer hconstants hresultConstants hrecursors
+  have _scope := scope
+  have _modelResult := hmodelResult
+  have _map := hmap
+  have _registration := hregistration
+  have _lookup := hlookup
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
