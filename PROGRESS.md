@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Safety-indexed registration alignment assembly — 2026-10-29
+
+`VEnvs.InductiveWF.addInductWithRecursors_and_aligned` now combines the
+existing all-safety inductive-history assembly with the aligned constant-map
+receipt at every safety level. Alignment is derived from the prior
+`TrEnvInductive` history and each constructive registration receipt, so the
+generic assembly boundary no longer needs a separate alignment construction.
+The theorem remains conditional on registration, declaration-WF, primitive,
+safe-primitive, and monotonicity premises; it does not prove recursor rule
+semantics, iota soundness, or the executable `AddInduct` frontend theorem.
+
 ## Upstream candidate recheck — 2026-10-29
 
 The current official `origin/master` (`67f63b0c`) already contains the three

@@ -164,6 +164,36 @@ theorem VEnvs.InductiveWF.addInductWithRecursors
   exact (registration safety).to_trEnvInductive (H.history (safety := safety))
     (declarationWF safety)
 
+/- Assemble the same safety-indexed history together with the aligned constant
+   maps.  The alignment projection is obtained from the prior inductive
+   history and the constructive registration receipt at each safety level; it
+   is therefore not an additional caller-supplied invariant. -/
+theorem VEnvs.InductiveWF.addInductWithRecursors_and_aligned
+    {env result : Environment} {ves resultVes : VEnvs} {Q : Bool}
+    (H : VEnvs.InductiveWF env ves Q) (decl : VInductDecl)
+    (inductiveConstants : DefinitionSafety → ConstMap)
+    (inductiveEnvs : DefinitionSafety → VEnv)
+    (recursors : DefinitionSafety → List RecursorVal)
+    (models : DefinitionSafety → List VConstVal)
+    (registration : ∀ safety,
+      AddInductWithRecursorsEvidence safety env.constants (ves.venv safety) decl
+        (inductiveConstants safety) (inductiveEnvs safety) (recursors safety)
+        (models safety) result.constants (resultVes.venv safety))
+    (declarationWF : ∀ safety,
+      VDecl.WF (ves.venv safety) (.induct decl) (inductiveEnvs safety))
+    (hasPrimitives : ∀ {safety}, (resultVes.venv safety).HasPrimitives)
+    (safePrimitives : ∀ {n ci}, result.find? n = some ci →
+      Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = [])
+    (mono : ∀ {safety safety'}, safety ≤ safety' →
+      resultVes.venv safety' ≤ resultVes.venv safety) :
+    VEnvs.InductiveWF result resultVes Q ∧
+      ∀ {safety}, Aligned safety result.constants (resultVes.venv safety) := by
+  refine ⟨H.addInductWithRecursors decl inductiveConstants inductiveEnvs recursors models
+    registration declarationWF hasPrimitives safePrimitives mono, ?_⟩
+  intro safety
+  exact Aligned.addInductWithRecursorsEvidence (registration safety)
+    (H.history (safety := safety)).aligned
+
 theorem VEnvs.InductiveWF.map_wf (H : VEnvs.InductiveWF env ves Q) : env.constants.WF :=
   (H.history (safety := .safe)).map_wf
 

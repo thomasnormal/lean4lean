@@ -1,5 +1,17 @@
 # Non-inductive verification proof of concept
 
+## Safety-indexed registration alignment assembly — 2026-10-29
+
+`VEnvs.InductiveWF.addInductWithRecursors_and_aligned` packages the
+safety-indexed `VEnvs.InductiveWF` result with
+`Aligned safety result.constants (resultVes.venv safety)` for every safety.
+Each alignment receipt is obtained from the prior inductive history and the
+matching `AddInductWithRecursorsEvidence`; no independent alignment premise is
+reconstructed. Registration, declaration-WF, primitive, safe-primitive, and
+monotonicity inputs remain explicit. This is an invariant-assembly theorem,
+not recursor-rule semantics, iota soundness, or the complete executable
+inductive frontend theorem.
+
 ## Upstream candidate recheck — 2026-10-29
 
 Official `origin/master` at `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` already
