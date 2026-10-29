@@ -1,5 +1,15 @@
 # Progress and upstream comparison
 
+## Source-typehood checker/alignment receipt — 2026-10-29
+
+`VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood_and_aligned_and_checker`
+now packages the assembled all-safety model, a selected-safety
+`CheckerEnvInductive`, and the selected-safety `Aligned` witness. Safe-value
+translation remains an explicit caller premise. This completes the model-to-
+checker packaging boundary for the current registration receipts; recursor rule
+semantics, iota soundness, and the complete executable inductive frontend
+theorem remain open.
+
 ## Source-typehood registration alignment assembly — 2026-10-29
 
 `VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood_and_aligned`

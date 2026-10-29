@@ -765,4 +765,35 @@ theorem VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood_and_aligned
     (H.history (safety := safety)) (haligned (safety := safety)) H.map_wf
     (fun entry hentry => hsource safety entry hentry) |>.2
 
+/- Finish the all-safety receipt at the checker boundary for one selected
+   safety.  Safe-value translation remains an explicit executable obligation;
+   this theorem only combines it with the assembled model and alignment. -/
+theorem VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood_and_aligned_and_checker
+    {env result : Kernel.Environment} {ves resultVes : VEnvs} {Q : Bool}
+    {safety : DefinitionSafety} (H : VEnvs.InductiveWF env ves Q) (decl : VInductDecl)
+    (evidence : ∀ safety,
+      NativeInductive.RegistrationEvidence env.constants (ves.venv safety) decl
+        result.constants (resultVes.venv safety))
+    (haligned : ∀ {safety}, Aligned safety env.constants (ves.venv safety))
+    (hsource : ∀ safety entry, entry ∈ (evidence safety).recursors → ∃ semantic,
+      TrExprS (evidence safety).constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      (evidence safety).constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hasPrimitives : ∀ {safety}, (resultVes.venv safety).HasPrimitives)
+    (safePrimitives : ∀ {n ci}, result.find? n = some ci →
+      Kernel.Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = [])
+    (mono : ∀ {safety safety'}, safety ≤ safety' →
+      resultVes.venv safety' ≤ resultVes.venv safety)
+    (safeValues : ∀ {name ci value}, result.constants.find? name = some ci →
+      safety ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr (resultVes.venv safety) ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    VEnvs.InductiveWF result resultVes Q ∧
+      CheckerEnvInductive safety result (resultVes.venv safety) Q ∧
+      Aligned safety result.constants (resultVes.venv safety) := by
+  obtain ⟨target, htargetAligned⟩ :=
+    H.addRegistrationEvidence_of_sourceTypehood_and_aligned decl evidence haligned hsource
+      hasPrimitives safePrimitives mono
+  exact ⟨target, target.toCheckerEnvInductive safety safeValues,
+    htargetAligned (safety := safety)⟩
+
 end Lean4Lean
