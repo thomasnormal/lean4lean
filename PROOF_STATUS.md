@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Primitive-preflight inductive model boundary — 2026-10-30
+
+The new
+`addDecl.safeInductiveFrontendInductiveWF_of_checkedPrimitive_sourceTypehood`
+uses the successful `checkPrimitiveInductive` receipt to select the verified
+`allowPrimitive = true` frontend branch. Its callback supplies the same
+safety-indexed registration, source-typehood, primitive, and monotonicity
+obligations as the general model theorem, without a dead false-branch case.
+No direct `sorry`, `admit`, or axiom was introduced; Bool/Nat registration and
+full inductive frontend soundness remain caller obligations.
+
 ## Operational inductive checker boundary — 2026-10-29
 
 The new `addDecl.WF_inductive_of_sourceTypehood_and_checker` theorem consumes

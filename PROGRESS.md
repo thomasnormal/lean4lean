@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Primitive-preflight inductive model boundary — 2026-10-30
+
+`addDecl.safeInductiveFrontendInductiveWF_of_checkedPrimitive_sourceTypehood`
+specializes the inductive model theorem to a successful primitive preflight.
+The callback now receives only the executable `allowPrimitive = true` scope;
+the theorem still keeps safety-indexed registration, source typehood, primitive
+preservation, and monotonicity explicit. It adds no admission or executable
+behavior change and does not construct the Bool/Nat registration evidence.
+
 ## Operational inductive checker boundary — 2026-10-29
 
 `addDecl.WF_inductive_of_sourceTypehood_and_checker` now states the highest

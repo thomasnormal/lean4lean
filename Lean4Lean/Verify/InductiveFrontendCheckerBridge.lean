@@ -73,6 +73,48 @@ theorem addDecl.safeInductiveFrontendInductiveWF_of_sourceTypehood
     ((evidence safety).constructorEnvWF (wf.venv_wf safety)) (hsource safety)
   exact ((evidence safety).to_addInductWithRecursorsEvidence_at safety wf.map_wf hrecursors).le
 
+/- A successful primitive preflight fixes the executable frontend's
+   `allowPrimitive` branch to `true`. This specialization lets the model
+   callback state only the authorized branch while retaining the same
+   safety-indexed registration, source-typehood, primitive, and monotonicity
+   obligations as the general frontend theorem. -/
+theorem addDecl.safeInductiveFrontendInductiveWF_of_checkedPrimitive_sourceTypehood
+    {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
+    (wf : VEnvs.InductiveWF env ves Q)
+    (lparams : List Name) (nparams : Nat) (types : List InductiveType)
+    (check : Bool) (fuel : FuelConfig) (decl : VInductDecl)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (registration : ∀ (result : Kernel.Environment),
+      SafeInductiveFrontendScope env lparams nparams types true fuel result →
+      ∃ (resultVes : VEnvs)
+        (evidence : ∀ safety,
+          NativeInductive.RegistrationEvidence env.constants (ves.venv safety) decl
+            result.constants (resultVes.venv safety)),
+        (∀ safety entry, entry ∈ (evidence safety).recursors →
+          ∃ semantic,
+            TrExprS (evidence safety).constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+            (evidence safety).constructorEnv.IsType entry.info.levelParams.length [] semantic) ∧
+        (∀ {safety}, (resultVes.venv safety).HasPrimitives) ∧
+        (∀ {n ci}, result.find? n = some ci →
+          Kernel.Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = []) ∧
+        (∀ {safety safety'}, safety ≤ safety' →
+          resultVes.venv safety' ≤ resultVes.venv safety)) :
+    (addDecl env (.inductDecl lparams nparams types false) check fuel).WF fun result =>
+      ∃ resultVes : VEnvs,
+        VEnvs.InductiveWF result resultVes Q ∧
+          ∀ safety, ves.venv safety ≤ resultVes.venv safety := by
+  refine (addDecl.safeCheckedPrimitiveInductive env lparams nparams types check fuel
+    wf.map_wf hcheck).mono ?_
+  intro result scope
+  obtain ⟨resultVes, evidence, hsource, hasPrimitives, safePrimitives, mono⟩ :=
+    registration result scope
+  refine ⟨resultVes, wf.addRegistrationEvidence_of_sourceTypehood decl evidence hsource
+    hasPrimitives safePrimitives mono, ?_⟩
+  intro safety
+  have hrecursors := (evidence safety).recursorWF_of_sourceTypehood
+    ((evidence safety).constructorEnvWF (wf.venv_wf safety)) (hsource safety)
+  exact ((evidence safety).to_addInductWithRecursorsEvidence_at safety wf.map_wf hrecursors).le
+
 /-! A frontend scope can be consumed together with an independently constructed semantic
     registration witness.  The map equalities are explicit: the native scope supplies the
     source-side well-formedness, while `RegistrationEvidence` supplies the positive
