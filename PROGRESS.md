@@ -4,6 +4,18 @@ Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Registration-semantics ordinary consumers — 2026-10-29
+
+The checked-primitive registration-semantics model receipts now expose
+ordinary `CheckerEnv` projections for singular generated-rule-plus-iota,
+plural generated-results-plus-iota, and iota-only forms, for both the direct
+checked-primitive stage and the restoration-stage choice. The wrappers retain
+the Bool/Nat model facts, executable stage receipts, final declaration
+history, generated-rule and paired base/target iota witnesses, and all source,
+value, map, and recursor obligations. They only project
+`CheckerEnvInductive` through `toCheckerEnv`; no recursor or iota soundness
+theorem is added.
+
 ## Restoration-stage semantic structural ordinary consumers — 2026-10-29
 
 The restoration-stage checked-primitive model semantic-structural packages
