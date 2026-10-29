@@ -123,6 +123,19 @@ structure VEnvs.InductiveWF (env : Environment) (ves : VEnvs) (Q : Bool) : Prop 
     Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = []
   mono : ∀ {safety safety'}, safety ≤ safety' → ves.venv safety' ≤ ves.venv safety
 
+/- Promote the legacy environment witness to the inductive-history view.  The
+   legacy relation already records the concrete quotient-initialization flag,
+   so the promotion preserves that flag instead of inventing a new one. -/
+theorem VEnvs.WF.toInductiveWF {env : Environment} {ves : VEnvs}
+    (H : ves.WF env) : VEnvs.InductiveWF env ves env.quotInit := by
+  refine {
+    history := ?_
+    hasPrimitives := H.hasPrimitives
+    safePrimitives := H.safePrimitives
+    mono := H.mono }
+  intro safety
+  exact .legacy H.tr
+
 theorem VEnvs.InductiveWF.map_wf (H : VEnvs.InductiveWF env ves Q) : env.constants.WF :=
   (H.history (safety := .safe)).map_wf
 

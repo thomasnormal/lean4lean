@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Legacy history promotion to the inductive model — 2026-10-29
+
+`VEnvs.WF.toInductiveWF` promotes the existing legacy environment witness to
+`VEnvs.InductiveWF`, selecting the concrete `env.quotInit` flag and retaining
+the legacy pointwise histories, primitive facts, safe-primitive callback, and
+safety monotonicity. The regression fixture checks the theorem's elaboration.
+This is only the base case for the constructive inductive-history boundary; it
+does not establish inductive registration, recursor soundness, iota soundness,
+or the complete executable frontend theorem.
+
 ## Constructive exact generated-rule target-result consumers — 2026-10-29
 
 Six exact stored-RHS generated-rule target-result `CheckerEnv` aliases in

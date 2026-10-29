@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Legacy history promotion to the inductive model — 2026-10-29
+
+`VEnvs.WF.toInductiveWF` now promotes a legacy `VEnvs.WF` witness to
+`VEnvs.InductiveWF` using the environment's actual quotient-initialization
+flag. The promotion preserves the pointwise histories, primitive obligations,
+safe-primitive contract, and safety monotonicity, providing a sound base case
+for constructive inductive registration without claiming an inductive frontend
+result.
+
 ## Constructive exact generated-rule target-result consumers — 2026-10-29
 
 The constructive checker now exposes exact stored-RHS generated-rule

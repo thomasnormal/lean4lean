@@ -19,6 +19,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned_of_sourceTypehood
 #check NativeInductive.RegistrationEvidence.toCheckerEnvInductive_and_aligned
 #check VEnvs.InductiveWF
+#check VEnvs.WF.toInductiveWF
 #check VEnvs.InductiveWF.map_wf
 #check VEnvs.InductiveWF.venv_wf
 #check VEnvs.InductiveWF.toCheckerEnvInductive
@@ -32,6 +33,10 @@ open Lean4Lean.AddInductive.declareConstructors
 example {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
     (model : VEnvs.InductiveWF env ves Q) : env.constants.WF :=
   model.map_wf
+
+example {env : Kernel.Environment} {ves : VEnvs}
+    (model : VEnvs.WF env ves) : VEnvs.InductiveWF env ves env.quotInit :=
+  model.toInductiveWF
 
 example {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
     (model : VEnvs.InductiveWF env ves Q) (safety : DefinitionSafety)
