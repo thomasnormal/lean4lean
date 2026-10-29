@@ -1,5 +1,20 @@
 # Non-inductive verification proof of concept
 
+## Constructive generated-rule target-result ordinary consumers — 2026-10-29
+
+Five new ordinary projections, plus the direct plural source-typehood alias,
+in `Lean4Lean/Verify/InductiveFrontendCheckerBridge.lean` expose the
+constructive generated-rule target-result packages through
+`CheckerEnvInductive.toCheckerEnv`: restoration-stage singular/plural forms,
+direct source-typehood singular/plural forms, and source-typehood restoration
+singular/plural forms. The complete generated-rule witness remains paired with
+the explicit target iota witness; model declaration, executable scope,
+registration, alignment/history, source/value/map/recursor, and preflight
+premises remain explicit. API checks and direct, restoration, and
+source-typehood fixture elaboration cover the names. No new `sorry`, `admit`,
+or axiom is introduced; no target-reduction, general recursor/iota, or
+complete frontend theorem is claimed.
+
 ## Constructive target-reduction ordinary consumers — 2026-10-29
 
 Four new theorems/definitions project the constructive checker target-reduction packages through `CheckerEnvInductive.toCheckerEnv`: direct checked-primitive, restoration-stage, direct source-typehood, and restoration-stage source-typehood forms. The reducer callback, target equation, model declaration, executable scope, constructive registration, alignment/history, source/value/map/recursor obligations, generated-rule receipts, and iota premises remain explicit. API checks cover all four names. No new admission is introduced; no reducer soundness, general recursor/iota, or complete frontend theorem is claimed.
