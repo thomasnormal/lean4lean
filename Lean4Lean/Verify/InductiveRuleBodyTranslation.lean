@@ -1227,6 +1227,62 @@ theorem MinorModelStep.generatedNativeFieldAndIHArguments
   exact ⟨fieldModel, terminal, fields, hypotheses, replacements, suffixTerminal, sourceEq,
     fieldArgs.append suffixAtTarget⟩
 
+/- The combined field/IH producer has the same closure premise. Derive it from
+   ordinary translations while retaining the syntactic peeling and canonical
+   recursive-IH obligations that cannot be inferred from translation alone. -/
+theorem MinorModelStep.generatedNativeFieldAndIHArgumentsOfTranslated
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (bodyTranslated : ∀ terminal fields, ∃ bodySemantic,
+      TrExpr env universes final.vlctx
+        (recursorMinorBody stats infos constructor terminal fields) bodySemantic)
+    (bodyPeeled : ∀ terminal fields,
+      peelTypeAnnotations (recursorMinorBody stats infos constructor terminal fields) =
+        recursorMinorBody stats infos constructor terminal fields)
+    (envWF : env.WF)
+    (canonical : ∀ {fields : Array Expr} {index : Nat} {hypotheses finalHypotheses : Array Expr}
+      {suffixReader finalReader : Context} {domain : Expr}
+      {source : RecursorIHDomainSource stats infos fields[index]! suffixReader domain}
+      {tail : RecursorIHTrace stats fields infos (index + 1)
+        (hypotheses.push (.fvar ⟨suffixReader.ngen.curr⟩))
+        (recursorIHContext suffixReader fields[index]! domain) finalHypotheses finalReader}
+      {initial middle : MLCtx}
+      (bound : index < fields.size)
+      (head : IHModelStep env universes source initial middle)
+      (sourceExpr : Expr),
+      CanonicalRecursiveIHInput head sourceExpr) :
+    ∃ (fieldModel : MLCtx) (terminal : Expr) (fields hypotheses : Array Expr)
+      (replacements : List Expr) (suffixTerminal : Expr),
+      peelTypeAnnotations domain =
+        fieldModel.lctx.mkForall fields
+          (domainReader.lctx.mkForall hypotheses
+            (recursorMinorBody stats infos constructor terminal fields)) ∧
+      NativeTelescopeArguments env universes final
+        (fieldModel.lctx.mkForall fields
+          (domainReader.lctx.mkForall hypotheses
+            (recursorMinorBody stats infos constructor terminal fields)))
+        (fields.toList ++ replacements) suffixTerminal := by
+  have bodyClosed : ∀ terminal fields,
+      (recursorMinorBody stats infos constructor terminal fields).looseBVarRange' = 0 := by
+    intro terminal fields
+    obtain ⟨bodySemantic, translated⟩ := bodyTranslated terminal fields
+    exact (final.noBV ▸ translated.closed).looseBVarRange_zero
+  apply MinorModelStep.generatedNativeFieldAndIHArguments (step := step)
+    (reserved := reserved) (bodyClosed := bodyClosed) (bodyPeeled := bodyPeeled)
+    (envWF := envWF)
+  intro fields index hypotheses finalHypotheses suffixReader finalReader domain source tail
+    initial middle bound head sourceExpr
+  exact canonical (fields := fields) (index := index) (hypotheses := hypotheses)
+    (finalHypotheses := finalHypotheses) (suffixReader := suffixReader)
+    (finalReader := finalReader) (domain := domain) (source := source) (tail := tail)
+    (initial := initial) (middle := middle) bound head sourceExpr
+
+
 /-- Consume the generated field/IH receipt at the actual peeled minor.  The
 minor opening, source equality, binder translation and final context conversion
 are explicit inputs to this semantic application bridge. -/

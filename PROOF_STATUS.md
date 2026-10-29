@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Translated combined field/IH telescope producer — 2026-10-29
+
+The rule-body producer now exposes
+`MinorModelStep.generatedNativeFieldAndIHArgumentsOfTranslated`. An ordinary
+translation for every generated minor body supplies `bodyClosed` through the
+final model's no-bound-variable invariant, while `bodyPeeled` and the
+canonical recursive-IH witness remain explicit inputs. The result preserves
+the concrete field model, source equality, and generated IH replacements; it
+adds no admission or axiom and does not establish generated-rule or iota
+semantics.
+
 ## Translated generated-IH telescope producer — 2026-10-29
 
 The rule-body producer now has a translated-body entry point,

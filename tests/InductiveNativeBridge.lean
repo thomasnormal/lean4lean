@@ -18,6 +18,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check AddInductive.dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt_auto
 #check AddInductive.MinorModelStep.nativeFieldArgumentsOfTranslated
 #check AddInductive.MinorModelStep.generatedNativeIHArgumentsOfTranslated
+#check AddInductive.MinorModelStep.generatedNativeFieldAndIHArgumentsOfTranslated
 #check AddInduct.map_wf
 #check AddInduct.lookupReceipt
 #check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned

@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Translated combined field/IH telescope producer — 2026-10-29
+
+`MinorModelStep.generatedNativeFieldAndIHArgumentsOfTranslated` now derives
+the combined producer's body-closure premise from ordinary `TrExpr` witnesses
+and delegates to the existing field-plus-generated-IH receipt. The syntactic
+peeling condition and dependent canonical recursive-IH callback remain
+explicit, so this does not fabricate a generated rule or iota witness. No new
+`sorry`, `admit`, or axiom was introduced.
+
 ## Translated generated-IH telescope producer — 2026-10-29
 
 `MinorModelStep.generatedNativeIHArgumentsOfTranslated` now derives the
