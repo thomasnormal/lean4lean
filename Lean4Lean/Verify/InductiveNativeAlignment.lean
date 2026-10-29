@@ -712,4 +712,29 @@ theorem VEnvs.InductiveWF.addRegistrationEvidence
   · exact safePrimitives
   · exact mono
 
+/- Source typehood is the native frontend's usual recursor obligation.  Derive the
+   model-WF callback independently at every safety level, then reuse the explicit
+   registration-evidence assembly above. -/
+theorem VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood
+    {env result : Kernel.Environment} {ves resultVes : VEnvs} {Q : Bool}
+    (H : VEnvs.InductiveWF env ves Q) (decl : VInductDecl)
+    (evidence : ∀ safety,
+      NativeInductive.RegistrationEvidence env.constants (ves.venv safety) decl
+        result.constants (resultVes.venv safety))
+    (hsource : ∀ safety entry, entry ∈ (evidence safety).recursors → ∃ semantic,
+      TrExprS (evidence safety).constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      (evidence safety).constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hasPrimitives : ∀ {safety}, (resultVes.venv safety).HasPrimitives)
+    (safePrimitives : ∀ {n ci}, result.find? n = some ci →
+      Kernel.Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = [])
+    (mono : ∀ {safety safety'}, safety ≤ safety' →
+      resultVes.venv safety' ≤ resultVes.venv safety) :
+    VEnvs.InductiveWF result resultVes Q := by
+  apply H.addRegistrationEvidence decl evidence
+    (fun safety entry hentry =>
+      (evidence safety).recursorWF_of_sourceTypehood
+        ((evidence safety).constructorEnvWF (H.venv_wf safety))
+        (fun entry hentry => hsource safety entry hentry) entry hentry)
+    hasPrimitives safePrimitives mono
+
 end Lean4Lean

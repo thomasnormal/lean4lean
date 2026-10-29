@@ -1,5 +1,15 @@
 # Progress and upstream comparison
 
+## Source-typehood registration assembly — 2026-10-29
+
+`VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood` now derives
+each per-safety recursor model-WF callback from native source typehood and
+delegates to the all-safety registration assembly. The target primitive,
+safe-primitive, and safety-monotonicity obligations remain explicit. This
+closes the source-typehood-to-registration-history assembly boundary; recursor
+rule semantics, iota soundness, and the complete executable inductive frontend
+theorem remain open.
+
 ## All-safety registration-evidence assembly — 2026-10-29
 
 `VEnvs.InductiveWF.addRegistrationEvidence` now lifts a family of native

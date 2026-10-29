@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Source-typehood registration assembly — 2026-10-29
+
+`VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood` derives the
+per-safety recursor model-WF callback using
+`RegistrationEvidence.recursorWF_of_sourceTypehood`, then reuses the explicit
+all-safety registration assembly theorem. The bridge fixture checks the full
+dependent signature. No new `sorry`, `admit`, or axiom is introduced; target
+primitive, safe-primitive, and safety-monotonicity facts remain caller
+obligations. This theorem does not establish recursor rule semantics, iota
+soundness, or the complete executable inductive frontend theorem.
+
 ## All-safety registration-evidence assembly — 2026-10-29
 
 `VEnvs.InductiveWF.addRegistrationEvidence` consumes a family of native
