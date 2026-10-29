@@ -1,5 +1,9 @@
 # Progress and upstream comparison
 
+## Constructive checker source-typehood ordinary consumers — 2026-10-29
+
+The direct checked-primitive constructive checker source-typehood family now exposes ordinary `CheckerEnv` projections for base, iota-only, paired base/target iota, singular generated-rule-plus-iota, and plural generated-results-plus-iota forms. Each derives recursor model WF from source typehood, preserves the existing model/scope/registration/alignment/history/source/value/map/generated-rule/iota premises, and projects only the checker component. These wrappers add no recursor or iota soundness theorem and are not upstream-ready without an official adaptation.
+
 ## Constructive checker ordinary consumers — 2026-10-29
 
 The checked-primitive constructive checker package family now exposes ordinary `CheckerEnv` projections for direct and restoration-stage base, iota-only, singular generated-rule-plus-iota, and plural generated-results-plus-iota forms. The projections retain the Bool/Nat model, executable frontend scope, constructive registration evidence, alignment/history, source/value/map/recursor premises, generated-rule receipts, and paired iota witnesses while projecting `CheckerEnvInductive` through `toCheckerEnv`. They add no recursor or iota soundness theorem and are not upstream-ready without an official adaptation.

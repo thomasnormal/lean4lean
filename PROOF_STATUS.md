@@ -1,5 +1,9 @@
 # Non-inductive verification proof of concept
 
+## Constructive checker source-typehood ordinary consumers — 2026-10-29
+
+Five new theorems in `Lean4Lean/Verify/InductiveFrontendCheckerBridge.lean` project the direct checked-primitive constructive checker source-typehood packages through `CheckerEnvInductive.toCheckerEnv`: base, iota-only, paired base/target iota, singular generated-rule-plus-iota, and plural generated-results-plus-iota. The source-typehood premise still derives recursor model WF internally; model declaration, frontend scope, constructive registration, alignment/history, source/value/map obligations, generated-rule receipts, and iota witnesses remain explicit. API checks and fixture elaboration cover all five names. No new `sorry`, `admit`, or axiom is introduced, and no general recursor/iota or complete frontend theorem is claimed.
+
 ## Constructive checker ordinary consumers — 2026-10-29
 
 Ten new theorems in `Lean4Lean/Verify/InductiveFrontendCheckerBridge.lean` project the existing constructive checker packages through `CheckerEnvInductive.toCheckerEnv`: direct checked-primitive and restoration-stage base, iota-only, paired base/target iota, singular generated-rule-plus-iota, and plural generated-results-plus-iota forms. API `#check`s and fixture elaboration cover all ten names. Existing model, executable scope, constructive registration, alignment/history, source/value/map/recursor, generated-rule, and paired-iota premises remain explicit. No new `sorry`, `admit`, or axiom is introduced; this is ordinary checker-consumer packaging and does not establish general recursor/iota soundness or complete inductive frontend verification.
