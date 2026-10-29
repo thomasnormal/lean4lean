@@ -20,6 +20,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check AddInductive.MinorModelStep.generatedNativeIHArgumentsOfTranslated
 #check AddInductive.MinorModelStep.generatedNativeFieldAndIHArgumentsOfTranslated
 #check AddInductive.MinorModelStep.generatedConstructorRhsBodyOfTranslated
+#check AddInductive.MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindOfTranslated
 #check AddInduct.map_wf
 #check AddInduct.lookupReceipt
 #check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned

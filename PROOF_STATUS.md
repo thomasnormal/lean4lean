@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Translated constructor-rule iota producer — 2026-10-29
+
+The complete scoped constructor-rule producer now has a translated-body entry
+point, `MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindOfTranslated`.
+It derives the generated minor-body closure premise from `TrExpr` witnesses
+and delegates to the existing body, receipt, and iota consumers. Peeling,
+canonical recursive IH, rule shape, typing, sort arity, and target insertion
+remain explicit; the theorem adds no admission or axiom.
+
 ## Translated constructor-body producer — 2026-10-29
 
 The constructor-rule body seam now has a translated-body entry point,

@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Translated constructor-rule iota producer — 2026-10-29
+
+`MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindOfTranslated`
+now carries ordinary generated-body translations directly into the complete
+scoped constructor-rule iota producer. It derives body closure through
+`final.noBV` while retaining peeling, canonical recursive-IH, receipt-shape,
+typing, kind, and target insertion obligations. No generated-rule or iota
+equation is fabricated, and no new `sorry`, `admit`, or axiom was introduced.
+
 ## Translated constructor-body producer — 2026-10-29
 
 `MinorModelStep.generatedConstructorRhsBodyOfTranslated` now derives the
