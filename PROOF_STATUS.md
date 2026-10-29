@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Operational inductive checker boundary — 2026-10-29
+
+The new `addDecl.WF_inductive_of_sourceTypehood_and_checker` theorem consumes
+an explicit safety-indexed registration/source/value/generated-rule callback,
+then packages the actual frontend result as `VEnvs.InductiveWF`, aligned
+checker history, and target-side iota receipts. It introduces no direct
+`sorry`, `admit`, or axiom and does not claim to construct the callback's
+inductive registration or generated-rule evidence.
+
 ## Translated constructor-rule iota producer — 2026-10-29
 
 The complete scoped constructor-rule producer now has a translated-body entry

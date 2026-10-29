@@ -1323,6 +1323,77 @@ theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignme
   exact scope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaTargetResults
     history producer hconstants hresultConstants hrecursors hvalues ruleResults
 
+
+/- The operational inductive declaration boundary can carry the complete
+   safety-indexed registration model and the selected safe checker package in
+   one receipt.  The callback supplies the executable obligations that are
+   specific to the declaration; this theorem only runs the frontend and
+   assembles their model and checker projections. -/
+theorem addDecl.WF_inductive_of_sourceTypehood_and_checker
+    {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
+    (wf : VEnvs.InductiveWF env ves Q)
+    (lparams : List Name) (nparams : Nat) (types : List InductiveType)
+    (check : Bool) (fuel : FuelConfig) (decl : VInductDecl)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (model : ∀ (allowPrimitive : Bool) (result : Kernel.Environment),
+      SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result →
+      ∃ resultVes : VEnvs,
+        ∃ evidence : ∀ safety,
+          NativeInductive.RegistrationEvidence env.constants (ves.venv safety) decl
+            result.constants (resultVes.venv safety),
+        (∀ safety entry, entry ∈ (evidence safety).recursors →
+          ∃ semantic,
+            TrExprS (evidence safety).constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+            (evidence safety).constructorEnv.IsType entry.info.levelParams.length [] semantic) ∧
+        (∀ {safety}, (resultVes.venv safety).HasPrimitives) ∧
+        (∀ {n ci}, result.find? n = some ci →
+          Kernel.Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = []) ∧
+        (∀ {safety safety'}, safety ≤ safety' →
+          resultVes.venv safety' ≤ resultVes.venv safety) ∧
+        (∀ safety, ves.venv safety ≤ resultVes.venv safety) ∧
+        (∀ {name ci value}, result.constants.find? name = some ci →
+          .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+          TrExpr (resultVes.venv .safe) ci.levelParams [] value
+            (.const ci.name (VLevel.params ci.levelParams.length))) ∧
+        (∀ entry : NativeInductive.RecursorEntry, entry ∈ (evidence .safe).recursors →
+          ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+            AddInductive.GeneratedRecursorRuleResult (ves.venv .safe) universes stats
+              (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)) :
+    (addDecl env (.inductDecl lparams nparams types false) check fuel).WF fun result =>
+      ∃ resultVes : VEnvs,
+        ∃ evidence : ∀ safety,
+          NativeInductive.RegistrationEvidence env.constants (ves.venv safety) decl
+            result.constants (resultVes.venv safety),
+        VEnvs.InductiveWF result resultVes Q ∧
+        (∀ safety, ves.venv safety ≤ resultVes.venv safety) ∧
+        Aligned .safe result.constants (resultVes.venv .safe) ∧
+        TrEnvInductive .safe result.constants Q (resultVes.venv .safe) ∧
+        CheckerEnvInductive .safe result (resultVes.venv .safe) Q ∧
+        (∀ entry ∈ (evidence .safe).orderedEntries,
+          entry.RuleSemantics (resultVes.venv .safe) ∧ match entry with
+            | .header _ | .constructor _ => True
+            | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+                TrExprS (resultVes.venv .safe) entry.info.levelParams [] rule.rhs semantic ∧
+                ∃ (constructor : Constructor) (minor : Expr),
+                  AddInductive.GeneratedRecursorRuleResult (ves.venv .safe) universes stats
+                    (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+                  AddInductive.GeneratedRecursorRuleIotaTargetResult (ves.venv .safe) universes stats
+                    (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) := by
+  refine (addDecl.safeInductiveFrontend env lparams nparams types check fuel wf.map_wf).mono ?_
+  rintro result ⟨allowPrimitive, scope⟩
+  obtain ⟨resultVes, evidence, hsource, hasPrimitives, safePrimitives, mono, extension,
+      hvalues, ruleResults⟩ := model allowPrimitive result scope
+  have hmodel := wf.addRegistrationEvidence_of_sourceTypehood decl evidence hsource
+    hasPrimitives safePrimitives mono
+  have hrecursors := (evidence .safe).recursorWF_of_sourceTypehood
+    ((evidence .safe).constructorEnvWF (wf.venv_wf .safe)) (hsource .safe)
+  have hpackage :=
+    scope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaTargetResults
+      (wf.history (safety := .safe)) (evidence .safe) rfl rfl
+      hrecursors (fun name ci => hvalues) ruleResults
+  exact ⟨resultVes, evidence, hmodel, extension, hpackage.1, hpackage.2.2.1,
+    hpackage.2.2.2.1, hpackage.2.2.2.2⟩
 /- Preserve alignment and registration history while retaining both the full
    generated result and its paired base/target iota endpoint. -/
 theorem SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults

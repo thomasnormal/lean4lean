@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Operational inductive checker boundary — 2026-10-29
+
+`addDecl.WF_inductive_of_sourceTypehood_and_checker` now states the highest
+level inductive frontend/checker seam as an operational `addDecl.WF` theorem.
+Its callback supplies safety-indexed registration, source-typehood, primitive,
+monotonicity, safe-value, and generated-rule receipts; the theorem runs the
+actual frontend and returns the assembled inductive model, alignment, history,
+checker environment, and generated-rule/iota target package. No admissions or
+executable behavior changed. This callback boundary remains fork-specific
+because its inductive model obligations are not yet constructively discharged.
+
 ## Translated constructor-rule iota producer — 2026-10-29
 
 `MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindOfTranslated`
