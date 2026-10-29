@@ -1,5 +1,17 @@
 # Progress and upstream comparison
 
+## Native eta metadata arity producer bridge — 2026-10-29
+
+The native eta-structure metadata/reducer path now consumes the proved
+`Lean.Expr.getAppNumArgs_eq_getAppArgs_size` representation theorem directly.
+`dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt` and
+its rule-lookup/adaptation consumers derive the constructor field bound from
+the receipt without requiring callers to repeat an application-array equality;
+the normalized structure target producers use the same shorter contract. The
+existing explicit-premise field-bound theorem remains available for callers
+that need it. No new `sorry`, `admit`, or axiom was introduced, and the
+reducer's constructor/rule alignment obligations remain explicit.
+
 ## Native expression-arity representation bridge — 2026-10-29
 
 `Lean.Expr.getAppNumArgs_eq_getAppArgs_size` proves the native expression

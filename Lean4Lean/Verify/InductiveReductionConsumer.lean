@@ -849,8 +849,8 @@ theorem dispatcherConditionalShapeOfMetadataOutput
 /- Consume the native structure-normalization receipt at the metadata-driven
    output boundary.  The constructor head and context/environment equality
    identify the receipt's constructor value with the metadata lookup; the
-   explicit `getAppNumArgs = getAppArgs.size` bridge then supplies the field
-   bound required by the reducer slice theorem. -/
+   proved expression-representation bridge supplies the field bound required
+   by the reducer slice theorem. -/
 theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt
     {types : Array InductiveType} {environment : Kernel.Environment}
     {context : TypeChecker.Context} {constructorEntry : Constructor}
@@ -863,7 +863,6 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt
     (receipt : NativeEtaStructEntryReceipt context constructor ctorInfo)
     (contextEnvEq : context.env = environment)
     (constructorHead : constructor.getAppFn = .const constructorEntry.name levels)
-    (appNumArgsEq : constructor.getAppNumArgs = constructor.getAppArgs.size)
     (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
       recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false) :
     ∃ (recursor : RecursorVal) (rule : RecursorRule) (metadataInfo : ConstructorVal)
@@ -904,7 +903,7 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt
       Option.some.inj hlookup
     have hinfo : metadataInfo = ctorInfo := ConstantInfo.ctorInfo.inj hconst
     subst metadataInfo
-    exact dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt receipt appNumArgsEq
+    exact dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt_auto receipt
   obtain ⟨recursor, rule, metadataInfo, hrecursor, hrule, hconstructor, hfieldCount⟩ :=
     dispatcherFieldCountOfConstructorMetadata metadata parent parentBound index
       constructorEntry constructorEntryAt constructor constructorFieldBound
@@ -1036,7 +1035,6 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptW
     (receipt : NativeEtaStructEntryReceipt context constructor ctorInfo)
     (contextEnvEq : context.env = environment)
     (constructorHead : constructor.getAppFn = .const constructorEntry.name levels)
-    (appNumArgsEq : constructor.getAppNumArgs = constructor.getAppArgs.size)
     (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
       recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false)
     (ruleLookup : ∀ (recursor : RecursorVal) (rule : RecursorRule)
@@ -1069,7 +1067,7 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptW
       hfieldCount, hshape⟩ :=
     dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceipt metadata
       parent parentBound index constructorEntryAt selected receipt contextEnvEq constructorHead
-      appNumArgsEq noLevelParam
+      noLevelParam
   exact ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
     hfieldCount, hshape, ruleLookup recursor rule metadataInfo hrule hconstructor⟩
 
@@ -1092,7 +1090,6 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptW
     (receipt : NativeEtaStructEntryReceipt context constructor ctorInfo)
     (contextEnvEq : context.env = environment)
     (constructorHead : constructor.getAppFn = .const constructorEntry.name levels)
-    (appNumArgsEq : constructor.getAppNumArgs = constructor.getAppArgs.size)
     (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
       recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false)
     (ruleLookup : ∀ (recursor : RecursorVal) (rule : RecursorRule)
@@ -1129,7 +1126,7 @@ theorem dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptW
       (types := types) (environment := environment) (expression := expression)
       (levels := levels) (info := info) (constructor := constructor) (major := major)
       metadata parent parentBound index constructorEntryAt selected receipt contextEnvEq
-      constructorHead appNumArgsEq noLevelParam ruleLookup
+      constructorHead noLevelParam ruleLookup
   exact ⟨recursor, rule, metadataInfo, replacements, hrecursor, hrule, hconstructor,
     hfieldCount, hshape, hruleLookup, adapted⟩
 
@@ -2059,7 +2056,6 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_normalizedStructureMetadataExac
     (receipt : NativeEtaStructEntryReceipt context constructor ctorInfo)
     (contextEnvEq : context.env = environment)
     (constructorHead : constructor.getAppFn = .const constructorEntry.name levels)
-    (appNumArgsEq : constructor.getAppNumArgs = constructor.getAppArgs.size)
     (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
       recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false)
     (ruleLookup : ∀ (recursor : RecursorVal) (rule : RecursorRule)
@@ -2117,7 +2113,7 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_normalizedStructureMetadataExac
       hfieldCount, hshape, hruleLookup, hadapted⟩ :=
     dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookupAndAdaptation
       normalize infer metadata parent parentBound index constructorEntryAt selected adapted receipt
-      contextEnvEq constructorHead appNumArgsEq noLevelParam ruleLookup
+      contextEnvEq constructorHead noLevelParam ruleLookup
   obtain ⟨translated, typed, sortArity⟩ := generated recursor rule metadataInfo replacements
     hrecursor hrule hconstructor hshape
   obtain ⟨reduction, ordinary, typed, sortArity⟩ :=
@@ -3211,7 +3207,6 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStructureMetadataExa
     (receipt : NativeEtaStructEntryReceipt context constructor ctorInfo)
     (contextEnvEq : context.env = environment)
     (constructorHead : constructor.getAppFn = .const constructorEntry.name levels)
-    (appNumArgsEq : constructor.getAppNumArgs = constructor.getAppArgs.size)
     (noLevelParam : ∀ (recursor : RecursorVal) (rule : RecursorRule),
       recursor.rules[index]? = some rule → rule.rhs.hasLevelParam' = false)
     (ruleLookup : ∀ (recursor : RecursorVal) (rule : RecursorRule)
@@ -3269,7 +3264,7 @@ theorem GeneratedRecursorRuleIotaTargetResult.of_kNormalizedStructureMetadataExa
       hfieldCount, hshape, hruleLookup, hadapted⟩ :=
     dispatcherConditionalShapeOfMetadataOutputOfNativeEtaStructEntryReceiptWithRuleLookupAndAdaptation
       normalize infer metadata parent parentBound index constructorEntryAt selected adaptedStruct receipt
-      contextEnvEq constructorHead appNumArgsEq noLevelParam ruleLookup
+      contextEnvEq constructorHead noLevelParam ruleLookup
   obtain ⟨translated, typed, sortArity⟩ := generated recursor rule metadataInfo replacements
     hrecursor hrule hconstructor hshape
   obtain ⟨reduction, ordinary, typed, sortArity⟩ :=

@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Native eta metadata arity producer bridge — 2026-10-29
+
+The native eta-structure receipt is now connected to the metadata-driven
+reducer shape producers through the verified expression-arity representation
+theorem. The metadata, rule-lookup, adaptation, and normalized-structure
+consumers no longer expose a redundant `getAppNumArgs = getAppArgs.size`
+caller premise; they derive the field bound from the receipt internally. The
+underlying constructor lookup, rule selection, output shape, and target
+translation obligations remain explicit. This changes no executable behavior
+and adds no admission or axiom.
+
 ## Native expression-arity representation bridge — 2026-10-29
 
 The verified expression library now proves
