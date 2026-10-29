@@ -1,5 +1,9 @@
 # Non-inductive verification proof of concept
 
+## Constructive target-reduction ordinary consumers — 2026-10-29
+
+Four new theorems/definitions project the constructive checker target-reduction packages through `CheckerEnvInductive.toCheckerEnv`: direct checked-primitive, restoration-stage, direct source-typehood, and restoration-stage source-typehood forms. The reducer callback, target equation, model declaration, executable scope, constructive registration, alignment/history, source/value/map/recursor obligations, generated-rule receipts, and iota premises remain explicit. API checks cover all four names. No new admission is introduced; no reducer soundness, general recursor/iota, or complete frontend theorem is claimed.
+
 ## Constructive target-result ordinary consumers — 2026-10-29
 
 Four new theorems/definitions in `Lean4Lean/Verify/InductiveFrontendCheckerBridge.lean` project the constructive checker target-result packages through `CheckerEnvInductive.toCheckerEnv`: direct checked-primitive, restoration-stage, direct source-typehood, and restoration-stage source-typehood forms. They preserve model declaration, executable scope, constructive registration, alignment/history, source/value/map/recursor obligations, generated-rule receipts, and the explicit target iota witness. API checks and direct/source/restoration fixture elaboration cover the new names. No new admission is introduced; no target-reduction, general recursor/iota, or complete frontend theorem is claimed.

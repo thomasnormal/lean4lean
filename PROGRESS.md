@@ -1,5 +1,9 @@
 # Progress and upstream comparison
 
+## Constructive target-reduction ordinary consumers — 2026-10-29
+
+The constructive checker target-reduction package now exposes ordinary `CheckerEnv` projections for direct checked-primitive, restoration-stage, direct source-typehood, and restoration-stage source-typehood routes. Reducer callbacks and exact target equations remain explicit alongside model/scope/registration/alignment/history and all source/value/map/recursor/generated-rule/iota premises.
+
 ## Constructive target-result ordinary consumers — 2026-10-29
 
 The constructive checker target-result package now exposes ordinary `CheckerEnv` projections for direct checked-primitive, restoration-stage, direct source-typehood, and restoration-stage source-typehood routes. The target iota endpoint remains explicit alongside model/scope/registration/alignment/history and all source/value/map/recursor/generated-rule premises.
