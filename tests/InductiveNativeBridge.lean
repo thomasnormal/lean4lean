@@ -153,6 +153,7 @@ example {constants resultConstants : ConstMap}
 #check SafeInductiveRestorationMetadata.toCheckerEnvInductive_and_aligned_and_registrationWF_of_frontendSourceTypehood
 #check SafeInductiveRestorationMetadata.toCheckerEnvInductive_and_aligned_and_registrationWF
 #check SafeInductiveRestorationMetadata.toCheckerEnv_of_frontendSourceTypehood
+#check SafeInductiveRestorationMetadata.toCheckerEnv
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnv_of_sourceTypehood
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnv
 #check addDecl.toCheckerEnv_of_restorationStages
@@ -2788,6 +2789,42 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     CheckerEnvInductive .safe result semanticResult Q := by
   exact metadata.toCheckerEnvInductive_of_frontendSourceTypehood producer hconstants
     hresultConstants history hsource hvalues
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    (coverage : InductiveRestorationSourceCoverage env lparams nparams types allowPrimitive fuel)
+    (entries : ElimNestedInductive.Result → Kernel.Environment → List RegistrationEntry)
+    (records_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      restoredEnvironmentRecords preprocessing staged types =
+        (entries preprocessing staged).map RegistrationEntry.toConstantInfo)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (entry_eq : ∀ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing →
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged →
+      preprocessing.aux2nested.size ≠ 0 →
+      entries preprocessing staged = producer.orderedEntries)
+    (hconstants : env.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    ∃ preprocessing staged,
+      inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+      AddInductive.run nparams preprocessing.types preprocessing.aux2nested.size
+        (inductiveScopeContext env lparams allowPrimitive fuel) = .ok staged ∧
+      (preprocessing.aux2nested.size ≠ 0 → CheckerEnv .safe result semanticResult) :=
+  metadata.toCheckerEnv coverage entries records_eq producer entry_eq hconstants history
+    hrecursors hvalues
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}

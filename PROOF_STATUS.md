@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Restoration metadata ordinary checker consumer — 2026-10-29
+
+`SafeInductiveRestorationMetadata.toCheckerEnv` carries the conditional
+restoration-stage `CheckerEnvInductive` result through
+`CheckerEnvInductive.toCheckerEnv`. The explicit-recursors form keeps the
+coverage, restored-entry map, final history, recursor model-WF, and
+safe-value premises visible; its source-typehood companion derives only the
+recursor-WF witness. This adds no registration-history construction,
+generated-rule semantics, iota soundness, or complete inductive frontend
+claim.
+
 ## Restored native ordinary checker consumer — 2026-10-29
 
 `NativeInductive.RestoredRecordEvidence.toCheckerEnv` projects an existing

@@ -4,6 +4,16 @@ Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Restoration metadata ordinary checker consumer — 2026-10-29
+
+`SafeInductiveRestorationMetadata.toCheckerEnv` now projects the conditional
+restoration-stage `CheckerEnvInductive` receipt to ordinary `CheckerEnv`
+callers. It preserves executable preprocessing/staging selection, restored
+entry alignment, final declaration history, explicit recursor model WF, and
+safe-value translation. Its source-typehood form derives only the existing
+recursor-WF witness; generated-rule semantics, iota soundness, and complete
+inductive frontend verification remain separate obligations.
+
 ## Restored native ordinary checker consumer — 2026-10-29
 
 `NativeInductive.RestoredRecordEvidence.toCheckerEnv` now projects a restored
