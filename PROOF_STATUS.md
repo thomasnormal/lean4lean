@@ -1,5 +1,19 @@
 # Non-inductive verification proof of concept
 
+## Live upstream PR inventory — 2026-10-29
+
+Current open focused PRs include #55 (constant-reduction confluence), #56
+(quotient equation patterns), #57 (projection reduction rejection), #58
+(projection inference rejection), #59 (comparison/eta rejection), #60
+(quotient-recursion free-variable preservation), #61 (translated
+inductive-recursor rejection), #62 (total inductive elimination levels), #64
+(local-let cache restoration), and #65 (simultaneous normal substitution).
+The broader inductive efforts remain drafts #53 and #54. The current fork-only
+safety-indexed registration/frontend receipts and the named quotient
+obstruction are not reviewable standalone upstream changes: they require an
+official-master adaptation, and the obstruction also requires replacing the
+false `NormalEq.parRed` contract before consumer migration.
+
 ## Named quotient universal-simulation obstruction — 2026-10-29
 
 `normalEq_parRed_universal_false` names the closed quotient counterexample as a

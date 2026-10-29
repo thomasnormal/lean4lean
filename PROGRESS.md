@@ -1,5 +1,20 @@
 # Progress and upstream comparison
 
+## Live upstream PR inventory — 2026-10-29
+
+The fork already has focused upstream PRs for the strongest independent
+semantic results: #55 constant-reduction confluence, #56 quotient equation
+patterns, #57 projection reduction rejection, #58 projection inference
+rejection, #59 comparison/eta rejection, #60 quotient-recursion free-variable
+preservation, #61 translated inductive-recursor rejection, and #62 total
+inductive elimination-level selection. PRs #64 (local-let cache restoration)
+and #65 (simultaneous normal substitution) cover the latest supporting
+metatheory. All are open against current `master`; #53 and #54 remain broader
+inductive drafts. The local safety-indexed registration/frontend bridge and
+the quotient universal-simulation obstruction depend on fork-only APIs or the
+known-false contract, so they are not standalone upstream PRs without a
+separate official-master adaptation and consumer migration.
+
 ## Named quotient universal-simulation obstruction — 2026-10-29
 
 `normalEq_parRed_universal_false` now exposes the concrete quotient witness as
