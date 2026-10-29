@@ -1,5 +1,18 @@
 # Progress and upstream comparison
 
+## Exact generated-rule ordinary target consumer — 2026-10-29
+
+`GeneratedRecursorRuleIotaTargetOrdinaryExact` names the ordinary target
+endpoint that retains the reducer's exact stored-RHS equation while exposing
+the translated target expression, typing, and sort-arity witnesses. Its
+`toOrdinaryExact` projection and
+`NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaTargetOrdinaryExactOf`
+consumer carry that endpoint through registration without reintroducing an
+arbitrary reduced expression or output-shape equality. The generated
+constructor/minor witness and source translation remain explicit premises.
+The bridge regression checks both declarations; no new `sorry`, `admit`, or
+axiom was introduced.
+
 ## Live upstream PR inventory — 2026-10-29
 
 The fork already has focused upstream PRs for the strongest independent

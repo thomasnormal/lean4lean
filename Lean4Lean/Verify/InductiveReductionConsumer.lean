@@ -3786,6 +3786,30 @@ abbrev GeneratedRecursorRuleIotaTargetReductionExact
     inductiveReduceRec environment expression normalize infer compare =
       pure (some (rule.rhs.mkAppList replacements))
 
+/- The ordinary exact endpoint keeps the stored RHS equation while exposing
+   the translated target expression.  Unlike the reduction package above, it
+   does not retain the source-side `TrExprS` witness. -/
+abbrev GeneratedRecursorRuleIotaTargetOrdinaryExact
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule} : Prop :=
+  ∃ (target : MLCtx) (count : Nat) (arguments : List VExpr) (resultType : VExpr)
+    (insertionLift : Lift) (replacements : List Expr) (rhsSemantic : VExpr),
+    inductiveReduceRec environment expression normalize infer compare =
+      pure (some (rule.rhs.mkAppList replacements)) ∧
+    TrExpr env universes target.vlctx (rule.rhs.mkAppList replacements)
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift))) ∧
+    env.HasType universes.length target.vlctx.toCtx
+      (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+        (arguments.map (VExpr.lift' · insertionLift)))
+      (resultType.lift' insertionLift) ∧
+    env.SortArity universes.length target.vlctx.toCtx count
+      (resultType.lift' insertionLift)
+
 /- The target-result spelling denotes the same exact endpoint.  Keep the
    reducer equation in this relation: an ``exact`` target result must retain
    the native result/RHS link rather than merely repeat the translated target
@@ -3866,6 +3890,31 @@ theorem GeneratedRecursorRuleIotaTargetReductionExact.toOrdinary
         (resultType.lift' insertionLift) ∧
       env.SortArity universes.length target.vlctx.toCtx count
         (resultType.lift' insertionLift) := by
+  rcases package with ⟨target, count, arguments, resultType, insertionLift,
+    replacements, rhsSemantic, translated, typed, sortArity, reduction⟩
+  exact ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
+    reduction, translated.trExpr envWF.ordered (targetWF target).tr.wf, typed, sortArity⟩
+
+theorem GeneratedRecursorRuleIotaTargetReductionExact.toOrdinaryExact
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression : Expr}
+    {normalize infer : Expr → m Expr} {compare : Expr → Expr → m Bool}
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {motives minors : Array Expr} {ctx : Context} {constructor : Constructor}
+    {minor : Expr} {rule : RecursorRule}
+    (package : GeneratedRecursorRuleIotaTargetReductionExact
+      (environment := environment) (expression := expression)
+      (normalize := normalize) (infer := infer) (compare := compare)
+      (env := env) (universes := universes) (stats := stats) (motives := motives)
+      (minors := minors) (ctx := ctx) (constructor := constructor) (minor := minor)
+      (rule := rule))
+    (envWF : env.WF) (targetWF : ∀ target : MLCtx, target.WF env universes) :
+    GeneratedRecursorRuleIotaTargetOrdinaryExact
+      (environment := environment) (expression := expression)
+      (normalize := normalize) (infer := infer) (compare := compare)
+      (env := env) (universes := universes) (stats := stats) (motives := motives)
+      (minors := minors) (ctx := ctx) (constructor := constructor) (minor := minor)
+      (rule := rule) := by
   rcases package with ⟨target, count, arguments, resultType, insertionLift,
     replacements, rhsSemantic, translated, typed, sortArity, reduction⟩
   exact ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,

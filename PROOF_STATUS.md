@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Exact generated-rule ordinary target consumer — 2026-10-29
+
+The new `GeneratedRecursorRuleIotaTargetOrdinaryExact` endpoint projects an
+exact stored-RHS reducer receipt to ordinary `TrExpr` target typing while
+retaining the native equation, target well-formedness, and sort-arity
+obligations. `NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaTargetOrdinaryExactOf`
+consumes the complete generated-rule package through that projection. This
+is a constructive registration consumer; it proves neither native reduction
+behavior nor general recursor/iota soundness. The dependent bridge fixture
+checks the public names and introduces no new admission or axiom.
+
 ## Live upstream PR inventory — 2026-10-29
 
 Current open focused PRs include #55 (constant-reduction confluence), #56
