@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Source-typehood registration alignment assembly — 2026-10-29
+
+`VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood_and_aligned`
+now combines the source-typehood registration assembly with the per-safety
+`Aligned` transport. The target all-safety history and alignment witnesses are
+derived from the same recursor-WF receipts, while target primitive,
+safe-primitive, and safety-monotonicity obligations remain explicit. This
+connects constructive registration to the alignment invariant; recursor rule
+semantics, iota soundness, and the complete executable inductive frontend
+theorem remain open.
+
 ## Source-typehood registration assembly — 2026-10-29
 
 `VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood` now derives

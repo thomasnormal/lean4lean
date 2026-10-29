@@ -737,4 +737,32 @@ theorem VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood
         (fun entry hentry => hsource safety entry hentry) entry hentry)
     hasPrimitives safePrimitives mono
 
+/- The same source-typehood receipts also transport semantic alignment at every
+   safety level.  The model assembly and alignment proofs share the same
+   recursor-WF derivation, so the target history is not reconstructed by an
+   independent or weaker argument. -/
+theorem VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood_and_aligned
+    {env result : Kernel.Environment} {ves resultVes : VEnvs} {Q : Bool}
+    (H : VEnvs.InductiveWF env ves Q) (decl : VInductDecl)
+    (evidence : ∀ safety,
+      NativeInductive.RegistrationEvidence env.constants (ves.venv safety) decl
+        result.constants (resultVes.venv safety))
+    (haligned : ∀ {safety}, Aligned safety env.constants (ves.venv safety))
+    (hsource : ∀ safety entry, entry ∈ (evidence safety).recursors → ∃ semantic,
+      TrExprS (evidence safety).constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      (evidence safety).constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hasPrimitives : ∀ {safety}, (resultVes.venv safety).HasPrimitives)
+    (safePrimitives : ∀ {n ci}, result.find? n = some ci →
+      Kernel.Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = [])
+    (mono : ∀ {safety safety'}, safety ≤ safety' →
+      resultVes.venv safety' ≤ resultVes.venv safety) :
+    VEnvs.InductiveWF result resultVes Q ∧
+      ∀ {safety}, Aligned safety result.constants (resultVes.venv safety) := by
+  refine ⟨H.addRegistrationEvidence_of_sourceTypehood decl evidence hsource
+    hasPrimitives safePrimitives mono, ?_⟩
+  intro safety
+  exact (evidence safety).to_trEnvInductive_and_aligned_of_sourceTypehood
+    (H.history (safety := safety)) (haligned (safety := safety)) H.map_wf
+    (fun entry hentry => hsource safety entry hentry) |>.2
+
 end Lean4Lean

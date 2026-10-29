@@ -1,5 +1,17 @@
 # Non-inductive verification proof of concept
 
+## Source-typehood registration alignment assembly — 2026-10-29
+
+`VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood_and_aligned`
+combines `addRegistrationEvidence_of_sourceTypehood` with
+`RegistrationEvidence.to_trEnvInductive_and_aligned_of_sourceTypehood` at
+each safety level. The bridge fixture checks the complete dependent signature
+and returns the target all-safety model plus its per-safety `Aligned` receipts.
+No new `sorry`, `admit`, or axiom is introduced; primitive, safe-primitive,
+and monotonicity facts remain explicit caller obligations. This theorem does
+not establish recursor rule semantics, iota soundness, or the complete
+executable inductive frontend theorem.
+
 ## Source-typehood registration assembly — 2026-10-29
 
 `VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood` derives the
