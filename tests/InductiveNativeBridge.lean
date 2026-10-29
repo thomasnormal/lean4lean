@@ -374,6 +374,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerAndMapWFGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerAndMapWFGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
 #check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMap
 #check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrime
 #check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrimeAndAlignment
@@ -4296,6 +4297,8 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
     result.constants.WF := by
   have hCombined := restored.registrationConstructiveCheckerAndMapWFGeneratedRuleResultAndIotaBaseAndTargetResults
+    producer halign hconstants history hconstantsWF hrecursors hvalues hsource ruleResults
+  have hOrdinary := restored.registrationConstructiveCheckerAndMapWFGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
     producer halign hconstants history hconstantsWF hrecursors hvalues hsource ruleResults
   have hPluralCombined := restored.registrationConstructiveCheckerAndMapWFGeneratedRuleResultsAndIotaBaseAndTargetResults
     producer halign hconstants history hconstantsWF hrecursors hvalues hsource ruleResults

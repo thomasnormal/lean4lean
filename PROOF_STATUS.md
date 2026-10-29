@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Restored constructive checker/map-WF ordinary consumer — 2026-10-29
+
+The map-WF constructive checker package now has an ordinary projection,
+`NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerAndMapWFGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv`.
+It preserves final constant-map WF in addition to map equality, registration
+evidence, alignment/history, generated-rule receipts, and paired iota
+endpoints. Only the checker component changes from `CheckerEnvInductive` to
+`CheckerEnv`; recursor and iota soundness remain explicit.
+
 ## Restored constructive checker ordinary consumer — 2026-10-29
 
 The restored constructive checker package now has an ordinary consumer,
