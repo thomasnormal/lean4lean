@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Ordered exact generated-rule ordinary consumer — 2026-10-29
+
+`NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetOrdinaryExactOf`
+now projects the exact stored-RHS target package through the complete ordered
+registration traversal. Header and constructor entries remain trivial;
+recursor entries retain rule translation, generated constructor/minor results,
+the exact reducer equation, ordinary target translation, typing, and sort
+arity. The bridge fixture checks both per-recursor and ordered public APIs.
+No new `sorry`, `admit`, or axiom was introduced; producer-side rule and
+reducer obligations remain explicit.
+
 ## Exact generated-rule ordinary target consumer — 2026-10-29
 
 `GeneratedRecursorRuleIotaTargetOrdinaryExact` names the ordinary target

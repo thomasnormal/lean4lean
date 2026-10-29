@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Ordered exact generated-rule ordinary consumer — 2026-10-29
+
+The ordered registration traversal now exposes an ordinary exact target
+endpoint for each recursor rule while preserving the stored-RHS reducer
+equation and complete generated-rule witness. Header and constructor entries
+are handled structurally, and recursor rule translation remains visible. This
+is a consumer projection only; it does not prove the reducer, generated-rule
+construction, or general recursor/iota semantics, and adds no admission or
+axiom.
+
 ## Exact generated-rule ordinary target consumer — 2026-10-29
 
 The new `GeneratedRecursorRuleIotaTargetOrdinaryExact` endpoint projects an
