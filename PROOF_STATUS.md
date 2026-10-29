@@ -1,5 +1,13 @@
 # Non-inductive verification proof of concept
 
+## Restoration generated-rule and iota ordinary consumer — 2026-10-29
+
+The restoration metadata bridge now projects its full generated-rule result and
+paired base/target iota package to ordinary `CheckerEnv` callers while retaining
+the final `TrEnvInductive` history. It does not infer any new generated-rule or
+iota soundness theorem; all indexed constructor/minor and endpoint receipts
+remain in the result.
+
 ## Restoration registration semantics ordinary consumer — 2026-10-29
 
 The restoration metadata bridge now projects its checker/history/generated-rule

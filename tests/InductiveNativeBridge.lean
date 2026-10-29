@@ -154,6 +154,7 @@ example {constants resultConstants : ConstMap}
 #check SafeInductiveRestorationMetadata.toCheckerEnvInductive_and_aligned_and_registrationWF
 #check SafeInductiveRestorationMetadata.toCheckerEnv_of_frontendSourceTypehood
 #check SafeInductiveRestorationMetadata.toCheckerEnv_and_registrationHistory_and_generatedRuleResultSemantics_of_sourceTypehood
+#check SafeInductiveRestorationMetadata.toCheckerEnv_and_registrationHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check SafeInductiveRestorationMetadata.toCheckerEnv
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnv_of_sourceTypehood
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnv
@@ -4881,6 +4882,42 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
               AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
                 (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :=
   metadata.toCheckerEnv_and_registrationHistory_and_generatedRuleResultSemantics_of_sourceTypehood
+    history producer hconstants hresultConstants hsource hvalues ruleResults
+
+example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (metadata : SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : env.constants = constants) (hresultConstants : result.constants = resultConstants)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ (entry : RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    CheckerEnv .safe result semanticResult ∧
+      result.constants = resultConstants ∧
+      TrEnvInductive .safe resultConstants Q semanticResult ∧
+      (∀ entry ∈ producer.orderedEntries, entry.RuleSemantics semanticResult ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+            ∃ (constructor : Constructor) (minor : Expr),
+              AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+              AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :=
+  metadata.toCheckerEnv_and_registrationHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
     history producer hconstants hresultConstants hsource hvalues ruleResults
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
