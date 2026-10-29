@@ -406,6 +406,9 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.orderedGeneratedRuleResultAndIotaBaseAndTargetResults_of_generatedRuleResults
 #check addDecl.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults_of_generatedRuleResults
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndSemanticStructuralIotaBaseAndTargetResults_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
@@ -2027,10 +2030,25 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
       (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
       hsource hvalues ruleResult hrecursor hentry
+  have hModelOrdinary :=
+    addDecl.checkedPrimitiveModelAndSemanticStructuralIotaBaseAndTargetResults_toCheckerEnv
+      (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
+      hsource hvalues ruleResult hrecursor hentry
+  have hModelGeneratedOrdinary :=
+    addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
+      (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
+      hsource hvalues ruleResult hrecursor hentry
+  have hModelGeneratedPluralOrdinary :=
+    addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_toCheckerEnv
+      (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
+      hsource hvalues ruleResult hrecursor hentry
   have _ := h
   have _ := hGenerated
   have _ := hModel
   have _ := hModelGenerated
+  have _ := hModelOrdinary
+  have _ := hModelGeneratedOrdinary
+  have _ := hModelGeneratedPluralOrdinary
   trivial
 
 
