@@ -1,5 +1,9 @@
 # Non-inductive verification proof of concept
 
+## AddDecl registration ordinary consumers — 2026-10-29
+
+Eight new `addDecl.sourceRecursorRuleStagesGeneratedResultsAndRegistration..._toCheckerEnv` theorems cover checked-primitive and restoration-stage semantics, iota-only, singular generated-rule-plus-iota, and plural generated-results-plus-iota packages. They preserve all executable stage, history, source/value/map/recursor, generated-rule, paired-iota, and registration premises and project `CheckerEnvInductive` through `toCheckerEnv`. No new `sorry`, `admit`, or axiom is introduced; these are ordinary checker-consumer boundaries and do not establish general recursor/iota soundness or complete inductive frontend verification.
+
 ## Generic restoration registration ordinary consumers — 2026-10-29
 
 The four new `SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRegistration..._toCheckerEnv` theorems project the generic restoration registration receipts through `CheckerEnvInductive.toCheckerEnv`: semantics, iota-only, singular generated-rule-plus-iota, and plural generated-results-plus-iota. The executable stage, alignment/history, generated-rule, paired-iota, source, value, map, and recursor premises remain unchanged. No new `sorry`, `admit`, or axiom is introduced; these are ordinary checker-consumer boundaries and do not establish recursor/iota soundness or complete inductive frontend verification.
