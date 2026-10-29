@@ -4,6 +4,15 @@ Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Checked-primitive model structural ordinary consumers — 2026-10-29
+
+The checked-primitive model structural packages now expose ordinary
+`CheckerEnv` projections for their singular generated-rule-plus-iota,
+plural generated-results-plus-iota, and iota-only forms. The model
+declaration facts and executable structural stages remain unchanged, as do
+constructor-indexed lookup/field-count facts, generated-rule/iota witnesses,
+and registration metadata.
+
 ## Executable structural ordinary consumers — 2026-10-29
 
 The checked-primitive and restoration-stage `addDecl` structural receipts now

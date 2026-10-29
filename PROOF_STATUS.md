@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Checked-primitive model structural ordinary consumers — 2026-10-29
+
+Ordinary projections now exist for the checked-primitive model structural
+packages `...GeneratedRuleResultAndIotaBaseAndTargetResults`, its plural
+generated-results form, and the iota-only form. Each preserves model
+declaration facts, executable stages, structural source receipts, and paired
+iota endpoints while changing only the checker component to `CheckerEnv`.
+These wrappers add no recursor/iota soundness or complete frontend theorem.
+
 ## Executable structural ordinary consumers — 2026-10-29
 
 The checked-primitive and restoration-stage executable structural packages now
