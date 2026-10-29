@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Restored constructive checker ordinary consumer — 2026-10-29
+
+The restored constructive checker package now has an ordinary consumer,
+`NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv`.
+The projection preserves result-map equality, `AddInductWithRecursorsEvidence`,
+semantic alignment, final `TrEnvInductive` history, generated-rule witnesses,
+and paired base/target iota receipts. It only changes the checker component
+from `CheckerEnvInductive` to `CheckerEnv`; recursor and iota soundness remain
+explicit obligations.
+
 ## Restoration target-iota ordinary consumers — 2026-10-29
 
 The general and checked-primitive restoration-stage target-iota packages now

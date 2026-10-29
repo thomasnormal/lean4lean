@@ -372,6 +372,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerAndMapWFGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMap
 #check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrime
@@ -3793,6 +3794,8 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
                 AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
                   (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) := by
   have hCombined := restored.registrationConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResults
+    producer halign hconstants history hconstantsWF hrecursors hvalues hsource ruleResults
+  have hOrdinary := restored.registrationConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
     producer halign hconstants history hconstantsWF hrecursors hvalues hsource ruleResults
   have hPluralCombined := restored.registrationConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResults
     producer halign hconstants history hconstantsWF hrecursors hvalues hsource ruleResults
