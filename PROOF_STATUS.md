@@ -1,5 +1,17 @@
 # Non-inductive verification proof of concept
 
+## All-safety registration-evidence assembly — 2026-10-29
+
+`VEnvs.InductiveWF.addRegistrationEvidence` consumes a family of native
+`RegistrationEvidence` records sharing the source and target kernel constant
+maps, derives each per-safety `AddInductWithRecursorsEvidence` receipt from
+the explicit recursor-model-WF callback, and applies the all-safety assembly
+lemma. The bridge fixture checks the complete dependent signature. Target
+primitive, safe-primitive, and monotonicity facts remain explicit fields of
+the caller. No new `sorry`, `admit`, or axiom is introduced; this theorem
+does not establish recursor rule semantics, iota soundness, or the complete
+executable inductive frontend theorem.
+
 ## Safety-indexed inductive-history assembly — 2026-10-29
 
 `VEnvs.InductiveWF.addInductWithRecursors` constructs the target

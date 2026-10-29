@@ -21,6 +21,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check VEnvs.InductiveWF
 #check VEnvs.WF.toInductiveWF
 #check VEnvs.InductiveWF.addInductWithRecursors
+#check VEnvs.InductiveWF.addRegistrationEvidence
 #check VEnvs.InductiveWF.map_wf
 #check VEnvs.InductiveWF.venv_wf
 #check VEnvs.InductiveWF.toCheckerEnvInductive
@@ -60,6 +61,22 @@ example {env result : Kernel.Environment} {ves resultVes : VEnvs} {Q : Bool}
     VEnvs.InductiveWF result resultVes Q :=
   model.addInductWithRecursors decl inductiveConstants inductiveEnvs recursors models
     registration declarationWF hasPrimitives safePrimitives mono
+
+example {env result : Kernel.Environment} {ves resultVes : VEnvs} {Q : Bool}
+    {decl : VInductDecl}
+    (model : VEnvs.InductiveWF env ves Q)
+    (evidence : ∀ safety,
+      NativeInductive.RegistrationEvidence env.constants (ves.venv safety) decl
+        result.constants (resultVes.venv safety))
+    (hrecursors : ∀ safety entry, entry ∈ (evidence safety).recursors →
+      entry.model.toVConstant.WF (evidence safety).constructorEnv)
+    (hasPrimitives : ∀ {safety}, (resultVes.venv safety).HasPrimitives)
+    (safePrimitives : ∀ {n ci}, result.find? n = some ci →
+      Kernel.Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = [])
+    (mono : ∀ {safety safety'}, safety ≤ safety' →
+      resultVes.venv safety' ≤ resultVes.venv safety) :
+    VEnvs.InductiveWF result resultVes Q :=
+  model.addRegistrationEvidence decl evidence hrecursors hasPrimitives safePrimitives mono
 
 example {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
     (model : VEnvs.InductiveWF env ves Q) (safety : DefinitionSafety)

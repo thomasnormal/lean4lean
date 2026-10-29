@@ -679,4 +679,37 @@ theorem RegistrationEvidence.toCheckerEnvInductive_and_registrationWF_of_sourceT
       (evidence.constructorEnvWF history.wf) hsource) hvalues
 
 end NativeInductive
+
+/- Assemble the all-safety history witness directly from native registration evidence.
+   The evidence family supplies the constructive registration and declaration-WF stages;
+   target primitive, safe-primitive, and monotonicity facts remain explicit because they
+   belong to the surrounding kernel environment rather than one registration receipt. -/
+theorem VEnvs.InductiveWF.addRegistrationEvidence
+    {env result : Kernel.Environment} {ves resultVes : VEnvs} {Q : Bool}
+    (H : VEnvs.InductiveWF env ves Q) (decl : VInductDecl)
+    (evidence : ∀ safety,
+      NativeInductive.RegistrationEvidence env.constants (ves.venv safety) decl
+        result.constants (resultVes.venv safety))
+    (hrecursors : ∀ safety entry, entry ∈ (evidence safety).recursors →
+      entry.model.toVConstant.WF (evidence safety).constructorEnv)
+    (hasPrimitives : ∀ {safety}, (resultVes.venv safety).HasPrimitives)
+    (safePrimitives : ∀ {n ci}, result.find? n = some ci →
+      Kernel.Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = [])
+    (mono : ∀ {safety safety'}, safety ≤ safety' →
+      resultVes.venv safety' ≤ resultVes.venv safety) :
+    VEnvs.InductiveWF result resultVes Q := by
+  apply H.addInductWithRecursors decl
+    (fun safety => (evidence safety).constructorConstants)
+    (fun safety => (evidence safety).constructorEnv)
+    (fun safety => (evidence safety).recursors.map (·.info))
+    (fun safety => (evidence safety).recursors.map (·.model))
+  · intro safety
+    exact (evidence safety).to_addInductWithRecursorsEvidence_at safety H.map_wf
+      (fun entry hentry => hrecursors safety entry hentry)
+  · intro safety
+    exact (evidence safety).inductiveDeclWF
+  · exact hasPrimitives
+  · exact safePrimitives
+  · exact mono
+
 end Lean4Lean

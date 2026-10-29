@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## All-safety registration-evidence assembly — 2026-10-29
+
+`VEnvs.InductiveWF.addRegistrationEvidence` now lifts a family of native
+`RegistrationEvidence` receipts, one at each safety level, into the
+all-safety inductive-history witness. It derives the constructive generated-
+recursor receipt and declaration-WF callback for each level, while preserving
+target primitive, safe-primitive, and monotonicity obligations as explicit
+inputs. This connects the native registration family to the all-safety model;
+recursor rule semantics, iota soundness, and complete executable frontend
+soundness remain open.
+
 ## Safety-indexed inductive-history assembly — 2026-10-29
 
 `VEnvs.InductiveWF.addInductWithRecursors` now assembles a target
