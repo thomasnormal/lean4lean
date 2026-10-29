@@ -1,5 +1,17 @@
 # Non-inductive verification proof of concept
 
+## Restoration-stage generated-rule and iota ordinary consumer — 2026-10-29
+
+`addDecl.toCheckerEnv_and_registrationHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_restorationStages`
+projects the existing general restoration-stage checker/history/generated-rule
+package through `CheckerEnvInductive.toCheckerEnv`. Its existential
+`allowPrimitive` result still carries semantic alignment, final
+`TrEnvInductive` history, complete generated-rule receipts, and the paired
+base/target iota endpoint witnesses, with source typing, map equalities, and
+safe-value translation explicit. This is an ordinary consumer boundary; it
+adds no general recursor/iota soundness or complete executable inductive
+frontend theorem.
+
 ## Checked-primitive restoration generated-rule and iota ordinary consumer — 2026-10-29
 
 The checked-primitive restoration-stage bridge now projects the complete
