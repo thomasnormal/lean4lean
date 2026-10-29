@@ -307,6 +307,11 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResultsPackage_of_sourceTypehood_and_restorationStages
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage_of_sourceTypehood_and_restorationStages
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_sourceTypehood_and_restorationStages
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResultsPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood_and_restorationStages
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_restorationStagesExact
@@ -1137,6 +1142,26 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
   have h := restored.toCheckerEnvInductive_and_registrationIotaBaseAndTargetResults_of_sourceTypehood
     producer halign hconstants history hsource hvalues ruleResults
+  have hSourceOrdinary := addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResult
+  have hSourceOrdinaryIota := addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResult
+  have hSourceOrdinaryPair := addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResultsPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResult
+  have hSourceOrdinaryGenerated := addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResult
+  have hSourceOrdinaryGeneratedPlural := addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResult
+  have _ := hSourceOrdinary
+  have _ := hSourceOrdinaryIota
+  have _ := hSourceOrdinaryPair
+  have _ := hSourceOrdinaryGenerated
+  have _ := hSourceOrdinaryGeneratedPlural
   trivial
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
