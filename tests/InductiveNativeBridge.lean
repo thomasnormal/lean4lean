@@ -340,6 +340,12 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetReductionPackage_of_sourceTypehood_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetReductionPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehood_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
 #check AddInductive.LocalRecursorRuleRhsScope.completeRuleResultSemanticsIndexed
 #check AddInductive.LocalRecursorRuleRhsScope.completeRuleResultSemanticsFromIndexed
 #check AddInductive.LocalRecursorRuleRhsScope.completeRuleSemanticsFromIndexed
@@ -8720,6 +8726,7 @@ example {m : Type → Type} [Monad m]
     (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
     (hconstants : env.constants = constants) (hresultConstants : result.constants = resultConstants)
     (history : TrEnvInductive .safe constants Q semanticEnv)
+    (envWF : semanticEnv.WF)
     (hrecursors : ∀ entry ∈ producer.recursors,
       entry.model.toVConstant.WF producer.constructorEnv)
     (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
@@ -8731,6 +8738,7 @@ example {m : Type → Type} [Monad m]
         (.const ci.name (VLevel.params ci.levelParams.length)))
     {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
     {source : AddInductive.Context} {universes : List Name}
+    (targetWF : ∀ target : TypeChecker.MLCtx, target.WF semanticEnv universes)
     (ruleResults : ∀ (entry : RecursorEntry), entry ∈ producer.recursors →
       ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
@@ -8776,12 +8784,42 @@ example {m : Type → Type} [Monad m]
     addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetReductionPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
       (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource
       hvalues ruleResults reduction
+  have hOrdinary :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_restorationStages_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hrecursors
+      hsource hvalues targetWF ruleResults reduction
+  have hOrdinaryPlural :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_restorationStages_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hrecursors
+      hsource hvalues targetWF ruleResults reduction
+  have hOrdinarySource :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hsource
+      hvalues targetWF ruleResults reduction
+  have hOrdinarySourcePlural :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehood_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hsource
+      hvalues targetWF ruleResults reduction
+  have hOrdinarySourceRestoration :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hsource
+      hvalues targetWF ruleResults reduction
+  have hOrdinarySourceRestorationPlural :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hsource
+      hvalues targetWF ruleResults reduction
   have _ := hRest
   have _ := hRestPlural
   have _ := hSource
   have _ := hSourcePlural
   have _ := hSourceRestoration
   have _ := hSourceRestorationPlural
+  have _ := hOrdinary
+  have _ := hOrdinaryPlural
+  have _ := hOrdinarySource
+  have _ := hOrdinarySourcePlural
+  have _ := hOrdinarySourceRestoration
+  have _ := hOrdinarySourceRestorationPlural
   trivial
 
 run_meta

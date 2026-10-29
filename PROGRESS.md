@@ -1,5 +1,15 @@
 # Progress and upstream comparison
 
+## Constructive generated-rule target-ordinary consumers — 2026-10-29
+
+The constructive checker now exposes ordinary `CheckerEnv` projections for
+generated-rule target-ordinary packages on restoration-stage singular and
+plural routes, direct source-typehood routes, and source-typehood restoration
+aliases. Environment and target well-formedness premises, concrete reducer
+receipts, complete generated-rule witnesses, and target-ordinary witnesses
+remain explicit beside model/scope, registration, alignment/history,
+source/value/map/recursor, and preflight premises.
+
 ## Constructive generated-rule target-reduction ordinary consumers — 2026-10-29
 
 The constructive checker now exposes ordinary `CheckerEnv` projections for
