@@ -1,5 +1,17 @@
 # Progress and upstream comparison
 
+## Upstream candidate recheck — 2026-10-29
+
+The current official `origin/master` (`67f63b0c`) already contains the three
+previously strongest upstream candidates under their merged hashes:
+`df7a77ae` (constant-reduction confluence under universe conversion),
+`35ba0269` (quotient equation-pattern certificates under lambda binders), and
+`0393d739` (inductive source preflight before parameter capture). They do not
+need new PRs from this fork. The newer safety-indexed registration and checker
+receipts remain fork-specific and depend on the divergent constructive
+inductive bridge, so they are not upstream-ready without a separate
+official-master adaptation.
+
 ## Source-typehood checker/alignment receipt — 2026-10-29
 
 `VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood_and_aligned_and_checker`

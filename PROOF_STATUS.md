@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Upstream candidate recheck — 2026-10-29
+
+Official `origin/master` at `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` already
+contains the constant-confluence, quotient-pattern, and inductive source
+preflight repairs as commits `df7a77ae`, `35ba0269`, and `0393d739`.
+Consequently those fork commits are historical evidence rather than pending
+PRs. The current registration/model/checker additions remain fork-specific
+and require an independent official-master adaptation before review.
+
 ## Source-typehood checker/alignment receipt — 2026-10-29
 
 `VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood_and_aligned_and_checker`
