@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Restoration registration semantics ordinary consumer — 2026-10-29
+
+The restoration metadata bridge now projects its checker/history/generated-rule
+result package to ordinary `CheckerEnv` while retaining final declaration
+history and all generated result witnesses. Its source-typehood premise is
+used only to derive recursor model WF. This is a registration-consumer
+boundary; it does not prove generated-rule semantics, iota reduction, or the
+complete executable inductive frontend theorem.
+
 ## Restoration metadata ordinary checker consumer — 2026-10-29
 
 `SafeInductiveRestorationMetadata.toCheckerEnv` carries the conditional

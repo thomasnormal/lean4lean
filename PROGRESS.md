@@ -4,6 +4,15 @@ Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Restoration registration semantics ordinary consumer — 2026-10-29
+
+`SafeInductiveRestorationMetadata.toCheckerEnv_and_registrationHistory_and_generatedRuleResultSemantics_of_sourceTypehood`
+now carries the restoration-stage checker, final `TrEnvInductive` history, and
+per-recursion generated-rule result receipts through the ordinary `CheckerEnv`
+interface. Source typehood derives only the existing recursor model-WF
+witness; generated-rule and iota soundness remain explicit downstream
+obligations.
+
 ## Restoration metadata ordinary checker consumer — 2026-10-29
 
 `SafeInductiveRestorationMetadata.toCheckerEnv` now projects the conditional
