@@ -3871,4 +3871,74 @@ theorem GeneratedRecursorRuleIotaTargetReductionExact.toOrdinary
   exact ⟨target, count, arguments, resultType, insertionLift, replacements, rhsSemantic,
     reduction, translated.trExpr envWF.ordered (targetWF target).tr.wf, typed, sortArity⟩
 
+/- Consume the complete indexed generated-rule producer at the stored-rule
+   reducer boundary.  Ordered recursor metadata recovers the constructor,
+   minor, and source index for each stored rule; the native reduction callback
+   then supplies the exact stored-RHS equation required by the target package. -/
+theorem LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaTargetReductionExact
+    {m : Type → Type} [Monad m]
+    {environment : Kernel.Environment} {expression : Expr}
+    {normalize infer : Expr → m Expr}
+    {compare : Expr → Expr → m Bool}
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {env : VEnv} {universes : List Name}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx environment)
+    (ordered : OrderedRecursorRules types environment)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat) (ctor : Constructor)
+      (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        RecursorRuleRhsReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        (∃ semantic, TrExprS env universes [] rule.rhs semantic) ∧
+        GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+          (stats := stats) (motives := infos.map (·.motive))
+          (minors := infos.flatMap (·.minors)) (ctx := ctx)
+          (constructor := ctor) (minor := minor) (rule := rule))
+    (reduction : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      ∀ (target : MLCtx) (count : Nat) (arguments : List VExpr)
+        (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+        (rhsSemantic : VExpr),
+        TrExprS env universes target.vlctx (rule.rhs.mkAppList replacements)
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift))) →
+        env.HasType universes.length target.vlctx.toCtx
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift)))
+          (resultType.lift' insertionLift) →
+        env.SortArity universes.length target.vlctx.toCtx count
+          (resultType.lift' insertionLift) →
+        inductiveReduceRec environment expression normalize infer compare =
+          pure (some (rule.rhs.mkAppList replacements))) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      environment.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ rule ∈ recursor.rules, ∃ (index : Nat) (ctor : Constructor) (minor : Expr)
+        (semantic : VExpr),
+        types[parent]!.ctors[index]? = some ctor ∧
+        infos[parent]!.minors[index]? = some minor ∧
+        recursor.rules[index]? = some rule ∧
+        TrExprS env universes [] rule.rhs semantic ∧
+        GeneratedRecursorRuleResult env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule ∧
+        GeneratedRecursorRuleIotaTargetReductionExact
+          (environment := environment) (expression := expression)
+          (normalize := normalize) (infer := infer) (compare := compare)
+          (env := env) (universes := universes) (stats := stats)
+          (motives := infos.map (·.motive)) (minors := infos.flatMap (·.minors))
+          (ctx := ctx) (constructor := ctor) (minor := minor) (rule := rule) := by
+  intro parent hparent
+  obtain ⟨recursor, lookup, entries⟩ :=
+    hscope.completeRuleResultSemanticsAndIotaBaseAndTargetResults ordered head parent hparent
+  refine ⟨recursor, lookup, ?_⟩
+  intro rule hmem
+  obtain ⟨index, ctor, minor, semantic, ctorLookup, minorLookup, ruleLookup,
+    semanticResult, generated, _baseTarget⟩ := entries rule hmem
+  refine ⟨index, ctor, minor, semantic, ctorLookup,
+    minorLookup, ruleLookup, semanticResult, generated, ?_⟩
+  · exact GeneratedConstructorRuleRhsResult.iotaTargetReductionOfExact generated
+      (fun target count arguments resultType insertionLift replacements rhsSemantic translated
+        typed sortArity => reduction parent recursor index ctor rule minor target count arguments resultType insertionLift
+        replacements rhsSemantic translated typed sortArity)
+
 end Lean4Lean.AddInductive

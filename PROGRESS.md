@@ -1,5 +1,17 @@
 # Progress and upstream comparison
 
+## Stored-rule exact target-reduction consumer — 2026-10-29
+
+`LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaTargetReductionExact`
+now consumes the complete generated-rule package at the stored recursor-rule
+boundary. Ordered recursor metadata recovers each constructor, minor, and
+source index, while an explicit reducer callback supplies the exact native
+equation for the generated RHS and produces
+`GeneratedRecursorRuleIotaTargetReductionExact`. The dependent package is
+consumed through the existing base/target result producer, so source
+translation, generated-rule construction, target typing, sort arity, and
+reducer behavior remain explicit premises.
+
 ## Checked-primitive generated-rule/iota target package — 2026-10-29
 
 `addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaTargetResults_of_checkedPrimitive`

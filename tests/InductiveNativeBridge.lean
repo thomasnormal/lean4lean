@@ -32,6 +32,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check VEnvs.InductiveWF.toCheckerEnvInductive_and_wf
 #check addDecl.safeInductiveFrontendInductiveWF
 #check addDecl.safeInductiveFrontendInductiveWF_of_sourceTypehood
+#check AddInductive.LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaTargetReductionExact
 #check CheckerEnvInductive.map_wf
 #check CheckerEnvInductive.venv_wf
 #check AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorVDeclWF

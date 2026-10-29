@@ -1,5 +1,18 @@
 # Non-inductive verification proof of concept
 
+## Stored-rule exact target-reduction consumer — 2026-10-29
+
+`LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaTargetReductionExact`
+consumes the complete stored-rule generated-result package and preserves the
+constructor, minor, source index, semantic RHS translation, and generated
+result for every ordered recursor rule. Its explicit reducer callback proves
+the exact equation
+`inductiveReduceRec ... = pure (some (rule.rhs.mkAppList replacements))`,
+yielding `GeneratedRecursorRuleIotaTargetReductionExact`. The public bridge
+fixture checks the dependent theorem signature. No new `sorry`, `admit`, or
+axiom was introduced; source translation, generated-rule construction, target
+typing, sort arity, and reducer behavior remain caller obligations.
+
 ## Checked-primitive generated-rule/iota target package — 2026-10-29
 
 `addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaTargetResults_of_checkedPrimitive`
