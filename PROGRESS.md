@@ -1,5 +1,13 @@
 # Progress and upstream comparison
 
+## Constructive exact target-ordinary endpoint consumers — 2026-10-29
+
+The constructive checker now exposes exact stored-RHS target-ordinary
+`CheckerEnv` aliases for restoration-stage, direct source-typehood, and
+source-typehood restoration endpoint spellings. The exact reducer equation,
+environment and target well-formedness callbacks, and generated-rule receipt
+remain available to ordinary endpoint consumers.
+
 ## Constructive exact target-result endpoint consumers — 2026-10-29
 
 The constructive checker now exposes exact stored-RHS target-result `CheckerEnv`

@@ -1,5 +1,17 @@
 # Non-inductive verification proof of concept
 
+## Constructive exact target-ordinary endpoint consumers — 2026-10-29
+
+Three exact stored-RHS target-ordinary `CheckerEnv` aliases in
+`Lean4Lean/Verify/InductiveFrontendCheckerBridge.lean` cover restoration-stage,
+direct source-typehood, and source-typehood restoration endpoint spellings.
+They retain the exact reducer equation, explicit environment and target WF
+callbacks, and complete generated-rule receipt alongside model/scope,
+registration, alignment/history, source/value/map/recursor, and preflight
+premises. API checks and fixture calls cover all three aliases. No new
+`sorry`, `admit`, or axiom is introduced; no reducer soundness, general
+recursor/iota, or complete frontend theorem is claimed.
+
 ## Constructive exact target-result endpoint consumers — 2026-10-29
 
 Three exact stored-RHS target-result `CheckerEnv` aliases in
