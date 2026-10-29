@@ -113,6 +113,8 @@ projection directly from its source-typehood receipt.
 The executable restoration-stage wrappers now expose ordinary `CheckerEnv`
 consumers directly, including the checked-primitive path, while preserving
 the explicit producer, history, map, source-typehood, and safe-value inputs.
+The direct executable frontend-scope path now exposes matching ordinary
+`CheckerEnv` consumers, including its checked-primitive specialization.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

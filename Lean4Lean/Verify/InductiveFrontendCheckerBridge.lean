@@ -10741,6 +10741,66 @@ theorem addDecl.toCheckerEnv_of_checkedPrimitive_and_restorationStages
     metadata.toFrontendScope.toCheckerEnv_of_sourceTypehood history producer hconstants
       hresultConstants hsource hvalues⟩
 
+/- The direct executable frontend scope has the same ordinary checker
+   consumer boundary, before restoration metadata is unpacked. -/
+theorem addDecl.toCheckerEnv_of_frontendScope
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    ∃ allowPrimitive,
+      SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result ∧
+      CheckerEnv .safe result semanticResult := by
+  obtain ⟨allowPrimitive, scope⟩ :=
+    (addDecl.safeInductiveFrontend env lparams nparams types check fuel hmap) result hresult
+  exact ⟨allowPrimitive, scope,
+    scope.toCheckerEnv_of_sourceTypehood history producer hconstants hresultConstants hsource
+      hvalues⟩
+
+theorem addDecl.toCheckerEnv_of_checkedPrimitive_and_frontendScope
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    SafeInductiveFrontendScope env lparams nparams types true fuel result ∧
+      CheckerEnv .safe result semanticResult := by
+  have scope := (addDecl.safeCheckedPrimitiveInductive env lparams nparams types check fuel hmap hcheck)
+    result hresult
+  exact ⟨scope,
+    scope.toCheckerEnv_of_sourceTypehood history producer hconstants hresultConstants hsource
+      hvalues⟩
+
 
 theorem SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationSemantics
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}

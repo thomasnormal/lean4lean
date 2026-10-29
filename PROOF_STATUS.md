@@ -97,6 +97,8 @@ ordinary checker consumers.
 The executable restoration-stage boundary now has ordinary checker wrappers
 for general and checked-primitive inductive declarations; these are consumer
 packaging results and do not add generated-rule or iota soundness.
+The direct frontend-scope boundary has the same general and checked-primitive
+ordinary checker wrappers, with the same explicit obligations.
 
 ## All-safety inductive checker boundary — 2026-10-26
 

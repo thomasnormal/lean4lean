@@ -156,6 +156,8 @@ example {constants resultConstants : ConstMap}
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnv_of_sourceTypehood
 #check addDecl.toCheckerEnv_of_restorationStages
 #check addDecl.toCheckerEnv_of_checkedPrimitive_and_restorationStages
+#check addDecl.toCheckerEnv_of_frontendScope
+#check addDecl.toCheckerEnv_of_checkedPrimitive_and_frontendScope
 #check AddInductive.GeneratedConstructorRuleRhsResult.iotaTargetReductionOfExact
 #check AddInductive.GeneratedRecursorRuleIotaTargetReductionExact.toOrdinary
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleIotaTargetReductionOf
