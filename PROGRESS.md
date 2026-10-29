@@ -4,6 +4,14 @@ Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Restored structural rule/iota ordinary consumer — 2026-10-29
+
+`NativeInductive.RestoredRecordEvidence.toCheckerEnv_and_sourceRecursorGeneratedRuleStructuralAndIotaBaseAndTargetResults`
+projects the restored constructor-indexed structural receipt to ordinary
+`CheckerEnv`. It retains recursor and constructor lookup facts, source
+metadata/field counts, generated-rule results, model-shape/registration
+receipts, and paired base/target iota endpoints.
+
 ## Restored constructive checker/map-WF ordinary consumer — 2026-10-29
 
 `NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerAndMapWFGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv`

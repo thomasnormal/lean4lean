@@ -365,6 +365,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_of_sourceTypehood_and_generatedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_sourceRecursorGeneratedRuleStructuralAndIotaBaseAndTargetResults
+#check NativeInductive.RestoredRecordEvidence.toCheckerEnv_and_sourceRecursorGeneratedRuleStructuralAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_sourceRecursorGeneratedRuleStructuralGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultsAndIota
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultsAndIotaBaseAndTargetResults
@@ -4483,6 +4484,8 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
       ∃ entry : RecursorEntry, (.recursor entry : RegistrationEntry) ∈ restored.entries ∧
         entry.info.name = mkRecName types[index].name) : True := by
   have h := restored.toCheckerEnvInductive_and_sourceRecursorGeneratedRuleStructuralAndIotaBaseAndTargetResults
+    producer halign hconstants history hsource hvalues hlookups ruleResult hrecursor hentry
+  have hOrdinary := restored.toCheckerEnv_and_sourceRecursorGeneratedRuleStructuralAndIotaBaseAndTargetResults
     producer halign hconstants history hsource hvalues hlookups ruleResult hrecursor hentry
   have hNamed := restored.toCheckerEnvInductive_and_sourceRecursorGeneratedRuleStructuralGeneratedRuleResultAndIotaBaseAndTargetResults
     producer halign hconstants history hsource hvalues hlookups ruleResult hrecursor hentry

@@ -8111,6 +8111,68 @@ theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_sourceR
     hlength, hrule, hctorInfo, hmetadata, hfields, hnumFields, hfieldCount, htotal,
     hsemantic, hgenerated, hgenerated.iotaKind.baseAndTargetResults, hshape, hregistration⟩
 
+/- Project the restored source structural checker receipt to ordinary
+   `CheckerEnv` while retaining constructor-indexed rule and iota evidence. -/
+theorem NativeInductive.RestoredRecordEvidence.toCheckerEnv_and_sourceRecursorGeneratedRuleStructuralAndIotaBaseAndTargetResults
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value (.const ci.name (VLevel.params ci.levelParams.length)))
+    {nparams : Nat} {lparams : List Name} {types : List InductiveType}
+    (hlookups : SourceRecursorRuleLookups nparams lparams types preprocessing staged result)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResult : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+    (hrecursor : ∀ (index : Nat) (hindex : index < types.length) (recursor : RecursorVal),
+      result.find? recursor.name = some (.recInfo recursor) → recursor.name = mkRecName types[index].name)
+    (hentry : ∀ (index : Nat) (hindex : index < types.length),
+      ∃ entry : NativeInductive.RecursorEntry,
+        (.recursor entry : NativeInductive.RegistrationEntry) ∈ restored.entries ∧
+        entry.info.name = mkRecName types[index].name) :
+    CheckerEnv .safe result semanticResult ∧
+      (∀ (index : Nat) (hindex : index < types.length) (ctorIndex : Nat)
+        (hctor : ctorIndex < types[index].ctors.length),
+        ∃ (entry : NativeInductive.RecursorEntry) (recursor : RecursorVal)
+          (rule : RecursorRule) (info : ConstructorVal) (semantic : VExpr)
+          (constructor : Constructor) (minor : Expr),
+          result.find? recursor.name = some (.recInfo recursor) ∧
+          entry.info.name = mkRecName types[index].name ∧
+          recursor.rules.length = types[index].ctors.length ∧
+          recursor.rules[ctorIndex]? = some rule ∧
+          staged.find? types[index].ctors[ctorIndex].name = some (.ctorInfo info) ∧
+          SourceConstructorMetadata nparams lparams types[index] ctorIndex info ∧
+          SourceConstructorFields nparams types[index] ctorIndex info ∧
+          rule.nfields = info.numFields ∧
+          rule.nfields = arity 0 types[index].ctors[ctorIndex].type - nparams ∧
+          nparams + rule.nfields = arity 0 types[index].ctors[ctorIndex].type ∧
+          TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+          AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+          AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+          (.recursor entry : NativeInductive.RegistrationEntry).ModelShape ∧
+          (.recursor entry : NativeInductive.RegistrationEntry).Metadata decl producer.constructors) := by
+  have hchecker := restored.toCheckerEnvInductive_and_sourceRecursorGeneratedRuleStructuralAndIotaBaseAndTargetResults
+    producer halign hconstants history hsource hvalues hlookups ruleResult hrecursor hentry
+  exact ⟨hchecker.1.toCheckerEnv, hchecker.2⟩
+
 /- Name the checker structural source package by its complete generated rule
    result together with the paired base/target iota endpoint. -/
 theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_sourceRecursorGeneratedRuleStructuralGeneratedRuleResultAndIotaBaseAndTargetResults

@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Restored structural rule/iota ordinary consumer — 2026-10-29
+
+The restored constructor-indexed structural receipt now has an ordinary
+checker projection,
+`NativeInductive.RestoredRecordEvidence.toCheckerEnv_and_sourceRecursorGeneratedRuleStructuralAndIotaBaseAndTargetResults`.
+The result keeps recursor lookup, constructor metadata and field-count facts,
+generated-rule and paired base/target iota witnesses, and registration/model
+shape receipts. It changes only the checker component from `CheckerEnvInductive`
+to `CheckerEnv`.
+
 ## Restored constructive checker/map-WF ordinary consumer — 2026-10-29
 
 The map-WF constructive checker package now has an ordinary projection,
