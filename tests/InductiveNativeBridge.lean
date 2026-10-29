@@ -465,6 +465,16 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_sourceTypehood
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_restorationStages
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaPackage_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResultsPackage_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage_of_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaPackage_of_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResultsPackage_of_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage_of_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndConstructiveHistoryAndVDeclWF
@@ -1990,6 +2000,26 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have hPlural := addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage
     (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
     hsource hvalues ruleResults
+  have hOrdinary := addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+  have hOrdinaryIota := addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaPackage_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+  have hOrdinaryPair := addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResultsPackage_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+  have hOrdinaryGenerated := addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+  have hOrdinaryGeneratedPlural := addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+  have _ := hOrdinary
+  have _ := hOrdinaryIota
+  have _ := hOrdinaryPair
+  have _ := hOrdinaryGenerated
+  have _ := hOrdinaryGeneratedPlural
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
@@ -8355,6 +8385,26 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have hPlural := addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_restorationStages
     (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
     hsource hvalues ruleResults
+  have hOrdinary := addDecl.checkedPrimitiveModelAndConstructiveCheckerPackage_of_restorationStages_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+  have hOrdinaryIota := addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaPackage_of_restorationStages_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+  have hOrdinaryPair := addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaBaseAndTargetResultsPackage_of_restorationStages_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+  have hOrdinaryGenerated := addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage_of_restorationStages_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+  have hOrdinaryGeneratedPlural := addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_restorationStages_toCheckerEnv
+    (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+    hsource hvalues ruleResults
+  have _ := hOrdinary
+  have _ := hOrdinaryIota
+  have _ := hOrdinaryPair
+  have _ := hOrdinaryGenerated
+  have _ := hOrdinaryGeneratedPlural
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}

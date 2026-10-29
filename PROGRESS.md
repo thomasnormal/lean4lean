@@ -1,5 +1,9 @@
 # Progress and upstream comparison
 
+## Constructive checker ordinary consumers — 2026-10-29
+
+The checked-primitive constructive checker package family now exposes ordinary `CheckerEnv` projections for direct and restoration-stage base, iota-only, singular generated-rule-plus-iota, and plural generated-results-plus-iota forms. The projections retain the Bool/Nat model, executable frontend scope, constructive registration evidence, alignment/history, source/value/map/recursor premises, generated-rule receipts, and paired iota witnesses while projecting `CheckerEnvInductive` through `toCheckerEnv`. They add no recursor or iota soundness theorem and are not upstream-ready without an official adaptation.
+
 Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.

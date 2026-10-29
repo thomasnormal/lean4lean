@@ -1,5 +1,9 @@
 # Non-inductive verification proof of concept
 
+## Constructive checker ordinary consumers — 2026-10-29
+
+Ten new theorems in `Lean4Lean/Verify/InductiveFrontendCheckerBridge.lean` project the existing constructive checker packages through `CheckerEnvInductive.toCheckerEnv`: direct checked-primitive and restoration-stage base, iota-only, paired base/target iota, singular generated-rule-plus-iota, and plural generated-results-plus-iota forms. API `#check`s and fixture elaboration cover all ten names. Existing model, executable scope, constructive registration, alignment/history, source/value/map/recursor, generated-rule, and paired-iota premises remain explicit. No new `sorry`, `admit`, or axiom is introduced; this is ordinary checker-consumer packaging and does not establish general recursor/iota soundness or complete inductive frontend verification.
+
 ## Generic semantic-structural ordinary consumers — 2026-10-29
 
 Four new `SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructural..._toCheckerEnv` theorems project the generic semantic-structural receipts through `CheckerEnvInductive.toCheckerEnv`: base, iota-only, singular generated-rule-plus-iota, and plural generated-results-plus-iota. They preserve alignment, history, source/value/map/recursor obligations, generated-rule and paired-iota receipts, and constructor registration/model-shape metadata. No new admission is introduced and no general recursor/iota or complete frontend theorem is claimed.
