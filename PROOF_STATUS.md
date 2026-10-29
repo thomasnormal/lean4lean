@@ -1,5 +1,9 @@
 # Non-inductive verification proof of concept
 
+## Restoration-stage semantic structural ordinary consumers — 2026-10-29
+
+`addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages_toCheckerEnv`, its plural generated-results companion, and the iota-only companion project the restoration-stage semantic-structural model receipts through `CheckerEnvInductive.toCheckerEnv`. They retain the selected `allowPrimitive` stage, Bool/Nat model declaration and translation facts, executable preprocessing/staging, semantic alignment, final `TrEnvInductive` history, per-entry generated-rule and paired base/target iota receipts, and constructor registration/model-shape metadata. The API checks and fixture elaboration in `tests/InductiveNativeBridge.lean` cover all three names. This is an ordinary checker-consumer boundary; it does not establish general recursor or iota soundness, complete inductive frontend verification, full kernel soundness, or admission-free foundations.
+
 ## Checked-primitive semantic structural ordinary consumers — 2026-10-29
 
 `addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv`, its plural generated-results companion, and the iota-only companion project the existing checked-primitive semantic-structural model receipts through `CheckerEnvInductive.toCheckerEnv`. They retain the Bool/Nat model declaration and translation facts, executable preprocessing and staging, semantic alignment, final `TrEnvInductive` history, per-entry generated-rule and paired base/target iota receipts, and constructor registration/model-shape metadata. The API checks in `tests/InductiveNativeBridge.lean` exercise all three names. This is an ordinary checker-consumer boundary; it does not establish general recursor or iota soundness, complete inductive frontend verification, full kernel soundness, or admission-free foundations.

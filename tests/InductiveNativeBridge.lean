@@ -410,6 +410,9 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralIotaBaseAndTargetResults_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+#check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndSemanticStructuralIotaBaseAndTargetResults_of_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndSemanticStructuralAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndRegistrationSemanticsGeneratedRuleResultsAndIotaBaseAndTargetResults
@@ -2125,10 +2128,25 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
       (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
       hsource hvalues ruleResult hrecursor hentry
+  have hModelOrdinary :=
+    addDecl.checkedPrimitiveModelAndSemanticStructuralIotaBaseAndTargetResults_of_restorationStages_toCheckerEnv
+      (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
+      hsource hvalues ruleResult hrecursor hentry
+  have hModelGeneratedOrdinary :=
+    addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages_toCheckerEnv
+      (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
+      hsource hvalues ruleResult hrecursor hentry
+  have hModelGeneratedPluralOrdinary :=
+    addDecl.checkedPrimitiveModelAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages_toCheckerEnv
+      (venv := venv) hmap hcheck hresult coverage entries records_eq producer entry_eq hconstants history
+      hsource hvalues ruleResult hrecursor hentry
   have _ := h
   have _ := hGenerated
   have _ := hModel
   have _ := hModelGenerated
+  have _ := hModelOrdinary
+  have _ := hModelGeneratedOrdinary
+  have _ := hModelGeneratedPluralOrdinary
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
