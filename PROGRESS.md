@@ -4,6 +4,15 @@ Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Executable structural ordinary consumers — 2026-10-29
+
+The checked-primitive and restoration-stage `addDecl` structural receipts now
+also expose ordinary `CheckerEnv` projections, for both singular and plural
+generated-rule package names. They preserve executable preprocessing/staging,
+alignment and history, constructor-indexed lookup/field-count facts, complete
+generated-rule receipts, paired base/target iota witnesses, and registration
+metadata. These wrappers add no recursor/iota soundness claim.
+
 ## Restoration structural generated-rule ordinary consumers — 2026-10-29
 
 The restoration structural packages now expose ordinary `CheckerEnv`

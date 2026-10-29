@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Executable structural ordinary consumers — 2026-10-29
+
+The checked-primitive and restoration-stage executable structural packages now
+have ordinary `CheckerEnv` projections for their singular and plural
+generated-rule forms. The wrappers retain the stage equations, alignment and
+history, source constructor facts, complete generated-rule and paired iota
+receipts, and registration metadata. They do not establish general recursor or
+iota soundness or the complete executable inductive frontend theorem.
+
 ## Restoration structural generated-rule ordinary consumers — 2026-10-29
 
 The singular and plural restoration structural checker packages now have
