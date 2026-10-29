@@ -387,6 +387,8 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check NativeInductive.RestoredRecordEvidence.registrationSemanticAndStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralIotaBaseAndTargetResults_toCheckerEnv
+#check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
+#check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_toCheckerEnv
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndSemanticStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndAlignmentGeneratedRuleResultsAndIotaBaseAndTargetResultsSemantics_of_checkedPrimitive
@@ -4802,8 +4804,16 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     metadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults
       coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
+  have hStructuralCombinedOrdinary :=
+    metadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
   have hStructuralPluralCombined :=
     metadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
+  have hStructuralPluralCombinedOrdinary :=
+    metadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_toCheckerEnv
       coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
   trivial

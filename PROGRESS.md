@@ -4,6 +4,15 @@ Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Restoration structural generated-rule ordinary consumers — 2026-10-29
+
+The restoration structural packages now expose ordinary `CheckerEnv`
+projections through
+`SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv`
+and its plural generated-results companion. Both retain constructor-indexed
+source lookup/field-count facts, complete generated-rule receipts, paired
+base/target iota witnesses, and registration/model-shape metadata.
+
 ## Restoration structural ordinary metadata consumer — 2026-10-29
 
 `SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralIotaBaseAndTargetResults_toCheckerEnv`

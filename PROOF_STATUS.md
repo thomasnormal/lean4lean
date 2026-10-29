@@ -1,5 +1,17 @@
 # Non-inductive verification proof of concept
 
+## Restoration structural generated-rule ordinary consumers — 2026-10-29
+
+The singular and plural restoration structural checker packages now have
+ordinary projections:
+`SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv`
+and
+`SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults_toCheckerEnv`.
+They preserve the full generated-rule receipt and paired base/target iota
+receipts while changing only the checker component to ordinary `CheckerEnv`.
+No general recursor/iota soundness or complete inductive frontend theorem is
+claimed.
+
 ## Restoration structural ordinary metadata consumer — 2026-10-29
 
 The restoration metadata structural checker package now has an ordinary
