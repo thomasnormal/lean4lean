@@ -1,5 +1,13 @@
 # Progress and upstream comparison
 
+## Constructive exact target-result endpoint consumers — 2026-10-29
+
+The constructive checker now exposes exact stored-RHS target-result `CheckerEnv`
+aliases for restoration-stage, direct source-typehood, and source-typehood
+restoration endpoint spellings. They reuse the exact target-reduction package,
+so the generated-rule receipt and reducer equation remain available to
+endpoint-oriented consumers.
+
 ## Constructive exact target-reduction endpoint consumers — 2026-10-29
 
 The constructive checker now exposes exact stored-RHS target-reduction

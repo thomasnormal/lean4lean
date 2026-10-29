@@ -337,6 +337,9 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_restorationStagesExact_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_sourceTypehoodExact_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_restorationStagesExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehoodExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetReductionPackage_of_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_sourceTypehood_toCheckerEnv
@@ -8852,6 +8855,18 @@ example {m : Type → Type} [Monad m]
     addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
       (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource
       hvalues ruleResults reductionExact
+  have hExactIotaResultRestoration :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_restorationStagesExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+      hsource hvalues ruleResults reductionExact
+  have hExactIotaResultSource :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehoodExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource
+      hvalues ruleResults reductionExact
+  have hExactIotaResultSourceRestoration :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource
+      hvalues ruleResults reductionExact
   have hOrdinary :=
     addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_restorationStages_toCheckerEnv
       (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hrecursors
@@ -8915,6 +8930,9 @@ example {m : Type → Type} [Monad m]
   have _ := hExactIotaReductionRestoration
   have _ := hExactIotaReductionSource
   have _ := hExactIotaReductionSourceRestoration
+  have _ := hExactIotaResultRestoration
+  have _ := hExactIotaResultSource
+  have _ := hExactIotaResultSourceRestoration
   have _ := hOrdinary
   have _ := hOrdinaryPlural
   have _ := hOrdinarySource
