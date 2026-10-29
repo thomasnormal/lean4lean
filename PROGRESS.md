@@ -4,6 +4,15 @@ Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Checked-primitive restoration generated-rule and iota ordinary consumer — 2026-10-29
+
+`addDecl.toCheckerEnv_and_registrationHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_checkedPrimitive_and_restorationStages`
+now exposes the checked-primitive restoration package through ordinary
+`CheckerEnv`, while retaining the primitive metadata, semantic alignment,
+final declaration history, complete generated-rule receipts, and both iota
+endpoints. The primitive frontend and recursor/iota soundness obligations stay
+explicit.
+
 ## Restoration generated-rule and iota ordinary consumer — 2026-10-29
 
 `SafeInductiveRestorationMetadata.toCheckerEnv_and_registrationHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood`

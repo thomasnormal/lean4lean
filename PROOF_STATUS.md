@@ -1,5 +1,13 @@
 # Non-inductive verification proof of concept
 
+## Checked-primitive restoration generated-rule and iota ordinary consumer — 2026-10-29
+
+The checked-primitive restoration-stage bridge now projects the complete
+generated-rule and paired base/target iota package to ordinary `CheckerEnv`
+callers. It retains the primitive metadata, alignment, final history, and
+indexed receipts without claiming primitive frontend completeness or general
+recursor/iota soundness.
+
 ## Restoration generated-rule and iota ordinary consumer — 2026-10-29
 
 The restoration metadata bridge now projects its full generated-rule result and
