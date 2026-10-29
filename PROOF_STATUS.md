@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Translated full generated-rule package — 2026-10-29
+
+The full scoped constructor-rule package producer now derives its generated-body
+closure premise from an ordinary `TrExpr` witness family. This removes a raw
+`looseBVarRange' = 0` caller premise while preserving the concrete field/IH
+receipt, source and rule translations, base/target iota transport, typing, and
+sort-arity facts. The theorem introduces no direct `sorry`, `admit`, or axiom;
+body peeling and canonical recursive-IH construction remain explicit.
+
 ## Primitive-preflight inductive model boundary — 2026-10-30
 
 The new

@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Translated full generated-rule package — 2026-10-29
+
+`MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourceApplied`
+now accepts ordinary translations of every generated minor body and derives the
+zero loose-bound-variable closure needed by the field/IH producer internally.
+The full package still retains body peeling, canonical recursive-IH, exact rule
+shape, base/target typing, sort-arity, and iota obligations. No generated-rule
+equation is inferred, and no admission or executable behavior changed.
+
 ## Primitive-preflight inductive model boundary — 2026-10-30
 
 `addDecl.safeInductiveFrontendInductiveWF_of_checkedPrimitive_sourceTypehood`

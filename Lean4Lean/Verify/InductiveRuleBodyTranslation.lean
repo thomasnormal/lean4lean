@@ -2524,8 +2524,9 @@ theorem MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAn
     (opening : RecursorMinorOpening env universes minorReader virtual parentName constructor
       domain rawSemantic peeled level)
     (reserved : ContextReserved reader.lctx reader.ngen)
-    (bodyClosed : ∀ terminal fields,
-      (recursorMinorBody stats infos constructor terminal fields).looseBVarRange' = 0)
+    (bodyWitness : ∀ terminal fields, ∃ bodySemantic,
+      TrExpr env universes final.vlctx
+        (recursorMinorBody stats infos constructor terminal fields) bodySemantic)
     (bodyPeeled : ∀ terminal fields,
       peelTypeAnnotations (recursorMinorBody stats infos constructor terminal fields) =
         recursorMinorBody stats infos constructor terminal fields)
@@ -2575,6 +2576,11 @@ theorem MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAn
     GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
       (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
       (constructor := constructor) (minor := minor) (rule := rule) := by
+  have bodyClosed : ∀ terminal fields,
+      (recursorMinorBody stats infos constructor terminal fields).looseBVarRange' = 0 := by
+    intro terminal fields
+    obtain ⟨bodySemantic, translated⟩ := bodyWitness terminal fields
+    exact (final.noBV ▸ translated.closed).looseBVarRange_zero
   obtain ⟨fieldModel, terminal, fields, hypotheses, replacements, replacementTerminal,
     values, bodySemantic, sourceEq, nativeReceipt, typedArguments, bodyTranslated, bodyTyped,
     nestedTranslated⟩ := step.generatedConstructorRhsBody opening reserved bodyClosed bodyPeeled
