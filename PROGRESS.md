@@ -1,5 +1,15 @@
 # Progress and upstream comparison
 
+## Constructive exact generated-rule target-reduction consumers — 2026-10-29
+
+The constructive checker now exposes ordinary `CheckerEnv` projections for
+the exact stored-RHS generated-rule target-reduction packages on
+restoration-stage singular and plural routes, direct source-typehood singular
+and plural routes, and source-typehood restoration aliases. Exact reducer
+equations, complete generated-rule witnesses, and target-reduction receipts
+remain explicit beside the model/scope, registration, alignment/history,
+source/value/map/recursor, and preflight premises.
+
 ## Constructive exact target-ordinary consumers — 2026-10-29
 
 The constructive checker now exposes ordinary `CheckerEnv` projections for
