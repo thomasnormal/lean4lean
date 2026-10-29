@@ -136,6 +136,34 @@ theorem VEnvs.WF.toInductiveWF {env : Environment} {ves : VEnvs}
   intro safety
   exact .legacy H.tr
 
+/- Assemble a safety-indexed inductive history from explicit constructive
+   registration receipts.  The per-safety declaration and registration facts,
+   together with the target primitive, safe-primitive, and monotonicity facts,
+   remain caller obligations; this theorem only performs the history assembly. -/
+theorem VEnvs.InductiveWF.addInductWithRecursors
+    {env result : Environment} {ves resultVes : VEnvs} {Q : Bool}
+    (H : VEnvs.InductiveWF env ves Q) (decl : VInductDecl)
+    (inductiveConstants : DefinitionSafety → ConstMap)
+    (inductiveEnvs : DefinitionSafety → VEnv)
+    (recursors : DefinitionSafety → List RecursorVal)
+    (models : DefinitionSafety → List VConstVal)
+    (registration : ∀ safety,
+      AddInductWithRecursorsEvidence safety env.constants (ves.venv safety) decl
+        (inductiveConstants safety) (inductiveEnvs safety) (recursors safety)
+        (models safety) result.constants (resultVes.venv safety))
+    (declarationWF : ∀ safety,
+      VDecl.WF (ves.venv safety) (.induct decl) (inductiveEnvs safety))
+    (hasPrimitives : ∀ {safety}, (resultVes.venv safety).HasPrimitives)
+    (safePrimitives : ∀ {n ci}, result.find? n = some ci →
+      Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = [])
+    (mono : ∀ {safety safety'}, safety ≤ safety' →
+      resultVes.venv safety' ≤ resultVes.venv safety) :
+    VEnvs.InductiveWF result resultVes Q := by
+  refine { history := ?_, hasPrimitives, safePrimitives, mono }
+  intro safety
+  exact (registration safety).to_trEnvInductive (H.history (safety := safety))
+    (declarationWF safety)
+
 theorem VEnvs.InductiveWF.map_wf (H : VEnvs.InductiveWF env ves Q) : env.constants.WF :=
   (H.history (safety := .safe)).map_wf
 

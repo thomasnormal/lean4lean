@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Safety-indexed inductive-history assembly — 2026-10-29
+
+`VEnvs.InductiveWF.addInductWithRecursors` now assembles a target
+`VEnvs.InductiveWF` from explicit per-safety `AddInductWithRecursorsEvidence`
+receipts and declaration-WF callbacks. The construction applies each receipt
+to the corresponding prior inductive history while retaining target primitive,
+safe-primitive, and monotonicity obligations as explicit premises. This closes
+the structural assembly step after legacy-history promotion; it does not prove
+the executable inductive frontend, registration receipts, recursor soundness,
+or iota soundness.
+
 ## Legacy history promotion to the inductive model — 2026-10-29
 
 `VEnvs.WF.toInductiveWF` now promotes a legacy `VEnvs.WF` witness to

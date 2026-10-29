@@ -1,5 +1,18 @@
 # Non-inductive verification proof of concept
 
+## Safety-indexed inductive-history assembly — 2026-10-29
+
+`VEnvs.InductiveWF.addInductWithRecursors` constructs the target
+`VEnvs.InductiveWF` by applying an explicit
+`AddInductWithRecursorsEvidence` receipt at each safety level to the matching
+prior `TrEnvInductive` history. Declaration well-formedness is a separate
+callback, and target primitive, safe-primitive, and monotonicity facts remain
+explicit fields of the result. The bridge fixture checks elaboration of the
+full dependent signature. No new `sorry`, `admit`, or axiom is introduced.
+The theorem is an assembly lemma only: registration evidence, recursor/iota
+soundness, and the complete executable inductive frontend theorem remain
+caller obligations.
+
 ## Legacy history promotion to the inductive model — 2026-10-29
 
 `VEnvs.WF.toInductiveWF` promotes the existing legacy environment witness to
