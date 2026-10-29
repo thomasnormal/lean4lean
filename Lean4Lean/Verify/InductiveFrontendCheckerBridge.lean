@@ -10681,6 +10681,66 @@ theorem addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_gener
     metadata.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
       history producer hconstants hresultConstants hsource hvalues ruleResults⟩
 
+/- The executable restoration-stage boundary can feed existing ordinary
+   checker consumers directly; generated-rule receipts remain separate. -/
+theorem addDecl.toCheckerEnv_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    ∃ allowPrimitive,
+      SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result ∧
+      CheckerEnv .safe result semanticResult := by
+  obtain ⟨allowPrimitive, metadata⟩ :=
+    (addDecl.safeInductiveRestorationStages env lparams nparams types check fuel hmap) result hresult
+  exact ⟨allowPrimitive, metadata,
+    metadata.toFrontendScope.toCheckerEnv_of_sourceTypehood history producer hconstants
+      hresultConstants hsource hvalues⟩
+
+theorem addDecl.toCheckerEnv_of_checkedPrimitive_and_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    SafeInductiveRestorationMetadata env lparams nparams types true fuel result ∧
+      CheckerEnv .safe result semanticResult := by
+  have metadata := (addDecl.safeCheckedPrimitiveInductiveRestorationStages env lparams nparams
+    types check fuel hmap hcheck) result hresult
+  exact ⟨metadata,
+    metadata.toFrontendScope.toCheckerEnv_of_sourceTypehood history producer hconstants
+      hresultConstants hsource hvalues⟩
+
 
 theorem SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationSemantics
     {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}

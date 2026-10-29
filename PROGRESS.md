@@ -110,6 +110,9 @@ Restoration metadata exposes the matching ordinary `CheckerEnv` projection
 through its frontend source-typehood path.
 Restored native record evidence now exposes the same ordinary checker
 projection directly from its source-typehood receipt.
+The executable restoration-stage wrappers now expose ordinary `CheckerEnv`
+consumers directly, including the checked-primitive path, while preserving
+the explicit producer, history, map, source-typehood, and safe-value inputs.
 
 ## All-safety inductive checker boundary — 2026-10-26
 
