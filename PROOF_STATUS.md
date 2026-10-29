@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Checked-primitive generated-rule/iota target package — 2026-10-29
+
+`addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaTargetResults_of_checkedPrimitive`
+transports the complete generated-rule witness and target-side iota result
+through `safeCheckedPrimitiveInductive`. The theorem retains aligned constants,
+registration history, and `CheckerEnvInductive` while making the
+`checkPrimitiveInductive` success receipt explicit. The public bridge checks the
+new endpoint name; no new `sorry`, `admit`, or axiom is introduced. This remains
+an endpoint transport result and does not prove source checking, generated-rule
+production, or iota semantics.
+
 ## Direct frontend generated-rule/iota target package — 2026-10-29
 
 `addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaTargetResults_of_sourceTypehood`

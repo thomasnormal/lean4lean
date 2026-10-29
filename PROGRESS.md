@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Checked-primitive generated-rule/iota target package — 2026-10-29
+
+`addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaTargetResults_of_checkedPrimitive`
+now provides the complete generated-rule plus target-iota endpoint through the
+checked primitive-inductive path. It preserves the explicit
+`checkPrimitiveInductive` preflight premise while reusing the source-typehood
+scope package; rule generation, source translation, safe-value translation,
+and target-iota receipts remain caller obligations.
+
 ## Direct frontend generated-rule/iota target package — 2026-10-29
 
 `addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaTargetResults_of_sourceTypehood`
