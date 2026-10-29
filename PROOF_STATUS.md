@@ -1,5 +1,20 @@
 # Non-inductive verification proof of concept
 
+## Constructive exact target-ordinary consumers — 2026-10-29
+
+Six new ordinary projections/aliases in
+`Lean4Lean/Verify/InductiveFrontendCheckerBridge.lean` expose the exact
+stored-RHS constructive target-ordinary packages through
+`CheckerEnvInductive.toCheckerEnv`: restoration-stage singular/plural forms,
+direct source-typehood singular/plural forms, and source-typehood restoration
+singular/plural aliases. The exact reducer equation, environment and target WF,
+complete generated-rule, and target-ordinary witnesses remain explicit beside
+the model declaration, executable scope, registration, alignment/history,
+source/value/map/recursor, and preflight premises. API checks and fixture
+elaboration cover all six routes. No new `sorry`, `admit`, or axiom is
+introduced; no reducer soundness, general recursor/iota, or complete frontend
+theorem is claimed.
+
 ## Constructive generated-rule target-ordinary consumers — 2026-10-29
 
 Six new ordinary projections/aliases in

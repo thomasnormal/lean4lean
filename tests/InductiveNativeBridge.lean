@@ -346,6 +346,12 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehood_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_restorationStagesExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_restorationStagesExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehoodExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehoodExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
 #check AddInductive.LocalRecursorRuleRhsScope.completeRuleResultSemanticsIndexed
 #check AddInductive.LocalRecursorRuleRhsScope.completeRuleResultSemanticsFromIndexed
 #check AddInductive.LocalRecursorRuleRhsScope.completeRuleSemanticsFromIndexed
@@ -8759,7 +8765,24 @@ example {m : Type → Type} [Monad m]
         semanticEnv.SortArity universes.length target.vlctx.toCtx count
           (resultType.lift' insertionLift) →
         inductiveReduceRec environment expression normalize infer compare = pure (some reduced) ∧
-        reduced = rule.rhs.mkAppList replacements) : True := by
+        reduced = rule.rhs.mkAppList replacements)
+    (reductionExact : ∀ (entry : RecursorEntry), entry ∈ producer.recursors →
+      ∀ (rule : RecursorRule), rule ∈ entry.info.rules →
+      ∀ (constructor : Constructor) (minor : Expr),
+      ∀ (target : TypeChecker.MLCtx) (count : Nat) (arguments : List VExpr)
+        (resultType : VExpr) (insertionLift : Lift) (replacements : List Expr)
+        (rhsSemantic : VExpr),
+        TrExprS semanticEnv universes target.vlctx (rule.rhs.mkAppList replacements)
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift))) →
+        semanticEnv.HasType universes.length target.vlctx.toCtx
+          (ElimNestedInductive.applyParameterArguments (rhsSemantic.lift' insertionLift)
+            (arguments.map (VExpr.lift' · insertionLift)))
+          (resultType.lift' insertionLift) →
+        semanticEnv.SortArity universes.length target.vlctx.toCtx count
+          (resultType.lift' insertionLift) →
+        inductiveReduceRec environment expression normalize infer compare =
+          pure (some (rule.rhs.mkAppList replacements))) : True := by
   have hRest :=
     addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_restorationStages_toCheckerEnv
       (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
@@ -8808,6 +8831,30 @@ example {m : Type → Type} [Monad m]
     addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
       (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hsource
       hvalues targetWF ruleResults reduction
+  have hExact :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_restorationStagesExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hrecursors
+      hsource hvalues targetWF ruleResults reductionExact
+  have hExactPlural :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_restorationStagesExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hrecursors
+      hsource hvalues targetWF ruleResults reductionExact
+  have hExactSource :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehoodExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hsource
+      hvalues targetWF ruleResults reductionExact
+  have hExactSourcePlural :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehoodExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hsource
+      hvalues targetWF ruleResults reductionExact
+  have hExactSourceRestoration :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hsource
+      hvalues targetWF ruleResults reductionExact
+  have hExactSourceRestorationPlural :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history envWF hsource
+      hvalues targetWF ruleResults reductionExact
   have _ := hRest
   have _ := hRestPlural
   have _ := hSource
@@ -8820,6 +8867,12 @@ example {m : Type → Type} [Monad m]
   have _ := hOrdinarySourcePlural
   have _ := hOrdinarySourceRestoration
   have _ := hOrdinarySourceRestorationPlural
+  have _ := hExact
+  have _ := hExactPlural
+  have _ := hExactSource
+  have _ := hExactSourcePlural
+  have _ := hExactSourceRestoration
+  have _ := hExactSourceRestorationPlural
   trivial
 
 run_meta
