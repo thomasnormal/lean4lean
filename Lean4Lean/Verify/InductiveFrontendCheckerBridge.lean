@@ -39714,6 +39714,17 @@ def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackag
     (producer.recursorWF_of_sourceTypehood (producer.constructorEnvWF history.wf) hsource)
     hsource hvalues ruleResults reduction
 
+/- Exact stored-RHS aliases expose the same target-reduction checker package
+   without reintroducing the existential reduced-expression witness. -/
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_restorationStagesExact_toCheckerEnv :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_restorationStagesExact_toCheckerEnv
+
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_sourceTypehoodExact_toCheckerEnv :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_sourceTypehoodExact_toCheckerEnv
+
+def addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv :=
+  @addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_sourceTypehoodExact_toCheckerEnv
+
 /- Retain each generated-rule witness together with the target-reduction
    package built from that same constructor/minor result. -/
 
