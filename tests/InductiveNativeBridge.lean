@@ -5,6 +5,7 @@ import Lean4Lean.Verify.InductiveRestorationMetadata
 import Lean4Lean.Verify.InductiveNativeRestorationBridge
 import Lean4Lean.Verify.InductiveFrontendCheckerBridge
 import Lean4Lean.Verify.InductiveReductionConsumer
+import Lean4Lean.Verify.InductiveRuleBodyTranslation
 import Lean.Util.CollectAxioms
 
 namespace Lean4Lean.Tests.InductiveNativeBridge
@@ -15,6 +16,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check AddInduct.ofEvidence
 #check Lean.Expr.getAppNumArgs_eq_getAppArgs_size
 #check AddInductive.dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt_auto
+#check AddInductive.MinorModelStep.nativeFieldArgumentsOfTranslated
 #check AddInduct.map_wf
 #check AddInduct.lookupReceipt
 #check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned

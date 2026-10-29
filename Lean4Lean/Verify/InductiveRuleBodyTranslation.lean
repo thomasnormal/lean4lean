@@ -2452,6 +2452,26 @@ theorem MinorModelStep.nativeFieldArguments
     exact hypothesisExtension.trans (opening.extension hypothesisModel)
   exact ⟨fieldModel, fields, fieldArgs.weakFV envWF finalWF extension.weakening.toFVLift'⟩
 
+/- A translated field body already carries the closure fact required by the
+   native telescope producer. Keep this adapter at the producer boundary so
+   callers do not have to restate `looseBVarRange' = 0` after constructing the
+   semantic body witness. -/
+theorem MinorModelStep.nativeFieldArgumentsOfTranslated
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    (envWF : env.WF) {body : Expr} {bodySemantic : VExpr}
+    (translated : TrExpr env universes final.vlctx body bodySemantic) :
+    ∃ (fieldModel : MLCtx) (fields : Array Expr),
+      NativeTelescopeArguments env universes final
+        (fieldModel.lctx.mkForall fields body) fields.toList body := by
+  have bodyClosed : body.looseBVarRange' = 0 :=
+    (final.noBV ▸ translated.closed).looseBVarRange_zero
+  exact step.nativeFieldArguments envWF bodyClosed
+
 /-- Compose the checked constructor-field prefix with the actual native IH suffix.
 The suffix receipt carries the generated recursive replacements and their dependent
 translations; only its source/terminal shape is abstracted here. -/

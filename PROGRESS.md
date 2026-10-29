@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Translated native field-telescope producer — 2026-10-29
+
+`MinorModelStep.nativeFieldArgumentsOfTranslated` now derives the closure
+condition needed by the native field-telescope producer from an existing
+`TrExpr` body witness. It feeds the witness's closedness through the model's
+no-bound-variable invariant and reuses the actual field-model extension and
+weakening path, so callers no longer restate `body.looseBVarRange' = 0` after
+translation. The producer still returns the real field model and field list;
+no generated rule, recursive IH, or iota obligation is fabricated. No new
+`sorry`, `admit`, or axiom was introduced.
+
 ## Native eta metadata arity producer bridge — 2026-10-29
 
 The native eta-structure metadata/reducer path now consumes the proved

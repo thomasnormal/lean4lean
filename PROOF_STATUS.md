@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Translated native field-telescope producer — 2026-10-29
+
+The rule-body producer now has a translated-body entry point,
+`MinorModelStep.nativeFieldArgumentsOfTranslated`. Given an ordinary semantic
+translation of the body in the final model, it obtains the required zero loose
+bound-variable range from `final.noBV` and returns the same native field
+telescope as the existing producer. The result preserves the concrete model
+extension, weakening, and field sequence; this is a producer-side closure
+adapter, not a generated-rule or iota-soundness theorem, and it adds no
+admission or axiom.
+
 ## Native eta metadata arity producer bridge — 2026-10-29
 
 The native eta-structure receipt is now connected to the metadata-driven
