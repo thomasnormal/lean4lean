@@ -19,6 +19,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check AddInductive.MinorModelStep.nativeFieldArgumentsOfTranslated
 #check AddInductive.MinorModelStep.generatedNativeIHArgumentsOfTranslated
 #check AddInductive.MinorModelStep.generatedNativeFieldAndIHArgumentsOfTranslated
+#check AddInductive.MinorModelStep.generatedConstructorRhsBodyOfTranslated
 #check AddInduct.map_wf
 #check AddInduct.lookupReceipt
 #check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned

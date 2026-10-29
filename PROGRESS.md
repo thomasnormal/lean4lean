@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Translated constructor-body producer — 2026-10-29
+
+`MinorModelStep.generatedConstructorRhsBodyOfTranslated` now derives the
+generated minor-body closure premise from ordinary `TrExpr` witnesses before
+invoking the constructor-body producer. It retains the syntactic peeling
+condition, canonical recursive-IH callback, minor translation and typing, and
+the exact native/semantic application receipts. No generated RHS or iota
+equation is inferred, and no new `sorry`, `admit`, or axiom was introduced.
+
 ## Translated combined field/IH telescope producer — 2026-10-29
 
 `MinorModelStep.generatedNativeFieldAndIHArgumentsOfTranslated` now derives

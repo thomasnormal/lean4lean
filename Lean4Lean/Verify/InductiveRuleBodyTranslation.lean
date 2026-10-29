@@ -1401,6 +1401,78 @@ theorem MinorModelStep.generatedConstructorRhsBody
   rw [applicationShape]
   exact applicationTranslated
 
+/- The constructor-body producer can derive the same closure premise from an
+   ordinary translation of each generated minor body. The peeling equation and
+   all semantic application obligations remain explicit. -/
+theorem MinorModelStep.generatedConstructorRhsBodyOfTranslated
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    {minorReader : Context} {virtual : VLCtx} {rawSemantic peeled : VExpr} {level : VLevel}
+    (opening : RecursorMinorOpening env universes minorReader virtual parentName constructor
+      domain rawSemantic peeled level)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (bodyTranslated : ∀ terminal fields, ∃ bodySemantic,
+      TrExpr env universes final.vlctx
+        (recursorMinorBody stats infos constructor terminal fields) bodySemantic)
+    (bodyPeeled : ∀ terminal fields,
+      peelTypeAnnotations (recursorMinorBody stats infos constructor terminal fields) =
+        recursorMinorBody stats infos constructor terminal fields)
+    (envWF : env.WF)
+    (canonical : ∀ {fields : Array Expr} {index : Nat} {hypotheses finalHypotheses : Array Expr}
+      {suffixReader finalReader : Context} {domain : Expr}
+      {source : RecursorIHDomainSource stats infos fields[index]! suffixReader domain}
+      {tail : RecursorIHTrace stats fields infos (index + 1)
+        (hypotheses.push (.fvar ⟨suffixReader.ngen.curr⟩))
+        (recursorIHContext suffixReader fields[index]! domain) finalHypotheses finalReader}
+      {initial middle : MLCtx}
+      (bound : index < fields.size)
+      (head : IHModelStep env universes source initial middle)
+      (sourceExpr : Expr),
+      CanonicalRecursiveIHInput head sourceExpr)
+    {minor : Expr} {minorSemantic : VExpr}
+    (minorTranslated : TrExprS env universes final.vlctx minor minorSemantic)
+    (minorTyped : env.HasType universes.length final.vlctx.toCtx minorSemantic peeled)
+    (converted : final.vlctx = virtual) :
+    ∃ (fieldModel : MLCtx) (terminal : Expr) (fields hypotheses : Array Expr)
+      (replacements : List Expr) (replacementTerminal : Expr)
+      (values : List VExpr) (resultSemantic : VExpr),
+      peelTypeAnnotations domain =
+        fieldModel.lctx.mkForall fields
+          (domainReader.lctx.mkForall hypotheses
+            (recursorMinorBody stats infos constructor terminal fields)) ∧
+      NativeTelescopeArguments env universes final
+        (fieldModel.lctx.mkForall fields
+          (domainReader.lctx.mkForall hypotheses
+            (recursorMinorBody stats infos constructor terminal fields)))
+        (fields.toList ++ replacements) replacementTerminal ∧
+      TypedParameterApplications env universes final peeled
+        (fields.toList ++ replacements) values resultSemantic ∧
+      TrExprS env universes final.vlctx
+        (minor.mkAppList (fields.toList ++ replacements))
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) ∧
+      env.HasType universes.length final.vlctx.toCtx
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) resultSemantic ∧
+      TrExprS env universes final.vlctx
+        (mkAppN (mkAppN minor fields) replacements.toArray)
+        (ElimNestedInductive.applyParameterArguments minorSemantic values) := by
+  have bodyClosed : ∀ terminal fields,
+      (recursorMinorBody stats infos constructor terminal fields).looseBVarRange' = 0 := by
+    intro terminal fields
+    obtain ⟨bodySemantic, translated⟩ := bodyTranslated terminal fields
+    exact (final.noBV ▸ translated.closed).looseBVarRange_zero
+  exact step.generatedConstructorRhsBody opening reserved bodyClosed bodyPeeled envWF
+    (fun {fields} {index} {hypotheses finalHypotheses} {suffixReader finalReader} {domain}
+        {source} {tail} {initial middle} bound head sourceExpr =>
+      canonical (fields := fields) (index := index) (hypotheses := hypotheses)
+        (finalHypotheses := finalHypotheses) (suffixReader := suffixReader)
+        (finalReader := finalReader) (domain := domain) (source := source) (tail := tail)
+        (initial := initial) (middle := middle) bound head sourceExpr)
+    minorTranslated minorTyped converted
+
 /-- Abstract a checked constructor-rule body through the caller's actual
 context extension.  The native RHS shape is an explicit premise, so this
 consumer can be instantiated with a `RecursorRuleRhsReceipt` without guessing

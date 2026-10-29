@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Translated constructor-body producer — 2026-10-29
+
+The constructor-rule body seam now has a translated-body entry point,
+`MinorModelStep.generatedConstructorRhsBodyOfTranslated`. It obtains
+`bodyClosed` from the final model's no-bound-variable invariant and delegates
+to the existing producer, while keeping body peeling, canonical recursive IH,
+minor typing, and the exact native application shape explicit. This is a
+producer-side premise reduction; it does not prove generated-rule or iota
+semantics and adds no admission or axiom.
+
 ## Translated combined field/IH telescope producer — 2026-10-29
 
 The rule-body producer now exposes
