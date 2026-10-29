@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Restoration structural ordinary metadata consumer — 2026-10-29
+
+The restoration metadata structural checker package now has an ordinary
+projection,
+`SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralIotaBaseAndTargetResults_toCheckerEnv`.
+The projection changes only `CheckerEnvInductive` to `CheckerEnv`; it retains
+the final restored-entry alignment, source recursor and constructor lookup
+facts, generated-rule and paired iota receipts, and registration/model-shape
+metadata. No general recursor/iota soundness or complete inductive frontend
+verification is claimed.
+
 ## Restored structural rule/iota ordinary consumer — 2026-10-29
 
 The restored constructor-indexed structural receipt now has an ordinary

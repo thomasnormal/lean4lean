@@ -4,6 +4,16 @@ Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Restoration structural ordinary metadata consumer — 2026-10-29
+
+`SafeInductiveRestorationMetadata.sourceRecursorRuleStagesAndCheckerStructuralIotaBaseAndTargetResults_toCheckerEnv`
+projects the metadata restoration structural checker receipt through ordinary
+`CheckerEnv`. It preserves the restored entry alignment, constructor-indexed
+lookup and field-count facts, generated-rule/iota witnesses, and model-shape
+registration metadata. This is a consumer packaging theorem; it adds no
+recursor or iota soundness and does not close the executable inductive
+frontend theorem.
+
 ## Restored structural rule/iota ordinary consumer — 2026-10-29
 
 `NativeInductive.RestoredRecordEvidence.toCheckerEnv_and_sourceRecursorGeneratedRuleStructuralAndIotaBaseAndTargetResults`
