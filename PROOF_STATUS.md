@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Named quotient universal-simulation obstruction — 2026-10-29
+
+`normalEq_parRed_universal_false` names the closed quotient counterexample as a
+direct negation of the universal one-step simulation proposition behind the old
+`NormalEq.parRed` theorem. Its proof only invokes the independently established
+`normalEq`, `reduction`, and `not_simulated` results. The quotient regression
+checks a concrete instantiation and audits the new theorem alongside the
+existing obstruction. No new `sorry`, `admit`, or axiom was introduced; this
+does not repair the old contract or establish confluence for its consumers.
+
 ## Stored-rule exact target-reduction consumer — 2026-10-29
 
 `LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaTargetReductionExact`

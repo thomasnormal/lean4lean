@@ -37,6 +37,15 @@ theorem concreteCounterexample :
         @NormalEq (quotientEnvironmentWF.reductionParams 0) locals target reduced :=
   counterexample quotientEnvironmentWF quotientRegistered
 
+theorem concreteUniversalSimulationFalse :
+    ¬ (∀ (left right result : VExpr),
+      @NormalEq (quotientEnvironmentWF.reductionParams 0) locals left right →
+      @ParRed (quotientEnvironmentWF.reductionParams 0) locals right result →
+      ∃ joined,
+        @ParRedS (quotientEnvironmentWF.reductionParams 0) locals left joined ∧
+        @NormalEq (quotientEnvironmentWF.reductionParams 0) locals joined result) :=
+  normalEq_parRed_universal_false quotientEnvironmentWF quotientRegistered
+
 theorem nativeMajor (proposition : Prop) (relation : proposition → proposition → Prop)
     (value : proposition) (major : Quot relation) : major = Quot.mk relation value := rfl
 
@@ -101,7 +110,9 @@ run_meta
       unless [``propext, ``Quot.sound].contains dependency do
         throwError "native minimal reproducer gained a nonstandard dependency {dependency}"
   for theoremName in [``equalityRegistered, ``counterexample, ``quotientEnvironmentWF,
-      ``concreteCounterexample, ``nativeMajor, ``nativeFirst, ``nativeSecond, ``nativeTransitive] do
+      ``concreteCounterexample, ``concreteUniversalSimulationFalse,
+      ``normalEq_parRed_universal_false, ``nativeMajor, ``nativeFirst, ``nativeSecond,
+      ``nativeTransitive] do
     logInfo m!"{theoremName}: axioms = {repr (← collectAxioms theoremName)}"
   logInfo m!"{owned} owned obstruction declarations and the closed reachable Eq/Quot model have no direct admission or new interface axiom; non-simulation uses only independent inherited typing/injectivity foundations, not the contradicted NormalEq.parRed, confluence/quotient-injectivity consequences, or IsDefEqU.weakN_iff (issue #50); native major proof-irrelevance and quotient beta rfl controls pass, while lifted congruence and final endpoint equalities require explicit congrArg/trans proofs rather than rfl"
 

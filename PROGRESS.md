@@ -1,5 +1,18 @@
 # Progress and upstream comparison
 
+## Named quotient universal-simulation obstruction — 2026-10-29
+
+`normalEq_parRed_universal_false` now exposes the concrete quotient witness as
+a direct refutation of the universal one-step simulation proposition used by
+the old `NormalEq.parRed` contract. The theorem derives the contradiction from
+the independently proved `normalEq`, `reduction`, and `not_simulated` facts;
+it does not depend on the false contract itself. The regression instantiates
+the theorem in the closed Eq/Quot environment and extends the dependency audit
+to the new declaration. No new `sorry`, `admit`, or axiom was introduced.
+This is a verification-model defect report and a useful upstream discussion
+artifact, not a standalone implementation PR: replacing the old contract and
+migrating its consumers remain open.
+
 ## Stored-rule exact target-reduction consumer — 2026-10-29
 
 `LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaTargetReductionExact`

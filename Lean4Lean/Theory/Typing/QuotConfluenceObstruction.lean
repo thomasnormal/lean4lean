@@ -210,6 +210,22 @@ theorem not_simulated (environmentWF : environment.WF)
   subst target
   exact not_normalEq_reduced environmentWF registered equal
 
+/- The quotient witness refutes the universal one-step simulation statement
+   used by the old `NormalEq.parRed` contract.  Keep this as a named theorem
+   so consumers can reject that contract without unfolding the witness. -/
+theorem normalEq_parRed_universal_false (environmentWF : environment.WF)
+    (registered : environment.defeqs quotDefEq) :
+    ¬ (∀ (left right result : VExpr),
+      @NormalEq (environmentWF.reductionParams 0) locals left right →
+      @ParRed (environmentWF.reductionParams 0) locals right result →
+      ∃ joined,
+        @ParRedS (environmentWF.reductionParams 0) locals left joined ∧
+        @NormalEq (environmentWF.reductionParams 0) locals joined result) := by
+  intro universal
+  obtain ⟨target, steps, equal⟩ := universal neutral redex reduced
+    (normalEq environmentWF registered) (reduction environmentWF registered)
+  exact not_simulated environmentWF registered ⟨target, steps, equal⟩
+
 theorem counterexample (environmentWF : environment.WF)
     (registered : environment.defeqs quotDefEq) :
     OnCtx locals (environment.IsType 0) ∧
