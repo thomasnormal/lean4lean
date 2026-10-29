@@ -343,6 +343,12 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetOrdinaryPackage_of_restorationStagesExact_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetOrdinaryPackage_of_sourceTypehoodExact_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetOrdinaryPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetResultPackage_of_restorationStagesExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetResultPackage_of_restorationStagesExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetResultPackage_of_sourceTypehoodExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetResultPackage_of_sourceTypehoodExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetResultPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetResultPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetReductionPackage_of_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetReductionPackage_of_sourceTypehood_toCheckerEnv
@@ -8846,6 +8852,30 @@ example {m : Type → Type} [Monad m]
     addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetReductionPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
       (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource
       hvalues ruleResults reductionExact
+  have hExactResultRestoration :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetResultPackage_of_restorationStagesExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+      hsource hvalues ruleResults reductionExact
+  have hExactResultsRestoration :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetResultPackage_of_restorationStagesExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
+      hsource hvalues ruleResults reductionExact
+  have hExactResultSource :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetResultPackage_of_sourceTypehoodExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource
+      hvalues ruleResults reductionExact
+  have hExactResultsSource :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetResultPackage_of_sourceTypehoodExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource
+      hvalues ruleResults reductionExact
+  have hExactResultSourceRestoration :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaTargetResultPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource
+      hvalues ruleResults reductionExact
+  have hExactResultsSourceRestoration :=
+    addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetResultPackage_of_sourceTypehood_and_restorationStagesExact_toCheckerEnv
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource
+      hvalues ruleResults reductionExact
   have hExactIotaReductionRestoration :=
     addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetReductionPackage_of_restorationStagesExact_toCheckerEnv
       (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
@@ -8942,6 +8972,12 @@ example {m : Type → Type} [Monad m]
   have _ := hExactReductionSourcePlural
   have _ := hExactReductionSourceRestoration
   have _ := hExactReductionSourceRestorationPlural
+  have _ := hExactResultRestoration
+  have _ := hExactResultsRestoration
+  have _ := hExactResultSource
+  have _ := hExactResultsSource
+  have _ := hExactResultSourceRestoration
+  have _ := hExactResultsSourceRestoration
   have _ := hExactIotaReductionRestoration
   have _ := hExactIotaReductionSource
   have _ := hExactIotaReductionSourceRestoration

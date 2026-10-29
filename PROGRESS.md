@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Constructive exact generated-rule target-result consumers — 2026-10-29
+
+The constructive checker now exposes exact stored-RHS generated-rule
+target-result `CheckerEnv` aliases on restoration-stage singular/plural,
+direct source-typehood singular/plural, and source-typehood restoration
+singular/plural routes. The aliases preserve the complete generated-rule
+witness and exact reducer equation through the existing target-reduction
+projections.
+
 ## Constructive exact target-ordinary endpoint consumers — 2026-10-29
 
 The constructive checker now exposes exact stored-RHS target-ordinary
