@@ -4,6 +4,15 @@ Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Restoration target-iota ordinary consumers — 2026-10-29
+
+The general and checked-primitive restoration-stage target-iota packages now
+have ordinary `CheckerEnv` projections:
+`addDecl.toCheckerEnv_and_registrationHistory_and_generatedRuleIotaTargetResults_of_restorationStages`
+and its checked-primitive counterpart. They retain final declaration history,
+alignment, map equalities, generated-rule translation, and indexed target-iota
+receipts; they add no general recursor or iota soundness claim.
+
 ## Restoration-stage generated-rule and iota ordinary consumer — 2026-10-29
 
 `addDecl.toCheckerEnv_and_registrationHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_restorationStages`

@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Restoration target-iota ordinary consumers — 2026-10-29
+
+The general and checked-primitive restoration-stage target-iota packages now
+project through `CheckerEnvInductive.toCheckerEnv` for ordinary callers. Both
+wrappers preserve the final `TrEnvInductive` history, semantic alignment and
+constant-map equalities, generated-rule translation, and indexed
+`GeneratedRecursorRuleIotaTargetResult` witnesses. The checked-primitive form
+keeps its primitive preflight premise; neither wrapper proves general recursor
+or iota soundness or complete inductive frontend verification.
+
 ## Restoration-stage generated-rule and iota ordinary consumer — 2026-10-29
 
 `addDecl.toCheckerEnv_and_registrationHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_restorationStages`
