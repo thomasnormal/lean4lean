@@ -1,5 +1,9 @@
 # Progress and upstream comparison
 
+## Constructive target-result ordinary consumers — 2026-10-29
+
+The constructive checker target-result package now exposes ordinary `CheckerEnv` projections for direct checked-primitive, restoration-stage, direct source-typehood, and restoration-stage source-typehood routes. The target iota endpoint remains explicit alongside model/scope/registration/alignment/history and all source/value/map/recursor/generated-rule premises.
+
 ## Constructive checker restoration source-typehood ordinary consumers — 2026-10-29
 
 The restoration-stage source-typehood constructive checker family now exposes ordinary `CheckerEnv` projections for base, iota-only, paired base/target iota, singular generated-rule-plus-iota, and plural generated-results-plus-iota forms. Source typehood still derives recursor model WF internally; the selected restoration metadata, executable scope, constructive registration, alignment/history, source/value/map/recursor obligations, generated-rule receipts, and paired iota witnesses remain explicit.

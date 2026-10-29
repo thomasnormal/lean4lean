@@ -313,6 +313,10 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResultsPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResultsPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood_and_restorationStages
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_restorationStages_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood_toCheckerEnv
+#check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_restorationStagesExact
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehoodExact
@@ -7920,9 +7924,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
-  have h := addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood
+  have hOrdinary := addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_sourceTypehood_toCheckerEnv
     (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hsource
     hvalues ruleResults
+  have _ := hOrdinary
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
@@ -7950,9 +7955,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
-  have h := addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage
+  have hOrdinary := addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_toCheckerEnv
     (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
     hsource hvalues ruleResults
+  have _ := hOrdinary
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
@@ -8010,9 +8016,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
         AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
-  have h := addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_restorationStages
+  have hOrdinary := addDecl.checkedPrimitiveModelAndConstructiveCheckerIotaTargetResultPackage_of_restorationStages_toCheckerEnv
     (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history hrecursors
     hsource hvalues ruleResults
+  have _ := hOrdinary
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}

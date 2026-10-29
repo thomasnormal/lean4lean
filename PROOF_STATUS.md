@@ -1,5 +1,9 @@
 # Non-inductive verification proof of concept
 
+## Constructive target-result ordinary consumers — 2026-10-29
+
+Four new theorems/definitions in `Lean4Lean/Verify/InductiveFrontendCheckerBridge.lean` project the constructive checker target-result packages through `CheckerEnvInductive.toCheckerEnv`: direct checked-primitive, restoration-stage, direct source-typehood, and restoration-stage source-typehood forms. They preserve model declaration, executable scope, constructive registration, alignment/history, source/value/map/recursor obligations, generated-rule receipts, and the explicit target iota witness. API checks and direct/source/restoration fixture elaboration cover the new names. No new admission is introduced; no target-reduction, general recursor/iota, or complete frontend theorem is claimed.
+
 ## Constructive checker restoration source-typehood ordinary consumers — 2026-10-29
 
 Five new restoration-stage source-typehood projections in `Lean4Lean/Verify/InductiveFrontendCheckerBridge.lean` expose ordinary `CheckerEnv` consumers for base, iota-only, paired base/target iota, singular generated-rule-plus-iota, and plural generated-results-plus-iota packages. They derive recursor model WF from source typehood and preserve the selected restoration metadata, executable frontend scope, constructive registration, alignment/history, source/value/map/recursor obligations, generated-rule receipts, and paired iota witnesses. API checks and fixture elaboration cover all five names. No new admission is introduced; no general recursor/iota or complete frontend theorem is claimed.
