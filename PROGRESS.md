@@ -4,6 +4,10 @@ Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Generic semantic-structural ordinary consumers — 2026-10-29
+
+The generic restoration metadata semantic-structural packages now expose ordinary `CheckerEnv` projections for the base, iota-only, singular generated-rule-plus-iota, and plural generated-results-plus-iota forms. Alignment, declaration history, source/value/map/recursor premises, generated-rule and paired iota receipts, and constructor registration metadata remain explicit.
+
 ## Source semantic-structural ordinary consumers — 2026-10-29
 
 The source semantic-structural `addDecl` packages now expose ordinary `CheckerEnv` projections for checked-primitive iota-only, singular generated-rule-plus-iota, plural generated-results-plus-iota, and the corresponding restoration-stage singular and plural forms. Alignment, declaration history, source/value/map/recursor premises, generated-rule and paired iota receipts, and constructor registration metadata remain explicit.
