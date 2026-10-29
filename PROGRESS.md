@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Executable inductive frontend model boundary — 2026-10-29
+
+`addDecl.safeInductiveFrontendInductiveWF` now connects the successful
+executable inductive `addDecl` run to a safety-indexed `VEnvs.InductiveWF`
+result through an explicit `SafeInductiveFrontendScope` consumer. The theorem
+covers both direct and restored/nested frontend branches and preserves the
+per-safety model extension relation. The callback still carries the semantic
+registration, recursor-rule, iota, primitive, and monotonicity obligations;
+this is the executable frontend boundary rather than the completed inductive
+soundness theorem.
+
 ## Safety-indexed registration alignment assembly — 2026-10-29
 
 `VEnvs.InductiveWF.addInductWithRecursors_and_aligned` now combines the

@@ -30,6 +30,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check VEnvs.InductiveWF.venv_wf
 #check VEnvs.InductiveWF.toCheckerEnvInductive
 #check VEnvs.InductiveWF.toCheckerEnvInductive_and_wf
+#check addDecl.safeInductiveFrontendInductiveWF
 #check CheckerEnvInductive.map_wf
 #check CheckerEnvInductive.venv_wf
 #check AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorVDeclWF
@@ -39,6 +40,21 @@ open Lean4Lean.AddInductive.declareConstructors
 example {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
     (model : VEnvs.InductiveWF env ves Q) : env.constants.WF :=
   model.map_wf
+
+example {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
+    (model : VEnvs.InductiveWF env ves Q)
+    {lparams : List Name} {nparams : Nat} {types : List InductiveType}
+    {check : Bool} {fuel : FuelConfig}
+    (frontend : ∀ (allowPrimitive : Bool) (result : Kernel.Environment),
+      SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result →
+      ∃ resultVes : VEnvs,
+        VEnvs.InductiveWF result resultVes Q ∧
+          ∀ safety, ves.venv safety ≤ resultVes.venv safety) :
+    (addDecl env (.inductDecl lparams nparams types false) check fuel).WF fun result =>
+      ∃ resultVes : VEnvs,
+        VEnvs.InductiveWF result resultVes Q ∧
+          ∀ safety, ves.venv safety ≤ resultVes.venv safety :=
+  addDecl.safeInductiveFrontendInductiveWF model lparams nparams types check fuel frontend
 
 example {env : Kernel.Environment} {ves : VEnvs}
     (model : VEnvs.WF env ves) : VEnvs.InductiveWF env ves env.quotInit :=

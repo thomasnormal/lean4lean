@@ -11,6 +11,29 @@ open Kernel
 open AddInductive
 open AddInductive.declareConstructors
 
+/- The executable inductive frontend and the semantic model meet at the
+   `SafeInductiveFrontendScope` receipt.  Keep the model-producing callback
+   explicit: this theorem discharges the operational `addDecl` boundary while
+   leaving registration, recursor semantics, and iota obligations to the
+   callback that consumes the scope. -/
+theorem addDecl.safeInductiveFrontendInductiveWF
+    {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
+    (wf : VEnvs.InductiveWF env ves Q)
+    (lparams : List Name) (nparams : Nat) (types : List InductiveType)
+    (check : Bool) (fuel : FuelConfig)
+    (model : ∀ (allowPrimitive : Bool) (result : Kernel.Environment),
+      SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result →
+      ∃ resultVes : VEnvs,
+        VEnvs.InductiveWF result resultVes Q ∧
+          ∀ safety, ves.venv safety ≤ resultVes.venv safety) :
+    (addDecl env (.inductDecl lparams nparams types false) check fuel).WF fun result =>
+      ∃ resultVes : VEnvs,
+        VEnvs.InductiveWF result resultVes Q ∧
+          ∀ safety, ves.venv safety ≤ resultVes.venv safety := by
+  refine (addDecl.safeInductiveFrontend env lparams nparams types check fuel wf.map_wf).mono ?_
+  rintro result ⟨allowPrimitive, scope⟩
+  exact model allowPrimitive result scope
+
 /-! A frontend scope can be consumed together with an independently constructed semantic
     registration witness.  The map equalities are explicit: the native scope supplies the
     source-side well-formedness, while `RegistrationEvidence` supplies the positive

@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Executable inductive frontend model boundary — 2026-10-29
+
+`addDecl.safeInductiveFrontendInductiveWF` consumes the operational
+`SafeInductiveFrontendScope` produced by the checked inductive `addDecl` path
+and a callback returning the target `VEnvs.InductiveWF` plus pointwise
+safety-environment extension. It therefore covers the primitive-preflight,
+preprocessing, staged registration, and nested-restoration branches at the
+executable boundary. The callback intentionally keeps semantic registration,
+recursor-rule semantics, iota soundness, target primitive facts, and
+monotonicity explicit; no complete inductive frontend theorem is claimed yet.
+
 ## Safety-indexed registration alignment assembly — 2026-10-29
 
 `VEnvs.InductiveWF.addInductWithRecursors_and_aligned` packages the
