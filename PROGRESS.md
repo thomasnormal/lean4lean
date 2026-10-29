@@ -1,5 +1,17 @@
 # Progress and upstream comparison
 
+## Native expression-arity representation bridge — 2026-10-29
+
+`Lean.Expr.getAppNumArgs_eq_getAppArgs_size` proves the native expression
+representation equality needed by eta-structure receipts: the kernel's
+`getAppNumArgs` count is exactly the size of the list returned by
+`getAppArgs`. `dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt_auto`
+now consumes that general theorem, so native constructor field bounds no
+longer require callers to restate the representation equality. The regression
+fixture checks both public declarations. No new `sorry`, `admit`, or axiom was
+introduced; this is a representation/consumer bridge and does not strengthen
+the native eta receipt itself.
+
 ## Ordered exact generated-rule ordinary consumer — 2026-10-29
 
 `NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetOrdinaryExactOf`

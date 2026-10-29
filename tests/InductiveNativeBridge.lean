@@ -13,6 +13,8 @@ open Lean Lean4Lean Lean4Lean.NativeInductive
 open Lean4Lean.AddInductive.declareConstructors
 
 #check AddInduct.ofEvidence
+#check Lean.Expr.getAppNumArgs_eq_getAppArgs_size
+#check AddInductive.dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt_auto
 #check AddInduct.map_wf
 #check AddInduct.lookupReceipt
 #check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned

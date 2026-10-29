@@ -792,6 +792,15 @@ theorem dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt
     beq_iff_eq.mp receipt.arity
   omega
 
+/- The array/list representation equality is general for every expression, so
+   callers with a native eta receipt need not repeat it as a premise. -/
+theorem dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt_auto
+    {context : TypeChecker.Context} {constructor : Expr} {info : ConstructorVal}
+    (receipt : NativeEtaStructEntryReceipt context constructor info) :
+    info.numFields ≤ constructor.getAppArgs.size := by
+  exact dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt receipt
+    Expr.getAppNumArgs_eq_getAppArgs_size
+
 /- Combine the stored constructor/rule alignment with the canonical output
    projection.  This is the first metadata-driven endpoint that returns an
    exact generated replacement-list equation for a registered rule. -/

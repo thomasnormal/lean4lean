@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Native expression-arity representation bridge — 2026-10-29
+
+The verified expression library now proves
+`Lean.Expr.getAppNumArgs_eq_getAppArgs_size`, relating the native app-arity
+counter to the `getAppArgs` array/list representation. The inductive reduction
+consumer uses this theorem in
+`dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt_auto` to derive
+the constructor field bound directly from a native eta receipt. This removes a
+repeated caller premise while preserving the receipt's original obligations;
+it adds no admission or axiom and does not prove eta or constructor semantics.
+
 ## Ordered exact generated-rule ordinary consumer — 2026-10-29
 
 The ordered registration traversal now exposes an ordinary exact target
