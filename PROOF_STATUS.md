@@ -1,5 +1,19 @@
 # Non-inductive verification proof of concept
 
+## Executable inductive frontend source-typehood model bridge — 2026-10-29
+
+`addDecl.safeInductiveFrontendInductiveWF_of_sourceTypehood` consumes the
+successful executable `SafeInductiveFrontendScope` together with a
+safety-indexed `NativeInductive.RegistrationEvidence` family. Source-typehood
+receipts are converted to recursor model-WF witnesses, then
+`VEnvs.InductiveWF.addRegistrationEvidence_of_sourceTypehood` constructs the
+target all-safety model and the per-safety extension is obtained from the
+constructive registration receipt. Target primitive, safe-primitive, and
+safety-monotonicity facts remain explicit caller premises. The regression
+fixture checks the complete dependent signature; no new `sorry`, `admit`, or
+axiom is introduced. Generated recursor-rule semantics, iota soundness, and a
+complete executable inductive frontend theorem remain open.
+
 ## Executable inductive frontend model boundary — 2026-10-29
 
 `addDecl.safeInductiveFrontendInductiveWF` consumes the operational

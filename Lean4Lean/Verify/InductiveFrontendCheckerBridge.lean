@@ -34,6 +34,45 @@ theorem addDecl.safeInductiveFrontendInductiveWF
   rintro result ⟨allowPrimitive, scope⟩
   exact model allowPrimitive result scope
 
+/- A native registration family is enough to discharge the model callback when
+   each recursor source type is translated and known to be a semantic type.
+   Generated rule-body and iota receipts are intentionally absent here: they
+   belong to later consumers of the same executable scope. -/
+theorem addDecl.safeInductiveFrontendInductiveWF_of_sourceTypehood
+    {env : Kernel.Environment} {ves : VEnvs} {Q : Bool}
+    (wf : VEnvs.InductiveWF env ves Q)
+    (lparams : List Name) (nparams : Nat) (types : List InductiveType)
+    (check : Bool) (fuel : FuelConfig) (decl : VInductDecl)
+    (registration : ∀ (allowPrimitive : Bool) (result : Kernel.Environment),
+      SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result →
+      ∃ (resultVes : VEnvs)
+        (evidence : ∀ safety,
+          NativeInductive.RegistrationEvidence env.constants (ves.venv safety) decl
+            result.constants (resultVes.venv safety)),
+        (∀ safety entry, entry ∈ (evidence safety).recursors →
+          ∃ semantic,
+            TrExprS (evidence safety).constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+            (evidence safety).constructorEnv.IsType entry.info.levelParams.length [] semantic) ∧
+        (∀ {safety}, (resultVes.venv safety).HasPrimitives) ∧
+        (∀ {n ci}, result.find? n = some ci →
+          Kernel.Environment.primitives.contains n → ci.safety = .safe ∧ ci.levelParams = []) ∧
+        (∀ {safety safety'}, safety ≤ safety' →
+          resultVes.venv safety' ≤ resultVes.venv safety)) :
+    (addDecl env (.inductDecl lparams nparams types false) check fuel).WF fun result =>
+      ∃ resultVes : VEnvs,
+        VEnvs.InductiveWF result resultVes Q ∧
+          ∀ safety, ves.venv safety ≤ resultVes.venv safety := by
+  refine addDecl.safeInductiveFrontendInductiveWF wf lparams nparams types check fuel ?_
+  intro allowPrimitive result scope
+  obtain ⟨resultVes, evidence, hsource, hasPrimitives, safePrimitives, mono⟩ :=
+    registration allowPrimitive result scope
+  refine ⟨resultVes, wf.addRegistrationEvidence_of_sourceTypehood decl evidence hsource
+    hasPrimitives safePrimitives mono, ?_⟩
+  intro safety
+  have hrecursors := (evidence safety).recursorWF_of_sourceTypehood
+    ((evidence safety).constructorEnvWF (wf.venv_wf safety)) (hsource safety)
+  exact ((evidence safety).to_addInductWithRecursorsEvidence_at safety wf.map_wf hrecursors).le
+
 /-! A frontend scope can be consumed together with an independently constructed semantic
     registration witness.  The map equalities are explicit: the native scope supplies the
     source-side well-formedness, while `RegistrationEvidence` supplies the positive

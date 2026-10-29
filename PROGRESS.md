@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Executable inductive frontend with source-typehood registration — 2026-10-29
+
+`addDecl.safeInductiveFrontendInductiveWF_of_sourceTypehood` now discharges
+the executable inductive frontend model callback when each successful scope
+provides a safety-indexed native registration family, source-typehood receipts
+for all recursors, target primitive facts, safe-primitive facts, and safety
+monotonicity. It constructs the target `VEnvs.InductiveWF` and the pointwise
+environment extension through `RegistrationEvidence` assembly. Generated
+recursor-rule semantics and iota receipts remain explicit obligations of later
+consumers; this is not the complete inductive frontend soundness theorem.
+
 ## Executable inductive frontend model boundary — 2026-10-29
 
 `addDecl.safeInductiveFrontendInductiveWF` now connects the successful
