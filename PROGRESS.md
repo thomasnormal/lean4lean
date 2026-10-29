@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Translated generated-IH telescope producer — 2026-10-29
+
+`MinorModelStep.generatedNativeIHArgumentsOfTranslated` now derives the
+generated minor-body closure premise from ordinary `TrExpr` witnesses and
+feeds it to the existing generated recursive-IH telescope producer. The
+dependent canonical recursive-IH callback remains explicit, including its
+field, history, source, and model parameters; no generated IH value or RHS
+semantics is fabricated. No new `sorry`, `admit`, or axiom was introduced.
+
 ## Translated native field-telescope producer — 2026-10-29
 
 `MinorModelStep.nativeFieldArgumentsOfTranslated` now derives the closure

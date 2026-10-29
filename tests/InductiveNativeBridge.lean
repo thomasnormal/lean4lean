@@ -17,6 +17,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check Lean.Expr.getAppNumArgs_eq_getAppArgs_size
 #check AddInductive.dispatcherConstructorFieldBoundOfNativeEtaStructEntryReceipt_auto
 #check AddInductive.MinorModelStep.nativeFieldArgumentsOfTranslated
+#check AddInductive.MinorModelStep.generatedNativeIHArgumentsOfTranslated
 #check AddInduct.map_wf
 #check AddInduct.lookupReceipt
 #check NativeInductive.RegistrationEvidence.to_trEnvInductive_and_aligned

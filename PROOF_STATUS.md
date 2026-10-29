@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Translated generated-IH telescope producer — 2026-10-29
+
+The rule-body producer now has a translated-body entry point,
+`MinorModelStep.generatedNativeIHArgumentsOfTranslated`. Given ordinary
+semantic translations for every generated minor body, it obtains the needed
+zero loose bound-variable range from `final.noBV` and supplies that closure
+to the existing native generated-IH telescope producer. The canonical
+recursive-IH witness remains an explicit dependent callback, so this helper
+does not prove recursive IH values, generated RHS semantics, reducer
+equations, or iota soundness. It adds no admission or axiom.
+
 ## Translated native field-telescope producer — 2026-10-29
 
 The rule-body producer now has a translated-body entry point,

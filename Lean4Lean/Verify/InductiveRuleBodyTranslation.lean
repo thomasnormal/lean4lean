@@ -1024,6 +1024,50 @@ theorem MinorModelStep.generatedNativeIHArguments
       exact (opening.extension hypothesisModel).weakening.toFVLift')
   exact ⟨hypotheses, body, replacements, suffixTerminal, suffixAtTarget⟩
 
+/- An ordinary translation of each generated minor body already supplies the
+   closure premise needed by the recursive-IH telescope producer. Derive that
+   premise from the final model's no-bound-variable invariant instead of
+   making callers duplicate it alongside the semantic body witnesses. -/
+theorem MinorModelStep.generatedNativeIHArgumentsOfTranslated
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (bodyTranslated : ∀ terminal fields, ∃ bodySemantic,
+      TrExpr env universes final.vlctx
+        (recursorMinorBody stats infos constructor terminal fields) bodySemantic)
+    (envWF : env.WF)
+    (canonical : ∀ {fields : Array Expr} {index : Nat} {hypotheses finalHypotheses : Array Expr}
+      {suffixReader finalReader : Context} {domain : Expr}
+      {source : RecursorIHDomainSource stats infos fields[index]! suffixReader domain}
+      {tail : RecursorIHTrace stats fields infos (index + 1)
+        (hypotheses.push (.fvar ⟨suffixReader.ngen.curr⟩))
+        (recursorIHContext suffixReader fields[index]! domain) finalHypotheses finalReader}
+      {initial middle : MLCtx}
+      (bound : index < fields.size)
+      (head : IHModelStep env universes source initial middle)
+      (sourceExpr : Expr),
+      CanonicalRecursiveIHInput head sourceExpr) :
+    ∃ (hypotheses : Array Expr) (body : Expr) (replacements : List Expr) (terminal : Expr),
+      NativeTelescopeArguments env universes final
+        (domainReader.lctx.mkForall hypotheses body) replacements terminal := by
+  have bodyClosed : ∀ terminal fields,
+      (recursorMinorBody stats infos constructor terminal fields).looseBVarRange' = 0 := by
+    intro terminal fields
+    obtain ⟨bodySemantic, translated⟩ := bodyTranslated terminal fields
+    exact (final.noBV ▸ translated.closed).looseBVarRange_zero
+  apply MinorModelStep.generatedNativeIHArguments (step := step) (reserved := reserved)
+    (bodyClosed := bodyClosed) (envWF := envWF)
+  intro fields index hypotheses finalHypotheses suffixReader finalReader domain source tail
+    initial middle bound head sourceExpr
+  exact canonical (fields := fields) (index := index) (hypotheses := hypotheses)
+    (finalHypotheses := finalHypotheses) (suffixReader := suffixReader)
+    (finalReader := finalReader) (domain := domain) (source := source) (tail := tail)
+    (initial := initial) (middle := middle) bound head sourceExpr
+
 set_option maxHeartbeats 1400000 in
 /-- The actual minor-step bridge: canonical recursive values are assembled into
 the IH suffix, appended to the field receipt, and returned with the explicit
