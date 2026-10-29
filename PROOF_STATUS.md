@@ -63,12 +63,15 @@ inductive frontend theorem.
 
 ## Upstream candidate recheck — 2026-10-29
 
-Official `origin/master` at `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` already
-contains the constant-confluence, quotient-pattern, and inductive source
-preflight repairs as commits `df7a77ae`, `35ba0269`, and `0393d739`.
-Consequently those fork commits are historical evidence rather than pending
-PRs. The current registration/model/checker additions remain fork-specific
-and require an independent official-master adaptation before review.
+Official `origin/master` at `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3` does
+not contain the local candidate commits `df7a77ae`, `35ba0269`, or `0393d739`.
+Focused official-master adaptations are already open as PR #55 (constant
+confluence, head `4cffd05d`), PR #56 (quotient equation patterns, head
+`1040e2d0`), and PR #61 (constructor-free recursor rejection, heads
+`a5ad431a` and `bd1b7e17`). The source-preflight commit `0393d739` depends on
+fork-local parameter-reconstruction work and has no standalone validated PR.
+The current registration/model/checker additions remain fork-specific and
+require an independent official-master adaptation before review.
 
 ## Source-typehood checker/alignment receipt — 2026-10-29
 

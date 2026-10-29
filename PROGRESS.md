@@ -53,15 +53,16 @@ semantics, iota soundness, or the executable `AddInduct` frontend theorem.
 
 ## Upstream candidate recheck — 2026-10-29
 
-The current official `origin/master` (`67f63b0c`) already contains the three
-previously strongest upstream candidates under their merged hashes:
-`df7a77ae` (constant-reduction confluence under universe conversion),
-`35ba0269` (quotient equation-pattern certificates under lambda binders), and
-`0393d739` (inductive source preflight before parameter capture). They do not
-need new PRs from this fork. The newer safety-indexed registration and checker
-receipts remain fork-specific and depend on the divergent constructive
-inductive bridge, so they are not upstream-ready without a separate
-official-master adaptation.
+The current official `origin/master` (`67f63b0c`) does not contain the local
+candidate commits `df7a77ae`, `35ba0269`, or `0393d739`. Focused
+official-master adaptations are already open as PR #55 (constant confluence,
+head `4cffd05d`), PR #56 (quotient equation patterns, head `1040e2d0`), and
+PR #61 (constructor-free recursor rejection, heads `a5ad431a` and
+`bd1b7e17`). The source-preflight commit `0393d739` depends on fork-local
+parameter-reconstruction work and has no standalone validated PR. The newer
+safety-indexed registration and checker receipts remain fork-specific and
+depend on the divergent constructive inductive bridge, so they are not
+upstream-ready without a separate official-master adaptation.
 
 ## Source-typehood checker/alignment receipt — 2026-10-29
 
