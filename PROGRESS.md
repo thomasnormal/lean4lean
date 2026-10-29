@@ -1,8 +1,19 @@
 # Progress and upstream comparison
 
-Last reviewed: **2026-10-26 (UTC)**. This is the readable overview of the
+Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
+
+## Restored native ordinary checker consumer — 2026-10-29
+
+`NativeInductive.RestoredRecordEvidence.toCheckerEnv` now projects a restored
+native registration receipt to the ordinary `CheckerEnv` interface when the
+caller supplies the final declaration history, explicit recursor model-WF
+receipt, and safe-value translation callback. The source-typehood convenience
+form delegates through this explicit consumer, so it derives only the existing
+recursor-WF witness. Registration-history construction, generated-rule
+semantics, iota soundness, and complete executable inductive frontend
+verification remain separate obligations.
 
 ## Primitive staged `VDecl.WF` receipt — 2026-10-26
 

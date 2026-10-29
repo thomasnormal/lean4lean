@@ -154,6 +154,7 @@ example {constants resultConstants : ConstMap}
 #check SafeInductiveRestorationMetadata.toCheckerEnvInductive_and_aligned_and_registrationWF
 #check SafeInductiveRestorationMetadata.toCheckerEnv_of_frontendSourceTypehood
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnv_of_sourceTypehood
+#check NativeInductive.RestoredRecordEvidence.toCheckerEnv
 #check addDecl.toCheckerEnv_of_restorationStages
 #check addDecl.toCheckerEnv_of_checkedPrimitive_and_restorationStages
 #check addDecl.toCheckerEnv_of_frontendScope
@@ -190,6 +191,27 @@ example {constants resultConstants : ConstMap}
 #check NativeInductive.RegistrationEvidence.orderedGeneratedRuleIotaTargetResultsExact
 #check NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaTargetResultsExact
 #check NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaTargetOrdinaryOf
+
+example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} {preprocessing : ElimNestedInductive.Result}
+    {staged : Kernel.Environment} {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length))) :
+    CheckerEnv .safe result semanticResult :=
+  restored.toCheckerEnv producer halign hconstants history hrecursors hvalues
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetReduction
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultAndIotaTargetReduction
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleResultsAndIotaTargetReductions

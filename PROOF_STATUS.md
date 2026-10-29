@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Restored native ordinary checker consumer — 2026-10-29
+
+`NativeInductive.RestoredRecordEvidence.toCheckerEnv` projects an existing
+restored-record `CheckerEnvInductive` receipt through
+`CheckerEnvInductive.toCheckerEnv` for ordinary checker callers. Its explicit
+recursor-model WF, final declaration history, map equality, and safe-value
+translation inputs remain visible. The source-typehood wrapper now delegates
+through this theorem after deriving only the recursor-WF witness. This is a
+consumer boundary; it adds no registration-history construction, generated-rule
+semantics, iota soundness, or complete inductive frontend theorem.
+
 ## Primitive staged `VDecl.WF` receipt — 2026-10-26
 
 `AddInductive.checkInductiveTypes.refinesPrimitiveHeaderConstructorVDeclWF`
