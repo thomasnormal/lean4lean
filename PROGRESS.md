@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Direct frontend generated-rule/iota target package — 2026-10-29
+
+`addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaTargetResults_of_sourceTypehood`
+now lifts the scope-level package through a successful ordinary `addDecl`
+result. It preserves alignment, registration history, the checker environment,
+the complete generated-rule witness, and its target-side iota result for every
+ordered recursor rule. The generated-rule producer and target iota receipts
+remain explicit premises; this theorem is an endpoint transport lemma.
+
 ## Executable inductive frontend with source-typehood registration — 2026-10-29
 
 `addDecl.safeInductiveFrontendInductiveWF_of_sourceTypehood` now discharges

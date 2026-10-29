@@ -1,5 +1,18 @@
 # Non-inductive verification proof of concept
 
+## Direct frontend generated-rule/iota target package — 2026-10-29
+
+`addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaTargetResults_of_sourceTypehood`
+transports the scope-level source-typehood package through a successful
+ordinary `addDecl` result. The result retains aligned target constants, the
+registration history, `CheckerEnvInductive`, and for each ordered recursor rule
+both the complete `GeneratedRecursorRuleResult` and its
+`GeneratedRecursorRuleIotaTargetResult`. A dependent-signature regression
+checks the endpoint. No new `sorry`, `admit`, or axiom is introduced; the
+generated-rule producer, source translation, safe-value translation, and target
+iota receipts remain caller premises, so no full frontend soundness claim is
+made.
+
 ## Executable inductive frontend source-typehood model bridge — 2026-10-29
 
 `addDecl.safeInductiveFrontendInductiveWF_of_sourceTypehood` consumes the
