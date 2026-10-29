@@ -372,8 +372,12 @@ private def audit : MetaM Unit := do
   exactAxioms ``GeneratedIHNativeSuffix.ofCanonicalForallTail canonicalStructural
   exactAxioms ``MinorModelStep.generatedNativeIHArguments canonicalStructural
   exactAxioms ``MinorModelStep.generatedNativeFieldAndIHArguments canonicalStructural
+  exactAxioms ``MinorModelStep.nativeFieldArgumentsOfTranslated fieldStructural
+  exactAxioms ``MinorModelStep.generatedNativeIHArgumentsOfTranslated canonicalStructural
+  exactAxioms ``MinorModelStep.generatedNativeFieldAndIHArgumentsOfTranslated canonicalStructural
   exactAxioms ``MinorModelStep.consumeGeneratedFieldAndIHArguments structural
   exactAxioms ``MinorModelStep.generatedConstructorRhsBody canonicalStructural
+  exactAxioms ``MinorModelStep.generatedConstructorRhsBodyOfTranslated canonicalStructural
   exactAxioms ``MinorModelStep.abstractConstructorRhsBody fieldStructural
   exactAxioms ``MinorModelStep.abstractConstructorRuleRhs fieldStructural
   exactAxioms ``RecursorRuleRhsReceipt.applyIota (logical ++ [``sorryAx])
@@ -404,8 +408,8 @@ private def audit : MetaM Unit := do
       if let some proof := information.value? (allowOpaque := true) then
         if proof.hasSorry then throwError "rule body: direct admission {name}"
       count := count + 1
-  unless count == 119 do throwError "rule body: expected one hundred nineteen owned declarations, got {count}"
-  auditOwnedModule `Lean4Lean.Verify.InductiveGeneratedRuleResult 65
+  unless count == 123 do throwError "rule body: expected one hundred twenty-three owned declarations, got {count}"
+  auditOwnedModule `Lean4Lean.Verify.InductiveGeneratedRuleResult 71
   auditOwnedModule `Lean4Lean.Verify.InductiveNativeTelescopeArguments 12
   logInfo m!"projected closed registration RuleSemantics from the paired all-rule callback without reopening generated packages, split closed/generated indexed callback paired at the registration boundary, paired closed rule-body semantics with generated constructor-RHS result package through local indexed and aligned all-rule dual-receipt consumers, indexed local generated constructor-RHS result consumer with explicit body/source/applied witnesses, all-rule and local dual-receipt adapters, indexed local rule-semantics receipt/result consumer, all-rule scoped-and-ordinary receipt consumer adapter, indexed local scoped-and-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt consumer adapter, indexed local scoped-to-ordinary receipt lookup, all-rule scoped receipt consumer adapter, indexed scoped-to-ordinary receipt lookup, all-rule scoped-to-ordinary receipt projection, direct scoped/fvar/count result transport, generated scoped constructor RHS weak-FV/kind producer-consumer with retained body, source-RHS, and applied-semantic witnesses, ordinary recursor-rule result consumer, composed base/lifted iota/kind transport, scoped-to-final rule receipts, scoped constructor RHS weak-FV/kind consumer, generated IH openings, canonical recursive suffix, field/IH receipts, peeled minor source and constructor RHS body/lambda/rule/iota/result/kind/weak-FV/consumer bridges audited ({count} declarations)"
 
