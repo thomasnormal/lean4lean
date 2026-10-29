@@ -396,6 +396,10 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence_of_checkedPrimitive
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence_of_restorationStages
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationSemantics_toCheckerEnv
+#check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationIotaBaseAndTargetResults_toCheckerEnv
+#check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
+#check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_toCheckerEnv
 #check SafeInductiveRestorationMetadata.sourceRecursorRuleStagesGeneratedResultsAndRestoredRecordGeneratedRuleResultsAndIotaBaseAndTargetResultsEvidence
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_of_checkedPrimitive
 #check addDecl.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
@@ -3483,6 +3487,22 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
       ruleResult hrecursor hentry
   have hRegistrationPluralCombined :=
     metadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
+  have hRegistrationSemanticsOrdinary :=
+    metadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationSemantics_toCheckerEnv
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
+  have hRegistrationIotaOrdinary :=
+    metadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationIotaBaseAndTargetResults_toCheckerEnv
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
+  have hRegistrationCombinedOrdinary :=
+    metadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
+      coverage entries records_eq producer entry_eq hconstants history hsource hvalues
+      ruleResult hrecursor hentry
+  have hRegistrationPluralCombinedOrdinary :=
+    metadata.sourceRecursorRuleStagesGeneratedResultsAndRegistrationGeneratedRuleResultsAndIotaBaseAndTargetResults_toCheckerEnv
       coverage entries records_eq producer entry_eq hconstants history hsource hvalues
       ruleResult hrecursor hentry
   have hAlignmentCombined :=

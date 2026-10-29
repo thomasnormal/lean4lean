@@ -4,6 +4,15 @@ Last reviewed: **2026-10-29 (UTC)**. This is the readable overview of the
 `poc-verified-noninductive` branch; [PROOF_STATUS.md](PROOF_STATUS.md) holds the
 detailed theorem contracts, dependency audits, and regression evidence.
 
+## Generic restoration registration ordinary consumers — 2026-10-29
+
+The generic restoration metadata registration packages now expose ordinary
+`CheckerEnv` projections for semantics, iota-only, singular generated-rule-plus-
+iota, and plural generated-results-plus-iota forms. Each projection retains
+the executable restoration stages, final declaration history, generated-rule
+and paired iota receipts, and all source/value/map obligations; only the
+checker view is projected through `CheckerEnvInductive.toCheckerEnv`.
+
 ## Registration-semantics ordinary consumers — 2026-10-29
 
 The checked-primitive registration-semantics model receipts now expose
