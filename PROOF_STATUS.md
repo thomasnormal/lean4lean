@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Restoration-stage model structural ordinary consumers — 2026-10-29
+
+Ordinary projections now cover the restoration-stage model structural
+packages in singular generated-rule-plus-iota, plural generated-results-plus-
+iota, and iota-only forms. The selected `allowPrimitive` stage and all model,
+history, structural lookup, generated-rule, paired-iota, and registration
+receipts remain explicit. These wrappers do not establish general recursor or
+iota soundness or the complete inductive frontend theorem.
+
 ## Checked-primitive model structural ordinary consumers — 2026-10-29
 
 Ordinary projections now exist for the checked-primitive model structural
