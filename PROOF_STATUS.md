@@ -13468,3 +13468,15 @@ recursor body via its existing application theorem, and pairs it with the
 grouped raw-type equation. The selected-domain regression applies and audits
 this theorem. Motive/minor support is retained as a premise, and no
 generated-rule or iota claim is added.
+
+## October 30, 2026 — multi-recursor registration insertion receipt
+
+`RegistrationInsertionReceipt` generalizes the selected one-entry insertion
+boundary to `RegistrationEvidence`. The proof packages the exact multi-recursor
+`addConstructorHeaders` equation, final semantic-environment WF, final constant-map
+WF, ordered freshness, and `insertOrdered` map equality. A generic per-rule result
+callback and a separate per-rule iota callback remain explicit fields; the proof
+only lifts the native ordered rule semantics and does not claim generated-rule or
+iota soundness from insertion. `tests/InductiveNativeAlignment.lean` checks both
+the receipt constructor and its insertion/WF/freshness/map projections. No
+executable behavior or kernel discrepancy changed.

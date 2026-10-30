@@ -2378,3 +2378,13 @@ The rebase receipt now packages explicit final-context
 result exposes translated and typed recursor body applications together with
 the final grouped raw-type equation. Motive/minor application support remains
 an explicit input; no generated-rule or iota semantics are inferred.
+
+## October 30, 2026 — multi-recursor registration insertion receipt
+
+`RegistrationInsertionReceipt` packages the native `RegistrationEvidence` recursor
+stage: the exact constructor-environment insertion equation, semantic and map WF,
+ordered freshness, and the ordered constant-map equation. Its rule-result and
+iota fields are independent premises, so generated-rule semantics and constructor
+iota behavior are not inferred from signature insertion. The alignment regression
+exercises the package and its structural projections. This fork-specific receipt
+is not an upstream PR candidate.

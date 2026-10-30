@@ -454,6 +454,32 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    (ruleResults : ∀ entry ∈ evidence.recursors, ∀ rule, rule ∈ entry.info.rules → True)
+    (iotaResults : ∀ entry ∈ evidence.recursors, ∀ rule, rule ∈ entry.info.rules → True) :
+    RegistrationInsertionReceipt evidence (fun _ _ => True) (fun _ _ => True) :=
+  evidence.multiRecursorInsertionReceipt hconstants henv hrecursors ruleResults iotaResults
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    (ruleResults : ∀ entry ∈ evidence.recursors, ∀ rule, rule ∈ entry.info.rules → True)
+    (iotaResults : ∀ entry ∈ evidence.recursors, ∀ rule, rule ∈ entry.info.rules → True) :
+    evidence.constructorEnv.addConstructorHeaders (evidence.recursors.map (·.model)) = some result ∧
+      result.WF ∧ resultConstants.WF ∧
+      FreshOrdered constants evidence.orderedEntries ∧
+      resultConstants = insertOrdered constants evidence.orderedEntries := by
+  let receipt := evidence.multiRecursorInsertionReceipt hconstants henv hrecursors
+    ruleResults iotaResults
+  exact ⟨receipt.recursorAdd, receipt.resultWF, receipt.resultMapWF,
+    receipt.orderedFresh, receipt.orderedMap⟩
+
+example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)
     (hsource : ∀ entry ∈ evidence.recursors, ∃ semantic,
       TrExprS evidence.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧

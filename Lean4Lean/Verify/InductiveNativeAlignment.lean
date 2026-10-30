@@ -399,6 +399,50 @@ theorem RegistrationEvidence.registrationWF_and_mapWF
   exact ⟨hregistration.to_addInductWithRecursors, evidence.resultWF henv hrecursors,
     hregistration.map_wf hconstants⟩
 
+/- A multi-recursor counterpart to the selected one-entry insertion receipt.
+   The native producer already records the ordered insertion and map equations;
+   this package exposes them together with both WF results.  Rule-result and
+   iota witnesses stay independent inputs: inserting recursor signatures does
+   not establish generated-rule semantics or constructor iota behavior. -/
+structure RegistrationInsertionReceipt
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (RuleResult IotaResult : RecursorEntry → RecursorRule → Prop) : Prop where
+  recursorAdd :
+    evidence.constructorEnv.addConstructorHeaders (evidence.recursors.map (·.model)) =
+      some result
+  resultWF : result.WF
+  resultMapWF : resultConstants.WF
+  orderedFresh : FreshOrdered constants evidence.orderedEntries
+  orderedMap : resultConstants = insertOrdered constants evidence.orderedEntries
+  orderedRuleResults :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.RuleSemantics result ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, RuleResult entry rule
+  iotaResults :
+    ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      IotaResult entry rule
+
+theorem RegistrationEvidence.multiRecursorInsertionReceipt
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    {RuleResult IotaResult : RecursorEntry → RecursorRule → Prop}
+    (ruleResults : ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      RuleResult entry rule)
+    (iotaResults : ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      IotaResult entry rule) :
+    RegistrationInsertionReceipt evidence RuleResult IotaResult := by
+  refine {
+    recursorAdd := evidence.recursorAdd
+    resultWF := evidence.resultWF henv hrecursors
+    resultMapWF := evidence.registrationMapWF hconstants hrecursors
+    orderedFresh := evidence.orderedFresh
+    orderedMap := evidence.orderedMap
+    orderedRuleResults := evidence.orderedRuleResultsOf ruleResults
+    iotaResults := iotaResults }
+
 theorem RegistrationEvidence.registrationWF_of_sourceTypehood
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)
