@@ -13668,3 +13668,14 @@ the body universe identified by the inversion. The old fixed elimination-level
 premise was removed from the theorem and regression. No executable behavior or
 kernel discrepancy changed; this fork-specific theorem is not an upstream PR
 candidate.
+
+## October 30, 2026 — connect canonical Bool parent history to IH motive support
+
+The translated canonical Bool parent history now yields a concrete
+`IHMotiveApplicationSupport` callback for its parent model. The proof reduces
+the source and translated index traces to their stop cases, projects the
+parent motive witness, and invokes the existing zero-field constructor bridge.
+The higher-level minor-pass theorem still keeps its generic callback premise,
+so no generated-rule or iota obligation is inferred. No executable behavior
+or kernel discrepancy changed; this fork-specific theorem is not an upstream
+PR candidate.

@@ -2570,3 +2570,13 @@ motive body's translated universe directly, while the whole-Pi universe stays
 separate. The fixed `elimLevel = Sort 1` premise is gone; the canonical
 parameter, head, and index equations remain explicit. This fork-specific
 theorem is not an upstream PR candidate.
+
+## October 30, 2026 — connect canonical Bool parent history to IH motive support
+
+`canonicalBoolParentHistoryMotiveSupport` now consumes the translated
+one-parent Bool history and supplies the concrete motive translation and
+typing required by the nullary constructor IH bridge. Native normalization
+and both parent traces force the empty-index, one-type shape before the
+callback is assembled. The generic higher-level minor-pass callback remains
+an explicit contract for other model inputs. This fork-specific theorem is
+not an upstream PR candidate.

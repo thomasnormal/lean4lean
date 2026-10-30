@@ -71,6 +71,24 @@ example {stats : InductiveStats} {elimLevel : Level} {indices : Array Expr}
         (.forallE (.const ``Bool []) (.sort bodyLevel)) := by
   exact canonicalBoolParentMotiveFVarPremises step params indConsts indicesEq
 
+example {stats : InductiveStats} {elimLevel : Level}
+    {infos : Array RecInfo} {reader parentReader : Context}
+    {model parentModel : MLCtx}
+    (parentTrace : RecursorParentPassTrace stats #[canonicalBoolType] elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u] parentTrace model parentModel)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[])
+    (indConsts : stats.indConsts = #[.const ``Bool []])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[])) :
+    ∀ {terminal finalIndex fields recursiveFields fieldReader semantic},
+      (fieldTrace : RecursorCtorFieldTrace stats (.const ``Bool []) 0 #[] #[] parentReader
+        terminal finalIndex fields recursiveFields fieldReader) →
+      ∀ fieldModel, CtorFieldModelEndpoint canonicalBoolModel [`u]
+        fieldTrace parentModel fieldModel semantic →
+        IHMotiveApplicationSupport canonicalBoolModel [`u] stats infos fieldModel.vlctx terminal :=
+  canonicalBoolParentHistoryMotiveSupport parentTrace parentHistory normalization params indConsts boolIndices
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -85,8 +103,9 @@ run_meta
       ``canonicalBoolMinorSourceSupport,
       ``canonicalBoolMinorTraceSupport,
       ``canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport,
-      ``canonicalBoolParentMotiveFVarPremises] do
+      ``canonicalBoolParentMotiveFVarPremises,
+      ``canonicalBoolParentHistoryMotiveSupport] do
     auditTheorem theoremName
-  logInfo "canonical Bool parent stop and two-constructor minor support are theorem-backed"
+  logInfo "canonical Bool parent stop, motive, and two-constructor minor support are theorem-backed"
 
 end CanonicalBoolRecursorSupportTest

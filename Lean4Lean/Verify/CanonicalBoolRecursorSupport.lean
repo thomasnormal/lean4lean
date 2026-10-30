@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.PrimitiveInductiveModel
+import Lean4Lean.Verify.PrimitiveInductivePreprocessing
 import Lean4Lean.Verify.InductiveParentContextTranslation
 import Lean4Lean.Verify.InductiveMinorPassTranslationCPS
 
@@ -254,6 +255,65 @@ theorem canonicalBoolParentMotiveFVarPremises
         have typed := finalWF.tr.wf.find?_wf canonicalBoolModel.wf.ordered motiveLookup
         simpa only [VExpr.lift, VExpr.liftN, Nat.zero_add,
           List.length_cons, List.length_nil] using typed
+
+/- The translated canonical Bool parent pass has one step.  Its parent model
+   step supplies the motive translation and typing needed by the nullary
+   constructor IH bridge; the remaining parent and index traces are forced to
+   stop by the one-type, no-index shape. -/
+theorem canonicalBoolParentHistoryMotiveSupport
+    {stats : InductiveStats} {elimLevel : Level}
+    {infos : Array RecInfo} {reader parentReader : Context}
+    {model parentModel : MLCtx}
+    (parentTrace : RecursorParentPassTrace stats #[canonicalBoolType] elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u] parentTrace model parentModel)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[])
+    (indConsts : stats.indConsts = #[.const ``Bool []])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[])) :
+    ∀ {terminal finalIndex fields recursiveFields fieldReader semantic},
+      (fieldTrace : RecursorCtorFieldTrace stats (.const ``Bool []) 0 #[] #[] parentReader
+        terminal finalIndex fields recursiveFields fieldReader) →
+      ∀ fieldModel, CtorFieldModelEndpoint canonicalBoolModel [`u]
+        fieldTrace parentModel fieldModel semantic →
+        IHMotiveApplicationSupport canonicalBoolModel [`u] stats infos fieldModel.vlctx terminal := by
+  cases parentTrace with
+  | stop complete =>
+    have h : (0 : Nat) < #[canonicalBoolType].size := by decide
+    exact (complete h).elim
+  | @step parent infos0 finalInfos reader0 finalReader indexReader normalized terminal0 finalIndex0 indices
+      bound initialNormalization indicesTrace tailTrace =>
+    have normalizedEq : normalized = .sort (.succ .zero) := by
+      rw [show normalized = _ from (Except.ok.inj (normalization.symm.trans initialNormalization)).symm]
+    subst normalized
+    cases indicesTrace with
+    | stop notForall =>
+      cases tailTrace with
+      | stop complete =>
+        cases parentHistory with
+        | @step a b c d e f g h i j k l m n =>
+          rename_i bound0 norm0 idx0 tail0 wf0 native0 hist0 modelStep0 tailH0
+          have normalizedEq0 : g = .sort (.succ .zero) := by
+            rw [show g = _ from (Except.ok.inj (normalization.symm.trans idx0)).symm]
+          subst g
+          cases norm0 with
+          | stop notForall0 =>
+            cases tailH0 with
+            | stop complete0 =>
+              obtain ⟨level, motiveTranslated, motiveTyped⟩ :=
+                canonicalBoolParentMotiveFVarPremises native0 params indConsts (by rfl)
+              intro terminal finalIndex fields recursiveFields fieldReader semantic fieldTrace fieldModel endpoint
+              exact canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport endpoint (by
+                cases fieldTrace
+                rfl) (by
+                cases fieldTrace
+                rfl) boolIndices rfl motiveTranslated motiveTyped
+            | step bound1 _ _ _ _ _ _ _ _ =>
+              have impossible : ¬ (1 : Nat) < #[canonicalBoolType].size := by decide
+              exact (impossible bound1).elim
+      | step bound1 _ _ _ =>
+        have impossible : ¬ (1 : Nat) < #[canonicalBoolType].size := by decide
+        exact (impossible bound1).elim
 
 end Lean4Lean.AddInductive
 
