@@ -13584,3 +13584,15 @@ fork-specific because their theorem contracts depend on this branch's native
 inductive bridge. No duplicate upstream PR should be opened; any further
 submission needs an official-master adaptation with its own regression and
 axiom audit.
+
+## October 30, 2026 — canonical grouped-telescope order audit
+
+The existing `canonicalBoolRecursorBinderOrderPermutation` proves only the
+four-ID `List.Perm` between grouped recursor-type order and native
+parent-first allocation order. A direct endpoint wrapper was rejected because
+`RecursorSelectedDomainSupport` contains a `SelectedRecursorTelescope`, whose
+`IndexMLCtxExtension` fixes chronological allocation order; a permutation
+alone cannot supply a reordered extension, semantic prefixes, or weakening.
+The explicit order/telescope premise remains sound. No source admission or
+executable behavior changed; the next substantive canonical obligation is an
+order-aware selected-telescope transport theorem.

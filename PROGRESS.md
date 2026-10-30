@@ -2494,3 +2494,13 @@ selection), #64 (local-let cache restoration), #65 (normal substitution), and
 registration commits use fork-only APIs and are not standalone PR candidates;
 the next upstream action is review/follow-up on the existing PRs or a fresh
 official-master adaptation, rather than opening duplicates.
+
+## October 30, 2026 — canonical grouped-telescope order audit
+
+The canonical Bool allocation permutation is proved, but it cannot by itself
+construct `RecursorSelectedDomainSupport`: `SelectedRecursorTelescope` requires
+an `IndexMLCtxExtension` whose identifier list follows native allocation order,
+whereas the recursor type groups motive/minor/major binders differently. A
+permutation preserves membership but does not transport the extension or its
+prefix models. The selected-domain boundary therefore continues to require an
+explicit order-aware telescope/rebase theorem; no shortcut theorem was added.
