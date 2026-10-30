@@ -1,3 +1,13 @@
+## Canonical Bool zero-field IH motive bridge — 2026-10-30
+
+The canonical Bool constructor-field endpoint now has a theorem-backed bridge
+from a parent motive translation/typing witness to
+`IHMotiveApplicationSupport`. Empty field allocation is proved by inversion of
+the endpoint extension; constant terminal translations normalize to `Bool`,
+and explicit motive translation/typing premises are preserved. This remains a
+fork-specific support theorem and does not yet close the higher-level callback
+in the full minor-pass endpoint.
+
 # Non-inductive verification proof of concept
 
 ## Canonical Bool final body/application receipt — 2026-10-30

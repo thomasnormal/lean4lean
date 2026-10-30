@@ -96,6 +96,59 @@ theorem canonicalBoolMinorSourceSupport
         exact motiveSupport originalFieldTrace fieldModel endpoint
     | step bound source tail => simpa using bound
 
+/- A canonical Bool constructor has no fields.  Its field endpoint therefore
+   leaves the parent model unchanged, so a translated and typed parent motive
+   can be reused for the IH application.  The endpoint supplies a canonical
+   Bool terminal translation; the same constant shape normalizes every
+   terminal translation accepted by the support contract. -/
+theorem canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport
+    {stats : InductiveStats} {infos : Array RecInfo}
+    {terminal : Expr} {finalIndex : Nat} {fields recursiveFields : Array Expr}
+    {reader fieldReader : Context} {model fieldModel : MLCtx}
+    {semantic motiveSemantic : VExpr} {motive : FVarId}
+    {level : VLevel}
+    {fieldTrace : RecursorCtorFieldTrace stats (.const ``Bool []) 0 #[] #[] reader
+      terminal finalIndex fields recursiveFields fieldReader}
+    (endpoint : CtorFieldModelEndpoint canonicalBoolModel [`u]
+      fieldTrace model fieldModel semantic)
+    (fieldsEq : fields = #[])
+    (terminalEq : terminal = .const ``Bool [])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (motiveTranslated : TrExprS canonicalBoolModel [`u] model.vlctx
+      (.fvar motive) motiveSemantic)
+    (motiveTyped : canonicalBoolModel.HasType 1 model.vlctx.toCtx motiveSemantic
+      (.forallE (.const ``Bool []) (.sort level))) :
+    IHMotiveApplicationSupport canonicalBoolModel [`u] stats infos fieldModel.vlctx terminal := by
+  obtain ⟨endpointTerminalSemantic, endpointTerminalTranslated⟩ := endpoint.terminalTranslation
+  obtain ⟨_, _, _, _, _, _, ids, extension, selected⟩ := endpoint
+  have idsNil : ids = [] := by
+    have mapped : ids.map Expr.fvar = [] := by
+      simpa only [fieldsEq, Array.toList_empty] using selected.symm
+    exact List.map_eq_nil_iff.mp mapped
+  have idsLength : ids.length = 0 := by simp only [idsNil, List.length_nil]
+  have fieldModelEq : fieldModel = model := by
+    induction extension with
+    | nil => rfl
+    | push earlier id name domain semantic bi =>
+      simp only [List.length_append, List.length_singleton] at idsLength
+      omega
+  subst fieldModel
+  intro terminalSemantic' terminalTranslated'
+  rw [terminalEq] at endpointTerminalTranslated terminalTranslated'
+  cases endpointTerminalTranslated with
+  | const _ levels _ =>
+    simp at levels
+    cases levels
+    cases terminalTranslated' with
+    | const _ levels _ =>
+      simp at levels
+      cases levels
+      refine ⟨motiveSemantic, level, ?_, ?_⟩
+      · simpa only [terminalEq, boolIndices, motiveEq, mkAppN, Array.foldl_empty,
+          List.map_nil, List.toArray] using motiveTranslated
+      · simpa only [List.length_cons, List.length_nil, Nat.zero_add] using motiveTyped
+
 end Lean4Lean.AddInductive
 
 namespace Lean4Lean.AddInductive

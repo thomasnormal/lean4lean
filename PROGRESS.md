@@ -1,3 +1,14 @@
+## Canonical Bool zero-field IH motive bridge — 2026-10-30
+
+`canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport` proves that a
+canonical Bool constructor-field endpoint with an empty field array leaves the
+parent model unchanged. It reuses the translated and typed parent motive for
+all terminal translations, normalizes the Bool universe arguments, and supplies
+the `IHMotiveApplicationSupport` contract after the canonical index/motive
+specialization. The parent motive translation and typing remain explicit
+premises; this is a fork-specific inductive support bridge, not an upstream PR
+candidate.
+
 # Progress and upstream comparison
 
 ## Canonical Bool final body/application receipt — 2026-10-30

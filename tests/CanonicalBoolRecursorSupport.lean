@@ -34,6 +34,27 @@ example {stats : InductiveStats} {infos finalInfos : Array RecInfo}
     MinorTraceTranslationSupport canonicalBoolModel [`u] trace :=
   canonicalBoolMinorTraceSupport trace params levels indConsts nindices boolIndices motives motiveSupport
 
+example {stats : InductiveStats} {infos : Array RecInfo}
+    {terminal : Expr} {finalIndex : Nat} {fields recursiveFields : Array Expr}
+    {reader fieldReader : Context} {model fieldModel : MLCtx}
+    {semantic motiveSemantic : VExpr} {motive : FVarId}
+    {level : VLevel}
+    {fieldTrace : RecursorCtorFieldTrace stats (.const ``Bool []) 0 #[] #[] reader
+      terminal finalIndex fields recursiveFields fieldReader}
+    (endpoint : CtorFieldModelEndpoint canonicalBoolModel [`u]
+      fieldTrace model fieldModel semantic)
+    (fieldsEq : fields = #[])
+    (terminalEq : terminal = .const ``Bool [])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (motiveTranslated : TrExprS canonicalBoolModel [`u] model.vlctx
+      (.fvar motive) motiveSemantic)
+    (motiveTyped : canonicalBoolModel.HasType 1 model.vlctx.toCtx motiveSemantic
+      (.forallE (.const ``Bool []) (.sort level))) :
+    IHMotiveApplicationSupport canonicalBoolModel [`u] stats infos fieldModel.vlctx terminal := by
+  exact canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport endpoint fieldsEq terminalEq
+    boolIndices motiveEq motiveTranslated motiveTyped
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -46,7 +67,8 @@ private def auditTheorem (name : Name) : MetaM Unit := do
 run_meta
   for theoremName in [``canonicalBoolStopParentSupport,
       ``canonicalBoolMinorSourceSupport,
-      ``canonicalBoolMinorTraceSupport] do
+      ``canonicalBoolMinorTraceSupport,
+      ``canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport] do
     auditTheorem theoremName
   logInfo "canonical Bool parent stop and two-constructor minor support are theorem-backed"
 
