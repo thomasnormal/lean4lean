@@ -584,6 +584,18 @@ theorem canonicalBoolRecursorBinderOrderPermutation
     List.Perm.swap major motive [minorFalse, minorTrue]
   exact first.trans (second.trans third)
 
+/- An explicitly constructed native extension is enough to recover the
+   allocation equation used by the grouped-order receipt.  Extension lists
+   are unique for a fixed initial and final model, so callers need not prove
+   the universal equation separately. -/
+theorem canonicalBoolAllocationOfKnownExtension
+    {initial final : MLCtx} {motive minorFalse minorTrue major : FVarId}
+    (known : IndexMLCtxExtension initial [major, motive, minorFalse, minorTrue] final) :
+    ∀ ids, IndexMLCtxExtension initial ids final →
+      ids = [major, motive, minorFalse, minorTrue] := by
+  intro ids extension
+  exact extension.eq_ids_of_same_final known
+
 /- Specialize the grouped-order rebase endpoint to canonical Bool.  The native
    allocation equation remains explicit, while the recursor-type binder
    alignment and the required permutation are discharged from the concrete
@@ -615,6 +627,26 @@ theorem RecursorInfoModelEndpoint.canonicalBoolRebaseBinderOrder
     rw [allocation chronological extension]
     exact canonicalBoolRecursorBinderOrderPermutation
   · exact alignment
+
+theorem RecursorInfoModelEndpoint.canonicalBoolRebaseBinderOrderOfKnownExtension
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF)
+    {motive minorFalse minorTrue major : FVarId} {info : RecInfo}
+    (params : stats.params = #[]) (infosEq : infos = #[info])
+    (motiveEq : info.motive = .fvar motive)
+    (minorsEq : info.minors = #[.fvar minorFalse, .fvar minorTrue])
+    (indicesEq : info.indices = #[])
+    (majorEq : info.major = .fvar major)
+    (known : IndexMLCtxExtension initial [major, motive, minorFalse, minorTrue] final) :
+    ∃ chronological,
+      RecursorBinderRebaseReceipt env universes stats infos 0 finalReader.lctx
+        initial final chronological [motive, minorFalse, minorTrue, major] := by
+  exact endpoint.canonicalBoolRebaseBinderOrder envWF params infosEq motiveEq minorsEq indicesEq
+    majorEq (canonicalBoolAllocationOfKnownExtension known)
 
 /- Feed the canonical rebase receipt directly into the final body/application
    consumer.  The endpoint supplies the final model WF and native local-context

@@ -44,6 +44,12 @@ example {motive minorFalse minorTrue major : FVarId} :
       [major, motive, minorFalse, minorTrue] :=
   canonicalBoolRecursorBinderOrderPermutation
 
+example {initial final : MLCtx} {motive minorFalse minorTrue major : FVarId}
+    (known : IndexMLCtxExtension initial [major, motive, minorFalse, minorTrue] final) :
+    ∀ ids, IndexMLCtxExtension initial ids final →
+      ids = [major, motive, minorFalse, minorTrue] :=
+  canonicalBoolAllocationOfKnownExtension known
+
 example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
     {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
     (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
@@ -61,6 +67,22 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
           [motive, minorFalse, minorTrue, major] :=
   endpoint.canonicalBoolRebaseBinderOrder canonicalBoolModel.wf params infosEq motiveEq
     minorsEq indicesEq majorEq allocation
+
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
+    {motive minorFalse minorTrue major : FVarId} {info : RecInfo}
+    (params : stats.params = #[]) (infosEq : infos = #[info])
+    (motiveEq : info.motive = .fvar motive)
+    (minorsEq : info.minors = #[.fvar minorFalse, .fvar minorTrue])
+    (indicesEq : info.indices = #[]) (majorEq : info.major = .fvar major)
+    (known : IndexMLCtxExtension initial [major, motive, minorFalse, minorTrue] final) :
+    ∃ chronological,
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 finalReader.lctx
+        initial final chronological [motive, minorFalse, minorTrue, major] :=
+  endpoint.canonicalBoolRebaseBinderOrderOfKnownExtension canonicalBoolModel.wf params infosEq
+    motiveEq minorsEq indicesEq majorEq known
 
 example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
     {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
@@ -472,6 +494,7 @@ run_meta
   auditTheorem ``RecursorInfoModelEndpoint.selectedDomainSupport
   auditTheorem ``RecursorInfoModelEndpoint.passExtensions
   auditTheorem ``IndexMLCtxExtension.split
+  auditTheorem ``IndexMLCtxExtension.eq_ids_of_same_final
   auditTheorem ``SelectedRecursorTelescope.domainReceiptWithSuffix
   auditTheorem ``RecursorInfoModelEndpoint.rebaseBinderOrder
   auditTheorem ``RecursorBinderRebaseReceipt.finalDomainSupport
@@ -486,7 +509,9 @@ run_meta
   auditTheorem ``RecursorInfoModelEndpoint.registeredRecursorInsertionFromDomains
   auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
   auditTheorem ``canonicalBoolRecursorBinderOrderPermutation
+  auditTheorem ``canonicalBoolAllocationOfKnownExtension
   auditTheorem ``RecursorInfoModelEndpoint.canonicalBoolRebaseBinderOrder
+  auditTheorem ``RecursorInfoModelEndpoint.canonicalBoolRebaseBinderOrderOfKnownExtension
   auditTheorem ``RecursorInfoModelEndpoint.canonicalBoolRebasedFinalBodyApplicationReceipt
   logInfo "endpoint selected-domain, split/rebase, and allocation-order boundaries are theorem-backed"
 

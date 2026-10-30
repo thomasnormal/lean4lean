@@ -2535,6 +2535,16 @@ permutation preserves membership but does not transport the extension or its
 prefix models. The selected-domain boundary therefore continues to require an
 explicit order-aware telescope/rebase theorem; no shortcut theorem was added.
 
+## October 30, 2026 — make native allocation order explicit
+
+`IndexMLCtxExtension.eq_ids_of_same_final` proves that two extension receipts
+with the same initial and final model have the same identifier list. The
+canonical Bool rebase endpoint now accepts a concrete chronological extension
+for `[major, motive, minorFalse, minorTrue]` and derives the universal
+allocation equation from that uniqueness theorem. This removes duplication in
+callers while keeping the selected-domain telescope and its semantic prefix
+models explicit; the order-aware telescope transport remains open.
+
 ## October 30, 2026 — restoration declaration-WF consumer receipt
 
 The restoration-stage checker-history boundary now combines existential model

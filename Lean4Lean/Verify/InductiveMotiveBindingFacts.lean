@@ -46,6 +46,20 @@ theorem IndexMLCtxExtension.selection {initial final : MLCtx} {ids : List FVarId
       List.reverse_append, List.reverse_singleton, List.singleton_append] using
       congrArg (List.cons id) tailInduction
 
+theorem IndexMLCtxExtension.eq_ids_of_same_final
+    {initial final : MLCtx} {ids ids' : List FVarId}
+    (left : IndexMLCtxExtension initial ids final)
+    (right : IndexMLCtxExtension initial ids' final) : ids = ids' := by
+  have leftLength := left.length_eq
+  have rightLength := right.length_eq
+  have lengths : ids.length = ids'.length := by omega
+  have selected : ids.reverse = ids'.reverse := by
+    calc
+      ids.reverse = final.fvarRevList ids.length left.bound := left.selection.symm
+      _ = final.fvarRevList ids'.length right.bound := by simpa only [lengths]
+      _ = ids'.reverse := right.selection
+  exact (List.reverse_eq_iff.mp selected) |>.trans (by simp)
+
 theorem IndexMLCtxExtension.drop_eq {initial final : MLCtx} {ids : List FVarId}
     (extension : IndexMLCtxExtension initial ids final) :
     final.dropN ids.length extension.bound = initial := by

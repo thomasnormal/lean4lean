@@ -13689,3 +13689,12 @@ projection of this receipt. Its generic motive callback remains an explicit
 premise for universal minor-support construction; no generated-rule or iota
 behavior is inferred. No executable behavior or kernel discrepancy changed;
 this fork-specific packaging is not an upstream PR candidate.
+
+## October 30, 2026 — allocation extension uniqueness
+
+`IndexMLCtxExtension.eq_ids_of_same_final` proves that an extension's
+identifier list is determined by its initial and final model. The canonical
+Bool rebase endpoint now has a wrapper that accepts one concrete native
+`[major, motive, minorFalse, minorTrue]` extension and derives the universal
+allocation equation needed by the grouped-order receipt. The selected-domain
+telescope still requires its own semantic transport premise.
