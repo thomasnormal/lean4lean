@@ -1,5 +1,18 @@
 # Progress and upstream comparison
 
+## Rich canonical model environment — 2026-10-30
+
+`Lean4Lean.Verify.PrimitiveInductiveModel` now constructs the semantic model
+needed by the canonical recursor path in explicit stages. The annotation model
+contains `outParam`, `semiOutParam`, `optParam`, `autoParam`, and `Lean.Syntax`,
+with the four canonical annotation equations. Bool's inductive headers and
+constructor headers are then added to that model, with exact lookups for
+`Bool`, `Bool.false`, and `Bool.true`. Public constants, definition, addition,
+and header receipts are checked by `tests/PrimitiveInductiveModel.lean`, whose
+theorem-body audit finds no new admission. This supplies the model-side
+declarations; fresh elimination-universe mapping, selected-domain support,
+parent/minor passes, and recursor iota semantics remain separate obligations.
+
 ## Canonical recursor type/model support boundary — 2026-10-30
 
 Runtime checks now pin the exact canonical recursor metadata: Bool and all

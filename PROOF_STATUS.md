@@ -1,5 +1,19 @@
 # Non-inductive verification proof of concept
 
+## Rich canonical model environment — 2026-10-30
+
+`Lean4Lean.Verify.PrimitiveInductiveModel` defines an explicit semantic model
+for the canonical recursor attempt. It supplies the four annotation constants
+(`outParam`, `semiOutParam`, `optParam`, and `autoParam`), `Lean.Syntax`, and
+the corresponding canonical annotation equations. It extends that model with
+Bool's inductive header and constructor headers, and proves exact lookups for
+`Bool`, `Bool.false`, and `Bool.true`, while preserving the annotation
+constant/definition receipts. `tests/PrimitiveInductiveModel.lean` checks the
+public receipts, header monotonicity, and theorem bodies. This closes the
+previous empty-model declaration gap but does not yet provide fresh
+elimination-universe mapping, selected-domain/pass receipts, parent/minor
+semantics, or iota soundness.
+
 ## Canonical recursor type/model support boundary — 2026-10-30
 
 The primitive regression records that canonical Bool/Nat recursors have the
