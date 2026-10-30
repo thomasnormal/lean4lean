@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Canonical allocation-order boundary — 2026-10-30
+
+The pass endpoint now retains the chronological parent/minor extension split.
+For canonical Bool, a theorem-backed list calculation records the native
+major-before-motive allocation order and its mismatch with the recursor type
+order. This is an explicit semantic boundary: the next step requires a
+reordering or rebasing proof, while selected-domain typehood, generated-rule
+semantics, and iota soundness remain separate obligations.
+
 ## Endpoint-to-selected-domain bridge — 2026-10-30
 
 The translated parent/minor endpoint now supplies a semantic selected-domain

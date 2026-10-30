@@ -16,6 +16,28 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     RecursorSelectedDomainSupport canonicalBoolModel [`u] stats infos 0 finalReader.lctx initial :=
   endpoint.selectedDomainSupport alignment
 
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final) :
+    ∃ parentModel parentIds minorIds,
+      IndexMLCtxExtension initial parentIds parentModel ∧
+      IndexMLCtxExtension parentModel minorIds final ∧
+      IndexMLCtxExtension initial (parentIds ++ minorIds) final :=
+  endpoint.passExtensions
+
+example {stats : InductiveStats} {infos : Array RecInfo}
+    {motive minorFalse minorTrue major : FVarId} {info : RecInfo}
+    (params : stats.params = #[]) (infosEq : infos = #[info])
+    (motiveEq : info.motive = .fvar motive)
+    (minorsEq : info.minors = #[.fvar minorFalse, .fvar minorTrue])
+    (indicesEq : info.indices = #[])
+    (majorEq : info.major = .fvar major)
+    (distinct : major ≠ motive) :
+    (recursorTypeBinders stats infos 0).toList ≠
+      [major, motive, minorFalse, minorTrue].map Expr.fvar :=
+  canonicalBoolRecursorBinderOrderBoundary params infosEq motiveEq minorsEq indicesEq majorEq distinct
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -27,6 +49,8 @@ private def auditTheorem (name : Name) : MetaM Unit := do
 
 run_meta
   auditTheorem ``RecursorInfoModelEndpoint.selectedDomainSupport
-  logInfo "endpoint selected-domain support is theorem-backed"
+  auditTheorem ``RecursorInfoModelEndpoint.passExtensions
+  auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
+  logInfo "endpoint selected-domain and allocation-order boundaries are theorem-backed"
 
 end InductiveRecursorEndpointSelectedDomainTest

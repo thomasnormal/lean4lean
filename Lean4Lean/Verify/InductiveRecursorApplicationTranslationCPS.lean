@@ -34,6 +34,51 @@ theorem RecursorInfoModelEndpoint.selectedDomainSupport
     simpa only [finalNative] using extension.selectedTelescope finalWF
   exact ⟨ids, alignment ids extension, final, telescope⟩
 
+/- The endpoint's extension is chronological: all parent-pass allocations are
+   completed before the minor pass starts.  Expose both phases separately so
+   a caller can compare native allocation order with the recursor-type binder
+   order instead of silently treating the aggregate list as canonical. -/
+theorem RecursorInfoModelEndpoint.passExtensions
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final) :
+    ∃ parentModel parentIds minorIds,
+      IndexMLCtxExtension initial parentIds parentModel ∧
+      IndexMLCtxExtension parentModel minorIds final ∧
+      IndexMLCtxExtension initial (parentIds ++ minorIds) final := by
+  rcases endpoint with ⟨parentInfos, parentReader, parentModel, parentTrace, minorTrace,
+    parentHistory, minorHistory⟩
+  obtain ⟨parentIds, parentExtension⟩ := parentHistory.extension
+  obtain ⟨minorIds, minorExtension⟩ := minorHistory.extension
+  exact ⟨parentModel, parentIds, minorIds, parentExtension, minorExtension,
+    parentExtension.trans minorExtension⟩
+
+/- For canonical Bool, native parent allocation is major-then-motive, while
+   the recursor type groups motive/minors before major.  Keep this shape
+   obstruction explicit: selected-domain support needs a reordering/rebase
+   theorem, not an unproved identification of the chronological extension. -/
+theorem canonicalBoolRecursorBinderOrderBoundary
+    {stats : InductiveStats} {infos : Array RecInfo}
+    {motive minorFalse minorTrue major : FVarId} {info : RecInfo}
+    (params : stats.params = #[]) (infosEq : infos = #[info])
+    (motiveEq : info.motive = .fvar motive)
+    (minorsEq : info.minors = #[.fvar minorFalse, .fvar minorTrue])
+    (indicesEq : info.indices = #[])
+    (majorEq : info.major = .fvar major)
+    (distinct : major ≠ motive) :
+    (recursorTypeBinders stats infos 0).toList ≠
+      [major, motive, minorFalse, minorTrue].map Expr.fvar := by
+  intro alignment
+  have order : [motive, minorFalse, minorTrue, major] =
+      [major, motive, minorFalse, minorTrue] := by
+    simpa [recursorTypeBinders, params, infosEq, motiveEq, minorsEq, indicesEq, majorEq]
+      using alignment
+  have head := congrArg List.head? order
+  have motiveMajor : motive = major := by simpa using head
+  exact distinct motiveMajor.symm
+
 /- Once selected-domain support is available, its semantic content can be
    consumed one binder at a time.  This packages the exact chronological
    prefix model, native cdecl provenance, translated domain, and domain

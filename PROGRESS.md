@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Canonical allocation-order boundary — 2026-10-30
+
+`RecursorInfoModelEndpoint.passExtensions` now exposes the chronological
+parent-pass and minor-pass model extensions separately, with their composed
+`IndexMLCtxExtension`. A canonical Bool boundary theorem proves that the
+native parent-first order `[major, motive, minorFalse, minorTrue]` cannot equal
+the recursor type's `[motive, minorFalse, minorTrue, major]` order when major
+and motive are distinct. Selected-domain construction therefore needs an
+explicit reordering/rebase theorem before the endpoint can satisfy its binder
+alignment premise.
+
 ## Endpoint-to-selected-domain bridge — 2026-10-30
 
 `RecursorInfoModelEndpoint.selectedDomainSupport` now turns the endpoint's
