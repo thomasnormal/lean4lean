@@ -1,3 +1,14 @@
+## October 30, 2026 — dependency-aware virtual-context rebase contract
+
+`DependencyAwareVirtualContextRebase` now packages the native chronological
+extension, grouped permutation, and per-binder dependency prefixes. Its
+`finalDomainSupport` theorem transports each prefix translation and typehood
+through the exact suffix weakening and recovers both native and final cdecl
+provenance. The contract deliberately does not construct a reordered
+well-formed `MLCtx`; grouped forall translation remains an explicit premise.
+No executable behavior or kernel discrepancy changed, and this fork-specific
+contract is not an upstream PR candidate.
+
 ## Canonical Bool parent motive fvar premises — 2026-10-30
 
 A translated canonical Bool parent step now yields the motive source fvar's

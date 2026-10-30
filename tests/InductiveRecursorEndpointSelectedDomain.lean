@@ -498,7 +498,8 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
       final.lctx.find? major =
         some (.cdecl index major name domain binder .default) := by
     obtain ⟨_, projectedIndex, name, domain, binder, _, _, finalLookup, _, _⟩ :=
-      receipt.finalDomainSupport finalWF finalNative major majorMember
+      receipt.dependencyAwareRebase.finalDomainSupport canonicalBoolModel.wf finalWF
+        finalNative major majorMember
     exact ⟨projectedIndex, name, domain, binder, finalLookup⟩
   have motiveEvidence : ∃ index name domain binder,
       final.lctx.find? motive =
@@ -506,7 +507,8 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
       domain = final.lctx.mkForall infos[0]!.indices
         (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)) := by
     obtain ⟨_, projectedIndex, name, domain, binder, _, _, finalLookup, _, _⟩ :=
-      receipt.finalDomainSupport finalWF finalNative motive motiveMember
+      receipt.dependencyAwareRebase.finalDomainSupport canonicalBoolModel.wf finalWF
+        finalNative motive motiveMember
     exact ⟨projectedIndex, name, domain, binder, finalLookup,
       motiveShape projectedIndex name domain binder finalLookup⟩
   exact canonicalBoolRecursorTypeBodyApplicationSupport canonicalBoolModel.wf finalWF
@@ -529,6 +531,8 @@ run_meta
   auditTheorem ``IndexMLCtxExtension.eq_ids_of_same_final
   auditTheorem ``SelectedRecursorTelescope.domainReceiptWithSuffix
   auditTheorem ``RecursorInfoModelEndpoint.rebaseBinderOrder
+  auditTheorem ``RecursorBinderRebaseReceipt.dependencyAwareRebase
+  auditTheorem ``DependencyAwareVirtualContextRebase.finalDomainSupport
   auditTheorem ``RecursorBinderRebaseReceipt.finalDomainSupport
   auditTheorem ``RecursorBinderRebaseReceipt.groupedBindingEquation
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeFinalEquation

@@ -1,3 +1,13 @@
+## Dependency-aware virtual-context rebase contract — 2026-10-30
+
+`DependencyAwareVirtualContextRebase` packages the grouped presentation order
+with the native chronological extension and each binder's dependency prefix.
+Its `finalDomainSupport` theorem weakens a domain translation and typehood
+through the exact suffix extension and recovers final local-context provenance.
+The contract provides a sound semantic rebase seam without asserting that a
+permuted `MLCtx` is well formed; grouped forall translation remains a separate
+obligation. This is fork-specific and not an upstream PR candidate.
+
 ## Canonical Bool parent motive fvar premises — 2026-10-30
 
 `canonicalBoolParentMotiveFVarPremises` projects the newest motive binder from a

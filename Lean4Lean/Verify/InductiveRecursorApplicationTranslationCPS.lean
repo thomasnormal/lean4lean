@@ -159,6 +159,27 @@ theorem SelectedRecursorTelescope.domainReceiptWithSuffix
         fresh, translated, typed⟩
       simp
 
+/- A dependency-aware virtual-context rebase keeps the semantic prefix for each
+   binder instead of pretending that a `List.Perm` can reorder an
+   `IndexMLCtxExtension`.  The grouped list is only an outer presentation order;
+   each domain is still translated in the chronological model where its native
+   declaration was allocated. -/
+structure DependencyAwareVirtualContextRebase
+    (env : VEnv) (universes : List Name) (full : LocalContext)
+    (initial final : MLCtx) (chronological grouped : List FVarId) : Prop where
+  chronologicalExtension : IndexMLCtxExtension initial chronological final
+  groupedOrder : grouped.Perm chronological
+  domainReceipt : ∀ identifier, identifier ∈ grouped →
+    ∃ preIds suffix model physicalIndex name domain binder semantic,
+      chronological = preIds ++ identifier :: suffix ∧
+      IndexMLCtxExtension initial preIds model ∧
+      IndexMLCtxExtension model (identifier :: suffix) final ∧
+      full.find? identifier =
+        some (.cdecl physicalIndex identifier name domain binder .default) ∧
+      model.lctx.find? identifier = none ∧
+      TrExprS env universes model.vlctx domain semantic ∧
+      env.IsType universes.length model.vlctx.toCtx semantic
+
 /- A grouped-order receipt deliberately separates native allocation order from
    the order used by the recursor type.  Every domain keeps its chronological
    allocation prefix and a proved weakening into the final model. -/
@@ -185,6 +206,66 @@ structure RecursorBinderRebaseReceipt
         (semantic.lift' (.skipN .refl (identifier :: suffix).length)) ∧
       env.IsType universes.length final.vlctx.toCtx
         (semantic.lift' (.skipN .refl (identifier :: suffix).length))
+
+theorem RecursorBinderRebaseReceipt.dependencyAwareRebase
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent full
+      initial final chronological grouped) :
+    DependencyAwareVirtualContextRebase env universes full initial final chronological grouped := by
+  refine ⟨receipt.chronologicalExtension, receipt.groupedOrder, ?_⟩
+  intro identifier member
+  obtain ⟨preIds, suffix, model, physicalIndex, name, domain, binder, semantic,
+    idsShape, prefixExtension, suffixExtension, lookup, fresh, translated, typed, _, _, _⟩ :=
+    receipt.domainReceipt identifier member
+  exact ⟨preIds, suffix, model, physicalIndex, name, domain, binder, semantic,
+    idsShape, prefixExtension, suffixExtension, lookup, fresh, translated, typed⟩
+
+/- Transport a dependency-aware domain from its chronological allocation prefix
+   into the final virtual context.  This is the basic semantic rebase operation;
+   it does not manufacture a reordered well-formed `MLCtx`. -/
+theorem DependencyAwareVirtualContextRebase.finalDomainSupport
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    (rebase : DependencyAwareVirtualContextRebase env universes full initial final
+      chronological grouped)
+    (envWF : env.WF) (finalWF : final.WF env universes)
+    (native : final.lctx = full) (identifier : FVarId) (member : identifier ∈ grouped) :
+    ∃ physicalIndex projectedIndex name domain binder semantic,
+      full.find? identifier =
+        some (.cdecl physicalIndex identifier name domain binder .default) ∧
+      final.lctx.find? identifier =
+        some (.cdecl projectedIndex identifier name domain binder .default) ∧
+      TrExprS env universes final.vlctx domain semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic := by
+  have chronologicalMember : identifier ∈ chronological :=
+    rebase.groupedOrder.mem_iff.mp member
+  obtain ⟨preIds, suffix, model, physicalIndex, name, domain, binder, sourceSemantic,
+    idsShape, prefixExtension, suffixExtension, lookup, fresh, translated, typed⟩ :=
+    rebase.domainReceipt identifier member
+  have suffixWeakening : VLCtx.FVLift' model.vlctx final.vlctx 0
+      (.skipN .refl (identifier :: suffix).length) 0 := by
+    simpa only using suffixExtension.weakening.toFVLift'
+  have rebasedTranslation : TrExprS env universes final.vlctx domain
+      (sourceSemantic.lift' (.skipN .refl (identifier :: suffix).length)) := by
+    exact translated.weakFV' envWF.ordered suffixWeakening finalWF.tr.wf
+  have rebasedTyped : env.IsType universes.length final.vlctx.toCtx
+      (sourceSemantic.lift' (.skipN .refl (identifier :: suffix).length)) := by
+    obtain ⟨level, typedDomain⟩ := typed
+    exact ⟨level, typedDomain.weak' envWF.ordered suffixWeakening.toCtx⟩
+  have initialWF : initial.WF env universes := by
+    simpa only [rebase.chronologicalExtension.drop_eq] using
+      MLCtx.WF.dropN chronological.length rebase.chronologicalExtension.bound finalWF
+  have telescope : SelectedRecursorTelescope env universes full initial chronological final := by
+    simpa only [native] using rebase.chronologicalExtension.selectedTelescope finalWF
+  obtain ⟨_, projectedIndex, finalName, finalDomain, finalBinder, fullLookup, finalLookup⟩ :=
+    telescope.lookups initialWF identifier chronologicalMember
+  have declarationEq := Option.some.inj (lookup.symm.trans fullLookup)
+  cases declarationEq
+  refine ⟨physicalIndex, projectedIndex, name, domain, binder,
+    sourceSemantic.lift' (.skipN .refl (identifier :: suffix).length), lookup, finalLookup,
+    rebasedTranslation, rebasedTyped⟩
 
 theorem RecursorInfoModelEndpoint.rebaseBinderOrder
     {env : VEnv} {universes : List Name} {stats : InductiveStats}
