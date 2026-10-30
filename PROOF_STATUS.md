@@ -1,5 +1,12 @@
 # Non-inductive verification proof of concept
 
+## Canonical Bool declared-recursor package — 2026-10-30
+
+The canonical Bool endpoint now reaches the declared recursor constant
+boundary: a model receipt supplies the registered constant and the body
+receipt supplies its final typed body and grouped raw-type equation. The
+remaining role, minor, generated-rule, and iota contracts stay explicit.
+
 ## Canonical Bool final body/application package — 2026-10-30
 
 The final recursor receipt can now derive the canonical Bool body/application

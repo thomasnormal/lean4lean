@@ -491,6 +491,56 @@ theorem RecursorBinderRebaseReceipt.canonicalBoolFinalBodyApplicationReceipt
       _minorSemantics _generatedRuleSemantics _iotaSoundness
   exact receipt.finalBodyApplicationReceipt finalWF native bodySupport bodyClosed
 
+/- Pair the canonical Bool body/application endpoint with the existing model
+   receipt's declared-constant construction.  This is a registration package,
+   not a proof of the remaining minor/generated-rule/iota obligations. -/
+theorem RecursorBinderRebaseReceipt.canonicalBoolDeclaredRecursorReceipt
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader : Context}
+    {infos : Array RecInfo} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    {motive major : FVarId} {semanticElimLevel : VLevel}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos 0 full
+      initial final chronological grouped)
+    (typeReceipt : RecursorTypeModelReceipt env universes stats infos 0 reader initial final)
+    (readerNative : reader.lctx = full)
+    (envWF : env.WF) (finalWF : final.WF env universes) (native : final.lctx = full)
+    (majorMember : major ∈ grouped) (motiveMember : motive ∈ grouped)
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (indicesEq : infos[0]!.indices = #[])
+    (majorEq : infos[0]!.major = .fvar major)
+    (motiveShape : ∀ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) →
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
+    (_minorSemantics : MinorSemantics)
+    (_generatedRuleSemantics : GeneratedRuleSemantics)
+    (_iotaSoundness : IotaSoundness)
+    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = universes)
+    (empty : initial.vlctx = []) :
+    ∃ bodySemantic level constant,
+      TrExprS env universes final.vlctx (recursorTypeBody infos 0) bodySemantic ∧
+      env.HasType universes.length final.vlctx.toCtx bodySemantic (.sort level) ∧
+      recursorRawType stats infos 0 reader.lctx =
+        final.lctx.mkForall (grouped.map Expr.fvar).toArray (recursorTypeBody infos 0) ∧
+      TrConstVal .safe env
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams
+          reader.lctx isK false 0 rules)) constant ∧
+      constant.toVConstant.WF env := by
+  obtain ⟨bodySemantic, bodyLevel, bodyTranslated, bodyTyped, bodyRaw⟩ :=
+    receipt.canonicalBoolFinalBodyApplicationReceipt envWF finalWF native rfl
+      majorMember motiveMember motiveEq indicesEq majorEq motiveShape mapped
+      _minorSemantics _generatedRuleSemantics _iotaSoundness bodyClosed
+  obtain ⟨constant, constantTranslated, constantWF⟩ := typeReceipt.existsDeclaredRecursor
+    (types := types) lparams isK rules levels empty
+  exact ⟨bodySemantic, bodyLevel, constant, bodyTranslated, bodyTyped,
+    by simpa only [readerNative] using bodyRaw, constantTranslated, constantWF⟩
+
 /- For canonical Bool, native parent allocation is major-then-motive, while
    the recursor type groups motive/minors before major.  Keep this shape
    obstruction explicit: selected-domain support needs a reordering/rebase

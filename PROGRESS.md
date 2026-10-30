@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Canonical Bool declared-recursor package — 2026-10-30
+
+`RecursorBinderRebaseReceipt.canonicalBoolDeclaredRecursorReceipt` now pairs
+the canonical final body/application receipt with
+`RecursorTypeModelReceipt.existsDeclaredRecursor`. The package exposes the
+translated and typed body, its grouped raw-type equation, the registered
+constant translation, and constant WF while retaining role alignment and all
+minor/generated-rule/iota obligations as premises.
+
 ## Canonical Bool final body/application package — 2026-10-30
 
 `RecursorBinderRebaseReceipt.canonicalBoolFinalBodyApplicationReceipt` now
