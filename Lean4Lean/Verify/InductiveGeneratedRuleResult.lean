@@ -949,6 +949,36 @@ theorem LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaBaseAndTarge
     (fun parent recursor index ctor rule minor scopedReceipt ordinaryReceipt =>
       (head parent recursor index ctor rule minor scopedReceipt ordinaryReceipt).2)
 
+/- A generated producer that already owns the scoped receipt can avoid carrying
+   its ordinary projection as a second callback argument. -/
+theorem LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaBaseAndTargetResultsOfScopedCombined
+    {stats : InductiveStats} {types : Array InductiveType} {infos : Array RecInfo}
+    {ctx : Context} {kernelEnv : Kernel.Environment}
+    {env : VEnv} {universes : List Name}
+    (hscope : LocalRecursorRuleRhsScope stats types infos ctx kernelEnv)
+    (ordered : OrderedRecursorRules types kernelEnv)
+    (head : ∀ (parent : Nat) (recursor : RecursorVal) (index : Nat)
+      (ctor : Constructor) (rule : RecursorRule) (minor : Expr),
+      RecursorRuleRhsScopeReceipt stats (infos.map (·.motive)) (infos.flatMap (·.minors))
+          ctx ctor minor rule →
+        GeneratedRecursorRuleResultSemantics env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule) :
+    ∀ parent, parent < types.size → ∃ recursor,
+      kernelEnv.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      ∀ rule ∈ recursor.rules, ∃ (index : Nat) (ctor : Constructor) (minor : Expr)
+        (semantic : VExpr),
+        types[parent]!.ctors[index]? = some ctor ∧
+        infos[parent]!.minors[index]? = some minor ∧
+        recursor.rules[index]? = some rule ∧
+        TrExprS env universes [] rule.rhs semantic ∧
+        GeneratedRecursorRuleResult env universes stats (infos.map (·.motive))
+          (infos.flatMap (·.minors)) ctx ctor minor rule ∧
+        GeneratedRecursorRuleIotaBaseAndTargetResults env universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) ctx ctor minor rule := by
+  exact hscope.completeRuleResultSemanticsAndIotaBaseAndTargetResultsOfCombined ordered
+    (fun parent recursor index ctor rule minor scopedReceipt _ordinaryReceipt =>
+      head parent recursor index ctor rule minor scopedReceipt)
+
 /- Named-result wrappers avoid unfolding the generated package at each caller. -/
 theorem RecursorRuleRhsScope.impGeneratedRecursorRuleResult
     {env : VEnv} {universes : List Name}

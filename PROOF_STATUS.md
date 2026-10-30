@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Scoped-only complete generated-rule callback — 2026-10-30
+
+The complete stored-rule boundary now has a scoped-only combined callback,
+`LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaBaseAndTargetResultsOfScopedCombined`.
+It removes the duplicated ordinary receipt argument while retaining stored-rule
+coverage, constructor/index alignment, closed RHS translation, generated-rule
+results, and paired base/target iota results. It introduces no direct
+`sorry`, `admit`, or axiom.
+
 ## Translated scoped generated body/source producer — 2026-10-30
 
 The scoped generated body/source result seam now has a translated-body entry

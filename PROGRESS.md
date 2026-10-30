@@ -1,5 +1,13 @@
 # Progress and upstream comparison
 
+## Scoped-only complete generated-rule callback — 2026-10-30
+
+`LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaBaseAndTargetResultsOfScopedCombined`
+now lets a generated producer supply only the scoped receipt; the ordinary
+receipt projection is recovered internally. Constructor/index recovery, closed
+RHS translation, generated result, and paired base/target iota evidence remain
+unchanged and explicit. No admissions or executable behavior changed.
+
 ## Translated scoped generated body/source producer — 2026-10-30
 
 `MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourceOfTranslated`
