@@ -309,6 +309,22 @@ structure SafeInductiveFrontendScope (env : Environment) (lparams : List Name) (
         (inductiveScopeContext env lparams allowPrimitive fuel) root constructors staged ∧
       InductiveFrontendBranch preprocessing staged types env result
 
+/- A nonnested run already has the direct frontend branch.  Retain that fact in
+   the richer scope consumed by the restoration and checker bridges. -/
+theorem SafeInductiveFrontendScope.ofNonNestedScope
+    {env result : Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (scope : NonNestedInductiveScope env lparams nparams types allowPrimitive fuel result) :
+    SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result := by
+  obtain ⟨preprocessing, hpre, hnoaux, stats, root, constructors, hrun⟩ := scope.stages
+  have hrun' : stats.SafeRunScope nparams preprocessing.types.toArray preprocessing.aux2nested.size
+      (inductiveScopeContext env lparams allowPrimitive fuel) root constructors result := by
+    simpa only [hnoaux] using hrun
+  exact ⟨hmap, scope.sources, preprocessing, hpre, result, stats, root, constructors, hrun',
+    InductiveFrontendBranch.direct hnoaux⟩
+
+
 theorem SafeInductiveFrontendScope.preserves {env result : Environment} {lparams : List Name}
     {nparams : Nat} {types : List InductiveType} {allowPrimitive : Bool} {fuel : FuelConfig}
     (scope : SafeInductiveFrontendScope env lparams nparams types allowPrimitive fuel result) :
