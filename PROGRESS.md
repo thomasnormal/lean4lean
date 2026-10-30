@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Canonical primitive frontend and registration receipts — 2026-10-30
+
+`addDecl.safeCanonicalBoolRegistration` and
+`addDecl.safeCanonicalNatRegistration` package each canonical primitive's
+constructive frontend-scope receipt with the staged header/constructor checker
+receipt. The registration half specializes the existing primitive preflight
+proof to the canonical Bool/Nat source and returns the model's `HeadersWF` and
+`WF` facts, translated declaration, registered header/constructor maps,
+`VDecl.WF`, and checker environment. Regression examples cover Bool and every
+Nat binder-name/info combination without changing executable behavior.
+
 ## Constructive primitive preprocessing receipts — 2026-10-30
 
 `canonicalBoolNonNested` and `canonicalNatNonNested` prove the executable

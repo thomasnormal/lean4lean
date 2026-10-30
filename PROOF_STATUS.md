@@ -1,5 +1,19 @@
 # Non-inductive verification proof of concept
 
+## Canonical primitive frontend and registration receipts — 2026-10-30
+
+`Lean4Lean.Verify.PrimitiveInductiveRegistration` adds
+`addDecl.safeCanonicalBoolRegistration` and
+`addDecl.safeCanonicalNatRegistration`. Each theorem retains the executable
+`addDecl` nonnested scope and pairs it with the staged
+`checkInductiveTypes.refinesPrimitiveHeaderConstructorCheckerWithModelAndVDeclWF`
+receipt for the same canonical source. The result exposes canonical model
+`HeadersWF`/`WF`, translated declaration, header and constructor registration,
+`VDecl.WF`, and the final `CheckerEnv`; the primitive preflight proof is
+constructed from the Bool/Nat classification rather than assumed. This is a
+canonical staged registration boundary and still leaves recursor registration,
+iota soundness, and the complete inductive frontend theorem open.
+
 ## Constructive primitive preprocessing receipts — 2026-10-30
 
 `Lean4Lean.Verify.PrimitiveInductivePreprocessing` exposes canonical Bool/Nat

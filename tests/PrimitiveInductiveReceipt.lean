@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.PrimitiveInductivePreprocessing
+import Lean4Lean.Verify.PrimitiveInductiveRegistration
 import Lean.Util.CollectAxioms
 
 namespace PrimitiveInductiveReceiptTest
@@ -91,6 +91,85 @@ run_meta
   logInfo "canonical Bool/Nat preprocessing and frontend-scope receipts are theorem-backed"
 
 end PrimitiveInductivePreprocessingTest
+
+namespace PrimitiveInductiveRegistrationTest
+open Lean hiding Environment Exception
+open Lean4Lean
+
+private def emptyNative := Kernel.Environment.empty `PrimitiveInductiveRegistrationTest
+private def canonicalContext (fuel : FuelConfig) : AddInductive.Context :=
+  inductiveScopeContext emptyNative [] true fuel
+
+private theorem emptyChecker (fuel : FuelConfig) :
+    CheckerEnv .safe (canonicalContext fuel).env VEnv.empty := by
+  refine { aligned := .empty, wf := ⟨[], .empty⟩, safeValues := ?_ }
+  intro name ci value hfind
+  change SMap.find? ({ stage₁ := false } : ConstMap) name = some ci at hfind
+  rw [SMap.find?_emptyStage] at hfind
+  contradiction
+
+private theorem emptyMapWF : emptyNative.constants.WF := by
+  change SMap.WF ({ stage₁ := false } : ConstMap)
+  exact SMap.WF.emptyStage false
+
+example (check : Bool) (fuel : FuelConfig) :
+    (addDecl emptyNative (.inductDecl [] 0 [canonicalBoolType] false) check fuel).WF (fun result =>
+      ∃ allowPrimitive,
+        NonNestedInductiveScope emptyNative [] 0 [canonicalBoolType] allowPrimitive fuel result) ∧
+    (AddInductive.checkInductiveTypes 0 [canonicalBoolType].toArray (fun stats => do
+      AddInductive.withEnv (← AddInductive.declareInductiveTypes stats 0
+        [canonicalBoolType].toArray 0 false) do
+        AddInductive.checkConstructors [canonicalBoolType].toArray stats false
+        AddInductive.declareConstructors stats [canonicalBoolType].toArray false)
+      (canonicalContext fuel)).WF (fun env' =>
+      ∃ decl headerEnv ctorEnv, (decl = boolInductDecl ∨ decl = natInductDecl) ∧
+        decl.HeadersWF VEnv.empty ∧ decl.WF VEnv.empty ∧
+        VEnv.empty.addInductHeaders decl.types = some headerEnv ∧ headerEnv.WF ∧
+        TrInductDecl VEnv.empty headerEnv [] 0 [canonicalBoolType] decl ∧
+        headerEnv.addConstructorHeaders (decl.types.flatMap (fun type => type.ctors)) =
+          some ctorEnv ∧ ctorEnv.WF ∧ VDecl.WF VEnv.empty (.induct decl) ctorEnv ∧
+        CheckerEnv .safe env' ctorEnv) :=
+  addDecl.safeCanonicalBoolRegistration emptyNative check fuel emptyMapWF VEnv.empty
+    (emptyChecker fuel)
+
+example (check : Bool) (fuel : FuelConfig)
+    (binderName : Name) (binderInfo : BinderInfo) :
+    (addDecl emptyNative
+      (.inductDecl [] 0 [canonicalNatType binderName binderInfo] false) check fuel).WF
+      (fun result => ∃ allowPrimitive,
+        NonNestedInductiveScope emptyNative [] 0 [canonicalNatType binderName binderInfo]
+          allowPrimitive fuel result) ∧
+    (AddInductive.checkInductiveTypes 0
+      [canonicalNatType binderName binderInfo].toArray (fun stats => do
+        AddInductive.withEnv (← AddInductive.declareInductiveTypes stats 0
+          [canonicalNatType binderName binderInfo].toArray 0 false) do
+          AddInductive.checkConstructors [canonicalNatType binderName binderInfo].toArray stats false
+          AddInductive.declareConstructors stats [canonicalNatType binderName binderInfo].toArray false)
+      (canonicalContext fuel)).WF (fun env' =>
+      ∃ decl headerEnv ctorEnv, (decl = boolInductDecl ∨ decl = natInductDecl) ∧
+        decl.HeadersWF VEnv.empty ∧ decl.WF VEnv.empty ∧
+        VEnv.empty.addInductHeaders decl.types = some headerEnv ∧ headerEnv.WF ∧
+        TrInductDecl VEnv.empty headerEnv [] 0
+          [canonicalNatType binderName binderInfo] decl ∧
+        headerEnv.addConstructorHeaders (decl.types.flatMap (fun type => type.ctors)) =
+          some ctorEnv ∧ ctorEnv.WF ∧ VDecl.WF VEnv.empty (.induct decl) ctorEnv ∧
+        CheckerEnv .safe env' ctorEnv) :=
+  addDecl.safeCanonicalNatRegistration emptyNative check fuel binderName binderInfo emptyMapWF
+    VEnv.empty (emptyChecker fuel)
+
+run_meta
+  for theoremName in [``addDecl.safeCanonicalBoolRegistration,
+      ``addDecl.safeCanonicalNatRegistration] do
+    let information ← getConstInfo theoremName
+    if information matches .axiomInfo _ then
+      throwError "canonical registration package is not theorem-backed: {theoremName}"
+    let some proof := information.value? (allowOpaque := true) |
+      throwError "canonical registration package proof missing: {theoremName}"
+    if proof.hasSorry then
+      throwError "canonical registration package has an admission: {theoremName}"
+  logInfo "canonical Bool/Nat frontend and VDecl registration packages are theorem-backed"
+
+end PrimitiveInductiveRegistrationTest
 
 namespace PrimitiveInductivePreprocessingRuntimeTest
 open Lean hiding Environment Exception
