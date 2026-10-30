@@ -13,6 +13,7 @@ open Lean4Lean.AddInductive
 #check canonicalBoolModel.constants
 #check canonicalBoolModel.definitions
 #check canonicalBoolModel.headers
+#check canonicalEliminationLevelMapping
 
 example : CanonicalAnnotationConstants canonicalAnnotationModel :=
   canonicalAnnotationModel.constants
@@ -34,6 +35,15 @@ example : CanonicalAnnotationConstants canonicalBoolModel :=
 
 example : CanonicalAnnotationDefinitions canonicalBoolModel :=
   canonicalBoolModel.definitions
+
+example (stats : InductiveStats) (types : Array InductiveType)
+    (reader : Context) (level : Level)
+    (lparams : reader.lparams = [])
+    (result : getElimLevel stats types reader = .ok level) :
+    (getRecLevelParams level reader.lparams).Nodup ∧
+      VLevel.ofLevel (getRecLevelParams level reader.lparams) level =
+        some (if level.isParam then .param 0 else .zero) :=
+  canonicalEliminationLevelMapping lparams result
 
 example :
     (canonicalBoolModel : VEnv).constants ``Bool =
@@ -57,7 +67,8 @@ run_meta
   for theoremName in [``canonicalAnnotationModel.constants,
       ``canonicalAnnotationModel.definitions, ``canonicalBoolHeaderModel.added,
       ``canonicalBoolModel.added, ``canonicalBoolModel.constants,
-      ``canonicalBoolModel.definitions, ``canonicalBoolModel.headers] do
+      ``canonicalBoolModel.definitions, ``canonicalBoolModel.headers,
+      ``canonicalEliminationLevelMapping] do
     auditTheorem theoremName
   let headerModel : VEnv := canonicalBoolHeaderModel
   let constructorModel : VEnv := canonicalBoolModel

@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.InductiveAnnotationTranslation
 import Lean4Lean.Verify.ConstructorHeaders
+import Lean4Lean.Verify.InductiveEliminationLevel
 import Lean4Lean.Theory.InductiveHeaders
 
 namespace Lean4Lean
@@ -67,5 +68,19 @@ theorem canonicalBoolModel.headers :
   constructor
   · rfl
   constructor <;> rfl
+
+/- The native recursor worker chooses either `.zero` or a fresh parameter.  The
+   generic elimination-level proof specializes directly to the parameter-free
+   canonical context, so callers can obtain the exact `VLevel` mapping once
+   they retain the successful `getElimLevel` result. -/
+theorem canonicalEliminationLevelMapping
+    {stats : InductiveStats} {types : Array InductiveType} {reader : AddInductive.Context}
+    {level : Level} (lparams : reader.lparams = [])
+    (result : getElimLevel stats types reader = .ok level) :
+    (getRecLevelParams level reader.lparams).Nodup ∧
+      VLevel.ofLevel (getRecLevelParams level reader.lparams) level =
+        some (if level.isParam then .param 0 else .zero) := by
+  apply (getElimLevel.recLevelParams stats types reader (by simp [lparams])) level
+  exact result
 
 end Lean4Lean

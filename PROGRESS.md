@@ -1,5 +1,15 @@
 # Progress and upstream comparison
 
+## Canonical fresh elimination-level mapping — 2026-10-30
+
+`canonicalEliminationLevelMapping` specializes the verified
+`getElimLevel.recLevelParams` result to a parameter-free reader. Once the
+successful native `getElimLevel` result is retained, the model receives the
+exact recursor universe list and its mapping: a fresh parameter maps to
+`VLevel.param 0`, while non-large elimination maps to `VLevel.zero`. The
+native run receipt still needs to retain that successful `getElimLevel` result
+alongside its metadata before the full canonical type receipt can consume it.
+
 ## Rich canonical model environment — 2026-10-30
 
 `Lean4Lean.Verify.PrimitiveInductiveModel` now constructs the semantic model

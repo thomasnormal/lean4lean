@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Canonical fresh elimination-level mapping — 2026-10-30
+
+`Lean4Lean.Verify.PrimitiveInductiveModel` now exposes
+`canonicalEliminationLevelMapping`. For a reader with no declaration
+universe parameters and any successful `getElimLevel` result, it proves the
+recursor parameter list is duplicate-free and maps the native level to
+`VLevel.param 0` when the fresh parameter is selected, or `VLevel.zero`
+otherwise. The theorem consumes the actual successful result rather than
+manufacturing a level; the canonical run package still must retain that result
+before selected-domain and recursor type receipts can be assembled.
+
 ## Rich canonical model environment — 2026-10-30
 
 `Lean4Lean.Verify.PrimitiveInductiveModel` defines an explicit semantic model
