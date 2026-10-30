@@ -13745,3 +13745,10 @@ upstream PRs #55–#68 cover the independent non-inductive fixes, while #53 and
 #54 remain WIP inductive drafts. The live GitHub state marks the former group
 `UNSTABLE` and the latter drafts `DIRTY`; no current fork-only inductive receipt
 is suitable as a standalone upstream PR.
+
+The source-preflight check was also compared directly with the official
+implementation: current `origin/master` already checks each original header
+and constructor before nested preprocessing. The native source-capture witness
+is specific to Lean 4.29; the equivalent call is rejected by the pinned Lean
+4.33 toolchain. The fork's named preflight receipt therefore remains local
+verification evidence rather than a new upstream patch.

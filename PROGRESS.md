@@ -2654,3 +2654,12 @@ WIP and `DIRTY`. No duplicate PR is warranted for the fork-only canonical
 Bool receipts or the grouped-forall contract. The quotient universal
 simulation counterexample remains a verification-model defect report rather
 than a standalone implementation PR.
+
+The source-preflight candidate was rechecked against the same official tree:
+`origin/master` already performs the existing no-mvar/no-fvar check for every
+header and constructor before nested preprocessing, so the fork's named
+`checkInductiveSources` factoring is not a new upstream behavior change. The
+historical native source-capture reproducer is version-bounded to Lean 4.29;
+the adapted call is rejected by the pinned Lean 4.33 toolchain. It remains a
+useful compatibility regression, but it is not a new standalone PR for the
+current upstream tip.
