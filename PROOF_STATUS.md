@@ -13596,3 +13596,14 @@ alone cannot supply a reordered extension, semantic prefixes, or weakening.
 The explicit order/telescope premise remains sound. No source admission or
 executable behavior changed; the next substantive canonical obligation is an
 order-aware selected-telescope transport theorem.
+
+## October 30, 2026 — restoration declaration-WF consumer receipt
+
+`addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIotaAndVDeclWF_of_restorationStages`
+combines the restoration-stage model/checker-history declaration-WF result with
+the named `RegistrationConsumerReceipt .safe`. The existential model choice,
+header translation, alignment, result-map equation, history, checker validity,
+producer `VDecl.WF`, ordered lookup/alignment, and generated-rule/iota callbacks
+remain explicit. Focused bridge and native regression pass; full-build and
+admission results follow after the detached build. This is fork-specific and
+not an upstream PR candidate.

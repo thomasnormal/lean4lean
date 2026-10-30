@@ -2504,3 +2504,11 @@ whereas the recursor type groups motive/minor/major binders differently. A
 permutation preserves membership but does not transport the extension or its
 prefix models. The selected-domain boundary therefore continues to require an
 explicit order-aware telescope/rebase theorem; no shortcut theorem was added.
+
+## October 30, 2026 — restoration declaration-WF consumer receipt
+
+The restoration-stage checker-history boundary now combines existential model
+selection and producer `VDecl.WF` with the named registration consumer receipt.
+The result retains safe checker validity, aligned constant-map/history facts,
+ordered lookup, and explicit generated-rule and paired base/target-iota
+witnesses. This fork-specific package is not an upstream PR candidate.

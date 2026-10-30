@@ -787,6 +787,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIotaAndVDeclWF
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIota_of_restorationStages
+#check addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIotaAndVDeclWF_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndConstructiveHistoryAndVDeclWF
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryAndVDeclWF
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryAndVDeclWF_of_restorationStages
@@ -9028,6 +9029,12 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := hRestorationCombined
   have _ := hRestorationConsumer.1
   have _ := hRestorationConsumer.2.orderedLookup
+  obtain ⟨_modelDecl, _hkind, _hheaders, _hdeclWF, _htranslation, _haligned,
+      _hmapResult, _hhistory, _hchecker, _hproducerWF, hRestorationConsumerWF⟩ :=
+    addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIotaAndVDeclWF_of_restorationStages
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
+      hsource hvalues ruleResults
+  have _ := hRestorationConsumerWF.orderedLookup
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
