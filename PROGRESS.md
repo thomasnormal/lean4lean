@@ -1,5 +1,13 @@
 # Progress and upstream comparison
 
+## Registration consumer generated-rule/iota package — 2026-10-30
+
+`RegistrationEvidence.consumerReceiptWithGeneratedRuleResultsAndIota` now
+connects the named registration consumer receipt to the existing generated
+recursor-rule and base/target-iota package. The result keeps insertion,
+ordered lookup, alignment, and both per-rule witness families available at one
+consumer boundary; the generated-rule callback remains an explicit premise.
+
 ## Registered recursor insertion receipt — 2026-10-30
 
 `RecursorInfoModelEndpoint.registeredRecursorInsertionFromDomains` now proves

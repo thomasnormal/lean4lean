@@ -2747,6 +2747,35 @@ theorem NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaB
                 (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
   exact evidence.orderedGeneratedRuleResultsAndIota ruleResults
 
+/- Package the generated-rule and base/target-iota witnesses directly in the
+   registration consumer receipt.  The insertion, ordered lookup, and
+   alignment fields remain available alongside these per-rule obligations. -/
+theorem NativeInductive.RegistrationEvidence.consumerReceiptWithGeneratedRuleResultsAndIota
+    {safety : DefinitionSafety}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} (evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult)
+    (hconstants : constants.WF) (henv : semanticEnv.WF)
+    (haligned : Aligned safety constants semanticEnv)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      ∃ constructor minor,
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    RegistrationConsumerReceipt safety evidence
+      (fun _ rule => ∃ constructor minor,
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+      (fun _ rule => ∃ constructor minor,
+        AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) := by
+  have iotaResults := evidence.recursorGeneratedRuleIotaBaseAndTargetResults ruleResults
+  exact evidence.multiRecursorConsumerReceipt hconstants henv haligned hrecursors
+    ruleResults iotaResults
+
 /- Preserve the same ordered registration traversal while exposing the named
    iota projection.  This is the consumer-facing boundary: the closed RHS
    translation stays paired with the lifted base/target typing witnesses for

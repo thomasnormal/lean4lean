@@ -1,5 +1,12 @@
 # Non-inductive verification proof of concept
 
+## Registration consumer generated-rule/iota package — 2026-10-30
+
+The registration boundary now produces a `RegistrationConsumerReceipt` whose
+insertion field carries generated recursor-rule results and paired
+base/target-iota witnesses. Ordered lookup and semantic alignment remain in
+the same receipt, while all generated-rule obligations stay explicit inputs.
+
 ## Registered recursor insertion receipt — 2026-10-30
 
 The registered model handoff now reaches a constructive one-entry semantic
