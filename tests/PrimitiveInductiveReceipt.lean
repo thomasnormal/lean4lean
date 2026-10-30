@@ -1,4 +1,4 @@
-import Lean4Lean.Verify.PrimitiveInductiveRegistration
+import Lean4Lean.Verify.PrimitiveInductiveRecursors
 import Lean.Util.CollectAxioms
 
 namespace PrimitiveInductiveReceiptTest
@@ -170,6 +170,48 @@ run_meta
   logInfo "canonical Bool/Nat frontend and VDecl registration packages are theorem-backed"
 
 end PrimitiveInductiveRegistrationTest
+
+namespace PrimitiveInductiveRecursorTest
+open Lean hiding Environment Exception
+open Lean4Lean
+
+#check addDecl.safeCanonicalBoolRecursors
+#check addDecl.safeCanonicalNatRecursors
+
+run_meta
+  let environment := Kernel.Environment.empty `PrimitiveInductiveRecursorTest
+  let fuel : FuelConfig := { recDepth := 16, inductiveFuel := 4 }
+  let checkResult (label : String) (type : InductiveType) (recName : Name)
+      (ctorCount : Nat) : MetaM Unit := do
+    let .ok result := addDecl environment (.inductDecl [] 0 [type] false) true fuel
+      | throwError "{label} frontend did not succeed"
+    let some (.recInfo recursor) := result.find? recName
+      | throwError "{label} recursor was not registered"
+    unless recursor.name == recName && recursor.all == [type.name] &&
+        recursor.rules.length == ctorCount do
+      throwError "{label} recursor metadata was incorrect"
+    for rule in recursor.rules do
+      unless type.ctors.any (·.name == rule.ctor) do
+        throwError "{label} recursor contains an unknown constructor rule"
+  checkResult "Bool" canonicalBoolType ``Bool.rec 2
+  for binderName in [Name.anonymous, `value, `nested.binder] do
+    for binderInfo in [BinderInfo.default, .implicit, .strictImplicit, .instImplicit] do
+      checkResult "Nat" (canonicalNatType binderName binderInfo) ``Nat.rec 2
+  logInfo "canonical Bool/Nat recursor registration succeeded for all Nat binder fixtures"
+
+run_meta
+  for theoremName in [``addDecl.safeCanonicalBoolRecursors,
+      ``addDecl.safeCanonicalNatRecursors] do
+    let information ← getConstInfo theoremName
+    if information matches .axiomInfo _ then
+      throwError "canonical recursor receipt is not theorem-backed: {theoremName}"
+    let some proof := information.value? (allowOpaque := true) |
+      throwError "canonical recursor receipt proof missing: {theoremName}"
+    if proof.hasSorry then
+      throwError "canonical recursor receipt has an admission: {theoremName}"
+  logInfo "canonical Bool/Nat recursor receipts are theorem-backed"
+
+end PrimitiveInductiveRecursorTest
 
 namespace PrimitiveInductivePreprocessingRuntimeTest
 open Lean hiding Environment Exception

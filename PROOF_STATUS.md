@@ -1,5 +1,19 @@
 # Non-inductive verification proof of concept
 
+## Canonical primitive recursor registration receipts — 2026-10-30
+
+`Lean4Lean.Verify.PrimitiveInductiveRecursors` adds
+`addDecl.safeCanonicalBoolRecursors` and
+`addDecl.safeCanonicalNatRecursors`. These theorems specialize the
+constructive nonnested frontend receipt to the recursor phase and expose the
+actual `SafeRunScope`, recursor counts, offset metadata, registered recursor
+lookups, generated-rule offset equations, and local RHS distinctness. The
+regression runs the real frontend for Bool and all tested Nat binder-name/info
+fixtures and checks the two registered rules. This establishes native recursor
+registration metadata for the canonical primitives; recursor type translation,
+generated-rule semantics, iota soundness, and complete inductive frontend
+verification remain open.
+
 ## Canonical primitive frontend and registration receipts — 2026-10-30
 
 `Lean4Lean.Verify.PrimitiveInductiveRegistration` adds

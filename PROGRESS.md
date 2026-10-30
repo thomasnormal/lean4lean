@@ -1,5 +1,17 @@
 # Progress and upstream comparison
 
+## Canonical primitive recursor registration receipts — 2026-10-30
+
+`addDecl.safeCanonicalBoolRecursors` and
+`addDecl.safeCanonicalNatRecursors` expose the recursor phase of the executable
+canonical frontend. Each receipt retains the direct nonnested scope, the
+`SafeRunScope` and recursor metadata, the actual registered recursor lookup,
+and the generated-rule offset equation for every preprocessed parent. Runtime
+regression checks confirm that Bool and every tested Nat binder-name/info form
+register the expected two-rule recursor with no unknown constructor rules.
+The result remains a registration receipt; recursor type translation and iota
+soundness are still separate obligations.
+
 ## Canonical primitive frontend and registration receipts — 2026-10-30
 
 `addDecl.safeCanonicalBoolRegistration` and
