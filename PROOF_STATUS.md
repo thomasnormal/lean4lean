@@ -13729,3 +13729,19 @@ Bool rebase endpoint now has a wrapper that accepts one concrete native
 `[major, motive, minorFalse, minorTrue]` extension and derives the universal
 allocation equation needed by the grouped-order receipt. The selected-domain
 telescope still requires its own semantic transport premise.
+## October 30, 2026 — inductive frontier and upstream contribution boundary
+
+The canonical Bool inductive receipts establish the native pass traces,
+parent-motive translation and typing, chronological allocation, dependency-
+aware final-domain transport, and recursor body/application assembly. The
+remaining semantic gap is explicit: translating and typing the grouped native
+recursor `mkForall` in the initial model. `SelectedRecursorTelescope` cannot be
+reused after the proven order mismatch because a `List.Perm` does not create a
+well-formed reordered `MLCtx`; generated-rule semantics and iota soundness are
+also still separate inputs. This turn made no claim beyond that boundary.
+
+The official tip remains `67f63b0c`, already an ancestor. The existing focused
+upstream PRs #55–#68 cover the independent non-inductive fixes, while #53 and
+#54 remain WIP inductive drafts. The live GitHub state marks the former group
+`UNSTABLE` and the latter drafts `DIRTY`; no current fork-only inductive receipt
+is suitable as a standalone upstream PR.

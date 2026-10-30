@@ -2630,3 +2630,27 @@ projects its prior result from this richer receipt, so its contract remains
 stable. The universal minor-pass callback stays explicit because the support
 type quantifies over arbitrary model inputs. This fork-specific packaging is
 not an upstream PR candidate.
+## October 30, 2026 — inductive frontier and live upstream inventory
+
+The canonical Bool investigation now has a precise stopping point. Native
+parent/minor traces, canonical motive translation and typing, chronological
+allocation, dependency-aware final-domain transport, and the body/application
+receipt are theorem-backed. The remaining grouped recursor type obligation is
+the direct translation and typehood of the grouped native `mkForall` in the
+initial semantic context. The selected-telescope route cannot discharge it:
+the grouped order differs from the chronological model extension, and a list
+permutation does not supply reordered virtual-context well-formedness. Generated
+rule semantics and iota soundness remain independent premises as well.
+
+The live official repository check at `origin/master = 67f63b0c` found that the
+focused upstream candidates are already open: #55 (constant confluence), #56
+(quotient equation patterns), #57/#58 (projection reduction and inference),
+#59 (comparison and eta rejection), #60 (quotient-recursion free-variable
+preservation), #61 (translated inductive-recursion rejection), #62 (total
+elimination-level selection), #64 (local-let cache restoration), #65 (normal
+substitution), and #68 (application argument-array size). GitHub currently
+reports these branches as `UNSTABLE`; the inductive drafts #53/#54 are still
+WIP and `DIRTY`. No duplicate PR is warranted for the fork-only canonical
+Bool receipts or the grouped-forall contract. The quotient universal
+simulation counterexample remains a verification-model defect report rather
+than a standalone implementation PR.
