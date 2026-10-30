@@ -226,6 +226,46 @@ theorem RecursorInfoModelEndpoint.rebaseBinderOrder
     idsShape, prefixTelescope.extension, suffixExtension, lookup, fresh, translated,
     typedReceipt, suffixWeakening, rebasedTranslation, rebasedTyped⟩
 
+/- Rebase the semantic domain receipt all the way to the final local context.
+   This is the selected-domain fact needed by a body consumer after grouped
+   binder order has been established.  The theorem exposes final cdecl
+   provenance together with the weakened translation and typehood; it does not
+   infer the canonical role-to-ID correspondence or any generated-rule fact. -/
+theorem RecursorBinderRebaseReceipt.finalDomainSupport
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent full
+      initial final chronological grouped)
+    (finalWF : final.WF env universes) (native : final.lctx = full)
+    (identifier : FVarId) (member : identifier ∈ grouped) :
+    ∃ physicalIndex projectedIndex name domain binder semantic,
+      full.find? identifier =
+        some (.cdecl physicalIndex identifier name domain binder .default) ∧
+      final.lctx.find? identifier =
+        some (.cdecl projectedIndex identifier name domain binder .default) ∧
+      TrExprS env universes final.vlctx domain semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic := by
+  have chronologicalMember : identifier ∈ chronological :=
+    receipt.groupedOrder.mem_iff.mp member
+  apply Exists.elim (receipt.domainReceipt identifier member)
+  intro preIds
+  rintro ⟨suffix, model, physicalIndex, name, domain, binder, sourceSemantic,
+    ⟨_, _, _, lookup, _, _, _, _, rebasedTranslation, rebasedTyped⟩⟩
+  have extension := receipt.chronologicalExtension
+  have initialWF : initial.WF env universes := by
+    simpa only [extension.drop_eq] using
+      MLCtx.WF.dropN chronological.length extension.bound finalWF
+  have telescope : SelectedRecursorTelescope env universes full initial chronological final :=
+    by simpa only [native] using extension.selectedTelescope finalWF
+  obtain ⟨_, projectedIndex, finalName, finalDomain, finalBinder, fullLookup, finalLookup⟩ :=
+    telescope.lookups initialWF identifier chronologicalMember
+  have declarationEq := Option.some.inj (lookup.symm.trans fullLookup)
+  cases declarationEq
+  refine ⟨physicalIndex, projectedIndex, name, domain, binder,
+    sourceSemantic.lift' (.skipN .refl (identifier :: suffix).length), lookup, finalLookup,
+    rebasedTranslation, rebasedTyped⟩
+
 /- For canonical Bool, native parent allocation is major-then-motive, while
    the recursor type groups motive/minors before major.  Keep this shape
    obstruction explicit: selected-domain support needs a reordering/rebase
@@ -249,6 +289,25 @@ theorem canonicalBoolRecursorBinderOrderBoundary
   have head := congrArg List.head? order
   have motiveMajor : motive = major := by simpa using head
   exact distinct motiveMajor.symm
+
+/- The two concrete Bool binder lists are permutations even though their order
+   is different.  Keep this structural fact separate from the endpoint's
+   chronology: a caller still has to identify the native allocated IDs with the
+   four roles before this permutation can be applied to an endpoint receipt. -/
+theorem canonicalBoolRecursorBinderOrderPermutation
+    {motive minorFalse minorTrue major : FVarId} :
+    [motive, minorFalse, minorTrue, major].Perm
+      [major, motive, minorFalse, minorTrue] := by
+  have first : [motive, minorFalse, minorTrue, major].Perm
+      [motive, minorFalse, major, minorTrue] :=
+    .cons motive (.cons minorFalse (List.Perm.swap major minorTrue []))
+  have second : [motive, minorFalse, major, minorTrue].Perm
+      [motive, major, minorFalse, minorTrue] :=
+    .cons motive (List.Perm.swap major minorFalse [minorTrue])
+  have third : [motive, major, minorFalse, minorTrue].Perm
+      [major, motive, minorFalse, minorTrue] :=
+    List.Perm.swap major motive [minorFalse, minorTrue]
+  exact first.trans (second.trans third)
 
 /- Once selected-domain support is available, its semantic content can be
    consumed one binder at a time.  This packages the exact chronological

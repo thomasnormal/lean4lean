@@ -39,6 +39,11 @@ example {stats : InductiveStats} {infos : Array RecInfo}
       [major, motive, minorFalse, minorTrue].map Expr.fvar :=
   canonicalBoolRecursorBinderOrderBoundary params infosEq motiveEq minorsEq indicesEq majorEq distinct
 
+example {motive minorFalse minorTrue major : FVarId} :
+    [motive, minorFalse, minorTrue, major].Perm
+      [major, motive, minorFalse, minorTrue] :=
+  canonicalBoolRecursorBinderOrderPermutation
+
 private def splitId : FVarId := ⟨`RecursorReceiptSplitId⟩
 private def splitModel : MLCtx :=
   .vlam splitId `split (.sort .zero) (.sort .zero) .default .nil
@@ -67,6 +72,31 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
         initial final chronological grouped :=
   endpoint.rebaseBinderOrder canonicalBoolModel.wf grouped order alignment
 
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
+    (grouped : List FVarId)
+    (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
+    (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar) :
+    ∃ chronological,
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 finalReader.lctx
+        initial final chronological grouped ∧
+      ∀ identifier, identifier ∈ grouped →
+        ∃ physicalIndex projectedIndex name domain binder semantic,
+          finalReader.lctx.find? identifier =
+            some (.cdecl physicalIndex identifier name domain binder .default) ∧
+          final.lctx.find? identifier =
+            some (.cdecl projectedIndex identifier name domain binder .default) ∧
+          TrExprS canonicalBoolModel [`u] final.vlctx domain semantic ∧
+          canonicalBoolModel.IsType 1 final.vlctx.toCtx semantic := by
+  obtain ⟨chronological, receipt⟩ := endpoint.rebaseBinderOrder canonicalBoolModel.wf
+    grouped order alignment
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  refine ⟨chronological, receipt, ?_⟩
+  intro identifier member
+  exact receipt.finalDomainSupport finalWF finalNative identifier member
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -82,7 +112,9 @@ run_meta
   auditTheorem ``IndexMLCtxExtension.split
   auditTheorem ``SelectedRecursorTelescope.domainReceiptWithSuffix
   auditTheorem ``RecursorInfoModelEndpoint.rebaseBinderOrder
+  auditTheorem ``RecursorBinderRebaseReceipt.finalDomainSupport
   auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
+  auditTheorem ``canonicalBoolRecursorBinderOrderPermutation
   logInfo "endpoint selected-domain, split/rebase, and allocation-order boundaries are theorem-backed"
 
 end InductiveRecursorEndpointSelectedDomainTest

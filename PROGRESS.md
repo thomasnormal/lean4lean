@@ -2291,3 +2291,14 @@ semantic transport lemmas. The receipt does not claim the required permutation
 for canonical Bool; the existing boundary theorem still shows that native
 allocation order differs from grouped binder order. Generated-rule semantics,
 iota soundness, and the canonical permutation proof remain separate.
+
+## October 30, 2026 — canonical grouped permutation and final-domain transport
+
+The recursor application layer now proves the concrete Bool permutation from
+grouped order `[motive, minorFalse, minorTrue, major]` to native allocation
+order `[major, motive, minorFalse, minorTrue]`. It also projects every grouped
+identifier in a `RecursorBinderRebaseReceipt` to final-context cdecl
+provenance, weakened domain translation, and final typehood. The endpoint
+regression consumes this transport after the rebase receipt. Role-to-ID
+correspondence, motive/minor application semantics, generated-rule semantics,
+and iota soundness remain explicit premises.

@@ -13372,6 +13372,18 @@ continues to prove that the native parent-first order cannot be identified with
 the grouped order when major and motive IDs differ. No generated-rule or iota
 claim follows from this structural transport.
 
+## October 30, 2026 — grouped permutation and final-domain support
+
+`canonicalBoolRecursorBinderOrderPermutation` proves the concrete four-ID
+permutation required by the Bool grouped recursor order. The new
+`RecursorBinderRebaseReceipt.finalDomainSupport` theorem uses the endpoint
+final-model WF and local-context equality to expose final cdecl lookup,
+suffix-weakened domain translation, and final typehood for every grouped
+identifier. The selected-domain regression applies this theorem and audits both
+new theorem bodies for primitive or admitted proofs. The role-to-ID chronology
+identification, semantic motive/minor support, generated-rule semantics, and
+iota obligations remain separate.
+
 The focused module build and endpoint regression pass, and the detached
 `LEAN_NUM_THREADS=8 lake build` completes all 492 jobs. The test audits the new
 split, suffix-domain, and endpoint-rebase theorem bodies for primitive/admitted
