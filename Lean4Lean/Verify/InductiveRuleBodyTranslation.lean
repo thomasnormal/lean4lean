@@ -2708,6 +2708,109 @@ theorem MinorModelStep.generatedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourc
     baseResultTranslated, baseResultTyped, baseResultKind, resultTranslated, resultTyped,
     resultKind⟩
 
+/- The ordinary recursor-rule producer can derive the generated-body closure
+   premise from ordinary translations just as the scoped producer does.  Keep
+   the ordinary receipt boundary and all generated body, typing, iota, and
+   target obligations explicit. -/
+theorem MinorModelStep.generatedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourceAppliedOfTranslated
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final base target : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    {motives minors : Array Expr} {ctx : Context} {minor : Expr} {rule : RecursorRule}
+    (receipt : RecursorRuleRhsReceipt stats motives minors ctx constructor minor rule)
+    {ids : List FVarId} (extension : IndexMLCtxExtension base ids final)
+    {minorReader : Context} {virtual : VLCtx} {rawSemantic peeled : VExpr} {level : VLevel}
+    (opening : RecursorMinorOpening env universes minorReader virtual parentName constructor
+      domain rawSemantic peeled level)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (bodyWitness : ∀ terminal fields, ∃ bodySemantic,
+      TrExpr env universes final.vlctx
+        (recursorMinorBody stats infos constructor terminal fields) bodySemantic)
+    (bodyPeeled : ∀ terminal fields,
+      peelTypeAnnotations (recursorMinorBody stats infos constructor terminal fields) =
+        recursorMinorBody stats infos constructor terminal fields)
+    (envWF : env.WF)
+    (canonical : ∀ {fields : Array Expr} {index : Nat} {hypotheses finalHypotheses : Array Expr}
+      {suffixReader finalReader : Context} {domain : Expr}
+      {source : RecursorIHDomainSource stats infos fields[index]! suffixReader domain}
+      {tail : RecursorIHTrace stats fields infos (index + 1)
+        (hypotheses.push (.fvar ⟨suffixReader.ngen.curr⟩))
+        (recursorIHContext suffixReader fields[index]! domain) finalHypotheses finalReader}
+      {initial middle : MLCtx}
+      (bound : index < fields.size)
+      (head : IHModelStep env universes source initial middle)
+      (sourceExpr : Expr),
+      CanonicalRecursiveIHInput head sourceExpr)
+    {minorSemantic : VExpr}
+    (minorTranslated : TrExprS env universes final.vlctx minor minorSemantic)
+    (minorTyped : env.HasType universes.length final.vlctx.toCtx minorSemantic peeled)
+    (converted : final.vlctx = virtual)
+    (receiptShape : ∀ {fields : Array Expr} {replacements : List Expr}
+      {bodySemantic bodyType : VExpr},
+      TrExprS env universes final.vlctx
+        (mkAppN (mkAppN minor fields) replacements.toArray) bodySemantic →
+      env.HasType universes.length final.vlctx.toCtx bodySemantic bodyType →
+      ∀ (receiptFields receiptValues : Array Expr) (current : Context),
+        ctx.HeaderFrame current → rule.ctor = constructor.name →
+        rule.nfields = receiptFields.size →
+        ∃ _ : fields = receiptFields, ∃ _ : receiptValues = replacements.toArray,
+          recursorRuleRhs stats motives minors receiptFields receiptValues current.lctx minor =
+            final.lctx.mkLambda (ids.map Expr.fvar).toArray
+              (mkAppN (mkAppN minor fields) replacements.toArray))
+    {arguments : List VExpr} {resultType : VExpr}
+    (argumentTyping : ∀ {replacements : List Expr} {value valueType},
+      TrExprS env universes base.vlctx rule.rhs value →
+      env.HasType universes.length base.vlctx.toCtx value valueType →
+      ElimNestedInductive.TypedParameterArguments env universes base valueType
+        replacements arguments resultType)
+    (kind : ∀ {replacements : List Expr} {value valueType},
+      TrExprS env universes base.vlctx rule.rhs value →
+      env.HasType universes.length base.vlctx.toCtx value valueType →
+      env.SortArity universes.length base.vlctx.toCtx
+        (count + replacements.length) valueType)
+    (baseWF : base.WF env universes)
+    (targetWF : target.WF env universes)
+    {insertionLift : Lift}
+    (insertion : VLCtx.FVLift' base.vlctx target.vlctx 0 insertionLift 0) :
+    GeneratedConstructorRuleRhsResult (env := env) (universes := universes)
+      (stats := stats) (motives := motives) (minors := minors) (ctx := ctx)
+      (constructor := constructor) (minor := minor) (rule := rule) := by
+  have bodyClosed : ∀ terminal fields,
+      (recursorMinorBody stats infos constructor terminal fields).looseBVarRange' = 0 := by
+    intro terminal fields
+    obtain ⟨bodySemantic, translated⟩ := bodyWitness terminal fields
+    exact (final.noBV ▸ translated.closed).looseBVarRange_zero
+  obtain ⟨fieldModel, terminal, fields, hypotheses, replacements, replacementTerminal,
+    values, bodySemantic, sourceEq, nativeReceipt, typedArguments, bodyTranslated, bodyTyped,
+    nestedTranslated⟩ := step.generatedConstructorRhsBody opening reserved bodyClosed bodyPeeled
+      envWF
+      (fun {fields} {index} {hypotheses finalHypotheses} {suffixReader finalReader} {domain}
+          {source} {tail} {initial middle} bound head sourceExpr =>
+        canonical (fields := fields) (index := index) (hypotheses := hypotheses)
+          (finalHypotheses := finalHypotheses) (suffixReader := suffixReader)
+          (finalReader := finalReader) (domain := domain) (source := source) (tail := tail)
+          (initial := initial) (middle := middle) bound head sourceExpr)
+      minorTranslated minorTyped converted
+  have receiptShape' := receiptShape nestedTranslated bodyTyped
+  obtain ⟨rhsSemantic, rhsType, ruleReceipt, rhsTranslated, rhsTyped⟩ :=
+    step.abstractConstructorRuleRhs receipt extension receiptShape'
+      nestedTranslated bodyTyped envWF
+  obtain ⟨ruleReceipt, baseResultTranslated, baseResultTyped, baseResultKind,
+    resultTranslated, resultTyped, resultKind⟩ :=
+    ruleReceipt.applyIotaKindWeakFVKind rhsTranslated rhsTyped
+      (argumentTyping rhsTranslated rhsTyped) envWF baseWF (kind rhsTranslated rhsTyped)
+      targetWF insertion
+  exact ⟨infos, domainReader, domain, ids, final, base, target, count, arguments, resultType,
+    insertionLift, peeled, minorSemantic, fieldModel, terminal, fields, hypotheses,
+    replacements, replacementTerminal, values, bodySemantic, rhsSemantic, rhsType,
+    extension, insertion, sourceEq, nativeReceipt, typedArguments, bodyTranslated, bodyTyped,
+    nestedTranslated, ruleReceipt, rhsTranslated, rhsTyped, kind rhsTranslated rhsTyped,
+    baseResultTranslated, baseResultTyped, baseResultKind, resultTranslated, resultTyped,
+    resultKind⟩
+
 /-- A minor step transports the actual constructor-field prefix receipt from
 the field model through the IH and minor context extensions.  The native body
 is retained as an explicit expression for the subsequent generated IH values. -/

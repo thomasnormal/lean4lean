@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Translated ordinary generated-rule producer — 2026-10-30
+
+The ordinary recursor-rule result seam now has a translated-body entry point,
+`MinorModelStep.generatedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourceAppliedOfTranslated`.
+It obtains `bodyClosed` from each ordinary `TrExpr` witness through the final
+model's no-bound-variable invariant, then delegates to the existing ordinary
+receipt and iota producer. The generated field/IH package, ordinary receipt,
+base/target typing, and sort-arity facts remain explicit; no direct `sorry`,
+`admit`, or axiom was introduced.
+
 ## Combined complete generated-rule producer — 2026-10-29
 
 The complete stored-rule result boundary now has a combined producer entry

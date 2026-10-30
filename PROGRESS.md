@@ -1,5 +1,13 @@
 # Progress and upstream comparison
 
+## Translated ordinary generated-rule producer — 2026-10-30
+
+`MinorModelStep.generatedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourceAppliedOfTranslated`
+now derives the generated minor-body closure premise from ordinary `TrExpr`
+witnesses before invoking the ordinary recursor-rule producer. It preserves the
+ordinary receipt, field/IH body package, base/target iota transport, typing, and
+sort-arity obligations. No admissions or executable behavior changed.
+
 ## Combined complete generated-rule producer — 2026-10-29
 
 `LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaBaseAndTargetResultsOfCombined`
