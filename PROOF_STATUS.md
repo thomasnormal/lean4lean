@@ -19,6 +19,17 @@ in the full minor-pass endpoint.
 
 # Non-inductive verification proof of concept
 
+## Order-aware selected-telescope obstruction — 2026-10-30
+
+The selected-telescope boundary now has a negative theorem: two
+`SelectedRecursorTelescope` values over the same initial and final models must
+have the same identifier sequence. For canonical Bool, the proved native
+parent-first telescope therefore cannot be replaced by the grouped
+`[motive, minorFalse, minorTrue, major]` telescope when `major ≠ motive`.
+This rules out treating the binder permutation as a semantic context reorder;
+the next proof must establish a dependency-aware virtual-context transport or
+retain the grouped abstraction as an explicit premise.
+
 ## Canonical Bool final body/application receipt — 2026-10-30
 
 The canonical endpoint now specializes the grouped final body/application

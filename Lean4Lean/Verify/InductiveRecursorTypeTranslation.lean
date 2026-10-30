@@ -38,6 +38,20 @@ theorem SelectedRecursorTelescope.extension
   | push _ identifier _ name domain binder semantic _ _ _ _ earlierExtension =>
     exact earlierExtension.push identifier name domain semantic binder
 
+/- A selected telescope is chronological data, not just a list of names.  Its
+   extension fixes the identifier sequence for a fixed initial and final
+   model, so two telescopes over the same models cannot differ only by a
+   permutation of their binders. -/
+theorem SelectedRecursorTelescope.no_reordered_ids
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial final : MLCtx} {ids ids' : List FVarId}
+    (telescope : SelectedRecursorTelescope env universes full initial ids final)
+    (different : ids ≠ ids') :
+    ¬ SelectedRecursorTelescope env universes full initial ids' final := by
+  intro reordered
+  apply different
+  exact telescope.extension.eq_ids_of_same_final reordered.extension
+
 theorem SelectedRecursorTelescope.lookups
     {env : VEnv} {universes : List Name} {full : LocalContext} {initial final : MLCtx}
     {ids : List FVarId} (telescope : SelectedRecursorTelescope env universes full initial ids final)

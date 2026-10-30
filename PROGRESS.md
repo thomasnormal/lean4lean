@@ -20,6 +20,16 @@ candidate.
 
 # Progress and upstream comparison
 
+## Order-aware selected-telescope obstruction — 2026-10-30
+
+`SelectedRecursorTelescope.no_reordered_ids` proves that a selected
+telescope's identifier list is fixed by its initial and final `MLCtx` models.
+The canonical Bool regression specializes this to the native parent-first
+order `[major, motive, minorFalse, minorTrue]` and proves that the grouped
+recursor order cannot be another selected telescope over the same final model.
+The remaining semantic transport therefore needs a dependency-aware virtual
+context reorder/rebase; a `List.Perm` alone cannot provide it.
+
 ## Canonical Bool final body/application receipt — 2026-10-30
 
 `RecursorInfoModelEndpoint.canonicalBoolRebasedFinalBodyApplicationReceipt`

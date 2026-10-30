@@ -50,6 +50,15 @@ example {initial final : MLCtx} {motive minorFalse minorTrue major : FVarId}
       ids = [major, motive, minorFalse, minorTrue] :=
   canonicalBoolAllocationOfKnownExtension known
 
+example {full : LocalContext} {initial final : MLCtx}
+    {motive minorFalse minorTrue major : FVarId}
+    (chronological : SelectedRecursorTelescope canonicalBoolModel [`u] full initial
+      [major, motive, minorFalse, minorTrue] final)
+    (distinct : major ≠ motive) :
+    ¬ SelectedRecursorTelescope canonicalBoolModel [`u] full initial
+      [motive, minorFalse, minorTrue, major] final :=
+  canonicalBoolGroupedTelescopeImpossible chronological distinct
+
 example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
     {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
     (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
@@ -510,6 +519,8 @@ run_meta
   auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
   auditTheorem ``canonicalBoolRecursorBinderOrderPermutation
   auditTheorem ``canonicalBoolAllocationOfKnownExtension
+  auditTheorem ``SelectedRecursorTelescope.no_reordered_ids
+  auditTheorem ``canonicalBoolGroupedTelescopeImpossible
   auditTheorem ``RecursorInfoModelEndpoint.canonicalBoolRebaseBinderOrder
   auditTheorem ``RecursorInfoModelEndpoint.canonicalBoolRebaseBinderOrderOfKnownExtension
   auditTheorem ``RecursorInfoModelEndpoint.canonicalBoolRebasedFinalBodyApplicationReceipt

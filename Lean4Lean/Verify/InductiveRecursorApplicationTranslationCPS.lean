@@ -596,6 +596,25 @@ theorem canonicalBoolAllocationOfKnownExtension
   intro ids extension
   exact extension.eq_ids_of_same_final known
 
+/- The grouped Bool order cannot be presented as a second selected telescope
+   over the same native final model.  This is the concrete obstruction behind
+   the semantic rebase boundary: a `List.Perm` does not reorder the model
+   extension or its prefix translations. -/
+theorem canonicalBoolGroupedTelescopeImpossible
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial final : MLCtx}
+    {motive minorFalse minorTrue major : FVarId}
+    (chronological : SelectedRecursorTelescope env universes full initial
+      [major, motive, minorFalse, minorTrue] final)
+    (distinct : major ≠ motive) :
+    ¬ SelectedRecursorTelescope env universes full initial
+      [motive, minorFalse, minorTrue, major] final := by
+  apply chronological.no_reordered_ids
+  intro equality
+  have head := congrArg List.head? equality
+  apply distinct
+  simpa using head
+
 /- Specialize the grouped-order rebase endpoint to canonical Bool.  The native
    allocation equation remains explicit, while the recursor-type binder
    alignment and the required permutation are discharged from the concrete
