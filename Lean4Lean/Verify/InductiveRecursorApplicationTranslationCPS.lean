@@ -266,6 +266,40 @@ theorem RecursorBinderRebaseReceipt.finalDomainSupport
     sourceSemantic.lift' (.skipN .refl (identifier :: suffix).length), lookup, finalLookup,
     rebasedTranslation, rebasedTyped⟩
 
+/- The final-domain receipts provide the cdecl agreement needed to compare a
+   grouped recursor body opened in the native local context with the same body
+   opened in the final model context.  This is a syntactic body-transport
+   seam; it does not translate the motive/minor applications or prove iota. -/
+theorem RecursorBinderRebaseReceipt.groupedBindingEquation
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent full
+      initial final chronological grouped)
+    (finalWF : final.WF env universes) (native : final.lctx = full)
+    {body : Expr} (bodyClosed : body.looseBVarRange' = 0) :
+    full.mkForall (grouped.map Expr.fvar).toArray body =
+      final.lctx.mkForall (grouped.map Expr.fvar).toArray body := by
+  have extension := receipt.chronologicalExtension
+  have initialWF : initial.WF env universes := by
+    simpa only [extension.drop_eq] using
+      MLCtx.WF.dropN chronological.length extension.bound finalWF
+  have telescope : SelectedRecursorTelescope env universes full initial chronological final :=
+    by simpa only [native] using extension.selectedTelescope finalWF
+  have chronologicalDistinct := telescope.distinct initialWF
+  have groupedDistinct : grouped.Nodup := receipt.groupedOrder.nodup_iff.mpr chronologicalDistinct
+  have agreement : SelectedCDeclBindingAgreement full final.lctx grouped := by
+    intro identifier member
+    obtain ⟨physicalIndex, projectedIndex, name, domain, binder, semantic,
+      fullLookup, finalLookup, _, _⟩ :=
+      receipt.finalDomainSupport finalWF native identifier member
+    exact ⟨physicalIndex, projectedIndex, name, domain, binder, .default, .default,
+      fullLookup, finalLookup⟩
+  have fullScope : full.BindingScope := by
+    simpa only [native] using finalWF.bindingScope
+  exact mkForall_congr_selected_cdecl grouped fullScope finalWF.bindingScope
+    bodyClosed groupedDistinct agreement
+
 /- For canonical Bool, native parent allocation is major-then-motive, while
    the recursor type groups motive/minors before major.  Keep this shape
    obstruction explicit: selected-domain support needs a reordering/rebase

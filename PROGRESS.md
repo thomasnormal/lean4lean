@@ -2302,3 +2302,12 @@ provenance, weakened domain translation, and final typehood. The endpoint
 regression consumes this transport after the rebase receipt. Role-to-ID
 correspondence, motive/minor application semantics, generated-rule semantics,
 and iota soundness remain explicit premises.
+
+## October 30, 2026 — grouped recursor body binding transport
+
+The rebase receipt now derives a cdecl binding agreement for grouped IDs and a
+native/final `mkForall` equality for every closed grouped recursor body. The
+endpoint regression consumes this equation after final-domain transport. This
+is a syntactic body boundary; motive/minor application semantics,
+role-to-ID chronology, generated-rule semantics, and iota soundness remain
+separate obligations.

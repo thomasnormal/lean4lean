@@ -97,6 +97,25 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
   intro identifier member
   exact receipt.finalDomainSupport finalWF finalNative identifier member
 
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
+    (grouped : List FVarId)
+    (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
+    (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
+    {body : Expr} (bodyClosed : body.looseBVarRange' = 0) :
+    ∃ chronological,
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 finalReader.lctx
+        initial final chronological grouped ∧
+      finalReader.lctx.mkForall (grouped.map Expr.fvar).toArray body =
+      final.lctx.mkForall (grouped.map Expr.fvar).toArray body := by
+  obtain ⟨chronological, receipt⟩ := endpoint.rebaseBinderOrder canonicalBoolModel.wf
+    grouped order alignment
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  refine ⟨chronological, receipt, ?_⟩
+  simpa only [finalNative] using receipt.groupedBindingEquation finalWF finalNative bodyClosed
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -113,6 +132,7 @@ run_meta
   auditTheorem ``SelectedRecursorTelescope.domainReceiptWithSuffix
   auditTheorem ``RecursorInfoModelEndpoint.rebaseBinderOrder
   auditTheorem ``RecursorBinderRebaseReceipt.finalDomainSupport
+  auditTheorem ``RecursorBinderRebaseReceipt.groupedBindingEquation
   auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
   auditTheorem ``canonicalBoolRecursorBinderOrderPermutation
   logInfo "endpoint selected-domain, split/rebase, and allocation-order boundaries are theorem-backed"

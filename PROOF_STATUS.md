@@ -13384,6 +13384,16 @@ new theorem bodies for primitive or admitted proofs. The role-to-ID chronology
 identification, semantic motive/minor support, generated-rule semantics, and
 iota obligations remain separate.
 
+## October 30, 2026 — grouped body binding equation
+
+`RecursorBinderRebaseReceipt.groupedBindingEquation` derives a
+`SelectedCDeclBindingAgreement` from the final-domain receipts and proves the
+native/final `mkForall` equality for any closed grouped body. The selected-domain
+endpoint regression applies this theorem and audits its body. This transports
+the syntactic binder shell only; semantic motive/minor applications,
+role-to-ID chronology, generated-rule semantics, and iota obligations remain
+explicit.
+
 The focused module build and endpoint regression pass, and the detached
 `LEAN_NUM_THREADS=8 lake build` completes all 492 jobs. The test audits the new
 split, suffix-domain, and endpoint-rebase theorem bodies for primitive/admitted
