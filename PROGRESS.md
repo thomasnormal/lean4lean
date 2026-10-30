@@ -1,5 +1,13 @@
 # Progress and upstream comparison
 
+## Constructive checker consumer receipt — 2026-10-30
+
+`RestoredRecordEvidence.registrationConstructiveCheckerConsumerReceiptWithGeneratedRuleResultsAndIota`
+now pairs constructive `AddInductWithRecursorsEvidence` and checked-frontend
+validity with the named registration consumer receipt. This retains the
+constructive registration proof itself alongside executable lookup/alignment
+and generated-rule/iota witnesses.
+
 ## Restoration-stage checker consumer receipt — 2026-10-30
 
 `addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIota_of_restorationStages`

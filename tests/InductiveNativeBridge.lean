@@ -666,6 +666,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResults
+#check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerConsumerReceiptWithGeneratedRuleResultsAndIota
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerAndMapWFGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerAndMapWFGeneratedRuleResultAndIotaBaseAndTargetResults_toCheckerEnv
@@ -4846,6 +4847,9 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
     producer halign hconstants history hconstantsWF hrecursors hvalues hsource ruleResults
   have hPluralCombined := restored.registrationConstructiveCheckerAndMapWFGeneratedRuleResultsAndIotaBaseAndTargetResults
     producer halign hconstants history hconstantsWF hrecursors hvalues hsource ruleResults
+  have hConsumer := restored.registrationConstructiveCheckerConsumerReceiptWithGeneratedRuleResultsAndIota
+    producer halign hconstants history hconstantsWF hrecursors hvalues hsource ruleResults
+  have _ := hConsumer.2.2.2.orderedLookup
   exact (restored.registrationConstructiveCheckerAndMapWFIotaBaseAndTargetResults producer halign hconstants history
     hconstantsWF hrecursors hvalues hsource ruleResults).2.2.2.2.2.2
 

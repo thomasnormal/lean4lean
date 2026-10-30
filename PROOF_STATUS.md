@@ -1,5 +1,11 @@
 # Non-inductive verification proof of concept
 
+## Constructive checker consumer receipt — 2026-10-30
+
+The constructive checker path now exposes its `AddInductWithRecursorsEvidence`
+beside checker validity and the registration consumer receipt, with generated
+rule and iota obligations still explicit.
+
 ## Restoration-stage checker consumer receipt — 2026-10-30
 
 The restoration-stage checker-history path now returns checker validity beside
