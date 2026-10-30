@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Canonical Bool parent/minor support — 2026-10-30
+
+`Lean4Lean.Verify.CanonicalBoolRecursorSupport` now proves the canonical
+Bool parent stop case and the complete two-constructor minor trace shape from
+the richer well-formed model. The zero-field source proof translates each
+constructor head, its empty field/IH traces, and the index annotation, while
+the dependent second step consumes the updated `RecInfo` motive receipt. The
+native trace, motive fvar declarations, and semantic recursive-motive
+application remain explicit premises; this is the constructive support seam,
+not a claim that the full inductive frontend or iota semantics are complete.
+
 ## Selected-domain construction boundary — 2026-10-30
 
 `tests/InductiveRecursorSelectedDomainBoundary.lean` records the exact proved

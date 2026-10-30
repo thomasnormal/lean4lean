@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Canonical Bool parent/minor support — 2026-10-30
+
+`Lean4Lean.Verify.CanonicalBoolRecursorSupport` proves the canonical Bool
+parent stop case and the dependent two-constructor minor trace support using
+`canonicalBoolModel.WF`. It translates both zero-field constructor heads and
+their empty field/IH traces, including the updated motive array on the second
+constructor. Native trace construction, motive fvar declarations, and the
+semantic `IHMotiveApplicationSupport` callback remain explicit premises, so
+the theorem records a reusable boundary without claiming complete frontend
+or iota verification.
+
 ## Selected-domain construction boundary — 2026-10-30
 
 The regression `tests/InductiveRecursorSelectedDomainBoundary.lean` separates
