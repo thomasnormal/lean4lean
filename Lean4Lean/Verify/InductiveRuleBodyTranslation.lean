@@ -932,6 +932,36 @@ theorem MinorModelStep.peeledDomainSource
   refine ⟨fieldModel, terminal, fields, hypotheses, ?_⟩
   rw [domainEq, recursorMinorDomain, outerPeeled, outerEquality, fieldNative]
 
+/- An ordinary translation of each generated minor body already supplies the
+   closure needed by the peeled-domain source producer.  Keep the peeling
+   equation explicit while deriving only the redundant loose-variable premise.
+-/
+theorem MinorModelStep.peeledDomainSourceOfTranslated
+    {env : VEnv} {universes : List Name} {parentName : Name}
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    {reader domainReader : Context} {domain : Expr}
+    {source : RecursorMinorDomainSource stats infos constructor reader domain domainReader}
+    {initial final : MLCtx}
+    (step : MinorModelStep env universes parentName source initial final)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (bodyTranslated : ∀ terminal fields, ∃ bodySemantic,
+      TrExpr env universes final.vlctx
+        (recursorMinorBody stats infos constructor terminal fields) bodySemantic)
+    (bodyPeeled : ∀ terminal fields,
+      peelTypeAnnotations (recursorMinorBody stats infos constructor terminal fields) =
+        recursorMinorBody stats infos constructor terminal fields) :
+    ∃ (fieldModel : MLCtx) (terminal : Expr) (fields hypotheses : Array Expr),
+      peelTypeAnnotations domain =
+        fieldModel.lctx.mkForall fields
+          (domainReader.lctx.mkForall hypotheses
+            (recursorMinorBody stats infos constructor terminal fields)) := by
+  have bodyClosed : ∀ terminal fields,
+      (recursorMinorBody stats infos constructor terminal fields).looseBVarRange' = 0 := by
+    intro terminal fields
+    obtain ⟨bodySemantic, translated⟩ := bodyTranslated terminal fields
+    exact (final.noBV ▸ translated.closed).looseBVarRange_zero
+  exact step.peeledDomainSource reserved bodyClosed bodyPeeled
+
 set_option maxHeartbeats 1000000 in
 /-- Build the generated IH argument receipt for one actual minor step.  The
 canonical producer is instantiated at the translated IH history, then the

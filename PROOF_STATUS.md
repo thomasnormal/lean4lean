@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Translated peeled-domain source producer — 2026-10-30
+
+The peeled minor-domain source seam now has a translated-body entry point,
+`MinorModelStep.peeledDomainSourceOfTranslated`. It obtains each generated
+body's zero loose-bound-variable range through the final model's no-bound-
+variable invariant and delegates to the existing source producer. The actual
+field/IH source equality and peeling obligations remain explicit; no direct
+`sorry`, `admit`, or axiom was introduced.
+
 ## Translated ordinary generated-rule producer — 2026-10-30
 
 The ordinary recursor-rule result seam now has a translated-body entry point,

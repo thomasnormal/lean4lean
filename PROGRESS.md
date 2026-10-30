@@ -1,5 +1,13 @@
 # Progress and upstream comparison
 
+## Translated peeled-domain source producer — 2026-10-30
+
+`MinorModelStep.peeledDomainSourceOfTranslated` now derives the generated
+minor-body closure needed by the peeled-domain source producer from ordinary
+`TrExpr` witnesses. It keeps the annotation-peeling equation and the actual
+field/IH context source recovery explicit. No admissions or executable behavior
+changed.
+
 ## Translated ordinary generated-rule producer — 2026-10-30
 
 `MinorModelStep.generatedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourceAppliedOfTranslated`
