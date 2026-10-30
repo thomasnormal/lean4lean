@@ -1,5 +1,15 @@
 # Progress and upstream comparison
 
+## Canonical Bool body-application support — 2026-10-30
+
+`canonicalBoolRecursorTypeBodyApplicationSupport` now derives
+`RecursorTypeBodyApplicationSupport` from final major and motive cdecl
+evidence. It translates the major, reconstructs the motive's one-binder
+`forall` through `mkForall` and `TrExprS.forallE`, and aligns the resulting
+semantic domain with the major's type. Minor semantics, generated-rule
+semantics, and iota soundness remain explicit caller premises. The endpoint
+regression obtains the cdecl evidence from the final-domain rebase receipt.
+
 ## Canonical allocation-order boundary — 2026-10-30
 
 `RecursorInfoModelEndpoint.passExtensions` now exposes the chronological

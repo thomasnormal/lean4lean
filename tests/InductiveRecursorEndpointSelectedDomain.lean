@@ -159,6 +159,76 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
   simpa only [finalNative] using
     receipt.finalBodyApplicationReceipt finalWF finalNative bodySupport bodyClosed
 
+example {infos : Array RecInfo} {final : MLCtx} {elimLevel : Level}
+    {motive major : FVarId}
+    {semanticElimLevel : VLevel}
+    (finalWF : final.WF canonicalBoolModel [`u])
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (indicesEq : infos[0]!.indices = #[])
+    (majorEq : infos[0]!.major = .fvar major)
+    (majorEvidence : ∃ index name domain binder,
+      final.lctx.find? major =
+        some (.cdecl index major name domain binder .default))
+    (motiveEvidence : ∃ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) ∧
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
+    (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
+    {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
+    (minorSemantics : MinorSemantics)
+    (generatedRuleSemantics : GeneratedRuleSemantics)
+    (iotaSoundness : IotaSoundness) :
+    RecursorTypeBodyApplicationSupport canonicalBoolModel [`u] infos 0 final.vlctx := by
+  exact canonicalBoolRecursorTypeBodyApplicationSupport canonicalBoolModel.wf finalWF
+    motiveEq indicesEq majorEq majorEvidence motiveEvidence mapped minorSemantics
+    generatedRuleSemantics iotaSoundness
+
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
+    (grouped : List FVarId)
+    (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
+    (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
+    {motive major : FVarId} {semanticElimLevel : VLevel}
+    (majorMember : major ∈ grouped) (motiveMember : motive ∈ grouped)
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (indicesEq : infos[0]!.indices = #[])
+    (majorEq : infos[0]!.major = .fvar major)
+    (motiveShape : ∀ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) →
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
+    (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
+    {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
+    (minorSemantics : MinorSemantics)
+    (generatedRuleSemantics : GeneratedRuleSemantics)
+    (iotaSoundness : IotaSoundness) :
+    RecursorTypeBodyApplicationSupport canonicalBoolModel [`u] infos 0 final.vlctx := by
+  obtain ⟨chronological, receipt⟩ := endpoint.rebaseBinderOrder canonicalBoolModel.wf
+    grouped order alignment
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  have majorEvidence : ∃ index name domain binder,
+      final.lctx.find? major =
+        some (.cdecl index major name domain binder .default) := by
+    obtain ⟨_, projectedIndex, name, domain, binder, _, _, finalLookup, _, _⟩ :=
+      receipt.finalDomainSupport finalWF finalNative major majorMember
+    exact ⟨projectedIndex, name, domain, binder, finalLookup⟩
+  have motiveEvidence : ∃ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) ∧
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)) := by
+    obtain ⟨_, projectedIndex, name, domain, binder, _, _, finalLookup, _, _⟩ :=
+      receipt.finalDomainSupport finalWF finalNative motive motiveMember
+    exact ⟨projectedIndex, name, domain, binder, finalLookup,
+      motiveShape projectedIndex name domain binder finalLookup⟩
+  exact canonicalBoolRecursorTypeBodyApplicationSupport canonicalBoolModel.wf finalWF
+    motiveEq indicesEq majorEq majorEvidence motiveEvidence mapped minorSemantics
+    generatedRuleSemantics iotaSoundness
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -178,6 +248,7 @@ run_meta
   auditTheorem ``RecursorBinderRebaseReceipt.groupedBindingEquation
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeFinalEquation
   auditTheorem ``RecursorBinderRebaseReceipt.finalBodyApplicationReceipt
+  auditTheorem ``canonicalBoolRecursorTypeBodyApplicationSupport
   auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
   auditTheorem ``canonicalBoolRecursorBinderOrderPermutation
   logInfo "endpoint selected-domain, split/rebase, and allocation-order boundaries are theorem-backed"

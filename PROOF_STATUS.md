@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Canonical Bool body-application support — 2026-10-30
+
+The canonical Bool recursor application boundary now has a theorem-backed
+`RecursorTypeBodyApplicationSupport` producer. Final cdecl translations for
+the major and motive are enough to construct the translated major and the
+motive `forall` type after the empty-index reduction. The regression feeds
+its major/motive evidence from `RecursorBinderRebaseReceipt.finalDomainSupport`.
+Minor-pass semantics, generated-rule semantics, and iota soundness stay as
+explicit premises and are not inferred by this structural theorem.
+
 ## Canonical allocation-order boundary — 2026-10-30
 
 The pass endpoint now retains the chronological parent/minor extension split.

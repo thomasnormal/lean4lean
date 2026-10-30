@@ -365,6 +365,77 @@ theorem RecursorBinderRebaseReceipt.finalBodyApplicationReceipt
   exact ⟨bodySemantic, level, bodyTranslated, bodyTyped,
     receipt.rawTypeFinalEquation finalWF native bodyClosed⟩
 
+/- The canonical Bool body needs only the final major and motive cdecls.  Keep
+   the other registration obligations in the interface: this theorem derives
+   the body application shell, while minor semantics, generated-rule
+   semantics, and iota soundness remain caller-supplied facts. -/
+theorem canonicalBoolRecursorTypeBodyApplicationSupport
+    {env : VEnv} {universes : List Name} {infos : Array RecInfo}
+    {final : MLCtx} {elimLevel : Level} {motive major : FVarId}
+    {semanticElimLevel : VLevel}
+    (envWF : env.WF) (finalWF : final.WF env universes)
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (indicesEq : infos[0]!.indices = #[])
+    (majorEq : infos[0]!.major = .fvar major)
+    (majorEvidence : ∃ index name domain binder,
+      final.lctx.find? major =
+        some (.cdecl index major name domain binder .default))
+    (motiveEvidence : ∃ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) ∧
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
+    (_minorSemantics : MinorSemantics)
+    (_generatedRuleSemantics : GeneratedRuleSemantics)
+    (_iotaSoundness : IotaSoundness) :
+    RecursorTypeBodyApplicationSupport env universes infos 0 final.vlctx := by
+  obtain ⟨majorIndex, majorName, majorDomain, majorBinder, majorLookup⟩ := majorEvidence
+  obtain ⟨motiveIndex, motiveName, motiveDomain, motiveBinder, motiveLookup,
+    motiveDomainEq⟩ := motiveEvidence
+  have majorBindings : SelectedCDeclBindings final.lctx [major] := by
+    intro identifier member
+    obtain rfl := List.mem_singleton.mp member
+    exact ⟨majorIndex, majorName, majorDomain, majorBinder, .default, majorLookup⟩
+  obtain ⟨majorSemantic, majorType, _, majorTranslated, majorTypeTranslated, majorTyped⟩ :=
+    finalWF.cdeclTranslation envWF majorLookup
+  have majorArray : #[infos[0]!.major] = ([major].map Expr.fvar).toArray := by
+    simp only [majorEq, List.map_cons, List.map_nil]
+  have majorArrow : final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel) =
+      .forallE majorName majorDomain (.sort elimLevel) majorBinder := by
+    rw [majorArray, mkForall_selected_fold [major] finalWF.bindingScope rfl
+      (by simp) majorBindings]
+    simp only [List.foldr_cons, List.foldr_nil, Expr.abstract1,
+      LocalContext.mkBindingList1, majorLookup, Expr.abstractList,
+      Bool.false_eq_true, if_false]
+  have emptyForall : ∀ body : Expr, final.lctx.mkForall #[] body = body := by
+    intro body
+    simp only [Lean.LocalContext.mkForall, Lean.LocalContext.mkBinding,
+      Array.size_empty, Nat.foldRev_zero, Expr.abstractRange_eq]
+    have abstractEmpty : body.abstract #[] = body := by
+      have h := Expr.abstract_eq body []
+      simpa only [List.map_nil] using h.trans (Expr.abstractFVars_nil body 0)
+    rw [abstractEmpty]
+  obtain ⟨motiveSemantic, motiveType, _, motiveTranslated, motiveTypeTranslated,
+    motiveTyped⟩ := finalWF.cdeclTranslation envWF motiveLookup
+  have motiveDomainShape : motiveDomain =
+      .forallE majorName majorDomain (.sort elimLevel) majorBinder := by
+    rw [motiveDomainEq, indicesEq, emptyForall, majorArrow]
+  rw [motiveDomainShape] at motiveTypeTranslated
+  cases motiveTypeTranslated with
+  | forallE _ _ majorDomainTranslated arrowSortTranslated =>
+    have majorAlignment := majorTypeTranslated.uniq envWF
+      (.refl envWF finalWF.tr.wf) majorDomainTranslated
+    have convertedMajor := majorTyped.defeqU_r envWF finalWF.tr.wf.toCtx majorAlignment
+    cases arrowSortTranslated with
+    | sort arrowMapped =>
+      cases Option.some.inj (mapped.symm.trans arrowMapped)
+      refine ⟨majorSemantic, _, motiveSemantic, semanticElimLevel, ?_, convertedMajor,
+        ?_, motiveTyped⟩
+      · simpa only [majorEq] using majorTranslated
+      · simpa only [motiveEq, indicesEq, mkAppN, Array.foldl_empty] using motiveTranslated
+
 /- For canonical Bool, native parent allocation is major-then-motive, while
    the recursor type groups motive/minors before major.  Keep this shape
    obstruction explicit: selected-domain support needs a reordering/rebase
