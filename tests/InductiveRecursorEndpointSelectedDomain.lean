@@ -62,6 +62,42 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
   endpoint.canonicalBoolRebaseBinderOrder canonicalBoolModel.wf params infosEq motiveEq
     minorsEq indicesEq majorEq allocation
 
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
+    {motive minorFalse minorTrue major : FVarId} {info : RecInfo}
+    (params : stats.params = #[]) (infosEq : infos = #[info])
+    (motiveEq : info.motive = .fvar motive)
+    (minorsEq : info.minors = #[.fvar minorFalse, .fvar minorTrue])
+    (indicesEq : info.indices = #[]) (majorEq : info.major = .fvar major)
+    (allocation : ∀ ids, IndexMLCtxExtension initial ids final →
+      ids = [major, motive, minorFalse, minorTrue])
+    (motiveShape : ∀ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) →
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
+    {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
+    (minorSemantics : MinorSemantics)
+    (generatedRuleSemantics : GeneratedRuleSemantics)
+    (iotaSoundness : IotaSoundness)
+    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0) :
+    ∃ chronological bodySemantic level,
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 finalReader.lctx
+        initial final chronological [motive, minorFalse, minorTrue, major] ∧
+      TrExprS canonicalBoolModel [`u] final.vlctx (recursorTypeBody infos 0) bodySemantic ∧
+      canonicalBoolModel.HasType 1 final.vlctx.toCtx bodySemantic (.sort level) ∧
+      recursorRawType stats infos 0 finalReader.lctx =
+        final.lctx.mkForall
+          ([motive, minorFalse, minorTrue, major].map Expr.fvar).toArray
+          (recursorTypeBody infos 0) :=
+  endpoint.canonicalBoolRebasedFinalBodyApplicationReceipt canonicalBoolModel.wf
+    params infosEq motiveEq minorsEq indicesEq majorEq allocation motiveShape mapped
+    minorSemantics generatedRuleSemantics iotaSoundness bodyClosed
+
 private def splitId : FVarId := ⟨`RecursorReceiptSplitId⟩
 private def splitModel : MLCtx :=
   .vlam splitId `split (.sort .zero) (.sort .zero) .default .nil
@@ -451,6 +487,7 @@ run_meta
   auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
   auditTheorem ``canonicalBoolRecursorBinderOrderPermutation
   auditTheorem ``RecursorInfoModelEndpoint.canonicalBoolRebaseBinderOrder
+  auditTheorem ``RecursorInfoModelEndpoint.canonicalBoolRebasedFinalBodyApplicationReceipt
   logInfo "endpoint selected-domain, split/rebase, and allocation-order boundaries are theorem-backed"
 
 end InductiveRecursorEndpointSelectedDomainTest

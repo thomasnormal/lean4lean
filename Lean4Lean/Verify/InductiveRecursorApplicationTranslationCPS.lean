@@ -616,6 +616,58 @@ theorem RecursorInfoModelEndpoint.canonicalBoolRebaseBinderOrder
     exact canonicalBoolRecursorBinderOrderPermutation
   · exact alignment
 
+/- Feed the canonical rebase receipt directly into the final body/application
+   consumer.  The endpoint supplies the final model WF and native local-context
+   equality; role membership is discharged from the fixed grouped Bool order. -/
+theorem RecursorInfoModelEndpoint.canonicalBoolRebasedFinalBodyApplicationReceipt
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF)
+    {motive minorFalse minorTrue major : FVarId} {info : RecInfo}
+    (params : stats.params = #[]) (infosEq : infos = #[info])
+    (motiveEq : info.motive = .fvar motive)
+    (minorsEq : info.minors = #[.fvar minorFalse, .fvar minorTrue])
+    (indicesEq : info.indices = #[])
+    (majorEq : info.major = .fvar major)
+    (allocation : ∀ ids, IndexMLCtxExtension initial ids final →
+      ids = [major, motive, minorFalse, minorTrue])
+    (motiveShape : ∀ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) →
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
+    (_minorSemantics : MinorSemantics)
+    (_generatedRuleSemantics : GeneratedRuleSemantics)
+    (_iotaSoundness : IotaSoundness)
+    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0) :
+    ∃ chronological bodySemantic level,
+      RecursorBinderRebaseReceipt env universes stats infos 0 finalReader.lctx
+        initial final chronological [motive, minorFalse, minorTrue, major] ∧
+      TrExprS env universes final.vlctx (recursorTypeBody infos 0) bodySemantic ∧
+      env.HasType universes.length final.vlctx.toCtx bodySemantic (.sort level) ∧
+      recursorRawType stats infos 0 finalReader.lctx =
+        final.lctx.mkForall
+          ([motive, minorFalse, minorTrue, major].map Expr.fvar).toArray
+          (recursorTypeBody infos 0) := by
+  obtain ⟨chronological, receipt⟩ := endpoint.canonicalBoolRebaseBinderOrder envWF
+    params infosEq motiveEq minorsEq indicesEq majorEq allocation
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  obtain ⟨bodySemantic, level, bodyTranslated, bodyTyped, bodyRaw⟩ :=
+    receipt.canonicalBoolFinalBodyApplicationReceipt
+      (motive := motive) (major := major)
+      (grouped := [motive, minorFalse, minorTrue, major]) envWF finalWF finalNative
+      (by simp) (by simp) (by simp)
+      (by simpa [infosEq] using motiveEq) (by simpa [infosEq] using indicesEq)
+      (by simpa [infosEq] using majorEq) motiveShape mapped
+      _minorSemantics _generatedRuleSemantics _iotaSoundness bodyClosed
+  exact ⟨chronological, bodySemantic, level, receipt, bodyTranslated, bodyTyped, bodyRaw⟩
+
 /- Once selected-domain support is available, its semantic content can be
    consumed one binder at a time.  This packages the exact chronological
    prefix model, native cdecl provenance, translated domain, and domain

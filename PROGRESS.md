@@ -1,5 +1,15 @@
 # Progress and upstream comparison
 
+## Canonical Bool final body/application receipt — 2026-10-30
+
+`RecursorInfoModelEndpoint.canonicalBoolRebasedFinalBodyApplicationReceipt`
+now feeds the canonical Bool rebase receipt into the final body/application
+consumer. With explicit role equations, native allocation, motive shape,
+elimination-level mapping, and generated-rule/iota callbacks, it returns the
+chronological rebase receipt, translated and typed recursor body, and grouped
+raw-type equation. Body, minor, generated-rule, and iota obligations remain
+explicit; this fork-specific endpoint is not an upstream PR candidate.
+
 ## Constructive checker consumer receipt — 2026-10-30
 
 `RestoredRecordEvidence.registrationConstructiveCheckerConsumerReceiptWithGeneratedRuleResultsAndIota`

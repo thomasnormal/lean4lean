@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Canonical Bool final body/application receipt — 2026-10-30
+
+The canonical endpoint now specializes the grouped final body/application
+receipt after the native parent-first rebase. It returns the chronological
+`RecursorBinderRebaseReceipt`, translated and typed recursor body, and grouped
+raw-type equation. Motive/minor application support, generated-rule
+semantics, iota soundness, and body closedness remain explicit premises; no
+new semantic claim or executable behavior is introduced.
+
 ## Constructive checker consumer receipt — 2026-10-30
 
 The constructive checker path now exposes its `AddInductWithRecursorsEvidence`
