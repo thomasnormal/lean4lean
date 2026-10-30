@@ -1,5 +1,15 @@
 # Progress and upstream comparison
 
+## Combined complete generated-rule producer — 2026-10-29
+
+`LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaBaseAndTargetResultsOfCombined`
+now accepts one callback returning `GeneratedRecursorRuleResultSemantics`,
+which couples the closed RHS translation to the generated constructor-rule
+package at the complete stored-rule boundary. It preserves constructor/index
+recovery and the paired base/target iota endpoint while removing the duplicated
+closed/generated callback contract. No admissions or executable behavior
+changed; the generated package and iota obligations remain explicit.
+
 ## Translated full generated-rule package — 2026-10-29
 
 `MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourceApplied`

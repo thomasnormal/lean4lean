@@ -27,8 +27,15 @@ private def seededSemantic :=
 
 private theorem seededAligned (safety : DefinitionSafety) :
   Aligned safety seededNative.constants seededSemantic :=
-  Aligned.const .empty (by simp [SMap.find?])
-    ⟨DefinitionSafety.le_safe, rfl, .sort rfl⟩ rfl rfl
+  by
+    change Aligned safety
+      (SMap.insert ({ stage₁ := false } : ConstMap) marker.name (.axiomInfo marker))
+      seededSemantic
+    refine @Aligned.const safety ({ stage₁ := false } : ConstMap) VEnv.empty marker.name
+      (.axiomInfo marker) markerValue.toVConstant seededSemantic .empty ?_ ?_ ?_ rfl
+    · exact SMap.find?_emptyStage false marker.name
+    · exact ⟨DefinitionSafety.le_safe, rfl, .sort rfl⟩
+    · rfl
 
 private theorem seededWF : seededSemantic.WF :=
   ⟨[.axiom markerValue], .decl (.axiom ⟨_, .sort trivial⟩ rfl) .empty⟩

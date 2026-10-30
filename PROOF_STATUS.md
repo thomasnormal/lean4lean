@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Combined complete generated-rule producer — 2026-10-29
+
+The complete stored-rule result boundary now has a combined producer entry
+point, `LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaBaseAndTargetResultsOfCombined`.
+A single callback supplies both the closed RHS translation and generated
+constructor-rule package; the theorem retains constructor/index alignment,
+stored-rule recovery, and paired base/target iota results. It adds no direct
+`sorry`, `admit`, or axiom and does not construct inductive rule semantics.
+
 ## Translated full generated-rule package — 2026-10-29
 
 The full scoped constructor-rule package producer now derives its generated-body
