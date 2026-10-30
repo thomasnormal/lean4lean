@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Native parent/minor pass traces — 2026-10-30
+
+`Lean4Lean.Verify.InductiveNativePassTrace` exposes the dependent parent and
+minor pass traces from the exact native `mkRecInfos` computation. The receipt
+retains the parent and final scope frames and both array-size invariants; it
+does not invent a trace or hide the context WF/reservation premises. The
+canonical Bool support module can consume the resulting minor trace once its
+constructor-shape and motive callbacks are supplied.
+
 ## Canonical Bool parent/minor support — 2026-10-30
 
 `Lean4Lean.Verify.CanonicalBoolRecursorSupport` proves the canonical Bool

@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Native parent/minor pass traces — 2026-10-30
+
+`mkRecInfos.getNativePassTraces` now exposes the actual dependent parent and
+minor pass traces produced by the native `mkRecInfos` computation, together
+with both scope frames and array-size invariants. It factors the outer loop's
+capture/resume equation and then applies the existing parent and minor trace
+WF theorems. The canonical Bool semantic callbacks still need to be attached
+to these traces before selected-domain support can be assembled.
+
 ## Canonical Bool parent/minor support — 2026-10-30
 
 `Lean4Lean.Verify.CanonicalBoolRecursorSupport` now proves the canonical
