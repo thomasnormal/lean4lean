@@ -1,5 +1,17 @@
 # Progress and upstream comparison
 
+## Constructive primitive preprocessing receipts — 2026-10-30
+
+`canonicalBoolNonNested` and `canonicalNatNonNested` prove the executable
+`NonNestedInductivePreprocessing` obligations for the primitive Bool and
+parameterized Nat source shapes. The proof follows the real preprocessing
+loop, including its fuel failure path, and proves that canonical constructor
+rewrites preserve the state and leave the auxiliary nested map empty.
+`addDecl.safeCanonicalBool` and `addDecl.safeCanonicalNat` feed these receipts
+into the constructive non-nested frontend scope boundary. Focused regression
+checks audit the theorem bodies and successful runtime preprocessing for all
+Nat binder-name and binder-info fixtures.
+
 ## Primitive-preflight operational checker boundary — 2026-10-30
 
 `addDecl.WF_inductive_of_checkedPrimitive_sourceTypehood_and_checker` now

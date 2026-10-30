@@ -159,6 +159,7 @@ import Lean4Lean.Verify.InductiveAnnotationBinderOpening
 import Lean4Lean.Verify.InductiveCPS
 import Lean4Lean.Verify.InductiveRunScope
 import Lean4Lean.Verify.InductiveFrontendScope
+import Lean4Lean.Verify.PrimitiveInductivePreprocessing
 import Lean4Lean.Verify.InductiveFrontendRestoration
 import Lean4Lean.Verify.InductiveRestorationMetadata
 import Lean4Lean.Verify.InductiveNativeRestorationBridge

@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Constructive primitive preprocessing receipts — 2026-10-30
+
+`Lean4Lean.Verify.PrimitiveInductivePreprocessing` exposes canonical Bool/Nat
+source shapes and proved preprocessing receipts. Zero fuel follows the
+executable throw path; sufficient fuel processes every canonical constructor
+and proves `aux2nested.size = 0`. The public frontend adapters
+`addDecl.safeCanonicalBool` and `addDecl.safeCanonicalNat` consume these
+receipts through `addDecl.safeNonNestedInductive`, retaining source checks and
+the safety-indexed registration scope. The regression includes direct proof
+audits and runtime success checks with all Nat binder-name/info combinations.
+
 ## Primitive-preflight operational checker boundary — 2026-10-30
 
 `addDecl.WF_inductive_of_checkedPrimitive_sourceTypehood_and_checker` is the
