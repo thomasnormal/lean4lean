@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Translated scoped generated body/source producer — 2026-10-30
+
+The scoped generated body/source result seam now has a translated-body entry
+point, `MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourceOfTranslated`.
+It derives the zero loose-bound-variable range from ordinary `TrExpr` body
+witnesses, then delegates to the existing scoped producer. The concrete
+field/IH package, ordinary receipt, RHS semantics, target typing, sort arity,
+and target iota facts remain explicit; no direct admission or axiom was added.
+
 ## Translated peeled-domain source producer — 2026-10-30
 
 The peeled minor-domain source seam now has a translated-body entry point,

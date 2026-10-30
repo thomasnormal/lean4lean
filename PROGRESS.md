@@ -1,5 +1,13 @@
 # Progress and upstream comparison
 
+## Translated scoped generated body/source producer — 2026-10-30
+
+`MinorModelStep.generatedScopedConstructorRuleRhsIotaWeakFVKindWithBodyAndSourceOfTranslated`
+now derives generated-body closure from ordinary translations while retaining
+the full scoped field/IH, ordinary receipt, RHS, target typing, kind, and iota
+package before base-WF application. No admissions or executable behavior
+changed.
+
 ## Translated peeled-domain source producer — 2026-10-30
 
 `MinorModelStep.peeledDomainSourceOfTranslated` now derives the generated
