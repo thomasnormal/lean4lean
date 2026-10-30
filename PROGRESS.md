@@ -1,5 +1,12 @@
 # Progress and upstream comparison
 
+## Restoration-stage checker consumer receipt — 2026-10-30
+
+`addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIota_of_restorationStages`
+extends the restoration-stage checker-history boundary with the named
+registration consumer receipt. Existential stage selection, source/value
+translation, recursor WF, and generated-rule/iota obligations remain explicit.
+
 ## Checker-history consumer receipt wrapper — 2026-10-30
 
 `addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIota`

@@ -25313,6 +25313,55 @@ theorem addDecl.checkedPrimitiveModelAndCheckerHistory_of_restorationStages
   exact ⟨modelDecl, hkind, hheaders, hdeclWF, htranslation, halignment.1,
     halignment.2.1, halignment.2.2, hsemantic.1, hsemantic.2.2.2⟩
 
+/- Pair the restoration-stage checker-history result with the named
+   registration consumer receipt. The existential stage choice stays inside
+   the existing checker theorem; this wrapper adds no hidden source or iota
+   assumptions. -/
+theorem addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIota_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hcheck : Environment.checkPrimitiveInductive env lparams nparams types false = .ok true)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool} {venv : VEnv}
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe →
+      ci.value? = some value → TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ entry ∈ producer.recursors, ∀ rule ∈ entry.info.rules,
+      ∃ constructor minor,
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      NativeInductive.RegistrationConsumerReceipt .safe producer
+        (fun _ rule => ∃ constructor minor,
+          AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+        (fun _ rule => ∃ constructor minor,
+          AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) := by
+  obtain ⟨_modelDecl, _hkind, _hheaders, _hdeclWF, _htranslation, _haligned,
+      _hmapResult, _hhistory, hchecker, _hresults⟩ :=
+    addDecl.checkedPrimitiveModelAndCheckerHistory_of_restorationStages
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
+      hsource hvalues ruleResults
+  have hrecursors := producer.recursorWF_of_sourceTypehood
+    (producer.constructorEnvWF history.wf) hsource
+  have hreceipt := producer.consumerReceiptWithGeneratedRuleResultsAndIota
+    history.map_wf history.wf history.aligned hrecursors ruleResults
+  exact ⟨hchecker, hreceipt⟩
+
 /- The restoration-stage checker-history consumer retains the same producer
    declaration WF receipt while keeping the existential stage selection and
    all source/value obligations explicit. -/

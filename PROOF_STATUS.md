@@ -1,5 +1,11 @@
 # Non-inductive verification proof of concept
 
+## Restoration-stage checker consumer receipt — 2026-10-30
+
+The restoration-stage checker-history path now returns checker validity beside
+the registration consumer receipt, preserving its explicit metadata and
+translation premises together with generated-rule and iota witnesses.
+
 ## Checker-history consumer receipt wrapper — 2026-10-30
 
 The checked-primitive checker-history package now has a named consumer receipt

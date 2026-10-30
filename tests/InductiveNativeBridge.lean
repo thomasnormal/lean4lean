@@ -783,6 +783,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIota
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
+#check addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIota_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndConstructiveHistoryAndVDeclWF
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryAndVDeclWF
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryAndVDeclWF_of_restorationStages
@@ -9005,6 +9006,10 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultAndIotaBaseAndTargetResults_of_restorationStages
       (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
       hsource hvalues ruleResults
+  have hRestorationConsumer :=
+    addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIota_of_restorationStages
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
+      hsource hvalues ruleResults
   have hRestorationPluralCombined :=
     addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
       (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
@@ -9012,6 +9017,8 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
   have _ := hRestoration
   have _ := hRestorationIota
   have _ := hRestorationCombined
+  have _ := hRestorationConsumer.1
+  have _ := hRestorationConsumer.2.orderedLookup
   trivial
 
 example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
