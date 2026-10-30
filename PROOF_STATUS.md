@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Exact canonical recursor metadata identities — 2026-10-30
+
+`addDecl.safeCanonicalBoolRecursors` and
+`addDecl.safeCanonicalNatRecursors` now expose, for every registered parent,
+the equality of the returned `RecursorVal` with the exact generated
+`declareRecursors.metadataVal`. The existing lookup, generated-rule offset,
+and rule-list receipts remain present. This keeps the native stored type and
+level metadata available for a future canonical type/model translation,
+without claiming that the translation support obligations are solved.
+
 ## Recursor type/model registration boundary — 2026-10-30
 
 `RecursorInfoModelEndpoint.declaredRecursorFromDomains` packages the actual

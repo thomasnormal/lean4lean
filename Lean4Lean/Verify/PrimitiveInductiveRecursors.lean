@@ -28,7 +28,9 @@ private theorem addDecl.safeCanonicalRecursorRegistration
               (infos.map (·.motive)) (infos.flatMap (·.minors))
               (AddInductive.recursorMinorOffset preprocessing.types.toArray index) source =
               .ok (rules, AddInductive.recursorMinorOffset preprocessing.types.toArray (index + 1)) ∧
-            info.rules = rules) ∧
+            info.rules = rules ∧
+            info = AddInductive.declareRecursors.metadataVal stats preprocessing.types.toArray
+              elimLevel infos lparams source.lctx isK false index rules) ∧
         AddInductive.LocalRecursorRuleRhsDistinct stats preprocessing.types.toArray infos
           source result) := by
   refine (addDecl.safeNonNestedInductive env lparams nparams types check fuel hmap hnested).mono ?_
@@ -39,8 +41,8 @@ private theorem addDecl.safeCanonicalRecursorRegistration
     hpre, hnoaux, ?_, hframe, hcounts, hmetadata, ?_, hdistinct⟩
   · simpa only [hnoaux] using hrun
   · intro index hindex
-    obtain ⟨info, hfind, hrules⟩ := hmetadata.sourceRules index hindex
-    exact ⟨info, hfind, _, hrules, rfl⟩
+    obtain ⟨rules, hrules, hfind⟩ := hmetadata index hindex
+    refine ⟨_, hfind, rules, hrules, rfl, rfl⟩
 
 theorem addDecl.safeCanonicalBoolRecursors
     (env : Kernel.Environment) (check : Bool) (fuel : FuelConfig)
@@ -65,7 +67,9 @@ theorem addDecl.safeCanonicalBoolRecursors
               (infos.map (·.motive)) (infos.flatMap (·.minors))
               (AddInductive.recursorMinorOffset preprocessing.types.toArray index) source =
               .ok (rules, AddInductive.recursorMinorOffset preprocessing.types.toArray (index + 1)) ∧
-            info.rules = rules) ∧
+            info.rules = rules ∧
+            info = AddInductive.declareRecursors.metadataVal stats preprocessing.types.toArray
+              elimLevel infos [] source.lctx isK false index rules) ∧
         AddInductive.LocalRecursorRuleRhsDistinct stats preprocessing.types.toArray infos
           source result) :=
   addDecl.safeCanonicalRecursorRegistration env [] 0 [canonicalBoolType] check fuel hmap
@@ -96,7 +100,9 @@ theorem addDecl.safeCanonicalNatRecursors
                 (infos.map (·.motive)) (infos.flatMap (·.minors))
                 (AddInductive.recursorMinorOffset preprocessing.types.toArray index) source =
                 .ok (rules, AddInductive.recursorMinorOffset preprocessing.types.toArray (index + 1)) ∧
-              info.rules = rules) ∧
+              info.rules = rules ∧
+              info = AddInductive.declareRecursors.metadataVal stats preprocessing.types.toArray
+                elimLevel infos [] source.lctx isK false index rules) ∧
           AddInductive.LocalRecursorRuleRhsDistinct stats preprocessing.types.toArray infos
             source result) :=
   addDecl.safeCanonicalRecursorRegistration env [] 0

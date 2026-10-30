@@ -1,5 +1,15 @@
 # Progress and upstream comparison
 
+## Exact canonical recursor metadata identities — 2026-10-30
+
+The canonical Bool/Nat recursor receipts now retain the equality between each
+registered `RecursorVal` and the exact generated
+`declareRecursors.metadataVal`, in addition to the lookup, generated-rule
+offset equation, and rule-list equality. This preserves the stored recursor
+type, level-parameter list, motive/minor counts, and safety flags for the next
+type/model translation step without weakening the executable registration
+receipt.
+
 ## Recursor type/model registration boundary — 2026-10-30
 
 `RecursorInfoModelEndpoint.declaredRecursorFromDomains` now combines the
