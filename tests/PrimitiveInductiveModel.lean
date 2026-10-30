@@ -8,10 +8,12 @@ open Lean4Lean.AddInductive
 
 #check canonicalAnnotationModel.constants
 #check canonicalAnnotationModel.definitions
+#check canonicalAnnotationModel.wf
 #check canonicalBoolHeaderModel.added
 #check canonicalBoolModel.added
 #check canonicalBoolModel.constants
 #check canonicalBoolModel.definitions
+#check canonicalBoolModel.wf
 #check canonicalBoolModel.headers
 #check canonicalEliminationLevelMapping
 
@@ -20,6 +22,9 @@ example : CanonicalAnnotationConstants canonicalAnnotationModel :=
 
 example : CanonicalAnnotationDefinitions canonicalAnnotationModel :=
   canonicalAnnotationModel.definitions
+
+example : canonicalAnnotationModel.WF :=
+  canonicalAnnotationModel.wf
 
 example : boolInductDecl.HeadersWF canonicalBoolHeaderModel := by
   exact boolInductDecl.headersWF.mono
@@ -35,6 +40,9 @@ example : CanonicalAnnotationConstants canonicalBoolModel :=
 
 example : CanonicalAnnotationDefinitions canonicalBoolModel :=
   canonicalBoolModel.definitions
+
+example : canonicalBoolModel.WF :=
+  canonicalBoolModel.wf
 
 example (stats : InductiveStats) (types : Array InductiveType)
     (reader : Context) (level : Level)
@@ -65,9 +73,10 @@ private def auditTheorem (name : Name) : MetaM Unit := do
 
 run_meta
   for theoremName in [``canonicalAnnotationModel.constants,
-      ``canonicalAnnotationModel.definitions, ``canonicalBoolHeaderModel.added,
+      ``canonicalAnnotationModel.definitions, ``canonicalAnnotationModel.wf,
+      ``canonicalBoolHeaderModel.added,
       ``canonicalBoolModel.added, ``canonicalBoolModel.constants,
-      ``canonicalBoolModel.definitions, ``canonicalBoolModel.headers,
+      ``canonicalBoolModel.definitions, ``canonicalBoolModel.wf, ``canonicalBoolModel.headers,
       ``canonicalEliminationLevelMapping] do
     auditTheorem theoremName
   let headerModel : VEnv := canonicalBoolHeaderModel
