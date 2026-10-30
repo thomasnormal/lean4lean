@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Canonical Bool complete pass endpoint — 2026-10-30
+
+The canonical Bool pass seam now packages translated parent and minor histories
+into `RecursorInfoModelEndpoint`. `canonicalBoolPassModelEndpoint` derives the
+two pass-support proofs and threads the parent model into the minor pass,
+preserving scope reservations and model/local-context correspondence. Native
+trace construction, source normalization, motive callbacks, type-array shape,
+and level mapping remain explicit premises; this endpoint does not claim the
+selected recursor telescope or generated-rule/iota semantics.
+
 ## Canonical Bool parent-pass bridge — 2026-10-30
 
 The canonical Bool model now has a theorem-backed bridge from a native

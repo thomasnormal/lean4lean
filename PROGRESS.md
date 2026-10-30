@@ -1,5 +1,15 @@
 # Progress and upstream comparison
 
+## Canonical Bool complete pass endpoint — 2026-10-30
+
+`canonicalBoolPassModelEndpoint` now composes the theorem-backed parent and
+minor pass translations into a `RecursorInfoModelEndpoint`. It retains the
+native parent/minor traces, canonical type-array equality, source
+normalization, motive and recursive-motive callbacks, model correspondence,
+reservation, and elimination-level mapping as premises. The resulting receipt
+provides translated parent and minor histories; selected-domain, generated-rule,
+and iota receipts remain separate obligations.
+
 ## Canonical Bool parent-pass bridge — 2026-10-30
 
 `canonicalBoolParentPassSupport` now consumes the native one-parent
