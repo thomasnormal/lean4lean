@@ -1,5 +1,13 @@
 # Progress and upstream comparison
 
+## Canonical Bool final body/application package — 2026-10-30
+
+`RecursorBinderRebaseReceipt.canonicalBoolFinalBodyApplicationReceipt` now
+composes final-domain cdecl evidence, the canonical major/motive body support,
+and the grouped raw-type equation. The package keeps the parent-zero role,
+major/motive ID equations, grouped membership, minor semantics,
+generated-rule semantics, and iota soundness visible as premises.
+
 ## Canonical Bool body-application support — 2026-10-30
 
 `canonicalBoolRecursorTypeBodyApplicationSupport` now derives

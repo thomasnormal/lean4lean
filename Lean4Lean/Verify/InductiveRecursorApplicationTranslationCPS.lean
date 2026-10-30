@@ -436,6 +436,61 @@ theorem canonicalBoolRecursorTypeBodyApplicationSupport
       · simpa only [majorEq] using majorTranslated
       · simpa only [motiveEq, indicesEq, mkAppN, Array.foldl_empty] using motiveTranslated
 
+/- Compose the canonical Bool cdecl bridge with the final grouped-body receipt.
+   The role equations and grouped membership are explicit inputs, as are the
+   minor, generated-rule, and iota obligations that a complete registration
+   proof must discharge separately. -/
+theorem RecursorBinderRebaseReceipt.canonicalBoolFinalBodyApplicationReceipt
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    {elimLevel : Level} {motive major : FVarId} {semanticElimLevel : VLevel}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent full
+      initial final chronological grouped)
+    (envWF : env.WF) (finalWF : final.WF env universes) (native : final.lctx = full)
+    (parentZero : parent = 0)
+    (majorMember : major ∈ grouped) (motiveMember : motive ∈ grouped)
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (indicesEq : infos[0]!.indices = #[])
+    (majorEq : infos[0]!.major = .fvar major)
+    (motiveShape : ∀ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) →
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
+    (_minorSemantics : MinorSemantics)
+    (_generatedRuleSemantics : GeneratedRuleSemantics)
+    (_iotaSoundness : IotaSoundness)
+    (bodyClosed : (recursorTypeBody infos parent).looseBVarRange' = 0) :
+    ∃ bodySemantic level,
+      TrExprS env universes final.vlctx (recursorTypeBody infos parent) bodySemantic ∧
+      env.HasType universes.length final.vlctx.toCtx bodySemantic (.sort level) ∧
+      recursorRawType stats infos parent full =
+        final.lctx.mkForall (grouped.map Expr.fvar).toArray
+          (recursorTypeBody infos parent) := by
+  subst parent
+  have majorEvidence : ∃ index name domain binder,
+      final.lctx.find? major =
+        some (.cdecl index major name domain binder .default) := by
+    obtain ⟨_, projectedIndex, name, domain, binder, _, _, finalLookup, _, _⟩ :=
+      receipt.finalDomainSupport finalWF native major majorMember
+    exact ⟨projectedIndex, name, domain, binder, finalLookup⟩
+  have motiveEvidence : ∃ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) ∧
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)) := by
+    obtain ⟨_, projectedIndex, name, domain, binder, _, _, finalLookup, _, _⟩ :=
+      receipt.finalDomainSupport finalWF native motive motiveMember
+    exact ⟨projectedIndex, name, domain, binder, finalLookup,
+      motiveShape projectedIndex name domain binder finalLookup⟩
+  have bodySupport := canonicalBoolRecursorTypeBodyApplicationSupport envWF finalWF
+    motiveEq indicesEq majorEq majorEvidence motiveEvidence mapped
+      _minorSemantics _generatedRuleSemantics _iotaSoundness
+  exact receipt.finalBodyApplicationReceipt finalWF native bodySupport bodyClosed
+
 /- For canonical Bool, native parent allocation is major-then-motive, while
    the recursor type groups motive/minors before major.  Keep this shape
    obstruction explicit: selected-domain support needs a reordering/rebase

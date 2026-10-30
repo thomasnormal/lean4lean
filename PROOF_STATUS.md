@@ -1,5 +1,13 @@
 # Non-inductive verification proof of concept
 
+## Canonical Bool final body/application package — 2026-10-30
+
+The final recursor receipt can now derive the canonical Bool body/application
+endpoint directly from final major/motive cdecl evidence. Its result includes
+the translated and typed recursor body and the final grouped raw-type equation;
+role alignment and all downstream minor, generated-rule, and iota obligations
+remain explicit inputs.
+
 ## Canonical Bool body-application support — 2026-10-30
 
 The canonical Bool recursor application boundary now has a theorem-backed

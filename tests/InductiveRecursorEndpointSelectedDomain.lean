@@ -184,6 +184,37 @@ example {infos : Array RecInfo} {final : MLCtx} {elimLevel : Level}
     motiveEq indicesEq majorEq majorEvidence motiveEvidence mapped minorSemantics
     generatedRuleSemantics iotaSoundness
 
+example {stats : InductiveStats} {infos : Array RecInfo} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    {elimLevel : Level} {motive major : FVarId} {semanticElimLevel : VLevel}
+    (receipt : RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 full
+      initial final chronological grouped)
+    (finalWF : final.WF canonicalBoolModel [`u]) (native : final.lctx = full)
+    (majorMember : major ∈ grouped) (motiveMember : motive ∈ grouped)
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (indicesEq : infos[0]!.indices = #[])
+    (majorEq : infos[0]!.major = .fvar major)
+    (motiveShape : ∀ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) →
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
+    (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
+    {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
+    (minorSemantics : MinorSemantics)
+    (generatedRuleSemantics : GeneratedRuleSemantics)
+    (iotaSoundness : IotaSoundness)
+    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0) :
+    ∃ bodySemantic level,
+      TrExprS canonicalBoolModel [`u] final.vlctx (recursorTypeBody infos 0) bodySemantic ∧
+      canonicalBoolModel.HasType 1 final.vlctx.toCtx bodySemantic (.sort level) ∧
+      recursorRawType stats infos 0 full =
+        final.lctx.mkForall (grouped.map Expr.fvar).toArray
+          (recursorTypeBody infos 0) := by
+  exact receipt.canonicalBoolFinalBodyApplicationReceipt canonicalBoolModel.wf finalWF native rfl
+    majorMember motiveMember motiveEq indicesEq majorEq motiveShape mapped minorSemantics
+    generatedRuleSemantics iotaSoundness bodyClosed
+
 example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
     {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
     (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
@@ -249,6 +280,7 @@ run_meta
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeFinalEquation
   auditTheorem ``RecursorBinderRebaseReceipt.finalBodyApplicationReceipt
   auditTheorem ``canonicalBoolRecursorTypeBodyApplicationSupport
+  auditTheorem ``RecursorBinderRebaseReceipt.canonicalBoolFinalBodyApplicationReceipt
   auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
   auditTheorem ``canonicalBoolRecursorBinderOrderPermutation
   logInfo "endpoint selected-domain, split/rebase, and allocation-order boundaries are theorem-backed"
