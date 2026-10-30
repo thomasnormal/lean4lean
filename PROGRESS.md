@@ -1,5 +1,13 @@
 # Progress and upstream comparison
 
+## Registered recursor model handoff — 2026-10-30
+
+`RecursorInfoModelEndpoint.registeredRecursorFromDomains` transfers the
+declared `metadataVal` translation and WF receipt to the exact `RecursorVal`
+held by a registered native environment. Native lookup and metadata identity
+remain explicit, so this is the model-insertion handoff rather than a name-only
+approximation.
+
 ## Canonical Bool endpoint-to-registration package — 2026-10-30
 
 `RecursorInfoModelEndpoint.canonicalBoolDeclaredRecursorReceipt` now feeds

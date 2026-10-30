@@ -1,5 +1,11 @@
 # Non-inductive verification proof of concept
 
+## Registered recursor model handoff — 2026-10-30
+
+The model receipt can now be consumed at a registered recursor entry after
+explicit native lookup and `metadataVal` identity. The insertion and rule/iota
+obligations remain separate caller responsibilities.
+
 ## Canonical Bool endpoint-to-registration package — 2026-10-30
 
 The endpoint-level selected-domain/type-model construction now reaches the
