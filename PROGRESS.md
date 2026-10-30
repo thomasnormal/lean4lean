@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Canonical Bool minor-pass bridge — 2026-10-30
+
+`canonicalBoolMinorPassSupport` now attaches the two-constructor Bool minor
+support to the native `RecursorMinorPassTrace` shape. The bridge theorem
+`canonicalBoolMinorPassSupport_of_types` accepts the native type array through
+an explicit equality to `#[canonicalBoolType]`, then computes away the
+impossible second-parent branch. Constructor traces, motive declarations,
+and semantic recursive-motive application remain explicit premises.
+
 ## Native parent/minor pass traces — 2026-10-30
 
 `mkRecInfos.getNativePassTraces` now exposes the actual dependent parent and

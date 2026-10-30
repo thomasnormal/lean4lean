@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Canonical Bool minor-pass bridge — 2026-10-30
+
+The canonical Bool support now consumes a native one-parent
+`RecursorMinorPassTrace`. `canonicalBoolMinorPassSupport_of_types` keeps the
+native type-array equality explicit and derives the impossible extra-parent
+case by computation, while the two-constructor head consumes the previously
+proved dependent minor trace support. The semantic motive callback and native
+trace/type equality remain premises; selected-domain, generated-rule, and iota
+receipts are still open.
+
 ## Native parent/minor pass traces — 2026-10-30
 
 `Lean4Lean.Verify.InductiveNativePassTrace` exposes the dependent parent and
