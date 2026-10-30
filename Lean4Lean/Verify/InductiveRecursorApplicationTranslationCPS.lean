@@ -342,6 +342,30 @@ theorem RecursorBinderRebaseReceipt.rawTypeFinalEquation
           (recursorTypeBody infos parent) :=
       receipt.groupedBindingEquation finalWF native bodyClosed
 
+/- Consume the grouped abstraction obligation without manufacturing a
+   chronological `SelectedRecursorTelescope`.  The receipt supplies the
+   native raw-type equation; the grouped semantic translation and typehood
+   remain the explicit dependency-aware transport premise. -/
+theorem RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedSupport
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent full
+      initial final chronological grouped)
+    (finalWF : final.WF env universes) (native : final.lctx = full)
+    (bodyClosed : (recursorTypeBody infos parent).looseBVarRange' = 0)
+    (support : RecursorGroupedTypeTranslationSupport env universes full initial grouped
+      (recursorTypeBody infos parent)) :
+    ∃ typeSemantic level,
+      TrExprS env universes initial.vlctx
+        (recursorRawType stats infos parent full) typeSemantic ∧
+      env.HasType universes.length initial.vlctx.toCtx typeSemantic (.sort level) := by
+  obtain ⟨typeSemantic, level, translated, typed⟩ := support
+  have equation := receipt.rawTypeFinalEquation finalWF native bodyClosed
+  refine ⟨typeSemantic, level, ?_, typed⟩
+  rw [equation]
+  simpa only [native] using translated
+
 /- Package the semantic application endpoint with the grouped raw-type
    equation.  The body-application support is deliberately an input: proving
    motive/minor application semantics is a separate obligation from rebasing

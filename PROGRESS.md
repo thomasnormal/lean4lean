@@ -20,6 +20,16 @@ candidate.
 
 # Progress and upstream comparison
 
+## Grouped semantic abstraction contract — 2026-10-30
+
+`RecursorGroupedTypeTranslationSupport` names the dependency-aware obligation
+that remains after the chronological telescope obstruction: translation and
+typehood of the grouped native forall in the initial semantic context.
+`RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedSupport` consumes
+that explicit support through the proved grouped raw-type equation, so callers
+can reach raw recursor typehood without manufacturing an impossible grouped
+`SelectedRecursorTelescope`.
+
 ## Order-aware selected-telescope obstruction — 2026-10-30
 
 `SelectedRecursorTelescope.no_reordered_ids` proves that a selected

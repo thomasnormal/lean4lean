@@ -206,6 +206,18 @@ def RecursorRawTypeTranslationSupport (env : VEnv) (universes : List Name)
     ∀ projected, SelectedRecursorTelescope env universes full initial ids projected →
       RecursorTypeBodyApplicationSupport env universes infos parent projected.vlctx
 
+/- A grouped recursor type may need a semantic context transport that is not
+   represented by `SelectedRecursorTelescope`.  Keep that obligation explicit:
+   the support below asks directly for translation and typehood of the native
+   grouped forall, without pretending that its binders form a chronological
+   model extension. -/
+def RecursorGroupedTypeTranslationSupport (env : VEnv) (universes : List Name)
+    (full : LocalContext) (initial : MLCtx) (grouped : List FVarId) (body : Expr) : Prop :=
+  ∃ typeSemantic level,
+    TrExprS env universes initial.vlctx
+      (full.mkForall (grouped.map Expr.fvar).toArray body) typeSemantic ∧
+    env.HasType universes.length initial.vlctx.toCtx typeSemantic (.sort level)
+
 theorem RecursorRawTypeTranslationSupport.selectedTypeTranslation
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}
     {parent : Nat} {full : LocalContext} {initial : MLCtx}

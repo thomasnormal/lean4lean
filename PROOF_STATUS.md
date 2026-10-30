@@ -19,6 +19,15 @@ in the full minor-pass endpoint.
 
 # Non-inductive verification proof of concept
 
+## Grouped semantic abstraction contract — 2026-10-30
+
+The recursor type translation layer now exposes
+`RecursorGroupedTypeTranslationSupport`, which keeps grouped forall
+translation and typehood as an explicit premise. A theorem-backed rebase
+receipt transports this premise to `recursorRawType` using the native grouped
+raw-type equation. This is a sound consumer seam; it does not claim the
+dependency-aware virtual-context permutation needed to construct the premise.
+
 ## Order-aware selected-telescope obstruction — 2026-10-30
 
 The selected-telescope boundary now has a negative theorem: two
