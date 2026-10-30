@@ -14,6 +14,8 @@ private theorem addDecl.safeCanonicalRecursorRegistration
           (source : AddInductive.Context) (isK : Bool),
         inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
         preprocessing.aux2nested.size = 0 ∧
+        AddInductive.getElimLevel stats preprocessing.types.toArray
+          ({ root with env := constructors } : AddInductive.Context) = .ok elimLevel ∧
         stats.SafeRunScope nparams preprocessing.types.toArray preprocessing.aux2nested.size
           (inductiveScopeContext env lparams allowPrimitive fuel) root constructors result ∧
         ({ root with env := constructors } : AddInductive.Context).RecursorScopeFrame source ∧
@@ -33,16 +35,16 @@ private theorem addDecl.safeCanonicalRecursorRegistration
               elimLevel infos lparams source.lctx isK false index rules) ∧
         AddInductive.LocalRecursorRuleRhsDistinct stats preprocessing.types.toArray infos
           source result) := by
-  refine (addDecl.safeNonNestedInductive env lparams nparams types check fuel hmap hnested).mono ?_
-  rintro result ⟨allowPrimitive, scope⟩
-  obtain ⟨preprocessing, hpre, hnoaux, stats, root, constructors, hrun⟩ := scope.stages
-  obtain ⟨elimLevel, infos, source, isK, hframe, hcounts, hmetadata, hdistinct⟩ := hrun.recursors
+  refine (addDecl.safeNonNestedInductiveWithElimLevel env lparams nparams types check fuel hmap
+    hnested).mono ?_
+  rintro result ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, hpre, hnoaux,
+    hlevel, hscope, hrecursors⟩
+  obtain ⟨infos, source, isK, hframe, hcounts, hmetadata, hdistinct⟩ := hrecursors
   refine ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, infos, source, isK,
-    hpre, hnoaux, ?_, hframe, hcounts, hmetadata, ?_, hdistinct⟩
-  · simpa only [hnoaux] using hrun
-  · intro index hindex
-    obtain ⟨rules, hrules, hfind⟩ := hmetadata index hindex
-    refine ⟨_, hfind, rules, hrules, rfl, rfl⟩
+    hpre, hnoaux, hlevel, hscope, hframe, hcounts, hmetadata, ?_, hdistinct⟩
+  intro index hindex
+  obtain ⟨rules, hrules, hfind⟩ := hmetadata index hindex
+  refine ⟨_, hfind, rules, hrules, rfl, rfl⟩
 
 theorem addDecl.safeCanonicalBoolRecursors
     (env : Kernel.Environment) (check : Bool) (fuel : FuelConfig)
@@ -53,6 +55,8 @@ theorem addDecl.safeCanonicalBoolRecursors
           (source : AddInductive.Context) (isK : Bool),
         inductivePreprocessing env [] 0 [canonicalBoolType] fuel = .ok preprocessing ∧
         preprocessing.aux2nested.size = 0 ∧
+        AddInductive.getElimLevel stats preprocessing.types.toArray
+          ({ root with env := constructors } : AddInductive.Context) = .ok elimLevel ∧
         stats.SafeRunScope 0 preprocessing.types.toArray preprocessing.aux2nested.size
           (inductiveScopeContext env [] allowPrimitive fuel) root constructors result ∧
         ({ root with env := constructors } : AddInductive.Context).RecursorScopeFrame source ∧
@@ -86,6 +90,8 @@ theorem addDecl.safeCanonicalNatRecursors
           inductivePreprocessing env [] 0 [canonicalNatType binderName binderInfo] fuel =
             .ok preprocessing ∧
           preprocessing.aux2nested.size = 0 ∧
+          AddInductive.getElimLevel stats preprocessing.types.toArray
+            ({ root with env := constructors } : AddInductive.Context) = .ok elimLevel ∧
           stats.SafeRunScope 0 preprocessing.types.toArray preprocessing.aux2nested.size
             (inductiveScopeContext env [] allowPrimitive fuel) root constructors result ∧
           ({ root with env := constructors } : AddInductive.Context).RecursorScopeFrame source ∧

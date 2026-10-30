@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.InductiveRunScope
 import Lean4Lean.Verify.InductiveSourceChecks
+import Lean4Lean.Verify.InductiveEliminationLevel
 import Lean4Lean.Verify.InductiveRecursorApplicationTranslationCPS
 
 namespace Lean4Lean
@@ -92,6 +93,47 @@ theorem Environment.addInductive.safeStages (env : Environment) (lparams : List 
   · rename_i hnested
     exact fun _ _ => ⟨hsources, preprocessing, hpre, fun hnoaux => False.elim (hnested hnoaux)⟩
 
+theorem Environment.addInductive.safeStagesWithElimLevel (env : Environment) (lparams : List Name)
+    (nparams : Nat) (types : List InductiveType) (allowPrimitive : Bool) (fuel : FuelConfig)
+    (hmap : env.constants.WF) :
+    (Environment.addInductive env lparams nparams types false allowPrimitive fuel).WF fun result =>
+      InductiveSourcesNoMVarNoFVar types ∧
+      ∃ preprocessing, inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+        (preprocessing.aux2nested.size = 0 →
+          ∃ (stats : AddInductive.InductiveStats) (root : AddInductive.Context)
+            (constructors : Environment) (elimLevel : Level),
+            AddInductive.getElimLevel stats preprocessing.types.toArray
+                ({ root with env := constructors } : AddInductive.Context) = .ok elimLevel ∧
+            stats.SafeRunScope nparams preprocessing.types.toArray preprocessing.aux2nested.size
+              (inductiveScopeContext env lparams allowPrimitive fuel) root constructors result ∧
+            ∃ (infos : Array AddInductive.RecInfo) (source : AddInductive.Context) (isK : Bool),
+              ({ root with env := constructors } : AddInductive.Context).RecursorScopeFrame source ∧
+              AddInductive.RecursorInfoCounts preprocessing.types.toArray infos ∧
+              stats.RecursorOffsetMetadata preprocessing.types.toArray elimLevel infos lparams
+                source.lctx isK false source result ∧
+              AddInductive.LocalRecursorRuleRhsDistinct stats preprocessing.types.toArray infos
+                source result) := by
+  unfold Environment.addInductive
+  refine (Environment.checkInductiveSources.WF env types).bind ?_
+  intro _ hsources
+  refine Except.WF.bind (Q := fun _ => True) (fun _ _ => trivial) ?_
+  intro _ _
+  refine Except.WF.bind (Q := fun preprocessing =>
+    inductivePreprocessing env lparams nparams types fuel = .ok preprocessing) (fun _ hpre => hpre) ?_
+  intro preprocessing hpre
+  dsimp only
+  refine (AddInductive.run.safeScopeWithElimLevel nparams preprocessing.types
+    preprocessing.aux2nested.size (inductiveScopeContext env lparams allowPrimitive fuel)
+    rfl hmap .nil (ContextReserved.empty _)).bind ?_
+  intro added hrun
+  split
+  · rename_i hnoaux
+    exact .pure ⟨hsources, preprocessing, hpre, fun _ => by
+      obtain ⟨stats, root, constructors, elimLevel, hlevel, hscope, hrecursors⟩ := hrun
+      exact ⟨stats, root, constructors, elimLevel, hlevel, hscope, hrecursors⟩⟩
+  · rename_i hnested
+    exact fun _ _ => ⟨hsources, preprocessing, hpre, fun hnoaux => False.elim (hnested hnoaux)⟩
+
 theorem Environment.addInductive.safeNonNested (env : Environment) (lparams : List Name)
     (nparams : Nat) (types : List InductiveType) (allowPrimitive : Bool) (fuel : FuelConfig)
     (hmap : env.constants.WF)
@@ -112,6 +154,36 @@ theorem Environment.addInductive.safeNonNestedResult (env : Environment) (lparam
       NonNestedInductiveScope env lparams nparams types allowPrimitive fuel result :=
   Environment.addInductive.safeNonNested env lparams nparams types allowPrimitive fuel hmap
     (NonNestedInductivePreprocessing.of_result hpre hnoaux)
+
+theorem addDecl.safeNonNestedInductiveWithElimLevel (env : Environment) (lparams : List Name)
+    (nparams : Nat) (types : List InductiveType) (check : Bool) (fuel : FuelConfig)
+    (hmap : env.constants.WF)
+    (hnonNested : NonNestedInductivePreprocessing env lparams nparams types fuel) :
+    (addDecl env (.inductDecl lparams nparams types false) check fuel).WF fun result =>
+      ∃ allowPrimitive preprocessing stats root constructors elimLevel,
+        inductivePreprocessing env lparams nparams types fuel = .ok preprocessing ∧
+        preprocessing.aux2nested.size = 0 ∧
+        AddInductive.getElimLevel stats preprocessing.types.toArray
+          ({ root with env := constructors } : AddInductive.Context) = .ok elimLevel ∧
+        stats.SafeRunScope nparams preprocessing.types.toArray preprocessing.aux2nested.size
+          (inductiveScopeContext env lparams allowPrimitive fuel) root constructors result ∧
+        ∃ (infos : Array AddInductive.RecInfo) (source : AddInductive.Context) (isK : Bool),
+          ({ root with env := constructors } : AddInductive.Context).RecursorScopeFrame source ∧
+          AddInductive.RecursorInfoCounts preprocessing.types.toArray infos ∧
+          stats.RecursorOffsetMetadata preprocessing.types.toArray elimLevel infos lparams
+            source.lctx isK false source result ∧
+          AddInductive.LocalRecursorRuleRhsDistinct stats preprocessing.types.toArray infos
+            source result := by
+  unfold addDecl
+  refine Except.WF.bind (Q := fun _ => True) (fun _ _ => trivial) ?_
+  intro allowPrimitive _
+  refine (Environment.addInductive.safeStagesWithElimLevel env lparams nparams types
+    allowPrimitive fuel hmap).mono ?_
+  rintro result ⟨hsources, preprocessing, hpre, hbranch⟩
+  have hnoaux := hnonNested preprocessing hpre
+  obtain ⟨stats, root, constructors, elimLevel, hlevel, hscope, hrecursors⟩ := hbranch hnoaux
+  exact ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel,
+    hpre, hnoaux, hlevel, hscope, hrecursors⟩
 
 theorem addDecl.safeNonNestedInductive (env : Environment) (lparams : List Name)
     (nparams : Nat) (types : List InductiveType) (check : Bool) (fuel : FuelConfig)

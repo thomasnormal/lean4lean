@@ -128,6 +128,64 @@ theorem run.safeScope (nparams : Nat) (types : List InductiveType) (numNested : 
   apply hkeep name info
   simpa only [hframe.env] using hold
 
+/- Retain the successful elimination-level computation alongside the existing
+   run scope.  The ordinary scope receipt intentionally abstracts over this
+   intermediate result; model translation needs its exact `getElimLevel`
+   equation to establish the fresh universe mapping. -/
+theorem run.safeScopeWithElimLevel (nparams : Nat) (types : List InductiveType)
+    (numNested : Nat) (ctx : Context) (hsafety : ctx.safety = .safe)
+    (hmap : ctx.env.constants.WF) (hwf : ctx.lctx.WF)
+    (hreserved : ContextReserved ctx.lctx ctx.ngen) :
+    (run nparams types numNested ctx).WF fun env =>
+      ∃ (stats : InductiveStats) (root : Context) (constructors : Kernel.Environment)
+        (elimLevel : Level),
+        getElimLevel stats types.toArray
+          ({ root with env := constructors } : Context) = .ok elimLevel ∧
+        stats.SafeRunScope nparams types.toArray numNested ctx root constructors env ∧
+        ∃ (infos : Array RecInfo) (source : Context) (isK : Bool),
+          ({ root with env := constructors } : Context).RecursorScopeFrame source ∧
+          RecursorInfoCounts types.toArray infos ∧
+          stats.RecursorOffsetMetadata types.toArray elimLevel infos ctx.lparams source.lctx
+            isK false source env ∧
+          LocalRecursorRuleRhsDistinct stats types.toArray infos source env := by
+  unfold run
+  apply Lean4Lean.AddInductive.readWF
+  dsimp only
+  rw [hsafety]
+  apply Lean4Lean.AddInductive.readWF
+  apply Lean4Lean.AddInductive.bindWF
+  intro _
+  apply checkInductiveTypes.safeScopedConstructorRegistration nparams types.toArray numNested _
+    ctx hmap hwf hreserved
+  intro stats root constructors hregistration hroot
+  change ((getElimLevel stats types.toArray >>= fun elimLevel => _)
+      ({ root with env := constructors } : Context)).WF _
+  refine Except.WF.bind (Q := fun elimLevel =>
+    getElimLevel stats types.toArray ({ root with env := constructors } : Context) = .ok elimLevel)
+    (fun _ hresult => hresult) ?_
+  intro elimLevel hresult
+  apply mkRecInfos.scopedCounts
+  · exact hroot.wf
+  · exact hroot.reserved
+  intro infos current hframe hcounts
+  apply Lean4Lean.AddInductive.getLCtxWF
+  apply Lean4Lean.AddInductive.bindWF
+  intro isK
+  apply Lean4Lean.AddInductive.readWF
+  have hsafe : current.safety = .safe := hframe.safety.trans (hroot.safety.trans hsafety)
+  rw [hsafe]
+  refine (declareRecursors.offsetMetadata stats types.toArray elimLevel infos ctx.lparams current.lctx
+    isK false current (by simpa only [hframe.env] using hregistration.resultWF)).mono ?_
+  rintro env ⟨hfinal, hkeep, hmetadata⟩
+  refine ⟨stats, root, constructors, elimLevel, hresult, ?_, ?_⟩
+  · refine ⟨⟨hregistration, hfinal, ?_⟩, hroot, elimLevel, infos, current, isK, hframe,
+      hcounts, hmetadata, hmetadata.localRuleRhsDistinct hcounts hframe.wf hframe.reserved⟩
+    intro name info hold
+    apply hkeep name info
+    simpa only [hframe.env] using hold
+  · exact ⟨infos, current, isK, hframe, hcounts, hmetadata,
+      hmetadata.localRuleRhsDistinct hcounts hframe.wf hframe.reserved⟩
+
 theorem run.safeRhsDistinct (nparams : Nat) (types : List InductiveType) (numNested : Nat)
     (ctx : Context) (hsafety : ctx.safety = .safe) (hmap : ctx.env.constants.WF)
     (hwf : ctx.lctx.WF) (hreserved : ContextReserved ctx.lctx ctx.ngen) :

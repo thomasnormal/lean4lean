@@ -1,5 +1,19 @@
 # Non-inductive verification proof of concept
 
+## Retained canonical elimination-level result — 2026-10-30
+
+`Lean4Lean.Verify.InductiveRunScope` now exposes
+`run.safeScopeWithElimLevel`, retaining the successful native
+`getElimLevel = .ok elimLevel` equation and explicit recursor metadata built
+at that level. `Environment.addInductive.safeStagesWithElimLevel` and
+`addDecl.safeNonNestedInductiveWithElimLevel` preserve the result through the
+frontend. `addDecl.safeCanonicalBoolRecursors` and
+`addDecl.safeCanonicalNatRecursors` now expose the same equality, and the
+primitive regression checks that projection. This supplies the native input
+needed by the fresh-level mapping theorem; selected-domain, parent/minor-pass,
+generated-rule semantic, iota, and full inductive frontend receipts remain
+open.
+
 ## Canonical fresh elimination-level mapping — 2026-10-30
 
 `Lean4Lean.Verify.PrimitiveInductiveModel` now exposes

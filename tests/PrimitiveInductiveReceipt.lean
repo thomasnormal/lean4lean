@@ -178,6 +178,40 @@ open Lean4Lean
 #check addDecl.safeCanonicalBoolRecursors
 #check addDecl.safeCanonicalNatRecursors
 
+example (environment : Kernel.Environment) (check : Bool) (fuel : FuelConfig)
+    (hmap : environment.constants.WF) :
+    (addDecl environment (.inductDecl [] 0 [canonicalBoolType] false) check fuel).WF
+      (fun result =>
+        ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+          (stats : AddInductive.InductiveStats) (root : AddInductive.Context)
+          (constructors : Kernel.Environment) (elimLevel : Level),
+          inductivePreprocessing environment [] 0 [canonicalBoolType] fuel = .ok preprocessing ∧
+          preprocessing.aux2nested.size = 0 ∧
+          AddInductive.getElimLevel stats preprocessing.types.toArray
+            ({ root with env := constructors } : AddInductive.Context) = .ok elimLevel) := by
+  refine (addDecl.safeCanonicalBoolRecursors environment check fuel hmap).mono ?_
+  rintro result ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, infos,
+    source, isK, hpre, hnoaux, hlevel, _⟩
+  exact ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, hpre, hnoaux, hlevel⟩
+
+example (environment : Kernel.Environment) (check : Bool) (fuel : FuelConfig)
+    (binderName : Name) (binderInfo : BinderInfo) (hmap : environment.constants.WF) :
+    (addDecl environment
+      (.inductDecl [] 0 [canonicalNatType binderName binderInfo] false) check fuel).WF
+      (fun result =>
+        ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+          (stats : AddInductive.InductiveStats) (root : AddInductive.Context)
+          (constructors : Kernel.Environment) (elimLevel : Level),
+          inductivePreprocessing environment [] 0 [canonicalNatType binderName binderInfo] fuel =
+            .ok preprocessing ∧
+          preprocessing.aux2nested.size = 0 ∧
+          AddInductive.getElimLevel stats preprocessing.types.toArray
+            ({ root with env := constructors } : AddInductive.Context) = .ok elimLevel) := by
+  refine (addDecl.safeCanonicalNatRecursors environment check fuel binderName binderInfo hmap).mono ?_
+  rintro result ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, infos,
+    source, isK, hpre, hnoaux, hlevel, _⟩
+  exact ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, hpre, hnoaux, hlevel⟩
+
 run_meta
   let environment := Kernel.Environment.empty `PrimitiveInductiveRecursorTest
   let fuel : FuelConfig := { recDepth := 16, inductiveFuel := 4 }

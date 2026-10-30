@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Retain canonical elimination-level results — 2026-10-30
+
+`run.safeScopeWithElimLevel` now preserves the successful native
+`getElimLevel` equation together with explicit recursor metadata built at that
+same level. The frontend adapter and the canonical Bool/Nat recursor receipts
+carry this equality through to callers, so `canonicalEliminationLevelMapping`
+can consume the actual run result. The regression projects the retained
+equality for both Bool and parameterized Nat. Recursor type translation,
+selected-domain and parent/minor support, generated-rule semantics, and iota
+soundness remain separate obligations.
+
 ## Canonical fresh elimination-level mapping — 2026-10-30
 
 `canonicalEliminationLevelMapping` specializes the verified
