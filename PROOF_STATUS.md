@@ -13491,3 +13491,14 @@ registration entry, and final semantic alignment. The generic generated-rule
 result and iota witnesses remain fields of the receipt and are not derived by
 the lookup/alignment transport. The alignment regression checks the complete
 consumer endpoint. No executable behavior or kernel discrepancy changed.
+
+## October 30, 2026 — named registration consumer receipt
+
+`RegistrationConsumerReceipt` packages the preceding insertion receipt,
+positive ordered-entry lookup, and final `Aligned` witness under an explicit
+safety parameter. `RegistrationEvidence.multiRecursorConsumerReceipt` constructs
+it from initial map WF, semantic-environment WF, initial alignment, and recursor
+model-WF callbacks. The regression projects lookup/alignment and the stored
+ordered rule-result and iota callbacks separately. This adds no semantic claim:
+generated-rule and iota obligations remain explicit inputs, and no executable
+behavior or kernel discrepancy changed.

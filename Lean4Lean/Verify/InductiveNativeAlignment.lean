@@ -423,6 +423,19 @@ structure RegistrationInsertionReceipt
     ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
       IotaResult entry rule
 
+/- The complete consumer boundary gives names to the structural insertion
+   receipt, positive map lookups, and semantic alignment.  The insertion field
+   continues to carry the independent generated-rule and iota projections. -/
+structure RegistrationConsumerReceipt
+    (safety : DefinitionSafety)
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (RuleResult IotaResult : RecursorEntry → RecursorRule → Prop) : Prop where
+  insertion : RegistrationInsertionReceipt evidence RuleResult IotaResult
+  orderedLookup :
+    ∀ entry ∈ evidence.orderedEntries,
+      resultConstants.find? entry.toConstantInfo.name = some entry.toConstantInfo
+  aligned : Aligned safety resultConstants result
+
 theorem RegistrationEvidence.multiRecursorInsertionReceipt
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (hconstants : constants.WF) (henv : env.WF)
@@ -469,6 +482,24 @@ theorem RegistrationEvidence.multiRecursorInsertionReceiptAndLookupAndAlignment
   have registration := evidence.to_addInductWithRecursorsEvidence_at safety
     hconstants hrecursors
   exact ⟨receipt, lookup, Aligned.addInductWithRecursorsEvidence registration haligned⟩
+
+theorem RegistrationEvidence.multiRecursorConsumerReceipt
+    {safety : DefinitionSafety}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (haligned : Aligned safety constants env)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    {RuleResult IotaResult : RecursorEntry → RecursorRule → Prop}
+    (ruleResults : ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      RuleResult entry rule)
+    (iotaResults : ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      IotaResult entry rule) :
+    RegistrationConsumerReceipt safety evidence RuleResult IotaResult := by
+  obtain ⟨insertion, lookup, aligned⟩ :=
+    evidence.multiRecursorInsertionReceiptAndLookupAndAlignment hconstants henv haligned
+      hrecursors ruleResults iotaResults
+  exact { insertion, orderedLookup := lookup, aligned }
 
 theorem RegistrationEvidence.registrationWF_of_sourceTypehood
     (evidence : RegistrationEvidence constants env decl resultConstants result)

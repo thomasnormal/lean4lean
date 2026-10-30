@@ -494,6 +494,53 @@ example {safety : DefinitionSafety} {constants resultConstants : ConstMap}
   evidence.multiRecursorInsertionReceiptAndLookupAndAlignment hconstants henv haligned
     hrecursors ruleResults iotaResults
 
+example {safety : DefinitionSafety} {constants resultConstants : ConstMap}
+    {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (haligned : Aligned safety constants env)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    (ruleResults : ∀ entry ∈ evidence.recursors, ∀ rule, rule ∈ entry.info.rules → True)
+    (iotaResults : ∀ entry ∈ evidence.recursors, ∀ rule, rule ∈ entry.info.rules → True) :
+    RegistrationConsumerReceipt safety evidence (fun _ _ => True) (fun _ _ => True) :=
+  evidence.multiRecursorConsumerReceipt hconstants henv haligned hrecursors
+    ruleResults iotaResults
+
+example {safety : DefinitionSafety} {constants resultConstants : ConstMap}
+    {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (haligned : Aligned safety constants env)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    (ruleResults : ∀ entry ∈ evidence.recursors, ∀ rule, rule ∈ entry.info.rules → True)
+    (iotaResults : ∀ entry ∈ evidence.recursors, ∀ rule, rule ∈ entry.info.rules → True) :
+    (∀ entry ∈ evidence.orderedEntries,
+      resultConstants.find? entry.toConstantInfo.name = some entry.toConstantInfo) ∧
+      Aligned safety resultConstants result := by
+  let receipt := evidence.multiRecursorConsumerReceipt hconstants henv haligned
+    hrecursors ruleResults iotaResults
+  exact ⟨receipt.orderedLookup, receipt.aligned⟩
+
+example {safety : DefinitionSafety} {constants resultConstants : ConstMap}
+    {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (haligned : Aligned safety constants env)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    (ruleResults : ∀ entry ∈ evidence.recursors, ∀ rule, rule ∈ entry.info.rules → True)
+    (iotaResults : ∀ entry ∈ evidence.recursors, ∀ rule, rule ∈ entry.info.rules → True) :
+    (∀ entry ∈ evidence.orderedEntries,
+      entry.RuleSemantics result ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, True) ∧
+      (∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules, True) := by
+  let receipt := evidence.multiRecursorConsumerReceipt hconstants henv haligned
+    hrecursors ruleResults iotaResults
+  exact ⟨receipt.insertion.orderedRuleResults, receipt.insertion.iotaResults⟩
+
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)

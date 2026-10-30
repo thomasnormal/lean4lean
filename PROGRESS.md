@@ -2398,3 +2398,12 @@ environment. The theorem still takes the initial alignment and recursor model-WF
 callbacks explicitly, and keeps generated-rule results and iota results as
 separate receipt fields. This is a fork-specific bridge, not an upstream PR
 candidate.
+
+## October 30, 2026 — named registration consumer receipt
+
+`RegistrationConsumerReceipt` gives the multi-recursor registration boundary
+named projections for insertion/WF, ordered final-map lookup, and semantic
+alignment. Its insertion projection retains the generic ordered rule-result and
+iota-result fields, while the consumer theorem derives only lookup and alignment
+from the existing constructive evidence. The alignment regression exercises all
+three projections. This fork-specific packaging is not an upstream PR candidate.
