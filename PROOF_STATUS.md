@@ -1,5 +1,17 @@
 # Non-inductive verification proof of concept
 
+## Selected recursor domain receipts — 2026-10-30
+
+The selected-domain boundary now has a proved eliminator. For each identifier
+in a `SelectedRecursorTelescope`, `domainReceipt` returns its earlier prefix
+model, exact source cdecl lookup, freshness in that prefix, translated domain,
+and `IsType` proof. The support-level theorem derives these receipts for every
+native recursor binder while preserving the exact `recursorTypeBinders` shape.
+The regression `tests/InductiveRecursorDomainReceipt.lean` audits both theorem
+bodies and their dependency boundary. This is a semantic extraction API, not a
+canonical instantiation: constructing the telescope still requires the
+parent/minor pass traces and canonical model translations.
+
 ## Canonical level mapping projected from native receipts — 2026-10-30
 
 `tests/PrimitiveInductiveReceipt.lean` now projects the retained

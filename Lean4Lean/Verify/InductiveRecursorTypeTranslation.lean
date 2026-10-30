@@ -72,6 +72,45 @@ theorem SelectedRecursorTelescope.lookups
       rw [nextWF.find?_eq]
       simp only [MLCtx.decls, List.find?_cons, LocalDecl.fvarId, beq_self_eq_true]
 
+/- A selected telescope is more informative than its final context alone.  For
+   every selected identifier it records the exact chronological prefix model in
+   which that cdecl's domain was translated and checked.  This eliminator is
+   useful at the canonical-recursion boundary: native cdecl lookups identify
+   the domains, but only this receipt (or an equivalent semantic construction)
+   supplies their model translations and typing premises. -/
+theorem SelectedRecursorTelescope.domainReceipt
+    {env : VEnv} {universes : List Name} {full : LocalContext} {initial final : MLCtx}
+    {ids : List FVarId}
+    (telescope : SelectedRecursorTelescope env universes full initial ids final)
+    (identifier : FVarId) (member : identifier ∈ ids) :
+    ∃ preIds suffix model physicalIndex name domain binder semantic,
+      ids = preIds ++ identifier :: suffix ∧
+      SelectedRecursorTelescope env universes full initial preIds model ∧
+      full.find? identifier =
+        some (.cdecl physicalIndex identifier name domain binder .default) ∧
+      model.lctx.find? identifier = none ∧
+      TrExprS env universes model.vlctx domain semantic ∧
+      env.IsType universes.length model.vlctx.toCtx semantic := by
+  revert identifier
+  induction telescope with
+  | nil =>
+    intro identifier member
+    cases member
+  | @push previous model earlier identifier physicalIndex name domain binder semantic
+      lookup fresh translated typed earlierInduction =>
+    intro selected member
+    rcases List.mem_append.mp member with oldMember | newMember
+    · obtain ⟨preIds, suffix, prefixModel, oldPhysical, oldName, oldDomain, oldBinder,
+        oldSemantic, oldIds, oldTelescope, oldLookup, oldFresh, oldTranslated, oldTyped⟩ :=
+        earlierInduction _ oldMember
+      refine ⟨preIds, suffix ++ [identifier], prefixModel, oldPhysical, oldName, oldDomain,
+        oldBinder, oldSemantic, ?_, oldTelescope, oldLookup, oldFresh, oldTranslated, oldTyped⟩
+      simpa [List.append_assoc] using congrArg (fun xs => xs ++ [identifier]) oldIds
+    · rcases List.mem_singleton.mp newMember with rfl
+      refine ⟨previous, [], model, physicalIndex, name, domain, binder, semantic, ?_, earlier,
+        lookup, fresh, translated, typed⟩
+      simp
+
 theorem SelectedRecursorTelescope.distinct
     {env : VEnv} {universes : List Name} {full : LocalContext} {initial final : MLCtx}
     {ids : List FVarId} (telescope : SelectedRecursorTelescope env universes full initial ids final)

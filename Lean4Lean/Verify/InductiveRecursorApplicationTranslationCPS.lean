@@ -14,6 +14,32 @@ def RecursorSelectedDomainSupport (env : VEnv) (universes : List Name)
   ∃ ids, (recursorTypeBinders stats infos parent).toList = ids.map Expr.fvar ∧
     ∃ projected, SelectedRecursorTelescope env universes full initial ids projected
 
+/- Once selected-domain support is available, its semantic content can be
+   consumed one binder at a time.  This packages the exact chronological
+   prefix model, native cdecl provenance, translated domain, and domain
+   typehood for every selected recursor binder.  Native metadata by itself
+   supplies only the cdecl provenance; the telescope receipt is the missing
+   semantic premise at the canonical frontend boundary. -/
+theorem RecursorSelectedDomainSupport.domainReceipts
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {full : LocalContext} {initial : MLCtx}
+    (support : RecursorSelectedDomainSupport env universes stats infos parent full initial) :
+    ∃ ids, (recursorTypeBinders stats infos parent).toList = ids.map Expr.fvar ∧
+      ∃ projected, SelectedRecursorTelescope env universes full initial ids projected ∧
+        ∀ identifier, identifier ∈ ids →
+          ∃ preIds suffix model physicalIndex name domain binder semantic,
+            ids = preIds ++ identifier :: suffix ∧
+            SelectedRecursorTelescope env universes full initial preIds model ∧
+            full.find? identifier =
+              some (.cdecl physicalIndex identifier name domain binder .default) ∧
+            model.lctx.find? identifier = none ∧
+            TrExprS env universes model.vlctx domain semantic ∧
+            env.IsType universes.length model.vlctx.toCtx semantic := by
+  obtain ⟨ids, selected, projected, telescope⟩ := support
+  refine ⟨ids, selected, projected, telescope, ?_⟩
+  intro identifier member
+  exact telescope.domainReceipt identifier member
+
 def RecursorFinalTypehood (env : VEnv) (universes : List Name)
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
     (infos : Array RecInfo) (finalReader : Context) (finalModel : MLCtx)

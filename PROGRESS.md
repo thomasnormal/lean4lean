@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Selected recursor domain receipts — 2026-10-30
+
+`SelectedRecursorTelescope.domainReceipt` now exposes the chronological prefix
+model for any selected binder, its native cdecl provenance, translated domain,
+and semantic typehood. `RecursorSelectedDomainSupport.domainReceipts` lifts this
+to every binder in the native recursor telescope. The theorem is constructive
+and theorem-backed; it does not manufacture a canonical Bool/Nat telescope.
+The remaining canonical obligation is to construct the support itself from the
+retained parent/minor traces and the richer model environment, after which the
+four Bool domains (motive, two minors, major) can be consumed individually.
+
 ## Project canonical level mapping through native receipts — 2026-10-30
 
 The primitive receipt regression now extracts the generated scope frame's empty
