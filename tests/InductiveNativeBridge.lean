@@ -672,6 +672,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrime
 #check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndOrderedEntryFindPrimeAndAlignment
 #check NativeInductive.RestoredRecordEvidence.registrationReceiptAndMapAndAlignment
+#check NativeInductive.RestoredRecordEvidence.registrationConsumerReceiptWithGeneratedRuleResultsAndIota
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationReceiptAndMapAndAlignment
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationReceiptAndMapAndOrderedEntryFindPrimeAndAlignment
 #check NativeInductive.RestoredRecordEvidence.sourceRecursorGeneratedRuleStructuralGeneratedRuleResultsAndIotaBaseAndTargetResults
@@ -1485,6 +1486,32 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
   have h := restored.toCheckerEnvInductive_and_registrationIotaBaseAndTargetResults_of_sourceTypehood
     producer halign hconstants history hsource hvalues ruleResults
+  trivial
+
+example {safety : DefinitionSafety} {Q : Bool}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} {preprocessing : ElimNestedInductive.Result}
+    {staged : Kernel.Environment} {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : RestoredRecordEvidence preprocessing staged allIndNames recNameMap original result records)
+    (producer : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive safety constants Q semanticEnv)
+    (haligned : Aligned safety constants semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ entry ∈ producer.recursors, ∀ rule ∈ entry.info.rules,
+      ∃ constructor minor,
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
+  have h := restored.registrationConsumerReceiptWithGeneratedRuleResultsAndIota
+    producer halign hconstants history haligned hrecursors ruleResults
+  have _ := h.1.orderedLookup
+  have _ := h.1.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults
+  have _ := h.2.2.2
   trivial
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}

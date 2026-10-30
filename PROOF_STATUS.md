@@ -1,5 +1,11 @@
 # Non-inductive verification proof of concept
 
+## Restored-record consumer receipt bridge — 2026-10-30
+
+The restored executable record now has a single consumer receipt bridge that
+preserves generated-rule/iota witnesses, transports ordered lookups through
+the result-map equality, and exposes final semantic alignment.
+
 ## Project ordered generated-rule/iota package from consumer receipt — 2026-10-30
 
 The consumer receipt now exposes the complete ordered rule-result and paired

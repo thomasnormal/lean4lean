@@ -2816,6 +2816,58 @@ theorem NativeInductive.RegistrationConsumerReceipt.orderedGeneratedRuleResultsA
     exact ⟨semantic, hsemantic, constructor, minor, generated,
       generated.iotaKind.baseAndTargetResults⟩
 
+/- Bridge the semantic consumer receipt to the restored executable record.  The
+   result-map equation transports ordered lookup and alignment to the native
+   environment while retaining the generated-rule/iota package. -/
+theorem NativeInductive.RestoredRecordEvidence.registrationConsumerReceiptWithGeneratedRuleResultsAndIota
+    {safety : DefinitionSafety} {Q : Bool}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive safety constants Q semanticEnv)
+    (haligned : Aligned safety constants semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ entry ∈ producer.recursors, ∀ rule ∈ entry.info.rules,
+      ∃ constructor minor,
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    NativeInductive.RegistrationConsumerReceipt safety producer
+      (fun _ rule => ∃ constructor minor,
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+      (fun _ rule => ∃ constructor minor,
+        AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) ∧
+      result.constants = resultConstants ∧
+      (∀ entry ∈ restored.entries,
+        result.constants.find? entry.toConstantInfo.name = some entry.toConstantInfo) ∧
+      Aligned safety result.constants semanticResult := by
+  have receipt := producer.consumerReceiptWithGeneratedRuleResultsAndIota
+    history.map_wf history.wf haligned hrecursors ruleResults
+  have hresultConstants := restored.registrationConstants producer halign hconstants
+  have hlookup : ∀ entry ∈ restored.entries,
+      result.constants.find? entry.toConstantInfo.name = some entry.toConstantInfo := by
+    intro entry hentry
+    rw [hresultConstants]
+    apply receipt.orderedLookup entry
+    rw [← halign]
+    exact hentry
+  have halignedResult : Aligned safety result.constants semanticResult := by
+    rw [hresultConstants]
+    exact receipt.aligned
+  exact ⟨receipt, hresultConstants, hlookup, halignedResult⟩
+
 /- Preserve the same ordered registration traversal while exposing the named
    iota projection.  This is the consumer-facing boundary: the closed RHS
    translation stays paired with the lifted base/target typing witnesses for

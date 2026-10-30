@@ -1,5 +1,12 @@
 # Progress and upstream comparison
 
+## Restored-record consumer receipt bridge — 2026-10-30
+
+`RestoredRecordEvidence.registrationConsumerReceiptWithGeneratedRuleResultsAndIota`
+now transports the semantic consumer receipt to the restored executable map.
+It retains the result-constant equation, restored-entry positive lookups, and
+final alignment while carrying the generated-rule/iota package.
+
 ## Project ordered generated-rule/iota package from consumer receipt — 2026-10-30
 
 `RegistrationConsumerReceipt.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults`
