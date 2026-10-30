@@ -135,6 +135,30 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
   refine ⟨chronological, receipt, ?_⟩
   simpa only [finalNative] using receipt.rawTypeFinalEquation finalWF finalNative bodyClosed
 
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
+    (grouped : List FVarId)
+    (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
+    (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
+    (bodySupport : RecursorTypeBodyApplicationSupport canonicalBoolModel [`u] infos 0 final.vlctx)
+    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0) :
+    ∃ chronological,
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 finalReader.lctx
+        initial final chronological grouped ∧
+      ∃ bodySemantic, ∃ level : VLevel,
+        TrExprS canonicalBoolModel [`u] final.vlctx (recursorTypeBody infos 0) bodySemantic ∧
+        canonicalBoolModel.HasType [`u].length final.vlctx.toCtx bodySemantic (.sort level) ∧
+        recursorRawType stats infos 0 finalReader.lctx =
+          final.lctx.mkForall (grouped.map Expr.fvar).toArray (recursorTypeBody infos 0) := by
+  obtain ⟨chronological, receipt⟩ := endpoint.rebaseBinderOrder canonicalBoolModel.wf
+    grouped order alignment
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  refine ⟨chronological, receipt, ?_⟩
+  simpa only [finalNative] using
+    receipt.finalBodyApplicationReceipt finalWF finalNative bodySupport bodyClosed
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -153,6 +177,7 @@ run_meta
   auditTheorem ``RecursorBinderRebaseReceipt.finalDomainSupport
   auditTheorem ``RecursorBinderRebaseReceipt.groupedBindingEquation
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeFinalEquation
+  auditTheorem ``RecursorBinderRebaseReceipt.finalBodyApplicationReceipt
   auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
   auditTheorem ``canonicalBoolRecursorBinderOrderPermutation
   logInfo "endpoint selected-domain, split/rebase, and allocation-order boundaries are theorem-backed"

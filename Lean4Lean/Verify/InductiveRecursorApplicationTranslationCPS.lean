@@ -342,6 +342,29 @@ theorem RecursorBinderRebaseReceipt.rawTypeFinalEquation
           (recursorTypeBody infos parent) :=
       receipt.groupedBindingEquation finalWF native bodyClosed
 
+/- Package the semantic application endpoint with the grouped raw-type
+   equation.  The body-application support is deliberately an input: proving
+   motive/minor application semantics is a separate obligation from rebasing
+   native binder domains and the syntactic raw-type shell. -/
+theorem RecursorBinderRebaseReceipt.finalBodyApplicationReceipt
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent full
+      initial final chronological grouped)
+    (finalWF : final.WF env universes) (native : final.lctx = full)
+    (bodySupport : RecursorTypeBodyApplicationSupport env universes infos parent final.vlctx)
+    (bodyClosed : (recursorTypeBody infos parent).looseBVarRange' = 0) :
+    ∃ bodySemantic level,
+      TrExprS env universes final.vlctx (recursorTypeBody infos parent) bodySemantic ∧
+      env.HasType universes.length final.vlctx.toCtx bodySemantic (.sort level) ∧
+      recursorRawType stats infos parent full =
+        final.lctx.mkForall (grouped.map Expr.fvar).toArray
+          (recursorTypeBody infos parent) := by
+  obtain ⟨bodySemantic, level, bodyTranslated, bodyTyped⟩ := bodySupport.translated
+  exact ⟨bodySemantic, level, bodyTranslated, bodyTyped,
+    receipt.rawTypeFinalEquation finalWF native bodyClosed⟩
+
 /- For canonical Bool, native parent allocation is major-then-motive, while
    the recursor type groups motive/minors before major.  Keep this shape
    obstruction explicit: selected-domain support needs a reordering/rebase

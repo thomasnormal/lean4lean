@@ -2319,3 +2319,11 @@ closed-body premise, the native raw recursor type is equal to the final-context
 grouped `mkForall` expression. The endpoint regression applies this equation.
 Motive/minor application semantics, role-to-ID chronology, generated-rule
 semantics, and iota soundness remain separate obligations.
+
+## October 30, 2026 — final recursor body application receipt
+
+The rebase receipt now packages explicit final-context
+`RecursorTypeBodyApplicationSupport` with the grouped raw-type endpoint. The
+result exposes translated and typed recursor body applications together with
+the final grouped raw-type equation. Motive/minor application support remains
+an explicit input; no generated-rule or iota semantics are inferred.

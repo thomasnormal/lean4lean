@@ -1304,6 +1304,7 @@ obtaining the paired expansion package. Its metadata alignment, output-shape,
 generated-translation, target-typing, and sort-arity witnesses remain
 explicit.
 
+
 The K-normalized String-literal exact endpoint now precedes its metadata
 consumer, and that metadata consumer delegates final dispatcher-to-target
 transport to it after obtaining the paired K-conversion and String-expansion
@@ -13414,3 +13415,12 @@ closedness premise. The endpoint regression applies and audits this theorem.
 This remains a type-shell result; motive/minor application semantics,
 role-to-ID chronology, generated-rule semantics, and iota obligations remain
 explicit.
+
+## October 30, 2026 — final recursor body application receipt
+
+`RecursorBinderRebaseReceipt.finalBodyApplicationReceipt` consumes an explicit
+`RecursorTypeBodyApplicationSupport`, derives the translated and typed
+recursor body via its existing application theorem, and pairs it with the
+grouped raw-type equation. The selected-domain regression applies and audits
+this theorem. Motive/minor support is retained as a premise, and no
+generated-rule or iota claim is added.
