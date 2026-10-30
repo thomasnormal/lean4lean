@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Canonical level mapping projected from native receipts — 2026-10-30
+
+`tests/PrimitiveInductiveReceipt.lean` now projects the retained
+`getElimLevel` result through `canonicalEliminationLevelMapping` for Bool and
+parameterized Nat. The `RecursorScopeFrame` supplies the exact empty reader
+level-parameter list, so the regression proves the duplicate-free generated
+level list and its `VLevel` mapping from the actual native result. This closes
+the mapping handoff; selected-domain telescope construction and motive/minor/
+major translation support remain explicit.
+
 ## Retained canonical elimination-level result — 2026-10-30
 
 `Lean4Lean.Verify.InductiveRunScope` now exposes

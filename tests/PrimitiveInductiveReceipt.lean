@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.PrimitiveInductiveRecursors
+import Lean4Lean.Verify.PrimitiveInductiveModel
 import Lean.Util.CollectAxioms
 
 namespace PrimitiveInductiveReceiptTest
@@ -195,6 +196,30 @@ example (environment : Kernel.Environment) (check : Bool) (fuel : FuelConfig)
   exact ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, hpre, hnoaux, hlevel⟩
 
 example (environment : Kernel.Environment) (check : Bool) (fuel : FuelConfig)
+    (hmap : environment.constants.WF) :
+    (addDecl environment (.inductDecl [] 0 [canonicalBoolType] false) check fuel).WF
+      (fun result =>
+        ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+          (stats : AddInductive.InductiveStats) (root : AddInductive.Context)
+          (constructors : Kernel.Environment) (elimLevel : Level),
+          AddInductive.getElimLevel stats preprocessing.types.toArray
+            ({ root with env := constructors } : AddInductive.Context) = .ok elimLevel ∧
+          (AddInductive.getRecLevelParams elimLevel
+            ({ root with env := constructors } : AddInductive.Context).lparams).Nodup ∧
+          ∃ semanticElimLevel,
+            VLevel.ofLevel (AddInductive.getRecLevelParams elimLevel
+              ({ root with env := constructors } : AddInductive.Context).lparams) elimLevel =
+              some semanticElimLevel) := by
+  refine (addDecl.safeCanonicalBoolRecursors environment check fuel hmap).mono ?_
+  rintro result ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, infos,
+    source, isK, hpre, hnoaux, hlevel, hscope, _⟩
+  have hlparams : ({ root with env := constructors } : AddInductive.Context).lparams = [] := by
+    simpa [inductiveScopeContext] using hscope.rootScope.toHeaderFrame.lparams
+  obtain ⟨hnodup, hmapped⟩ := canonicalEliminationLevelMapping hlparams hlevel
+  exact ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, hlevel, hnodup,
+    _, by simpa [hlparams] using hmapped⟩
+
+example (environment : Kernel.Environment) (check : Bool) (fuel : FuelConfig)
     (binderName : Name) (binderInfo : BinderInfo) (hmap : environment.constants.WF) :
     (addDecl environment
       (.inductDecl [] 0 [canonicalNatType binderName binderInfo] false) check fuel).WF
@@ -211,6 +236,31 @@ example (environment : Kernel.Environment) (check : Bool) (fuel : FuelConfig)
   rintro result ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, infos,
     source, isK, hpre, hnoaux, hlevel, _⟩
   exact ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, hpre, hnoaux, hlevel⟩
+
+example (environment : Kernel.Environment) (check : Bool) (fuel : FuelConfig)
+    (binderName : Name) (binderInfo : BinderInfo) (hmap : environment.constants.WF) :
+    (addDecl environment
+      (.inductDecl [] 0 [canonicalNatType binderName binderInfo] false) check fuel).WF
+      (fun result =>
+        ∃ (allowPrimitive : Bool) (preprocessing : ElimNestedInductive.Result)
+          (stats : AddInductive.InductiveStats) (root : AddInductive.Context)
+          (constructors : Kernel.Environment) (elimLevel : Level),
+          AddInductive.getElimLevel stats preprocessing.types.toArray
+            ({ root with env := constructors } : AddInductive.Context) = .ok elimLevel ∧
+          (AddInductive.getRecLevelParams elimLevel
+            ({ root with env := constructors } : AddInductive.Context).lparams).Nodup ∧
+          ∃ semanticElimLevel,
+            VLevel.ofLevel (AddInductive.getRecLevelParams elimLevel
+              ({ root with env := constructors } : AddInductive.Context).lparams) elimLevel =
+              some semanticElimLevel) := by
+  refine (addDecl.safeCanonicalNatRecursors environment check fuel binderName binderInfo hmap).mono ?_
+  rintro result ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, infos,
+    source, isK, hpre, hnoaux, hlevel, hscope, _⟩
+  have hlparams : ({ root with env := constructors } : AddInductive.Context).lparams = [] := by
+    simpa [inductiveScopeContext] using hscope.rootScope.toHeaderFrame.lparams
+  obtain ⟨hnodup, hmapped⟩ := canonicalEliminationLevelMapping hlparams hlevel
+  exact ⟨allowPrimitive, preprocessing, stats, root, constructors, elimLevel, hlevel, hnodup,
+    _, by simpa [hlparams] using hmapped⟩
 
 run_meta
   let environment := Kernel.Environment.empty `PrimitiveInductiveRecursorTest

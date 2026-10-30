@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Project canonical level mapping through native receipts — 2026-10-30
+
+The primitive receipt regression now extracts the generated scope frame's empty
+level-parameter list and applies `canonicalEliminationLevelMapping` directly
+to the retained native `getElimLevel` result. Bool and parameterized Nat thus
+carry a proved duplicate-free recursor level list and its exact semantic
+`VLevel` mapping. The selected-domain telescope and its motive/minor/major
+translation support remain the next substantive boundary.
+
 ## Retain canonical elimination-level results — 2026-10-30
 
 `run.safeScopeWithElimLevel` now preserves the successful native
