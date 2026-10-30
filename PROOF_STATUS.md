@@ -1,5 +1,11 @@
 # Non-inductive verification proof of concept
 
+## Checker-history consumer receipt wrapper — 2026-10-30
+
+The checked-primitive checker-history package now has a named consumer receipt
+wrapper carrying semantic alignment, ordered lookup, and generated-rule/iota
+witnesses alongside checker validity.
+
 ## Checked-frontend consumer receipt boundary — 2026-10-30
 
 Checked-frontend validity now composes with the restored consumer receipt. The

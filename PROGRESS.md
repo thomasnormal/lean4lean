@@ -1,5 +1,13 @@
 # Progress and upstream comparison
 
+## Checker-history consumer receipt wrapper — 2026-10-30
+
+`addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIota`
+now pairs the existing checked-primitive checker-history validity with the
+named registration consumer receipt. The model/checker theorem remains the
+source of frontend validity, while recursor WF and generated-rule/iota inputs
+stay explicit.
+
 ## Checked-frontend consumer receipt boundary — 2026-10-30
 
 `RestoredRecordEvidence.toCheckerEnvInductive_and_registrationConsumerReceiptWithGeneratedRuleResultsAndIota`
