@@ -150,6 +150,36 @@ theorem canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport
           List.map_nil, List.toArray] using motiveTranslated
       · simpa only [List.length_cons, List.length_nil, Nat.zero_add] using motiveTyped
 
+/- A constructor model may be a virtual-context extension of the parent model.
+   The parent motive remains available there by the corresponding free-variable
+   weakening; this packages the concrete witness needed by a later nullary
+   constructor without quantifying over an arbitrary model. -/
+theorem canonicalBoolMotiveSupportOfExtension
+    {stats : InductiveStats} {infos : Array RecInfo}
+    {terminal : Expr} {baseModel fieldModel : MLCtx} {ids : List FVarId}
+    {motive : FVarId} {motiveSemantic : VExpr} {level : VLevel}
+    (extension : IndexMLCtxExtension baseModel ids fieldModel)
+    (fieldWF : fieldModel.WF canonicalBoolModel [`u])
+    (terminalEq : terminal = .const ``Bool [])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (motiveTranslated : TrExprS canonicalBoolModel [`u] baseModel.vlctx
+      (.fvar motive) motiveSemantic)
+    (motiveTyped : canonicalBoolModel.HasType 1 baseModel.vlctx.toCtx motiveSemantic
+      (.forallE (.const ``Bool []) (.sort level))) :
+    IHMotiveApplicationSupport canonicalBoolModel [`u] stats infos fieldModel.vlctx terminal := by
+  subst terminal
+  intro terminalSemantic terminalTranslated
+  cases terminalTranslated with
+  | const _ levels _ =>
+    simp at levels
+    cases levels
+    refine ⟨motiveSemantic.liftN ids.length 0, level, ?_, ?_⟩
+    · simpa only [boolIndices, motiveEq, mkAppN, Array.foldl_empty] using
+        motiveTranslated.weakFV canonicalBoolModel.wf.ordered extension.weakening fieldWF.tr.wf
+    · simpa only [VExpr.liftN, VExpr.lift, List.length_cons, List.length_nil] using
+        motiveTyped.weakN canonicalBoolModel.wf.ordered extension.weakening.toCtx
+
 /- The translated parent step stores the motive as the newest virtual binder.
    This projection exposes its source fvar translation and typing at the final
    parent model.  The native motive source is reduced here to the canonical

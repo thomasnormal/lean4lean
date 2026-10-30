@@ -2663,3 +2663,14 @@ historical native source-capture reproducer is version-bounded to Lean 4.29;
 the adapted call is rejected by the pinned Lean 4.33 toolchain. It remains a
 useful compatibility regression, but it is not a new standalone PR for the
 current upstream tip.
+
+## Canonical Bool motive transport across minor extensions — 2026-10-30
+
+`canonicalBoolMotiveSupportOfExtension` now transports a concrete parent
+motive translation and `Bool → Sort` typing through an
+`IndexMLCtxExtension`, using the exact free-variable weakening and model WF
+receipt. This supplies the model-indexed witness needed after a nullary
+constructor pass while avoiding the generic callback's arbitrary-model
+quantifier. The full minor-pass consumer still needs to thread the concrete
+extension and keeps generated-rule and iota obligations explicit; this
+fork-specific helper is not an upstream PR candidate.

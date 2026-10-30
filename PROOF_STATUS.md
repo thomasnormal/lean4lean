@@ -13752,3 +13752,13 @@ and constructor before nested preprocessing. The native source-capture witness
 is specific to Lean 4.29; the equivalent call is rejected by the pinned Lean
 4.33 toolchain. The fork's named preflight receipt therefore remains local
 verification evidence rather than a new upstream patch.
+
+## Canonical Bool motive transport across minor extensions — 2026-10-30
+
+The new `canonicalBoolMotiveSupportOfExtension` theorem weakens a translated
+parent motive through the exact `IndexMLCtxExtension` and re-establishes its
+typing at the extended model. Constant Bool terminal translations are reduced
+constructively, and the theorem produces the `IHMotiveApplicationSupport`
+shape required by nullary constructor IH translation. This narrows the
+minor-pass quantifier mismatch; threading it through the actual two-constructor
+pass remains open, as do generated-rule and iota semantics.

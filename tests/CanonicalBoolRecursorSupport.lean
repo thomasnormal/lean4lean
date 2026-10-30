@@ -55,6 +55,22 @@ example {stats : InductiveStats} {infos : Array RecInfo}
   exact canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport endpoint fieldsEq terminalEq
     boolIndices motiveEq motiveTranslated motiveTyped
 
+example {stats : InductiveStats} {infos : Array RecInfo}
+    {baseModel fieldModel : MLCtx} {ids : List FVarId}
+    {motive : FVarId} {motiveSemantic : VExpr} {level : VLevel}
+    (extension : IndexMLCtxExtension baseModel ids fieldModel)
+    (fieldWF : fieldModel.WF canonicalBoolModel [`u])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (motiveTranslated : TrExprS canonicalBoolModel [`u] baseModel.vlctx
+      (.fvar motive) motiveSemantic)
+    (motiveTyped : canonicalBoolModel.HasType 1 baseModel.vlctx.toCtx motiveSemantic
+      (.forallE (.const ``Bool []) (.sort level))) :
+    IHMotiveApplicationSupport canonicalBoolModel [`u] stats infos fieldModel.vlctx
+      (.const ``Bool []) := by
+  exact canonicalBoolMotiveSupportOfExtension extension fieldWF rfl boolIndices motiveEq
+    motiveTranslated motiveTyped
+
 example {stats : InductiveStats} {elimLevel : Level} {indices : Array Expr}
     {indexReader : Context} {indexVirtual : VLCtx} {initial final : MLCtx}
     {ids : List FVarId}
@@ -103,6 +119,7 @@ run_meta
       ``canonicalBoolMinorSourceSupport,
       ``canonicalBoolMinorTraceSupport,
       ``canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport,
+      ``canonicalBoolMotiveSupportOfExtension,
       ``canonicalBoolParentMotiveFVarPremises,
       ``canonicalBoolParentHistoryMotiveSupport] do
     auditTheorem theoremName
