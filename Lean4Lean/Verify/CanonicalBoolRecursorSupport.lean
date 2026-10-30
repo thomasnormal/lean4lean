@@ -149,6 +149,52 @@ theorem canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport
           List.map_nil, List.toArray] using motiveTranslated
       · simpa only [List.length_cons, List.length_nil, Nat.zero_add] using motiveTyped
 
+/- The translated parent step stores the motive as the newest virtual binder.
+   This projection exposes its source fvar translation and typing at the final
+   parent model.  The canonical motive shape is deliberately an explicit
+   premise: this theorem transports the witness, rather than inferring the
+   shape from native checker behavior. -/
+theorem canonicalBoolParentMotiveFVarPremises
+    {stats : InductiveStats} {elimLevel : Level} {indices : Array Expr}
+    {indexReader : Context} {indexVirtual : VLCtx} {initial final : MLCtx}
+    {ids : List FVarId}
+    (step : RecursorParentModelStep canonicalBoolModel [`u] stats #[canonicalBoolType]
+      elimLevel 0 indices indexReader indexVirtual initial final ids)
+    (indicesEq : indices = #[])
+    (motiveShape : ∀ {peeled motiveSemantic : VExpr} {motiveLevel : VLevel},
+      RecursorMotiveDomainTranslation canonicalBoolModel [`u] stats 0 indices indexReader
+        indexVirtual peeled elimLevel motiveSemantic motiveLevel →
+      motiveSemantic = .forallE (.const ``Bool []) (.sort motiveLevel)) :
+    ∃ (motiveLevel : VLevel),
+      TrExprS canonicalBoolModel [`u] final.vlctx
+        (.fvar ⟨(recursorIndexContext indexReader `t .default
+          (recursorMajorDomain stats 0 indices)).ngen.curr⟩) (.bvar 0) ∧
+      canonicalBoolModel.HasType 1 final.vlctx.toCtx (.bvar 0)
+        (.forallE (.const ``Bool []) (.sort motiveLevel)) := by
+  obtain ⟨rawSemantic, peeled, majorLevel, motiveSemantic, motiveLevel,
+    majorOpening, motiveOpening, finalWF, finalNative, finalConverted, extension, idsEq⟩ := step
+  obtain rfl := indicesEq
+  have motiveShapeEq := motiveShape motiveOpening.1
+  have motiveLookup : final.vlctx.find? (.inr
+      ⟨(recursorIndexContext indexReader `t .default
+        (recursorMajorDomain stats 0 #[])).ngen.curr⟩) =
+      some (.bvar 0, motiveSemantic.lift) := by
+    rw [finalConverted]
+    simpa only [recursorMotiveVirtualContext] using
+      (VLCtx.find?_vlam_self
+        (fv := ⟨(recursorIndexContext indexReader `t .default
+          (recursorMajorDomain stats 0 #[])).ngen.curr⟩)
+        (deps := (recursorMotiveDomain elimLevel #[]
+          (.fvar ⟨indexReader.ngen.curr⟩)
+          (recursorIndexContext indexReader `t .default
+            (recursorMajorDomain stats 0 #[]))).fvarsList)
+        (ty := motiveSemantic)
+        (Δ := recursorMajorVirtualContext stats 0 #[] indexReader indexVirtual peeled))
+  refine ⟨motiveLevel, .fvar motiveLookup, ?_⟩
+  have typed := finalWF.tr.wf.find?_wf canonicalBoolModel.wf.ordered motiveLookup
+  simpa only [motiveShapeEq, VExpr.lift, VExpr.liftN, Nat.zero_add,
+    List.length_cons, List.length_nil] using typed
+
 end Lean4Lean.AddInductive
 
 namespace Lean4Lean.AddInductive

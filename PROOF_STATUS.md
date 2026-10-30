@@ -1,3 +1,12 @@
+## Canonical Bool parent motive fvar premises — 2026-10-30
+
+A translated canonical Bool parent step now yields the motive source fvar's
+`.bvar 0` translation and its `Bool → Sort` type at the final parent model.
+The proof uses the parent step's final virtual-context equation and the
+well-formed model lookup; the source motive-shape equation stays an explicit
+premise. This is the next reusable input for closing the higher-level minor
+pass callback.
+
 ## Canonical Bool zero-field IH motive bridge — 2026-10-30
 
 The canonical Bool constructor-field endpoint now has a theorem-backed bridge

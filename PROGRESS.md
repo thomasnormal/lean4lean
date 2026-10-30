@@ -1,3 +1,12 @@
+## Canonical Bool parent motive fvar premises — 2026-10-30
+
+`canonicalBoolParentMotiveFVarPremises` projects the newest motive binder from a
+translated parent model step. Using the final virtual-context equation, it
+proves the source motive fvar translates to `.bvar 0` and carries the expected
+`Bool → Sort` typing. The canonical motive-shape equation remains explicit;
+this theorem supplies the context witness needed by the zero-field IH bridge
+and is fork-specific rather than an upstream PR candidate.
+
 ## Canonical Bool zero-field IH motive bridge — 2026-10-30
 
 `canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport` proves that a

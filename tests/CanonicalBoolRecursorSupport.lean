@@ -55,6 +55,24 @@ example {stats : InductiveStats} {infos : Array RecInfo}
   exact canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport endpoint fieldsEq terminalEq
     boolIndices motiveEq motiveTranslated motiveTyped
 
+example {stats : InductiveStats} {elimLevel : Level} {indices : Array Expr}
+    {indexReader : Context} {indexVirtual : VLCtx} {initial final : MLCtx}
+    {ids : List FVarId}
+    (step : RecursorParentModelStep canonicalBoolModel [`u] stats #[canonicalBoolType]
+      elimLevel 0 indices indexReader indexVirtual initial final ids)
+    (indicesEq : indices = #[])
+    (motiveShape : ∀ {peeled motiveSemantic : VExpr} {motiveLevel : VLevel},
+      RecursorMotiveDomainTranslation canonicalBoolModel [`u] stats 0 indices indexReader
+        indexVirtual peeled elimLevel motiveSemantic motiveLevel →
+      motiveSemantic = .forallE (.const ``Bool []) (.sort motiveLevel)) :
+    ∃ (motiveLevel : VLevel),
+      TrExprS canonicalBoolModel [`u] final.vlctx
+        (.fvar ⟨(recursorIndexContext indexReader `t .default
+          (recursorMajorDomain stats 0 indices)).ngen.curr⟩) (.bvar 0) ∧
+      canonicalBoolModel.HasType 1 final.vlctx.toCtx (.bvar 0)
+        (.forallE (.const ``Bool []) (.sort motiveLevel)) := by
+  exact canonicalBoolParentMotiveFVarPremises step indicesEq motiveShape
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -68,7 +86,8 @@ run_meta
   for theoremName in [``canonicalBoolStopParentSupport,
       ``canonicalBoolMinorSourceSupport,
       ``canonicalBoolMinorTraceSupport,
-      ``canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport] do
+      ``canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport,
+      ``canonicalBoolParentMotiveFVarPremises] do
     auditTheorem theoremName
   logInfo "canonical Bool parent stop and two-constructor minor support are theorem-backed"
 
