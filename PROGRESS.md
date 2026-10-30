@@ -1,5 +1,15 @@
 # Progress and upstream comparison
 
+## Primitive-preflight operational checker boundary — 2026-10-30
+
+`addDecl.WF_inductive_of_checkedPrimitive_sourceTypehood_and_checker` now
+specializes the complete inductive frontend/checker theorem to a successful
+`checkPrimitiveInductive` preflight. Its callback receives only the authorized
+`allowPrimitive = true` scope while retaining safety-indexed registration,
+source typehood, primitive preservation, monotonicity, safe-value translation,
+and generated-rule receipts. No admissions or executable behavior changed;
+Bool/Nat registration and full inductive soundness remain caller obligations.
+
 ## Scoped-only complete generated-rule callback — 2026-10-30
 
 `LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaBaseAndTargetResultsOfScopedCombined`

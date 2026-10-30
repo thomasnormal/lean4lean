@@ -1,5 +1,17 @@
 # Non-inductive verification proof of concept
 
+## Primitive-preflight operational checker boundary — 2026-10-30
+
+`addDecl.WF_inductive_of_checkedPrimitive_sourceTypehood_and_checker` is the
+complete operational checker boundary specialized to a successful
+`checkPrimitiveInductive` result. The callback is restricted to the verified
+`allowPrimitive = true` scope and still supplies explicit safety-indexed
+registration, source-typehood, primitive, monotonicity, safe-value, and
+generated-rule obligations. The theorem returns the assembled inductive model,
+alignment, history, checker environment, and target iota package without
+introducing a direct `sorry`, `admit`, or axiom. It does not construct the
+Bool/Nat registration evidence or prove the full inductive frontend.
+
 ## Scoped-only complete generated-rule callback — 2026-10-30
 
 The complete stored-rule boundary now has a scoped-only combined callback,
