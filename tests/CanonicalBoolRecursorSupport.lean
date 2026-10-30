@@ -60,18 +60,17 @@ example {stats : InductiveStats} {elimLevel : Level} {indices : Array Expr}
     {ids : List FVarId}
     (step : RecursorParentModelStep canonicalBoolModel [`u] stats #[canonicalBoolType]
       elimLevel 0 indices indexReader indexVirtual initial final ids)
+    (params : stats.params = #[])
+    (indConsts : stats.indConsts = #[.const ``Bool []])
     (indicesEq : indices = #[])
-    (motiveShape : ∀ {peeled motiveSemantic : VExpr} {motiveLevel : VLevel},
-      RecursorMotiveDomainTranslation canonicalBoolModel [`u] stats 0 indices indexReader
-        indexVirtual peeled elimLevel motiveSemantic motiveLevel →
-      motiveSemantic = .forallE (.const ``Bool []) (.sort motiveLevel)) :
-    ∃ (motiveLevel : VLevel),
+    (elimLevelEq : elimLevel = .succ .zero) :
+    ∃ (bodyLevel : VLevel),
       TrExprS canonicalBoolModel [`u] final.vlctx
         (.fvar ⟨(recursorIndexContext indexReader `t .default
           (recursorMajorDomain stats 0 indices)).ngen.curr⟩) (.bvar 0) ∧
       canonicalBoolModel.HasType 1 final.vlctx.toCtx (.bvar 0)
-        (.forallE (.const ``Bool []) (.sort motiveLevel)) := by
-  exact canonicalBoolParentMotiveFVarPremises step indicesEq motiveShape
+        (.forallE (.const ``Bool []) (.sort bodyLevel)) := by
+  exact canonicalBoolParentMotiveFVarPremises step params indConsts indicesEq elimLevelEq
 
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name

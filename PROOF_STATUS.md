@@ -13648,3 +13648,13 @@ chronological prefix models; no reordered context extension is asserted. The foc
 and detached `LEAN_NUM_THREADS=8 lake build` (492 jobs) pass. The tracked
 source census remains 116 whole-word `sorry` lines / 120 occurrences; the
 broader `sorry|admit|axiom` census remains 711 lines / 719 occurrences.
+
+## October 30, 2026 — derive canonical Bool parent motive shape
+
+`canonicalBoolParentMotiveFVarPremises` now inverts the translated native
+`Bool → Sort` source and projects the newest virtual binder as `.bvar 0` with
+its canonical translation and typing. The previous `motiveShape` premise was
+removed: its `motiveLevel` confused the universe of the whole Pi type with
+the body universe. The canonical stats, index, and elimination-level
+equations remain explicit inputs. No executable behavior or kernel discrepancy
+changed, and this fork-specific theorem is not an upstream PR candidate.

@@ -2551,3 +2551,13 @@ parent-first allocation equation, it proves the grouped recursor-type binder
 alignment and applies the concrete Bool permutation, returning a
 `RecursorBinderRebaseReceipt`. Semantic prefix models remain chronological;
 this theorem does not claim a reordered `SelectedRecursorTelescope`.
+
+## October 30, 2026 — derive canonical Bool parent motive shape
+
+`canonicalBoolParentMotiveFVarPremises` now reduces the native parent motive
+source from the translated parent opening and proves the final motive fvar
+translation and typing directly. The proof keeps the whole-Pi type universe
+separate from the motive body's universe, so it no longer accepts the
+incorrect shape premise that equated those levels. Canonical parameter,
+inductive-head, index, and elimination-level equations remain explicit.
+This fork-specific theorem is not an upstream PR candidate.
