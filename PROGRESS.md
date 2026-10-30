@@ -1,5 +1,12 @@
 # Progress and upstream comparison
 
+## Project ordered generated-rule/iota package from consumer receipt — 2026-10-30
+
+`RegistrationConsumerReceipt.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults`
+now projects the complete ordered generated-rule and base/target-iota package
+from the specialized registration receipt. Checked-frontend consumers can
+reuse the receipt's ordered semantics and generated results directly.
+
 ## Registration consumer generated-rule/iota package — 2026-10-30
 
 `RegistrationEvidence.consumerReceiptWithGeneratedRuleResultsAndIota` now

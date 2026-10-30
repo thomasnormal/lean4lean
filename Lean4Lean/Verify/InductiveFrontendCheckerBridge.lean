@@ -2776,6 +2776,46 @@ theorem NativeInductive.RegistrationEvidence.consumerReceiptWithGeneratedRuleRes
   exact evidence.multiRecursorConsumerReceipt hconstants henv haligned hrecursors
     ruleResults iotaResults
 
+/- Project the complete ordered generated-rule/base-and-target-iota package
+   from the specialized consumer receipt.  Downstream checked-frontend
+   consumers can use this boundary without reopening insertion internals. -/
+theorem NativeInductive.RegistrationConsumerReceipt.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults
+    {safety : DefinitionSafety}
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap} {evidence : NativeInductive.RegistrationEvidence constants
+      semanticEnv decl resultConstants semanticResult}
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (receipt : NativeInductive.RegistrationConsumerReceipt safety evidence
+      (fun _ rule => ∃ constructor minor,
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+      (fun _ rule => ∃ constructor minor,
+        AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.RuleSemantics semanticResult ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+            ∃ (constructor : Constructor) (minor : Expr),
+              AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+              AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  intro entry hentry
+  obtain ⟨hsemantics, hrules⟩ := receipt.insertion.orderedRuleResults entry hentry
+  refine ⟨hsemantics, ?_⟩
+  cases entry with
+  | header _ => trivial
+  | constructor _ => trivial
+  | recursor entry =>
+    intro rule hrule
+    obtain ⟨constructor, minor, generated⟩ := hrules rule hrule
+    obtain ⟨semantic, hsemantic⟩ := hsemantics rule hrule
+    exact ⟨semantic, hsemantic, constructor, minor, generated,
+      generated.iotaKind.baseAndTargetResults⟩
+
 /- Preserve the same ordered registration traversal while exposing the named
    iota projection.  This is the consumer-facing boundary: the closed RHS
    translation stays paired with the lifted base/target typing witnesses for

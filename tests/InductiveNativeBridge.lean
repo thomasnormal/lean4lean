@@ -624,6 +624,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RegistrationEvidence.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RegistrationEvidence.consumerReceiptWithGeneratedRuleResultsAndIota
+#check NativeInductive.RegistrationConsumerReceipt.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_orderedEntryLookup
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_of_explicitHistory
@@ -993,6 +994,33 @@ example {safety : DefinitionSafety} {constants resultConstants : ConstMap}
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :=
   evidence.consumerReceiptWithGeneratedRuleResultsAndIota hconstants henv haligned hrecursors
     ruleResults
+
+example {safety : DefinitionSafety} {constants resultConstants : ConstMap}
+    {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants semanticEnv decl resultConstants semanticResult)
+    (hconstants : constants.WF) (henv : semanticEnv.WF)
+    (haligned : Aligned safety constants semanticEnv)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      ∃ constructor minor,
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∀ entry ∈ evidence.orderedEntries,
+      entry.RuleSemantics semanticResult ∧ match entry with
+        | .header _ | .constructor _ => True
+        | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+            TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+            ∃ (constructor : Constructor) (minor : Expr),
+              AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+              AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule := by
+  let receipt := evidence.consumerReceiptWithGeneratedRuleResultsAndIota hconstants henv
+    haligned hrecursors ruleResults
+  exact receipt.orderedGeneratedRuleResultsAndIotaBaseAndTargetResults
 
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result) :

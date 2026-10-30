@@ -1,5 +1,11 @@
 # Non-inductive verification proof of concept
 
+## Project ordered generated-rule/iota package from consumer receipt — 2026-10-30
+
+The consumer receipt now exposes the complete ordered rule-result and paired
+base/target-iota package expected by downstream checked-frontend consumers.
+The per-rule generated result remains the source of the paired iota witness.
+
 ## Registration consumer generated-rule/iota package — 2026-10-30
 
 The registration boundary now produces a `RegistrationConsumerReceipt` whose
