@@ -784,6 +784,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check addDecl.checkedPrimitiveModelAndConstructiveCheckerGeneratedRuleResultsAndIotaTargetResultPackage_of_sourceTypehood_and_restorationStages_toCheckerEnv
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIota
+#check addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIotaAndVDeclWF
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryGeneratedRuleResultsAndIotaBaseAndTargetResults_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIota_of_restorationStages
 #check addDecl.checkedPrimitiveModelAndConstructiveHistoryAndVDeclWF
@@ -9062,6 +9063,13 @@ example {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
     hsource hvalues ruleResults
   have _ := hConsumer.1
   have _ := hConsumer.2.orderedLookup
+  have hConsumerWF :=
+    addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIotaAndVDeclWF
+      (venv := venv) hmap hcheck hresult producer hconstants hresultConstants history
+      hsource hvalues ruleResults
+  have _ := hConsumerWF.1
+  have _ := hConsumerWF.2.1
+  have _ := hConsumerWF.2.2.orderedLookup
   trivial
 
 example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}

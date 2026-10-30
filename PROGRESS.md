@@ -2469,3 +2469,12 @@ map, constructive `AddInductWithRecursorsEvidence`, and the ordinary
 `RegistrationConsumerReceipt .safe` projections. The constructive checker
 regression consumes the ordinary ordered lookup projection after this wrapper.
 This fork-specific packaging is not an upstream PR candidate.
+
+## October 30, 2026 — declaration-WF checker consumer receipt
+
+The checked-primitive checker-history boundary now pairs the named registration
+consumer receipt with the producer declaration's `VDecl.WF` witness. The
+package retains checker validity, ordered lookup/alignment, generated-rule
+results, and paired iota results under the existing explicit source and value
+translation obligations. This fork-specific packaging is not an upstream PR
+candidate.

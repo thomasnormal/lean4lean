@@ -13559,3 +13559,15 @@ lookup through this receipt. The focused regression and detached `LEAN_NUM_THREA
 120 occurrences; the broader `sorry|admit|axiom` census remains 711 lines /
 719 occurrences. This is a fork-specific wrapper and is not an upstream PR
 candidate.
+
+## October 30, 2026 — declaration-WF checker consumer receipt
+
+`addDecl.checkedPrimitiveModelAndCheckerHistoryConsumerReceiptWithGeneratedRuleResultsAndIotaAndVDeclWF`
+combines the existing checked-primitive checker-history declaration-WF theorem
+with the named registration consumer receipt. Its result exposes producer
+`VDecl.WF`, safe `CheckerEnvInductive`, and ordered lookup/alignment together
+with explicit generated-rule and paired base/target-iota witnesses. The focused bridge build (360 jobs), native regression, and detached
+`LEAN_NUM_THREADS=8 lake build` (492 jobs) pass. The tracked source census
+remains 116 whole-word `sorry` lines / 120 occurrences; the broader
+`sorry|admit|axiom` census remains 711 lines / 719 occurrences. This is a
+fork-specific package and is not an upstream PR candidate.
