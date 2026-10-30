@@ -717,6 +717,69 @@ theorem RecursorInfoModelEndpoint.declaredRecursorFromDomains
     receipt.existsDeclaredRecursor (types := types) lparams isK rules levels empty
   exact ⟨constant, receipt, translated, wellFormed⟩
 
+/- Start from the endpoint-level selected-domain/type-model receipt and carry
+   it through the grouped-order rebase into the canonical Bool declaration
+   package.  The native index source and all role/semantic obligations remain
+   visible at this boundary. -/
+theorem RecursorInfoModelEndpoint.canonicalBoolDeclaredRecursorReceipt
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0) (bound : 0 < types.size)
+    (source : RecursorInfoIndexSource stats types elimLevel 0 reader infos[0]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (support : RecursorSelectedDomainSupport env universes stats infos 0
+      finalReader.lctx initial)
+    (grouped : List FVarId)
+    (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
+    (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
+    {motive major : FVarId}
+    (majorMember : major ∈ grouped) (motiveMember : motive ∈ grouped)
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (indicesEq : infos[0]!.indices = #[])
+    (majorEq : infos[0]!.major = .fvar major)
+    (motiveShape : ∀ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) →
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = universes)
+    (empty : initial.vlctx = [])
+    {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
+    (_minorSemantics : MinorSemantics)
+    (_generatedRuleSemantics : GeneratedRuleSemantics)
+    (_iotaSoundness : IotaSoundness)
+    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0) :
+    ∃ chronological bodySemantic level constant,
+      RecursorBinderRebaseReceipt env universes stats infos 0 finalReader.lctx
+        initial final chronological grouped ∧
+      TrExprS env universes final.vlctx (recursorTypeBody infos 0) bodySemantic ∧
+      env.HasType universes.length final.vlctx.toCtx bodySemantic (.sort level) ∧
+      recursorRawType stats infos 0 finalReader.lctx =
+        final.lctx.mkForall (grouped.map Expr.fvar).toArray
+          (recursorTypeBody infos 0) ∧
+      TrConstVal .safe env
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams
+          finalReader.lctx isK false 0 rules)) constant ∧
+      constant.toVConstant.WF env := by
+  obtain ⟨chronological, receipt⟩ := endpoint.rebaseBinderOrder envWF grouped order alignment
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  have typeReceipt := endpoint.recursorTypeFromDomains envWF initialWF parameterFree 0 bound
+    source mapped support
+  obtain ⟨bodySemantic, bodyLevel, constant, bodyTranslated, bodyTyped, bodyRaw,
+    constantTranslated, constantWF⟩ :=
+    receipt.canonicalBoolDeclaredRecursorReceipt typeReceipt rfl envWF finalWF finalNative
+      majorMember motiveMember motiveEq indicesEq majorEq motiveShape mapped
+      _minorSemantics _generatedRuleSemantics _iotaSoundness bodyClosed
+      lparams isK rules levels empty
+  exact ⟨chronological, bodySemantic, bodyLevel, constant, receipt, bodyTranslated,
+    bodyTyped, bodyRaw, constantTranslated, constantWF⟩
+
 theorem RecursorInfoModelEndpoint.finalStoredTypehoodFromDomains
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
     {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}

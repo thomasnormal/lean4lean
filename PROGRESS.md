@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Canonical Bool endpoint-to-registration package — 2026-10-30
+
+`RecursorInfoModelEndpoint.canonicalBoolDeclaredRecursorReceipt` now feeds
+selected-domain support and the native index source through the recursor
+type-model receipt, grouped-order rebase, canonical Bool body application, and
+declared-constant construction. The result exposes one endpoint receipt for
+the translated/typed body, grouped raw-type equation, registered constant, and
+constant WF while retaining all semantic callbacks as premises.
+
 ## Canonical Bool declared-recursor package — 2026-10-30
 
 `RecursorBinderRebaseReceipt.canonicalBoolDeclaredRecursorReceipt` now pairs

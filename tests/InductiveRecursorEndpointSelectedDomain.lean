@@ -261,6 +261,55 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
     (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
       reader infos finalReader initial final)
+    (initialWF : initial.WF canonicalBoolModel [`u])
+    (parameterFree : stats.params.size = 0) (bound : 0 < types.size)
+    (source : RecursorInfoIndexSource stats types elimLevel 0 reader infos[0]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
+    (support : RecursorSelectedDomainSupport canonicalBoolModel [`u] stats infos 0
+      finalReader.lctx initial)
+    (grouped : List FVarId)
+    (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
+    (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
+    {motive major : FVarId}
+    (majorMember : major ∈ grouped) (motiveMember : motive ∈ grouped)
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (indicesEq : infos[0]!.indices = #[])
+    (majorEq : infos[0]!.major = .fvar major)
+    (motiveShape : ∀ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) →
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = [`u])
+    (empty : initial.vlctx = [])
+    {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
+    (minorSemantics : MinorSemantics)
+    (generatedRuleSemantics : GeneratedRuleSemantics)
+    (iotaSoundness : IotaSoundness)
+    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0) :
+    ∃ chronological bodySemantic level constant,
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 finalReader.lctx
+        initial final chronological grouped ∧
+      TrExprS canonicalBoolModel [`u] final.vlctx (recursorTypeBody infos 0) bodySemantic ∧
+      canonicalBoolModel.HasType 1 final.vlctx.toCtx bodySemantic (.sort level) ∧
+      recursorRawType stats infos 0 finalReader.lctx =
+        final.lctx.mkForall (grouped.map Expr.fvar).toArray
+          (recursorTypeBody infos 0) ∧
+      TrConstVal .safe canonicalBoolModel
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams
+          finalReader.lctx isK false 0 rules)) constant ∧
+      constant.toVConstant.WF canonicalBoolModel := by
+  exact endpoint.canonicalBoolDeclaredRecursorReceipt canonicalBoolModel.wf initialWF
+    parameterFree bound source mapped support grouped order alignment majorMember motiveMember
+    motiveEq indicesEq majorEq motiveShape lparams isK rules levels empty minorSemantics
+    generatedRuleSemantics iotaSoundness bodyClosed
+
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
     (grouped : List FVarId)
     (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
     (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
@@ -324,6 +373,7 @@ run_meta
   auditTheorem ``canonicalBoolRecursorTypeBodyApplicationSupport
   auditTheorem ``RecursorBinderRebaseReceipt.canonicalBoolFinalBodyApplicationReceipt
   auditTheorem ``RecursorBinderRebaseReceipt.canonicalBoolDeclaredRecursorReceipt
+  auditTheorem ``RecursorInfoModelEndpoint.canonicalBoolDeclaredRecursorReceipt
   auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
   auditTheorem ``canonicalBoolRecursorBinderOrderPermutation
   logInfo "endpoint selected-domain, split/rebase, and allocation-order boundaries are theorem-backed"

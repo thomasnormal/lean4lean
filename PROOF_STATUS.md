@@ -1,5 +1,12 @@
 # Non-inductive verification proof of concept
 
+## Canonical Bool endpoint-to-registration package — 2026-10-30
+
+The endpoint-level selected-domain/type-model construction now reaches the
+canonical Bool declared-recursor package. Native index-source provenance,
+grouped-order alignment, role evidence, and body/constant obligations remain
+explicit at the boundary.
+
 ## Canonical Bool declared-recursor package — 2026-10-30
 
 The canonical Bool endpoint now reaches the declared recursor constant
