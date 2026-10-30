@@ -13545,3 +13545,17 @@ model-WF callbacks. The regression projects lookup/alignment and the stored
 ordered rule-result and iota callbacks separately. This adds no semantic claim:
 generated-rule and iota obligations remain explicit inputs, and no executable
 behavior or kernel discrepancy changed.
+
+## October 30, 2026 — constructive checker consumer receipt
+
+`RestoredRecordEvidence.registrationConstructiveCheckerConsumerReceiptWithGeneratedRuleResultsAndIota_toCheckerEnv`
+composes the existing ordinary checker projection with the named
+`RegistrationConsumerReceipt .safe`. It returns the result constants,
+constructive `AddInductWithRecursorsEvidence`, ordinary safe `CheckerEnv`, and
+the consumer receipt while retaining generated-rule and iota obligations as
+explicit fields. The constructive checker regression projects its ordered
+lookup through this receipt. The focused regression and detached `LEAN_NUM_THREADS=8 lake build` pass
+(492 jobs). The tracked source census remains 116 whole-word `sorry` lines /
+120 occurrences; the broader `sorry|admit|axiom` census remains 711 lines /
+719 occurrences. This is a fork-specific wrapper and is not an upstream PR
+candidate.

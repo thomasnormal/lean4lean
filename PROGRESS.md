@@ -2459,3 +2459,13 @@ alignment. Its insertion projection retains the generic ordered rule-result and
 iota-result fields, while the consumer theorem derives only lookup and alignment
 from the existing constructive evidence. The alignment regression exercises all
 three projections. This fork-specific packaging is not an upstream PR candidate.
+
+## October 30, 2026 — constructive checker consumer receipt
+
+The restored-record bridge now exposes a named constructive checker consumer
+receipt that combines the generated-rule/iota package with the ordinary checker
+environment and its safety witness. The receipt preserves the result constant
+map, constructive `AddInductWithRecursorsEvidence`, and the ordinary
+`RegistrationConsumerReceipt .safe` projections. The constructive checker
+regression consumes the ordinary ordered lookup projection after this wrapper.
+This fork-specific packaging is not an upstream PR candidate.
