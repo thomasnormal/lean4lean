@@ -2561,3 +2561,12 @@ separate from the motive body's universe, so it no longer accepts the
 incorrect shape premise that equated those levels. Canonical parameter,
 inductive-head, index, and elimination-level equations remain explicit.
 This fork-specific theorem is not an upstream PR candidate.
+
+## October 30, 2026 — generalize canonical Bool motive universe
+
+`canonicalBoolParentMotiveFVarPremises` now accepts the actual elimination
+level supplied by the parent pass. Native source inversion identifies the
+motive body's translated universe directly, while the whole-Pi universe stays
+separate. The fixed `elimLevel = Sort 1` premise is gone; the canonical
+parameter, head, and index equations remain explicit. This fork-specific
+theorem is not an upstream PR candidate.

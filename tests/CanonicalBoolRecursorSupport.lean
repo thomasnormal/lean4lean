@@ -62,15 +62,14 @@ example {stats : InductiveStats} {elimLevel : Level} {indices : Array Expr}
       elimLevel 0 indices indexReader indexVirtual initial final ids)
     (params : stats.params = #[])
     (indConsts : stats.indConsts = #[.const ``Bool []])
-    (indicesEq : indices = #[])
-    (elimLevelEq : elimLevel = .succ .zero) :
+    (indicesEq : indices = #[]) :
     ∃ (bodyLevel : VLevel),
       TrExprS canonicalBoolModel [`u] final.vlctx
         (.fvar ⟨(recursorIndexContext indexReader `t .default
           (recursorMajorDomain stats 0 indices)).ngen.curr⟩) (.bvar 0) ∧
       canonicalBoolModel.HasType 1 final.vlctx.toCtx (.bvar 0)
         (.forallE (.const ``Bool []) (.sort bodyLevel)) := by
-  exact canonicalBoolParentMotiveFVarPremises step params indConsts indicesEq elimLevelEq
+  exact canonicalBoolParentMotiveFVarPremises step params indConsts indicesEq
 
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name

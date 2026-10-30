@@ -13658,3 +13658,13 @@ removed: its `motiveLevel` confused the universe of the whole Pi type with
 the body universe. The canonical stats, index, and elimination-level
 equations remain explicit inputs. No executable behavior or kernel discrepancy
 changed, and this fork-specific theorem is not an upstream PR candidate.
+
+## October 30, 2026 — generalize canonical Bool motive universe
+
+The parent motive witness now handles arbitrary `elimLevel`. Its translated
+native `Bool → Sort elimLevel` source is inverted with separate binders for
+the body universe and the whole Pi type, and the returned typing result uses
+the body universe identified by the inversion. The old fixed elimination-level
+premise was removed from the theorem and regression. No executable behavior or
+kernel discrepancy changed; this fork-specific theorem is not an upstream PR
+candidate.

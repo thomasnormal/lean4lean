@@ -162,8 +162,7 @@ theorem canonicalBoolParentMotiveFVarPremises
       elimLevel 0 indices indexReader indexVirtual initial final ids)
     (params : stats.params = #[])
     (indConsts : stats.indConsts = #[.const ``Bool []])
-    (indicesEq : indices = #[])
-    (elimLevelEq : elimLevel = .succ .zero) :
+    (indicesEq : indices = #[]) :
     ∃ (bodyLevel : VLevel),
       TrExprS canonicalBoolModel [`u] final.vlctx
         (.fvar ⟨(recursorIndexContext indexReader `t .default
@@ -173,7 +172,6 @@ theorem canonicalBoolParentMotiveFVarPremises
   obtain ⟨rawSemantic, peeled, majorLevel, motiveSemantic, motiveTypeLevel,
     majorOpening, motiveOpening, finalWF, finalNative, finalConverted, extension, idsEq⟩ := step
   obtain rfl := indicesEq
-  obtain rfl := elimLevelEq
   have majorDomain : recursorMajorDomain stats 0 #[] = .const ``Bool [] := by
     simp only [recursorMajorDomain, params, indConsts, mkAppN]
     rfl
@@ -199,9 +197,9 @@ theorem canonicalBoolParentMotiveFVarPremises
       simpa only [List.map_nil] using h.trans (Expr.abstractFVars_nil body 0)
     rw [abstractEmpty]
   have singleton : majorReader.lctx.mkForall #[.fvar ⟨indexReader.ngen.curr⟩]
-      (.sort (.succ .zero)) = .forallE `t (.const ``Bool []) (.sort (.succ .zero)) .default := by
+      (.sort elimLevel) = .forallE `t (.const ``Bool []) (.sort elimLevel) .default := by
     simp only [Lean.LocalContext.mkForall, Lean.LocalContext.mkBinding, Expr.abstractRange_eq]
-    change Nat.foldRev 1 _ ((Expr.sort (.succ .zero)).abstract #[.fvar ⟨indexReader.ngen.curr⟩]) = _
+    change Nat.foldRev 1 _ ((Expr.sort elimLevel).abstract #[.fvar ⟨indexReader.ngen.curr⟩]) = _
     rw [Nat.foldRev_succ, Nat.foldRev_zero]
     have hindex0 : (#[(.fvar ⟨indexReader.ngen.curr⟩)] : Array Expr)[0] =
         .fvar ⟨indexReader.ngen.curr⟩ := by rfl
@@ -213,11 +211,11 @@ theorem canonicalBoolParentMotiveFVarPremises
     have constAbstract : (Expr.const ``Bool []).abstract #[] = Expr.const ``Bool [] := by
       have h := Expr.abstract_eq (Expr.const ``Bool []) []
       simpa only [List.map_nil] using h.trans (Expr.abstractFVars_nil _ 0)
-    have sortAbstract : (Expr.sort (.succ .zero)).abstract
-        #[.fvar ⟨indexReader.ngen.curr⟩] = Expr.sort (.succ .zero) := by
-      have h := Expr.abstract_eq (Expr.sort (.succ .zero)) [⟨indexReader.ngen.curr⟩]
-      have h' : (Expr.sort (.succ .zero)).abstract #[.fvar ⟨indexReader.ngen.curr⟩] =
-          (Expr.sort (.succ .zero)).abstractFVars [⟨indexReader.ngen.curr⟩] := by simpa using h
+    have sortAbstract : (Expr.sort elimLevel).abstract
+        #[.fvar ⟨indexReader.ngen.curr⟩] = Expr.sort elimLevel := by
+      have h := Expr.abstract_eq (Expr.sort elimLevel) [⟨indexReader.ngen.curr⟩]
+      have h' : (Expr.sort elimLevel).abstract #[.fvar ⟨indexReader.ngen.curr⟩] =
+          (Expr.sort elimLevel).abstractFVars [⟨indexReader.ngen.curr⟩] := by simpa using h
       rw [h']
       simp [Expr.abstractFVars]
     simp [constAbstract, sortAbstract]
@@ -226,7 +224,7 @@ theorem canonicalBoolParentMotiveFVarPremises
   change TrExprS canonicalBoolModel [`u] _
     (peelTypeAnnotations (majorReader.lctx.mkForall #[]
       (majorReader.lctx.mkForall #[.fvar ⟨indexReader.ngen.curr⟩]
-        (.sort (.succ .zero))))) motiveSemantic at translated
+        (.sort elimLevel)))) motiveSemantic at translated
   rw [emptyForall, singleton] at translated
   simp only [peelTypeAnnotations] at translated
   have motiveLookup : final.vlctx.find? (.inr
@@ -238,7 +236,7 @@ theorem canonicalBoolParentMotiveFVarPremises
       (VLCtx.find?_vlam_self
         (fv := ⟨(recursorIndexContext indexReader `t .default
           (recursorMajorDomain stats 0 #[])).ngen.curr⟩)
-        (deps := (recursorMotiveDomain (.succ .zero) #[]
+        (deps := (recursorMotiveDomain elimLevel #[]
           (.fvar ⟨indexReader.ngen.curr⟩)
           (recursorIndexContext indexReader `t .default
             (recursorMajorDomain stats 0 #[]))).fvarsList)
@@ -249,11 +247,10 @@ theorem canonicalBoolParentMotiveFVarPremises
     cases hAT with
     | const henv hlevels hlen =>
       cases hBT with
-      | sort hlevel =>
-        simp [VLevel.ofLevel] at hlevels hlevel
+      | @sort u' hlevel =>
+        simp [VLevel.ofLevel] at hlevels
         cases hlevels
-        cases hlevel
-        refine ⟨.succ .zero, .fvar motiveLookup, ?_⟩
+        refine ⟨hlevel, .fvar motiveLookup, ?_⟩
         have typed := finalWF.tr.wf.find?_wf canonicalBoolModel.wf.ordered motiveLookup
         simpa only [VExpr.lift, VExpr.liftN, Nat.zero_add,
           List.length_cons, List.length_nil] using typed
