@@ -1303,6 +1303,7 @@ dispatcher-to-target transport to `of_normalizedStringLiteralExact` after
 obtaining the paired expansion package. Its metadata alignment, output-shape,
 generated-translation, target-typing, and sort-arity witnesses remain
 explicit.
+
 The K-normalized String-literal exact endpoint now precedes its metadata
 consumer, and that metadata consumer delegates final dispatcher-to-target
 transport to it after obtaining the paired K-conversion and String-expansion
@@ -13403,3 +13404,13 @@ occurrences. The official `origin/master` tip is already an ancestor, so the
 daily rebase check is a no-op. This fork-specific receipt is not an upstream PR
 candidate; the focused upstream candidates remain the confluence, quotient
 pattern, and inductive source-preflight repairs.
+
+## October 30, 2026 — grouped raw recursor type endpoint
+
+`RecursorBinderRebaseReceipt.rawTypeFinalEquation` combines the grouped
+`mkForall` transport with `recursorRawType_eq_flat_selected`, yielding the
+final-context grouped raw recursor type under an explicit recursor-body
+closedness premise. The endpoint regression applies and audits this theorem.
+This remains a type-shell result; motive/minor application semantics,
+role-to-ID chronology, generated-rule semantics, and iota obligations remain
+explicit.

@@ -2311,3 +2311,11 @@ endpoint regression consumes this equation after final-domain transport. This
 is a syntactic body boundary; motive/minor application semantics,
 role-to-ID chronology, generated-rule semantics, and iota soundness remain
 separate obligations.
+
+## October 30, 2026 — grouped raw recursor type endpoint
+
+The grouped body transport now feeds `recursorRawType`: under an explicit
+closed-body premise, the native raw recursor type is equal to the final-context
+grouped `mkForall` expression. The endpoint regression applies this equation.
+Motive/minor application semantics, role-to-ID chronology, generated-rule
+semantics, and iota soundness remain separate obligations.
