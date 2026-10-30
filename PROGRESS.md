@@ -2388,3 +2388,13 @@ iota fields are independent premises, so generated-rule semantics and constructo
 iota behavior are not inferred from signature insertion. The alignment regression
 exercises the package and its structural projections. This fork-specific receipt
 is not an upstream PR candidate.
+
+## October 30, 2026 — multi-recursor lookup and alignment consumer
+
+The registration receipt now has a consumer-facing endpoint that combines the
+multi-recursor insertion/WF package with positive lookup for every ordered
+header, constructor, and recursor, and with `Aligned` transport to the result
+environment. The theorem still takes the initial alignment and recursor model-WF
+callbacks explicitly, and keeps generated-rule results and iota results as
+separate receipt fields. This is a fork-specific bridge, not an upstream PR
+candidate.

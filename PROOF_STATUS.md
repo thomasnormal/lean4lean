@@ -13480,3 +13480,14 @@ only lifts the native ordered rule semantics and does not claim generated-rule o
 iota soundness from insertion. `tests/InductiveNativeAlignment.lean` checks both
 the receipt constructor and its insertion/WF/freshness/map projections. No
 executable behavior or kernel discrepancy changed.
+
+## October 30, 2026 — multi-recursor lookup and alignment consumer
+
+`RegistrationEvidence.multiRecursorInsertionReceiptAndLookupAndAlignment`
+consumes the multi-recursor receipt together with the initial map WF, semantic
+environment WF, initial `Aligned` witness, and recursor model-WF callbacks. It
+returns the insertion receipt, positive final-map lookup for every ordered
+registration entry, and final semantic alignment. The generic generated-rule
+result and iota witnesses remain fields of the receipt and are not derived by
+the lookup/alignment transport. The alignment regression checks the complete
+consumer endpoint. No executable behavior or kernel discrepancy changed.

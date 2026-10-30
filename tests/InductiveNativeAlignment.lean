@@ -478,6 +478,22 @@ example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VIndu
   exact ⟨receipt.recursorAdd, receipt.resultWF, receipt.resultMapWF,
     receipt.orderedFresh, receipt.orderedMap⟩
 
+example {safety : DefinitionSafety} {constants resultConstants : ConstMap}
+    {env result : VEnv} {decl : VInductDecl}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (haligned : Aligned safety constants env)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    (ruleResults : ∀ entry ∈ evidence.recursors, ∀ rule, rule ∈ entry.info.rules → True)
+    (iotaResults : ∀ entry ∈ evidence.recursors, ∀ rule, rule ∈ entry.info.rules → True) :
+    RegistrationInsertionReceipt evidence (fun _ _ => True) (fun _ _ => True) ∧
+      (∀ entry ∈ evidence.orderedEntries,
+        resultConstants.find? entry.toConstantInfo.name = some entry.toConstantInfo) ∧
+      Aligned safety resultConstants result :=
+  evidence.multiRecursorInsertionReceiptAndLookupAndAlignment hconstants henv haligned
+    hrecursors ruleResults iotaResults
+
 example {constants resultConstants : ConstMap} {env result : VEnv} {decl : VInductDecl}
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)

@@ -443,6 +443,33 @@ theorem RegistrationEvidence.multiRecursorInsertionReceipt
     orderedRuleResults := evidence.orderedRuleResultsOf ruleResults
     iotaResults := iotaResults }
 
+/- Consumer-facing form of the receipt.  Positive lookups and semantic
+   alignment are derived from the same ordered freshness/map witness and the
+   same constructive registration evidence; they are not folded into the
+   insertion theorem's rule or iota obligations. -/
+theorem RegistrationEvidence.multiRecursorInsertionReceiptAndLookupAndAlignment
+    {safety : DefinitionSafety}
+    (evidence : RegistrationEvidence constants env decl resultConstants result)
+    (hconstants : constants.WF) (henv : env.WF)
+    (haligned : Aligned safety constants env)
+    (hrecursors : ∀ entry ∈ evidence.recursors,
+      entry.model.toVConstant.WF evidence.constructorEnv)
+    {RuleResult IotaResult : RecursorEntry → RecursorRule → Prop}
+    (ruleResults : ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      RuleResult entry rule)
+    (iotaResults : ∀ entry ∈ evidence.recursors, ∀ rule ∈ entry.info.rules,
+      IotaResult entry rule) :
+    RegistrationInsertionReceipt evidence RuleResult IotaResult ∧
+      (∀ entry ∈ evidence.orderedEntries,
+        resultConstants.find? entry.toConstantInfo.name = some entry.toConstantInfo) ∧
+      Aligned safety resultConstants result := by
+  have receipt := evidence.multiRecursorInsertionReceipt hconstants henv hrecursors
+    ruleResults iotaResults
+  have lookup := evidence.orderedEntryLookup hconstants hrecursors
+  have registration := evidence.to_addInductWithRecursorsEvidence_at safety
+    hconstants hrecursors
+  exact ⟨receipt, lookup, Aligned.addInductWithRecursorsEvidence registration haligned⟩
+
 theorem RegistrationEvidence.registrationWF_of_sourceTypehood
     (evidence : RegistrationEvidence constants env decl resultConstants result)
     (henv : env.WF)
