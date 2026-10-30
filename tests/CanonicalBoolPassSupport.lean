@@ -44,8 +44,11 @@ private def auditTheorem (name : Name) : MetaM Unit := do
   if proof.hasSorry then
     throwError "canonical Bool pass support has an admission: {name}"
 
+#check canonicalBoolPassModelEndpointWithParentMotiveSupport
+
 run_meta
+  auditTheorem ``canonicalBoolPassModelEndpointWithParentMotiveSupport
   auditTheorem ``canonicalBoolPassModelEndpoint
-  logInfo "canonical Bool parent/minor pass endpoint is theorem-backed"
+  logInfo "canonical Bool parent/minor pass endpoint and parent motive receipt are theorem-backed"
 
 end CanonicalBoolPassSupportTest

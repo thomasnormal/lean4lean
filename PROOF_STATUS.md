@@ -13679,3 +13679,13 @@ The higher-level minor-pass theorem still keeps its generic callback premise,
 so no generated-rule or iota obligation is inferred. No executable behavior
 or kernel discrepancy changed; this fork-specific theorem is not an upstream
 PR candidate.
+
+## October 30, 2026 — expose canonical Bool pass parent motive receipt
+
+The canonical pass now has a richer theorem-backed receipt that preserves the
+constructed parent model/history and returns its concrete
+`IHMotiveApplicationSupport` callback. The original endpoint theorem is a
+projection of this receipt. Its generic motive callback remains an explicit
+premise for universal minor-support construction; no generated-rule or iota
+behavior is inferred. No executable behavior or kernel discrepancy changed;
+this fork-specific packaging is not an upstream PR candidate.

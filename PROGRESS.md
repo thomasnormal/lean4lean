@@ -2580,3 +2580,13 @@ and both parent traces force the empty-index, one-type shape before the
 callback is assembled. The generic higher-level minor-pass callback remains
 an explicit contract for other model inputs. This fork-specific theorem is
 not an upstream PR candidate.
+
+## October 30, 2026 — expose canonical Bool pass parent motive receipt
+
+`canonicalBoolPassModelEndpointWithParentMotiveSupport` now returns the exact
+parent model/history used by the canonical pass endpoint together with the
+derived nullary-constructor IH motive callback. The existing endpoint theorem
+projects its prior result from this richer receipt, so its contract remains
+stable. The universal minor-pass callback stays explicit because the support
+type quantifies over arbitrary model inputs. This fork-specific packaging is
+not an upstream PR candidate.
