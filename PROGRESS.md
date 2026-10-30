@@ -1,5 +1,12 @@
 # Progress and upstream comparison
 
+## Checked-frontend consumer receipt boundary — 2026-10-30
+
+`RestoredRecordEvidence.toCheckerEnvInductive_and_registrationConsumerReceiptWithGeneratedRuleResultsAndIota`
+now combines checked-frontend validity with the restored consumer receipt. The
+boundary retains explicit value translation and recursor WF callbacks while
+exposing executable lookups, final alignment, and generated iota witnesses.
+
 ## Restored-record consumer receipt bridge — 2026-10-30
 
 `RestoredRecordEvidence.registrationConsumerReceiptWithGeneratedRuleResultsAndIota`

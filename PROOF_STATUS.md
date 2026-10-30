@@ -1,5 +1,11 @@
 # Non-inductive verification proof of concept
 
+## Checked-frontend consumer receipt boundary — 2026-10-30
+
+Checked-frontend validity now composes with the restored consumer receipt. The
+boundary keeps value translation and recursor WF as explicit inputs and carries
+the executable map lookup, final alignment, generated-rule, and iota package.
+
 ## Restored-record consumer receipt bridge — 2026-10-30
 
 The restored executable record now has a single consumer receipt bridge that

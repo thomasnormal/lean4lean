@@ -4042,6 +4042,54 @@ theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registr
   exact ⟨restored.toCheckerEnvInductive producer halign hconstants history hrecursors hvalues,
     restored.registrationGeneratedRuleResultsAndIota producer halign ruleResults⟩
 
+/- Combine checked-frontend validity with the named restored consumer receipt.
+   The checker history and value translation remain explicit, while the
+   receipt carries executable lookups, final alignment, and generated iota. -/
+theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationConsumerReceiptWithGeneratedRuleResultsAndIota
+    {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
+    {resultConstants : ConstMap}
+    {preprocessing : ElimNestedInductive.Result} {staged : Kernel.Environment}
+    {allIndNames : List Name} {recNameMap : NameMap Name}
+    {original result : Kernel.Environment} {records : List ConstantInfo} {Q : Bool}
+    (restored : NativeInductive.RestoredRecordEvidence preprocessing staged allIndNames recNameMap
+      original result records)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (halign : restored.entries = producer.orderedEntries)
+    (hconstants : original.constants = constants)
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (haligned : Aligned .safe constants semanticEnv)
+    (hrecursors : ∀ entry ∈ producer.recursors,
+      entry.model.toVConstant.WF producer.constructorEnv)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci →
+      .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    (ruleResults : ∀ entry ∈ producer.recursors, ∀ rule ∈ entry.info.rules,
+      ∃ constructor minor,
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    CheckerEnvInductive .safe result semanticResult Q ∧
+      NativeInductive.RegistrationConsumerReceipt .safe producer
+        (fun _ rule => ∃ constructor minor,
+          AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)
+        (fun _ rule => ∃ constructor minor,
+          AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+            (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) ∧
+      result.constants = resultConstants ∧
+      (∀ entry ∈ restored.entries,
+        result.constants.find? entry.toConstantInfo.name = some entry.toConstantInfo) ∧
+      Aligned .safe result.constants semanticResult := by
+  have hchecker := restored.toCheckerEnvInductive producer halign hconstants history
+    hrecursors hvalues
+  have hreceipt := restored.registrationConsumerReceiptWithGeneratedRuleResultsAndIota
+    producer halign hconstants history haligned hrecursors ruleResults
+  exact ⟨hchecker, hreceipt⟩
+
 theorem NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIotaBaseAndTargetResults
     {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VInductDecl}
     {resultConstants : ConstMap}

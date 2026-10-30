@@ -662,6 +662,7 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultsAndIota
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIota
+#check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationConsumerReceiptWithGeneratedRuleResultsAndIota
 #check NativeInductive.RestoredRecordEvidence.toCheckerEnvInductive_and_registrationGeneratedRuleResultsAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationGeneratedRuleResultAndIotaBaseAndTargetResults
 #check NativeInductive.RestoredRecordEvidence.registrationConstructiveCheckerGeneratedRuleResultsAndIotaBaseAndTargetResults
@@ -1486,6 +1487,12 @@ example {constants : ConstMap} {semanticEnv semanticResult : VEnv} {decl : VIndu
           (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) : True := by
   have h := restored.toCheckerEnvInductive_and_registrationIotaBaseAndTargetResults_of_sourceTypehood
     producer halign hconstants history hsource hvalues ruleResults
+  have hConsumer := restored.toCheckerEnvInductive_and_registrationConsumerReceiptWithGeneratedRuleResultsAndIota
+    producer halign hconstants history history.aligned
+    (producer.recursorWF_of_sourceTypehood (producer.constructorEnvWF history.wf) hsource)
+    hvalues ruleResults
+  have _ := hConsumer.1
+  have _ := hConsumer.2.1.orderedLookup
   trivial
 
 example {safety : DefinitionSafety} {Q : Bool}
