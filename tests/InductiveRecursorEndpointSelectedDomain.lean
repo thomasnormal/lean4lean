@@ -336,6 +336,34 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
     (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
       reader infos finalReader initial final)
+    (initialWF : initial.WF canonicalBoolModel [`u])
+    (parameterFree : stats.params.size = 0) (bound : 0 < types.size)
+    (source : RecursorInfoIndexSource stats types elimLevel 0 reader infos[0]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
+    (support : RecursorSelectedDomainSupport canonicalBoolModel [`u] stats infos 0
+      finalReader.lctx initial)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = [`u])
+    (empty : initial.vlctx = [])
+    {registered : Kernel.Environment} {recursor : RecursorVal}
+    (lookup : registered.find? (mkRecName types[0]!.name) = some (.recInfo recursor))
+    (metadata : recursor = declareRecursors.metadataVal stats types elimLevel infos
+      lparams finalReader.lctx isK false 0 rules)
+    (fresh : (canonicalBoolModel : VEnv).constants (mkRecName types[0]!.name) = none) :
+    ∃ constant extended,
+      registered.find? (mkRecName types[0]!.name) = some (.recInfo recursor) ∧
+      RecursorTypeModelReceipt canonicalBoolModel [`u] stats infos 0 finalReader initial final ∧
+      TrConstVal .safe canonicalBoolModel (.recInfo recursor) constant ∧
+      constant.toVConstant.WF canonicalBoolModel ∧
+      canonicalBoolModel.addConstructorHeaders [constant] = some extended ∧ extended.WF := by
+  exact endpoint.registeredRecursorInsertionFromDomains canonicalBoolModel.wf initialWF
+    parameterFree bound source mapped support lparams isK rules levels empty lookup metadata fresh
+
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
     (grouped : List FVarId)
     (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
     (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
@@ -401,6 +429,7 @@ run_meta
   auditTheorem ``RecursorBinderRebaseReceipt.canonicalBoolDeclaredRecursorReceipt
   auditTheorem ``RecursorInfoModelEndpoint.canonicalBoolDeclaredRecursorReceipt
   auditTheorem ``RecursorInfoModelEndpoint.registeredRecursorFromDomains
+  auditTheorem ``RecursorInfoModelEndpoint.registeredRecursorInsertionFromDomains
   auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
   auditTheorem ``canonicalBoolRecursorBinderOrderPermutation
   logInfo "endpoint selected-domain, split/rebase, and allocation-order boundaries are theorem-backed"

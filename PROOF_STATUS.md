@@ -1,5 +1,11 @@
 # Non-inductive verification proof of concept
 
+## Registered recursor insertion receipt — 2026-10-30
+
+The registered model handoff now reaches a constructive one-entry semantic
+environment insertion and WF result. Freshness, native metadata identity, and
+all rule/iota obligations remain explicit.
+
 ## Registered recursor model handoff — 2026-10-30
 
 The model receipt can now be consumed at a registered recursor entry after

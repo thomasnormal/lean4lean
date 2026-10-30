@@ -815,6 +815,59 @@ theorem RecursorInfoModelEndpoint.registeredRecursorFromDomains
   rw [← metadata] at translated
   exact ⟨constant, lookup, receipt, translated, wellFormed⟩
 
+/- Insert the registered model constant into the semantic constructor
+   environment.  The native lookup/metadata handoff supplies the model name;
+   freshness is kept as an explicit premise, while the extension WF is proved
+   by the ordinary constructor-header insertion theorem. -/
+theorem RecursorInfoModelEndpoint.registeredRecursorInsertionFromDomains
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0) (bound : 0 < types.size)
+    (source : RecursorInfoIndexSource stats types elimLevel 0 reader infos[0]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (support : RecursorSelectedDomainSupport env universes stats infos 0
+      finalReader.lctx initial)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = universes)
+    (empty : initial.vlctx = [])
+    {registered : Kernel.Environment} {recursor : RecursorVal}
+    (lookup : registered.find? (mkRecName types[0]!.name) = some (.recInfo recursor))
+    (metadata : recursor = declareRecursors.metadataVal stats types elimLevel infos
+      lparams finalReader.lctx isK false 0 rules)
+    (fresh : env.constants (mkRecName types[0]!.name) = none) :
+    ∃ constant extended,
+      registered.find? (mkRecName types[0]!.name) = some (.recInfo recursor) ∧
+      RecursorTypeModelReceipt env universes stats infos 0 finalReader initial final ∧
+      TrConstVal .safe env (.recInfo recursor) constant ∧
+      constant.toVConstant.WF env ∧
+      env.addConstructorHeaders [constant] = some extended ∧ extended.WF := by
+  obtain ⟨constant, lookup, receipt, translated, wellFormed⟩ :=
+    endpoint.registeredRecursorFromDomains envWF initialWF parameterFree bound source mapped
+      support lparams isK rules levels empty lookup metadata
+  have constantName : constant.name = mkRecName types[0]!.name := by
+    have nameEq := translated.2.symm
+    rw [metadata] at nameEq
+    change constant.name = mkRecName types[0]!.name at nameEq
+    exact nameEq
+  have constantFresh : env.constants constant.name = none := by
+    simpa [constantName] using fresh
+  obtain ⟨extended, insertion⟩ := VEnv.addConstructorHeaders.exists
+    (env := env) (ctors := [constant])
+    (fun constructor member => by
+      obtain rfl := List.mem_singleton.mp member
+      exact constantFresh)
+    (by simp)
+  refine ⟨constant, extended, lookup, receipt, translated, wellFormed, insertion, ?_⟩
+  exact VEnv.addConstructorHeaders.wf envWF (by
+    intro constructor member
+    obtain rfl := List.mem_singleton.mp member
+    exact wellFormed) insertion
+
 theorem RecursorInfoModelEndpoint.finalStoredTypehoodFromDomains
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
     {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}

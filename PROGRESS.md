@@ -1,5 +1,12 @@
 # Progress and upstream comparison
 
+## Registered recursor insertion receipt — 2026-10-30
+
+`RecursorInfoModelEndpoint.registeredRecursorInsertionFromDomains` now proves
+the one-entry semantic insertion step: after native lookup/metadata identity
+and an explicit fresh recursor name, the registered model constant extends the
+semantic constructor environment with a WF `addConstructorHeaders` result.
+
 ## Registered recursor model handoff — 2026-10-30
 
 `RecursorInfoModelEndpoint.registeredRecursorFromDomains` transfers the
