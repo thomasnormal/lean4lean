@@ -1,5 +1,15 @@
 # Non-inductive verification proof of concept
 
+## Canonical Bool parent-pass bridge — 2026-10-30
+
+The canonical Bool model now has a theorem-backed bridge from a native
+`RecursorParentPassTrace` to `RecursorParentPassTranslationSupport`.
+`canonicalBoolParentPassSupport` retains the native `whnf` normalization
+equation, stats equalities, and Bool index shape as premises; the one-element
+type array makes any extra parent step impossible by computation. This is a
+constructive pass-support receipt, not a claim that canonical telescope,
+generated-rule, or iota semantics are complete.
+
 ## Canonical Bool minor-pass bridge — 2026-10-30
 
 The canonical Bool support now consumes a native one-parent

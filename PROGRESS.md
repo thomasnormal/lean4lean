@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Canonical Bool parent-pass bridge — 2026-10-30
+
+`canonicalBoolParentPassSupport` now consumes the native one-parent
+`RecursorParentPassTrace` for the canonical Bool type array. It derives the
+normalized Bool sort from an explicit native `whnf` result, applies the proved
+Bool stop-parent receipt, and computes away an impossible second-parent step.
+The native trace, normalization result, and stats shape remain explicit
+premises; selected-domain, generated-rule, and iota receipts are still open.
+
 ## Canonical Bool minor-pass bridge — 2026-10-30
 
 `canonicalBoolMinorPassSupport` now attaches the two-constructor Bool minor
