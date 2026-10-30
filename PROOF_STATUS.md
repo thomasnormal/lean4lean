@@ -1,5 +1,17 @@
 # Non-inductive verification proof of concept
 
+## Recursor type/model registration boundary — 2026-10-30
+
+`RecursorInfoModelEndpoint.declaredRecursorFromDomains` packages the actual
+selected-domain recursor type translation with the exact model constant used by
+native recursor registration. It returns the `RecursorTypeModelReceipt`, a safe
+translation of the declared `metadataVal`, and the model constant's
+`VConstant.WF` proof. Native index-source lookup, elimination-level mapping,
+parameter-free statistics, and an empty initial virtual context remain explicit
+premises. The theorem is the reusable boundary for a future canonical
+Bool/Nat instantiation; it does not claim those parent/minor-pass,
+selected-domain, or annotation-model obligations are already proved.
+
 ## Canonical primitive recursor registration receipts — 2026-10-30
 
 `Lean4Lean.Verify.PrimitiveInductiveRecursors` adds

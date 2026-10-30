@@ -87,6 +87,40 @@ theorem RecursorInfoModelEndpoint.recursorTypeFromDomains
   exact endpoint.recursorType envWF initialWF parameterFree parent
     (support.rawTypeSupport envWF initialWF fullScope infoBound source mapped)
 
+/-- Combine the selected-domain application receipt with the exact model constant
+    used by native recursor registration.  This is the semantic boundary needed
+    by callers that have established the recursor type support but have not yet
+    assembled the whole registration CPS.  In particular, the theorem keeps
+    the native index source, elimination-level mapping, and empty initial model
+    context visible instead of manufacturing a model constant from a weaker
+    typehood statement. -/
+theorem RecursorInfoModelEndpoint.declaredRecursorFromDomains
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
+    {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
+    {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (initialWF : initial.WF env universes)
+    (parameterFree : stats.params.size = 0) (parent : Nat) (bound : parent < types.size)
+    (source : RecursorInfoIndexSource stats types elimLevel parent reader infos[parent]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (support : RecursorSelectedDomainSupport env universes stats infos parent finalReader.lctx initial)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = universes)
+    (empty : initial.vlctx = []) :
+    ∃ (constant : VConstVal),
+      RecursorTypeModelReceipt env universes stats infos parent finalReader initial final ∧
+      TrConstVal .safe env
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams
+          finalReader.lctx isK false parent rules)) constant ∧
+      constant.toVConstant.WF env := by
+  have receipt := endpoint.recursorTypeFromDomains envWF initialWF parameterFree parent bound
+    source mapped support
+  obtain ⟨constant, translated, wellFormed⟩ :=
+    receipt.existsDeclaredRecursor (types := types) lparams isK rules levels empty
+  exact ⟨constant, receipt, translated, wellFormed⟩
+
 theorem RecursorInfoModelEndpoint.finalStoredTypehoodFromDomains
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
     {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}

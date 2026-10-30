@@ -1,5 +1,16 @@
 # Progress and upstream comparison
 
+## Recursor type/model registration boundary — 2026-10-30
+
+`RecursorInfoModelEndpoint.declaredRecursorFromDomains` now combines the
+selected-domain translation receipt with `RecursorTypeModelReceipt`'s exact
+declared-recursor model construction. The result supplies a safe translated
+`metadataVal` constant and its `VConstant.WF` proof while retaining the native
+index source, elimination-level mapping, parameter-free condition, and empty
+initial model context as explicit premises. This is the reusable semantic seam
+for canonical Bool/Nat callers; their parent/minor-pass, selected-domain, and
+annotation-model obligations are still not discharged here.
+
 ## Canonical primitive recursor registration receipts — 2026-10-30
 
 `addDecl.safeCanonicalBoolRecursors` and
