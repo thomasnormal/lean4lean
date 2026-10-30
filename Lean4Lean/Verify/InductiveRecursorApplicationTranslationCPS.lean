@@ -584,6 +584,38 @@ theorem canonicalBoolRecursorBinderOrderPermutation
     List.Perm.swap major motive [minorFalse, minorTrue]
   exact first.trans (second.trans third)
 
+/- Specialize the grouped-order rebase endpoint to canonical Bool.  The native
+   allocation equation remains explicit, while the recursor-type binder
+   alignment and the required permutation are discharged from the concrete
+   four-binder shape.  The result is a rebase receipt, not a reordered context
+   extension: semantic prefix models stay in chronological allocation order. -/
+theorem RecursorInfoModelEndpoint.canonicalBoolRebaseBinderOrder
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF)
+    {motive minorFalse minorTrue major : FVarId} {info : RecInfo}
+    (params : stats.params = #[]) (infosEq : infos = #[info])
+    (motiveEq : info.motive = .fvar motive)
+    (minorsEq : info.minors = #[.fvar minorFalse, .fvar minorTrue])
+    (indicesEq : info.indices = #[])
+    (majorEq : info.major = .fvar major)
+    (allocation : ∀ ids, IndexMLCtxExtension initial ids final →
+      ids = [major, motive, minorFalse, minorTrue]) :
+    ∃ chronological,
+      RecursorBinderRebaseReceipt env universes stats infos 0 finalReader.lctx
+        initial final chronological [motive, minorFalse, minorTrue, major] := by
+  have alignment : (recursorTypeBinders stats infos 0).toList =
+      [motive, minorFalse, minorTrue, major].map Expr.fvar := by
+    simp [recursorTypeBinders, params, infosEq, motiveEq, minorsEq, indicesEq, majorEq]
+  apply endpoint.rebaseBinderOrder envWF [motive, minorFalse, minorTrue, major]
+  · intro chronological extension
+    rw [allocation chronological extension]
+    exact canonicalBoolRecursorBinderOrderPermutation
+  · exact alignment
+
 /- Once selected-domain support is available, its semantic content can be
    consumed one binder at a time.  This packages the exact chronological
    prefix model, native cdecl provenance, translated domain, and domain

@@ -44,6 +44,24 @@ example {motive minorFalse minorTrue major : FVarId} :
       [major, motive, minorFalse, minorTrue] :=
   canonicalBoolRecursorBinderOrderPermutation
 
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
+    {motive minorFalse minorTrue major : FVarId} {info : RecInfo}
+    (params : stats.params = #[]) (infosEq : infos = #[info])
+    (motiveEq : info.motive = .fvar motive)
+    (minorsEq : info.minors = #[.fvar minorFalse, .fvar minorTrue])
+    (indicesEq : info.indices = #[]) (majorEq : info.major = .fvar major)
+    (allocation : ∀ ids, IndexMLCtxExtension initial ids final →
+      ids = [major, motive, minorFalse, minorTrue]) :
+    ∃ chronological,
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0
+        finalReader.lctx initial final chronological
+          [motive, minorFalse, minorTrue, major] :=
+  endpoint.canonicalBoolRebaseBinderOrder canonicalBoolModel.wf params infosEq motiveEq
+    minorsEq indicesEq majorEq allocation
+
 private def splitId : FVarId := ⟨`RecursorReceiptSplitId⟩
 private def splitModel : MLCtx :=
   .vlam splitId `split (.sort .zero) (.sort .zero) .default .nil
@@ -432,6 +450,7 @@ run_meta
   auditTheorem ``RecursorInfoModelEndpoint.registeredRecursorInsertionFromDomains
   auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
   auditTheorem ``canonicalBoolRecursorBinderOrderPermutation
+  auditTheorem ``RecursorInfoModelEndpoint.canonicalBoolRebaseBinderOrder
   logInfo "endpoint selected-domain, split/rebase, and allocation-order boundaries are theorem-backed"
 
 end InductiveRecursorEndpointSelectedDomainTest

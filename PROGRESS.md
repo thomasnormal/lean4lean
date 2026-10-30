@@ -2512,3 +2512,12 @@ selection and producer `VDecl.WF` with the named registration consumer receipt.
 The result retains safe checker validity, aligned constant-map/history facts,
 ordered lookup, and explicit generated-rule and paired base/target-iota
 witnesses. This fork-specific package is not an upstream PR candidate.
+
+## October 30, 2026 — canonical Bool rebase endpoint
+
+`RecursorInfoModelEndpoint.canonicalBoolRebaseBinderOrder` specializes the
+order-aware rebase receipt to the canonical four-binder shape. Given the native
+parent-first allocation equation, it proves the grouped recursor-type binder
+alignment and applies the concrete Bool permutation, returning a
+`RecursorBinderRebaseReceipt`. Semantic prefix models remain chronological;
+this theorem does not claim a reordered `SelectedRecursorTelescope`.

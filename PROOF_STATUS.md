@@ -13607,3 +13607,16 @@ producer `VDecl.WF`, ordered lookup/alignment, and generated-rule/iota callbacks
 remain explicit. Focused bridge and native regression pass; full-build and
 admission results follow after the detached build. This is fork-specific and
 not an upstream PR candidate.
+
+## October 30, 2026 — canonical Bool rebase endpoint
+
+`RecursorInfoModelEndpoint.canonicalBoolRebaseBinderOrder` consumes explicit
+role equations for `motive`, the two minors, and `major`, plus the native
+allocation equation `[major, motive, minorFalse, minorTrue]`. It proves the
+recursor-type alignment `[motive, minorFalse, minorTrue, major]`, applies
+`canonicalBoolRecursorBinderOrderPermutation`, and returns the existing
+`RecursorBinderRebaseReceipt`. The receipt keeps semantic domains in
+chronological prefix models; no reordered context extension is asserted. The focused module build (321 jobs), endpoint regression, theorem-body audit,
+and detached `LEAN_NUM_THREADS=8 lake build` (492 jobs) pass. The tracked
+source census remains 116 whole-word `sorry` lines / 120 occurrences; the
+broader `sorry|admit|axiom` census remains 711 lines / 719 occurrences.
