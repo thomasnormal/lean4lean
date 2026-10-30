@@ -2478,3 +2478,19 @@ package retains checker validity, ordered lookup/alignment, generated-rule
 results, and paired iota results under the existing explicit source and value
 translation obligations. This fork-specific packaging is not an upstream PR
 candidate.
+
+## October 30, 2026 — upstream PR inventory refresh
+
+After fetching official `origin/master` at `67f63b0c`, the branch remains 1232
+commits ahead with the official tip as an ancestor, so no rebase was needed.
+The independent upstream-ready fixes are already represented by open,
+mergeable PRs #55 (constant confluence), #56 (quotient equation patterns),
+#57 (projection reduction), #58 (projection inference), #59 (comparison and
+eta rejection), #60 (quotient-recursion free-variable preservation), #61
+(translated inductive-recursion rejection), #62 (total elimination-level
+selection), #64 (local-let cache restoration), #65 (normal substitution), and
+#68 (application argument-array size). The broader inductive drafts #53 and
+#54 remain separate WIP work. The current receipt, checker, and canonical Bool
+registration commits use fork-only APIs and are not standalone PR candidates;
+the next upstream action is review/follow-up on the existing PRs or a fresh
+official-master adaptation, rather than opening duplicates.

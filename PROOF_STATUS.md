@@ -13571,3 +13571,16 @@ with explicit generated-rule and paired base/target-iota witnesses. The focused 
 remains 116 whole-word `sorry` lines / 120 occurrences; the broader
 `sorry|admit|axiom` census remains 711 lines / 719 occurrences. This is a
 fork-specific package and is not an upstream PR candidate.
+
+## October 30, 2026 — upstream PR inventory refresh
+
+`git fetch origin master` reports official `origin/master` at
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, already an ancestor of the
+verification branch. GitHub reports the fork's focused independent results as
+open and mergeable: #55, #56, #57, #58, #59, #60, #61, #62, #64, #65, and the
+new #68 application-arity theorem. The current constructive registration,
+canonical Bool, restored-record, and checker-consumer receipts remain
+fork-specific because their theorem contracts depend on this branch's native
+inductive bridge. No duplicate upstream PR should be opened; any further
+submission needs an official-master adaptation with its own regression and
+axiom audit.
