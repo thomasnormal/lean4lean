@@ -1,5 +1,18 @@
 # Progress and upstream comparison
 
+## Canonical recursor type/model support boundary — 2026-10-30
+
+Runtime checks now pin the exact canonical recursor metadata: Bool and all
+tested Nat forms use the fresh universe parameter `u`, zero parameters and
+indices, one motive, two minors, and safe non-K recursors. The generic semantic
+receipt still cannot be instantiated from the empty staged model: its
+`CanonicalAnnotationConstants`/`CanonicalAnnotationDefinitions` premises require
+prelude annotation declarations absent from that model, and the fresh
+elimination universe requires a model context/universe mapping. These are
+explicit model-environment and selected-domain support obligations, not kernel
+discrepancies; the exact metadata identities are now retained for the next
+constructive attempt.
+
 ## Exact canonical recursor metadata identities — 2026-10-30
 
 The canonical Bool/Nat recursor receipts now retain the equality between each

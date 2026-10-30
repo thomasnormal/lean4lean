@@ -190,6 +190,10 @@ run_meta
     unless recursor.name == recName && recursor.all == [type.name] &&
         recursor.rules.length == ctorCount do
       throwError "{label} recursor metadata was incorrect"
+    unless recursor.levelParams == [`u] && recursor.numParams == 0 &&
+        recursor.numIndices == 0 && recursor.numMotives == 1 && recursor.numMinors == 2 &&
+        !recursor.k && !recursor.isUnsafe do
+      throwError "{label} recursor universe/count metadata was incorrect"
     for rule in recursor.rules do
       unless type.ctors.any (·.name == rule.ctor) do
         throwError "{label} recursor contains an unknown constructor rule"

@@ -1,5 +1,17 @@
 # Non-inductive verification proof of concept
 
+## Canonical recursor type/model support boundary — 2026-10-30
+
+The primitive regression records that canonical Bool/Nat recursors have the
+fresh level parameter `u`, zero parameters and indices, one motive, two minors,
+and safe non-K metadata. A complete canonical `RecursorTypeModelReceipt` still
+needs a model environment carrying the annotation constants/definitions
+required by the generic support APIs, plus the fresh elimination-universe
+mapping and selected-domain/pass receipts. The empty staged model does not
+provide those premises. This is an explicit proof boundary, not a kernel
+discrepancy; the exact generated `metadataVal` identities are available for a
+future constructive model environment.
+
 ## Exact canonical recursor metadata identities — 2026-10-30
 
 `addDecl.safeCanonicalBoolRecursors` and
