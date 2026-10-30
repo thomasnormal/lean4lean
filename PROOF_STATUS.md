@@ -1,5 +1,16 @@
 # Non-inductive verification proof of concept
 
+## Selected-domain construction boundary — 2026-10-30
+
+The regression `tests/InductiveRecursorSelectedDomainBoundary.lean` separates
+the two obligations at the recursor telescope. Binder integrity proves
+`SelectedRecursorDomainFVars` for every native parent index list without an
+admission. A `RecursorSelectedDomainSupport` receipt additionally requires a
+chronological prefix `MLCtx`, `TrExprS` translation of each selected domain, and
+semantic `IsType`; `domainReceipts` only eliminates an already supplied receipt.
+The native canonical Bool/Nat registrations and richer lookup model do not yet
+provide this model/pass construction, so the remaining boundary is explicit.
+
 ## Selected recursor domain receipts — 2026-10-30
 
 The selected-domain boundary now has a proved eliminator. For each identifier

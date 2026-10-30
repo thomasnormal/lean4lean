@@ -1,5 +1,15 @@
 # Progress and upstream comparison
 
+## Selected-domain construction boundary — 2026-10-30
+
+`tests/InductiveRecursorSelectedDomainBoundary.lean` records the exact proved
+frontier. `RecursorBinderIntegrity.selectedIndexDomains` supplies native
+free-variable support for each parent index domain. The semantic
+`RecursorSelectedDomainSupport` receipt is stronger: its per-binder eliminator
+retains a chronological model prefix, translated domain, and typehood. The
+canonical Bool telescope still needs those semantic domains from a well-formed
+model plus parent/minor pass translations; no canonical support is claimed here.
+
 ## Selected recursor domain receipts — 2026-10-30
 
 `SelectedRecursorTelescope.domainReceipt` now exposes the chronological prefix
