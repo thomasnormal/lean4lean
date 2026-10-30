@@ -1,5 +1,14 @@
 # Progress and upstream comparison
 
+## Endpoint-to-selected-domain bridge — 2026-10-30
+
+`RecursorInfoModelEndpoint.selectedDomainSupport` now turns the endpoint's
+theorem-backed `IndexMLCtxExtension` into a `SelectedRecursorTelescope`, then
+packages it as `RecursorSelectedDomainSupport`. The native allocation-order
+equation matching `recursorTypeBinders` remains an explicit premise; the bridge
+does not infer it from model WF. The canonical Bool endpoint can therefore feed
+the selected-domain API once that native alignment is proved.
+
 ## Canonical Bool complete pass endpoint — 2026-10-30
 
 `canonicalBoolPassModelEndpoint` now composes the theorem-backed parent and

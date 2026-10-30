@@ -14,6 +14,26 @@ def RecursorSelectedDomainSupport (env : VEnv) (universes : List Name)
   ∃ ids, (recursorTypeBinders stats infos parent).toList = ids.map Expr.fvar ∧
     ∃ projected, SelectedRecursorTelescope env universes full initial ids projected
 
+/- The translated parent/minor endpoint already contains a model extension for
+   every allocated recursor binder.  Once native allocation order is aligned
+   with `recursorTypeBinders`, that extension itself supplies the semantic
+   selected-domain telescope.  Keep the alignment as a premise: the endpoint
+   does not manufacture a native binder-order equation. -/
+theorem RecursorInfoModelEndpoint.selectedDomainSupport
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx} {parent : Nat}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (alignment : ∀ ids, IndexMLCtxExtension initial ids final →
+      (recursorTypeBinders stats infos parent).toList = ids.map Expr.fvar) :
+    RecursorSelectedDomainSupport env universes stats infos parent finalReader.lctx initial := by
+  obtain ⟨ids, extension⟩ := endpoint.extension
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  have telescope : SelectedRecursorTelescope env universes finalReader.lctx initial ids final := by
+    simpa only [finalNative] using extension.selectedTelescope finalWF
+  exact ⟨ids, alignment ids extension, final, telescope⟩
+
 /- Once selected-domain support is available, its semantic content can be
    consumed one binder at a time.  This packages the exact chronological
    prefix model, native cdecl provenance, translated domain, and domain

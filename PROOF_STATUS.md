@@ -1,5 +1,14 @@
 # Non-inductive verification proof of concept
 
+## Endpoint-to-selected-domain bridge — 2026-10-30
+
+The translated parent/minor endpoint now supplies a semantic selected-domain
+telescope through `RecursorInfoModelEndpoint.selectedDomainSupport`. Its proof
+uses the endpoint extension, final model WF, and final local-context equality;
+the native binder/allocation alignment remains a caller premise. This closes
+the model-to-telescope handoff without claiming that the canonical native
+allocation order, generated-rule semantics, or iota behavior has been proved.
+
 ## Canonical Bool complete pass endpoint — 2026-10-30
 
 The canonical Bool pass seam now packages translated parent and minor histories
