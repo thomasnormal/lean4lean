@@ -2277,3 +2277,17 @@ The first ancestry count is upstream-only; the second is branch-only. Use
 transitive theorem/axiom audits from the regression fixtures alongside these
 source measurements. [PROOF_STATUS.md](PROOF_STATUS.md) remains the detailed
 evidence record; this file is the maintained summary, not a replacement for it.
+
+## October 30, 2026 — chronological-to-grouped recursor rebase receipt
+
+The recursor endpoint now has a proved `RecursorBinderRebaseReceipt`. It keeps
+the native parent/minor allocation list and its `List.Perm` relation to the
+grouped `recursorTypeBinders` list. For every grouped identifier, the receipt
+retains the allocation-prefix model, cdecl lookup and freshness, source-domain
+translation and typehood, then weakens that semantic receipt across the exact
+suffix extension into the final model. `IndexMLCtxExtension.split` and
+`SelectedRecursorTelescope.domainReceiptWithSuffix` provide the structural and
+semantic transport lemmas. The receipt does not claim the required permutation
+for canonical Bool; the existing boundary theorem still shows that native
+allocation order differs from grouped binder order. Generated-rule semantics,
+iota soundness, and the canonical permutation proof remain separate.

@@ -13356,3 +13356,28 @@ actual executable contracts. Existing transitive projection and checker
 admissions remain explicit. The rule-result continuation still receives a
 separate complete rule-semantics callback: the indexed constructor callback
 alone is not claimed to establish coverage of every stored rule.
+
+## October 30, 2026 — chronological-to-grouped recursor rebase receipt
+
+`IndexMLCtxExtension.split` proves that any chronological extension can be cut
+at a list split. `SelectedRecursorTelescope.domainReceiptWithSuffix` adds the
+corresponding suffix extension to each selected-domain receipt. The new
+`RecursorBinderRebaseReceipt` records a `List.Perm` from native allocation order
+to the grouped `recursorTypeBinders` order, exact cdecl provenance and model
+freshness, and a semantic/typehood translation rebased through the full suffix
+(including the selected binder itself). The endpoint theorem constructs this
+receipt from its final model WF and native local-context correspondence while
+leaving the permutation as an explicit premise. The canonical Bool boundary
+continues to prove that the native parent-first order cannot be identified with
+the grouped order when major and motive IDs differ. No generated-rule or iota
+claim follows from this structural transport.
+
+The focused module build and endpoint regression pass, and the detached
+`LEAN_NUM_THREADS=8 lake build` completes all 492 jobs. The test audits the new
+split, suffix-domain, and endpoint-rebase theorem bodies for primitive/admitted
+proofs. The tracked source census remains 116 whole-word `sorry` lines / 120
+occurrences; the broader `sorry|admit|axiom` census remains 711 lines / 719
+occurrences. The official `origin/master` tip is already an ancestor, so the
+daily rebase check is a no-op. This fork-specific receipt is not an upstream PR
+candidate; the focused upstream candidates remain the confluence, quotient
+pattern, and inductive source-preflight repairs.

@@ -55,6 +55,177 @@ theorem RecursorInfoModelEndpoint.passExtensions
   exact ⟨parentModel, parentIds, minorIds, parentExtension, minorExtension,
     parentExtension.trans minorExtension⟩
 
+/- A chronological extension can be cut at any list split.  This is the
+   small context fact needed to rebase a domain translated at its allocation
+   prefix into the final context, even when the recursor type later groups
+   that binder after a dependency allocated in a later pass. -/
+theorem IndexMLCtxExtension.split
+    {initial final : MLCtx} {ids left suffix : List FVarId}
+    (extension : IndexMLCtxExtension initial ids final)
+    (shape : ids = left ++ suffix) :
+    ∃ middle,
+      IndexMLCtxExtension initial left middle ∧
+      IndexMLCtxExtension middle suffix final := by
+  induction extension generalizing left suffix with
+  | nil =>
+    have shape' : left = [] ∧ suffix = [] := by simpa using shape
+    obtain ⟨rfl, rfl⟩ := shape'
+    exact ⟨initial, .nil, .nil⟩
+  | @push oldIds model earlier identifier name domain semantic binder ih =>
+    have shape' : oldIds ++ [identifier] = left ++ suffix := shape
+    by_cases hleft : left.length ≤ oldIds.length
+    · obtain ⟨remainder, oldShape, suffixShape⟩ :=
+        (List.append_eq_append_of_length_le hleft).mp
+          shape'.symm
+      obtain ⟨middle, prefixExtension, remainderExtension⟩ := ih oldShape
+      refine ⟨middle, prefixExtension, ?_⟩
+      rw [suffixShape]
+      exact remainderExtension.push identifier name domain semantic binder
+    · have oldLePrefix : oldIds.length ≤ left.length := by
+        exact Nat.le_of_lt (Nat.lt_of_not_ge hleft)
+      obtain ⟨remainder, prefixShape, idShape⟩ :=
+        (List.append_eq_append_of_length_le oldLePrefix).mp
+          shape
+      have remainderLength : remainder.length + suffix.length = 1 := by
+        simpa only [List.length_singleton, List.length_append] using
+          (congrArg List.length idShape).symm
+      cases remainder with
+      | nil =>
+        have suffixShape : suffix = [identifier] := by simpa using idShape.symm
+        have leftShape : left = oldIds := by simpa using prefixShape
+        subst left
+        subst suffix
+        exact ⟨model, by simpa only [List.append_nil] using earlier,
+          .push .nil identifier name domain semantic binder⟩
+      | cons remainderHead remainderTail =>
+        have remainderTailLength : remainderTail.length = 0 := by
+          simp only [List.length_cons] at remainderLength
+          omega
+        have remainderTailNil : remainderTail = [] :=
+          List.eq_nil_of_length_eq_zero remainderTailLength
+        subst remainderTail
+        have suffixLength : suffix.length = 0 := by
+          simp only [List.length_cons, List.length_nil] at remainderLength
+          omega
+        have suffixNil : suffix = [] := List.eq_nil_of_length_eq_zero suffixLength
+        subst suffix
+        have identifierEq : remainderHead = identifier := by simpa using idShape.symm
+        subst remainderHead
+        have leftShape : left = oldIds ++ [identifier] := prefixShape
+        subst left
+        refine ⟨_, ?_, .nil⟩
+        change IndexMLCtxExtension initial (oldIds ++ [identifier])
+          (MLCtx.vlam identifier name domain semantic binder model)
+        exact .push earlier identifier name domain semantic binder
+
+/- The domain receipt also retains the suffix extension from the allocation
+   prefix to the final model.  This is what supplies the weakening used by
+   the rebase side of the grouped-order receipt. -/
+theorem SelectedRecursorTelescope.domainReceiptWithSuffix
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial final : MLCtx} {ids : List FVarId}
+    (telescope : SelectedRecursorTelescope env universes full initial ids final)
+    (identifier : FVarId) (member : identifier ∈ ids) :
+    ∃ preIds suffix model physicalIndex name domain binder semantic,
+      ids = preIds ++ identifier :: suffix ∧
+      SelectedRecursorTelescope env universes full initial preIds model ∧
+      IndexMLCtxExtension model (identifier :: suffix) final ∧
+      full.find? identifier =
+        some (.cdecl physicalIndex identifier name domain binder .default) ∧
+      model.lctx.find? identifier = none ∧
+      TrExprS env universes model.vlctx domain semantic ∧
+      env.IsType universes.length model.vlctx.toCtx semantic := by
+  revert identifier
+  induction telescope with
+  | nil =>
+    intro identifier member
+    cases member
+  | @push previous model earlier identifier physicalIndex name domain binder semantic
+      lookup fresh translated typed earlierInduction =>
+    intro selected member
+    rcases List.mem_append.mp member with oldMember | newMember
+    · obtain ⟨preIds, suffix, prefixModel, oldPhysical, oldName, oldDomain, oldBinder,
+        oldSemantic, oldIds, oldTelescope, oldSuffix, oldLookup, oldFresh,
+        oldTranslated, oldTyped⟩ := earlierInduction _ oldMember
+      refine ⟨preIds, suffix ++ [identifier], prefixModel, oldPhysical, oldName,
+        oldDomain, oldBinder, oldSemantic, ?_, oldTelescope, ?_, oldLookup,
+        oldFresh, oldTranslated, oldTyped⟩
+      · simpa [List.append_assoc] using congrArg (fun xs => xs ++ [identifier]) oldIds
+      · simpa [List.append_assoc] using
+          oldSuffix.trans (.push .nil identifier name domain semantic binder)
+    · rcases List.mem_singleton.mp newMember with rfl
+      refine ⟨previous, [], model, physicalIndex, name, domain, binder, semantic,
+        ?_, earlier, (.push .nil _ name domain semantic binder), lookup,
+        fresh, translated, typed⟩
+      simp
+
+/- A grouped-order receipt deliberately separates native allocation order from
+   the order used by the recursor type.  Every domain keeps its chronological
+   allocation prefix and a proved weakening into the final model. -/
+structure RecursorBinderRebaseReceipt
+    (env : VEnv) (universes : List Name) (stats : InductiveStats)
+    (infos : Array RecInfo) (parent : Nat) (full : LocalContext)
+    (initial final : MLCtx) (chronological grouped : List FVarId) : Prop where
+  chronologicalExtension : IndexMLCtxExtension initial chronological final
+  groupedOrder : grouped.Perm chronological
+  groupedBinders : (recursorTypeBinders stats infos parent).toList = grouped.map Expr.fvar
+  domainReceipt : ∀ identifier, identifier ∈ grouped →
+    ∃ preIds suffix model physicalIndex name domain binder semantic,
+      chronological = preIds ++ identifier :: suffix ∧
+      IndexMLCtxExtension initial preIds model ∧
+      IndexMLCtxExtension model (identifier :: suffix) final ∧
+      full.find? identifier =
+        some (.cdecl physicalIndex identifier name domain binder .default) ∧
+      model.lctx.find? identifier = none ∧
+      TrExprS env universes model.vlctx domain semantic ∧
+      env.IsType universes.length model.vlctx.toCtx semantic ∧
+      VLCtx.FVLift' model.vlctx final.vlctx 0
+        (.skipN .refl (identifier :: suffix).length) 0 ∧
+      TrExprS env universes final.vlctx domain
+        (semantic.lift' (.skipN .refl (identifier :: suffix).length)) ∧
+      env.IsType universes.length final.vlctx.toCtx
+        (semantic.lift' (.skipN .refl (identifier :: suffix).length))
+
+theorem RecursorInfoModelEndpoint.rebaseBinderOrder
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (grouped : List FVarId)
+    (order : ∀ chronological, IndexMLCtxExtension initial chronological final →
+      grouped.Perm chronological)
+    (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar) :
+    ∃ chronological,
+      RecursorBinderRebaseReceipt env universes stats infos 0 finalReader.lctx initial final
+        chronological grouped := by
+  obtain ⟨chronological, extension⟩ := endpoint.extension
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  have telescope : SelectedRecursorTelescope env universes finalReader.lctx initial
+      chronological final := by
+    simpa only [finalNative] using extension.selectedTelescope finalWF
+  refine ⟨chronological, ⟨extension, order chronological extension, alignment, ?_⟩⟩
+  intro identifier member
+  have permutation := order chronological extension
+  have chronologicalMember : identifier ∈ chronological := permutation.mem_iff.mp member
+  obtain ⟨preIds, suffix, model, physicalIndex, name, domain, binder, semantic,
+    idsShape, prefixTelescope, suffixExtension, lookup, fresh, translated, typed⟩ :=
+    telescope.domainReceiptWithSuffix identifier chronologicalMember
+  have typedReceipt := typed
+  obtain ⟨level, typedDomain⟩ := typed
+  have suffixWeakening : VLCtx.FVLift' model.vlctx final.vlctx 0
+      (.skipN .refl (identifier :: suffix).length) 0 := by
+    simpa only using suffixExtension.weakening.toFVLift'
+  have rebasedTranslation : TrExprS env universes final.vlctx domain
+      (semantic.lift' (.skipN .refl (identifier :: suffix).length)) := by
+    exact translated.weakFV' envWF.ordered suffixWeakening finalWF.tr.wf
+  have rebasedTyped : env.IsType universes.length final.vlctx.toCtx
+      (semantic.lift' (.skipN .refl (identifier :: suffix).length)) := by
+    exact ⟨level, typedDomain.weak' envWF.ordered suffixWeakening.toCtx⟩
+  exact ⟨preIds, suffix, model, physicalIndex, name, domain, binder, semantic,
+    idsShape, prefixTelescope.extension, suffixExtension, lookup, fresh, translated,
+    typedReceipt, suffixWeakening, rebasedTranslation, rebasedTyped⟩
+
 /- For canonical Bool, native parent allocation is major-then-motive, while
    the recursor type groups motive/minors before major.  Keep this shape
    obstruction explicit: selected-domain support needs a reordering/rebase

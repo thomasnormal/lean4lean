@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.CanonicalBoolPassSupport
+import Lean4Lean.Verify.InductiveRecursorApplicationTranslationCPS
 import Lean.Util.CollectAxioms
 
 namespace InductiveRecursorEndpointSelectedDomainTest
@@ -38,6 +39,34 @@ example {stats : InductiveStats} {infos : Array RecInfo}
       [major, motive, minorFalse, minorTrue].map Expr.fvar :=
   canonicalBoolRecursorBinderOrderBoundary params infosEq motiveEq minorsEq indicesEq majorEq distinct
 
+private def splitId : FVarId := ⟨`RecursorReceiptSplitId⟩
+private def splitModel : MLCtx :=
+  .vlam splitId `split (.sort .zero) (.sort .zero) .default .nil
+private def splitExtension : IndexMLCtxExtension (.nil : MLCtx) [splitId] splitModel :=
+  .push .nil splitId `split (.sort .zero) (.sort .zero) .default
+
+example : ∃ middle,
+    IndexMLCtxExtension (.nil : MLCtx) [] middle ∧
+      IndexMLCtxExtension middle [splitId] splitModel :=
+  splitExtension.split rfl
+
+example : ∃ middle,
+    IndexMLCtxExtension (.nil : MLCtx) [splitId] middle ∧
+      IndexMLCtxExtension middle [] splitModel :=
+  splitExtension.split rfl
+
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
+    (grouped : List FVarId)
+    (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
+    (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar) :
+    ∃ chronological,
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 finalReader.lctx
+        initial final chronological grouped :=
+  endpoint.rebaseBinderOrder canonicalBoolModel.wf grouped order alignment
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -50,7 +79,10 @@ private def auditTheorem (name : Name) : MetaM Unit := do
 run_meta
   auditTheorem ``RecursorInfoModelEndpoint.selectedDomainSupport
   auditTheorem ``RecursorInfoModelEndpoint.passExtensions
+  auditTheorem ``IndexMLCtxExtension.split
+  auditTheorem ``SelectedRecursorTelescope.domainReceiptWithSuffix
+  auditTheorem ``RecursorInfoModelEndpoint.rebaseBinderOrder
   auditTheorem ``canonicalBoolRecursorBinderOrderBoundary
-  logInfo "endpoint selected-domain and allocation-order boundaries are theorem-backed"
+  logInfo "endpoint selected-domain, split/rebase, and allocation-order boundaries are theorem-backed"
 
 end InductiveRecursorEndpointSelectedDomainTest
