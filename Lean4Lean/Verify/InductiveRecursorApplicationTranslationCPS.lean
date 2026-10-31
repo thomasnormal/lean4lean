@@ -2277,6 +2277,71 @@ theorem mkRecInfos.getTranslatedAppliedInitialAndFinalTypehood
     (fun parent bound => domainSupport result success finalModel endpoint parent bound)
     lparams isK isUnsafe rules
 
+/- Carry explicit grouped-chain receipts through the translated `mkRecInfos`
+   endpoint.  The CPS callback receives one chronological/grouped witness and
+   body-closure proof per parent; no grouped context is synthesized here. -/
+theorem mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
+    {env : VEnv} {universes : List Name}
+    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (reader : Context) (envWF : env.WF) (constants : CanonicalAnnotationConstants env)
+    (definitions : CanonicalAnnotationDefinitions env) (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF env universes) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    {semanticElimLevel : VLevel} (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport env universes trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass env universes parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport env universes trace)
+    (groupedSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        ∃ chronological grouped,
+          (recursorTypeBody result.1 parent).looseBVarRange' = 0 ∧
+          RecursorBinderRebaseReceipt env universes stats result.1 parent result.2.lctx
+            model finalModel chronological grouped ∧
+          RecursorGroupedTypeTranslationChain env universes result.2.lctx model.vlctx
+            (recursorTypeBody result.1 parent) grouped)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) :
+    (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      reader.RecursorScopeFrame result.2 ∧ RecursorInfoCounts types result.1 ∧
+      ∃ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel ∧
+        (RecursorInitialTypehood env universes stats types elimLevel result.1 result.2
+          model lparams isK isUnsafe rules ∧
+          RecursorFinalTypehood env universes stats types elimLevel result.1 result.2
+            finalModel lparams isK isUnsafe rules) := by
+  intro result success
+  obtain ⟨frame, _, counts, finalModel, endpoint⟩ := mkRecInfos.getTranslatedPasses stats types elimLevel
+    reader envWF constants definitions fieldOnly model modelWF native reserved mapped
+    parentSupport minorSupport result success
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  have bodyClosed : ∀ parent, parent < types.size →
+      (recursorTypeBody result.1 parent).looseBVarRange' = 0 := by
+    intro parent bound
+    obtain ⟨_, _, closed, _, _⟩ := groupedSupport result success finalModel endpoint parent bound
+    exact closed
+  have receipts : ∀ parent (bound : parent < types.size), ∃ chronological grouped,
+      RecursorBinderRebaseReceipt env universes stats result.1 parent result.2.lctx
+        model finalModel chronological grouped ∧
+      RecursorGroupedTypeTranslationChain env universes result.2.lctx model.vlctx
+        (recursorTypeBody result.1 parent) grouped := by
+    intro parent bound
+    obtain ⟨chronological, grouped, _, receipt, chain⟩ :=
+      groupedSupport result success finalModel endpoint parent bound
+    exact ⟨chronological, grouped, receipt, chain⟩
+  refine ⟨frame, counts, finalModel, endpoint, ?_⟩
+  exact endpoint.initialAndFinalTypehoodFromGroupedChains envWF finalWF finalNative
+    bodyClosed receipts lparams isK isUnsafe rules
+
 theorem mkRecInfos.scopedTranslatedAppliedFinalTypehood {ResultType : Type}
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)

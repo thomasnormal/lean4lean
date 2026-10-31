@@ -3197,3 +3197,11 @@ one explicit grouped-chain recursor-type receipt per parent into the existing
 initial and final typehood predicates. Each parent retains its own chronological
 rebase and grouped witness; no reordered model or generated-rule/iota semantics
 are inferred.
+
+## Grouped chain CPS typehood — 2026-10-31
+
+`mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
+carries per-parent grouped-chain receipts through the translated `mkRecInfos`
+endpoint and hands aggregate initial/final typehood to the continuation. Body
+closure, chronological allocation, grouped witnesses, and endpoint context
+equality remain callback premises.

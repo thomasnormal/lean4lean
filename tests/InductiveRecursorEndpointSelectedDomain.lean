@@ -6,6 +6,7 @@ namespace InductiveRecursorEndpointSelectedDomainTest
 open Lean hiding Environment Exception
 open Lean4Lean
 open Lean4Lean.AddInductive
+open Lean4Lean.ElimNestedInductive (ContextReserved)
 open TypeChecker (MLCtx)
 
 example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
@@ -365,6 +366,49 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
   obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
   exact endpoint.initialAndFinalTypehoodFromGroupedChains canonicalBoolModel.wf finalWF finalNative
     bodyClosed receipts lparams isK isUnsafe rules
+
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    (reader : Context) (constants : CanonicalAnnotationConstants canonicalBoolModel)
+    (definitions : CanonicalAnnotationDefinitions canonicalBoolModel)
+    (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF canonicalBoolModel [`u])
+    (native : model.lctx = reader.lctx) (reserved : ContextReserved reader.lctx reader.ngen)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport canonicalBoolModel [`u] trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass canonicalBoolModel [`u] parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport canonicalBoolModel [`u] trace)
+    (groupedSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        ∃ chronological grouped,
+          (recursorTypeBody result.1 parent).looseBVarRange' = 0 ∧
+          RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats result.1 parent result.2.lctx
+            model finalModel chronological grouped ∧
+          RecursorGroupedTypeTranslationChain canonicalBoolModel [`u] result.2.lctx model.vlctx
+            (recursorTypeBody result.1 parent) grouped)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) :
+    (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      reader.RecursorScopeFrame result.2 ∧ RecursorInfoCounts types result.1 ∧
+      ∃ finalModel, RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel reader
+        result.1 result.2 model finalModel ∧
+        (RecursorInitialTypehood canonicalBoolModel [`u] stats types elimLevel result.1 result.2
+          model lparams isK isUnsafe rules ∧
+          RecursorFinalTypehood canonicalBoolModel [`u] stats types elimLevel result.1 result.2
+            finalModel lparams isK isUnsafe rules) := by
+  exact mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains stats types elimLevel
+    reader canonicalBoolModel.wf constants definitions fieldOnly model modelWF native reserved
+    mapped parentSupport minorSupport groupedSupport lparams isK isUnsafe rules
 
 example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
     {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
@@ -817,6 +861,7 @@ run_meta
   auditTheorem ``RecursorInfoModelEndpoint.finalRawTypehoodFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.finalMetadataTypehoodFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.initialAndFinalTypehoodFromGroupedChains
+  auditTheorem ``mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
   auditTheorem ``RecursorInfoModelEndpoint.declaredRecursorFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.registeredRecursorFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.registeredRecursorInsertionFromGroupedChain

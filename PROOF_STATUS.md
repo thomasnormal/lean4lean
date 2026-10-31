@@ -14245,3 +14245,11 @@ obligations.
 per-parent grouped-chain receipts into `RecursorInitialTypehood` and
 `RecursorFinalTypehood`. Chronological allocation, grouped witnesses, generated
 rule semantics, iota soundness, and `TrProj` remain explicit obligations.
+
+## October 31, 2026 — grouped chain CPS typehood
+
+`mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
+transfers explicit per-parent grouped-chain receipts through the `mkRecInfos`
+CPS endpoint to `RecursorInitialTypehood` and `RecursorFinalTypehood`. It does
+not synthesize grouped contexts or discharge generated-rule, iota, or `TrProj`
+obligations.
