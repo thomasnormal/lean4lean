@@ -2930,3 +2930,13 @@ index source and derives its motive-domain callback with
 model-polymorphic `motiveShape` premise; body closure is derived from the same
 final role equations. This remains a fork-specific receipt with grouped
 translation and recursor-semantics obligations explicit.
+
+## Canonical Bool endpoint motive provenance — 2026-10-31
+
+The endpoint-level canonical Bool body/application and declared-recursor
+receipts now derive their motive-domain callback internally from the native
+`RecursorInfoIndexSource` and the endpoint's final-context equality. Their
+public contracts no longer duplicate the opaque `motiveShape` callback;
+generic low-level receipts retain that callback because they do not carry
+native source provenance. Grouped forall translation, generated-rule
+semantics, iota soundness, and `TrProj` remain explicit fork-only boundaries.

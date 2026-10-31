@@ -104,18 +104,13 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     (indicesEq : info.indices = #[]) (majorEq : info.major = .fvar major)
     (allocation : ∀ ids, IndexMLCtxExtension initial ids final →
       ids = [major, motive, minorFalse, minorTrue])
-    (motiveShape : ∀ index name domain binder,
-      final.lctx.find? motive =
-        some (.cdecl index motive name domain binder .default) →
-      domain = final.lctx.mkForall infos[0]!.indices
-        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
+    (source : RecursorInfoIndexSource stats types elimLevel 0 reader infos[0]! finalReader)
     {semanticElimLevel : VLevel}
     (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
     (minorSemantics : MinorSemantics)
     (generatedRuleSemantics : GeneratedRuleSemantics)
-    (iotaSoundness : IotaSoundness)
-    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0) :
+    (iotaSoundness : IotaSoundness) :
     ∃ chronological bodySemantic level,
       RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 finalReader.lctx
         initial final chronological [motive, minorFalse, minorTrue, major] ∧
@@ -126,8 +121,8 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
           ([motive, minorFalse, minorTrue, major].map Expr.fvar).toArray
           (recursorTypeBody infos 0) :=
   endpoint.canonicalBoolRebasedFinalBodyApplicationReceipt canonicalBoolModel.wf
-    params infosEq motiveEq minorsEq indicesEq majorEq allocation motiveShape mapped
-    minorSemantics generatedRuleSemantics iotaSoundness bodyClosed
+    params infosEq motiveEq minorsEq indicesEq majorEq allocation source mapped
+    minorSemantics generatedRuleSemantics iotaSoundness
 
 private def splitId : FVarId := ⟨`RecursorReceiptSplitId⟩
 private def splitModel : MLCtx :=
@@ -311,8 +306,7 @@ example {stats : InductiveStats} {infos : Array RecInfo} {full : LocalContext}
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
     (minorSemantics : MinorSemantics)
     (generatedRuleSemantics : GeneratedRuleSemantics)
-    (iotaSoundness : IotaSoundness)
-    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0) :
+    (iotaSoundness : IotaSoundness) :
     ∃ bodySemantic level,
       TrExprS canonicalBoolModel [`u] final.vlctx (recursorTypeBody infos 0) bodySemantic ∧
       canonicalBoolModel.HasType 1 final.vlctx.toCtx bodySemantic (.sort level) ∧
@@ -321,7 +315,7 @@ example {stats : InductiveStats} {infos : Array RecInfo} {full : LocalContext}
           (recursorTypeBody infos 0) := by
   exact receipt.canonicalBoolFinalBodyApplicationReceipt canonicalBoolModel.wf finalWF native rfl
     majorMember motiveMember motiveEq indicesEq majorEq motiveShape mapped minorSemantics
-    generatedRuleSemantics iotaSoundness bodyClosed
+    generatedRuleSemantics iotaSoundness
 
 example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
     {reader : Context} {infos : Array RecInfo} {full : LocalContext}
@@ -347,7 +341,6 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     (minorSemantics : MinorSemantics)
     (generatedRuleSemantics : GeneratedRuleSemantics)
     (iotaSoundness : IotaSoundness)
-    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0)
     (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
     (levels : getRecLevelParams elimLevel lparams = [`u])
     (empty : initial.vlctx = []) :
@@ -362,7 +355,7 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
       constant.toVConstant.WF canonicalBoolModel := by
   exact receipt.canonicalBoolDeclaredRecursorReceipt typeReceipt readerNative
     canonicalBoolModel.wf finalWF native majorMember motiveMember motiveEq indicesEq majorEq
-    motiveShape mapped minorSemantics generatedRuleSemantics iotaSoundness bodyClosed
+    motiveShape mapped minorSemantics generatedRuleSemantics iotaSoundness
     lparams isK rules levels empty
 
 example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
@@ -384,19 +377,13 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     (motiveEq : infos[0]!.motive = .fvar motive)
     (indicesEq : infos[0]!.indices = #[])
     (majorEq : infos[0]!.major = .fvar major)
-    (motiveShape : ∀ index name domain binder,
-      final.lctx.find? motive =
-        some (.cdecl index motive name domain binder .default) →
-      domain = final.lctx.mkForall infos[0]!.indices
-        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
     (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
     (levels : getRecLevelParams elimLevel lparams = [`u])
     (empty : initial.vlctx = [])
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
     (minorSemantics : MinorSemantics)
     (generatedRuleSemantics : GeneratedRuleSemantics)
-    (iotaSoundness : IotaSoundness)
-    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0) :
+    (iotaSoundness : IotaSoundness) :
     ∃ chronological bodySemantic level constant,
       RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 finalReader.lctx
         initial final chronological grouped ∧
@@ -411,8 +398,8 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
       constant.toVConstant.WF canonicalBoolModel := by
   exact endpoint.canonicalBoolDeclaredRecursorReceipt canonicalBoolModel.wf initialWF
     parameterFree bound source mapped support grouped order alignment majorMember motiveMember
-    motiveEq indicesEq majorEq motiveShape lparams isK rules levels empty minorSemantics
-    generatedRuleSemantics iotaSoundness bodyClosed
+    motiveEq indicesEq majorEq lparams isK rules levels empty minorSemantics
+    generatedRuleSemantics iotaSoundness
 
 example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
     {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}

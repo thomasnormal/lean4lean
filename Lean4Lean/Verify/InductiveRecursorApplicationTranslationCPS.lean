@@ -790,11 +790,7 @@ theorem RecursorInfoModelEndpoint.canonicalBoolRebasedFinalBodyApplicationReceip
     (majorEq : info.major = .fvar major)
     (allocation : ∀ ids, IndexMLCtxExtension initial ids final →
       ids = [major, motive, minorFalse, minorTrue])
-    (motiveShape : ∀ index name domain binder,
-      final.lctx.find? motive =
-        some (.cdecl index motive name domain binder .default) →
-      domain = final.lctx.mkForall infos[0]!.indices
-        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
+    (source : RecursorInfoIndexSource stats types elimLevel 0 reader infos[0]! finalReader)
     {semanticElimLevel : VLevel}
     (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
@@ -813,6 +809,25 @@ theorem RecursorInfoModelEndpoint.canonicalBoolRebasedFinalBodyApplicationReceip
   obtain ⟨chronological, receipt⟩ := endpoint.canonicalBoolRebaseBinderOrder envWF
     params infosEq motiveEq minorsEq indicesEq majorEq allocation
   obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  have motiveShape : ∀ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) →
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)) := by
+    intro index name domain binder lookup
+    have motiveId : infos[0]!.motive.fvarId! = motive := by
+      rw [show infos[0]!.motive = info.motive by simpa [infosEq]]
+      rw [motiveEq]
+      rfl
+    have sourceLookup : finalReader.lctx.find? infos[0]!.motive.fvarId! =
+        some (.cdecl index motive name domain binder .default) := by
+      rw [motiveId]
+      simpa only [finalNative] using lookup
+    have finalScope : finalReader.lctx.BindingScope := by
+      rw [← finalNative]
+      exact finalWF.bindingScope
+    have shape := source.motiveDomainShape finalScope sourceLookup
+    simpa only [finalNative] using shape
   obtain ⟨bodySemantic, level, bodyTranslated, bodyTyped, bodyRaw⟩ :=
     receipt.canonicalBoolFinalBodyApplicationReceipt
       (motive := motive) (major := major)
@@ -981,11 +996,6 @@ theorem RecursorInfoModelEndpoint.canonicalBoolDeclaredRecursorReceipt
     (motiveEq : infos[0]!.motive = .fvar motive)
     (indicesEq : infos[0]!.indices = #[])
     (majorEq : infos[0]!.major = .fvar major)
-    (motiveShape : ∀ index name domain binder,
-      final.lctx.find? motive =
-        some (.cdecl index motive name domain binder .default) →
-      domain = final.lctx.mkForall infos[0]!.indices
-        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)))
     (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
     (levels : getRecLevelParams elimLevel lparams = universes)
     (empty : initial.vlctx = [])
@@ -1007,6 +1017,24 @@ theorem RecursorInfoModelEndpoint.canonicalBoolDeclaredRecursorReceipt
       constant.toVConstant.WF env := by
   obtain ⟨chronological, receipt⟩ := endpoint.rebaseBinderOrder envWF grouped order alignment
   obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  have motiveShape : ∀ index name domain binder,
+      final.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) →
+      domain = final.lctx.mkForall infos[0]!.indices
+        (final.lctx.mkForall #[infos[0]!.major] (.sort elimLevel)) := by
+    intro index name domain binder lookup
+    have motiveId : infos[0]!.motive.fvarId! = motive := by
+      rw [motiveEq]
+      rfl
+    have sourceLookup : finalReader.lctx.find? infos[0]!.motive.fvarId! =
+        some (.cdecl index motive name domain binder .default) := by
+      rw [motiveId]
+      simpa only [finalNative] using lookup
+    have finalScope : finalReader.lctx.BindingScope := by
+      rw [← finalNative]
+      exact finalWF.bindingScope
+    have shape := source.motiveDomainShape finalScope sourceLookup
+    simpa only [finalNative] using shape
   have typeReceipt := endpoint.recursorTypeFromDomains envWF initialWF parameterFree 0 bound
     source mapped support
   obtain ⟨bodySemantic, bodyLevel, constant, bodyTranslated, bodyTyped, bodyRaw,
