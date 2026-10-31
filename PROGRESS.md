@@ -3206,6 +3206,11 @@ the complete `RecursorTypeModelReceipt` for each parent through translated
 chain. This keeps the receipt available for downstream generated-rule and iota
 consumers while leaving their semantic obligations explicit.
 
+`mkRecInfos.scopedTranslatedAppliedRecursorTypesFromGroupedChains` carries the
+same receipt family through the existing `mkRecInfos` morphism to a scoped
+continuation, without changing native allocation order or hiding grouped
+transport premises.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 carries per-parent grouped-chain receipts through the translated `mkRecInfos`
 endpoint and hands aggregate initial/final typehood to the continuation. Body

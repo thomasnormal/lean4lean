@@ -2342,6 +2342,57 @@ theorem mkRecInfos.getTranslatedAppliedRecursorTypesFromGroupedChains
   exact endpoint.recursorTypeFromGroupedChain receipt envWF finalWF finalNative
     (bodyClosed parent bound) chain
 
+/- Carry grouped-chain recursor type receipts through the existing `mkRecInfos`
+   morphism.  The scoped continuation receives the complete receipt family
+   while the chronological and grouped witnesses remain callback premises. -/
+theorem mkRecInfos.scopedTranslatedAppliedRecursorTypesFromGroupedChains
+    {ResultType : Type} {env : VEnv} {universes : List Name}
+    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (next : Array RecInfo → M ResultType) (reader : Context) (post : ResultType → Prop)
+    (envWF : env.WF) (constants : CanonicalAnnotationConstants env)
+    (definitions : CanonicalAnnotationDefinitions env) (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF env universes) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    {semanticElimLevel : VLevel} (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport env universes trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass env universes parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport env universes trace)
+    (groupedSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        ∃ chronological grouped,
+          (recursorTypeBody result.1 parent).looseBVarRange' = 0 ∧
+          RecursorBinderRebaseReceipt env universes stats result.1 parent result.2.lctx
+            model finalModel chronological grouped ∧
+          RecursorGroupedTypeTranslationChain env universes result.2.lctx model.vlctx
+            (recursorTypeBody result.1 parent) grouped)
+    (nextWF : ∀ finalInfos finalReader finalModel,
+      reader.RecursorScopeFrame finalReader → RecursorInfoCounts types finalInfos →
+      RecursorInfoModelEndpoint env universes stats types elimLevel reader finalInfos finalReader
+        model finalModel →
+      (∀ parent, parent < types.size →
+        RecursorTypeModelReceipt env universes stats finalInfos parent finalReader model finalModel) →
+      (next finalInfos finalReader).WF post) :
+    (mkRecInfos stats types elimLevel next reader).WF post := by
+  rw [mkRecInfos.morphism stats types elimLevel next
+    (fun finalInfos => do return (finalInfos, ← readThe Context))
+    (fun result => next result.1 result.2) reader (fun _ _ => rfl)]
+  refine (mkRecInfos.getTranslatedAppliedRecursorTypesFromGroupedChains
+    stats types elimLevel reader envWF constants definitions fieldOnly model modelWF native reserved
+    mapped parentSupport minorSupport groupedSupport).bind ?_
+  rintro ⟨finalInfos, finalReader⟩
+    ⟨frame, counts, finalModel, endpoint, receipts⟩
+  exact nextWF finalInfos finalReader finalModel frame counts endpoint receipts
+
 /- Project initial/final typehood from the complete grouped-chain receipts. -/
 theorem mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
     {env : VEnv} {universes : List Name}
