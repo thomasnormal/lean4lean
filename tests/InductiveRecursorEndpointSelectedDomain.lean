@@ -494,6 +494,55 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     finalNative bodyClosed chain lparams isK rules levels empty lookup metadata fresh
 
 example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    (reader : Context) (envWF : canonicalBoolModel.WF)
+    (constants : CanonicalAnnotationConstants canonicalBoolModel)
+    (definitions : CanonicalAnnotationDefinitions canonicalBoolModel)
+    (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF canonicalBoolModel [`u])
+    (native : model.lctx = reader.lctx) (reserved : ContextReserved reader.lctx reader.ngen)
+    (nativeEnvWF : reader.env.constants.WF)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport canonicalBoolModel [`u] trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass canonicalBoolModel [`u] parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport canonicalBoolModel [`u] trace)
+    (groupedSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        ∃ chronological grouped,
+          (recursorTypeBody result.1 parent).looseBVarRange' = 0 ∧
+          RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats result.1 parent result.2.lctx
+            model finalModel chronological grouped ∧
+          RecursorGroupedTypeTranslationChain canonicalBoolModel [`u] result.2.lctx model.vlctx
+            (recursorTypeBody result.1 parent) grouped)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) :
+    (mkRecInfos.scopeRegistration stats types elimLevel lparams isK isUnsafe reader).WF fun result =>
+      reader.RecursorScopeFrame result.2.2 ∧ RecursorInfoCounts types result.2.1 ∧
+      (∃ finalModel, RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel reader
+        result.2.1 result.2.2 model finalModel ∧
+        (RecursorInitialTypehood canonicalBoolModel [`u] stats types elimLevel result.2.1 result.2.2
+            model lparams isK isUnsafe rules ∧
+          RecursorFinalTypehood canonicalBoolModel [`u] stats types elimLevel result.2.1 result.2.2
+            finalModel lparams isK isUnsafe rules)) ∧
+      result.1.constants.WF ∧
+      (∀ name info, reader.env.find? name = some info → result.1.find? name = some info) ∧
+      stats.RecursorOffsetMetadata types elimLevel result.2.1 lparams result.2.2.lctx
+        isK isUnsafe result.2.2 result.1 ∧
+      LocalRecursorRuleRhsScope stats types result.2.1 result.2.2 result.1 := by
+  exact mkRecInfos.registeredTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
+    stats types elimLevel lparams isK isUnsafe rules reader envWF constants definitions fieldOnly
+    model modelWF native reserved nativeEnvWF mapped parentSupport minorSupport groupedSupport
+
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
     {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
     (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
       reader infos finalReader initial final)
@@ -863,6 +912,7 @@ run_meta
   auditTheorem ``RecursorInfoModelEndpoint.initialAndFinalTypehoodFromGroupedChains
   auditTheorem ``mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
   auditTheorem ``mkRecInfos.scopedTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
+  auditTheorem ``mkRecInfos.registeredTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
   auditTheorem ``RecursorInfoModelEndpoint.declaredRecursorFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.registeredRecursorFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.registeredRecursorInsertionFromGroupedChain

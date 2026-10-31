@@ -3212,3 +3212,12 @@ equality remain callback premises.
 feeds the grouped-chain aggregate through the existing `mkRecInfos` morphism
 to a scoped continuation. The continuation receives the endpoint and both
 typehood predicates while all grouped transport premises remain explicit.
+
+## Grouped chain registered CPS typehood — 2026-10-31
+
+`mkRecInfos.registeredTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
+now carries the grouped-chain initial/final typehood package through native
+`scopeRegistration`. The result combines the scoped endpoint and typehood
+predicates with registered-environment WF, retention, metadata, and RHS-scope
+facts; chronological allocation, grouped transport, generated-rule semantics,
+iota soundness, and `TrProj` remain explicit obligations.

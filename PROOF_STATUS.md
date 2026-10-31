@@ -14261,3 +14261,12 @@ uses the established `mkRecInfos` morphism to pass grouped-chain initial/final
 typehood into a scoped continuation. It preserves explicit grouped transport,
 body closure, and endpoint premises and leaves generated-rule, iota, and
 `TrProj` obligations open.
+
+## October 31, 2026 — grouped chain registered CPS typehood
+
+`mkRecInfos.registeredTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
+feeds the grouped-chain package through native `scopeRegistration` and returns
+the registered scope frame, recursor counts, initial/final typehood, and the
+existing environment retention, metadata, and RHS-scope facts. It does not
+reorder `MLCtx` allocation or discharge grouped transport, generated-rule,
+iota, or `TrProj` obligations.
