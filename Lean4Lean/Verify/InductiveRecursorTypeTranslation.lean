@@ -445,6 +445,28 @@ theorem RecursorGroupedTypeTranslationSupport.namedTailFVarBoundary
   have inContext := tailTranslated.fvarsList present
   simpa only [VLCtx.fvars_cons_some, List.mem_cons] using inContext
 
+theorem RecursorGroupedTypeTranslationSupport.namedTailNoMissingFVar
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {identifier : FVarId} {rest : List FVarId}
+    {body : Expr} {dependencies : List FVarId}
+    {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    (support : RecursorGroupedTypeTranslationSupport env universes full initial
+      (identifier :: rest) body)
+    (scope : full.BindingScope) (closed : body.looseBVarRange' = 0)
+    (distinct : (identifier :: rest).Nodup)
+    (bindings : SelectedCDeclBindings full (identifier :: rest))
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (fresh : identifier ∉ initial.vlctx.fvars)
+    {target : FVarId}
+    (missing : target ∉ initial.vlctx.fvars)
+    (different : target ≠ identifier)
+    (present : target ∈ (full.mkForall (rest.map Expr.fvar).toArray body).fvarsList) : False := by
+  rcases support.namedTailFVarBoundary scope closed distinct bindings lookup
+      (dependencies := dependencies) fresh present with head | initialMember
+  · exact different head
+  · exact missing initialMember
+
 theorem RecursorRawTypeTranslationSupport.selectedTypeTranslation
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}
     {parent : Nat} {full : LocalContext} {initial : MLCtx}

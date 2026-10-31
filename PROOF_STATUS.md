@@ -14141,3 +14141,8 @@ fvar is the named head or an initial-context fvar, so a recursive grouped
 transport step cannot silently depend on a later chronological declaration.
 The theorem remains a boundary consumer and does not construct grouped tail
 semantics.
+
+`namedTailNoMissingFVar` supplies the contradiction form for callers: after
+excluding the named head, any tail fvar absent from the initial context
+contradicts successful grouped support. This preserves the explicit
+chronological-versus-grouped dependency obligation.

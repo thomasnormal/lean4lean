@@ -3091,3 +3091,8 @@ native tail is either the selected head fvar or belongs to the initial virtual
 context. This is the precise recursive dependency condition for taking another
 grouped head step; it does not provide the reordered semantic context or the
 tail translation itself.
+
+`namedTailNoMissingFVar` packages the same boundary as a contradiction: a
+tail dependency missing from the initial context is impossible unless it is
+the selected named head. This is the form needed to reject an attempted
+recursive grouped step with an unaccounted forward dependency.
