@@ -3293,3 +3293,11 @@ transport, closed-RHS semantics, generated-rule results, registration
 retention, metadata, RHS scope, and complete stored-rule coverage to the
 frontend continuation. No generated-rule semantics, iota soundness, or
 `TrProj` fact is inferred.
+
+## Grouped chain frontend generated-rule iota CPS — 2026-10-31
+
+`InductiveStats.SafeRunScope.registeredScopedGeneratedRuleIotaCPSFromGroupedChains`
+now adapts the grouped-chain generated-rule/iota registration boundary to the
+frontend safe-run scope. It preserves grouped recursor transport and forwards
+both closed-RHS and generated-rule callbacks plus the paired base/target iota
+coverage, without inferring any reduction or `TrProj` fact.

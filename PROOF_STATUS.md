@@ -14346,3 +14346,11 @@ while forwarding explicit grouped transport, closed-RHS and generated-rule
 callbacks, indexed generated-rule results, and complete stored-rule semantics.
 Generated-rule reduction, iota soundness, and `TrProj` remain outside the
 contract.
+
+## October 31, 2026 — grouped chain frontend generated-rule iota CPS
+
+`InductiveStats.SafeRunScope.registeredScopedGeneratedRuleIotaCPSFromGroupedChains`
+connects grouped-chain registration to the frontend iota boundary. The
+constructor environment WF, native allocation order, grouped transport, and
+caller-supplied generated-rule/iota witnesses remain explicit; no new iota
+reduction or `TrProj` theorem is introduced.
