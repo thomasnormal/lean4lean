@@ -180,6 +180,18 @@ theorem canonicalBoolMotiveSupportOfExtension
     · simpa only [VExpr.liftN, VExpr.lift, List.length_cons, List.length_nil] using
         motiveTyped.weakN canonicalBoolModel.wf.ordered extension.weakening.toCtx
 
+theorem CtorFieldModelEndpoint.modelExtension
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {source terminal : Expr} {finalIndex : Nat}
+    {fields recursiveFields : Array Expr} {reader finalReader : Context}
+    {fieldTrace : RecursorCtorFieldTrace stats source 0 #[] #[] reader
+      terminal finalIndex fields recursiveFields finalReader}
+    {initial final : MLCtx} {semantic : VExpr}
+    (endpoint : CtorFieldModelEndpoint env universes fieldTrace initial final semantic) :
+    ∃ ids, IndexMLCtxExtension initial ids final := by
+  obtain ⟨_, _, _, _, _, _, ids, extension, _⟩ := endpoint
+  exact ⟨ids, extension⟩
+
 /- The translated parent step stores the motive as the newest virtual binder.
    This projection exposes its source fvar translation and typing at the final
    parent model.  The native motive source is reduced here to the canonical

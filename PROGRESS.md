@@ -2664,6 +2664,16 @@ the adapted call is rejected by the pinned Lean 4.33 toolchain. It remains a
 useful compatibility regression, but it is not a new standalone PR for the
 current upstream tip.
 
+## Canonical Bool minor source motive consumer — 2026-10-31
+
+`canonicalBoolMinorSourceSupportOfMotive` now consumes the concrete parent
+motive translation and typing at the minor source's initial model. The field
+endpoint exposes its exact `IndexMLCtxExtension`, and the motive is weakened
+through that extension to discharge the nullary constructor IH callback. This
+closes the source-level model-indexed callback seam for each Bool constructor;
+the higher-level pass still retains its universal callback and grouped,
+generated-rule, and iota obligations.
+
 ## Canonical Bool motive transport across minor extensions — 2026-10-30
 
 `canonicalBoolMotiveSupportOfExtension` now transports a concrete parent

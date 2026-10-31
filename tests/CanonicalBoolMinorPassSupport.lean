@@ -46,6 +46,26 @@ example {stats : InductiveStats} {types : Array InductiveType}
   canonicalBoolMinorPassSupport_of_types typesEq trace params levels indConsts nindices boolIndices
     motives motiveSupport
 
+example {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    (constructorType : constructor.type = .const ``Bool [])
+    (constructorName : constructor.name = ``Bool.false ∨ constructor.name = ``Bool.true)
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    {reader domainReader : Context} {domain : Expr}
+    (source : RecursorMinorDomainSource stats infos constructor reader domain domainReader)
+    (model : MLCtx) (modelWF : model.WF canonicalBoolModel [`u])
+    (native : model.lctx = reader.lctx)
+    {motive : FVarId} {motiveSemantic : VExpr} {level : VLevel}
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (motiveTranslated : TrExprS canonicalBoolModel [`u] model.vlctx
+      (.fvar motive) motiveSemantic)
+    (motiveTyped : canonicalBoolModel.HasType 1 model.vlctx.toCtx motiveSemantic
+      (.forallE (.const ``Bool []) (.sort level))) :
+    MinorSourceTranslationSupport canonicalBoolModel [`u] source model :=
+  canonicalBoolMinorSourceSupportOfMotive constructorType constructorName params levels
+    indConsts nindices boolIndices source model modelWF native motiveEq motiveTranslated motiveTyped
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -57,7 +77,8 @@ private def auditTheorem (name : Name) : MetaM Unit := do
 
 run_meta
   for theoremName in [``canonicalBoolMinorPassSupport,
-      ``canonicalBoolMinorPassSupport_of_types] do
+      ``canonicalBoolMinorPassSupport_of_types,
+      ``canonicalBoolMinorSourceSupportOfMotive] do
     auditTheorem theoremName
   logInfo "canonical Bool minor pass support is theorem-backed"
 

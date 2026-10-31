@@ -13753,6 +13753,15 @@ is specific to Lean 4.29; the equivalent call is rejected by the pinned Lean
 4.33 toolchain. The fork's named preflight receipt therefore remains local
 verification evidence rather than a new upstream patch.
 
+## Canonical Bool minor source motive consumer — 2026-10-31
+
+The minor-source boundary now has a theorem-backed consumer for a concrete
+parent motive witness. `CtorFieldModelEndpoint.modelExtension` exposes the
+field allocation extension, and `canonicalBoolMinorSourceSupportOfMotive`
+applies the exact free-variable weakening before constructing the IH support.
+This is a fork-specific inductive seam; the generic pass callback, grouped
+forall translation, generated-rule semantics, and iota soundness remain open.
+
 ## Canonical Bool motive transport across minor extensions — 2026-10-30
 
 The new `canonicalBoolMotiveSupportOfExtension` theorem weakens a translated

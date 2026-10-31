@@ -42,6 +42,36 @@ theorem canonicalBoolMinorPassSupport
           decide
         exact (impossible bound2).elim
 
+/- The source-level Bool support only needs the motive witness at its concrete
+   initial model.  Every field endpoint is then an extension of that model,
+   so `canonicalBoolMotiveSupportOfExtension` supplies the IH callback without
+   asking for a witness at arbitrary model inputs. -/
+theorem canonicalBoolMinorSourceSupportOfMotive
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    (constructorType : constructor.type = .const ``Bool [])
+    (constructorName : constructor.name = ``Bool.false ∨ constructor.name = ``Bool.true)
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    {reader domainReader : Context} {domain : Expr}
+    (source : RecursorMinorDomainSource stats infos constructor reader domain domainReader)
+    (model : MLCtx) (modelWF : model.WF canonicalBoolModel [`u])
+    (native : model.lctx = reader.lctx)
+    {motive : FVarId} {motiveSemantic : VExpr} {level : VLevel}
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (motiveTranslated : TrExprS canonicalBoolModel [`u] model.vlctx
+      (.fvar motive) motiveSemantic)
+    (motiveTyped : canonicalBoolModel.HasType 1 model.vlctx.toCtx motiveSemantic
+      (.forallE (.const ``Bool []) (.sort level))) :
+    MinorSourceTranslationSupport canonicalBoolModel [`u] source model := by
+  exact canonicalBoolMinorSourceSupport constructorType constructorName params levels indConsts
+    nindices boolIndices ⟨motive, motiveEq⟩ source model modelWF native (by
+      intro terminal finalIndex fields recursiveFields fieldReader semantic fieldTrace fieldModel endpoint
+      obtain ⟨fieldIds, fieldExtension⟩ := endpoint.modelExtension
+      exact canonicalBoolMotiveSupportOfExtension fieldExtension endpoint.context.1 (by
+        cases fieldTrace
+        rfl) boolIndices motiveEq motiveTranslated motiveTyped)
+
 end Lean4Lean.AddInductive
 
 namespace Lean4Lean.AddInductive
