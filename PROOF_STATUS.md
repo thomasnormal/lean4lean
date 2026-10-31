@@ -1,3 +1,15 @@
+## Canonical Bool minor-pass info preservation — 2026-10-31
+
+The one-type Bool minor pass now has a theorem-backed receipt showing exact
+preservation of the parent major, motive, and indices at slot zero. The proof
+reduces the pass to its two constructor updates and simplifies the
+`recursorMinorUpdate` record fields. Focused regressions and theorem-body
+admission audits pass, and the full build completes all 492 jobs. The source
+census remains 116 matching `sorry` lines in 18 files and 120 whole-word
+occurrences. This narrows the final-info shape needed by the grouped-order
+rebase consumer; grouped semantic translation, generated-rule semantics, and
+iota soundness remain explicit.
+
 ## Canonical Bool endpoint with known allocation — 2026-10-31
 
 The concrete parent-history endpoint now returns its translated

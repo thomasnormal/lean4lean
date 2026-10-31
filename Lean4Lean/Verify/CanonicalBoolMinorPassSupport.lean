@@ -451,4 +451,31 @@ theorem canonicalBoolMinorPassAllocationOfParentHistory
       have impossible : ¬ (1 : Nat) < #[canonicalBoolType].size := by decide
       exact (impossible bound2).elim
 
+
+/- The one-type Bool minor pass updates only the minor array.  Its final slot
+   therefore preserves the parent major, motive, and indices exactly. -/
+theorem canonicalBoolMinorPassInfoPreservation
+    {stats : InductiveStats} {infos finalInfos : Array RecInfo}
+    {parentReader finalReader : Context}
+    (minorTrace : RecursorMinorPassTrace stats #[canonicalBoolType] 0 infos parentReader finalInfos finalReader)
+    (infoBound : 0 < infos.size) :
+    finalInfos[0]!.major = infos[0]!.major ∧
+    finalInfos[0]!.motive = infos[0]!.motive ∧
+    finalInfos[0]!.indices = infos[0]!.indices := by
+  unfold canonicalBoolType at minorTrace
+  cases minorTrace with
+  | stop complete => exact (complete (by decide)).elim
+  | step bound head tail =>
+    cases tail with
+    | stop complete =>
+      cases head with
+      | step source tail =>
+        cases tail with
+        | step source2 tail2 =>
+          cases tail2
+          simp [recursorMinorUpdate, getElem!_pos, infoBound, Array.getElem_modify]
+    | step bound2 _ _ =>
+      have impossible : ¬ (1 : Nat) < #[canonicalBoolType].size := by decide
+      exact (impossible bound2).elim
+
 end Lean4Lean.AddInductive

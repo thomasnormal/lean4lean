@@ -1,3 +1,12 @@
+## Canonical Bool minor-pass info preservation — 2026-10-31
+
+`canonicalBoolMinorPassInfoPreservation` proves that the concrete one-type Bool
+minor pass changes only the `minors` field of its slot-zero `RecInfo`: the
+parent major, motive, and indices are preserved exactly. This is the missing
+final-info bridge for feeding the known allocation into the grouped-order
+rebase receipt; grouped forall translation, generated-rule semantics, and iota
+soundness remain explicit.
+
 ## Canonical Bool endpoint with known allocation — 2026-10-31
 
 `canonicalBoolPassModelEndpointWithAllocationOfParentHistory` packages the

@@ -166,6 +166,15 @@ example {stats : InductiveStats} {infos finalInfos : Array RecInfo}
   canonicalBoolMinorPassAllocationOfParentHistory parentTrace parentHistory minorTrace
     normalization params levels indConsts nindices boolIndices reserved
 
+example {stats : InductiveStats} {infos finalInfos : Array RecInfo}
+    {parentReader finalReader : Context}
+    (minorTrace : RecursorMinorPassTrace stats #[canonicalBoolType] 0 infos parentReader finalInfos finalReader)
+    (infoBound : 0 < infos.size) :
+    finalInfos[0]!.major = infos[0]!.major ∧
+    finalInfos[0]!.motive = infos[0]!.motive ∧
+    finalInfos[0]!.indices = infos[0]!.indices :=
+  canonicalBoolMinorPassInfoPreservation minorTrace infoBound
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -185,7 +194,8 @@ run_meta
       ``canonicalBoolNullaryFalseStepAllocation,
       ``canonicalBoolNullaryTrueStepAllocation,
       ``canonicalBoolMinorTraceAllocationOfMotive,
-      ``canonicalBoolMinorPassAllocationOfParentHistory] do
+      ``canonicalBoolMinorPassAllocationOfParentHistory,
+      ``canonicalBoolMinorPassInfoPreservation] do
     auditTheorem theoremName
   logInfo "canonical Bool minor pass support is theorem-backed"
 
