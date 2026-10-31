@@ -3552,4 +3552,63 @@ theorem mkRecInfos.registeredScopedTranslatedAppliedInitialAndFinalTypehood
   exact nextWF registeredEnv finalInfos finalReader finalModel frame counts endpoint ⟨initial, final⟩
     registeredWF retained metadata rhsScope
 
+/- Carry the grouped-chain typehood package through the final registered CPS
+   continuation.  Registration facts and grouped semantic receipts remain
+   separate inputs to the continuation. -/
+theorem mkRecInfos.registeredScopedTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
+    {ResultType : Type} {env : VEnv} {universes : List Name}
+    (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) (reader : Context)
+    (next : Kernel.Environment → Array RecInfo → M ResultType) (post : ResultType → Prop)
+    (envWF : env.WF) (constants : CanonicalAnnotationConstants env)
+    (definitions : CanonicalAnnotationDefinitions env) (fieldOnly : stats.params.size = 0)
+    (model : MLCtx) (modelWF : model.WF env universes) (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    (nativeEnvWF : reader.env.constants.WF)
+    {semanticElimLevel : VLevel} (mapped : VLevel.ofLevel universes elimLevel = some semanticElimLevel)
+    (parentSupport : (mkRecInfos.loopInd1 stats types elimLevel 0 #[]
+      (fun parentInfos => do return (parentInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ trace : RecursorParentPassTrace stats types elimLevel 0 #[] reader result.1 result.2,
+        RecursorParentPassTranslationSupport env universes trace)
+    (minorSupport : ∀ parentInfos parentReader
+      (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader parentInfos parentReader)
+      parentModel, TranslatedRecursorParentPass env universes parentTrace model parentModel →
+      (mkRecInfos.loopInd2 stats types 0 parentInfos
+        (fun finalInfos => do return (finalInfos, ← readThe Context)) parentReader).WF fun result =>
+        ∀ trace : RecursorMinorPassTrace stats types 0 parentInfos parentReader result.1 result.2,
+          MinorPassTranslationSupport env universes trace)
+    (groupedSupport : (mkRecInfos stats types elimLevel
+      (fun finalInfos => do return (finalInfos, ← readThe Context)) reader).WF fun result =>
+      ∀ finalModel, RecursorInfoModelEndpoint env universes stats types elimLevel reader
+        result.1 result.2 model finalModel → ∀ parent, parent < types.size →
+        ∃ chronological grouped,
+          (recursorTypeBody result.1 parent).looseBVarRange' = 0 ∧
+          RecursorBinderRebaseReceipt env universes stats result.1 parent result.2.lctx
+            model finalModel chronological grouped ∧
+          RecursorGroupedTypeTranslationChain env universes result.2.lctx model.vlctx
+            (recursorTypeBody result.1 parent) grouped)
+    (nextWF : ∀ registeredEnv finalInfos finalReader finalModel,
+      reader.RecursorScopeFrame finalReader → RecursorInfoCounts types finalInfos →
+      RecursorInfoModelEndpoint env universes stats types elimLevel reader finalInfos finalReader
+        model finalModel →
+      (RecursorInitialTypehood env universes stats types elimLevel finalInfos finalReader
+          model lparams isK isUnsafe rules ∧
+        RecursorFinalTypehood env universes stats types elimLevel finalInfos finalReader
+          finalModel lparams isK isUnsafe rules) →
+      registeredEnv.constants.WF →
+      (∀ name info, reader.env.find? name = some info → registeredEnv.find? name = some info) →
+      stats.RecursorOffsetMetadata types elimLevel finalInfos lparams finalReader.lctx
+        isK isUnsafe finalReader registeredEnv →
+      LocalRecursorRuleRhsScope stats types finalInfos finalReader registeredEnv →
+      (next registeredEnv finalInfos finalReader).WF post) :
+    (do let result ← mkRecInfos.scopeRegistration stats types elimLevel lparams isK isUnsafe reader
+        next result.1 result.2.1 result.2.2).WF post := by
+  refine (mkRecInfos.registeredTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
+    stats types elimLevel lparams isK isUnsafe rules reader envWF constants definitions fieldOnly
+    model modelWF native reserved nativeEnvWF mapped parentSupport minorSupport groupedSupport).bind ?_
+  rintro ⟨registeredEnv, finalInfos, finalReader⟩
+    ⟨frame, counts, ⟨finalModel, endpoint, typehood⟩, registeredWF, retained, metadata, rhsScope⟩
+  exact nextWF registeredEnv finalInfos finalReader finalModel frame counts endpoint typehood
+    registeredWF retained metadata rhsScope
+
 end Lean4Lean.AddInductive

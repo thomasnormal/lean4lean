@@ -14270,3 +14270,11 @@ the registered scope frame, recursor counts, initial/final typehood, and the
 existing environment retention, metadata, and RHS-scope facts. It does not
 reorder `MLCtx` allocation or discharge grouped transport, generated-rule,
 iota, or `TrProj` obligations.
+
+## October 31, 2026 — grouped chain registered scoped CPS typehood
+
+`mkRecInfos.registeredScopedTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
+passes the registered grouped-chain package to the final CPS continuation,
+including both typehood predicates and the registered environment facts. The
+theorem preserves native chronological allocation and leaves grouped transport,
+generated-rule semantics, iota, and `TrProj` obligations explicit.

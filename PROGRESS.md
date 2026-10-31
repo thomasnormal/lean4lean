@@ -3221,3 +3221,11 @@ now carries the grouped-chain initial/final typehood package through native
 predicates with registered-environment WF, retention, metadata, and RHS-scope
 facts; chronological allocation, grouped transport, generated-rule semantics,
 iota soundness, and `TrProj` remain explicit obligations.
+
+## Grouped chain registered scoped CPS typehood — 2026-10-31
+
+`mkRecInfos.registeredScopedTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
+feeds that registered package into the final continuation. The continuation
+receives the endpoint, both typehood predicates, and the registered environment
+WF/retention/metadata/RHS-scope facts while grouped transport and all native
+allocation premises remain explicit.
