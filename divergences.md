@@ -1,3 +1,38 @@
+## Canonical Bool grouped recursor type transport (2026-10-31)
+
+The canonical Bool recursor allocates its native local declarations in the
+chronological order `[major, motive, minorFalse, minorTrue]`.  The generated
+recursor type presents the same declarations as
+`[motive, minorFalse, minorTrue, major]`: the motive domain is a closed
+`Bool → Sort` telescope over the major, and each nullary minor domain applies
+the motive to its constructor.  The two lists are permutations, but they are
+not interchangeable model-context extensions.
+
+`SelectedRecursorTelescope.no_reordered_ids` and
+`canonicalBoolGroupedTelescopeImpossible` prove the obstruction: for fixed
+initial and final `MLCtx` models, a selected telescope determines its
+identifier sequence.  Consequently, a `List.Perm` cannot be used to pretend
+that the grouped order is a second chronological `MLCtx`; doing so would lose
+the model in which each dependent domain was translated.
+
+The verified receipts now retain the sound ingredients.  The
+`RecursorBinderRebaseReceipt` records the native extension, the grouped-order
+permutation, each binder's allocation prefix, and the weakening of its domain
+translation into the final model.  `RecursorGroupedTypeTranslationSupport`
+names the remaining obligation directly: translate and type the complete
+grouped native `mkForall` in the initial semantic context.  The
+`rawTypeTranslationFromGroupedSupport` consumer then derives raw recursor
+typehood without manufacturing a reordered context.
+
+Closing this boundary requires a dependency-aware grouped-forall transport
+(or an equivalent semantic construction) that handles the closed motive
+domain and the two motive-dependent minor domains.  It must also preserve the
+native binder names, role equations, and final body application.  Generated
+rule semantics, iota soundness, and `TrProj` transport are separate premises;
+none is implied by the allocation permutation.  This is a verification-model
+boundary, not a native-kernel discrepancy, and the fork-specific receipt is
+not an upstream PR candidate until that semantic transport is constructive.
+
 ## AddInduct registration boundary (2026-10-19)
 
 `NativeInductive.RegistrationEvidence.aligned` proves the staged semantic
