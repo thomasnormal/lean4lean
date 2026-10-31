@@ -418,6 +418,33 @@ theorem RecursorGroupedTypeTranslationSupport.namedTailNecessary
     exact ⟨semanticDomain, semanticTail, domainTranslated, domainTyped,
       namedTail, namedTailTyped⟩
 
+/- The named-tail witness makes its remaining source dependencies explicit:
+   every free variable in the native tail is either the newly named head or a
+   variable already present in the initial virtual context.  This is the
+   recursive scope boundary needed before another grouped head can be
+   transported. -/
+theorem RecursorGroupedTypeTranslationSupport.namedTailFVarBoundary
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {identifier : FVarId} {rest : List FVarId}
+    {body : Expr} {dependencies : List FVarId}
+    {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    (support : RecursorGroupedTypeTranslationSupport env universes full initial
+      (identifier :: rest) body)
+    (scope : full.BindingScope) (closed : body.looseBVarRange' = 0)
+    (distinct : (identifier :: rest).Nodup)
+    (bindings : SelectedCDeclBindings full (identifier :: rest))
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (fresh : identifier ∉ initial.vlctx.fvars) :
+    ∀ {target : FVarId},
+      target ∈ (full.mkForall (rest.map Expr.fvar).toArray body).fvarsList →
+      target = identifier ∨ target ∈ initial.vlctx.fvars := by
+  obtain ⟨_, _, _, _, tailTranslated, _⟩ := support.namedTailNecessary
+    (dependencies := dependencies) scope closed distinct bindings lookup fresh
+  intro target present
+  have inContext := tailTranslated.fvarsList present
+  simpa only [VLCtx.fvars_cons_some, List.mem_cons] using inContext
+
 theorem RecursorRawTypeTranslationSupport.selectedTypeTranslation
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}
     {parent : Nat} {full : LocalContext} {initial : MLCtx}

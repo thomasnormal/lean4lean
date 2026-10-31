@@ -157,6 +157,24 @@ example {env : VEnv} {universes : List Name} {full : LocalContext}
   RecursorGroupedTypeTranslationSupport.namedTailNecessary support scope closed distinct bindings
     lookup fresh
 
+example {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {identifier : FVarId} {rest : List FVarId}
+    {body : Expr} {dependencies : List FVarId}
+    {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    (support : RecursorGroupedTypeTranslationSupport env universes full initial
+      (identifier :: rest) body)
+    (scope : full.BindingScope) (closed : body.looseBVarRange' = 0)
+    (distinct : (identifier :: rest).Nodup)
+    (bindings : SelectedCDeclBindings full (identifier :: rest))
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (fresh : identifier ∉ initial.vlctx.fvars)
+    {target : FVarId}
+    (present : target ∈ (full.mkForall (rest.map Expr.fvar).toArray body).fvarsList) :
+    target = identifier ∨ target ∈ initial.vlctx.fvars :=
+  RecursorGroupedTypeTranslationSupport.namedTailFVarBoundary support scope closed distinct
+    bindings lookup fresh (dependencies := dependencies) present
+
 run_meta
   let fvarTheorem := ``RecursorBinderIntegrity.selectedIndexDomains
   let fvarAxioms ← collectAxioms fvarTheorem
@@ -218,6 +236,14 @@ run_meta
     throwError "necessary named grouped tail support proof missing"
   if groupedNamedTailNecessaryProof.hasSorry then
     throwError "necessary named grouped tail support has an admission"
+  let groupedNamedTailBoundaryTheorem := ``RecursorGroupedTypeTranslationSupport.namedTailFVarBoundary
+  let groupedNamedTailBoundaryInfo ← getConstInfo groupedNamedTailBoundaryTheorem
+  if groupedNamedTailBoundaryInfo matches .axiomInfo _ then
+    throwError "named grouped tail FVar boundary is not theorem-backed"
+  let some groupedNamedTailBoundaryProof := groupedNamedTailBoundaryInfo.value? (allowOpaque := true) |
+    throwError "named grouped tail FVar boundary proof missing"
+  if groupedNamedTailBoundaryProof.hasSorry then
+    throwError "named grouped tail FVar boundary has an admission"
   logInfo "integrity supplies index-domain FVar support; grouped source scope and semantic selected-domain support remain explicit model/pass premises"
 
 end InductiveRecursorSelectedDomainBoundaryTest

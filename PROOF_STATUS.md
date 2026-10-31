@@ -14132,3 +14132,12 @@ with `VLCtx.Abstract.zero` and the explicit freshness premise to recover the
 native `mkForall rest body` translation under the named head context. This
 sharpens the remaining boundary: recursive grouped tail production must
 supply exactly the witness that grouped support entails.
+
+## October 31, 2026 — grouped named-tail free-variable boundary
+
+`RecursorGroupedTypeTranslationSupport.namedTailFVarBoundary` derives the
+free-variable scope of the native tail from that necessary witness. Any tail
+fvar is the named head or an initial-context fvar, so a recursive grouped
+transport step cannot silently depend on a later chronological declaration.
+The theorem remains a boundary consumer and does not construct grouped tail
+semantics.

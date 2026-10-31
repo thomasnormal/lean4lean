@@ -3082,3 +3082,12 @@ named head context. The proof inverts `TrExprS.forallE`, abstracts the native
 source equation, and reinstates the named fvar with `VLCtx.Abstract.zero`.
 This is a necessary-condition theorem, not a construction of the grouped tail
 from chronological model data.
+
+## Grouped named-tail free-variable boundary — 2026-10-31
+
+`RecursorGroupedTypeTranslationSupport.namedTailFVarBoundary` projects the
+named-tail necessity witness onto source scope: every fvar in the remaining
+native tail is either the selected head fvar or belongs to the initial virtual
+context. This is the precise recursive dependency condition for taking another
+grouped head step; it does not provide the reordered semantic context or the
+tail translation itself.
