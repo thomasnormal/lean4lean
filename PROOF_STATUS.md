@@ -14274,6 +14274,11 @@ extends the registered grouped package to indexed constructor-rule results.
 It preserves the existing closed-RHS callback and abstract result relation;
 generated-rule semantics, iota, and `TrProj` remain explicit obligations.
 
+`mkRecInfos.registeredScopedGeneratedRuleResultCPSFromGroupedChains`
+instantiates that grouped indexed boundary with `GeneratedRecursorRuleResult`.
+The generated-rule witness remains a caller-supplied callback; no generated
+rule semantics, iota soundness, or `TrProj` fact is inferred.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 transfers explicit per-parent grouped-chain receipts through the `mkRecInfos`
 CPS endpoint to `RecursorInitialTypehood` and `RecursorFinalTypehood`. It does

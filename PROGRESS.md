@@ -3225,6 +3225,11 @@ now feeds that package into the indexed rule-result boundary. Closed RHS
 translation and the caller-supplied rule-result relation remain separate
 callbacks, leaving generated-rule and iota semantics explicit.
 
+`mkRecInfos.registeredScopedGeneratedRuleResultCPSFromGroupedChains`
+specializes the grouped indexed boundary to `GeneratedRecursorRuleResult`,
+while retaining the explicit closed-RHS and generated-rule callbacks and the
+native chronological allocation witness.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 carries per-parent grouped-chain receipts through the translated `mkRecInfos`
 endpoint and hands aggregate initial/final typehood to the continuation. Body
