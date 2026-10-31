@@ -1,3 +1,15 @@
+## Canonical Bool declared-recursor bridge — 2026-10-31
+
+`canonicalBoolPassModelEndpointWithKnownFinalInfoDeclaredRecursor` now
+composes the concrete Bool endpoint, exact allocation and grouped-order rebase,
+final body/application receipt, and the generic selected-domain declaration
+consumer. It returns a translated and typed recursor body, grouped raw-type
+equation, and well-formed translated `declareRecursors.metadataVal`, while
+keeping the native index source, selected-domain support, initial model WF,
+motive shape, minor semantics, generated-rule semantics, iota soundness, and
+body closedness explicit. This fork-specific bridge is not an upstream PR
+candidate.
+
 ## Canonical Bool final body/application wrapper — 2026-10-31
 
 `canonicalBoolPassModelEndpointWithKnownFinalInfoBodyApplication` now

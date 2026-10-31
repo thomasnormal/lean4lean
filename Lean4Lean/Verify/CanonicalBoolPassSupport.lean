@@ -280,6 +280,107 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoBodyApplication
     endpoint, finalMajorEq, finalMotiveEq, finalIndicesEq, finalMinorsEq, known, rebase,
     bodyTranslated, bodyTyped, bodyRaw⟩
 
+theorem canonicalBoolPassModelEndpointWithKnownFinalInfoDeclaredRecursor
+    {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {infos finalInfos : Array RecInfo} {reader parentReader finalReader : Context}
+    {model parentModel : MLCtx} {info : RecInfo}
+    (typesEq : types = #[canonicalBoolType])
+    (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (minorTrace : RecursorMinorPassTrace stats types 0 infos parentReader finalInfos finalReader)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (reserved : ContextReserved parentReader.lctx parentReader.ngen)
+    (finalInfosEq : finalInfos = #[info])
+    (initialIndices : infos[0]!.indices = #[])
+    (initialMinors : infos[0]!.minors = #[])
+    (motiveShape : ∀ (finalModel : MLCtx) (motive : FVarId),
+      RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+        reader finalInfos finalReader model finalModel →
+      ∀ index name domain binder,
+      finalModel.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) →
+      domain = finalModel.lctx.mkForall finalInfos[0]!.indices
+        (finalModel.lctx.mkForall #[finalInfos[0]!.major] (.sort elimLevel)))
+    (modelWF : model.WF canonicalBoolModel [`u])
+    (source : RecursorInfoIndexSource stats types elimLevel 0 reader finalInfos[0]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
+    (support : RecursorSelectedDomainSupport canonicalBoolModel [`u] stats finalInfos 0
+      finalReader.lctx model)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (recursorLevels : getRecLevelParams elimLevel lparams = [`u])
+    (empty : model.vlctx = [])
+    {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
+    (minorSemantics : MinorSemantics)
+    (generatedRuleSemantics : GeneratedRuleSemantics)
+    (iotaSoundness : IotaSoundness)
+    (bodyClosed : (recursorTypeBody finalInfos 0).looseBVarRange' = 0) :
+    ∃ finalModel major motive minorFalse minorTrue chronological bodySemantic level constant,
+      RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+        reader finalInfos finalReader model finalModel ∧
+      info.major = .fvar major ∧ info.motive = .fvar motive ∧
+      info.indices = #[] ∧ info.minors = #[.fvar minorFalse, .fvar minorTrue] ∧
+      IndexMLCtxExtension model [major, motive, minorFalse, minorTrue] finalModel ∧
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats finalInfos 0
+        finalReader.lctx model finalModel chronological
+        [motive, minorFalse, minorTrue, major] ∧
+      TrExprS canonicalBoolModel [`u] finalModel.vlctx
+        (recursorTypeBody finalInfos 0) bodySemantic ∧
+      canonicalBoolModel.HasType 1 finalModel.vlctx.toCtx bodySemantic (.sort level) ∧
+      recursorRawType stats finalInfos 0 finalReader.lctx =
+        finalModel.lctx.mkForall
+          ([motive, minorFalse, minorTrue, major].map Expr.fvar).toArray
+          (recursorTypeBody finalInfos 0) ∧
+      TrConstVal .safe canonicalBoolModel
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel finalInfos lparams
+          finalReader.lctx isK false 0 rules)) constant ∧
+      constant.toVConstant.WF canonicalBoolModel := by
+  obtain ⟨finalModel, major, motive, minorFalse, minorTrue, chronological, bodySemantic, level,
+    endpoint, finalMajorEq, finalMotiveEq, finalIndicesEq, finalMinorsEq, known, rebase,
+    bodyTranslated, bodyTyped, bodyRaw⟩ :=
+    canonicalBoolPassModelEndpointWithKnownFinalInfoBodyApplication typesEq parentTrace parentHistory
+      minorTrace normalization params levels indConsts nindices boolIndices reserved finalInfosEq
+      initialIndices initialMinors motiveShape mapped minorSemantics generatedRuleSemantics
+      iotaSoundness bodyClosed
+  have parameterFree : stats.params.size = 0 := by simpa [params]
+  have bound : 0 < types.size := by simpa [typesEq]
+  have order : ∀ ids, IndexMLCtxExtension model ids finalModel →
+      [motive, minorFalse, minorTrue, major].Perm ids := by
+    intro ids extension
+    rw [canonicalBoolAllocationOfKnownExtension known ids extension]
+    exact canonicalBoolRecursorBinderOrderPermutation
+  have alignment : (recursorTypeBinders stats finalInfos 0).toList =
+      [motive, minorFalse, minorTrue, major].map Expr.fvar := by
+    simpa [recursorTypeBinders, params, finalInfosEq, finalMotiveEq, finalMinorsEq,
+      finalIndicesEq, finalMajorEq]
+  have finalMotiveEq' : finalInfos[0]!.motive = .fvar motive := by
+    simpa [finalInfosEq] using finalMotiveEq
+  have finalIndicesEq' : finalInfos[0]!.indices = #[] := by
+    simpa [finalInfosEq] using finalIndicesEq
+  have finalMajorEq' : finalInfos[0]!.major = .fvar major := by
+    simpa [finalInfosEq] using finalMajorEq
+  have finalMinorsEq' : finalInfos[0]!.minors = #[.fvar minorFalse, .fvar minorTrue] := by
+    simpa [finalInfosEq] using finalMinorsEq
+  obtain ⟨chronological', bodySemantic', bodyLevel', constant,
+    declarationReceipt⟩ :=
+    endpoint.canonicalBoolDeclaredRecursorReceipt canonicalBoolModel.wf modelWF parameterFree bound
+      source mapped support [motive, minorFalse, minorTrue, major] order alignment
+      (by simp) (by simp) finalMotiveEq' finalIndicesEq' finalMajorEq'
+      (by
+        intro index name domain binder lookup
+        exact motiveShape finalModel motive endpoint index name domain binder lookup)
+      lparams isK rules recursorLevels empty minorSemantics generatedRuleSemantics iotaSoundness
+      bodyClosed
+  obtain ⟨_, _, _, _, constantTranslated, constantWF⟩ := declarationReceipt
+  exact ⟨finalModel, major, motive, minorFalse, minorTrue, chronological, bodySemantic, level,
+    constant, endpoint, finalMajorEq, finalMotiveEq, finalIndicesEq, finalMinorsEq, known, rebase,
+    bodyTranslated, bodyTyped, bodyRaw, constantTranslated, constantWF⟩
+
 theorem canonicalBoolPassModelEndpoint
     {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
     {infos finalInfos : Array RecInfo} {reader parentReader finalReader : Context}

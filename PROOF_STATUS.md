@@ -1,3 +1,14 @@
+## Canonical Bool declared-recursor bridge — 2026-10-31
+
+The canonical Bool pass endpoint now reaches the declared recursor constant
+boundary. `canonicalBoolPassModelEndpointWithKnownFinalInfoDeclaredRecursor`
+combines exact chronological allocation, grouped-order rebase, final body
+translation/typing, and `TrConstVal`/constant WF for
+`declareRecursors.metadataVal`. Selected-domain support, native index-source
+provenance, initial model WF, motive shape, minor/generated-rule/iota
+semantics, and body closedness remain explicit premises; this fork-specific
+bridge is not an upstream PR candidate.
+
 ## Canonical Bool final body/application wrapper — 2026-10-31
 
 The canonical Bool endpoint now reaches the final body/application consumer
