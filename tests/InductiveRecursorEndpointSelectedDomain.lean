@@ -967,6 +967,7 @@ run_meta
   auditTheorem ``mkRecInfos.getTranslatedAppliedRecursorTypesFromGroupedChains
   auditTheorem ``mkRecInfos.scopedTranslatedAppliedRecursorTypesFromGroupedChains
   auditTheorem ``mkRecInfos.registeredTranslatedAppliedRecursorTypesFromGroupedChains
+  auditTheorem ``mkRecInfos.registeredScopedTranslatedAppliedRecursorTypesFromGroupedChains
   auditTheorem ``mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
   auditTheorem ``mkRecInfos.scopedTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
   auditTheorem ``mkRecInfos.registeredTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains

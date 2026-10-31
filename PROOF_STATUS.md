@@ -14265,6 +14265,10 @@ the same receipts through native registration and exposes registered-environment
 WF, retention, metadata, and RHS-scope facts without manufacturing any grouped
 context or rule semantics.
 
+`mkRecInfos.registeredScopedTranslatedAppliedRecursorTypesFromGroupedChains`
+transports that registered receipt package to the final continuation while
+leaving grouped transport, generated-rule semantics, iota, and `TrProj` open.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 transfers explicit per-parent grouped-chain receipts through the `mkRecInfos`
 CPS endpoint to `RecursorInitialTypehood` and `RecursorFinalTypehood`. It does

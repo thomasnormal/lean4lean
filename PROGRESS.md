@@ -3216,6 +3216,10 @@ that receipt family through native registration and retains the registered
 environment WF, retention, metadata, and RHS-scope facts for downstream rule
 consumers.
 
+`mkRecInfos.registeredScopedTranslatedAppliedRecursorTypesFromGroupedChains`
+passes the registered grouped receipt package to the final CPS continuation,
+keeping native registration and all grouped transport premises visible.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 carries per-parent grouped-chain receipts through the translated `mkRecInfos`
 endpoint and hands aggregate initial/final typehood to the continuation. Body
