@@ -609,6 +609,26 @@ theorem RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedSupport
   rw [equation]
   simpa only [native] using translated
 
+/- A recursive grouped witness chain is a direct producer of the grouped
+   support consumed above.  This adapter keeps the native raw-type equation
+   and all rebase obligations in the receipt while exposing the chain as the
+   semantic input at the application boundary. -/
+theorem RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedChain
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent full
+      initial final chronological grouped)
+    (finalWF : final.WF env universes) (native : final.lctx = full)
+    (bodyClosed : (recursorTypeBody infos parent).looseBVarRange' = 0)
+    (chain : RecursorGroupedTypeTranslationChain env universes full initial.vlctx
+      (recursorTypeBody infos parent) grouped) :
+    ∃ typeSemantic level,
+      TrExprS env universes initial.vlctx
+        (recursorRawType stats infos parent full) typeSemantic ∧
+      env.HasType universes.length initial.vlctx.toCtx typeSemantic (.sort level) := by
+  exact receipt.rawTypeTranslationFromGroupedSupport finalWF native bodyClosed chain.toSupport
+
 /- Package the semantic application endpoint with the grouped raw-type
    equation.  The body-application support is deliberately an input: proving
    motive/minor application semantics is a separate obligation from rebasing

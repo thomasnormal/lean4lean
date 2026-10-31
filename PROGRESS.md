@@ -3125,3 +3125,11 @@ already present in the semantic context at that head, and the same receipt is
 propagated under the named head for the remaining tail. This makes the
 forward-dependency restriction available independently of the final grouped
 translation package.
+
+## Grouped chain to raw recursor type endpoint — 2026-10-31
+
+`RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedChain` now feeds a
+recursive grouped witness chain into the existing native raw-type equation.
+The endpoint obtains initial-context translation and typehood for the raw
+recursor type while retaining the chronological rebase receipt and grouped
+chain as explicit inputs.

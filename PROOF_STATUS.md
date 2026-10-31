@@ -14158,9 +14158,8 @@ caller-supplied; this theorem does not invent a reordered model context.
 ## October 31, 2026 — recursive grouped-tail witness chain
 
 `RecursorGroupedTypeTranslationChain.toTranslation` is the first recursive
-grouped-forall construction in this seam. A `nil` witness supplies the final
-empty-list case supplies the final body translation; each `cons` case supplies
-the current domain and a tail chain
+grouped-forall construction in this seam. The empty-list case supplies the
+final body translation; each `cons` case supplies the current domain and a tail chain
 under the named head, then invokes `namedTailAt`. The chain constructs
 translation and typehood but deliberately leaves chronological model receipts
 and per-binder semantic premises to its caller.
@@ -14172,3 +14171,11 @@ that every translated grouped head domain mentions only fvars available in
 the current semantic `VLCtx`. The tail receipt is checked under the named
 head context, so this exposes the source-order restriction for every grouped
 head without constructing a reordered `MLCtx`.
+
+## October 31, 2026 — grouped chain to raw recursor type endpoint
+
+`RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedChain` packages the
+recursive grouped chain at the downstream application seam. After the
+explicit native raw-type equation, it returns initial-context translation and
+sort typehood for the raw recursor type; chronological allocation and grouped
+semantic receipts remain caller supplied.
