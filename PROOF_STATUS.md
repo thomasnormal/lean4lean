@@ -14269,6 +14269,11 @@ context or rule semantics.
 transports that registered receipt package to the final continuation while
 leaving grouped transport, generated-rule semantics, iota, and `TrProj` open.
 
+`mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResultsFromGroupedChains`
+extends the registered grouped package to indexed constructor-rule results.
+It preserves the existing closed-RHS callback and abstract result relation;
+generated-rule semantics, iota, and `TrProj` remain explicit obligations.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 transfers explicit per-parent grouped-chain receipts through the `mkRecInfos`
 CPS endpoint to `RecursorInitialTypehood` and `RecursorFinalTypehood`. It does

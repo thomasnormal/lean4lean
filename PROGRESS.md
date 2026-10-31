@@ -3220,6 +3220,11 @@ consumers.
 passes the registered grouped receipt package to the final CPS continuation,
 keeping native registration and all grouped transport premises visible.
 
+`mkRecInfos.registeredScopedTranslatedAppliedRecursorRuleResultsFromGroupedChains`
+now feeds that package into the indexed rule-result boundary. Closed RHS
+translation and the caller-supplied rule-result relation remain separate
+callbacks, leaving generated-rule and iota semantics explicit.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 carries per-parent grouped-chain receipts through the translated `mkRecInfos`
 endpoint and hands aggregate initial/final typehood to the continuation. Body
