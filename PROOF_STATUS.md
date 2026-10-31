@@ -13996,3 +13996,13 @@ public contracts no longer duplicate the opaque `motiveShape` callback;
 generic low-level receipts retain that callback because they do not carry
 native source provenance. Grouped forall translation, generated-rule
 semantics, iota soundness, and `TrProj` remain explicit fork-only boundaries.
+
+## Canonical Bool endpoint consumes concrete minor translation — 2026-10-31
+
+The concrete Bool endpoint wrapper now uses the theorem-backed parent-history
+and two-constructor minor-trace translator directly. It no longer asks callers
+for arbitrary-model `motives` or `motiveSupport` callbacks; the exact Bool
+trace supplies those IH obligations through the translated parent motive and
+its field extensions. Generic minor-pass support remains parameterized for
+arbitrary inductive inputs, and grouped forall translation, generated-rule
+semantics, iota soundness, and `TrProj` remain explicit.

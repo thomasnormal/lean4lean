@@ -18,14 +18,6 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     (params : stats.params = #[]) (levels : stats.levels = [])
     (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
     (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
-    (motives : ∀ {infos : Array RecInfo}, ∃ fvar, infos[0]!.motive = .fvar fvar)
-    (motiveSupport : ∀ {infos : Array RecInfo} {reader : Context}
-      {terminal finalIndex fields recursiveFields fieldReader semantic},
-      (fieldTrace : RecursorCtorFieldTrace stats (.const ``Bool []) 0 #[] #[] reader
-        terminal finalIndex fields recursiveFields fieldReader) →
-      ∀ (model fieldModel : MLCtx), CtorFieldModelEndpoint canonicalBoolModel [`u]
-        fieldTrace model fieldModel semantic →
-        IHMotiveApplicationSupport canonicalBoolModel [`u] stats infos fieldModel.vlctx terminal)
     (model : MLCtx) (modelWF : model.WF canonicalBoolModel [`u])
     (native : model.lctx = reader.lctx) (reserved : ContextReserved reader.lctx reader.ngen)
     {semanticElimLevel : VLevel}
@@ -33,7 +25,7 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     ∃ finalModel, RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
       reader finalInfos finalReader model finalModel :=
   canonicalBoolPassModelEndpoint typesEq parentTrace minorTrace normalization params levels indConsts
-    nindices boolIndices motives motiveSupport model modelWF native reserved mapped
+    nindices boolIndices model modelWF native reserved mapped
 
 example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
     {infos finalInfos : Array RecInfo} {reader parentReader finalReader : Context}
