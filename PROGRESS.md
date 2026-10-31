@@ -2828,3 +2828,15 @@ The inhabited inverse-weakening lemmas from upstream PR #51 remain available
 and are the sound replacement. This changes no executable behavior and is not
 a new upstream PR candidate because the correction is already represented by
 PR #51.
+## Upstream contribution inventory refresh — 2026-10-31
+
+The official `origin/master` remains `67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`
+and is already an ancestor of this branch. The live upstream repository still
+has the focused proof/correctness work open as PRs #55–#68, with #51 (inhabited
+inverse weakening) and #49 (exact models for abstract/instantiate operations)
+also open and currently clean. The branch's inverse-weakening boundary is
+therefore already represented by #51. The canonical Bool, registered-recursion,
+checker-consumer, and grouped-telescope receipts remain fork-specific and
+depend on unresolved grouped translation, generated-rule, or iota premises;
+they are not standalone upstream PRs. No new duplicate PR should be opened
+from this branch at this point.

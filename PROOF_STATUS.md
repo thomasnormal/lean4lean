@@ -13920,3 +13920,15 @@ statement (issue #50). The fork no longer exports its unused derived
 inhabited inverse weakening remains provided by the PR #51 lemmas in
 `Theory/Typing/Lemmas.lean`. No executable behavior or new admission was
 introduced.
+## Upstream contribution inventory refresh — 2026-10-31
+
+`git fetch origin master` still reports official `origin/master` at
+`67f63b0c818920dfaed2ad07ccff187a6a8fe1e3`, already an ancestor of this
+branch. A live GitHub check shows focused upstream PRs #55–#68 remain open
+(`UNSTABLE`), while #51 (inhabited inverse weakening) and #49 (exact models
+for abstract/instantiate operations) are open and `CLEAN`. The latest local
+soundness-boundary cleanup is covered by #51 rather than a new patch. The
+canonical Bool and registration/frontend receipts remain fork-only evidence:
+their grouped forall translation, generated-rule semantics, and iota soundness
+are still explicit premises. No new standalone upstream PR is justified by
+the current branch.
