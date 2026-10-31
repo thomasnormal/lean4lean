@@ -2147,6 +2147,44 @@ theorem RecursorInfoModelEndpoint.initialAndFinalTypehoodFromDomains
     endpoint.finalTypehoodFromDomains envWF initialWF parameterFree sources mapped supports
       lparams isK isUnsafe rules⟩
 
+/- Aggregate one grouped-chain recursor-type receipt per parent into the
+   existing initial/final typehood predicates.  Each parent keeps its own
+   chronological rebase and grouped witness; this theorem does not infer a
+   common reordered model or any generated-rule/iota semantics. -/
+theorem RecursorInfoModelEndpoint.initialAndFinalTypehoodFromGroupedChains
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (envWF : env.WF) (finalWF : final.WF env universes)
+    (native : final.lctx = finalReader.lctx)
+    (bodyClosed : ∀ parent, parent < types.size →
+      (recursorTypeBody infos parent).looseBVarRange' = 0)
+    (receipts : ∀ parent (bound : parent < types.size), ∃ chronological grouped,
+      RecursorBinderRebaseReceipt env universes stats infos parent finalReader.lctx
+        initial final chronological grouped ∧
+      RecursorGroupedTypeTranslationChain env universes finalReader.lctx initial.vlctx
+        (recursorTypeBody infos parent) grouped)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) :
+    RecursorInitialTypehood env universes stats types elimLevel infos finalReader initial
+        lparams isK isUnsafe rules ∧
+      RecursorFinalTypehood env universes stats types elimLevel infos finalReader final
+        lparams isK isUnsafe rules := by
+  constructor
+  · intro parent bound
+    obtain ⟨chronological, grouped, receipt, chain⟩ := receipts parent bound
+    have typeReceipt := endpoint.recursorTypeFromGroupedChain receipt envWF finalWF native
+      (bodyClosed parent bound) chain
+    exact ⟨typeReceipt.rawTypehood, typeReceipt.storedTypehood,
+      typeReceipt.metadataTypehood types elimLevel lparams isK isUnsafe rules⟩
+  · intro parent bound
+    obtain ⟨chronological, grouped, receipt, chain⟩ := receipts parent bound
+    have typeReceipt := endpoint.recursorTypeFromGroupedChain receipt envWF finalWF native
+      (bodyClosed parent bound) chain
+    exact ⟨typeReceipt.finalRawTypehood, typeReceipt.finalStoredTypehood,
+      typeReceipt.finalMetadataTypehood types elimLevel lparams isK isUnsafe rules⟩
+
 theorem mkRecInfos.getTranslatedAppliedInitialTypehood
     {env : VEnv} {universes : List Name}
     (stats : InductiveStats) (types : Array InductiveType) (elimLevel : Level) (reader : Context)

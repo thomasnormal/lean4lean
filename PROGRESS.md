@@ -3189,3 +3189,11 @@ stored implicit-binder projection and registration semantics remain separate.
 `RecursorInfoModelEndpoint.finalMetadataTypehoodFromGroupedChain` projects the
 declared recursor metadata type translation and typehood from the grouped-chain
 receipt while leaving generated-rule and iota correctness explicit.
+
+## Grouped chain aggregate typehood — 2026-10-31
+
+`RecursorInfoModelEndpoint.initialAndFinalTypehoodFromGroupedChains` aggregates
+one explicit grouped-chain recursor-type receipt per parent into the existing
+initial and final typehood predicates. Each parent retains its own chronological
+rebase and grouped witness; no reordered model or generated-rule/iota semantics
+are inferred.

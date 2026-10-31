@@ -14238,3 +14238,10 @@ soundness, and `TrProj` remain separate obligations.
 declared recursor metadata type translation and typehood from the grouped-chain
 receipt. Generated-rule semantics, iota soundness, and `TrProj` remain separate
 obligations.
+
+## October 31, 2026 — grouped chain aggregate typehood
+
+`RecursorInfoModelEndpoint.initialAndFinalTypehoodFromGroupedChains` combines
+per-parent grouped-chain receipts into `RecursorInitialTypehood` and
+`RecursorFinalTypehood`. Chronological allocation, grouped witnesses, generated
+rule semantics, iota soundness, and `TrProj` remain explicit obligations.
