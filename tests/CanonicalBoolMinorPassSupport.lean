@@ -175,6 +175,27 @@ example {stats : InductiveStats} {infos finalInfos : Array RecInfo}
     finalInfos[0]!.indices = infos[0]!.indices :=
   canonicalBoolMinorPassInfoPreservation minorTrace infoBound
 
+example {stats : InductiveStats} {infos finalInfos : Array RecInfo}
+    {reader finalReader : Context} {motive : FVarId}
+    (trace : RecursorMinorTrace stats ``Bool 0 infos
+      [({name := ``Bool.false, type := .const ``Bool []} : Constructor),
+       {name := ``Bool.true, type := .const ``Bool []}] reader finalInfos finalReader)
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (infoBound : 0 < infos.size)
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (readerWF : reader.lctx.WF)
+    (reserved : ContextReserved reader.lctx reader.ngen) :
+    ∃ (minorFalse minorTrue : FVarId) (falseDecl trueDecl : LocalDecl),
+      finalReader.lctx.find? minorFalse = some falseDecl ∧
+      finalReader.lctx.find? minorTrue = some trueDecl ∧
+      falseDecl.fvarId = minorFalse ∧ trueDecl.fvarId = minorTrue ∧
+      falseDecl.type = .app infos[0]!.motive (.const ``Bool.false []) ∧
+      trueDecl.type = .app infos[0]!.motive (.const ``Bool.true []) :=
+  canonicalBoolMinorTraceDomainReceipts trace params levels indConsts nindices boolIndices
+    infoBound motiveEq readerWF reserved
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -193,6 +214,8 @@ run_meta
       ``canonicalBoolMinorPassTranslatedOfParentHistory,
       ``canonicalBoolNullaryFalseStepAllocation,
       ``canonicalBoolNullaryTrueStepAllocation,
+      ``canonicalBoolMinorSourceDomainShape,
+      ``canonicalBoolMinorTraceDomainReceipts,
       ``canonicalBoolMinorTraceAllocationOfMotive,
       ``canonicalBoolMinorPassAllocationOfParentHistory,
       ``canonicalBoolMinorPassInfoPreservation] do

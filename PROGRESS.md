@@ -2950,3 +2950,13 @@ trace supplies those IH obligations through the translated parent motive and
 its field extensions. Generic minor-pass support remains parameterized for
 arbitrary inductive inputs, and grouped forall translation, generated-rule
 semantics, iota soundness, and `TrProj` remain explicit.
+
+## Canonical Bool native minor domain receipts — 2026-10-31
+
+The concrete two-constructor minor trace now exposes native cdecl provenance
+for both minor binders. The receipt carries each final-reader lookup and proves
+their exact types are the parent motive applied to `Bool.false` and
+`Bool.true`, respectively, while retaining the chronological scope frames.
+This is a source-shape input for dependency-aware grouped transport; it does
+not construct a reordered model extension or discharge grouped forall,
+generated-rule, iota, or `TrProj` obligations.

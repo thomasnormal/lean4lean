@@ -306,6 +306,130 @@ theorem canonicalBoolNullaryTrueStepAllocation
     have impossible : ¬ (0 : Nat) < (#[] : Array Expr).size := by decide
     exact (impossible bound).elim
 
+/- A nullary Bool constructor has no field or IH binders.  Its native minor
+   domain therefore reduces to the parent motive applied to the constructor
+   value.  Keep this source shape separate from the translated model receipt:
+   it identifies the declaration type before any chronological-to-grouped
+   transport is attempted. -/
+theorem canonicalBoolMinorSourceDomainShape
+    {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
+    (constructorType : constructor.type = .const ``Bool [])
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    {reader domainReader : Context} {domain : Expr}
+    (source : RecursorMinorDomainSource stats infos constructor reader domain domainReader) :
+    domain = .app infos[0]!.motive (.const constructor.name []) := by
+  rcases constructor with ⟨constructorName', constructorType'⟩
+  simp only at constructorType source ⊢
+  cases constructorType
+  rcases source with ⟨terminal, finalIndex, fields, recursiveFields, fieldReader, hypotheses,
+    fieldTrace, hypothesisTrace, domainEq⟩
+  cases fieldTrace with
+  | stop terminalNotForall =>
+    cases hypothesisTrace with
+    | stop complete =>
+      rw [domainEq, recursorMinorDomain, recursorMinorBody]
+      simp only [params, levels, boolIndices, mkAppN, Array.foldl_empty]
+      have emptyForall : ∀ body : Expr, LocalContext.mkForall reader.lctx #[] body = body := by
+        intro body
+        simp only [Lean.LocalContext.mkForall, Lean.LocalContext.mkBinding,
+          Array.size_empty, Nat.foldRev_zero, Expr.abstractRange_eq]
+        have abstractEmpty : body.abstract #[] = body := by
+          have h := Expr.abstract_eq body []
+          simpa only [List.map_nil] using h.trans (Expr.abstractFVars_nil body 0)
+        rw [abstractEmpty]
+      rw [emptyForall, emptyForall]
+    | step bound source tail => simpa using bound
+
+/- The concrete two-constructor trace records the exact native cdecls for both
+   minor binders.  The first declaration is carried through the second
+   constructor's scope frame, while the second is the final frame's newest
+   declaration.  Their types are the motive applications established above;
+   the result is native provenance for later dependency-aware grouped
+   transport, not a reordered model extension. -/
+theorem canonicalBoolMinorTraceDomainReceipts
+    {stats : InductiveStats} {infos finalInfos : Array RecInfo}
+    {reader finalReader : Context}
+    (trace : RecursorMinorTrace stats ``Bool 0 infos
+      [({name := ``Bool.false, type := .const ``Bool []} : Constructor),
+       {name := ``Bool.true, type := .const ``Bool []}] reader finalInfos finalReader)
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (_indConsts : stats.indConsts = #[.const ``Bool []]) (_nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (infoBound : 0 < infos.size)
+    {motive : FVarId} (motiveEq : infos[0]!.motive = .fvar motive)
+    (readerWF : reader.lctx.WF)
+    (reserved : ContextReserved reader.lctx reader.ngen) :
+    ∃ (minorFalse minorTrue : FVarId) (falseDecl trueDecl : LocalDecl),
+      finalReader.lctx.find? minorFalse = some falseDecl ∧
+      finalReader.lctx.find? minorTrue = some trueDecl ∧
+      falseDecl.fvarId = minorFalse ∧ trueDecl.fvarId = minorTrue ∧
+      falseDecl.type = .app infos[0]!.motive (.const ``Bool.false []) ∧
+      trueDecl.type = .app infos[0]!.motive (.const ``Bool.true []) := by
+  cases trace with
+  | @step infos0 finalInfos0 constructor constructors reader0 domainReader0 finalReader0 domain0 source tail =>
+    cases tail with
+    | @step infos1 finalInfos1 constructor2 constructors2 reader1 domainReader1 finalReader1 domain1 source2 tail2 =>
+      cases tail2
+      have falseShape := canonicalBoolMinorSourceDomainShape (constructorType := rfl)
+        params levels boolIndices source
+      have trueShape := canonicalBoolMinorSourceDomainShape (constructorType := rfl)
+        params levels boolIndices source2
+      have motivePreserved :
+          (recursorMinorUpdate 0 infos (.fvar ⟨domainReader0.ngen.curr⟩))[0]!.motive =
+            infos[0]!.motive := by
+        rw [recursorMinorUpdate.selected 0 infos _ infoBound]
+      rw [motivePreserved] at trueShape
+      have firstFrame := source.scope readerWF reserved
+      have falsePush := Context.RecursorScopeFrame.push domainReader0 firstFrame.wf firstFrame.reserved
+        (recursorMinorName ``Bool {name := ``Bool.false, type := .const ``Bool []}) .default
+        (peelTypeAnnotations domain0)
+      let falseDecl := LocalDecl.cdecl domainReader0.lctx.decls.size
+        ⟨domainReader0.ngen.curr⟩
+        (recursorMinorName ``Bool {name := ``Bool.false, type := .const ``Bool []})
+        (peelTypeAnnotations domain0) .default .default
+      have falseMem : falseDecl ∈ (recursorMinorContext domainReader0 ``Bool
+          {name := ``Bool.false, type := .const ``Bool []} domain0).lctx.toList := by
+        simp only [falseDecl, recursorMinorContext, recursorIndexContext,
+          LocalContext.mkLocalDecl_toList, List.mem_cons]
+        simp
+      have falseLookup : (recursorMinorContext domainReader0 ``Bool
+          {name := ``Bool.false, type := .const ``Bool []} domain0).lctx.find?
+          falseDecl.fvarId = some falseDecl := falsePush.wf.find?_of_mem falseMem
+      have secondFrame := source2.scope falsePush.wf falsePush.reserved
+      have truePush := Context.RecursorScopeFrame.push domainReader1 secondFrame.wf secondFrame.reserved
+        (recursorMinorName ``Bool {name := ``Bool.true, type := .const ``Bool []}) .default
+        (peelTypeAnnotations domain1)
+      have falseFinalLookup := (secondFrame.trans truePush).oldLookup falsePush.wf falseLookup
+      let trueDecl := LocalDecl.cdecl domainReader1.lctx.decls.size
+        ⟨domainReader1.ngen.curr⟩
+        (recursorMinorName ``Bool {name := ``Bool.true, type := .const ``Bool []})
+        (peelTypeAnnotations domain1) .default .default
+      have trueMem : trueDecl ∈ (recursorMinorContext domainReader1 ``Bool
+          {name := ``Bool.true, type := .const ``Bool []} domain1).lctx.toList := by
+        simp only [trueDecl, recursorMinorContext, recursorIndexContext,
+          LocalContext.mkLocalDecl_toList, List.mem_cons]
+        simp
+      have trueLookup : (recursorMinorContext domainReader1 ``Bool
+          {name := ``Bool.true, type := .const ``Bool []} domain1).lctx.find?
+          trueDecl.fvarId = some trueDecl := truePush.wf.find?_of_mem trueMem
+      have falseType : falseDecl.type = .app infos[0]!.motive (.const ``Bool.false []) := by
+        simp only [falseDecl, LocalDecl.type, falseShape]
+        rw [motiveEq]
+        rfl
+      have trueType : trueDecl.type = .app infos[0]!.motive (.const ``Bool.true []) := by
+        simp only [trueDecl, LocalDecl.type, trueShape]
+        rw [motiveEq]
+        rfl
+      refine ⟨⟨domainReader0.ngen.curr⟩, ⟨domainReader1.ngen.curr⟩,
+        falseDecl, trueDecl, ?_, ?_, ?_, ?_, falseType, trueType⟩
+      · simpa only [falseDecl, LocalDecl.fvarId, recursorMinorContext,
+          recursorIndexContext, Expr.fvarId!, Lean.mkFVar] using falseFinalLookup
+      · simpa only [trueDecl, LocalDecl.fvarId, recursorMinorContext,
+          recursorIndexContext, Expr.fvarId!, Lean.mkFVar] using trueLookup
+      · rfl
+      · rfl
+
 theorem canonicalBoolMinorTraceAllocationOfMotive
     {stats : InductiveStats} {infos finalInfos : Array RecInfo}
     {reader finalReader : Context} {model : MLCtx}
