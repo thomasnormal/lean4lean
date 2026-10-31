@@ -14164,3 +14164,11 @@ the current domain and a tail chain
 under the named head, then invokes `namedTailAt`. The chain constructs
 translation and typehood but deliberately leaves chronological model receipts
 and per-binder semantic premises to its caller.
+
+## October 31, 2026 — recursive grouped-domain dependency boundary
+
+`RecursorGroupedTypeTranslationChain.domainFVarBoundary` recursively records
+that every translated grouped head domain mentions only fvars available in
+the current semantic `VLCtx`. The tail receipt is checked under the named
+head context, so this exposes the source-order restriction for every grouped
+head without constructing a reordered `MLCtx`.

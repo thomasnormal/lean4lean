@@ -165,6 +165,12 @@ example {env : VEnv} {universes : List Name} {full : LocalContext}
   chain.toSupport
 
 example {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {body : Expr} {grouped : List FVarId}
+    (chain : RecursorGroupedTypeTranslationChain env universes full initial.vlctx body grouped) :
+    RecursorGroupedTypeTranslationDomainBoundary env universes full initial.vlctx body grouped :=
+  chain.domainFVarBoundary
+
+example {env : VEnv} {universes : List Name} {full : LocalContext}
     {initial : TypeChecker.MLCtx} {identifier : FVarId} {rest : List FVarId}
     {body : Expr} {dependencies : List FVarId}
     {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
@@ -303,6 +309,14 @@ run_meta
     throwError "recursive grouped tail support package proof missing"
   if groupedChainSupportProof.hasSorry then
     throwError "recursive grouped tail support package has an admission"
+  let groupedDomainBoundaryTheorem := ``RecursorGroupedTypeTranslationChain.domainFVarBoundary
+  let groupedDomainBoundaryInfo ← getConstInfo groupedDomainBoundaryTheorem
+  if groupedDomainBoundaryInfo matches .axiomInfo _ then
+    throwError "recursive grouped domain boundary is not theorem-backed"
+  let some groupedDomainBoundaryProof := groupedDomainBoundaryInfo.value? (allowOpaque := true) |
+    throwError "recursive grouped domain boundary proof missing"
+  if groupedDomainBoundaryProof.hasSorry then
+    throwError "recursive grouped domain boundary has an admission"
   let groupedNamedTailNecessaryTheorem := ``RecursorGroupedTypeTranslationSupport.namedTailNecessary
   let groupedNamedTailNecessaryInfo ← getConstInfo groupedNamedTailNecessaryTheorem
   if groupedNamedTailNecessaryInfo matches .axiomInfo _ then

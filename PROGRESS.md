@@ -3116,3 +3116,12 @@ grouped forall translation and typehood for any such chain; `toSupport`
 packages the result for an initial model context. Chronological allocation,
 domain receipts, dependencies, and all native scope facts remain explicit
 inputs rather than being inferred by the chain.
+
+## Recursive grouped-domain dependency boundary — 2026-10-31
+
+`RecursorGroupedTypeTranslationChain.domainFVarBoundary` projects a recursive
+source-order invariant from every chain: each grouped head domain's fvars are
+already present in the semantic context at that head, and the same receipt is
+propagated under the named head for the remaining tail. This makes the
+forward-dependency restriction available independently of the final grouped
+translation package.

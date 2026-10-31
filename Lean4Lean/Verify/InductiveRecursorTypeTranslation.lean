@@ -432,6 +432,34 @@ theorem RecursorGroupedTypeTranslationChain.toSupport
   obtain ⟨semantic, level, translated, typed⟩ := chain.toTranslation
   exact ⟨semantic, level, translated, typed⟩
 
+/- A chain's domain translations carry a recursive source-order invariant:
+   each grouped head domain can mention only fvars already available in the
+   current semantic context, and the same receipt is required for the tail. -/
+def RecursorGroupedTypeTranslationDomainBoundary
+    (env : VEnv) (universes : List Name) (full : LocalContext)
+    (context : VLCtx) (body : Expr) : List FVarId → Prop
+  | [] => True
+  | identifier :: rest =>
+      ∃ (dependencies : List FVarId) (domain : Expr) (semanticDomain : VExpr),
+        TrExprS env universes context domain semanticDomain ∧
+        (∀ {target : FVarId}, target ∈ domain.fvarsList → target ∈ context.fvars) ∧
+        RecursorGroupedTypeTranslationDomainBoundary env universes full
+          ((some (identifier, dependencies), .vlam semanticDomain) :: context) body rest
+
+theorem RecursorGroupedTypeTranslationChain.domainFVarBoundary
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {context : VLCtx} {body : Expr} {grouped : List FVarId}
+    (chain : RecursorGroupedTypeTranslationChain env universes full context body grouped) :
+    RecursorGroupedTypeTranslationDomainBoundary env universes full context body grouped := by
+  induction grouped generalizing context with
+  | nil => trivial
+  | cons identifier rest ih =>
+    obtain ⟨dependencies, _index, _name, domain, _binder, semanticDomain, _scope, _closed,
+      _distinct, _bindings, _lookup, domainTranslated, _domainTyped, tail⟩ := chain
+    refine ⟨dependencies, domain, semanticDomain, domainTranslated, ?_, ih tail⟩
+    intro target present
+    exact domainTranslated.fvarsList present
+
 /- Consume a translated tail under the named head context and expose the
    resulting grouped support for one selected cdecl.  The local-context
    `mkForall` equation is the only native reshaping used here; the tail
