@@ -3205,3 +3205,10 @@ carries per-parent grouped-chain receipts through the translated `mkRecInfos`
 endpoint and hands aggregate initial/final typehood to the continuation. Body
 closure, chronological allocation, grouped witnesses, and endpoint context
 equality remain callback premises.
+
+## Grouped chain scoped CPS typehood — 2026-10-31
+
+`mkRecInfos.scopedTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
+feeds the grouped-chain aggregate through the existing `mkRecInfos` morphism
+to a scoped continuation. The continuation receives the endpoint and both
+typehood predicates while all grouped transport premises remain explicit.

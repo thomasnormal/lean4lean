@@ -14253,3 +14253,11 @@ transfers explicit per-parent grouped-chain receipts through the `mkRecInfos`
 CPS endpoint to `RecursorInitialTypehood` and `RecursorFinalTypehood`. It does
 not synthesize grouped contexts or discharge generated-rule, iota, or `TrProj`
 obligations.
+
+## October 31, 2026 — grouped chain scoped CPS typehood
+
+`mkRecInfos.scopedTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
+uses the established `mkRecInfos` morphism to pass grouped-chain initial/final
+typehood into a scoped continuation. It preserves explicit grouped transport,
+body closure, and endpoint premises and leaves generated-rule, iota, and
+`TrProj` obligations open.
