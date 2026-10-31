@@ -14354,3 +14354,11 @@ connects grouped-chain registration to the frontend iota boundary. The
 constructor environment WF, native allocation order, grouped transport, and
 caller-supplied generated-rule/iota witnesses remain explicit; no new iota
 reduction or `TrProj` theorem is introduced.
+
+## October 31, 2026 — grouped chain frontend paired iota CPS
+
+`InductiveStats.SafeRunScope.registeredScopedGeneratedRuleIotaBaseAndTargetResultsCPSFromGroupedChains`
+forwards the grouped-chain generated-rule result and paired base/target iota
+coverage through frontend scope registration. The theorem preserves native
+allocation and explicit grouped, generated-rule, and iota premises; it adds no
+new reduction or `TrProj` result.

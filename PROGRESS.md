@@ -3301,3 +3301,11 @@ now adapts the grouped-chain generated-rule/iota registration boundary to the
 frontend safe-run scope. It preserves grouped recursor transport and forwards
 both closed-RHS and generated-rule callbacks plus the paired base/target iota
 coverage, without inferring any reduction or `TrProj` fact.
+
+## Grouped chain frontend paired iota CPS — 2026-10-31
+
+`InductiveStats.SafeRunScope.registeredScopedGeneratedRuleIotaBaseAndTargetResultsCPSFromGroupedChains`
+connects the grouped-chain generated-rule result and paired base/target iota
+package to the frontend safe-run scope. It retains grouped transport, native
+registration facts, and caller-supplied generated/iota witnesses without
+asserting new reduction or `TrProj` semantics.
