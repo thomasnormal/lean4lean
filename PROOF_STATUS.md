@@ -14224,3 +14224,10 @@ semantics, iota soundness, and `TrProj` remain outside the contract.
 stored-type translation and typehood from the grouped-chain
 `RecursorTypeModelReceipt`. Registration, generated-rule semantics, iota
 soundness, and `TrProj` remain separate obligations.
+
+## October 31, 2026 — grouped chain final raw typehood
+
+`RecursorInfoModelEndpoint.finalRawTypehoodFromGroupedChain` projects the raw
+recursor-type translation and typehood from the same complete receipt. The
+stored implicit-binder projection, registration, generated-rule semantics, iota
+soundness, and `TrProj` remain separate obligations.
