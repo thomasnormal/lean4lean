@@ -2849,3 +2849,36 @@ to audit forbidden dependencies, and no longer refers to the removed
 `Environment.Reflection.ite_carrier` or obsolete primitive helper declarations.
 It passes while checking the six inhabited inverse-weakening APIs and their
 substitution-only axiom manifests.
+## Upstream contribution status and largest verified milestones — 2026-10-31
+
+The branch has now separated the useful upstream contributions from the
+fork-only inductive frontier. The largest verified milestones are:
+
+* the non-inductive frontend and environment proofs, including level
+  comparison, safe declaration extension, primitive checking, and the
+  transitive admission audits;
+* the quotient and reduction repairs: the constant-case confluence proof,
+  guarded quotient equation-pattern certificates, projection reduction and
+  inference boundaries, quotient-recursion free-variable preservation, and
+  simultaneous normal substitution; and
+* the concrete canonical Bool recursor receipts, which now carry native
+  parent/minor traces through exact chronological allocation, dependency-aware
+  grouped-order rebase, body/type translation, declared recursor construction,
+  and registration insertion.
+
+The last group is a substantial verification result, but it is not yet a
+complete inductive frontend theorem. Grouped forall translation, generated
+recursor-rule semantics, and iota soundness are still explicit premises, and
+the remaining `TrProj` specification/transport family is still admitted.
+
+The current upstream repository already has focused PRs for the independent
+pieces: #49 (exact abstract/instantiate models), #51 (inhabited inverse
+weakening), #55 (constant confluence), #56 (quotient equation patterns),
+#57/#58 (projection reduction and inference), #59 (comparison rejection),
+#60 (quotient-recursion free-variable preservation), #61 (translated
+inductive-recursion rejection), #62 (total elimination-level selection), #64
+(local-let cache restoration), #65 (normal substitution), and #68
+(application argument-array size). Those are based on the current official
+master and should not be duplicated. No additional standalone PR is ready
+from the canonical Bool receipts until the three explicit recursor semantics
+premises and the grouped translation boundary are discharged.
