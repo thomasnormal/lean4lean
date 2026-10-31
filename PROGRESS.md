@@ -3013,3 +3013,22 @@ retain the later major declaration in an earlier binder domain, cannot be
 translated by ordinary initial-context `TrExprS` without a dedicated forward
 reference/rebase construction. Grouped semantic/type translation, generated
 rule semantics, iota soundness, and `TrProj` remain open.
+
+## Milestones and upstream readiness — 2026-10-31
+
+The largest verified gains in this lane are the theorem-backed canonical Bool
+parent and two-constructor minor allocation/translation pipeline; native
+chronological-to-grouped binder rebase receipts with source cdecl provenance;
+source-backed major, motive, and minor domain transport; and inverse selected
+domain translation with a typehood-strengthened variant. Together these turn
+the inductive frontend from an unstructured admission surface into a chain of
+auditable semantic receipts while keeping the remaining grouped semantic
+transport explicit.
+
+An upstream audit found `origin/master` at `67f63b0c`, already an ancestor of
+this branch. Existing clean PRs #49 and #51 cover exact abstract/instantiate
+models and inhabited inverse weakening, while focused PRs #55--#68 remain
+open/unstable and inductive drafts #53/#54 remain dirty. The new canonical Bool
+receipts and grouped source-scope boundary are fork-specific because grouped
+forall transport, generated-rule semantics, iota soundness, and `TrProj` are
+still explicit; no standalone upstream PR is justified by this item.

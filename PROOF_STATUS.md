@@ -14068,3 +14068,19 @@ whose earlier binder domains retain later allocated declarations, such as the
 canonical Bool motive domain. The theorem records the obligation without
 constructing a reordered context or weakening grouped semantic/type,
 generated-rule, iota, or `TrProj` premises.
+
+## October 31, 2026 — milestone and upstream readiness audit
+
+The strongest current successes are the canonical Bool parent/minor
+allocation and translation receipts, source-backed chronological/grouped
+rebase transport for major, motive, and minor domains, and inverse selected
+domain translation with optional typehood strengthening. These receipts preserve
+native provenance and exact model extensions while exposing, rather than
+assuming, the grouped semantic transport still required by the frontend.
+
+The official tip `67f63b0c` is already an ancestor. Existing clean PRs #49 and
+#51 cover the independent exact-model and inhabited-inverse-weakening fixes;
+focused PRs #55--#68 are open but unstable, and inductive drafts #53/#54 are
+dirty. The current fork-only grouped boundary and canonical Bool receipts do
+not form a standalone upstream PR until grouped forall transport,
+generated-rule semantics, iota soundness, and `TrProj` are discharged.
