@@ -14094,3 +14094,12 @@ domain remains present after grouping over later binders. A successful initial
 context translation therefore requires that fvar in the initial virtual
 context. Scope, closure, cdecl lookup, and the dependency witness remain
 explicit premises; no semantic reordered context is introduced.
+
+## October 31, 2026 — grouped head transport step
+
+`RecursorGroupedTypeTranslationSupport.headStep` is the constructive one-binder
+consumer for grouped transport. It applies `TrExprS.forallE` to a native head
+cdecl domain and an anonymous-body translation under the newly introduced
+semantic vlam, then proves the resulting forall is a type. The recursive body
+witness remains explicit because chronological model weakening does not itself
+produce grouped anonymous contexts.

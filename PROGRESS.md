@@ -3042,3 +3042,13 @@ survives the fold and cannot be absent from the initial virtual context when
 grouped translation succeeds. The theorem keeps the local-context scope,
 closedness, cdecl lookup, and dependency witness explicit; it does not claim a
 reordered model or discharge grouped semantic transport.
+
+## Grouped head transport step — 2026-10-31
+
+`RecursorGroupedTypeTranslationSupport.headStep` proves the local constructive
+step for one grouped binder. Given the native head cdecl lookup, a translated
+and typed domain, and a translated/typed anonymous body under the new semantic
+vlam, it constructs the corresponding `TrExprS` forall and its `IsType`
+witness. Recursive grouped transport still has to produce those anonymous
+body witnesses in grouped order; this theorem does not derive them from the
+chronological model extension.

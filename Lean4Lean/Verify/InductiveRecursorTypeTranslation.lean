@@ -266,6 +266,35 @@ theorem RecursorGroupedTypeTranslationSupport.noMissingDomainFVar
   simp only [List.foldr_cons]
   simp [Lean.LocalContext.mkBindingList1, lookup, Expr.fvarsList, present]
 
+/- Translate one grouped head binder once its anonymous body translation and
+   domain typing are available.  This is the constructive local step needed
+   by a future recursive grouped-forall transport; it does not claim that the
+   required anonymous body witness can be obtained from chronological model
+   extensions. -/
+theorem RecursorGroupedTypeTranslationSupport.headStep
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {context : VLCtx} {identifier : FVarId} {inner : Expr}
+    {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    {semanticDomain semanticBody : VExpr}
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (domainTranslated : TrExprS env universes context domain semanticDomain)
+    (domainTyped : env.IsType universes.length context.toCtx semanticDomain)
+    (bodyTranslated : TrExprS env universes
+      ((none, .vlam semanticDomain) :: context : VLCtx)
+      (inner.abstract1 identifier) semanticBody)
+    (bodyTyped : env.IsType universes.length
+      (VLCtx.toCtx ((none, .vlam semanticDomain) :: context)) semanticBody) :
+    TrExprS env universes context
+      (full.mkBindingList1 false [] identifier (inner.abstract1 identifier))
+      (.forallE semanticDomain semanticBody) ∧
+    env.IsType universes.length context.toCtx (.forallE semanticDomain semanticBody) := by
+  have translated := TrExprS.forallE (name := name) (bi := binder)
+    domainTyped bodyTyped domainTranslated bodyTranslated
+  constructor
+  · simpa [Lean.LocalContext.mkBindingList1, lookup] using translated
+  · exact domainTyped.forallE bodyTyped
+
 theorem RecursorRawTypeTranslationSupport.selectedTypeTranslation
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}
     {parent : Nat} {full : LocalContext} {initial : MLCtx}

@@ -66,6 +66,26 @@ example {env : VEnv} {universes : List Name} {full : LocalContext}
     (missing : target ∉ initial.vlctx.fvars) : False :=
   support.noMissingDomainFVar scope closed distinct bindings lookup present missing
 
+example {env : VEnv} {universes : List Name} {full : LocalContext}
+    {context : VLCtx} {identifier : FVarId} {inner : Expr}
+    {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    {semanticDomain semanticBody : VExpr}
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (domainTranslated : TrExprS env universes context domain semanticDomain)
+    (domainTyped : env.IsType universes.length context.toCtx semanticDomain)
+    (bodyTranslated : TrExprS env universes
+      ((none, .vlam semanticDomain) :: context : VLCtx)
+      (inner.abstract1 identifier) semanticBody)
+    (bodyTyped : env.IsType universes.length
+      (VLCtx.toCtx ((none, .vlam semanticDomain) :: context)) semanticBody) :
+    TrExprS env universes context
+      (full.mkBindingList1 false [] identifier (inner.abstract1 identifier))
+      (.forallE semanticDomain semanticBody) ∧
+    env.IsType universes.length context.toCtx (.forallE semanticDomain semanticBody) :=
+  RecursorGroupedTypeTranslationSupport.headStep lookup domainTranslated domainTyped
+    bodyTranslated bodyTyped
+
 run_meta
   let fvarTheorem := ``RecursorBinderIntegrity.selectedIndexDomains
   let fvarAxioms ← collectAxioms fvarTheorem
@@ -95,6 +115,14 @@ run_meta
     throwError "grouped domain-scope boundary proof missing"
   if groupedDomainProof.hasSorry then
     throwError "grouped domain-scope boundary has an admission"
+  let groupedHeadTheorem := ``RecursorGroupedTypeTranslationSupport.headStep
+  let groupedHeadInfo ← getConstInfo groupedHeadTheorem
+  if groupedHeadInfo matches .axiomInfo _ then
+    throwError "grouped head transport is not theorem-backed"
+  let some groupedHeadProof := groupedHeadInfo.value? (allowOpaque := true) |
+    throwError "grouped head transport proof missing"
+  if groupedHeadProof.hasSorry then
+    throwError "grouped head transport has an admission"
   logInfo "integrity supplies index-domain FVar support; grouped source scope and semantic selected-domain support remain explicit model/pass premises"
 
 end InductiveRecursorSelectedDomainBoundaryTest
