@@ -1,3 +1,13 @@
+## Canonical Bool body closure API — 2026-10-31
+
+The generic canonical Bool body/application and declaration receipts now
+derive `recursorTypeBody` closedness directly from the role equations for the
+motive, empty indices, and major fvar. The concrete endpoint and registration
+wrappers no longer thread a redundant `bodyClosed` argument. Generic raw-type
+flattening still keeps closedness explicit where arbitrary recursor bodies are
+supported; grouped translation, generated-rule semantics, and iota soundness
+remain separate obligations.
+
 ## Canonical Bool registered-recursion insertion — 2026-10-31
 
 `canonicalBoolPassModelEndpointWithKnownFinalInfoRegisteredRecursorInsertion`

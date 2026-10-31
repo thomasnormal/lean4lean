@@ -567,8 +567,7 @@ theorem RecursorBinderRebaseReceipt.canonicalBoolFinalBodyApplicationReceipt
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
     (_minorSemantics : MinorSemantics)
     (_generatedRuleSemantics : GeneratedRuleSemantics)
-    (_iotaSoundness : IotaSoundness)
-    (bodyClosed : (recursorTypeBody infos parent).looseBVarRange' = 0) :
+    (_iotaSoundness : IotaSoundness) :
     ∃ bodySemantic level,
       TrExprS env universes final.vlctx (recursorTypeBody infos parent) bodySemantic ∧
       env.HasType universes.length final.vlctx.toCtx bodySemantic (.sort level) ∧
@@ -591,6 +590,8 @@ theorem RecursorBinderRebaseReceipt.canonicalBoolFinalBodyApplicationReceipt
       receipt.finalDomainSupport finalWF native motive motiveMember
     exact ⟨projectedIndex, name, domain, binder, finalLookup,
       motiveShape projectedIndex name domain binder finalLookup⟩
+  have bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0 := by
+    simp [Expr.looseBVarRange', Lean.mkAppN, recursorTypeBody, motiveEq, indicesEq, majorEq]
   have bodySupport := canonicalBoolRecursorTypeBodyApplicationSupport envWF finalWF
     motiveEq indicesEq majorEq majorEvidence motiveEvidence mapped
       _minorSemantics _generatedRuleSemantics _iotaSoundness
@@ -624,7 +625,6 @@ theorem RecursorBinderRebaseReceipt.canonicalBoolDeclaredRecursorReceipt
     (_minorSemantics : MinorSemantics)
     (_generatedRuleSemantics : GeneratedRuleSemantics)
     (_iotaSoundness : IotaSoundness)
-    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0)
     (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
     (levels : getRecLevelParams elimLevel lparams = universes)
     (empty : initial.vlctx = []) :
@@ -640,7 +640,7 @@ theorem RecursorBinderRebaseReceipt.canonicalBoolDeclaredRecursorReceipt
   obtain ⟨bodySemantic, bodyLevel, bodyTranslated, bodyTyped, bodyRaw⟩ :=
     receipt.canonicalBoolFinalBodyApplicationReceipt envWF finalWF native rfl
       majorMember motiveMember motiveEq indicesEq majorEq motiveShape mapped
-      _minorSemantics _generatedRuleSemantics _iotaSoundness bodyClosed
+      _minorSemantics _generatedRuleSemantics _iotaSoundness
   obtain ⟨constant, constantTranslated, constantWF⟩ := typeReceipt.existsDeclaredRecursor
     (types := types) lparams isK rules levels empty
   exact ⟨bodySemantic, bodyLevel, constant, bodyTranslated, bodyTyped,
@@ -800,8 +800,7 @@ theorem RecursorInfoModelEndpoint.canonicalBoolRebasedFinalBodyApplicationReceip
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
     (_minorSemantics : MinorSemantics)
     (_generatedRuleSemantics : GeneratedRuleSemantics)
-    (_iotaSoundness : IotaSoundness)
-    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0) :
+    (_iotaSoundness : IotaSoundness) :
     ∃ chronological bodySemantic level,
       RecursorBinderRebaseReceipt env universes stats infos 0 finalReader.lctx
         initial final chronological [motive, minorFalse, minorTrue, major] ∧
@@ -821,7 +820,7 @@ theorem RecursorInfoModelEndpoint.canonicalBoolRebasedFinalBodyApplicationReceip
       (by simp) (by simp) (by simp)
       (by simpa [infosEq] using motiveEq) (by simpa [infosEq] using indicesEq)
       (by simpa [infosEq] using majorEq) motiveShape mapped
-      _minorSemantics _generatedRuleSemantics _iotaSoundness bodyClosed
+      _minorSemantics _generatedRuleSemantics _iotaSoundness
   exact ⟨chronological, bodySemantic, level, receipt, bodyTranslated, bodyTyped, bodyRaw⟩
 
 /- Once selected-domain support is available, its semantic content can be
@@ -993,8 +992,7 @@ theorem RecursorInfoModelEndpoint.canonicalBoolDeclaredRecursorReceipt
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
     (_minorSemantics : MinorSemantics)
     (_generatedRuleSemantics : GeneratedRuleSemantics)
-    (_iotaSoundness : IotaSoundness)
-    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0) :
+    (_iotaSoundness : IotaSoundness) :
     ∃ chronological bodySemantic level constant,
       RecursorBinderRebaseReceipt env universes stats infos 0 finalReader.lctx
         initial final chronological grouped ∧
@@ -1015,7 +1013,7 @@ theorem RecursorInfoModelEndpoint.canonicalBoolDeclaredRecursorReceipt
     constantTranslated, constantWF⟩ :=
     receipt.canonicalBoolDeclaredRecursorReceipt typeReceipt rfl envWF finalWF finalNative
       majorMember motiveMember motiveEq indicesEq majorEq motiveShape mapped
-      _minorSemantics _generatedRuleSemantics _iotaSoundness bodyClosed
+      _minorSemantics _generatedRuleSemantics _iotaSoundness
       lparams isK rules levels empty
   exact ⟨chronological, bodySemantic, bodyLevel, constant, receipt, bodyTranslated,
     bodyTyped, bodyRaw, constantTranslated, constantWF⟩

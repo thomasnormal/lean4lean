@@ -13977,3 +13977,12 @@ longer exposes that freshness check as an independent premise. Generic
 registration remains parameterized by freshness for arbitrary environments;
 selected-domain, grouped-order, generated-rule, and iota obligations remain
 explicit.
+
+## October 31, 2026 — canonical Bool body closure API
+
+The canonical Bool CPS receipts now derive the recursor body closedness from
+their existing motive, index, and major role equations. This removes the
+redundant caller premise from the canonical body/application and declaration
+endpoints while leaving the generic arbitrary-body raw-type APIs unchanged.
+The grouped semantic transport and generated-rule/iota obligations remain
+explicit.

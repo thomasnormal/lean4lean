@@ -259,9 +259,6 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoBodyApplication
     canonicalBoolPassModelEndpointWithKnownFinalInfoRebase typesEq parentTrace parentHistory
       minorTrace normalization params levels indConsts nindices boolIndices reserved finalInfosEq
       initialIndices initialMinors
-  have bodyClosed : (recursorTypeBody finalInfos 0).looseBVarRange' = 0 := by
-    simp [Expr.looseBVarRange', Lean.mkAppN, recursorTypeBody, finalInfosEq,
-      finalIndicesEq, finalMajorEq, finalMotiveEq]
   have motiveShape : ∀ index name domain binder,
       finalModel.lctx.find? motive =
         some (.cdecl index motive name domain binder .default) →
@@ -289,7 +286,7 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoBodyApplication
       (by
         intro index name domain binder lookup
         exact motiveShape index name domain binder lookup)
-      mapped minorSemantics generatedRuleSemantics iotaSoundness bodyClosed
+      mapped minorSemantics generatedRuleSemantics iotaSoundness
   exact ⟨finalModel, major, motive, minorFalse, minorTrue, chronological, bodySemantic, level,
     endpoint, finalMajorEq, finalMotiveEq, finalIndicesEq, finalMinorsEq, known, rebase,
     bodyTranslated, bodyTyped, bodyRaw⟩
@@ -350,9 +347,6 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoDeclaredRecursor
     canonicalBoolPassModelEndpointWithKnownFinalInfoRebase typesEq parentTrace parentHistory
       minorTrace normalization params levels indConsts nindices boolIndices reserved finalInfosEq
       initialIndices initialMinors
-  have bodyClosed : (recursorTypeBody finalInfos 0).looseBVarRange' = 0 := by
-    simp [Expr.looseBVarRange', Lean.mkAppN, recursorTypeBody, finalInfosEq,
-      finalIndicesEq, finalMajorEq, finalMotiveEq]
   have bodyReceipt := endpoint.canonicalBoolRebasedFinalBodyApplicationReceipt canonicalBoolModel.wf
       params finalInfosEq finalMotiveEq finalMinorsEq finalIndicesEq finalMajorEq
       (canonicalBoolAllocationOfKnownExtension known)
@@ -373,7 +367,7 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoDeclaredRecursor
           exact candidateWF.bindingScope
         have shape := source.motiveDomainShape candidateScope sourceLookup
         simpa only [native] using shape)
-      mapped minorSemantics generatedRuleSemantics iotaSoundness bodyClosed
+      mapped minorSemantics generatedRuleSemantics iotaSoundness
   obtain ⟨_, bodySemantic, level, bodyReceipt, bodyTranslated, bodyTyped, bodyRaw⟩ := bodyReceipt
   have parameterFree : stats.params.size = 0 := by simpa [params]
   have bound : 0 < types.size := by simpa [typesEq]
@@ -415,7 +409,6 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoDeclaredRecursor
         have shape := source.motiveDomainShape candidateScope sourceLookup
         simpa only [native] using shape)
       lparams isK rules recursorLevels empty minorSemantics generatedRuleSemantics iotaSoundness
-      bodyClosed
   obtain ⟨_, _, _, _, constantTranslated, constantWF⟩ := declarationReceipt
   exact ⟨finalModel, major, motive, minorFalse, minorTrue, chronological, bodySemantic, level,
     constant, endpoint, finalMajorEq, finalMotiveEq, finalIndicesEq, finalMinorsEq, known, rebase,
