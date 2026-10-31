@@ -451,8 +451,7 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoRegisteredRecursorInsert
     {registered : Kernel.Environment} {recursor : RecursorVal}
     (lookup : registered.find? (mkRecName types[0]!.name) = some (.recInfo recursor))
     (metadata : recursor = declareRecursors.metadataVal stats types elimLevel finalInfos
-      lparams finalReader.lctx isK false 0 rules)
-    (fresh : (canonicalBoolModel : VEnv).constants (mkRecName types[0]!.name) = none) :
+      lparams finalReader.lctx isK false 0 rules) :
     ∃ finalModel major motive minorFalse minorTrue chronological constant extended,
       RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
         reader finalInfos finalReader model finalModel ∧
@@ -485,6 +484,9 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoRegisteredRecursorInsert
       [motive, minorFalse, minorTrue, major].map Expr.fvar := by
     simpa [recursorTypeBinders, params, finalInfosEq, finalMotiveEq, finalMinorsEq,
       finalIndicesEq, finalMajorEq]
+  have fresh : (canonicalBoolModel : VEnv).constants (mkRecName types[0]!.name) = none := by
+    rw [typesEq]
+    rfl
   obtain ⟨constant, extended, registeredLookup, typeReceipt, translated, wellFormed,
     insertion, extendedWF⟩ :=
     endpoint.registeredRecursorInsertionFromDomains canonicalBoolModel.wf modelWF parameterFree

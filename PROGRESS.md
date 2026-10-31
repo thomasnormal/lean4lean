@@ -9,6 +9,16 @@ translated recursor type receipt, constant translation/WF, and
 separate obligations; this fork-specific bridge is not an upstream PR
 candidate.
 
+## Canonical Bool registration freshness — 2026-10-31
+
+The concrete canonical Bool registration wrapper now derives recursor-name
+freshness from `typesEq` and the executable `canonicalBoolModel` definition.
+Callers no longer provide an opaque freshness premise; the generic environment
+insertion theorem still requires freshness for arbitrary environments. Selected
+domain support, grouped-order transport, generated-rule semantics, and iota
+soundness remain explicit boundaries, so this is fork-specific verification
+evidence rather than an upstream PR candidate.
+
 ## Canonical Bool declared-recursor bridge — 2026-10-31
 
 `canonicalBoolPassModelEndpointWithKnownFinalInfoDeclaredRecursor` now

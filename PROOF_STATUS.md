@@ -13967,3 +13967,13 @@ declarations, while retaining the direct proof and dependency audits for the
 six inhabited inverse-weakening APIs. The fixture passes with only `propext`
 and `Quot.sound` in the substitution proofs and rejects dependencies on the
 false general strengthening and quotient-confluence contracts.
+
+## October 31, 2026 — canonical Bool registration freshness
+
+The canonical Bool registration endpoint now proves that the generated
+recursor name is absent from `canonicalBoolModel` by rewriting the type array
+to the concrete Bool declaration and reducing the model lookup. The wrapper no
+longer exposes that freshness check as an independent premise. Generic
+registration remains parameterized by freshness for arbitrary environments;
+selected-domain, grouped-order, generated-rule, and iota obligations remain
+explicit.

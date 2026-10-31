@@ -239,8 +239,7 @@ example
     {registered : Kernel.Environment} {recursor : RecursorVal}
     (lookup : registered.find? (mkRecName types[0]!.name) = some (.recInfo recursor))
     (metadata : recursor = declareRecursors.metadataVal stats types elimLevel finalInfos
-      lparams finalReader.lctx isK false 0 rules)
-    (fresh : (canonicalBoolModel : VEnv).constants (mkRecName types[0]!.name) = none) :
+      lparams finalReader.lctx isK false 0 rules) :
     ∃ finalModel major motive minorFalse minorTrue chronological constant extended,
       RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
         reader finalInfos finalReader model finalModel ∧
@@ -260,7 +259,7 @@ example
   exact canonicalBoolPassModelEndpointWithKnownFinalInfoRegisteredRecursorInsertion typesEq
     parentTrace parentHistory minorTrace normalization params levels indConsts nindices boolIndices
     reserved finalInfosEq initialIndices initialMinors modelWF source mapped support lparams isK rules
-    recursorLevels empty lookup metadata fresh
+    recursorLevels empty lookup metadata
 
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
