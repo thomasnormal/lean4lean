@@ -3351,3 +3351,11 @@ restoration metadata together with the existing aligned checker,
 generated-rule, and paired base/target iota package. Source typehood supplies
 only the constructor-environment WF receipt; reordered contexts and grouped
 semantic premises remain explicit.
+
+## Grouped receipts executable restoration bridge — 2026-10-31
+
+`addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts_of_restorationStages`
+threads the explicit grouped-type translation receipt through the executable
+restoration-stage wrapper. The existential primitive-mode result, aligned
+checker, generated-rule result, and paired iota package are preserved without
+inferring grouped contexts or recursor semantics.

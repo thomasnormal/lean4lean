@@ -14407,3 +14407,12 @@ restoration-metadata checker boundary. It derives only the existing recursor
 WF fact from source typehood and retains grouped transport, generated-rule
 semantics, paired iota witnesses, and `TrProj` obligations as explicit
 premises. This fork-specific packaging adapter is not an upstream PR candidate.
+
+## October 31, 2026 — grouped receipts executable restoration bridge
+
+`addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts_of_restorationStages`
+forwards the grouped translation receipt through the executable
+restoration-stage boundary and retains the existential primitive-mode metadata
+alongside alignment, checker, generated-rule, and paired iota receipts. It
+adds no grouped transport, reduction, or `TrProj` theorem; this adapter is
+fork-specific and not an upstream PR candidate.

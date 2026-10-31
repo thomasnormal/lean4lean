@@ -12032,6 +12032,63 @@ theorem addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_gener
     metadata.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResults_of_sourceTypehood
       history producer hconstants hresultConstants hsource hvalues ruleResults⟩
 
+/- Expose the restoration-stage grouped-type receipt alongside the complete
+   checker and generated-rule/iota package.  The executable boundary retains
+   the receipt as an explicit premise and does not infer grouped semantics. -/
+theorem addDecl.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts_of_restorationStages
+    {env result : Kernel.Environment} {lparams : List Name} {nparams : Nat}
+    {types : List InductiveType} {check : Bool} {fuel : FuelConfig}
+    (hmap : env.constants.WF)
+    (hresult : addDecl env (.inductDecl lparams nparams types false) check fuel = .ok result)
+    {constants resultConstants : ConstMap} {semanticEnv semanticResult : VEnv}
+    {decl : VInductDecl} {Q : Bool}
+    (history : TrEnvInductive .safe constants Q semanticEnv)
+    (producer : NativeInductive.RegistrationEvidence constants semanticEnv decl
+      resultConstants semanticResult)
+    (hconstants : env.constants = constants)
+    (hresultConstants : result.constants = resultConstants)
+    (hsource : ∀ entry ∈ producer.recursors, ∃ semantic,
+      TrExprS producer.constructorEnv entry.info.levelParams [] entry.info.type semantic ∧
+      producer.constructorEnv.IsType entry.info.levelParams.length [] semantic)
+    (hvalues : ∀ (name : Name) (ci : ConstantInfo) {value},
+      result.constants.find? name = some ci → .safe ≤ ci.safety → ci.safety = .safe → ci.value? = some value →
+      TrExpr semanticResult ci.levelParams [] value
+        (.const ci.name (VLevel.params ci.levelParams.length)))
+    {stats : AddInductive.InductiveStats} {infos : Array AddInductive.RecInfo}
+    {source : AddInductive.Context} {universes : List Name}
+    {model : TypeChecker.MLCtx}
+    (groupedReceipts : ∀ parent (hparent : parent < infos.size), ∃ grouped,
+      RecursorGroupedTypeTranslationChain semanticEnv universes source.lctx model.vlctx
+        (recursorTypeBody infos parent) grouped)
+    (ruleResults : ∀ (entry : NativeInductive.RecursorEntry), entry ∈ producer.recursors →
+      ∀ rule, rule ∈ entry.info.rules → ∃ (constructor : Constructor) (minor : Expr),
+        AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+          (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule) :
+    ∃ allowPrimitive,
+      SafeInductiveRestorationMetadata env lparams nparams types allowPrimitive fuel result ∧
+      (Aligned .safe resultConstants semanticResult ∧
+        result.constants = resultConstants ∧
+        TrEnvInductive .safe resultConstants Q semanticResult ∧
+        CheckerEnvInductive .safe result semanticResult Q ∧
+        (∀ entry ∈ producer.orderedEntries,
+          entry.RuleSemantics semanticResult ∧ match entry with
+            | .header _ | .constructor _ => True
+            | .recursor entry => ∀ rule ∈ entry.info.rules, ∃ semantic,
+                TrExprS semanticResult entry.info.levelParams [] rule.rhs semantic ∧
+                ∃ (constructor : Constructor) (minor : Expr),
+                  AddInductive.GeneratedRecursorRuleResult semanticEnv universes stats
+                    (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule ∧
+                  AddInductive.GeneratedRecursorRuleIotaBaseAndTargetResults semanticEnv universes stats
+                    (infos.map (·.motive)) (infos.flatMap (·.minors)) source constructor minor rule)) ∧
+      (∀ parent (hparent : parent < infos.size), ∃ grouped,
+        RecursorGroupedTypeTranslationChain semanticEnv universes source.lctx model.vlctx
+          (recursorTypeBody infos parent) grouped) := by
+  obtain ⟨allowPrimitive, metadata⟩ :=
+    (addDecl.safeInductiveRestorationStages env lparams nparams types check fuel hmap) result hresult
+  exact ⟨allowPrimitive, metadata,
+    metadata.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts_of_sourceTypehood
+      history producer hconstants hresultConstants hsource hvalues groupedReceipts ruleResults⟩
+
 /- Project the general restoration package to ordinary `CheckerEnv` while
    retaining alignment, declaration history, and generated-rule/iota
    receipts in the result. -/
