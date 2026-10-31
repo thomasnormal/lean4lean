@@ -1,3 +1,16 @@
+## Canonical Bool nullary minor allocation — 2026-10-31
+
+`canonicalBoolNullaryFalseStepAllocation` and
+`canonicalBoolNullaryTrueStepAllocation` prove that each concrete nullary Bool
+minor step adds exactly its fresh constructor binder. The combined
+`canonicalBoolMinorTraceAllocationOfMotive` receipt composes those two singleton
+extensions and identifies both minor fvars, while
+`canonicalBoolMinorPassAllocationOfParentHistory` composes them with the native
+parent `[major, motive]` extension. This supplies the exact chronological
+allocation `[major, motive, minorFalse, minorTrue]`; grouped forall translation,
+generated-rule semantics, and iota soundness remain explicit. The receipt is
+fork-specific and is not an upstream PR candidate.
+
 ## Dependency-aware virtual-context rebase contract — 2026-10-30
 
 `DependencyAwareVirtualContextRebase` packages the grouped presentation order

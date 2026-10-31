@@ -1,3 +1,16 @@
+## Canonical Bool nullary minor allocation — 2026-10-31
+
+The two nullary constructor steps now have theorem-backed singleton allocation
+receipts. The concrete minor trace composes them and records the corresponding
+minor fvars; the parent-history pass theorem composes that extension with the
+native major/motive allocation to recover the full chronological order
+`[major, motive, minorFalse, minorTrue]`. Focused regressions and theorem-body
+admission audits pass, and the full build completes all 492 jobs. The source
+census remains 116 matching `sorry` lines in 18 files and 120 whole-word
+occurrences. Grouped forall translation, generated-rule semantics, and iota
+soundness remain explicit, so this fork-specific receipt is not an upstream PR
+candidate.
+
 ## October 30, 2026 — dependency-aware virtual-context rebase contract
 
 `DependencyAwareVirtualContextRebase` now packages the native chronological

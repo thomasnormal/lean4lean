@@ -127,6 +127,45 @@ example {stats : InductiveStats} {infos : Array RecInfo} {constructor : Construc
   canonicalBoolMinorSourceSupportOfMotive constructorType constructorName params levels
     indConsts nindices boolIndices source model modelWF native motiveEq motiveTranslated motiveTyped
 
+example {stats : InductiveStats} {infos : Array RecInfo}
+    {reader domainReader : Context} {domain : Expr} {initial final : MLCtx}
+    {source : RecursorMinorDomainSource stats infos
+      ({name := ``Bool.false, type := .const ``Bool []} : Constructor)
+      reader domain domainReader}
+    (step : MinorModelStep canonicalBoolModel [`u] ``Bool source initial final) :
+    IndexMLCtxExtension initial [⟨domainReader.ngen.curr⟩] final :=
+  canonicalBoolNullaryFalseStepAllocation step
+
+example {stats : InductiveStats} {infos : Array RecInfo}
+    {reader domainReader : Context} {domain : Expr} {initial final : MLCtx}
+    {source : RecursorMinorDomainSource stats infos
+      ({name := ``Bool.true, type := .const ``Bool []} : Constructor)
+      reader domain domainReader}
+    (step : MinorModelStep canonicalBoolModel [`u] ``Bool source initial final) :
+    IndexMLCtxExtension initial [⟨domainReader.ngen.curr⟩] final :=
+  canonicalBoolNullaryTrueStepAllocation step
+
+example {stats : InductiveStats} {infos finalInfos : Array RecInfo}
+    {reader parentReader finalReader : Context} {model parentModel : MLCtx}
+    {elimLevel : Level}
+    (parentTrace : RecursorParentPassTrace stats #[canonicalBoolType] elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (minorTrace : RecursorMinorPassTrace stats #[canonicalBoolType] 0 infos parentReader finalInfos finalReader)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (reserved : ContextReserved parentReader.lctx parentReader.ngen) :
+    ∃ (major motive minorFalse minorTrue : FVarId),
+      infos[0]!.major = .fvar major ∧ infos[0]!.motive = .fvar motive ∧
+      finalInfos[0]!.minors =
+        (infos[0]!.minors.push (.fvar minorFalse)).push (.fvar minorTrue) ∧
+      ∃ finalModel, IndexMLCtxExtension model [major, motive, minorFalse, minorTrue] finalModel :=
+  canonicalBoolMinorPassAllocationOfParentHistory parentTrace parentHistory minorTrace
+    normalization params levels indConsts nindices boolIndices reserved
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -142,7 +181,11 @@ run_meta
       ``canonicalBoolMinorSourceSupportOfMotive,
       ``canonicalBoolMinorTraceTranslatedOfMotive,
       ``canonicalBoolMinorTraceTranslatedOfParentHistory,
-      ``canonicalBoolMinorPassTranslatedOfParentHistory] do
+      ``canonicalBoolMinorPassTranslatedOfParentHistory,
+      ``canonicalBoolNullaryFalseStepAllocation,
+      ``canonicalBoolNullaryTrueStepAllocation,
+      ``canonicalBoolMinorTraceAllocationOfMotive,
+      ``canonicalBoolMinorPassAllocationOfParentHistory] do
     auditTheorem theoremName
   logInfo "canonical Bool minor pass support is theorem-backed"
 
