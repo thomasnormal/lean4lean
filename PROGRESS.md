@@ -3309,3 +3309,11 @@ connects the grouped-chain generated-rule result and paired base/target iota
 package to the frontend safe-run scope. It retains grouped transport, native
 registration facts, and caller-supplied generated/iota witnesses without
 asserting new reduction or `TrProj` semantics.
+
+## Grouped chain frontend combined generated-rule and iota CPS — 2026-10-31
+
+`InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultAndIotaCPSFromGroupedChains`
+connects the grouped-chain combined generated-rule and paired iota package to
+the frontend safe-run scope. It retains grouped transport, registration facts,
+and explicit generated-rule/iota witnesses while adding no reduction or
+`TrProj` semantics.

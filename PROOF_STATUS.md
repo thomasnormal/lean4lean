@@ -14362,3 +14362,11 @@ forwards the grouped-chain generated-rule result and paired base/target iota
 coverage through frontend scope registration. The theorem preserves native
 allocation and explicit grouped, generated-rule, and iota premises; it adds no
 new reduction or `TrProj` result.
+
+## October 31, 2026 — grouped chain frontend combined generated-rule and iota CPS
+
+`InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultAndIotaCPSFromGroupedChains`
+forwards the grouped-chain generated result and paired iota result through
+frontend scope registration. Native allocation, grouped transport, and all
+semantic callbacks remain explicit; no new generated-rule reduction, iota
+soundness, or `TrProj` theorem is introduced.
