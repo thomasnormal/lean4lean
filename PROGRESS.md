@@ -3230,6 +3230,10 @@ specializes the grouped indexed boundary to `GeneratedRecursorRuleResult`,
 while retaining the explicit closed-RHS and generated-rule callbacks and the
 native chronological allocation witness.
 
+`mkRecInfos.registeredScopedGeneratedRuleIotaCPSFromGroupedChains` projects
+the paired base/target iota endpoint from each caller-supplied generated-rule
+receipt after grouped-chain registration.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 carries per-parent grouped-chain receipts through the translated `mkRecInfos`
 endpoint and hands aggregate initial/final typehood to the continuation. Body

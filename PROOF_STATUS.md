@@ -14279,6 +14279,11 @@ instantiates that grouped indexed boundary with `GeneratedRecursorRuleResult`.
 The generated-rule witness remains a caller-supplied callback; no generated
 rule semantics, iota soundness, or `TrProj` fact is inferred.
 
+`mkRecInfos.registeredScopedGeneratedRuleIotaCPSFromGroupedChains` projects
+`GeneratedRecursorRuleIotaBaseAndTargetResults` from the same generated-rule
+receipt family. It adds no iota reduction proof and keeps the projection
+caller-supplied through the generated witness.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 transfers explicit per-parent grouped-chain receipts through the `mkRecInfos`
 CPS endpoint to `RecursorInitialTypehood` and `RecursorFinalTypehood`. It does
