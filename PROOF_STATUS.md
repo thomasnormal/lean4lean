@@ -14154,3 +14154,13 @@ the grouped one-head consumer. It accepts any semantic `VLCtx`, so a caller
 can apply it after previous grouped binders rather than being forced back to
 an initial `MLCtx`. The semantic tail witness and all source scope facts remain
 caller-supplied; this theorem does not invent a reordered model context.
+
+## October 31, 2026 — recursive grouped-tail witness chain
+
+`RecursorGroupedTypeTranslationChain.toTranslation` is the first recursive
+grouped-forall construction in this seam. A `nil` witness supplies the final
+empty-list case supplies the final body translation; each `cons` case supplies
+the current domain and a tail chain
+under the named head, then invokes `namedTailAt`. The chain constructs
+translation and typehood but deliberately leaves chronological model receipts
+and per-binder semantic premises to its caller.

@@ -159,6 +159,12 @@ example {env : VEnv} {universes : List Name} {full : LocalContext}
     domainTranslated domainTyped tailTranslated tailTyped
 
 example {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {body : Expr} {grouped : List FVarId}
+    (chain : RecursorGroupedTypeTranslationChain env universes full initial.vlctx body grouped) :
+    RecursorGroupedTypeTranslationSupport env universes full initial grouped body :=
+  chain.toSupport
+
+example {env : VEnv} {universes : List Name} {full : LocalContext}
     {initial : TypeChecker.MLCtx} {identifier : FVarId} {rest : List FVarId}
     {body : Expr} {dependencies : List FVarId}
     {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
@@ -281,6 +287,22 @@ run_meta
     throwError "arbitrary-context named grouped tail support proof missing"
   if groupedNamedTailAtProof.hasSorry then
     throwError "arbitrary-context named grouped tail support has an admission"
+  let groupedChainTheorem := ``RecursorGroupedTypeTranslationChain.toTranslation
+  let groupedChainInfo ← getConstInfo groupedChainTheorem
+  if groupedChainInfo matches .axiomInfo _ then
+    throwError "recursive grouped tail chain is not theorem-backed"
+  let some groupedChainProof := groupedChainInfo.value? (allowOpaque := true) |
+    throwError "recursive grouped tail chain proof missing"
+  if groupedChainProof.hasSorry then
+    throwError "recursive grouped tail chain has an admission"
+  let groupedChainSupportTheorem := ``RecursorGroupedTypeTranslationChain.toSupport
+  let groupedChainSupportInfo ← getConstInfo groupedChainSupportTheorem
+  if groupedChainSupportInfo matches .axiomInfo _ then
+    throwError "recursive grouped tail support package is not theorem-backed"
+  let some groupedChainSupportProof := groupedChainSupportInfo.value? (allowOpaque := true) |
+    throwError "recursive grouped tail support package proof missing"
+  if groupedChainSupportProof.hasSorry then
+    throwError "recursive grouped tail support package has an admission"
   let groupedNamedTailNecessaryTheorem := ``RecursorGroupedTypeTranslationSupport.namedTailNecessary
   let groupedNamedTailNecessaryInfo ← getConstInfo groupedNamedTailNecessaryTheorem
   if groupedNamedTailNecessaryInfo matches .axiomInfo _ then

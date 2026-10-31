@@ -3106,3 +3106,13 @@ earlier grouped binders have already been introduced, leaving the next tail
 translation, typehood, dependencies, and scope facts explicit. The existing
 `namedTail` theorem now packages this generalized result for an initial model
 context.
+
+## Recursive grouped-tail witness chain — 2026-10-31
+
+`RecursorGroupedTypeTranslationChain` records a base translation and typed
+semantic domain/tail receipts for each grouped head. Its theorem-backed
+`toTranslation` eliminator recursively applies `namedTailAt`, constructing the
+grouped forall translation and typehood for any such chain; `toSupport`
+packages the result for an initial model context. Chronological allocation,
+domain receipts, dependencies, and all native scope facts remain explicit
+inputs rather than being inferred by the chain.

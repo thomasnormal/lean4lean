@@ -367,6 +367,71 @@ theorem RecursorGroupedTypeTranslationSupport.namedTailAt
     .default lookup]
   simpa [Lean.LocalContext.mkBindingList1, lookup] using head.1
 
+/- A recursive witness chain records exactly the semantic data required by
+   grouped forall transport.  Its tail is allowed to live under the named
+   head in an arbitrary `VLCtx`; no chronological model extension is inferred
+   by this interface. -/
+def RecursorGroupedTypeTranslationChain
+    (env : VEnv) (universes : List Name) (full : LocalContext)
+    (context : VLCtx) (body : Expr) : List FVarId → Prop
+  | [] =>
+      ∃ (semantic : VExpr) (level : VLevel),
+        TrExprS env universes context body semantic ∧
+        env.HasType universes.length context.toCtx semantic (.sort level)
+  | identifier :: rest =>
+      ∃ (dependencies : List FVarId) (index : Nat) (name : Name) (domain : Expr)
+        (binder : BinderInfo) (semanticDomain : VExpr),
+        full.BindingScope ∧
+        body.looseBVarRange' = 0 ∧
+        (identifier :: rest).Nodup ∧
+        SelectedCDeclBindings full (identifier :: rest) ∧
+        full.find? identifier =
+          some (.cdecl index identifier name domain binder .default) ∧
+        TrExprS env universes context domain semanticDomain ∧
+        env.IsType universes.length context.toCtx semanticDomain ∧
+        RecursorGroupedTypeTranslationChain env universes full
+          ((some (identifier, dependencies), .vlam semanticDomain) :: context) body rest
+
+theorem RecursorGroupedTypeTranslationChain.toTranslation
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {context : VLCtx} {body : Expr} {grouped : List FVarId}
+    (chain : RecursorGroupedTypeTranslationChain env universes full context body grouped) :
+    ∃ (semantic : VExpr) (level : VLevel),
+      TrExprS env universes context
+        (full.mkForall (grouped.map Expr.fvar).toArray body) semantic ∧
+      env.HasType universes.length context.toCtx semantic (.sort level) := by
+  induction grouped generalizing context with
+  | nil =>
+    obtain ⟨semantic, level, translated, typed⟩ := chain
+    refine ⟨semantic, level, ?_, typed⟩
+    have emptyForall : ∀ body : Expr, full.mkForall #[] body = body := by
+      intro body
+      simp only [Lean.LocalContext.mkForall, Lean.LocalContext.mkBinding,
+        Array.size_empty, Nat.foldRev_zero, Expr.abstractRange_eq]
+      have abstractEmpty : body.abstract #[] = body := by
+        have h := Expr.abstract_eq body []
+        simpa only [List.map_nil] using h.trans (Expr.abstractFVars_nil body 0)
+      rw [abstractEmpty]
+    simpa only [List.map_nil, List.toArray, emptyForall] using translated
+  | cons identifier rest ih =>
+    obtain ⟨dependencies, index, name, domain, binder, semanticDomain, scope, closed,
+      distinct, bindings, lookup, domainTranslated, domainTyped, tail⟩ := chain
+    obtain ⟨semanticTail, tailLevel, tailTranslated, tailTyped⟩ :=
+      ih tail
+    obtain ⟨translated, typed⟩ := RecursorGroupedTypeTranslationSupport.namedTailAt
+      scope closed distinct bindings lookup domainTranslated domainTyped tailTranslated
+      ⟨tailLevel, tailTyped⟩
+    obtain ⟨level, typed⟩ := typed
+    exact ⟨.forallE semanticDomain semanticTail, level, translated, typed⟩
+
+theorem RecursorGroupedTypeTranslationChain.toSupport
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {body : Expr} {grouped : List FVarId}
+    (chain : RecursorGroupedTypeTranslationChain env universes full initial.vlctx body grouped) :
+    RecursorGroupedTypeTranslationSupport env universes full initial grouped body := by
+  obtain ⟨semantic, level, translated, typed⟩ := chain.toTranslation
+  exact ⟨semantic, level, translated, typed⟩
+
 /- Consume a translated tail under the named head context and expose the
    resulting grouped support for one selected cdecl.  The local-context
    `mkForall` equation is the only native reshaping used here; the tail
