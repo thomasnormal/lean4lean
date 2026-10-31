@@ -661,6 +661,29 @@ theorem RecursorInfoModelEndpoint.rawTypeAtFinalFromGroupedChain
   obtain ⟨translatedFinal, typedFinal⟩ := endpoint.liftTypeTranslation envWF translated typed
   exact ⟨typeSemantic, level, translated, typed, translatedFinal, typedFinal⟩
 
+/- The verified implicit-binder translation is semantic-preserving, so the
+   grouped-chain raw-type receipt can be packaged as the complete recursor
+   type receipt expected by downstream declaration construction. -/
+theorem RecursorInfoModelEndpoint.recursorTypeFromGroupedChain
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx} {parent : Nat}
+    {chronological grouped : List FVarId}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent
+      finalReader.lctx initial final chronological grouped)
+    (envWF : env.WF) (finalWF : final.WF env universes)
+    (native : final.lctx = finalReader.lctx)
+    (bodyClosed : (recursorTypeBody infos parent).looseBVarRange' = 0)
+    (chain : RecursorGroupedTypeTranslationChain env universes finalReader.lctx
+      initial.vlctx (recursorTypeBody infos parent) grouped) :
+    RecursorTypeModelReceipt env universes stats infos parent finalReader initial final := by
+  obtain ⟨typeSemantic, level, raw, typed, finalRaw, finalTyped⟩ :=
+    endpoint.rawTypeAtFinalFromGroupedChain receipt envWF finalWF native bodyClosed chain
+  exact ⟨typeSemantic, level, raw, raw.inferImplicit 1000 false, typed,
+    finalRaw, finalRaw.inferImplicit 1000 false, finalTyped⟩
+
 /- Package the semantic application endpoint with the grouped raw-type
    equation.  The body-application support is deliberately an input: proving
    motive/minor application semantics is a separate obligation from rebasing

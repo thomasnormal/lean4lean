@@ -14187,3 +14187,11 @@ recursive grouped witness endpoint with `liftTypeTranslation`. The result
 keeps both initial and final raw-type translations and their sort typehood;
 it does not infer stored-type translation, generated-rule semantics, iota
 soundness, or `TrProj`.
+
+## October 31, 2026 — grouped chain recursor type receipt
+
+`RecursorInfoModelEndpoint.recursorTypeFromGroupedChain` applies
+`TrExprS.inferImplicit` to both raw-type translations and packages the result
+as `RecursorTypeModelReceipt`. This closes only the raw/stored type receipt
+boundary; grouped semantic transport, generated-rule semantics, iota
+soundness, and `TrProj` remain explicit.

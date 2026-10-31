@@ -3141,3 +3141,11 @@ grouped-chain raw-type translation through the endpoint's actual chronological
 extension. It returns initial and final-context translation and sort typehood
 for the raw recursor type while keeping the grouped witness and native
 allocation receipt explicit.
+
+## Grouped chain recursor type receipt — 2026-10-31
+
+`RecursorInfoModelEndpoint.recursorTypeFromGroupedChain` packages the grouped
+raw-type translation together with the verified implicit-binder translation.
+It now supplies the complete initial/final `RecursorTypeModelReceipt` while
+retaining the grouped witness, native allocation receipt, and endpoint
+weakening as explicit inputs.
