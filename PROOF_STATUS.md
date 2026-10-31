@@ -13781,3 +13781,14 @@ constructively, and the theorem produces the `IHMotiveApplicationSupport`
 shape required by nullary constructor IH translation. This narrows the
 minor-pass quantifier mismatch; threading it through the actual two-constructor
 pass remains open, as do generated-rule and iota semantics.
+
+## Canonical Bool parent-history motive receipt — 2026-10-31
+
+The translated one-parent Bool history now has a theorem-backed receipt for
+the concrete minor consumer. `RecursorParentPassTrace.counts` proves the
+parent info array is nonempty; the receipt exposes the exact first motive fvar
+and its `.bvar 0` translation with `Bool → Sort` typing at `parentModel`.
+No executable behavior or kernel discrepancy changed, and the generic minor
+pass callback, grouped forall translation, generated-rule semantics, and iota
+soundness remain explicit. This fork-specific receipt is not an upstream PR
+candidate.

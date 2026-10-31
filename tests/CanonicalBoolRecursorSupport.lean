@@ -105,6 +105,23 @@ example {stats : InductiveStats} {elimLevel : Level}
         IHMotiveApplicationSupport canonicalBoolModel [`u] stats infos fieldModel.vlctx terminal :=
   canonicalBoolParentHistoryMotiveSupport parentTrace parentHistory normalization params indConsts boolIndices
 
+example {stats : InductiveStats} {elimLevel : Level}
+    {infos : Array RecInfo} {reader parentReader : Context}
+    {model parentModel : MLCtx}
+    (parentTrace : RecursorParentPassTrace stats #[canonicalBoolType] elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u] parentTrace model parentModel)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) :
+    ∃ (motive : FVarId) (level : VLevel),
+      infos[0]!.motive = .fvar motive ∧
+      TrExprS canonicalBoolModel [`u] parentModel.vlctx
+        (.fvar motive) (.bvar 0) ∧
+      canonicalBoolModel.HasType 1 parentModel.vlctx.toCtx (.bvar 0)
+        (.forallE (.const ``Bool []) (.sort level)) :=
+  canonicalBoolParentHistoryMotiveReceipt parentTrace parentHistory normalization params indConsts
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -121,7 +138,8 @@ run_meta
       ``canonicalBoolCtorFieldEndpointIHMotiveApplicationSupport,
       ``canonicalBoolMotiveSupportOfExtension,
       ``canonicalBoolParentMotiveFVarPremises,
-      ``canonicalBoolParentHistoryMotiveSupport] do
+      ``canonicalBoolParentHistoryMotiveSupport,
+      ``canonicalBoolParentHistoryMotiveReceipt] do
     auditTheorem theoremName
   logInfo "canonical Bool parent stop, motive, and two-constructor minor support are theorem-backed"
 

@@ -2693,3 +2693,12 @@ constructor pass while avoiding the generic callback's arbitrary-model
 quantifier. The full minor-pass consumer still needs to thread the concrete
 extension and keeps generated-rule and iota obligations explicit; this
 fork-specific helper is not an upstream PR candidate.
+
+## Canonical Bool parent-history motive receipt — 2026-10-31
+
+`canonicalBoolParentHistoryMotiveReceipt` now derives the nonempty parent
+information array from `RecursorParentPassTrace.counts`, identifies its first
+motive as the native parent fvar, and returns the translated and typed
+`Bool → Sort` motive at the translated parent endpoint. This is the concrete
+receipt consumed by the two-constructor minor trace bridge; the generic pass
+callback and grouped, generated-rule, and iota obligations remain explicit.

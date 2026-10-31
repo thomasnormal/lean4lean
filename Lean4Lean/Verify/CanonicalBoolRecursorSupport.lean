@@ -357,6 +357,63 @@ theorem canonicalBoolParentHistoryMotiveSupport
         have impossible : ¬ (1 : Nat) < #[canonicalBoolType].size := by decide
         exact (impossible bound1).elim
 
+/- The one-type parent history exposes the concrete motive fvar and its
+   translated de Bruijn endpoint.  This receipt packages the premises needed
+   by the concrete two-constructor minor trace consumer. -/
+theorem canonicalBoolParentHistoryMotiveReceipt
+    {stats : InductiveStats} {elimLevel : Level}
+    {infos : Array RecInfo} {reader parentReader : Context}
+    {model parentModel : MLCtx}
+    (parentTrace : RecursorParentPassTrace stats #[canonicalBoolType] elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u] parentTrace model parentModel)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) :
+    ∃ (motive : FVarId) (level : VLevel),
+      infos[0]!.motive = .fvar motive ∧
+      TrExprS canonicalBoolModel [`u] parentModel.vlctx
+        (.fvar motive) (.bvar 0) ∧
+      canonicalBoolModel.HasType 1 parentModel.vlctx.toCtx (.bvar 0)
+        (.forallE (.const ``Bool []) (.sort level)) := by
+  have infoBound : 0 < infos.size := by
+    have counts := parentTrace.counts
+    have infoSize : infos.size = 1 := by
+      simpa only [Array.size_empty, Array.size_singleton, Nat.sub_zero, Nat.zero_add] using counts
+    omega
+  cases parentTrace with
+  | stop complete =>
+    exact (complete (by decide)).elim
+  | @step parent infos0 finalInfos reader0 finalReader indexReader normalized terminal0 finalIndex0 indices
+      bound initialNormalization indicesTrace tailTrace =>
+    have normalizedEq : normalized = .sort (.succ .zero) := by
+      rw [show normalized = _ from (Except.ok.inj (normalization.symm.trans initialNormalization)).symm]
+    subst normalized
+    cases indicesTrace with
+    | stop notForall =>
+      cases tailTrace with
+      | stop complete =>
+        cases parentHistory with
+        | @step a b c d e f g h i j k l m n =>
+          rename_i bound0 norm0 idx0 tail0 wf0 native0 hist0 modelStep0 tailH0
+          have normalizedEq0 : g = .sort (.succ .zero) := by
+            rw [show g = _ from (Except.ok.inj (normalization.symm.trans idx0)).symm]
+          subst g
+          cases norm0 with
+          | stop notForall0 =>
+            cases tailH0 with
+            | stop complete0 =>
+              obtain ⟨level, motiveTranslated, motiveTyped⟩ :=
+                canonicalBoolParentMotiveFVarPremises native0 params indConsts (by rfl)
+              refine ⟨_, level, ?_, motiveTranslated, motiveTyped⟩
+              rfl
+            | step bound1 _ _ _ _ _ _ _ _ =>
+              have impossible : ¬ (1 : Nat) < #[canonicalBoolType].size := by decide
+              exact (impossible bound1).elim
+      | step bound1 _ _ _ =>
+        have impossible : ¬ (1 : Nat) < #[canonicalBoolType].size := by decide
+        exact (impossible bound1).elim
+
 end Lean4Lean.AddInductive
 
 namespace Lean4Lean.AddInductive
