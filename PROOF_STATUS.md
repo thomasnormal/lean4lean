@@ -351,6 +351,14 @@ context equality, removing one independent opaque premise from the concrete
 receipt. Grouped forall translation, generated-rule semantics, and iota
 soundness remain explicit, so this is not an upstream PR candidate.
 
+## Canonical Bool recursor body closure — 2026-10-31
+
+The final canonical Bool role equations imply that `recursorTypeBody` is the
+application of the final motive fvar to the major fvar. A direct loose-binder
+range calculation therefore discharges `bodyClosed` inside both the body and
+declared-recursor receipts, removing that caller premise without changing the
+remaining grouped-translation or recursor-semantics boundaries.
+
 ## Canonical fresh elimination-level mapping — 2026-10-30
 
 `Lean4Lean.Verify.PrimitiveInductiveModel` now exposes

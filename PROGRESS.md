@@ -2892,3 +2892,12 @@ native local-context equality to transport its model binding scope, so its
 previous opaque `motiveShape` callback is no longer an input. This remains a
 fork-specific inductive receipt; grouped forall translation, generated-rule
 semantics, and iota soundness are still explicit premises.
+
+## Canonical Bool recursor body closure — 2026-10-31
+
+The concrete canonical Bool body application and declared-recursor receipts
+now derive loose-binder closure from the final empty-index, motive, and major
+role equations. Their callers no longer supply an independent `bodyClosed`
+premise; the proof is a direct reduction of the generated body to an
+application of two fvars. Grouped forall translation, generated-rule
+semantics, iota soundness, and `TrProj` remain outside this receipt.

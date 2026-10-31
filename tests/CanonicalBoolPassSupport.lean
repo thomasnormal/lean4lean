@@ -138,8 +138,7 @@ example
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
     (minorSemantics : MinorSemantics)
     (generatedRuleSemantics : GeneratedRuleSemantics)
-    (iotaSoundness : IotaSoundness)
-    (bodyClosed : (recursorTypeBody finalInfos 0).looseBVarRange' = 0) :
+    (iotaSoundness : IotaSoundness) :
     ∃ finalModel major motive minorFalse minorTrue chronological bodySemantic level,
       RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
         reader finalInfos finalReader model finalModel ∧
@@ -159,7 +158,7 @@ example
   exact canonicalBoolPassModelEndpointWithKnownFinalInfoBodyApplication typesEq parentTrace parentHistory
     minorTrace normalization params levels indConsts nindices boolIndices reserved finalInfosEq
     initialIndices initialMinors motiveShape mapped minorSemantics generatedRuleSemantics
-    iotaSoundness bodyClosed
+    iotaSoundness
 
 example
     {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
@@ -191,8 +190,7 @@ example
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
     (minorSemantics : MinorSemantics)
     (generatedRuleSemantics : GeneratedRuleSemantics)
-    (iotaSoundness : IotaSoundness)
-    (bodyClosed : (recursorTypeBody finalInfos 0).looseBVarRange' = 0) :
+    (iotaSoundness : IotaSoundness) :
     ∃ finalModel major motive minorFalse minorTrue chronological bodySemantic level constant,
       RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
         reader finalInfos finalReader model finalModel ∧
@@ -216,7 +214,7 @@ example
   exact canonicalBoolPassModelEndpointWithKnownFinalInfoDeclaredRecursor typesEq parentTrace
     parentHistory minorTrace normalization params levels indConsts nindices boolIndices reserved
     finalInfosEq initialIndices initialMinors modelWF source mapped support lparams isK
-    rules recursorLevels empty minorSemantics generatedRuleSemantics iotaSoundness bodyClosed
+    rules recursorLevels empty minorSemantics generatedRuleSemantics iotaSoundness
 
 example
     {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}

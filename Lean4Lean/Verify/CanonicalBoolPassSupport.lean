@@ -244,8 +244,7 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoBodyApplication
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
     (minorSemantics : MinorSemantics)
     (generatedRuleSemantics : GeneratedRuleSemantics)
-    (iotaSoundness : IotaSoundness)
-    (bodyClosed : (recursorTypeBody finalInfos 0).looseBVarRange' = 0) :
+    (iotaSoundness : IotaSoundness) :
     ∃ finalModel major motive minorFalse minorTrue chronological bodySemantic level,
       RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
         reader finalInfos finalReader model finalModel ∧
@@ -267,6 +266,9 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoBodyApplication
     canonicalBoolPassModelEndpointWithKnownFinalInfoRebase typesEq parentTrace parentHistory
       minorTrace normalization params levels indConsts nindices boolIndices reserved finalInfosEq
       initialIndices initialMinors
+  have bodyClosed : (recursorTypeBody finalInfos 0).looseBVarRange' = 0 := by
+    simp [Expr.looseBVarRange', Lean.mkAppN, recursorTypeBody, finalInfosEq,
+      finalIndicesEq, finalMajorEq, finalMotiveEq]
   obtain ⟨_, bodySemantic, level, bodyReceipt, bodyTranslated, bodyTyped, bodyRaw⟩ :=
     endpoint.canonicalBoolRebasedFinalBodyApplicationReceipt canonicalBoolModel.wf
       params finalInfosEq finalMotiveEq finalMinorsEq finalIndicesEq finalMajorEq
@@ -310,8 +312,7 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoDeclaredRecursor
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
     (minorSemantics : MinorSemantics)
     (generatedRuleSemantics : GeneratedRuleSemantics)
-    (iotaSoundness : IotaSoundness)
-    (bodyClosed : (recursorTypeBody finalInfos 0).looseBVarRange' = 0) :
+    (iotaSoundness : IotaSoundness) :
     ∃ finalModel major motive minorFalse minorTrue chronological bodySemantic level constant,
       RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
         reader finalInfos finalReader model finalModel ∧
@@ -337,6 +338,9 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoDeclaredRecursor
     canonicalBoolPassModelEndpointWithKnownFinalInfoRebase typesEq parentTrace parentHistory
       minorTrace normalization params levels indConsts nindices boolIndices reserved finalInfosEq
       initialIndices initialMinors
+  have bodyClosed : (recursorTypeBody finalInfos 0).looseBVarRange' = 0 := by
+    simp [Expr.looseBVarRange', Lean.mkAppN, recursorTypeBody, finalInfosEq,
+      finalIndicesEq, finalMajorEq, finalMotiveEq]
   have bodyReceipt := endpoint.canonicalBoolRebasedFinalBodyApplicationReceipt canonicalBoolModel.wf
       params finalInfosEq finalMotiveEq finalMinorsEq finalIndicesEq finalMajorEq
       (canonicalBoolAllocationOfKnownExtension known)
