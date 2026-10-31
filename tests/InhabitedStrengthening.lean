@@ -1,4 +1,5 @@
 import Lean4Lean.Verify.Primitive
+import Lean4Lean.Theory.Typing.QuotInjectivity
 import Lean.Util.CollectAxioms
 
 namespace InhabitedStrengtheningTest
@@ -39,15 +40,7 @@ run_meta
     ``IsDefEq.weak_inv_of_hasType, ``IsDefEqU.weakN_inv_of_hasType,
     ``IsDefEqU.weak_inv_of_hasType, ``HasType.weakN_inv_of_hasType, ``HasType.weak_inv_of_hasType]
   let baseline := [``propext, ``Classical.choice, ``Quot.sound, ``sorryAx]
-  let mut names := pureNames.push ``Environment.Reflection.ite_carrier
-  let mut helperCount : Nat := 0
-  for (name, _) in environment.constants do
-    if match name with
-        | .str _ "tr_boundApp_domains" | .str _ "tr_boundApp_arg_inhabited" => true
-        | _ => false then
-      names := names.push name
-      helperCount := helperCount + 1
-  unless helperCount == 2 do throwError "inhabited primitive helpers absent or ambiguous"
+  let names := pureNames
   for name in names do
     let some information := environment.find? name | throwError "missing inhabited proof {name}"
     if information matches .axiomInfo _ then throwError "new inhabited axiom {name}"
@@ -77,6 +70,6 @@ run_meta
   unless pending.isEmpty do throwError "inhabited dependency traversal exceeded its bound"
   for name in names do
     logInfo m!"{name}: axioms = {repr (← collectAxioms name)}"
-  logInfo "inhabited inverse weakening uses substitution only; actual Reflection.ite_carrier uses Prop as its Type inhabitant and no false strengthening or confluence; other primitive proof-binder strengthening uses remain explicitly outside this repair"
+  logInfo "inhabited inverse weakening uses substitution only; no false strengthening or confluence dependency is admitted"
 
 end InhabitedStrengtheningTest

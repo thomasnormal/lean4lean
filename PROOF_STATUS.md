@@ -13932,3 +13932,13 @@ canonical Bool and registration/frontend receipts remain fork-only evidence:
 their grouped forall translation, generated-rule semantics, and iota soundness
 are still explicit premises. No new standalone upstream PR is justified by
 the current branch.
+
+## Refresh inhabited inverse-weakening regression — 2026-10-31
+
+`tests/InhabitedStrengthening.lean` now matches the current Lean 4.33
+architecture. It removes stale references to the former
+`Environment.Reflection.ite_carrier` and primitive bound-application helper
+declarations, while retaining the direct proof and dependency audits for the
+six inhabited inverse-weakening APIs. The fixture passes with only `propext`
+and `Quot.sound` in the substitution proofs and rejects dependencies on the
+false general strengthening and quotient-confluence contracts.

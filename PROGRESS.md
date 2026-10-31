@@ -2840,3 +2840,12 @@ checker-consumer, and grouped-telescope receipts remain fork-specific and
 depend on unresolved grouped translation, generated-rule, or iota premises;
 they are not standalone upstream PRs. No new duplicate PR should be opened
 from this branch at this point.
+
+## Refresh inhabited inverse-weakening regression — 2026-10-31
+
+Updated `tests/InhabitedStrengthening.lean` for the current Lean 4.33
+primitive architecture. The fixture now imports the quotient typing names only
+to audit forbidden dependencies, and no longer refers to the removed
+`Environment.Reflection.ite_carrier` or obsolete primitive helper declarations.
+It passes while checking the six inhabited inverse-weakening APIs and their
+substitution-only axiom manifests.
