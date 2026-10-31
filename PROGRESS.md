@@ -3133,3 +3133,11 @@ recursive grouped witness chain into the existing native raw-type equation.
 The endpoint obtains initial-context translation and typehood for the raw
 recursor type while retaining the chronological rebase receipt and grouped
 chain as explicit inputs.
+
+## Grouped chain through final model weakening — 2026-10-31
+
+`RecursorInfoModelEndpoint.rawTypeAtFinalFromGroupedChain` now lifts the
+grouped-chain raw-type translation through the endpoint's actual chronological
+extension. It returns initial and final-context translation and sort typehood
+for the raw recursor type while keeping the grouped witness and native
+allocation receipt explicit.

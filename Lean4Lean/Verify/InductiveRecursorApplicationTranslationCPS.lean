@@ -629,6 +629,38 @@ theorem RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedChain
       env.HasType universes.length initial.vlctx.toCtx typeSemantic (.sort level) := by
   exact receipt.rawTypeTranslationFromGroupedSupport finalWF native bodyClosed chain.toSupport
 
+/- Lift the grouped-chain raw-type receipt through the endpoint's actual
+   chronological extension.  This exposes both initial and final-context
+   translations without turning the grouped witness into a reordered model
+   context. -/
+theorem RecursorInfoModelEndpoint.rawTypeAtFinalFromGroupedChain
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx} {parent : Nat}
+    {chronological grouped : List FVarId}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent
+      finalReader.lctx initial final chronological grouped)
+    (envWF : env.WF) (finalWF : final.WF env universes)
+    (native : final.lctx = finalReader.lctx)
+    (bodyClosed : (recursorTypeBody infos parent).looseBVarRange' = 0)
+    (chain : RecursorGroupedTypeTranslationChain env universes finalReader.lctx
+      initial.vlctx (recursorTypeBody infos parent) grouped) :
+    ∃ typeSemantic level,
+      TrExprS env universes initial.vlctx
+        (recursorRawType stats infos parent finalReader.lctx) typeSemantic ∧
+      env.HasType universes.length initial.vlctx.toCtx typeSemantic (.sort level) ∧
+      TrExprS env universes final.vlctx
+        (recursorRawType stats infos parent finalReader.lctx)
+        (typeSemantic.liftN (final.length - initial.length)) ∧
+      env.HasType universes.length final.vlctx.toCtx
+        (typeSemantic.liftN (final.length - initial.length)) (.sort level) := by
+  obtain ⟨typeSemantic, level, translated, typed⟩ :=
+    receipt.rawTypeTranslationFromGroupedChain finalWF native bodyClosed chain
+  obtain ⟨translatedFinal, typedFinal⟩ := endpoint.liftTypeTranslation envWF translated typed
+  exact ⟨typeSemantic, level, translated, typed, translatedFinal, typedFinal⟩
+
 /- Package the semantic application endpoint with the grouped raw-type
    equation.  The body-application support is deliberately an input: proving
    motive/minor application semantics is a separate obligation from rebasing

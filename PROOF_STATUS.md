@@ -14179,3 +14179,11 @@ recursive grouped chain at the downstream application seam. After the
 explicit native raw-type equation, it returns initial-context translation and
 sort typehood for the raw recursor type; chronological allocation and grouped
 semantic receipts remain caller supplied.
+
+## October 31, 2026 — grouped chain final-context endpoint
+
+`RecursorInfoModelEndpoint.rawTypeAtFinalFromGroupedChain` composes the
+recursive grouped witness endpoint with `liftTypeTranslation`. The result
+keeps both initial and final raw-type translations and their sort typehood;
+it does not infer stored-type translation, generated-rule semantics, iota
+soundness, or `TrProj`.

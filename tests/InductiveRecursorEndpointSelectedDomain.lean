@@ -253,6 +253,35 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
         initial final chronological grouped ∧
       TrExprS canonicalBoolModel [`u] initial.vlctx
         (recursorRawType stats infos 0 finalReader.lctx) bodySemantic ∧
+      canonicalBoolModel.HasType 1 initial.vlctx.toCtx bodySemantic (.sort level) ∧
+      TrExprS canonicalBoolModel [`u] final.vlctx
+        (recursorRawType stats infos 0 finalReader.lctx)
+        (bodySemantic.liftN (final.length - initial.length)) ∧
+      canonicalBoolModel.HasType 1 final.vlctx.toCtx
+        (bodySemantic.liftN (final.length - initial.length)) (.sort level) := by
+  obtain ⟨chronological, receipt⟩ := endpoint.rebaseBinderOrder canonicalBoolModel.wf
+    grouped order alignment
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  obtain ⟨bodySemantic, level, translated, typed, translatedFinal, typedFinal⟩ :=
+    endpoint.rawTypeAtFinalFromGroupedChain receipt canonicalBoolModel.wf finalWF finalNative
+      bodyClosed chain
+  exact ⟨chronological, bodySemantic, level, receipt, translated, typed, translatedFinal, typedFinal⟩
+
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
+    (grouped : List FVarId)
+    (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
+    (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
+    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0)
+    (chain : RecursorGroupedTypeTranslationChain canonicalBoolModel [`u]
+      finalReader.lctx initial.vlctx (recursorTypeBody infos 0) grouped) :
+    ∃ chronological bodySemantic level,
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 finalReader.lctx
+        initial final chronological grouped ∧
+      TrExprS canonicalBoolModel [`u] initial.vlctx
+        (recursorRawType stats infos 0 finalReader.lctx) bodySemantic ∧
       canonicalBoolModel.HasType 1 initial.vlctx.toCtx bodySemantic (.sort level) := by
   obtain ⟨chronological, receipt⟩ := endpoint.rebaseBinderOrder canonicalBoolModel.wf
     grouped order alignment
@@ -600,6 +629,7 @@ run_meta
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeFinalEquation
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedSupport
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedChain
+  auditTheorem ``RecursorInfoModelEndpoint.rawTypeAtFinalFromGroupedChain
   auditTheorem ``RecursorBinderRebaseReceipt.finalBodyApplicationReceipt
   auditTheorem ``canonicalBoolRecursorTypeBodyApplicationSupport
   auditTheorem ``RecursorBinderRebaseReceipt.canonicalBoolFinalBodyApplicationReceipt
