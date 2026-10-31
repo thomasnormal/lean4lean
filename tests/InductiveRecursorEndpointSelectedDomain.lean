@@ -972,6 +972,7 @@ run_meta
   auditTheorem ``mkRecInfos.registeredScopedGeneratedRuleResultCPSFromGroupedChains
   auditTheorem ``mkRecInfos.registeredScopedGeneratedRuleIotaCPSFromGroupedChains
   auditTheorem ``mkRecInfos.registeredScopedGeneratedRuleIotaBaseAndTargetResultsCPSFromGroupedChains
+  auditTheorem ``mkRecInfos.registeredScopedGeneratedRuleResultAndIotaCPSFromGroupedChains
   auditTheorem ``mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
   auditTheorem ``mkRecInfos.scopedTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
   auditTheorem ``mkRecInfos.registeredTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
