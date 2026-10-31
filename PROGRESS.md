@@ -2730,3 +2730,13 @@ translated parent and minor histories into the standard
 `RecursorInfoModelEndpoint` shape. It provides a constructive higher-level
 endpoint for the canonical Bool path while leaving the generic pass-support
 callback and grouped-forall, generated-rule, and iota obligations explicit.
+
+## Canonical Bool parent allocation receipt — 2026-10-31
+
+`canonicalBoolParentHistoryAllocation` now projects the native role fvars from
+the translated parent history and proves the parent model extension has exact
+identifier order `[major, motive]`. It uses the parent model step's own mapped
+fvar equation after the empty-index and one-type reductions. This is the first
+concrete input to the existing grouped-order rebase API; minor-role identity,
+grouped semantic translation, generated-rule semantics, and iota obligations
+remain explicit.

@@ -13820,3 +13820,13 @@ history and concrete Bool minor pass history and returns the standard
 that the generic arbitrary-model minor support or grouped forall, generated
 rule, and iota obligations are solved; no executable behavior or kernel
 discrepancy changed, and it is not an upstream PR candidate.
+
+## Canonical Bool parent allocation receipt — 2026-10-31
+
+The translated Bool parent history now exposes a theorem-backed allocation
+receipt: the first parent info has explicit major and motive fvars, and the
+parent model's extension is exactly `[major, motive]`. The proof uses the
+native parent model step's fvar-map equation and introduces no executable or
+kernel change. Minor allocation identity, grouped forall translation,
+generated-rule semantics, and iota soundness remain open; this fork-specific
+receipt is not an upstream PR candidate.

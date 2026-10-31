@@ -122,6 +122,21 @@ example {stats : InductiveStats} {elimLevel : Level}
         (.forallE (.const ``Bool []) (.sort level)) :=
   canonicalBoolParentHistoryMotiveReceipt parentTrace parentHistory normalization params indConsts
 
+example {stats : InductiveStats} {elimLevel : Level}
+    {infos : Array RecInfo} {reader parentReader : Context}
+    {model parentModel : MLCtx}
+    (parentTrace : RecursorParentPassTrace stats #[canonicalBoolType] elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) :
+    ∃ (major motive : FVarId),
+      infos[0]!.major = .fvar major ∧ infos[0]!.motive = .fvar motive ∧
+      ∃ ids, IndexMLCtxExtension model ids parentModel ∧ ids = [major, motive] :=
+  canonicalBoolParentHistoryAllocation parentTrace parentHistory normalization params indConsts
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -139,7 +154,8 @@ run_meta
       ``canonicalBoolMotiveSupportOfExtension,
       ``canonicalBoolParentMotiveFVarPremises,
       ``canonicalBoolParentHistoryMotiveSupport,
-      ``canonicalBoolParentHistoryMotiveReceipt] do
+      ``canonicalBoolParentHistoryMotiveReceipt,
+      ``canonicalBoolParentHistoryAllocation] do
     auditTheorem theoremName
   logInfo "canonical Bool parent stop, motive, and two-constructor minor support are theorem-backed"
 

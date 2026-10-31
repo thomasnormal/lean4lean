@@ -414,6 +414,59 @@ theorem canonicalBoolParentHistoryMotiveReceipt
         have impossible : ¬ (1 : Nat) < #[canonicalBoolType].size := by decide
         exact (impossible bound1).elim
 
+/- The parent model step records its allocation identifiers in source order.
+   For canonical Bool, the empty index telescope reduces that receipt to the
+   exact native major-then-motive extension. -/
+theorem canonicalBoolParentHistoryAllocation
+    {stats : InductiveStats} {elimLevel : Level}
+    {infos : Array RecInfo} {reader parentReader : Context}
+    {model parentModel : MLCtx}
+    (parentTrace : RecursorParentPassTrace stats #[canonicalBoolType] elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) :
+    ∃ (major motive : FVarId),
+      infos[0]!.major = .fvar major ∧ infos[0]!.motive = .fvar motive ∧
+      ∃ ids, IndexMLCtxExtension model ids parentModel ∧ ids = [major, motive] := by
+  cases parentTrace with
+  | stop complete =>
+    have h : (0 : Nat) < #[canonicalBoolType].size := by decide
+    exact (complete h).elim
+  | @step parent infos0 finalInfos reader0 finalReader indexReader normalized terminal0 finalIndex0 indices
+      bound initialNormalization indicesTrace tailTrace =>
+    have normalizedEq : normalized = .sort (.succ .zero) := by
+      rw [show normalized = _ from (Except.ok.inj (normalization.symm.trans initialNormalization)).symm]
+    subst normalized
+    cases indicesTrace with
+    | stop notForall =>
+      cases tailTrace with
+      | stop complete =>
+        cases parentHistory with
+        | @step a b c d e f g h i j k l m n =>
+          rename_i bound0 norm0 idx0 tail0 wf0 native0 hist0 modelStep0 tailH0
+          have normalizedEq0 : g = .sort (.succ .zero) := by
+            rw [show g = _ from (Except.ok.inj (normalization.symm.trans idx0)).symm]
+          subst g
+          cases norm0 with
+          | stop notForall0 =>
+            cases tailH0 with
+            | stop complete0 =>
+              obtain ⟨rawSemantic, peeled, majorLevel, motiveSemantic, motiveTypeLevel,
+                majorOpening, motiveOpening, finalWF, finalNative, finalConverted, extension, idsEq⟩ := native0
+              refine ⟨_, _, rfl, rfl, ?_⟩
+              refine ⟨_, extension, ?_⟩
+              exact (List.map_inj_right (f := Expr.fvar) (fun x y h => by cases h; rfl)).mp (by
+                simpa only [Array.toList_empty, List.map_cons, List.map_nil, List.nil_append] using idsEq)
+            | step bound1 _ _ _ _ _ _ _ _ =>
+              have impossible : ¬ (1 : Nat) < #[canonicalBoolType].size := by decide
+              exact (impossible bound1).elim
+      | step bound1 _ _ _ =>
+        have impossible : ¬ (1 : Nat) < #[canonicalBoolType].size := by decide
+        exact (impossible bound1).elim
+
 end Lean4Lean.AddInductive
 
 namespace Lean4Lean.AddInductive
