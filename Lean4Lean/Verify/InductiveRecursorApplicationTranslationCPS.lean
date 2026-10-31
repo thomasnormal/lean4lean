@@ -731,6 +731,32 @@ theorem RecursorInfoModelEndpoint.finalRawTypehoodFromGroupedChain
       env.IsType universes.length final.vlctx.toCtx semantic := by
   exact (endpoint.recursorTypeFromGroupedChain receipt envWF finalWF native bodyClosed chain).finalRawTypehood
 
+/- Project metadata typehood from the grouped-chain recursor type receipt.  The
+   metadata expression is derived from the type receipt, while rule semantics
+   and iota correctness remain outside this typehood endpoint. -/
+theorem RecursorInfoModelEndpoint.finalMetadataTypehoodFromGroupedChain
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx} {parent : Nat}
+    {chronological grouped : List FVarId}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent
+      finalReader.lctx initial final chronological grouped)
+    (envWF : env.WF) (finalWF : final.WF env universes)
+    (native : final.lctx = finalReader.lctx)
+    (bodyClosed : (recursorTypeBody infos parent).looseBVarRange' = 0)
+    (chain : RecursorGroupedTypeTranslationChain env universes finalReader.lctx
+      initial.vlctx (recursorTypeBody infos parent) grouped)
+    (lparams : List Name) (isK isUnsafe : Bool) (rules : List RecursorRule) :
+    ∃ semantic,
+      TrExprS env universes final.vlctx
+        (declareRecursors.metadataVal stats types elimLevel infos lparams finalReader.lctx
+          isK isUnsafe parent rules).type semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic := by
+  exact (endpoint.recursorTypeFromGroupedChain receipt envWF finalWF native bodyClosed chain)
+    |>.finalMetadataTypehood types elimLevel lparams isK isUnsafe rules
+
 /- Package the semantic application endpoint with the grouped raw-type
    equation.  The body-application support is deliberately an input: proving
    motive/minor application semantics is a separate obligation from rebasing

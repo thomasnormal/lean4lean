@@ -14231,3 +14231,10 @@ soundness, and `TrProj` remain separate obligations.
 recursor-type translation and typehood from the same complete receipt. The
 stored implicit-binder projection, registration, generated-rule semantics, iota
 soundness, and `TrProj` remain separate obligations.
+
+## October 31, 2026 — grouped chain final metadata typehood
+
+`RecursorInfoModelEndpoint.finalMetadataTypehoodFromGroupedChain` projects the
+declared recursor metadata type translation and typehood from the grouped-chain
+receipt. Generated-rule semantics, iota soundness, and `TrProj` remain separate
+obligations.

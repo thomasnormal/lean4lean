@@ -3183,3 +3183,9 @@ typehood boundary.
 `RecursorInfoModelEndpoint.finalRawTypehoodFromGroupedChain` projects the raw
 recursor-type translation and typehood from the same complete receipt. The
 stored implicit-binder projection and registration semantics remain separate.
+
+## Grouped chain final metadata typehood — 2026-10-31
+
+`RecursorInfoModelEndpoint.finalMetadataTypehoodFromGroupedChain` projects the
+declared recursor metadata type translation and typehood from the grouped-chain
+receipt while leaving generated-rule and iota correctness explicit.
