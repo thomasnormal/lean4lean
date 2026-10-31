@@ -964,6 +964,7 @@ run_meta
   auditTheorem ``RecursorInfoModelEndpoint.finalRawTypehoodFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.finalMetadataTypehoodFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.initialAndFinalTypehoodFromGroupedChains
+  auditTheorem ``mkRecInfos.getTranslatedAppliedRecursorTypesFromGroupedChains
   auditTheorem ``mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
   auditTheorem ``mkRecInfos.scopedTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains
   auditTheorem ``mkRecInfos.registeredTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains

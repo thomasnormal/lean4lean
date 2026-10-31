@@ -14248,6 +14248,13 @@ rule semantics, iota soundness, and `TrProj` remain explicit obligations.
 
 ## October 31, 2026 — grouped chain CPS typehood
 
+`mkRecInfos.getTranslatedAppliedRecursorTypesFromGroupedChains` transfers a
+complete grouped-chain `RecursorTypeModelReceipt` for every parent through the
+translated `mkRecInfos` endpoint. It preserves the native chronological
+allocation receipt and recursive grouped witness, providing the reusable type
+receipt needed by later generated-rule and iota consumers without discharging
+those obligations.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 transfers explicit per-parent grouped-chain receipts through the `mkRecInfos`
 CPS endpoint to `RecursorInitialTypehood` and `RecursorFinalTypehood`. It does

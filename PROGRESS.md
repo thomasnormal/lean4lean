@@ -3200,6 +3200,12 @@ are inferred.
 
 ## Grouped chain CPS typehood — 2026-10-31
 
+`mkRecInfos.getTranslatedAppliedRecursorTypesFromGroupedChains` now carries
+the complete `RecursorTypeModelReceipt` for each parent through translated
+`mkRecInfos`, using the explicit chronological rebase and recursive grouped
+chain. This keeps the receipt available for downstream generated-rule and iota
+consumers while leaving their semantic obligations explicit.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 carries per-parent grouped-chain receipts through the translated `mkRecInfos`
 endpoint and hands aggregate initial/final typehood to the continuation. Body
