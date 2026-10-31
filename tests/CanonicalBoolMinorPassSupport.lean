@@ -69,6 +69,26 @@ example {stats : InductiveStats} {infos finalInfos : Array RecInfo}
   canonicalBoolMinorTraceTranslatedOfMotive trace params levels indConsts nindices boolIndices
     modelWF native reserved infoBound motiveEq motiveTranslated motiveTyped
 
+example {stats : InductiveStats} {infos finalInfos : Array RecInfo}
+    {reader parentReader finalReader : Context} {model parentModel : MLCtx}
+    {elimLevel : Level}
+    (parentTrace : RecursorParentPassTrace stats #[canonicalBoolType] elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (minorTrace : RecursorMinorTrace stats ``Bool 0 infos
+      [({name := ``Bool.false, type := .const ``Bool []} : Constructor),
+       {name := ``Bool.true, type := .const ``Bool []}] parentReader finalInfos finalReader)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (reserved : ContextReserved parentReader.lctx parentReader.ngen) :
+    ∃ finalModel, TranslatedRecursorMinorTrace canonicalBoolModel [`u]
+      minorTrace parentModel finalModel :=
+  canonicalBoolMinorTraceTranslatedOfParentHistory parentTrace parentHistory minorTrace
+    normalization params levels indConsts nindices boolIndices reserved
+
 example {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
     (constructorType : constructor.type = .const ``Bool [])
     (constructorName : constructor.name = ``Bool.false ∨ constructor.name = ``Bool.true)
@@ -102,7 +122,8 @@ run_meta
   for theoremName in [``canonicalBoolMinorPassSupport,
       ``canonicalBoolMinorPassSupport_of_types,
       ``canonicalBoolMinorSourceSupportOfMotive,
-      ``canonicalBoolMinorTraceTranslatedOfMotive] do
+      ``canonicalBoolMinorTraceTranslatedOfMotive,
+      ``canonicalBoolMinorTraceTranslatedOfParentHistory] do
     auditTheorem theoremName
   logInfo "canonical Bool minor pass support is theorem-backed"
 

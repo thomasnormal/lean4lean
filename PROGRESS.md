@@ -2702,3 +2702,13 @@ motive as the native parent fvar, and returns the translated and typed
 `Bool → Sort` motive at the translated parent endpoint. This is the concrete
 receipt consumed by the two-constructor minor trace bridge; the generic pass
 callback and grouped, generated-rule, and iota obligations remain explicit.
+
+## Canonical Bool parent-history minor trace consumer — 2026-10-31
+
+`canonicalBoolMinorTraceTranslatedOfParentHistory` now threads the translated
+one-parent history into the concrete two-constructor minor trace translator.
+The parent-history context supplies model WF and native local-context equality,
+while the new motive receipt supplies the nonempty info bound, motive fvar,
+translation, and typing. The generic arbitrary-model pass callback, grouped
+forall translation, generated-rule semantics, and iota obligations remain
+explicit.

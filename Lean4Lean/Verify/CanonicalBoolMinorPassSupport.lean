@@ -146,6 +146,39 @@ theorem canonicalBoolMinorTraceTranslatedOfMotive
         .step source2 (.stop) tailStep stopHistory
       exact ⟨finalModel, .step source (.step source2 (.stop)) headStep inner⟩
 
+/- The parent-history consumer supplies the concrete model and motive receipt
+   required by the two-constructor trace translator.  The generic minor-pass
+   callback remains separate because its contract quantifies over arbitrary
+   model inputs. -/
+theorem canonicalBoolMinorTraceTranslatedOfParentHistory
+    {stats : InductiveStats} {infos finalInfos : Array RecInfo}
+    {reader parentReader finalReader : Context} {model parentModel : MLCtx}
+    {elimLevel : Level}
+    (parentTrace : RecursorParentPassTrace stats #[canonicalBoolType] elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (minorTrace : RecursorMinorTrace stats ``Bool 0 infos
+      [({name := ``Bool.false, type := .const ``Bool []} : Constructor),
+       {name := ``Bool.true, type := .const ``Bool []}] parentReader finalInfos finalReader)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (reserved : ContextReserved parentReader.lctx parentReader.ngen) :
+    ∃ finalModel, TranslatedRecursorMinorTrace canonicalBoolModel [`u]
+      minorTrace parentModel finalModel := by
+  obtain ⟨motive, level, motiveEq, motiveTranslated, motiveTyped⟩ :=
+    canonicalBoolParentHistoryMotiveReceipt parentTrace parentHistory normalization params indConsts
+  have infoBound : 0 < infos.size := by
+    have counts := parentTrace.counts
+    have infoSize : infos.size = 1 := by
+      simpa only [Array.size_empty, Array.size_singleton, Nat.sub_zero, Nat.zero_add] using counts
+    omega
+  obtain ⟨parentWF, parentNative, _⟩ := parentHistory.context
+  exact canonicalBoolMinorTraceTranslatedOfMotive minorTrace params levels indConsts nindices
+    boolIndices parentWF parentNative reserved infoBound motiveEq motiveTranslated motiveTyped
+
 end Lean4Lean.AddInductive
 
 namespace Lean4Lean.AddInductive

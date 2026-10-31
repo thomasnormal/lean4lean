@@ -13792,3 +13792,13 @@ No executable behavior or kernel discrepancy changed, and the generic minor
 pass callback, grouped forall translation, generated-rule semantics, and iota
 soundness remain explicit. This fork-specific receipt is not an upstream PR
 candidate.
+
+## Canonical Bool parent-history minor trace consumer — 2026-10-31
+
+The concrete minor trace now has a theorem-backed parent-history entrypoint.
+It consumes `parentHistory.context`, derives the one-entry info bound from the
+parent trace count, and feeds the exact motive receipt into the first and
+second constructor translations. No executable behavior or kernel discrepancy
+changed; the universal minor-pass callback, grouped forall translation,
+generated-rule semantics, and iota soundness remain open. This fork-specific
+consumer is not an upstream PR candidate.
