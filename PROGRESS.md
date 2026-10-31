@@ -2980,3 +2980,14 @@ or motive cdecl, transport its projected final lookup, and return semantic
 translation and typehood; the motive theorem also carries its source-derived
 grouped telescope domain equation. Grouped forall semantics, generated-rule
 semantics, iota soundness, role-to-ID alignment, and `TrProj` remain explicit.
+## Syntax-level inverse domain transport — 2026-10-31
+
+`RecursorBinderRebaseReceipt.initialDomainTranslationOfFinal` now pulls a
+selected final-context domain translation back through the chronological
+extension using `TrExprS.weakFV_inv`. The theorem requires an explicit final
+cdecl lookup tying the requested syntax to the selected binder, plus source
+closedness and initial-context free-variable support. It returns translation
+only; typehood remains separate because branch minor types need not be
+inhabited. A focused selected-domain regression and theorem-body admission
+audit pass. This is a syntax-level transport seam for the fork and is not an
+upstream PR candidate by itself.

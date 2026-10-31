@@ -14036,3 +14036,14 @@ return final semantic domain translation plus typehood; the motive consumer
 also preserves the source-derived grouped telescope domain shape. This does
 not infer role-to-ID alignment or grouped forall, generated-rule, iota, or
 `TrProj` obligations.
+## Syntax-level inverse domain transport — 2026-10-31
+
+The grouped recursor rebase now has an inverse syntax transport theorem for
+selected domains. Given the final cdecl provenance, `Closed domain 0`, and
+`FVarsIn` support in the initial model context, the theorem uses the
+chronological weakening and `TrExprS.weakFV_inv` to produce an initial-context
+translation. It deliberately does not claim typehood, since inverse weakening
+of a type requires inhabitedness that branch minor domains do not generally
+provide. Focused compilation, regression, and admission audits pass; grouped
+semantic/type transport, generated-rule semantics, and iota soundness remain
+open.

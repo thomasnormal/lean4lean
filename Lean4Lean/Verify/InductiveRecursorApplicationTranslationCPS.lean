@@ -347,6 +347,35 @@ theorem RecursorBinderRebaseReceipt.finalDomainSupport
     sourceSemantic.lift' (.skipN .refl (identifier :: suffix).length), lookup, finalLookup,
     rebasedTranslation, rebasedTyped⟩
 
+/- Pull a final-context domain translation back through the chronological
+   extension.  This is the syntax-level half of grouped transport: the source
+   closure and initial-context free-variable conditions are explicit, while
+   typehood is intentionally left to a separate inhabited-strengthening
+   argument.  In particular, a branch minor's type need not be inhabited. -/
+theorem RecursorBinderRebaseReceipt.initialDomainTranslationOfFinal
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent full
+      initial final chronological grouped)
+    (envWF : env.WF) (finalWF : final.WF env universes) (native : final.lctx = full)
+    (identifier : FVarId) (member : identifier ∈ grouped)
+    {domain : Expr}
+    (domainLookup : ∃ index name binder,
+      final.lctx.find? identifier =
+        some (.cdecl index identifier name domain binder .default))
+    (closed : Closed domain 0)
+    (free : FVarsIn (· ∈ initial.vlctx.fvars) domain) :
+    ∃ semantic,
+      TrExprS env universes initial.vlctx domain semantic := by
+  obtain ⟨_, _, _, supportDomain, _, _, _, supportLookup, supportTranslated, _⟩ :=
+    receipt.finalDomainSupport finalWF native identifier member
+  obtain ⟨_, _, _, requestedLookup⟩ := domainLookup
+  have declarationEq := Option.some.inj (supportLookup.symm.trans requestedLookup)
+  cases declarationEq
+  exact supportTranslated.weakFV_inv envWF receipt.chronologicalExtension.weakening
+    (.refl envWF finalWF.tr.wf) closed free
+
 /- The final-domain receipts provide the cdecl agreement needed to compare a
    grouped recursor body opened in the native local context with the same body
    opened in the final model context.  This is a syntactic body-transport
