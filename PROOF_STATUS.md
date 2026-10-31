@@ -14016,3 +14016,13 @@ frame, exposes their final-reader cdecl lookups, and proves the stored types
 are exactly `motive false` and `motive true`. This is native provenance for a
 future dependency-aware grouped-forall transport; it does not identify a
 reordered `MLCtx` or infer generated-rule/iota semantics.
+
+## October 31, 2026 — dependency-aware native cdecl transport
+
+The grouped rebase receipt now has a theorem-backed
+`finalDomainSupportOfNativeDecl` consumer. Given a native full-context lookup,
+it identifies the same physical cdecl as the rebase receipt, preserves the
+projected final lookup, and returns semantic translation plus typehood in the
+final model context. Native canonical Bool minor provenance can feed this
+seam once role-to-ID alignment is supplied; no grouped semantic or recursor
+rule/iota obligation is hidden by the theorem.

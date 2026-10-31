@@ -2960,3 +2960,13 @@ their exact types are the parent motive applied to `Bool.false` and
 This is a source-shape input for dependency-aware grouped transport; it does
 not construct a reordered model extension or discharge grouped forall,
 generated-rule, iota, or `TrProj` obligations.
+
+## Dependency-aware native cdecl transport seam — 2026-10-31
+
+`RecursorBinderRebaseReceipt.finalDomainSupportOfNativeDecl` now consumes a
+native full-context cdecl lookup alongside the grouped-order rebase receipt.
+It reconciles the native physical declaration with the projected final-model
+cdecl and returns the final semantic domain translation and typehood. This is
+the transport seam needed by source-backed canonical Bool minor receipts; it
+does not infer role-to-ID alignment, grouped forall semantics, generated-rule
+semantics, iota soundness, or `TrProj`.

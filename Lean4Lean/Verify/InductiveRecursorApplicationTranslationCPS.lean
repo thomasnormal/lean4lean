@@ -423,6 +423,32 @@ theorem RecursorBinderRebaseReceipt.rawTypeFinalEquation
           (recursorTypeBody infos parent) :=
       receipt.groupedBindingEquation finalWF native bodyClosed
 
+/- Consume an externally recorded native declaration together with the
+   dependency-aware grouped rebase. The native lookup is deliberately an
+   input: source provenance identifies the declaration, while the rebase
+   receipt supplies its final-context semantic translation and typehood. -/
+theorem RecursorBinderRebaseReceipt.finalDomainSupportOfNativeDecl
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent full
+      initial final chronological grouped)
+    (finalWF : final.WF env universes) (native : final.lctx = full)
+    (identifier : FVarId) (member : identifier ∈ grouped)
+    {nativeDecl : LocalDecl}
+    (nativeLookup : full.find? identifier = some nativeDecl) :
+    ∃ physicalIndex projectedIndex name domain binder semantic,
+      nativeDecl = .cdecl physicalIndex identifier name domain binder .default ∧
+      final.lctx.find? identifier =
+        some (.cdecl projectedIndex identifier name domain binder .default) ∧
+      TrExprS env universes final.vlctx domain semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic := by
+  obtain ⟨_, projectedIndex, name, domain, binder, _, fullLookup, finalLookup, translated, typed⟩ :=
+    receipt.finalDomainSupport finalWF native identifier member
+  have declarationEq := Option.some.inj (nativeLookup.symm.trans fullLookup)
+  cases declarationEq
+  exact ⟨_, projectedIndex, name, domain, binder, _, rfl, finalLookup, translated, typed⟩
+
 /- Consume the grouped abstraction obligation without manufacturing a
    chronological `SelectedRecursorTelescope`.  The receipt supplies the
    native raw-type equation; the grouped semantic translation and typehood

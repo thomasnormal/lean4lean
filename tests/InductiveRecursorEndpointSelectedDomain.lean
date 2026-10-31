@@ -502,6 +502,21 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     motiveEq indicesEq majorEq majorEvidence motiveEvidence mapped minorSemantics
     generatedRuleSemantics iotaSoundness
 
+example {stats : InductiveStats} {infos : Array RecInfo} {parent : Nat}
+    {full : LocalContext} {initial final : MLCtx} {chronological grouped : List FVarId}
+    (receipt : RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos parent full
+      initial final chronological grouped)
+    (finalWF : final.WF canonicalBoolModel [`u]) (native : final.lctx = full)
+    (identifier : FVarId) (member : identifier ∈ grouped) {nativeDecl : LocalDecl}
+    (nativeLookup : full.find? identifier = some nativeDecl) :
+    ∃ physicalIndex projectedIndex name domain binder semantic,
+      nativeDecl = .cdecl physicalIndex identifier name domain binder .default ∧
+      final.lctx.find? identifier =
+        some (.cdecl projectedIndex identifier name domain binder .default) ∧
+      TrExprS canonicalBoolModel [`u] final.vlctx domain semantic ∧
+      canonicalBoolModel.IsType 1 final.vlctx.toCtx semantic :=
+  receipt.finalDomainSupportOfNativeDecl finalWF native identifier member nativeLookup
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -521,6 +536,7 @@ run_meta
   auditTheorem ``RecursorBinderRebaseReceipt.dependencyAwareRebase
   auditTheorem ``DependencyAwareVirtualContextRebase.finalDomainSupport
   auditTheorem ``RecursorBinderRebaseReceipt.finalDomainSupport
+  auditTheorem ``RecursorBinderRebaseReceipt.finalDomainSupportOfNativeDecl
   auditTheorem ``RecursorBinderRebaseReceipt.groupedBindingEquation
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeFinalEquation
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedSupport
