@@ -3170,3 +3170,10 @@ claiming fresh insertion or generated-rule/iota semantics.
 uses the registered grouped-chain package to prove ordinary constructor-header
 insertion under an explicit semantic-name freshness premise. Generated-rule
 semantics, iota soundness, and `TrProj` remain separate obligations.
+
+## Grouped chain final stored typehood — 2026-10-31
+
+`RecursorInfoModelEndpoint.finalStoredTypehoodFromGroupedChain` projects the
+stored-type translation and typehood from the complete grouped-chain recursor
+type receipt, keeping registration and generated-rule semantics outside the
+typehood boundary.

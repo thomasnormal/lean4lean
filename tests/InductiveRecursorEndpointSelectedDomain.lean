@@ -293,6 +293,26 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
     (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0)
     (chain : RecursorGroupedTypeTranslationChain canonicalBoolModel [`u]
+      finalReader.lctx initial.vlctx (recursorTypeBody infos 0) grouped) :
+    ∃ semantic,
+      TrExprS canonicalBoolModel [`u] final.vlctx
+        ((recursorRawType stats infos 0 finalReader.lctx).inferImplicit 1000 false) semantic ∧
+      canonicalBoolModel.IsType 1 final.vlctx.toCtx semantic := by
+  obtain ⟨chronological, receipt⟩ := endpoint.rebaseBinderOrder canonicalBoolModel.wf
+    grouped order alignment
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  exact endpoint.finalStoredTypehoodFromGroupedChain receipt canonicalBoolModel.wf finalWF
+    finalNative bodyClosed chain
+
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
+    (grouped : List FVarId)
+    (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
+    (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
+    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0)
+    (chain : RecursorGroupedTypeTranslationChain canonicalBoolModel [`u]
       finalReader.lctx initial.vlctx (recursorTypeBody infos 0) grouped)
     (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
     (levels : getRecLevelParams elimLevel lparams = [`u])
@@ -731,6 +751,7 @@ run_meta
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.rawTypeAtFinalFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.recursorTypeFromGroupedChain
+  auditTheorem ``RecursorInfoModelEndpoint.finalStoredTypehoodFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.declaredRecursorFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.registeredRecursorFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.registeredRecursorInsertionFromGroupedChain

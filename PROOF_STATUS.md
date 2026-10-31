@@ -14217,3 +14217,10 @@ the grouped-chain declaration receipt through native lookup and metadata
 identity, derives the semantic constant name, and applies the existing
 constructor-header insertion WF theorem under explicit freshness. Generated-rule
 semantics, iota soundness, and `TrProj` remain outside the contract.
+
+## October 31, 2026 — grouped chain final stored typehood
+
+`RecursorInfoModelEndpoint.finalStoredTypehoodFromGroupedChain` projects the
+stored-type translation and typehood from the grouped-chain
+`RecursorTypeModelReceipt`. Registration, generated-rule semantics, iota
+soundness, and `TrProj` remain separate obligations.
