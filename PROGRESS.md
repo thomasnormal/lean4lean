@@ -3211,6 +3211,11 @@ same receipt family through the existing `mkRecInfos` morphism to a scoped
 continuation, without changing native allocation order or hiding grouped
 transport premises.
 
+`mkRecInfos.registeredTranslatedAppliedRecursorTypesFromGroupedChains` carries
+that receipt family through native registration and retains the registered
+environment WF, retention, metadata, and RHS-scope facts for downstream rule
+consumers.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 carries per-parent grouped-chain receipts through the translated `mkRecInfos`
 endpoint and hands aggregate initial/final typehood to the continuation. Body

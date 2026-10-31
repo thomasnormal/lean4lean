@@ -14260,6 +14260,11 @@ that receipt family through the existing scoped `mkRecInfos` morphism. The
 continuation receives the endpoint and receipts while grouped transport and
 generated-rule/iota obligations remain explicit.
 
+`mkRecInfos.registeredTranslatedAppliedRecursorTypesFromGroupedChains` carries
+the same receipts through native registration and exposes registered-environment
+WF, retention, metadata, and RHS-scope facts without manufacturing any grouped
+context or rule semantics.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 transfers explicit per-parent grouped-chain receipts through the `mkRecInfos`
 CPS endpoint to `RecursorInitialTypehood` and `RecursorFinalTypehood`. It does
