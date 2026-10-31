@@ -370,6 +370,7 @@ run_meta
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultAndIotaBaseAndTargetResultsCPS true true
   audit ``Lean4Lean.AddInductive.mkRecInfos.registeredScopedGeneratedRuleIotaCPS true true
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedInitialAndFinalTypehood true true
+  audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains true true
   let env := (← Lean.getEnv).toKernelEnv
   fixtures env
   failures env

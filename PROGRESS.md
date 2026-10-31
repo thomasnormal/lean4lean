@@ -3229,3 +3229,11 @@ feeds that registered package into the final continuation. The continuation
 receives the endpoint, both typehood predicates, and the registered environment
 WF/retention/metadata/RHS-scope facts while grouped transport and all native
 allocation premises remain explicit.
+
+## Grouped chain frontend registered scoped typehood — 2026-10-31
+
+`InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
+connects the grouped-chain registration package to the frontend's safe-run
+scope. It preserves the constructor-environment WF and frontend context while
+forwarding grouped receipts, typehood, registration retention, metadata, and
+RHS-scope facts to the frontend continuation.

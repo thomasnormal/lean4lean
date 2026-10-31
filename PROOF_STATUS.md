@@ -14278,3 +14278,11 @@ passes the registered grouped-chain package to the final CPS continuation,
 including both typehood predicates and the registered environment facts. The
 theorem preserves native chronological allocation and leaves grouped transport,
 generated-rule semantics, iota, and `TrProj` obligations explicit.
+
+## October 31, 2026 — grouped chain frontend registered scoped typehood
+
+`InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
+adapts the grouped-chain registration theorem to the frontend safe-run scope.
+The constructor environment's WF proof is retained from the scope receipt, and
+the frontend continuation receives grouped-chain typehood together with native
+registration retention, metadata, and RHS-scope facts.
