@@ -1,5 +1,6 @@
 import Lean4Lean.Verify.InductiveMinorPassTranslationCPS
 import Lean4Lean.Verify.InductiveRecursorTypeNative
+import Lean4Lean.Verify.InductiveRecursorApplicationFacts
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
@@ -331,6 +332,40 @@ theorem RecursorGroupedTypeTranslationSupport.headStepOfNamedBody
     rw [← abstraction.toCtx]
     exact bodyTyped
   exact headStep lookup domainTranslated domainTyped anonymousBody anonymousBodyTyped
+
+/- Consume a translated tail under the named head context and expose the
+   resulting grouped support for one selected cdecl.  The local-context
+   `mkForall` equation is the only native reshaping used here; the tail
+   translation itself remains an explicit semantic premise. -/
+theorem RecursorGroupedTypeTranslationSupport.namedTail
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {identifier : FVarId} {rest : List FVarId}
+    {body : Expr} {dependencies : List FVarId}
+    {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    {semanticDomain semanticTail : VExpr}
+    (scope : full.BindingScope) (closed : body.looseBVarRange' = 0)
+    (distinct : (identifier :: rest).Nodup)
+    (bindings : SelectedCDeclBindings full (identifier :: rest))
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (domainTranslated : TrExprS env universes initial.vlctx domain semanticDomain)
+    (domainTyped : env.IsType universes.length initial.vlctx.toCtx semanticDomain)
+    (tailTranslated : TrExprS env universes
+      ((some (identifier, dependencies), .vlam semanticDomain) :: initial.vlctx : VLCtx)
+      (full.mkForall (rest.map Expr.fvar).toArray body) semanticTail)
+    (tailTyped : env.IsType universes.length
+      (VLCtx.toCtx
+        ((some (identifier, dependencies), .vlam semanticDomain) :: initial.vlctx))
+      semanticTail) :
+    RecursorGroupedTypeTranslationSupport env universes full initial
+      (identifier :: rest) body := by
+  have head := headStepOfNamedBody (inner := full.mkForall (rest.map Expr.fvar).toArray body)
+    lookup domainTranslated domainTyped tailTranslated tailTyped
+  obtain ⟨level, headTyped⟩ := head.2
+  refine ⟨.forallE semanticDomain semanticTail, level, ?_, headTyped⟩
+  rw [mkForall_selected_cons identifier rest scope closed distinct bindings index name domain binder
+    .default lookup]
+  simpa [Lean.LocalContext.mkBindingList1, lookup] using head.1
 
 theorem RecursorRawTypeTranslationSupport.selectedTypeTranslation
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}

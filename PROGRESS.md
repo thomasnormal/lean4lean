@@ -3062,3 +3062,13 @@ to the anonymous semantic vlam required by `TrExprS.forallE`. The head cdecl,
 domain translation/typehood, dependencies, and tail body translation remain
 explicit premises; no reordered model context or full grouped recursion is
 claimed.
+
+## Grouped named-tail support consumer — 2026-10-31
+
+`RecursorGroupedTypeTranslationSupport.namedTail` consumes a translated and
+typed grouped tail under the named head context, applies the named-body
+abstraction bridge, and packages the resulting one-head expression as grouped
+support. The native `mkForall_selected_cons` equation is used only to align
+the source syntax. The tail semantic witness, cdecl scope, closedness,
+distinctness, and dependency list remain explicit; recursive tail production
+is still the open obligation.

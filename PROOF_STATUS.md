@@ -14113,3 +14113,12 @@ abstracted with `VLCtx.Abstract.zero` into the anonymous body context, after
 which `headStep` constructs the forall translation and typehood. This remains
 a local bridge: it consumes the named-tail witness and does not derive grouped
 tail witnesses from the chronological model.
+
+## October 31, 2026 — grouped named-tail support consumer
+
+`RecursorGroupedTypeTranslationSupport.namedTail` packages the constructive
+one-head consumer for a grouped forall. It takes a named-context translation
+and typehood for `full.mkForall rest body`, converts that tail through
+`VLCtx.Abstract.zero`, and uses `mkForall_selected_cons` to identify the
+native grouped source. It remains a consumer of the recursive tail witness;
+the chronological model still does not supply that witness automatically.
