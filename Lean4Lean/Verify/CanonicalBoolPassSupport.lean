@@ -60,6 +60,34 @@ theorem canonicalBoolPassModelEndpointWithParentMotiveSupport
     parentHistory, canonicalBoolParentHistoryMotiveSupport parentTrace parentHistory
       normalization params indConsts boolIndices⟩
 
+/- Package the concrete translated Bool minor pass into the same endpoint
+   shape used by the higher-level recursor pipeline.  The theorem consumes an
+   already translated parent history, so it records the concrete path without
+   discharging the generic support callback of the main endpoint theorem. -/
+theorem canonicalBoolPassModelEndpointOfParentHistory
+    {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {infos finalInfos : Array RecInfo} {reader parentReader finalReader : Context}
+    {model parentModel : MLCtx}
+    (typesEq : types = #[canonicalBoolType])
+    (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (minorTrace : RecursorMinorPassTrace stats types 0 infos parentReader finalInfos finalReader)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (reserved : ContextReserved parentReader.lctx parentReader.ngen) :
+    ∃ finalModel, RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader finalInfos finalReader model finalModel := by
+  subst types
+  obtain ⟨finalModel, minorHistory⟩ :=
+    canonicalBoolMinorPassTranslatedOfParentHistory parentTrace parentHistory minorTrace
+      normalization params levels indConsts nindices boolIndices reserved
+  exact ⟨finalModel,
+    ⟨infos, parentReader, parentModel, parentTrace, minorTrace, parentHistory, minorHistory⟩⟩
+
 theorem canonicalBoolPassModelEndpoint
     {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
     {infos finalInfos : Array RecInfo} {reader parentReader finalReader : Context}

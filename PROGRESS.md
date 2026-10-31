@@ -2722,3 +2722,11 @@ the resulting model WF/native receipt. This gives an actual translated pass
 history without claiming the generic `MinorPassTranslationSupport` callback;
 grouped forall translation, generated-rule semantics, and iota obligations
 remain explicit.
+
+## Canonical Bool parent-history endpoint package — 2026-10-31
+
+`canonicalBoolPassModelEndpointOfParentHistory` packages the concrete
+translated parent and minor histories into the standard
+`RecursorInfoModelEndpoint` shape. It provides a constructive higher-level
+endpoint for the canonical Bool path while leaving the generic pass-support
+callback and grouped-forall, generated-rule, and iota obligations explicit.

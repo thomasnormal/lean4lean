@@ -13811,3 +13811,12 @@ forced stop is assembled with the intermediate model context receipt. This
 does not close the generic arbitrary-model support contract or the grouped
 forall, generated-rule, and iota obligations, and it is not an upstream PR
 candidate.
+
+## Canonical Bool parent-history endpoint package — 2026-10-31
+
+A theorem-backed endpoint package now accepts the translated one-parent
+history and concrete Bool minor pass history and returns the standard
+`RecursorInfoModelEndpoint`. This is a concrete receipt rather than a claim
+that the generic arbitrary-model minor support or grouped forall, generated
+rule, and iota obligations are solved; no executable behavior or kernel
+discrepancy changed, and it is not an upstream PR candidate.
