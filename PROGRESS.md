@@ -3234,6 +3234,10 @@ native chronological allocation witness.
 the paired base/target iota endpoint from each caller-supplied generated-rule
 receipt after grouped-chain registration.
 
+`mkRecInfos.registeredScopedGeneratedRuleIotaBaseAndTargetResultsCPSFromGroupedChains`
+keeps the generated-rule result and its paired base/target iota projection
+together through the grouped-chain registration boundary.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 carries per-parent grouped-chain receipts through the translated `mkRecInfos`
 endpoint and hands aggregate initial/final typehood to the continuation. Body

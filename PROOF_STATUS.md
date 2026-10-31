@@ -14284,6 +14284,11 @@ rule semantics, iota soundness, or `TrProj` fact is inferred.
 receipt family. It adds no iota reduction proof and keeps the projection
 caller-supplied through the generated witness.
 
+`mkRecInfos.registeredScopedGeneratedRuleIotaBaseAndTargetResultsCPSFromGroupedChains`
+retains the generated-rule result together with its paired base/target iota
+projection. Both are obtained from the supplied generated witness, with no new
+iota or `TrProj` theorem.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 transfers explicit per-parent grouped-chain receipts through the `mkRecInfos`
 CPS endpoint to `RecursorInitialTypehood` and `RecursorFinalTypehood`. It does
