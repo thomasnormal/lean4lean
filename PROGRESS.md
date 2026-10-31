@@ -1,3 +1,14 @@
+## Canonical Bool registered-recursion insertion — 2026-10-31
+
+`canonicalBoolPassModelEndpointWithKnownFinalInfoRegisteredRecursorInsertion`
+now carries the concrete endpoint and grouped-order rebase through the generic
+registered-recursion insertion theorem. Given explicit selected-domain support,
+native lookup/metadata identity, and constructor-name freshness, it returns the
+translated recursor type receipt, constant translation/WF, and
+`addConstructorHeaders` extension/WF. Generated-rule and iota semantics remain
+separate obligations; this fork-specific bridge is not an upstream PR
+candidate.
+
 ## Canonical Bool declared-recursor bridge — 2026-10-31
 
 `canonicalBoolPassModelEndpointWithKnownFinalInfoDeclaredRecursor` now

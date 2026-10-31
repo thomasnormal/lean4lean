@@ -1,3 +1,13 @@
+## Canonical Bool registered-recursion insertion — 2026-10-31
+
+The concrete Bool endpoint now reaches the registered-recursion insertion
+boundary. The theorem preserves exact role/allocation and grouped rebase
+evidence, then returns the registered lookup, recursor type receipt, translated
+constant, and well-formed constructor-header extension. Native metadata identity,
+selected-domain support, initial model WF, and freshness remain explicit;
+generated-rule and iota semantics are still separate obligations, and this
+fork-specific bridge is not an upstream PR candidate.
+
 ## Canonical Bool declared-recursor bridge — 2026-10-31
 
 The canonical Bool pass endpoint now reaches the declared recursor constant

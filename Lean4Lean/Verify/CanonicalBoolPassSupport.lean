@@ -381,6 +381,78 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoDeclaredRecursor
     constant, endpoint, finalMajorEq, finalMotiveEq, finalIndicesEq, finalMinorsEq, known, rebase,
     bodyTranslated, bodyTyped, bodyRaw, constantTranslated, constantWF⟩
 
+theorem canonicalBoolPassModelEndpointWithKnownFinalInfoRegisteredRecursorInsertion
+    {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {infos finalInfos : Array RecInfo} {reader parentReader finalReader : Context}
+    {model parentModel : MLCtx} {info : RecInfo}
+    (typesEq : types = #[canonicalBoolType])
+    (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (minorTrace : RecursorMinorPassTrace stats types 0 infos parentReader finalInfos finalReader)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (reserved : ContextReserved parentReader.lctx parentReader.ngen)
+    (finalInfosEq : finalInfos = #[info])
+    (initialIndices : infos[0]!.indices = #[])
+    (initialMinors : infos[0]!.minors = #[])
+    (modelWF : model.WF canonicalBoolModel [`u])
+    (source : RecursorInfoIndexSource stats types elimLevel 0 reader finalInfos[0]! finalReader)
+    {semanticElimLevel : VLevel}
+    (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
+    (support : RecursorSelectedDomainSupport canonicalBoolModel [`u] stats finalInfos 0
+      finalReader.lctx model)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (recursorLevels : getRecLevelParams elimLevel lparams = [`u])
+    (empty : model.vlctx = [])
+    {registered : Kernel.Environment} {recursor : RecursorVal}
+    (lookup : registered.find? (mkRecName types[0]!.name) = some (.recInfo recursor))
+    (metadata : recursor = declareRecursors.metadataVal stats types elimLevel finalInfos
+      lparams finalReader.lctx isK false 0 rules)
+    (fresh : (canonicalBoolModel : VEnv).constants (mkRecName types[0]!.name) = none) :
+    ∃ finalModel major motive minorFalse minorTrue chronological constant extended,
+      RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+        reader finalInfos finalReader model finalModel ∧
+      info.major = .fvar major ∧ info.motive = .fvar motive ∧
+      info.indices = #[] ∧ info.minors = #[.fvar minorFalse, .fvar minorTrue] ∧
+      IndexMLCtxExtension model [major, motive, minorFalse, minorTrue] finalModel ∧
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats finalInfos 0
+        finalReader.lctx model finalModel chronological
+        [motive, minorFalse, minorTrue, major] ∧
+      registered.find? (mkRecName types[0]!.name) = some (.recInfo recursor) ∧
+      RecursorTypeModelReceipt canonicalBoolModel [`u] stats finalInfos 0
+        finalReader model finalModel ∧
+      TrConstVal .safe canonicalBoolModel (.recInfo recursor) constant ∧
+      constant.toVConstant.WF canonicalBoolModel ∧
+      canonicalBoolModel.addConstructorHeaders [constant] = some extended ∧
+      extended.WF := by
+  obtain ⟨finalModel, major, motive, minorFalse, minorTrue, chronological,
+    endpoint, finalMajorEq, finalMotiveEq, finalIndicesEq, finalMinorsEq, known, rebase⟩ :=
+    canonicalBoolPassModelEndpointWithKnownFinalInfoRebase typesEq parentTrace parentHistory
+      minorTrace normalization params levels indConsts nindices boolIndices reserved finalInfosEq
+      initialIndices initialMinors
+  have parameterFree : stats.params.size = 0 := by simpa [params]
+  have bound : 0 < types.size := by simpa [typesEq]
+  have order : ∀ ids, IndexMLCtxExtension model ids finalModel →
+      [motive, minorFalse, minorTrue, major].Perm ids := by
+    intro ids extension
+    rw [canonicalBoolAllocationOfKnownExtension known ids extension]
+    exact canonicalBoolRecursorBinderOrderPermutation
+  have alignment : (recursorTypeBinders stats finalInfos 0).toList =
+      [motive, minorFalse, minorTrue, major].map Expr.fvar := by
+    simpa [recursorTypeBinders, params, finalInfosEq, finalMotiveEq, finalMinorsEq,
+      finalIndicesEq, finalMajorEq]
+  obtain ⟨constant, extended, registeredLookup, typeReceipt, translated, wellFormed,
+    insertion, extendedWF⟩ :=
+    endpoint.registeredRecursorInsertionFromDomains canonicalBoolModel.wf modelWF parameterFree
+      bound source mapped support lparams isK rules recursorLevels empty lookup metadata fresh
+  exact ⟨finalModel, major, motive, minorFalse, minorTrue, chronological, constant, extended,
+    endpoint, finalMajorEq, finalMotiveEq, finalIndicesEq, finalMinorsEq, known, rebase,
+    registeredLookup, typeReceipt, translated, wellFormed, insertion, extendedWF⟩
+
 theorem canonicalBoolPassModelEndpoint
     {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
     {infos finalInfos : Array RecInfo} {reader parentReader finalReader : Context}
