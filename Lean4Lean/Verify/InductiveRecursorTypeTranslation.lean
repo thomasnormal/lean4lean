@@ -243,6 +243,29 @@ theorem RecursorGroupedTypeTranslationSupport.noMissingFVar
   apply missing
   exact (fvarsIn_iff.mp support.initialFVarsIn).1 identifier present
 
+/- A head binder's source domain is not abstracted over the later grouped
+   binders by `mkForall`.  Consequently, a later free variable occurring in
+   that domain survives in the grouped expression and triggers the scope
+   obligation above.  This packages the concrete fold calculation so callers
+   need only provide the native head cdecl lookup and its dependency witness. -/
+theorem RecursorGroupedTypeTranslationSupport.noMissingDomainFVar
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {identifier target : FVarId} {rest : List FVarId}
+    {body : Expr} {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    (support : RecursorGroupedTypeTranslationSupport env universes full initial
+      (identifier :: rest) body)
+    (scope : full.BindingScope) (closed : body.looseBVarRange' = 0)
+    (distinct : (identifier :: rest).Nodup)
+    (bindings : SelectedCDeclBindings full (identifier :: rest))
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (present : target ∈ domain.fvarsList)
+    (missing : target ∉ initial.vlctx.fvars) : False := by
+  apply support.noMissingFVar missing
+  rw [mkForall_selected_fold (identifier :: rest) scope closed distinct bindings]
+  simp only [List.foldr_cons]
+  simp [Lean.LocalContext.mkBindingList1, lookup, Expr.fvarsList, present]
+
 theorem RecursorRawTypeTranslationSupport.selectedTypeTranslation
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}
     {parent : Nat} {full : LocalContext} {initial : MLCtx}

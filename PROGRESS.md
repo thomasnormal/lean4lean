@@ -3032,3 +3032,13 @@ open/unstable and inductive drafts #53/#54 remain dirty. The new canonical Bool
 receipts and grouped source-scope boundary are fork-specific because grouped
 forall transport, generated-rule semantics, iota soundness, and `TrProj` are
 still explicit; no standalone upstream PR is justified by this item.
+
+## Grouped head-domain forward-reference witness — 2026-10-31
+
+`RecursorGroupedTypeTranslationSupport.noMissingDomainFVar` now combines the
+source `mkForall` fold with the grouped free-variable theorem. If the head
+grouped binder's native cdecl domain mentions a later binder, that later fvar
+survives the fold and cannot be absent from the initial virtual context when
+grouped translation succeeds. The theorem keeps the local-context scope,
+closedness, cdecl lookup, and dependency witness explicit; it does not claim a
+reordered model or discharge grouped semantic transport.

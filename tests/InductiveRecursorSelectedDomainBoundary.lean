@@ -52,6 +52,20 @@ example {env : VEnv} {universes : List Name} {full : LocalContext}
       (full.mkForall (grouped.map Expr.fvar).toArray body).fvarsList) : False :=
   support.noMissingFVar missing present
 
+example {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {identifier target : FVarId} {rest : List FVarId}
+    {body : Expr} {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    (support : RecursorGroupedTypeTranslationSupport env universes full initial
+      (identifier :: rest) body)
+    (scope : full.BindingScope) (closed : body.looseBVarRange' = 0)
+    (distinct : (identifier :: rest).Nodup)
+    (bindings : SelectedCDeclBindings full (identifier :: rest))
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (present : target ∈ domain.fvarsList)
+    (missing : target ∉ initial.vlctx.fvars) : False :=
+  support.noMissingDomainFVar scope closed distinct bindings lookup present missing
+
 run_meta
   let fvarTheorem := ``RecursorBinderIntegrity.selectedIndexDomains
   let fvarAxioms ← collectAxioms fvarTheorem
@@ -73,6 +87,14 @@ run_meta
     throwError "grouped source-scope boundary proof missing"
   if groupedProof.hasSorry then
     throwError "grouped source-scope boundary has an admission"
+  let groupedDomainTheorem := ``RecursorGroupedTypeTranslationSupport.noMissingDomainFVar
+  let groupedDomainInfo ← getConstInfo groupedDomainTheorem
+  if groupedDomainInfo matches .axiomInfo _ then
+    throwError "grouped domain-scope boundary is not theorem-backed"
+  let some groupedDomainProof := groupedDomainInfo.value? (allowOpaque := true) |
+    throwError "grouped domain-scope boundary proof missing"
+  if groupedDomainProof.hasSorry then
+    throwError "grouped domain-scope boundary has an admission"
   logInfo "integrity supplies index-domain FVar support; grouped source scope and semantic selected-domain support remain explicit model/pass premises"
 
 end InductiveRecursorSelectedDomainBoundaryTest

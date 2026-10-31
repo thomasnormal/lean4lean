@@ -14084,3 +14084,13 @@ focused PRs #55--#68 are open but unstable, and inductive drafts #53/#54 are
 dirty. The current fork-only grouped boundary and canonical Bool receipts do
 not form a standalone upstream PR until grouped forall transport,
 generated-rule semantics, iota soundness, and `TrProj` are discharged.
+
+## October 31, 2026 — grouped head-domain forward-reference witness
+
+`RecursorGroupedTypeTranslationSupport.noMissingDomainFVar` proves the concrete
+head-domain case of the grouped scope boundary. Rewriting `LocalContext.mkForall`
+to its selected-cdecl fold shows that a fvar occurring in the head cdecl's
+domain remains present after grouping over later binders. A successful initial
+context translation therefore requires that fvar in the initial virtual
+context. Scope, closure, cdecl lookup, and the dependency witness remain
+explicit premises; no semantic reordered context is introduced.
