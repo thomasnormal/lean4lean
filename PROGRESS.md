@@ -3242,6 +3242,10 @@ together through the grouped-chain registration boundary.
 packages the generated-rule witness and paired iota result in one grouped-chain
 registration continuation.
 
+`mkRecInfos.registeredScopedGeneratedRuleResultAndIotaBaseAndTargetResultsCPSFromGroupedChains`
+keeps the generated-rule result and explicit paired base/target iota results in
+the final grouped-chain registration package.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 carries per-parent grouped-chain receipts through the translated `mkRecInfos`
 endpoint and hands aggregate initial/final typehood to the continuation. Body

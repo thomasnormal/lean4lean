@@ -14294,6 +14294,10 @@ retains the generated-rule witness and its paired iota result in one grouped
 registration package. It remains a packaging boundary and proves no new
 generated-rule or iota semantics.
 
+`mkRecInfos.registeredScopedGeneratedRuleResultAndIotaBaseAndTargetResultsCPSFromGroupedChains`
+retains the generated result with explicit paired base/target iota results at
+the grouped registration boundary; it adds no reduction or `TrProj` theorem.
+
 `mkRecInfos.getTranslatedAppliedInitialAndFinalTypehoodFromGroupedChains`
 transfers explicit per-parent grouped-chain receipts through the `mkRecInfos`
 CPS endpoint to `RecursorInitialTypehood` and `RecursorFinalTypehood`. It does
