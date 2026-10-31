@@ -3149,3 +3149,10 @@ raw-type translation together with the verified implicit-binder translation.
 It now supplies the complete initial/final `RecursorTypeModelReceipt` while
 retaining the grouped witness, native allocation receipt, and endpoint
 weakening as explicit inputs.
+
+## Grouped chain declared-recursion endpoint — 2026-10-31
+
+`RecursorInfoModelEndpoint.declaredRecursorFromGroupedChain` feeds the grouped
+chain type receipt into the existing metadata constructor. It returns the
+declared recursor model constant and its WF proof while keeping generated-rule
+semantics and iota obligations outside this type-level boundary.

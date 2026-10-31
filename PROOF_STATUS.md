@@ -14195,3 +14195,10 @@ soundness, or `TrProj`.
 as `RecursorTypeModelReceipt`. This closes only the raw/stored type receipt
 boundary; grouped semantic transport, generated-rule semantics, iota
 soundness, and `TrProj` remain explicit.
+
+## October 31, 2026 — grouped chain declared-recursion endpoint
+
+`RecursorInfoModelEndpoint.declaredRecursorFromGroupedChain` uses
+`RecursorTypeModelReceipt.existsDeclaredRecursor` to produce the semantic
+recursor constant and `VConstant.WF`. This is only the type/metadata package;
+generated-rule semantics, iota soundness, and `TrProj` remain explicit.

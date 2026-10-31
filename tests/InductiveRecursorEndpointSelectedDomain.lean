@@ -293,6 +293,31 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
     (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0)
     (chain : RecursorGroupedTypeTranslationChain canonicalBoolModel [`u]
+      finalReader.lctx initial.vlctx (recursorTypeBody infos 0) grouped)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = [`u])
+    (empty : initial.vlctx = []) :
+    ∃ (constant : VConstVal),
+      RecursorTypeModelReceipt canonicalBoolModel [`u] stats infos 0 finalReader initial final ∧
+      TrConstVal .safe canonicalBoolModel
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams
+          finalReader.lctx isK false 0 rules)) constant ∧
+      constant.toVConstant.WF canonicalBoolModel := by
+  obtain ⟨chronological, receipt⟩ := endpoint.rebaseBinderOrder canonicalBoolModel.wf
+    grouped order alignment
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  exact endpoint.declaredRecursorFromGroupedChain receipt canonicalBoolModel.wf finalWF finalNative
+    bodyClosed chain lparams isK rules levels empty
+
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
+    (grouped : List FVarId)
+    (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
+    (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
+    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0)
+    (chain : RecursorGroupedTypeTranslationChain canonicalBoolModel [`u]
       finalReader.lctx initial.vlctx (recursorTypeBody infos 0) grouped) :
     ∃ chronological bodySemantic level,
       RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 finalReader.lctx
@@ -648,6 +673,7 @@ run_meta
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.rawTypeAtFinalFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.recursorTypeFromGroupedChain
+  auditTheorem ``RecursorInfoModelEndpoint.declaredRecursorFromGroupedChain
   auditTheorem ``RecursorBinderRebaseReceipt.finalBodyApplicationReceipt
   auditTheorem ``canonicalBoolRecursorTypeBodyApplicationSupport
   auditTheorem ``RecursorBinderRebaseReceipt.canonicalBoolFinalBodyApplicationReceipt

@@ -1208,6 +1208,37 @@ theorem RecursorInfoModelEndpoint.declaredRecursorFromDomains
     receipt.existsDeclaredRecursor (types := types) lparams isK rules levels empty
   exact ⟨constant, receipt, translated, wellFormed⟩
 
+/- Feed the grouped-chain type receipt into the existing metadata constructor.
+   This packages only the declaration type and constant WF; generated rule
+   semantics and iota obligations remain outside this type-level endpoint. -/
+theorem RecursorInfoModelEndpoint.declaredRecursorFromGroupedChain
+    {env : VEnv} {universes : List Name} {stats : InductiveStats} {types : Array InductiveType}
+    {elimLevel : Level} {reader finalReader : Context} {infos : Array RecInfo}
+    {initial final : MLCtx} {parent : Nat} {chronological grouped : List FVarId}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent
+      finalReader.lctx initial final chronological grouped)
+    (envWF : env.WF) (finalWF : final.WF env universes)
+    (native : final.lctx = finalReader.lctx)
+    (bodyClosed : (recursorTypeBody infos parent).looseBVarRange' = 0)
+    (chain : RecursorGroupedTypeTranslationChain env universes finalReader.lctx
+      initial.vlctx (recursorTypeBody infos parent) grouped)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = universes)
+    (empty : initial.vlctx = []) :
+    ∃ (constant : VConstVal),
+      RecursorTypeModelReceipt env universes stats infos parent finalReader initial final ∧
+      TrConstVal .safe env
+        (.recInfo (declareRecursors.metadataVal stats types elimLevel infos lparams
+          finalReader.lctx isK false parent rules)) constant ∧
+      constant.toVConstant.WF env := by
+  have typeReceipt := endpoint.recursorTypeFromGroupedChain receipt envWF finalWF native
+    bodyClosed chain
+  obtain ⟨constant, translated, wellFormed⟩ :=
+    typeReceipt.existsDeclaredRecursor (types := types) lparams isK rules levels empty
+  exact ⟨constant, typeReceipt, translated, wellFormed⟩
+
 /- Start from the endpoint-level selected-domain/type-model receipt and carry
    it through the grouped-order rebase into the canonical Bool declaration
    package.  The native index source and all role/semantic obligations remain
