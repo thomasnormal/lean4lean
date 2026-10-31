@@ -1,6 +1,7 @@
 import Lean4Lean.Verify.InductiveRecursorTypeTranslationCPS
 import Lean4Lean.Verify.InductiveRecursorApplicationTranslation
 import Lean4Lean.Verify.InductiveGeneratedRuleResult
+import Lean4Lean.Verify.InductiveIndexDomainStrengthening
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
@@ -375,6 +376,39 @@ theorem RecursorBinderRebaseReceipt.initialDomainTranslationOfFinal
   cases declarationEq
   exact supportTranslated.weakFV_inv envWF receipt.chronologicalExtension.weakening
     (.refl envWF finalWF.tr.wf) closed free
+
+/- When the selected final-domain receipt also exposes sort typing, strengthen
+   that typing witness through the same chronological weakening.  This is the
+   inhabited/typehood-strengthened companion to the syntax-only transport
+   above; it does not change the grouped-context boundary. -/
+theorem RecursorBinderRebaseReceipt.initialDomainTranslationAndTypeOfFinal
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {infos : Array RecInfo} {parent : Nat} {full : LocalContext}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent full
+      initial final chronological grouped)
+    (envWF : env.WF) (finalWF : final.WF env universes) (native : final.lctx = full)
+    (identifier : FVarId) (member : identifier ∈ grouped)
+    {domain : Expr}
+    (domainLookup : ∃ index name binder,
+      final.lctx.find? identifier =
+        some (.cdecl index identifier name domain binder .default))
+    (closed : Closed domain 0)
+    (free : FVarsIn (· ∈ initial.vlctx.fvars) domain) :
+    ∃ semantic level,
+      TrExprS env universes initial.vlctx domain semantic ∧
+      env.HasType universes.length initial.vlctx.toCtx semantic (.sort level) := by
+  obtain ⟨_, _, _, supportDomain, _, _, _, supportLookup, supportTranslated, supportTyped⟩ :=
+    receipt.finalDomainSupport finalWF native identifier member
+  obtain ⟨_, _, _, requestedLookup⟩ := domainLookup
+  have declarationEq := Option.some.inj (supportLookup.symm.trans requestedLookup)
+  cases declarationEq
+  obtain ⟨level, supportTyped⟩ := supportTyped
+  obtain ⟨reduced, reducedTranslated, reducedTyped, _⟩ :=
+    TrExprS.strengthenIsType envWF
+    receipt.chronologicalExtension.weakening.toFVLift'
+    (.refl envWF finalWF.tr.wf) supportTranslated supportTyped closed free
+  exact ⟨reduced, level, reducedTranslated, reducedTyped⟩
 
 /- The final-domain receipts provide the cdecl agreement needed to compare a
    grouped recursor body opened in the native local context with the same body

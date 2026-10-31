@@ -2991,3 +2991,13 @@ only; typehood remains separate because branch minor types need not be
 inhabited. A focused selected-domain regression and theorem-body admission
 audit pass. This is a syntax-level transport seam for the fork and is not an
 upstream PR candidate by itself.
+## Typehood-strengthened inverse domain transport — 2026-10-31
+
+`RecursorBinderRebaseReceipt.initialDomainTranslationAndTypeOfFinal` now
+strengthens a selected final-domain receipt through the chronological
+weakening. Alongside the explicit final cdecl lookup, source closedness, and
+initial-context free-variable support, it returns an initial-context
+translation and sort typing via `TrExprS.strengthenIsType`. The syntax-only
+companion remains available for expressions without a typing witness. This
+does not construct a reordered model or discharge grouped forall transport;
+the theorem is a fork-specific seam and not an upstream PR candidate.

@@ -14047,3 +14047,12 @@ of a type requires inhabitedness that branch minor domains do not generally
 provide. Focused compilation, regression, and admission audits pass; grouped
 semantic/type transport, generated-rule semantics, and iota soundness remain
 open.
+## Typehood-strengthened inverse domain transport — 2026-10-31
+
+Selected final-domain receipts now have a theorem-backed inverse transport
+variant that returns both `TrExprS` translation and `HasType ... (.sort level)`
+in the initial semantic context. It reconciles the requested domain with the
+final cdecl lookup, then applies `TrExprS.strengthenIsType` through the exact
+chronological weakening. Closure and initial free-variable support remain
+explicit, and grouped-context semantic transport, generated rules, iota, and
+`TrProj` remain open.
