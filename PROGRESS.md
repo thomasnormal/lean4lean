@@ -2817,3 +2817,14 @@ fvar equation after the empty-index and one-type reductions. This is the first
 concrete input to the existing grouped-order rebase API; minor-role identity,
 grouped semantic translation, generated-rule semantics, and iota obligations
 remain explicit.
+## Inverse-weakening soundness boundary — 2026-10-31
+
+Restored the upstream issue-50 warning on `IsDefEqU.weakN_iff`: its
+strengthening direction is false in general, so it remains an explicitly open
+admission rather than a theorem to pursue. Removed the unused derived
+`IsDefEq.skips`/`HasType.skips` APIs and the context-WF helpers that depended on
+that false strengthening (`VLocalDecl.weakN_iff`, `FVLift.wf`, and `BVLift.wf`).
+The inhabited inverse-weakening lemmas from upstream PR #51 remain available
+and are the sound replacement. This changes no executable behavior and is not
+a new upstream PR candidate because the correction is already represented by
+PR #51.

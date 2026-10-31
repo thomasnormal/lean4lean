@@ -13911,3 +13911,12 @@ native parent model step's fvar-map equation and introduces no executable or
 kernel change. Minor allocation identity, grouped forall translation,
 generated-rule semantics, and iota soundness remain open; this fork-specific
 receipt is not an upstream PR candidate.
+## Inverse-weakening soundness boundary — 2026-10-31
+
+`IsDefEqU.weakN_iff` is documented as an open, false-in-general strengthening
+statement (issue #50). The fork no longer exports its unused derived
+`IsDefEq.skips`/`HasType.skips` consumers or the `VLocalDecl.weakN_iff`,
+`FVLift.wf`, and `BVLift.wf` wrappers that relied on that admission. Sound
+inhabited inverse weakening remains provided by the PR #51 lemmas in
+`Theory/Typing/Lemmas.lean`. No executable behavior or new admission was
+introduced.
