@@ -333,6 +333,40 @@ theorem RecursorGroupedTypeTranslationSupport.headStepOfNamedBody
     exact bodyTyped
   exact headStep lookup domainTranslated domainTyped anonymousBody anonymousBodyTyped
 
+/- Consume a translated tail under the named head context at any semantic
+   context.  Generalizing beyond an initial `MLCtx` is what lets a caller
+   apply this one-head consumer recursively after earlier grouped binders. -/
+theorem RecursorGroupedTypeTranslationSupport.namedTailAt
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {context : VLCtx} {identifier : FVarId} {rest : List FVarId}
+    {body : Expr} {dependencies : List FVarId}
+    {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    {semanticDomain semanticTail : VExpr}
+    (scope : full.BindingScope) (closed : body.looseBVarRange' = 0)
+    (distinct : (identifier :: rest).Nodup)
+    (bindings : SelectedCDeclBindings full (identifier :: rest))
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (domainTranslated : TrExprS env universes context domain semanticDomain)
+    (domainTyped : env.IsType universes.length context.toCtx semanticDomain)
+    (tailTranslated : TrExprS env universes
+      ((some (identifier, dependencies), .vlam semanticDomain) :: context : VLCtx)
+      (full.mkForall (rest.map Expr.fvar).toArray body) semanticTail)
+    (tailTyped : env.IsType universes.length
+      (VLCtx.toCtx
+        ((some (identifier, dependencies), .vlam semanticDomain) :: context))
+      semanticTail) :
+    TrExprS env universes context
+      (full.mkForall ((identifier :: rest).map Expr.fvar).toArray body)
+      (.forallE semanticDomain semanticTail) ∧
+    env.IsType universes.length context.toCtx (.forallE semanticDomain semanticTail) := by
+  have head := headStepOfNamedBody (inner := full.mkForall (rest.map Expr.fvar).toArray body)
+    lookup domainTranslated domainTyped tailTranslated tailTyped
+  refine ⟨?_, head.2⟩
+  rw [mkForall_selected_cons identifier rest scope closed distinct bindings index name domain binder
+    .default lookup]
+  simpa [Lean.LocalContext.mkBindingList1, lookup] using head.1
+
 /- Consume a translated tail under the named head context and expose the
    resulting grouped support for one selected cdecl.  The local-context
    `mkForall` equation is the only native reshaping used here; the tail
@@ -359,13 +393,10 @@ theorem RecursorGroupedTypeTranslationSupport.namedTail
       semanticTail) :
     RecursorGroupedTypeTranslationSupport env universes full initial
       (identifier :: rest) body := by
-  have head := headStepOfNamedBody (inner := full.mkForall (rest.map Expr.fvar).toArray body)
-    lookup domainTranslated domainTyped tailTranslated tailTyped
-  obtain ⟨level, headTyped⟩ := head.2
-  refine ⟨.forallE semanticDomain semanticTail, level, ?_, headTyped⟩
-  rw [mkForall_selected_cons identifier rest scope closed distinct bindings index name domain binder
-    .default lookup]
-  simpa [Lean.LocalContext.mkBindingList1, lookup] using head.1
+  obtain ⟨translated, typed⟩ := namedTailAt scope closed distinct bindings lookup
+    domainTranslated domainTyped tailTranslated tailTyped
+  obtain ⟨level, headTyped⟩ := typed
+  exact ⟨.forallE semanticDomain semanticTail, level, translated, headTyped⟩
 
 /- Successful grouped support has the corresponding named-tail witness as a
    necessary condition.  Inverting the translated forall exposes the

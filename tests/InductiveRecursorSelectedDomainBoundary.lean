@@ -133,6 +133,32 @@ example {env : VEnv} {universes : List Name} {full : LocalContext}
     domainTranslated domainTyped tailTranslated tailTyped
 
 example {env : VEnv} {universes : List Name} {full : LocalContext}
+    {context : VLCtx} {identifier : FVarId} {rest : List FVarId}
+    {body : Expr} {dependencies : List FVarId}
+    {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    {semanticDomain semanticTail : VExpr}
+    (scope : full.BindingScope) (closed : body.looseBVarRange' = 0)
+    (distinct : (identifier :: rest).Nodup)
+    (bindings : SelectedCDeclBindings full (identifier :: rest))
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (domainTranslated : TrExprS env universes context domain semanticDomain)
+    (domainTyped : env.IsType universes.length context.toCtx semanticDomain)
+    (tailTranslated : TrExprS env universes
+      ((some (identifier, dependencies), .vlam semanticDomain) :: context : VLCtx)
+      (full.mkForall (rest.map Expr.fvar).toArray body) semanticTail)
+    (tailTyped : env.IsType universes.length
+      (VLCtx.toCtx
+        ((some (identifier, dependencies), .vlam semanticDomain) :: context))
+      semanticTail) :
+    TrExprS env universes context
+      (full.mkForall ((identifier :: rest).map Expr.fvar).toArray body)
+      (.forallE semanticDomain semanticTail) ∧
+    env.IsType universes.length context.toCtx (.forallE semanticDomain semanticTail) :=
+  RecursorGroupedTypeTranslationSupport.namedTailAt scope closed distinct bindings lookup
+    domainTranslated domainTyped tailTranslated tailTyped
+
+example {env : VEnv} {universes : List Name} {full : LocalContext}
     {initial : TypeChecker.MLCtx} {identifier : FVarId} {rest : List FVarId}
     {body : Expr} {dependencies : List FVarId}
     {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
@@ -247,6 +273,14 @@ run_meta
     throwError "named grouped tail support proof missing"
   if groupedNamedTailProof.hasSorry then
     throwError "named grouped tail support has an admission"
+  let groupedNamedTailAtTheorem := ``RecursorGroupedTypeTranslationSupport.namedTailAt
+  let groupedNamedTailAtInfo ← getConstInfo groupedNamedTailAtTheorem
+  if groupedNamedTailAtInfo matches .axiomInfo _ then
+    throwError "arbitrary-context named grouped tail support is not theorem-backed"
+  let some groupedNamedTailAtProof := groupedNamedTailAtInfo.value? (allowOpaque := true) |
+    throwError "arbitrary-context named grouped tail support proof missing"
+  if groupedNamedTailAtProof.hasSorry then
+    throwError "arbitrary-context named grouped tail support has an admission"
   let groupedNamedTailNecessaryTheorem := ``RecursorGroupedTypeTranslationSupport.namedTailNecessary
   let groupedNamedTailNecessaryInfo ← getConstInfo groupedNamedTailNecessaryTheorem
   if groupedNamedTailNecessaryInfo matches .axiomInfo _ then

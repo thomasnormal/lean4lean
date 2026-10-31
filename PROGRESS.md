@@ -3096,3 +3096,13 @@ tail translation itself.
 tail dependency missing from the initial context is impossible unless it is
 the selected named head. This is the form needed to reject an attempted
 recursive grouped step with an unaccounted forward dependency.
+
+## Arbitrary-context grouped named-tail consumer — 2026-10-31
+
+`RecursorGroupedTypeTranslationSupport.namedTailAt` generalizes the
+one-binder grouped consumer to an arbitrary `VLCtx`. It applies the same
+named-body abstraction and native `mkForall_selected_cons` equation after
+earlier grouped binders have already been introduced, leaving the next tail
+translation, typehood, dependencies, and scope facts explicit. The existing
+`namedTail` theorem now packages this generalized result for an initial model
+context.

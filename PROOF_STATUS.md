@@ -14146,3 +14146,11 @@ semantics.
 excluding the named head, any tail fvar absent from the initial context
 contradicts successful grouped support. This preserves the explicit
 chronological-versus-grouped dependency obligation.
+
+## October 31, 2026 — arbitrary-context grouped named-tail consumer
+
+`RecursorGroupedTypeTranslationSupport.namedTailAt` is the recursive form of
+the grouped one-head consumer. It accepts any semantic `VLCtx`, so a caller
+can apply it after previous grouped binders rather than being forced back to
+an initial `MLCtx`. The semantic tail witness and all source scope facts remain
+caller-supplied; this theorem does not invent a reordered model context.
