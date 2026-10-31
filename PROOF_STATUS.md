@@ -14389,3 +14389,12 @@ projected from the existing per-parent receipts; grouped transport, native
 allocation, generated-rule semantics, iota witnesses, and `TrProj` obligations
 remain explicit. This is a fork-specific packaging boundary, not an upstream PR
 candidate.
+
+## October 31, 2026 — grouped receipts checker bridge
+
+`SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts`
+packages an independently supplied `RecursorGroupedTypeTranslationChain`
+receipt with the existing checker, alignment, generated-rule result, and
+paired base/target iota conclusions. The theorem does not infer reordered
+contexts or grouped semantic premises, and therefore remains a fork-specific
+packaging boundary rather than an upstream PR candidate.

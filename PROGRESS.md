@@ -3334,3 +3334,11 @@ combines grouped-chain initial/final typehood with the complete generated-rule
 and paired base/target iota package at the frontend scope boundary. It projects
 typehood from the same per-parent receipts used by generated-rule transport,
 while native allocation and all semantic callbacks remain explicit.
+
+## Grouped receipts checker bridge — 2026-10-31
+
+`SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts`
+retains an independently supplied grouped-type translation receipt alongside
+the checker, alignment, generated-rule, and paired iota package. It keeps
+reordered contexts and grouped semantic premises explicit rather than
+constructing them at the checker boundary.

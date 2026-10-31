@@ -44,6 +44,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check addDecl.safeInductiveFrontendInductiveWF_of_checkedPrimitive_sourceTypehood
 #check addDecl.WF_inductive_of_sourceTypehood_and_checker
 #check addDecl.WF_inductive_of_checkedPrimitive_sourceTypehood_and_checker
+#check SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts
 #check AddInductive.LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaTargetReductionExact
 #check AddInductive.GeneratedRecursorRuleIotaTargetOrdinaryExact
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaTargetOrdinaryExactOf
@@ -9360,6 +9361,20 @@ example {m : Type → Type} [Monad m]
   have _ := hExactSourceRestoration
   have _ := hExactSourceRestorationPlural
   trivial
+
+run_meta
+  let environment ← getEnv
+  let name := ``Lean4Lean.SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts
+  let some information := environment.constants.find? name
+    | throwError "grouped checker receipt theorem absent"
+  if information matches .axiomInfo _ then
+    throwError "grouped checker receipt theorem is an axiom"
+  if information.type.hasSorry then
+    throwError "grouped checker receipt theorem has an admitted type"
+  if let some value := information.value? (allowOpaque := true) then
+    if value.hasSorry then
+      throwError "grouped checker receipt theorem has an admitted value"
+  logInfo m!"{name}: axioms = {repr (← collectAxioms name)}"
 
 run_meta
   let environment ← getEnv
