@@ -35,6 +35,23 @@ example {env : VEnv} {universes : List Name} {stats : InductiveStats}
             env.IsType universes.length model.vlctx.toCtx semantic := by
   exact support.domainReceipts
 
+/-- Grouped type support also exposes the source free-variable obligation. -/
+example {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {grouped : List FVarId} {body : Expr}
+    (support : RecursorGroupedTypeTranslationSupport env universes full initial grouped body) :
+    FVarsIn (· ∈ initial.vlctx.fvars)
+      (full.mkForall (grouped.map Expr.fvar).toArray body) :=
+  support.initialFVarsIn
+
+example {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {grouped : List FVarId} {body : Expr}
+    (support : RecursorGroupedTypeTranslationSupport env universes full initial grouped body)
+    {identifier : FVarId}
+    (missing : identifier ∉ initial.vlctx.fvars)
+    (present : identifier ∈
+      (full.mkForall (grouped.map Expr.fvar).toArray body).fvarsList) : False :=
+  support.noMissingFVar missing present
+
 run_meta
   let fvarTheorem := ``RecursorBinderIntegrity.selectedIndexDomains
   let fvarAxioms ← collectAxioms fvarTheorem
@@ -48,6 +65,14 @@ run_meta
     throwError "semantic selected-domain boundary proof missing"
   if semanticProof.hasSorry then
     throwError "semantic selected-domain boundary has an admission"
-  logInfo "integrity supplies index-domain FVar support; semantic selected-domain support remains an explicit model/pass premise"
+  let groupedTheorem := ``RecursorGroupedTypeTranslationSupport.noMissingFVar
+  let groupedInfo ← getConstInfo groupedTheorem
+  if groupedInfo matches .axiomInfo _ then
+    throwError "grouped source-scope boundary is not theorem-backed"
+  let some groupedProof := groupedInfo.value? (allowOpaque := true) |
+    throwError "grouped source-scope boundary proof missing"
+  if groupedProof.hasSorry then
+    throwError "grouped source-scope boundary has an admission"
+  logInfo "integrity supplies index-domain FVar support; grouped source scope and semantic selected-domain support remain explicit model/pass premises"
 
 end InductiveRecursorSelectedDomainBoundaryTest

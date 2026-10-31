@@ -3001,3 +3001,15 @@ translation and sort typing via `TrExprS.strengthenIsType`. The syntax-only
 companion remains available for expressions without a typing witness. This
 does not construct a reordered model or discharge grouped forall transport;
 the theorem is a fork-specific seam and not an upstream PR candidate.
+
+## Grouped source free-variable obligation — 2026-10-31
+
+`RecursorGroupedTypeTranslationSupport.initialFVarsIn` now exposes the
+source-scope fact already implied by grouped translation: every free variable
+remaining in the native grouped expression must occur in the initial virtual
+context. `noMissingFVar` packages the contradiction for callers. This makes
+explicit why the canonical Bool motive domain, whose grouped presentation can
+retain the later major declaration in an earlier binder domain, cannot be
+translated by ordinary initial-context `TrExprS` without a dedicated forward
+reference/rebase construction. Grouped semantic/type translation, generated
+rule semantics, iota soundness, and `TrProj` remain open.

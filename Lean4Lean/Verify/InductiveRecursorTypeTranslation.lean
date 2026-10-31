@@ -218,6 +218,31 @@ def RecursorGroupedTypeTranslationSupport (env : VEnv) (universes : List Name)
       (full.mkForall (grouped.map Expr.fvar).toArray body) typeSemantic ∧
     env.HasType universes.length initial.vlctx.toCtx typeSemantic (.sort level)
 
+/- Grouped support carries a concrete source-scope obligation: every free
+   variable that remains in the native grouped expression must already be in
+   the initial virtual context.  This is useful at the recursor boundary
+   because `LocalContext.mkForall` abstracts the selected body variables but
+   can retain a later declaration referenced by an earlier binder domain. -/
+theorem RecursorGroupedTypeTranslationSupport.initialFVarsIn
+    {env : VEnv} {universes : List Name} {full : LocalContext} {initial : MLCtx}
+    {grouped : List FVarId} {body : Expr}
+    (support : RecursorGroupedTypeTranslationSupport env universes full initial grouped body) :
+    FVarsIn (· ∈ initial.vlctx.fvars)
+      (full.mkForall (grouped.map Expr.fvar).toArray body) := by
+  obtain ⟨_, _, translated, _⟩ := support
+  exact translated.fvarsIn
+
+theorem RecursorGroupedTypeTranslationSupport.noMissingFVar
+    {env : VEnv} {universes : List Name} {full : LocalContext} {initial : MLCtx}
+    {grouped : List FVarId} {body : Expr}
+    (support : RecursorGroupedTypeTranslationSupport env universes full initial grouped body)
+    {identifier : FVarId}
+    (missing : identifier ∉ initial.vlctx.fvars)
+    (present : identifier ∈
+      (full.mkForall (grouped.map Expr.fvar).toArray body).fvarsList) : False := by
+  apply missing
+  exact (fvarsIn_iff.mp support.initialFVarsIn).1 identifier present
+
 theorem RecursorRawTypeTranslationSupport.selectedTypeTranslation
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}
     {parent : Nat} {full : LocalContext} {initial : MLCtx}

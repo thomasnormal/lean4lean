@@ -14056,3 +14056,15 @@ final cdecl lookup, then applies `TrExprS.strengthenIsType` through the exact
 chronological weakening. Closure and initial free-variable support remain
 explicit, and grouped-context semantic transport, generated rules, iota, and
 `TrProj` remain open.
+
+## October 31, 2026 — grouped source free-variable obligation
+
+Grouped type support now exposes its source-scope consequence through
+`RecursorGroupedTypeTranslationSupport.initialFVarsIn` and
+`noMissingFVar`: a successful initial-context translation implies that every
+free variable in the native grouped expression is present in the initial
+virtual context. This is the precise obstruction for grouped recursor types
+whose earlier binder domains retain later allocated declarations, such as the
+canonical Bool motive domain. The theorem records the obligation without
+constructing a reordered context or weakening grouped semantic/type,
+generated-rule, iota, or `TrProj` premises.
