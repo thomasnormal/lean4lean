@@ -1,3 +1,16 @@
+## Canonical Bool final-info rebase receipt — 2026-10-31
+
+The concrete canonical Bool endpoint now composes with the existing grouped
+binder-order rebase consumer. `canonicalBoolPassModelEndpointWithKnownFinalInfoRebase`
+uses the exact allocation extension and the proved final-info preservation to
+recover final major/motive/index/minor roles, then returns the grouped-order
+`RecursorBinderRebaseReceipt`. Focused endpoint/minor regressions and
+admission audits pass, and the full build completes all 492 jobs. The source
+census remains 116 matching `sorry` lines in 18 files and 120 whole-word
+occurrences. Grouped forall translation, generated-rule semantics, and iota
+soundness remain explicit; this fork-specific receipt is not an upstream PR
+candidate.
+
 ## Canonical Bool minor-pass info preservation — 2026-10-31
 
 The one-type Bool minor pass now has a theorem-backed receipt showing exact

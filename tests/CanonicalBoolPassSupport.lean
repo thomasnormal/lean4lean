@@ -78,6 +78,35 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
   canonicalBoolPassModelEndpointWithAllocationOfParentHistory typesEq parentTrace parentHistory
     minorTrace normalization params levels indConsts nindices boolIndices reserved
 
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {infos finalInfos : Array RecInfo} {reader parentReader finalReader : Context}
+    {model parentModel : MLCtx} {info : RecInfo}
+    (typesEq : types = #[canonicalBoolType])
+    (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (minorTrace : RecursorMinorPassTrace stats types 0 infos parentReader finalInfos finalReader)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (reserved : ContextReserved parentReader.lctx parentReader.ngen)
+    (finalInfosEq : finalInfos = #[info])
+    (initialIndices : infos[0]!.indices = #[])
+    (initialMinors : infos[0]!.minors = #[]) :
+    ∃ finalModel major motive minorFalse minorTrue chronological,
+      RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+        reader finalInfos finalReader model finalModel ∧
+      info.major = .fvar major ∧ info.motive = .fvar motive ∧
+      info.indices = #[] ∧ info.minors = #[.fvar minorFalse, .fvar minorTrue] ∧
+      IndexMLCtxExtension model [major, motive, minorFalse, minorTrue] finalModel ∧
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats finalInfos 0
+        finalReader.lctx model finalModel chronological
+        [motive, minorFalse, minorTrue, major] :=
+  canonicalBoolPassModelEndpointWithKnownFinalInfoRebase typesEq parentTrace parentHistory minorTrace
+    normalization params levels indConsts nindices boolIndices reserved finalInfosEq initialIndices initialMinors
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -91,6 +120,7 @@ private def auditTheorem (name : Name) : MetaM Unit := do
 
 run_meta
   auditTheorem ``canonicalBoolPassModelEndpointWithParentMotiveSupport
+  auditTheorem ``canonicalBoolPassModelEndpointWithKnownFinalInfoRebase
   auditTheorem ``canonicalBoolPassModelEndpoint
   auditTheorem ``canonicalBoolPassModelEndpointOfParentHistory
   auditTheorem ``canonicalBoolPassModelEndpointWithAllocationOfParentHistory

@@ -1,6 +1,7 @@
 import Lean4Lean.Verify.CanonicalBoolParentPassSupport
 import Lean4Lean.Verify.CanonicalBoolMinorPassSupport
 import Lean4Lean.Verify.InductiveMinorPassTranslationCPS
+import Lean4Lean.Verify.InductiveRecursorApplicationTranslationCPS
 
 namespace Lean4Lean.AddInductive
 open Lean hiding Environment Exception
@@ -151,6 +152,66 @@ theorem canonicalBoolPassModelEndpointWithAllocationOfParentHistory
     | step bound2 _ _ =>
       have impossible : ¬ (1 : Nat) < #[canonicalBoolType].size := by decide
       exact (impossible bound2).elim
+
+/- Compose the concrete endpoint/allocation receipt with the final-info
+   preservation theorem and the existing grouped-order rebase consumer. -/
+theorem canonicalBoolPassModelEndpointWithKnownFinalInfoRebase
+    {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {infos finalInfos : Array RecInfo} {reader parentReader finalReader : Context}
+    {model parentModel : MLCtx} {info : RecInfo}
+    (typesEq : types = #[canonicalBoolType])
+    (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (minorTrace : RecursorMinorPassTrace stats types 0 infos parentReader finalInfos finalReader)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (reserved : ContextReserved parentReader.lctx parentReader.ngen)
+    (finalInfosEq : finalInfos = #[info])
+    (initialIndices : infos[0]!.indices = #[])
+    (initialMinors : infos[0]!.minors = #[]) :
+    ∃ finalModel major motive minorFalse minorTrue chronological,
+      RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+        reader finalInfos finalReader model finalModel ∧
+      info.major = .fvar major ∧ info.motive = .fvar motive ∧
+      info.indices = #[] ∧ info.minors = #[.fvar minorFalse, .fvar minorTrue] ∧
+      IndexMLCtxExtension model [major, motive, minorFalse, minorTrue] finalModel ∧
+      RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats finalInfos 0
+        finalReader.lctx model finalModel chronological
+        [motive, minorFalse, minorTrue, major] := by
+  subst types
+  obtain ⟨major, motive, majorEq, motiveEq, _, parentExt, parentIdsEq⟩ :=
+    canonicalBoolParentHistoryAllocation parentTrace parentHistory normalization params indConsts
+  rw [parentIdsEq] at parentExt
+  have infoBound : 0 < infos.size := by
+    have counts := parentTrace.counts
+    have infoSize : infos.size = 1 := by
+      simpa only [Array.size_empty, Array.size_singleton, Nat.sub_zero, Nat.zero_add] using counts
+    omega
+  obtain ⟨finalModel, major, motive, minorFalse, minorTrue, endpoint,
+      majorEq, motiveEq, finalMinorsUpdate, known⟩ :=
+    canonicalBoolPassModelEndpointWithAllocationOfParentHistory rfl parentTrace parentHistory
+      minorTrace normalization params levels indConsts nindices boolIndices reserved
+  have preserved := canonicalBoolMinorPassInfoPreservation minorTrace infoBound
+  have infoEq : finalInfos[0]! = info := by
+    simpa [finalInfosEq]
+  have finalMajorEq : info.major = .fvar major := by
+    rw [← infoEq, preserved.1, majorEq]
+  have finalMotiveEq : info.motive = .fvar motive := by
+    rw [← infoEq, preserved.2.1, motiveEq]
+  have finalIndicesEq : info.indices = #[] := by
+    rw [← infoEq, preserved.2.2, initialIndices]
+  have finalMinorsEq : info.minors = #[.fvar minorFalse, .fvar minorTrue] := by
+    rw [← infoEq, finalMinorsUpdate, initialMinors]
+    rfl
+  obtain ⟨chronological, rebase⟩ :=
+    endpoint.canonicalBoolRebaseBinderOrderOfKnownExtension canonicalBoolModel.wf params
+      finalInfosEq finalMotiveEq finalMinorsEq finalIndicesEq finalMajorEq known
+  exact ⟨finalModel, major, motive, minorFalse, minorTrue, chronological,
+    endpoint, finalMajorEq, finalMotiveEq, finalIndicesEq, finalMinorsEq, known, rebase⟩
 
 theorem canonicalBoolPassModelEndpoint
     {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}

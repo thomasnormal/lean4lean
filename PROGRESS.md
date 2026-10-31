@@ -1,3 +1,14 @@
+## Canonical Bool final-info rebase receipt — 2026-10-31
+
+`canonicalBoolPassModelEndpointWithKnownFinalInfoRebase` composes the concrete
+endpoint/allocation package with `canonicalBoolMinorPassInfoPreservation` and
+the existing grouped-order rebase theorem. Given the concrete singleton final
+info shape and empty initial index/minor arrays, it derives the final major,
+motive, indices, and minor equations and returns a
+`RecursorBinderRebaseReceipt` in grouped order. This reaches the semantic
+rebase boundary without constructing a reordered model; grouped forall
+translation, generated-rule semantics, and iota soundness remain explicit.
+
 ## Canonical Bool minor-pass info preservation — 2026-10-31
 
 `canonicalBoolMinorPassInfoPreservation` proves that the concrete one-type Bool
