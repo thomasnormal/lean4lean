@@ -14202,3 +14202,10 @@ soundness, and `TrProj` remain explicit.
 `RecursorTypeModelReceipt.existsDeclaredRecursor` to produce the semantic
 recursor constant and `VConstant.WF`. This is only the type/metadata package;
 generated-rule semantics, iota soundness, and `TrProj` remain explicit.
+
+## October 31, 2026 — grouped chain registered-recursion lookup
+
+`RecursorInfoModelEndpoint.registeredRecursorFromGroupedChain` rewrites the
+declared metadata translation along the explicit native recursor identity and
+preserves the complete type receipt. Freshness, insertion, generated-rule
+semantics, iota soundness, and `TrProj` remain outside this boundary.

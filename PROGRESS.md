@@ -3156,3 +3156,10 @@ weakening as explicit inputs.
 chain type receipt into the existing metadata constructor. It returns the
 declared recursor model constant and its WF proof while keeping generated-rule
 semantics and iota obligations outside this type-level boundary.
+
+## Grouped chain registered-recursion lookup — 2026-10-31
+
+`RecursorInfoModelEndpoint.registeredRecursorFromGroupedChain` carries the
+grouped-chain declaration package through a native recursor lookup and metadata
+equality. It returns the registered semantic constant and WF proof without
+claiming fresh insertion or generated-rule/iota semantics.

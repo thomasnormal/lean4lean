@@ -1349,6 +1349,41 @@ theorem RecursorInfoModelEndpoint.registeredRecursorFromDomains
   rw [← metadata] at translated
   exact ⟨constant, lookup, receipt, translated, wellFormed⟩
 
+/- Carry the grouped-chain declaration package through a native recursor
+   lookup.  The metadata equality is the only native registration handoff;
+   no fresh insertion or rule/iota semantics are inferred here. -/
+theorem RecursorInfoModelEndpoint.registeredRecursorFromGroupedChain
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx} {parent : Nat}
+    {chronological grouped : List FVarId}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent
+      finalReader.lctx initial final chronological grouped)
+    (envWF : env.WF) (finalWF : final.WF env universes)
+    (native : final.lctx = finalReader.lctx)
+    (bodyClosed : (recursorTypeBody infos parent).looseBVarRange' = 0)
+    (chain : RecursorGroupedTypeTranslationChain env universes finalReader.lctx
+      initial.vlctx (recursorTypeBody infos parent) grouped)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = universes)
+    (empty : initial.vlctx = [])
+    {registered : Kernel.Environment} {recursor : RecursorVal}
+    (lookup : registered.find? (mkRecName types[parent]!.name) = some (.recInfo recursor))
+    (metadata : recursor = declareRecursors.metadataVal stats types elimLevel infos lparams
+      finalReader.lctx isK false parent rules) :
+    ∃ constant,
+      registered.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      RecursorTypeModelReceipt env universes stats infos parent finalReader initial final ∧
+      TrConstVal .safe env (.recInfo recursor) constant ∧
+      constant.toVConstant.WF env := by
+  obtain ⟨constant, typeReceipt, translated, wellFormed⟩ :=
+    endpoint.declaredRecursorFromGroupedChain receipt envWF finalWF native bodyClosed chain
+      lparams isK rules levels empty
+  rw [← metadata] at translated
+  exact ⟨constant, lookup, typeReceipt, translated, wellFormed⟩
+
 /- Insert the registered model constant into the semantic constructor
    environment.  The native lookup/metadata handoff supplies the model name;
    freshness is kept as an explicit premise, while the extension WF is proved
