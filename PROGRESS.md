@@ -2664,6 +2664,15 @@ the adapted call is rejected by the pinned Lean 4.33 toolchain. It remains a
 useful compatibility regression, but it is not a new standalone PR for the
 current upstream tip.
 
+## Canonical Bool concrete minor trace translation — 2026-10-31
+
+`canonicalBoolMinorTraceTranslatedOfMotive` now translates the actual
+two-constructor Bool minor trace from one parent model. It composes the first
+constructor's `MinorModelStep`, derives its full model extension, weakens the
+parent motive through that extension, and uses the result to translate the
+second constructor. The generic arbitrary-model callback and the separate
+grouped-forall, generated-rule, and iota obligations remain explicit.
+
 ## Canonical Bool minor source motive consumer — 2026-10-31
 
 `canonicalBoolMinorSourceSupportOfMotive` now consumes the concrete parent

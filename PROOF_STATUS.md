@@ -13753,6 +13753,16 @@ is specific to Lean 4.29; the equivalent call is rejected by the pinned Lean
 4.33 toolchain. The fork's named preflight receipt therefore remains local
 verification evidence rather than a new upstream patch.
 
+## Canonical Bool concrete minor trace translation — 2026-10-31
+
+The concrete two-constructor minor trace now has a theorem-backed translation
+consumer. The first constructor's model extension is composed, and its motive
+witness is weakened into the second constructor's starting model before the
+second source is translated. This closes the model-indexed trace consumer for
+Bool under an explicit nonempty-info premise; the generic pass callback,
+grouped forall translation, generated-rule semantics, and iota soundness stay
+open.
+
 ## Canonical Bool minor source motive consumer — 2026-10-31
 
 The minor-source boundary now has a theorem-backed consumer for a concrete

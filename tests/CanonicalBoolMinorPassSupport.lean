@@ -6,6 +6,7 @@ open Lean hiding Environment Exception
 open Lean4Lean
 open Lean4Lean.AddInductive
 open TypeChecker (MLCtx)
+open ElimNestedInductive (ContextReserved)
 
 example {stats : InductiveStats} {infos finalInfos : Array RecInfo}
     {reader finalReader : Context}
@@ -46,6 +47,28 @@ example {stats : InductiveStats} {types : Array InductiveType}
   canonicalBoolMinorPassSupport_of_types typesEq trace params levels indConsts nindices boolIndices
     motives motiveSupport
 
+example {stats : InductiveStats} {infos finalInfos : Array RecInfo}
+    {reader finalReader : Context} {model : MLCtx}
+    (trace : RecursorMinorTrace stats ``Bool 0 infos
+      [({name := ``Bool.false, type := .const ``Bool []} : Constructor),
+       {name := ``Bool.true, type := .const ``Bool []}] reader finalInfos finalReader)
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (modelWF : model.WF canonicalBoolModel [`u])
+    (native : model.lctx = reader.lctx)
+    (reserved : ContextReserved reader.lctx reader.ngen)
+    {motive : FVarId} {motiveSemantic : VExpr} {level : VLevel}
+    (infoBound : 0 < infos.size)
+    (motiveEq : infos[0]!.motive = .fvar motive)
+    (motiveTranslated : TrExprS canonicalBoolModel [`u] model.vlctx
+      (.fvar motive) motiveSemantic)
+    (motiveTyped : canonicalBoolModel.HasType 1 model.vlctx.toCtx motiveSemantic
+      (.forallE (.const ``Bool []) (.sort level))) :
+    ∃ finalModel, TranslatedRecursorMinorTrace canonicalBoolModel [`u] trace model finalModel :=
+  canonicalBoolMinorTraceTranslatedOfMotive trace params levels indConsts nindices boolIndices
+    modelWF native reserved infoBound motiveEq motiveTranslated motiveTyped
+
 example {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
     (constructorType : constructor.type = .const ``Bool [])
     (constructorName : constructor.name = ``Bool.false ∨ constructor.name = ``Bool.true)
@@ -78,7 +101,8 @@ private def auditTheorem (name : Name) : MetaM Unit := do
 run_meta
   for theoremName in [``canonicalBoolMinorPassSupport,
       ``canonicalBoolMinorPassSupport_of_types,
-      ``canonicalBoolMinorSourceSupportOfMotive] do
+      ``canonicalBoolMinorSourceSupportOfMotive,
+      ``canonicalBoolMinorTraceTranslatedOfMotive] do
     auditTheorem theoremName
   logInfo "canonical Bool minor pass support is theorem-backed"
 
