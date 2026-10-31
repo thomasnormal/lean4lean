@@ -14336,3 +14336,13 @@ adapts the grouped-chain registration theorem to the frontend safe-run scope.
 The constructor environment's WF proof is retained from the scope receipt, and
 the frontend continuation receives grouped-chain typehood together with native
 registration retention, metadata, and RHS-scope facts.
+
+## October 31, 2026 — grouped chain frontend generated-rule CPS
+
+`InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultCPSFromGroupedChains`
+connects the grouped-chain generated-rule registration theorem to the frontend
+safe-run scope. It retains native registration WF and chronological allocation,
+while forwarding explicit grouped transport, closed-RHS and generated-rule
+callbacks, indexed generated-rule results, and complete stored-rule semantics.
+Generated-rule reduction, iota soundness, and `TrProj` remain outside the
+contract.

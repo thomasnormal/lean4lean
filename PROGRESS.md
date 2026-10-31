@@ -3283,3 +3283,13 @@ connects the grouped-chain registration package to the frontend's safe-run
 scope. It preserves the constructor-environment WF and frontend context while
 forwarding grouped receipts, typehood, registration retention, metadata, and
 RHS-scope facts to the frontend continuation.
+
+## Grouped chain frontend generated-rule CPS — 2026-10-31
+
+`InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultCPSFromGroupedChains`
+adapts the grouped-chain registration boundary to the frontend safe-run scope.
+It preserves the constructor environment WF receipt and forwards grouped type
+transport, closed-RHS semantics, generated-rule results, registration
+retention, metadata, RHS scope, and complete stored-rule coverage to the
+frontend continuation. No generated-rule semantics, iota soundness, or
+`TrProj` fact is inferred.
