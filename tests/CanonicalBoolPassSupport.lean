@@ -125,14 +125,7 @@ example
     (finalInfosEq : finalInfos = #[info])
     (initialIndices : infos[0]!.indices = #[])
     (initialMinors : infos[0]!.minors = #[])
-    (motiveShape : ∀ (finalModel : MLCtx) (motive : FVarId),
-      RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
-        reader finalInfos finalReader model finalModel →
-      ∀ index name domain binder,
-      finalModel.lctx.find? motive =
-        some (.cdecl index motive name domain binder .default) →
-      domain = finalModel.lctx.mkForall finalInfos[0]!.indices
-        (finalModel.lctx.mkForall #[finalInfos[0]!.major] (.sort elimLevel)))
+    (source : RecursorInfoIndexSource stats types elimLevel 0 reader finalInfos[0]! finalReader)
     {semanticElimLevel : VLevel}
     (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
@@ -157,7 +150,7 @@ example
           (recursorTypeBody finalInfos 0) := by
   exact canonicalBoolPassModelEndpointWithKnownFinalInfoBodyApplication typesEq parentTrace parentHistory
     minorTrace normalization params levels indConsts nindices boolIndices reserved finalInfosEq
-    initialIndices initialMinors motiveShape mapped minorSemantics generatedRuleSemantics
+    initialIndices initialMinors source mapped minorSemantics generatedRuleSemantics
     iotaSoundness
 
 example

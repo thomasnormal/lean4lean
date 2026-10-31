@@ -231,14 +231,7 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoBodyApplication
     (finalInfosEq : finalInfos = #[info])
     (initialIndices : infos[0]!.indices = #[])
     (initialMinors : infos[0]!.minors = #[])
-    (motiveShape : ∀ (finalModel : MLCtx) (motive : FVarId),
-      RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
-        reader finalInfos finalReader model finalModel →
-      ∀ index name domain binder,
-      finalModel.lctx.find? motive =
-        some (.cdecl index motive name domain binder .default) →
-      domain = finalModel.lctx.mkForall finalInfos[0]!.indices
-        (finalModel.lctx.mkForall #[finalInfos[0]!.major] (.sort elimLevel)))
+    (source : RecursorInfoIndexSource stats types elimLevel 0 reader finalInfos[0]! finalReader)
     {semanticElimLevel : VLevel}
     (mapped : VLevel.ofLevel [`u] elimLevel = some semanticElimLevel)
     {MinorSemantics GeneratedRuleSemantics IotaSoundness : Prop}
@@ -269,14 +262,33 @@ theorem canonicalBoolPassModelEndpointWithKnownFinalInfoBodyApplication
   have bodyClosed : (recursorTypeBody finalInfos 0).looseBVarRange' = 0 := by
     simp [Expr.looseBVarRange', Lean.mkAppN, recursorTypeBody, finalInfosEq,
       finalIndicesEq, finalMajorEq, finalMotiveEq]
+  have motiveShape : ∀ index name domain binder,
+      finalModel.lctx.find? motive =
+        some (.cdecl index motive name domain binder .default) →
+      domain = finalModel.lctx.mkForall finalInfos[0]!.indices
+        (finalModel.lctx.mkForall #[finalInfos[0]!.major] (.sort elimLevel)) := by
+    intro index name domain binder lookup
+    have motiveId : finalInfos[0]!.motive.fvarId! = motive := by
+      rw [show finalInfos[0]!.motive = info.motive by simpa [finalInfosEq]]
+      rw [finalMotiveEq]
+      rfl
+    obtain ⟨candidateWF, native, _⟩ := endpoint.context
+    have sourceLookup : finalReader.lctx.find? finalInfos[0]!.motive.fvarId! =
+        some (.cdecl index motive name domain binder .default) := by
+      rw [motiveId]
+      simpa only [native] using lookup
+    have candidateScope : finalReader.lctx.BindingScope := by
+      rw [← native]
+      exact candidateWF.bindingScope
+    have shape := source.motiveDomainShape candidateScope sourceLookup
+    simpa only [native] using shape
   obtain ⟨_, bodySemantic, level, bodyReceipt, bodyTranslated, bodyTyped, bodyRaw⟩ :=
     endpoint.canonicalBoolRebasedFinalBodyApplicationReceipt canonicalBoolModel.wf
       params finalInfosEq finalMotiveEq finalMinorsEq finalIndicesEq finalMajorEq
       (canonicalBoolAllocationOfKnownExtension known)
       (by
         intro index name domain binder lookup
-        simpa only [finalInfosEq] using
-          motiveShape finalModel motive endpoint index name domain binder lookup)
+        exact motiveShape index name domain binder lookup)
       mapped minorSemantics generatedRuleSemantics iotaSoundness bodyClosed
   exact ⟨finalModel, major, motive, minorFalse, minorTrue, chronological, bodySemantic, level,
     endpoint, finalMajorEq, finalMotiveEq, finalIndicesEq, finalMinorsEq, known, rebase,

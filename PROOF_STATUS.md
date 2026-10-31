@@ -359,6 +359,14 @@ range calculation therefore discharges `bodyClosed` inside both the body and
 declared-recursor receipts, removing that caller premise without changing the
 remaining grouped-translation or recursor-semantics boundaries.
 
+## Canonical Bool body application from source motive provenance — 2026-10-31
+
+The body-application consumer now receives native index-source provenance and
+derives the motive cdecl domain through the source trace and endpoint context
+equality. The previous opaque callback quantified over arbitrary endpoint
+models is removed; no executable behavior changes and the grouped telescope,
+generated-rule, iota, and `TrProj` boundaries remain explicit.
+
 ## Canonical fresh elimination-level mapping — 2026-10-30
 
 `Lean4Lean.Verify.PrimitiveInductiveModel` now exposes

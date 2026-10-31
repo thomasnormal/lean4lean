@@ -2901,3 +2901,12 @@ role equations. Their callers no longer supply an independent `bodyClosed`
 premise; the proof is a direct reduction of the generated body to an
 application of two fvars. Grouped forall translation, generated-rule
 semantics, iota soundness, and `TrProj` remain outside this receipt.
+
+## Canonical Bool body application from source motive provenance — 2026-10-31
+
+The standalone canonical Bool body-application receipt now takes the native
+index source and derives its motive-domain callback with
+`RecursorInfoIndexSource.motiveDomainShape`. It no longer accepts the opaque
+model-polymorphic `motiveShape` premise; body closure is derived from the same
+final role equations. This remains a fork-specific receipt with grouped
+translation and recursor-semantics obligations explicit.
