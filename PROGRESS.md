@@ -3342,3 +3342,12 @@ retains an independently supplied grouped-type translation receipt alongside
 the checker, alignment, generated-rule, and paired iota package. It keeps
 reordered contexts and grouped semantic premises explicit rather than
 constructing them at the checker boundary.
+
+## Grouped receipts restoration-metadata checker bridge — 2026-10-31
+
+`SafeInductiveRestorationMetadata.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts_of_sourceTypehood`
+forwards an independently supplied grouped-type translation receipt through
+restoration metadata together with the existing aligned checker,
+generated-rule, and paired base/target iota package. Source typehood supplies
+only the constructor-environment WF receipt; reordered contexts and grouped
+semantic premises remain explicit.

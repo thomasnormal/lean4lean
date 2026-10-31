@@ -14398,3 +14398,12 @@ receipt with the existing checker, alignment, generated-rule result, and
 paired base/target iota conclusions. The theorem does not infer reordered
 contexts or grouped semantic premises, and therefore remains a fork-specific
 packaging boundary rather than an upstream PR candidate.
+
+## October 31, 2026 — grouped receipts restoration-metadata checker bridge
+
+`SafeInductiveRestorationMetadata.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts_of_sourceTypehood`
+passes an explicit `RecursorGroupedTypeTranslationChain` receipt through the
+restoration-metadata checker boundary. It derives only the existing recursor
+WF fact from source typehood and retains grouped transport, generated-rule
+semantics, paired iota witnesses, and `TrProj` obligations as explicit
+premises. This fork-specific packaging adapter is not an upstream PR candidate.

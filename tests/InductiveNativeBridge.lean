@@ -45,6 +45,7 @@ open Lean4Lean.AddInductive.declareConstructors
 #check addDecl.WF_inductive_of_sourceTypehood_and_checker
 #check addDecl.WF_inductive_of_checkedPrimitive_sourceTypehood_and_checker
 #check SafeInductiveFrontendScope.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts
+#check SafeInductiveRestorationMetadata.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts_of_sourceTypehood
 #check AddInductive.LocalRecursorRuleRhsScope.completeRuleResultSemanticsAndIotaTargetReductionExact
 #check AddInductive.GeneratedRecursorRuleIotaTargetOrdinaryExact
 #check NativeInductive.RegistrationEvidence.recursorGeneratedRuleResultAndIotaTargetOrdinaryExactOf
@@ -9374,6 +9375,20 @@ run_meta
   if let some value := information.value? (allowOpaque := true) then
     if value.hasSorry then
       throwError "grouped checker receipt theorem has an admitted value"
+  logInfo m!"{name}: axioms = {repr (← collectAxioms name)}"
+
+run_meta
+  let environment ← getEnv
+  let name := ``Lean4Lean.SafeInductiveRestorationMetadata.toCheckerEnvInductive_and_registrationAlignmentHistory_and_generatedRuleResultAndIotaBaseAndTargetResultsWithGroupedReceipts_of_sourceTypehood
+  let some information := environment.constants.find? name
+    | throwError "grouped restoration checker receipt theorem absent"
+  if information matches .axiomInfo _ then
+    throwError "grouped restoration checker receipt theorem is an axiom"
+  if information.type.hasSorry then
+    throwError "grouped restoration checker receipt theorem has an admitted type"
+  if let some value := information.value? (allowOpaque := true) then
+    if value.hasSorry then
+      throwError "grouped restoration checker receipt theorem has an admitted value"
   logInfo m!"{name}: axioms = {repr (← collectAxioms name)}"
 
 run_meta
