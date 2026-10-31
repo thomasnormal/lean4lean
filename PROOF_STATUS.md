@@ -342,6 +342,15 @@ needed by the fresh-level mapping theorem; selected-domain, parent/minor-pass,
 generated-rule semantic, iota, and full inductive frontend receipts remain
 open.
 
+## Canonical Bool motive shape from native source — 2026-10-31
+
+The source index trace now proves the exact domain of the native motive cdecl
+after the trace's context extension. The canonical Bool declared-recursor
+consumer derives its callback from that theorem and the endpoint's native
+context equality, removing one independent opaque premise from the concrete
+receipt. Grouped forall translation, generated-rule semantics, and iota
+soundness remain explicit, so this is not an upstream PR candidate.
+
 ## Canonical fresh elimination-level mapping — 2026-10-30
 
 `Lean4Lean.Verify.PrimitiveInductiveModel` now exposes

@@ -2882,3 +2882,13 @@ inductive-recursion rejection), #62 (total elimination-level selection), #64
 master and should not be duplicated. No additional standalone PR is ready
 from the canonical Bool receipts until the three explicit recursor semantics
 premises and the grouped translation boundary are discharged.
+
+## Canonical Bool motive shape from native source — 2026-10-31
+
+`RecursorInfoIndexSource.motiveDomainShape` now derives the exact native
+motive telescope from the source index trace and an arbitrary current-context
+lookup. The declared canonical Bool recursor receipt uses the endpoint's
+native local-context equality to transport its model binding scope, so its
+previous opaque `motiveShape` callback is no longer an input. This remains a
+fork-specific inductive receipt; grouped forall translation, generated-rule
+semantics, and iota soundness are still explicit premises.

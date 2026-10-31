@@ -174,4 +174,26 @@ theorem RecursorInfoIndexSource.motiveLookupAtCurrent
   refine ⟨majorReader.lctx.decls.size, ⟨majorReader.ngen.curr⟩, ?_, motiveEq.symm⟩
   simpa only [declaration, LocalDecl.fvarId, domainEq, motiveEq, Expr.fvarId!] using currentLookup
 
+/- The source trace carries the exact native motive declaration.  Expose its
+   domain shape for callers that only have an arbitrary lookup of the motive
+   fvar; this discharges the canonical `motiveShape` callback from source
+   provenance instead of treating the declaration type as an independent
+   premise. -/
+theorem RecursorInfoIndexSource.motiveDomainShape
+    {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {parent : Nat} {original current : Context} {info : RecInfo}
+    (source : RecursorInfoIndexSource stats types elimLevel parent original info current)
+    (scope : current.lctx.BindingScope)
+    {index : Nat} {identifier : FVarId} {name : Name} {domain : Expr}
+    {binder : BinderInfo}
+    (lookup : current.lctx.find? info.motive.fvarId! =
+      some (.cdecl index identifier name domain binder .default)) :
+    domain = current.lctx.mkForall info.indices
+      (current.lctx.mkForall #[info.major] (.sort elimLevel)) := by
+  obtain ⟨physicalIndex, motiveIdentifier, sourceLookup, motiveEq⟩ :=
+    source.motiveLookupAtCurrent scope
+  have declarationEq := Option.some.inj (lookup.symm.trans sourceLookup)
+  cases declarationEq
+  rfl
+
 end Lean4Lean.AddInductive
