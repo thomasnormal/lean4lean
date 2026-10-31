@@ -537,6 +537,8 @@ run_meta
   auditTheorem ``DependencyAwareVirtualContextRebase.finalDomainSupport
   auditTheorem ``RecursorBinderRebaseReceipt.finalDomainSupport
   auditTheorem ``RecursorBinderRebaseReceipt.finalDomainSupportOfNativeDecl
+  auditTheorem ``RecursorBinderRebaseReceipt.finalDomainSupportOfSourceMajor
+  auditTheorem ``RecursorBinderRebaseReceipt.finalDomainSupportOfSourceMotive
   auditTheorem ``RecursorBinderRebaseReceipt.groupedBindingEquation
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeFinalEquation
   auditTheorem ``RecursorBinderRebaseReceipt.rawTypeTranslationFromGroupedSupport

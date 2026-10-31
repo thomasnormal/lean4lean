@@ -449,6 +449,79 @@ theorem RecursorBinderRebaseReceipt.finalDomainSupportOfNativeDecl
   cases declarationEq
   exact ⟨_, projectedIndex, name, domain, binder, _, rfl, finalLookup, translated, typed⟩
 
+/- Native index provenance supplies the major declaration directly.  This
+   consumer only transports that lookup through the grouped rebase; it keeps
+   the source role equation and the grouped membership visible to callers. -/
+theorem RecursorBinderRebaseReceipt.finalDomainSupportOfSourceMajor
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {parent : Nat}
+    {original finalReader : Context} {infos : Array RecInfo} {info : RecInfo}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent
+      finalReader.lctx initial final chronological grouped)
+    (source : RecursorInfoIndexSource stats types elimLevel parent original info finalReader)
+    (finalWF : final.WF env universes) (native : final.lctx = finalReader.lctx)
+    (member : info.major.fvarId! ∈ grouped) :
+    ∃ physicalIndex projectedIndex name domain binder semantic,
+      finalReader.lctx.find? info.major.fvarId! =
+        some (.cdecl physicalIndex info.major.fvarId! name domain binder .default) ∧
+      final.lctx.find? info.major.fvarId! =
+        some (.cdecl projectedIndex info.major.fvarId! name domain binder .default) ∧
+      TrExprS env universes final.vlctx domain semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic := by
+  obtain ⟨nativeDecl, nativeLookup, _, _⟩ := source.majorLookup
+  obtain ⟨physicalIndex, projectedIndex, name, domain, binder, semantic,
+      nativeEq, finalLookup, translated, typed⟩ :=
+    receipt.finalDomainSupportOfNativeDecl finalWF native info.major.fvarId! member nativeLookup
+  rw [nativeEq] at nativeLookup
+  exact ⟨physicalIndex, projectedIndex, name, domain, binder, semantic, nativeLookup,
+    finalLookup, translated, typed⟩
+
+/- The source motive lookup carries its exact native domain shape.  Transporting
+   it through the same seam gives the final semantic domain and typehood while
+   preserving the source-derived grouped telescope equation as a separate fact. -/
+theorem RecursorBinderRebaseReceipt.finalDomainSupportOfSourceMotive
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {parent : Nat}
+    {original finalReader : Context} {infos : Array RecInfo} {info : RecInfo}
+    {initial final : MLCtx} {chronological grouped : List FVarId}
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent
+      finalReader.lctx initial final chronological grouped)
+    (source : RecursorInfoIndexSource stats types elimLevel parent original info finalReader)
+    (finalWF : final.WF env universes) (native : final.lctx = finalReader.lctx)
+    (scope : finalReader.lctx.BindingScope)
+    (member : info.motive.fvarId! ∈ grouped) :
+    ∃ physicalIndex projectedIndex name domain binder semantic,
+      finalReader.lctx.find? info.motive.fvarId! =
+        some (.cdecl physicalIndex info.motive.fvarId! name domain binder .default) ∧
+      domain = finalReader.lctx.mkForall info.indices
+        (finalReader.lctx.mkForall #[info.major] (.sort elimLevel)) ∧
+      final.lctx.find? info.motive.fvarId! =
+        some (.cdecl projectedIndex info.motive.fvarId! name domain binder .default) ∧
+      TrExprS env universes final.vlctx domain semantic ∧
+      env.IsType universes.length final.vlctx.toCtx semantic := by
+  obtain ⟨physicalIndex, identifier, nativeLookup, identifierEq⟩ :=
+    source.motiveLookupAtCurrent scope
+  have nativeLookup' : finalReader.lctx.find? info.motive.fvarId! =
+      some (.cdecl physicalIndex info.motive.fvarId!
+        (recursorMotiveName types parent)
+        (finalReader.lctx.mkForall info.indices
+          (finalReader.lctx.mkForall #[info.major] (.sort elimLevel)))
+        .default .default) := by
+    simpa only [← identifierEq, Expr.fvarId!] using nativeLookup
+  have nativeLookupOrig := nativeLookup'
+  obtain ⟨physicalIndex', projectedIndex, name, domain, binder, semantic,
+      nativeEq, finalLookup, translated, typed⟩ :=
+    receipt.finalDomainSupportOfNativeDecl finalWF native info.motive.fvarId! member nativeLookup'
+  have shape := source.motiveDomainShape scope nativeLookupOrig
+  have domainEq : domain = finalReader.lctx.mkForall info.indices
+      (finalReader.lctx.mkForall #[info.major] (.sort elimLevel)) := by
+    have typeEq := congrArg LocalDecl.type nativeEq
+    simpa only [LocalDecl.type] using typeEq.symm.trans shape
+  rw [nativeEq] at nativeLookup'
+  exact ⟨physicalIndex', projectedIndex, name, domain, binder, semantic, nativeLookup',
+    domainEq, finalLookup, translated, typed⟩
+
 /- Consume the grouped abstraction obligation without manufacturing a
    chronological `SelectedRecursorTelescope`.  The receipt supplies the
    native raw-type equation; the grouped semantic translation and typehood

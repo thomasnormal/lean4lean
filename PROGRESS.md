@@ -2970,3 +2970,13 @@ cdecl and returns the final semantic domain translation and typehood. This is
 the transport seam needed by source-backed canonical Bool minor receipts; it
 does not infer role-to-ID alignment, grouped forall semantics, generated-rule
 semantics, iota soundness, or `TrProj`.
+
+## Source-backed major and motive domain transport — 2026-10-31
+
+`RecursorBinderRebaseReceipt.finalDomainSupportOfSourceMajor` and
+`finalDomainSupportOfSourceMotive` consume the native index-source lookup
+receipts through the dependency-aware rebase. They preserve the source major
+or motive cdecl, transport its projected final lookup, and return semantic
+translation and typehood; the motive theorem also carries its source-derived
+grouped telescope domain equation. Grouped forall semantics, generated-rule
+semantics, iota soundness, role-to-ID alignment, and `TrProj` remain explicit.

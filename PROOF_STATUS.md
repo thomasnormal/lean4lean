@@ -14026,3 +14026,13 @@ projected final lookup, and returns semantic translation plus typehood in the
 final model context. Native canonical Bool minor provenance can feed this
 seam once role-to-ID alignment is supplied; no grouped semantic or recursor
 rule/iota obligation is hidden by the theorem.
+
+## October 31, 2026 — source-backed major and motive domain transport
+
+The rebase receipt now consumes `RecursorInfoIndexSource.majorLookup` and
+`motiveLookupAtCurrent` directly. The resulting major and motive consumers
+preserve native cdecl provenance, transport projected final lookups, and
+return final semantic domain translation plus typehood; the motive consumer
+also preserves the source-derived grouped telescope domain shape. This does
+not infer role-to-ID alignment or grouped forall, generated-rule, iota, or
+`TrProj` obligations.
