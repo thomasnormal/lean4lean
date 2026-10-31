@@ -86,6 +86,28 @@ example {env : VEnv} {universes : List Name} {full : LocalContext}
   RecursorGroupedTypeTranslationSupport.headStep lookup domainTranslated domainTyped
     bodyTranslated bodyTyped
 
+example {env : VEnv} {universes : List Name} {full : LocalContext}
+    {context : VLCtx} {identifier : FVarId} {inner : Expr}
+    {dependencies : List FVarId}
+    {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    {semanticDomain semanticBody : VExpr}
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (domainTranslated : TrExprS env universes context domain semanticDomain)
+    (domainTyped : env.IsType universes.length context.toCtx semanticDomain)
+    (bodyTranslated : TrExprS env universes
+      ((some (identifier, dependencies), .vlam semanticDomain) :: context : VLCtx)
+      inner semanticBody)
+    (bodyTyped : env.IsType universes.length
+      (VLCtx.toCtx ((some (identifier, dependencies), .vlam semanticDomain) :: context))
+      semanticBody) :
+    TrExprS env universes context
+      (full.mkBindingList1 false [] identifier (inner.abstract1 identifier))
+      (.forallE semanticDomain semanticBody) ∧
+    env.IsType universes.length context.toCtx (.forallE semanticDomain semanticBody) :=
+  RecursorGroupedTypeTranslationSupport.headStepOfNamedBody lookup domainTranslated domainTyped
+    bodyTranslated bodyTyped
+
 run_meta
   let fvarTheorem := ``RecursorBinderIntegrity.selectedIndexDomains
   let fvarAxioms ← collectAxioms fvarTheorem
@@ -123,6 +145,14 @@ run_meta
     throwError "grouped head transport proof missing"
   if groupedHeadProof.hasSorry then
     throwError "grouped head transport has an admission"
+  let groupedNamedHeadTheorem := ``RecursorGroupedTypeTranslationSupport.headStepOfNamedBody
+  let groupedNamedHeadInfo ← getConstInfo groupedNamedHeadTheorem
+  if groupedNamedHeadInfo matches .axiomInfo _ then
+    throwError "named grouped head transport is not theorem-backed"
+  let some groupedNamedHeadProof := groupedNamedHeadInfo.value? (allowOpaque := true) |
+    throwError "named grouped head transport proof missing"
+  if groupedNamedHeadProof.hasSorry then
+    throwError "named grouped head transport has an admission"
   logInfo "integrity supplies index-domain FVar support; grouped source scope and semantic selected-domain support remain explicit model/pass premises"
 
 end InductiveRecursorSelectedDomainBoundaryTest

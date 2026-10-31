@@ -14103,3 +14103,13 @@ cdecl domain and an anonymous-body translation under the newly introduced
 semantic vlam, then proves the resulting forall is a type. The recursive body
 witness remains explicit because chronological model weakening does not itself
 produce grouped anonymous contexts.
+
+## October 31, 2026 — grouped named-body abstraction bridge
+
+`RecursorGroupedTypeTranslationSupport.headStepOfNamedBody` supplies the
+context conversion needed by a recursive grouped-forall proof. A tail
+translation under `(some (identifier, dependencies), .vlam domain)` is
+abstracted with `VLCtx.Abstract.zero` into the anonymous body context, after
+which `headStep` constructs the forall translation and typehood. This remains
+a local bridge: it consumes the named-tail witness and does not derive grouped
+tail witnesses from the chronological model.

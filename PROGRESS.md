@@ -3052,3 +3052,13 @@ vlam, it constructs the corresponding `TrExprS` forall and its `IsType`
 witness. Recursive grouped transport still has to produce those anonymous
 body witnesses in grouped order; this theorem does not derive them from the
 chronological model extension.
+
+## Grouped named-body abstraction bridge — 2026-10-31
+
+`RecursorGroupedTypeTranslationSupport.headStepOfNamedBody` bridges the
+recursive presentation used by grouped transport: when the tail is translated
+under a named head fvar, `VLCtx.Abstract.zero` and `TrExprS.abstract` convert it
+to the anonymous semantic vlam required by `TrExprS.forallE`. The head cdecl,
+domain translation/typehood, dependencies, and tail body translation remain
+explicit premises; no reordered model context or full grouped recursion is
+claimed.

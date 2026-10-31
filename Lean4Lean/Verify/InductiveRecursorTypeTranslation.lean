@@ -295,6 +295,43 @@ theorem RecursorGroupedTypeTranslationSupport.headStep
   · simpa [Lean.LocalContext.mkBindingList1, lookup] using translated
   · exact domainTyped.forallE bodyTyped
 
+/- A recursive grouped transport usually obtains the tail under a named head
+   fvar, while `TrExprS.forallE` needs the body after that fvar has been
+   abstracted into an anonymous semantic vlam.  `VLCtx.Abstract.zero` is the
+   exact context conversion for this step. -/
+theorem RecursorGroupedTypeTranslationSupport.headStepOfNamedBody
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {context : VLCtx} {identifier : FVarId} {inner : Expr}
+    {dependencies : List FVarId}
+    {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    {semanticDomain semanticBody : VExpr}
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (domainTranslated : TrExprS env universes context domain semanticDomain)
+    (domainTyped : env.IsType universes.length context.toCtx semanticDomain)
+    (bodyTranslated : TrExprS env universes
+      ((some (identifier, dependencies), .vlam semanticDomain) :: context : VLCtx)
+      inner semanticBody)
+    (bodyTyped : env.IsType universes.length
+      (VLCtx.toCtx ((some (identifier, dependencies), .vlam semanticDomain) :: context))
+      semanticBody) :
+    TrExprS env universes context
+      (full.mkBindingList1 false [] identifier (inner.abstract1 identifier))
+      (.forallE semanticDomain semanticBody) ∧
+    env.IsType universes.length context.toCtx (.forallE semanticDomain semanticBody) := by
+  let abstraction : VLCtx.Abstract context identifier (.vlam semanticDomain) 0 0
+      ((some (identifier, dependencies), .vlam semanticDomain) :: context)
+      ((none, .vlam semanticDomain) :: context) := .zero
+  have anonymousBody : TrExprS env universes
+      ((none, .vlam semanticDomain) :: context : VLCtx)
+      (inner.abstract1 identifier) semanticBody :=
+    bodyTranslated.abstract abstraction
+  have anonymousBodyTyped : env.IsType universes.length
+      (VLCtx.toCtx ((none, .vlam semanticDomain) :: context)) semanticBody := by
+    rw [← abstraction.toCtx]
+    exact bodyTyped
+  exact headStep lookup domainTranslated domainTyped anonymousBody anonymousBodyTyped
+
 theorem RecursorRawTypeTranslationSupport.selectedTypeTranslation
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}
     {parent : Nat} {full : LocalContext} {initial : MLCtx}
