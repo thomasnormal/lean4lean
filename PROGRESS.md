@@ -2712,3 +2712,13 @@ while the new motive receipt supplies the nonempty info bound, motive fvar,
 translation, and typing. The generic arbitrary-model pass callback, grouped
 forall translation, generated-rule semantics, and iota obligations remain
 explicit.
+
+## Canonical Bool parent-history minor pass translation — 2026-10-31
+
+`canonicalBoolMinorPassTranslatedOfParentHistory` lifts the concrete
+parent-history minor trace consumer through the one-type minor pass: it
+translates the single Bool minor trace and constructs the forced pass stop with
+the resulting model WF/native receipt. This gives an actual translated pass
+history without claiming the generic `MinorPassTranslationSupport` callback;
+grouped forall translation, generated-rule semantics, and iota obligations
+remain explicit.

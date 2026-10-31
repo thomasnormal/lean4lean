@@ -89,6 +89,24 @@ example {stats : InductiveStats} {infos finalInfos : Array RecInfo}
   canonicalBoolMinorTraceTranslatedOfParentHistory parentTrace parentHistory minorTrace
     normalization params levels indConsts nindices boolIndices reserved
 
+example {stats : InductiveStats} {infos finalInfos : Array RecInfo}
+    {reader parentReader finalReader : Context} {model parentModel : MLCtx}
+    {elimLevel : Level}
+    (parentTrace : RecursorParentPassTrace stats #[canonicalBoolType] elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (minorTrace : RecursorMinorPassTrace stats #[canonicalBoolType] 0 infos parentReader finalInfos finalReader)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (reserved : ContextReserved parentReader.lctx parentReader.ngen) :
+    ∃ finalModel, TranslatedRecursorMinorPass canonicalBoolModel [`u]
+      minorTrace parentModel finalModel :=
+  canonicalBoolMinorPassTranslatedOfParentHistory parentTrace parentHistory minorTrace
+    normalization params levels indConsts nindices boolIndices reserved
+
 example {stats : InductiveStats} {infos : Array RecInfo} {constructor : Constructor}
     (constructorType : constructor.type = .const ``Bool [])
     (constructorName : constructor.name = ``Bool.false ∨ constructor.name = ``Bool.true)
@@ -123,7 +141,8 @@ run_meta
       ``canonicalBoolMinorPassSupport_of_types,
       ``canonicalBoolMinorSourceSupportOfMotive,
       ``canonicalBoolMinorTraceTranslatedOfMotive,
-      ``canonicalBoolMinorTraceTranslatedOfParentHistory] do
+      ``canonicalBoolMinorTraceTranslatedOfParentHistory,
+      ``canonicalBoolMinorPassTranslatedOfParentHistory] do
     auditTheorem theoremName
   logInfo "canonical Bool minor pass support is theorem-backed"
 

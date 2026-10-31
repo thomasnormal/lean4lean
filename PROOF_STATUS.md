@@ -13802,3 +13802,12 @@ second constructor translations. No executable behavior or kernel discrepancy
 changed; the universal minor-pass callback, grouped forall translation,
 generated-rule semantics, and iota soundness remain open. This fork-specific
 consumer is not an upstream PR candidate.
+
+## Canonical Bool parent-history minor pass translation — 2026-10-31
+
+The concrete one-type minor pass now has a theorem-backed translated-history
+consumer. The Bool trace step is translated from the parent history, and its
+forced stop is assembled with the intermediate model context receipt. This
+does not close the generic arbitrary-model support contract or the grouped
+forall, generated-rule, and iota obligations, and it is not an upstream PR
+candidate.

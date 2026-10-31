@@ -179,6 +179,41 @@ theorem canonicalBoolMinorTraceTranslatedOfParentHistory
   exact canonicalBoolMinorTraceTranslatedOfMotive minorTrace params levels indConsts nindices
     boolIndices parentWF parentNative reserved infoBound motiveEq motiveTranslated motiveTyped
 
+/- The concrete Bool minor pass has one translated minor trace followed by the
+   forced stop.  This packages the parent-history consumer at the pass level
+   without manufacturing the generic arbitrary-model support callback. -/
+theorem canonicalBoolMinorPassTranslatedOfParentHistory
+    {stats : InductiveStats} {infos finalInfos : Array RecInfo}
+    {reader parentReader finalReader : Context} {model parentModel : MLCtx}
+    {elimLevel : Level}
+    (parentTrace : RecursorParentPassTrace stats #[canonicalBoolType] elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (minorTrace : RecursorMinorPassTrace stats #[canonicalBoolType] 0 infos parentReader finalInfos finalReader)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (reserved : ContextReserved parentReader.lctx parentReader.ngen) :
+    ∃ finalModel, TranslatedRecursorMinorPass canonicalBoolModel [`u]
+      minorTrace parentModel finalModel := by
+  unfold canonicalBoolType at minorTrace
+  cases minorTrace with
+  | stop complete =>
+    exact (complete (by decide)).elim
+  | step bound head tail =>
+    cases tail with
+    | stop complete =>
+      obtain ⟨middleModel, headHistory⟩ :=
+        canonicalBoolMinorTraceTranslatedOfParentHistory parentTrace parentHistory head
+          normalization params levels indConsts nindices boolIndices reserved
+      exact ⟨middleModel, .step bound head (.stop complete) headHistory
+        (.stop complete headHistory.context.1 headHistory.context.2.1)⟩
+    | step bound2 _ _ =>
+      have impossible : ¬ (1 : Nat) < #[canonicalBoolType].size := by decide
+      exact (impossible bound2).elim
+
 end Lean4Lean.AddInductive
 
 namespace Lean4Lean.AddInductive
