@@ -367,6 +367,57 @@ theorem RecursorGroupedTypeTranslationSupport.namedTail
     .default lookup]
   simpa [Lean.LocalContext.mkBindingList1, lookup] using head.1
 
+/- Successful grouped support has the corresponding named-tail witness as a
+   necessary condition.  Inverting the translated forall exposes the
+   anonymous body; `VLCtx.Abstract.zero` then reinstates the named head fvar
+   and `instantiate1'_abstract1` recovers the native tail expression. -/
+theorem RecursorGroupedTypeTranslationSupport.namedTailNecessary
+    {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {identifier : FVarId} {rest : List FVarId}
+    {body : Expr} {dependencies : List FVarId}
+    {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    (support : RecursorGroupedTypeTranslationSupport env universes full initial
+      (identifier :: rest) body)
+    (scope : full.BindingScope) (closed : body.looseBVarRange' = 0)
+    (distinct : (identifier :: rest).Nodup)
+    (bindings : SelectedCDeclBindings full (identifier :: rest))
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (fresh : identifier ∉ initial.vlctx.fvars) :
+    ∃ semanticDomain semanticTail,
+      TrExprS env universes initial.vlctx domain semanticDomain ∧
+      env.IsType universes.length initial.vlctx.toCtx semanticDomain ∧
+      TrExprS env universes
+        ((some (identifier, dependencies), .vlam semanticDomain) :: initial.vlctx : VLCtx)
+        (full.mkForall (rest.map Expr.fvar).toArray body) semanticTail ∧
+      env.IsType universes.length
+        (VLCtx.toCtx
+          ((some (identifier, dependencies), .vlam semanticDomain) :: initial.vlctx))
+        semanticTail := by
+  obtain ⟨_, _, translated, _⟩ := support
+  rw [mkForall_selected_cons identifier rest scope closed distinct bindings index name domain binder
+    .default lookup] at translated
+  cases translated with
+  | @forallE semanticDomain semanticTail _ _ _ _ _ domainTyped bodyTyped domainTranslated
+      bodyTranslated =>
+    let abstraction : VLCtx.Abstract initial.vlctx identifier (.vlam semanticDomain) 0 0
+        ((some (identifier, dependencies), .vlam semanticDomain) :: initial.vlctx)
+        ((none, .vlam semanticDomain) :: initial.vlctx) := .zero
+    have namedTail : TrExprS env universes
+        ((some (identifier, dependencies), .vlam semanticDomain) :: initial.vlctx : VLCtx)
+        (full.mkForall (rest.map Expr.fvar).toArray body) semanticTail := by
+      have instantiated := bodyTranslated.instantiateFVar abstraction fresh
+      rw [Expr.instantiate1'_abstract1] at instantiated
+      exact instantiated
+    have namedTailTyped : env.IsType universes.length
+        (VLCtx.toCtx
+          ((some (identifier, dependencies), .vlam semanticDomain) :: initial.vlctx))
+        semanticTail := by
+      rw [abstraction.toCtx]
+      exact bodyTyped
+    exact ⟨semanticDomain, semanticTail, domainTranslated, domainTyped,
+      namedTail, namedTailTyped⟩
+
 theorem RecursorRawTypeTranslationSupport.selectedTypeTranslation
     {env : VEnv} {universes : List Name} {stats : InductiveStats} {infos : Array RecInfo}
     {parent : Nat} {full : LocalContext} {initial : MLCtx}

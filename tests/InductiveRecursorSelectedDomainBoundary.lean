@@ -132,6 +132,31 @@ example {env : VEnv} {universes : List Name} {full : LocalContext}
   RecursorGroupedTypeTranslationSupport.namedTail scope closed distinct bindings lookup
     domainTranslated domainTyped tailTranslated tailTyped
 
+example {env : VEnv} {universes : List Name} {full : LocalContext}
+    {initial : TypeChecker.MLCtx} {identifier : FVarId} {rest : List FVarId}
+    {body : Expr} {dependencies : List FVarId}
+    {index : Nat} {name : Name} {domain : Expr} {binder : BinderInfo}
+    (support : RecursorGroupedTypeTranslationSupport env universes full initial
+      (identifier :: rest) body)
+    (scope : full.BindingScope) (closed : body.looseBVarRange' = 0)
+    (distinct : (identifier :: rest).Nodup)
+    (bindings : SelectedCDeclBindings full (identifier :: rest))
+    (lookup : full.find? identifier =
+      some (.cdecl index identifier name domain binder .default))
+    (fresh : identifier ∉ initial.vlctx.fvars) :
+    ∃ semanticDomain semanticTail,
+      TrExprS env universes initial.vlctx domain semanticDomain ∧
+      env.IsType universes.length initial.vlctx.toCtx semanticDomain ∧
+      TrExprS env universes
+        ((some (identifier, dependencies), .vlam semanticDomain) :: initial.vlctx : VLCtx)
+        (full.mkForall (rest.map Expr.fvar).toArray body) semanticTail ∧
+      env.IsType universes.length
+        (VLCtx.toCtx
+          ((some (identifier, dependencies), .vlam semanticDomain) :: initial.vlctx))
+        semanticTail :=
+  RecursorGroupedTypeTranslationSupport.namedTailNecessary support scope closed distinct bindings
+    lookup fresh
+
 run_meta
   let fvarTheorem := ``RecursorBinderIntegrity.selectedIndexDomains
   let fvarAxioms ← collectAxioms fvarTheorem
@@ -185,6 +210,14 @@ run_meta
     throwError "named grouped tail support proof missing"
   if groupedNamedTailProof.hasSorry then
     throwError "named grouped tail support has an admission"
+  let groupedNamedTailNecessaryTheorem := ``RecursorGroupedTypeTranslationSupport.namedTailNecessary
+  let groupedNamedTailNecessaryInfo ← getConstInfo groupedNamedTailNecessaryTheorem
+  if groupedNamedTailNecessaryInfo matches .axiomInfo _ then
+    throwError "necessary named grouped tail support is not theorem-backed"
+  let some groupedNamedTailNecessaryProof := groupedNamedTailNecessaryInfo.value? (allowOpaque := true) |
+    throwError "necessary named grouped tail support proof missing"
+  if groupedNamedTailNecessaryProof.hasSorry then
+    throwError "necessary named grouped tail support has an admission"
   logInfo "integrity supplies index-domain FVar support; grouped source scope and semantic selected-domain support remain explicit model/pass premises"
 
 end InductiveRecursorSelectedDomainBoundaryTest

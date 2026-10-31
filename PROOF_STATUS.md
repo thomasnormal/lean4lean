@@ -14122,3 +14122,13 @@ and typehood for `full.mkForall rest body`, converts that tail through
 `VLCtx.Abstract.zero`, and uses `mkForall_selected_cons` to identify the
 native grouped source. It remains a consumer of the recursive tail witness;
 the chronological model still does not supply that witness automatically.
+
+## October 31, 2026 — grouped named-tail necessity
+
+`RecursorGroupedTypeTranslationSupport.namedTailNecessary` extracts the named
+head-domain and tail witnesses forced by successful grouped translation. After
+inverting the translated grouped forall, it uses `TrExprS.instantiateFVar`
+with `VLCtx.Abstract.zero` and the explicit freshness premise to recover the
+native `mkForall rest body` translation under the named head context. This
+sharpens the remaining boundary: recursive grouped tail production must
+supply exactly the witness that grouped support entails.

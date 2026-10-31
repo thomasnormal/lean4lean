@@ -3072,3 +3072,13 @@ support. The native `mkForall_selected_cons` equation is used only to align
 the source syntax. The tail semantic witness, cdecl scope, closedness,
 distinctness, and dependency list remain explicit; recursive tail production
 is still the open obligation.
+
+## Grouped named-tail necessity — 2026-10-31
+
+`RecursorGroupedTypeTranslationSupport.namedTailNecessary` proves the converse
+boundary for a selected head: successful grouped support, native cdecl scope,
+and freshness of the head fvar imply a translated and typed tail under the
+named head context. The proof inverts `TrExprS.forallE`, abstracts the native
+source equation, and reinstates the named fvar with `VLCtx.Abstract.zero`.
+This is a necessary-condition theorem, not a construction of the grouped tail
+from chronological model data.
