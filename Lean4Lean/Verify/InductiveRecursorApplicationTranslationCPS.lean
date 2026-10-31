@@ -1384,6 +1384,60 @@ theorem RecursorInfoModelEndpoint.registeredRecursorFromGroupedChain
   rw [← metadata] at translated
   exact ⟨constant, lookup, typeReceipt, translated, wellFormed⟩
 
+/- Insert the grouped-chain registered model constant into the semantic
+   constructor environment.  The grouped declaration package supplies the
+   type receipt; name freshness and the ordinary header-extension theorem
+   remain explicit. -/
+theorem RecursorInfoModelEndpoint.registeredRecursorInsertionFromGroupedChain
+    {env : VEnv} {universes : List Name} {stats : InductiveStats}
+    {types : Array InductiveType} {elimLevel : Level} {reader finalReader : Context}
+    {infos : Array RecInfo} {initial final : MLCtx} {parent : Nat}
+    {chronological grouped : List FVarId}
+    (endpoint : RecursorInfoModelEndpoint env universes stats types elimLevel
+      reader infos finalReader initial final)
+    (receipt : RecursorBinderRebaseReceipt env universes stats infos parent
+      finalReader.lctx initial final chronological grouped)
+    (envWF : env.WF) (finalWF : final.WF env universes)
+    (native : final.lctx = finalReader.lctx)
+    (bodyClosed : (recursorTypeBody infos parent).looseBVarRange' = 0)
+    (chain : RecursorGroupedTypeTranslationChain env universes finalReader.lctx
+      initial.vlctx (recursorTypeBody infos parent) grouped)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = universes)
+    (empty : initial.vlctx = [])
+    {registered : Kernel.Environment} {recursor : RecursorVal}
+    (lookup : registered.find? (mkRecName types[parent]!.name) = some (.recInfo recursor))
+    (metadata : recursor = declareRecursors.metadataVal stats types elimLevel infos lparams
+      finalReader.lctx isK false parent rules)
+    (fresh : env.constants (mkRecName types[parent]!.name) = none) :
+    ∃ constant extended,
+      registered.find? (mkRecName types[parent]!.name) = some (.recInfo recursor) ∧
+      RecursorTypeModelReceipt env universes stats infos parent finalReader initial final ∧
+      TrConstVal .safe env (.recInfo recursor) constant ∧
+      constant.toVConstant.WF env ∧
+      env.addConstructorHeaders [constant] = some extended ∧ extended.WF := by
+  obtain ⟨constant, lookup, receipt, translated, wellFormed⟩ :=
+    endpoint.registeredRecursorFromGroupedChain receipt envWF finalWF native bodyClosed chain
+      lparams isK rules levels empty lookup metadata
+  have constantName : constant.name = mkRecName types[parent]!.name := by
+    have nameEq := translated.2.symm
+    rw [metadata] at nameEq
+    change constant.name = mkRecName types[parent]!.name at nameEq
+    exact nameEq
+  have constantFresh : env.constants constant.name = none := by
+    simpa [constantName] using fresh
+  obtain ⟨extended, insertion⟩ := VEnv.addConstructorHeaders.exists
+    (env := env) (ctors := [constant])
+    (fun constructor member => by
+      obtain rfl := List.mem_singleton.mp member
+      exact constantFresh)
+    (by simp)
+  refine ⟨constant, extended, lookup, receipt, translated, wellFormed, insertion, ?_⟩
+  exact VEnv.addConstructorHeaders.wf envWF (by
+    intro constructor member
+    obtain rfl := List.mem_singleton.mp member
+    exact wellFormed) insertion
+
 /- Insert the registered model constant into the semantic constructor
    environment.  The native lookup/metadata handoff supplies the model name;
    freshness is kept as an explicit premise, while the extension WF is proved

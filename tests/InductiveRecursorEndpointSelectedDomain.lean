@@ -346,6 +346,36 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
     (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
     (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0)
     (chain : RecursorGroupedTypeTranslationChain canonicalBoolModel [`u]
+      finalReader.lctx initial.vlctx (recursorTypeBody infos 0) grouped)
+    (lparams : List Name) (isK : Bool) (rules : List RecursorRule)
+    (levels : getRecLevelParams elimLevel lparams = [`u])
+    (empty : initial.vlctx = [])
+    {registered : Kernel.Environment} {recursor : RecursorVal}
+    (lookup : registered.find? (mkRecName types[0]!.name) = some (.recInfo recursor))
+    (metadata : recursor = declareRecursors.metadataVal stats types elimLevel infos lparams
+      finalReader.lctx isK false 0 rules)
+    (fresh : (canonicalBoolModel : VEnv).constants (mkRecName types[0]!.name) = none) :
+    ∃ constant extended,
+      registered.find? (mkRecName types[0]!.name) = some (.recInfo recursor) ∧
+      RecursorTypeModelReceipt canonicalBoolModel [`u] stats infos 0 finalReader initial final ∧
+      TrConstVal .safe canonicalBoolModel (.recInfo recursor) constant ∧
+      constant.toVConstant.WF canonicalBoolModel ∧
+      canonicalBoolModel.addConstructorHeaders [constant] = some extended ∧ extended.WF := by
+  obtain ⟨chronological, receipt⟩ := endpoint.rebaseBinderOrder canonicalBoolModel.wf
+    grouped order alignment
+  obtain ⟨finalWF, finalNative, _⟩ := endpoint.context
+  exact endpoint.registeredRecursorInsertionFromGroupedChain receipt canonicalBoolModel.wf finalWF
+    finalNative bodyClosed chain lparams isK rules levels empty lookup metadata fresh
+
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {reader finalReader : Context} {infos : Array RecInfo} {initial final : MLCtx}
+    (endpoint : RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+      reader infos finalReader initial final)
+    (grouped : List FVarId)
+    (order : ∀ ids, IndexMLCtxExtension initial ids final → grouped.Perm ids)
+    (alignment : (recursorTypeBinders stats infos 0).toList = grouped.map Expr.fvar)
+    (bodyClosed : (recursorTypeBody infos 0).looseBVarRange' = 0)
+    (chain : RecursorGroupedTypeTranslationChain canonicalBoolModel [`u]
       finalReader.lctx initial.vlctx (recursorTypeBody infos 0) grouped) :
     ∃ chronological bodySemantic level,
       RecursorBinderRebaseReceipt canonicalBoolModel [`u] stats infos 0 finalReader.lctx
@@ -703,6 +733,7 @@ run_meta
   auditTheorem ``RecursorInfoModelEndpoint.recursorTypeFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.declaredRecursorFromGroupedChain
   auditTheorem ``RecursorInfoModelEndpoint.registeredRecursorFromGroupedChain
+  auditTheorem ``RecursorInfoModelEndpoint.registeredRecursorInsertionFromGroupedChain
   auditTheorem ``RecursorBinderRebaseReceipt.finalBodyApplicationReceipt
   auditTheorem ``canonicalBoolRecursorTypeBodyApplicationSupport
   auditTheorem ``RecursorBinderRebaseReceipt.canonicalBoolFinalBodyApplicationReceipt

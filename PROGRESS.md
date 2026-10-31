@@ -3163,3 +3163,10 @@ semantics and iota obligations outside this type-level boundary.
 grouped-chain declaration package through a native recursor lookup and metadata
 equality. It returns the registered semantic constant and WF proof without
 claiming fresh insertion or generated-rule/iota semantics.
+
+## Grouped chain registered-recursion insertion — 2026-10-31
+
+`RecursorInfoModelEndpoint.registeredRecursorInsertionFromGroupedChain` now
+uses the registered grouped-chain package to prove ordinary constructor-header
+insertion under an explicit semantic-name freshness premise. Generated-rule
+semantics, iota soundness, and `TrProj` remain separate obligations.

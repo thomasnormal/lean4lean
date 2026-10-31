@@ -14209,3 +14209,11 @@ generated-rule semantics, iota soundness, and `TrProj` remain explicit.
 declared metadata translation along the explicit native recursor identity and
 preserves the complete type receipt. Freshness, insertion, generated-rule
 semantics, iota soundness, and `TrProj` remain outside this boundary.
+
+## October 31, 2026 — grouped chain registered-recursion insertion
+
+`RecursorInfoModelEndpoint.registeredRecursorInsertionFromGroupedChain` carries
+the grouped-chain declaration receipt through native lookup and metadata
+identity, derives the semantic constant name, and applies the existing
+constructor-header insertion WF theorem under explicit freshness. Generated-rule
+semantics, iota soundness, and `TrProj` remain outside the contract.
