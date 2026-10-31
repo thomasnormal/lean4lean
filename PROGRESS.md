@@ -3326,3 +3326,11 @@ base/target iota package to the frontend safe-run scope. It preserves the
 constructor-environment WF receipt, native registration allocation, grouped
 transport, and all caller-supplied semantic callbacks without adding reduction,
 iota soundness, or `TrProj` conclusions.
+
+## Grouped chain frontend combined typehood and generated iota CPS — 2026-10-31
+
+`InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedInitialAndFinalTypehoodGeneratedRuleResultAndIotaBaseAndTargetResultsCPSFromGroupedChains`
+combines grouped-chain initial/final typehood with the complete generated-rule
+and paired base/target iota package at the frontend scope boundary. It projects
+typehood from the same per-parent receipts used by generated-rule transport,
+while native allocation and all semantic callbacks remain explicit.

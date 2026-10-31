@@ -14379,3 +14379,13 @@ iota package through frontend scope registration. Native allocation,
 grouped transport, constructor-environment WF, and all generated-rule/iota
 premises remain explicit; no new reduction or `TrProj` theorem is introduced.
 This fork-specific adapter is not an upstream PR candidate.
+
+## October 31, 2026 — grouped chain frontend combined typehood and generated iota CPS
+
+`InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedInitialAndFinalTypehoodGeneratedRuleResultAndIotaBaseAndTargetResultsCPSFromGroupedChains`
+combines the grouped-chain initial/final typehood predicates with the complete
+generated-rule result and paired base/target iota package. The typehood proof is
+projected from the existing per-parent receipts; grouped transport, native
+allocation, generated-rule semantics, iota witnesses, and `TrProj` obligations
+remain explicit. This is a fork-specific packaging boundary, not an upstream PR
+candidate.

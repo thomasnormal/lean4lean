@@ -369,6 +369,7 @@ run_meta
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedGeneratedRuleIotaBaseAndTargetResultsCPSFromGroupedChains true true
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultAndIotaCPSFromGroupedChains true true
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultAndIotaBaseAndTargetResultsCPSFromGroupedChains true true
+  audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedTranslatedAppliedInitialAndFinalTypehoodGeneratedRuleResultAndIotaBaseAndTargetResultsCPSFromGroupedChains true true
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedGeneratedRuleIotaCPS true true
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedGeneratedRuleIotaBaseAndTargetResultsCPS true true
   audit ``Lean4Lean.AddInductive.InductiveStats.SafeRunScope.registeredScopedGeneratedRuleResultAndIotaCPS true true
