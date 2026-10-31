@@ -1,3 +1,14 @@
+## Canonical Bool final body/application wrapper — 2026-10-31
+
+`canonicalBoolPassModelEndpointWithKnownFinalInfoBodyApplication` now
+composes the concrete canonical Bool pass endpoint, exact chronological
+allocation, final-info preservation, grouped-order rebase, and the existing
+final body/application consumer. It returns the translated and typed recursor
+body together with the grouped raw-type equation while retaining motive shape,
+minor semantics, generated-rule semantics, iota soundness, elimination-level
+mapping, and body closedness as explicit premises. This fork-specific wrapper
+is not an upstream PR candidate.
+
 ## Canonical Bool final-info rebase receipt — 2026-10-31
 
 `canonicalBoolPassModelEndpointWithKnownFinalInfoRebase` composes the concrete
