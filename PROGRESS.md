@@ -1,3 +1,13 @@
+## Canonical Bool endpoint with known allocation — 2026-10-31
+
+`canonicalBoolPassModelEndpointWithAllocationOfParentHistory` packages the
+concrete translated Bool parent/minor endpoint together with the role equations
+and the known full extension. The endpoint can therefore feed the existing
+binder-order rebase receipt without guessing which native fvars correspond to
+`major`, `motive`, `minorFalse`, and `minorTrue`. Grouped forall translation,
+generated-rule semantics, and iota soundness remain explicit; this
+fork-specific package is not an upstream PR candidate.
+
 ## Canonical Bool nullary minor allocation — 2026-10-31
 
 `canonicalBoolNullaryFalseStepAllocation` and

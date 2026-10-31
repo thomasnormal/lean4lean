@@ -1,3 +1,15 @@
+## Canonical Bool endpoint with known allocation — 2026-10-31
+
+The concrete parent-history endpoint now returns its translated
+`RecursorInfoModelEndpoint` together with the exact role equations and full
+chronological extension `[major, motive, minorFalse, minorTrue]`. This is the
+allocation input required by the existing grouped-order rebase theorem.
+Focused endpoint/minor regressions and theorem-body admission audits pass, and
+the full build completes all 492 jobs. The source census remains 116 matching
+`sorry` lines in 18 files and 120 whole-word occurrences. Grouped forall
+translation, generated-rule semantics, and iota soundness remain explicit, so
+this fork-specific package is not an upstream PR candidate.
+
 ## Canonical Bool nullary minor allocation — 2026-10-31
 
 The two nullary constructor steps now have theorem-backed singleton allocation

@@ -54,6 +54,30 @@ example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Leve
   canonicalBoolPassModelEndpointOfParentHistory typesEq parentTrace parentHistory minorTrace
     normalization params levels indConsts nindices boolIndices reserved
 
+example {stats : InductiveStats} {types : Array InductiveType} {elimLevel : Level}
+    {infos finalInfos : Array RecInfo} {reader parentReader finalReader : Context}
+    {model parentModel : MLCtx}
+    (typesEq : types = #[canonicalBoolType])
+    (parentTrace : RecursorParentPassTrace stats types elimLevel 0 #[] reader infos parentReader)
+    (parentHistory : TranslatedRecursorParentPass canonicalBoolModel [`u]
+      parentTrace model parentModel)
+    (minorTrace : RecursorMinorPassTrace stats types 0 infos parentReader finalInfos finalReader)
+    (normalization : ((monadLift (TypeChecker.whnf (.sort (.succ .zero))) : M Expr) reader) =
+      .ok (.sort (.succ .zero)))
+    (params : stats.params = #[]) (levels : stats.levels = [])
+    (indConsts : stats.indConsts = #[.const ``Bool []]) (nindices : stats.nindices = #[0])
+    (boolIndices : getIIndices stats (.const ``Bool []) = (0, #[]))
+    (reserved : ContextReserved parentReader.lctx parentReader.ngen) :
+    ∃ (finalModel : MLCtx) (major motive minorFalse minorTrue : FVarId),
+      RecursorInfoModelEndpoint canonicalBoolModel [`u] stats types elimLevel
+        reader finalInfos finalReader model finalModel ∧
+      infos[0]!.major = .fvar major ∧ infos[0]!.motive = .fvar motive ∧
+      finalInfos[0]!.minors =
+        (infos[0]!.minors.push (.fvar minorFalse)).push (.fvar minorTrue) ∧
+      IndexMLCtxExtension model [major, motive, minorFalse, minorTrue] finalModel :=
+  canonicalBoolPassModelEndpointWithAllocationOfParentHistory typesEq parentTrace parentHistory
+    minorTrace normalization params levels indConsts nindices boolIndices reserved
+
 private def auditTheorem (name : Name) : MetaM Unit := do
   let information ← getConstInfo name
   if information matches .axiomInfo _ then
@@ -69,6 +93,7 @@ run_meta
   auditTheorem ``canonicalBoolPassModelEndpointWithParentMotiveSupport
   auditTheorem ``canonicalBoolPassModelEndpoint
   auditTheorem ``canonicalBoolPassModelEndpointOfParentHistory
+  auditTheorem ``canonicalBoolPassModelEndpointWithAllocationOfParentHistory
   logInfo "canonical Bool parent/minor pass endpoint and parent motive receipt are theorem-backed"
 
 end CanonicalBoolPassSupportTest
